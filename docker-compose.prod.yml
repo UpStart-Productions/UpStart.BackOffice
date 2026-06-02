@@ -1,0 +1,48 @@
+# Amplify + EC2: API and DB only. Admin is hosted on Amplify.
+services:
+  db:
+    image: postgres:16
+    container_name: ubo_db_prod
+    environment:
+      POSTGRES_USER: ubo
+      POSTGRES_PASSWORD: ubo
+      POSTGRES_DB: ubo
+    volumes:
+      - ubo_pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ubo -d ubo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/upstart-productions/ubo-api:latest
+    container_name: ubo_api_prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://ubo:ubo@db:5432/ubo?schema=public
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      CORS_ALLOW_LOCAL_NETWORK: ${CORS_ALLOW_LOCAL_NETWORK:-}
+      # AWS
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # Cognito
+      COGNITO_REGION: ${COGNITO_REGION:-}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:-}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
+      # SES (email)
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
+      # API base URL (used in email links)
+      API_BASE_URL: ${API_BASE_URL:-}
+    ports:
+      - "80:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  ubo_pgdata_prod:
