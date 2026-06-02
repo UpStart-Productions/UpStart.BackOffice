@@ -1,0 +1,36 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>UpStart</h1>
+      <p>Back Office</p>
+    </div>
+
+    @if (error()) {
+      <p-message severity="error" [text]="error()!" styleClass="w-full mb-3" />
+    }
+
+    @if (!needsNewPassword()) {
+      <div class="field">
+        <label for="email">Email</label>
+        <input pInputText id="email" type="email" [(ngModel)]="email" class="w-full"
+          (keydown.enter)="signIn()" placeholder="you@example.com" />
+      </div>
+
+      @if (useCognito) {
+        <div class="field">
+          <label for="password">Password</label>
+          <p-password id="password" [(ngModel)]="password" [feedback]="false" styleClass="w-full"
+            inputStyleClass="w-full" (onKeydown)="$event.key === 'Enter' && signIn()" />
+        </div>
+      }
+
+      <p-button label="Sign In" [loading]="loading()" (click)="signIn()" styleClass="w-full" />
+    } @else {
+      <div class="field">
+        <label for="newpass">New Password</label>
+        <p-password id="newpass" [(ngModel)]="newPassword" styleClass="w-full" inputStyleClass="w-full" />
+      </div>
+      <p-button label="Set Password" [loading]="loading()" (click)="confirmNewPassword()" styleClass="w-full" />
+    }
+  </div>
+</div>

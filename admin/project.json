@@ -1,0 +1,53 @@
+{
+  "name": "admin",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "app",
+  "sourceRoot": "admin/src",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/admin",
+        "browser": "admin/src/main.ts",
+        "tsConfig": "admin/tsconfig.app.json",
+        "assets": [{ "glob": "**/*", "input": "admin/public" }],
+        "styles": ["admin/src/styles.scss"]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            { "type": "initial", "maximumWarning": "500kb", "maximumError": "2mb" },
+            { "type": "anyComponentStyle", "maximumWarning": "4kb", "maximumError": "8kb" }
+          ],
+          "outputHashing": "all",
+          "fileReplacements": [
+            { "replace": "admin/src/environments/environment.ts", "with": "admin/src/environments/environment.production.ts" }
+          ]
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "configurations": {
+        "production": { "buildTarget": "admin:build:production" },
+        "development": { "buildTarget": "admin:build:development", "proxyConfig": "admin/proxy.conf.json" }
+      },
+      "defaultConfiguration": "development",
+      "options": {
+        "proxyConfig": "admin/proxy.conf.json",
+        "port": 4201
+      }
+    },
+    "lint": { "executor": "@nx/eslint:lint" }
+  }
+}

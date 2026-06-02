@@ -1,0 +1,77 @@
+<h2 class="page-title">{{ isNew ? 'New Invoice' : 'Edit Invoice' }}</h2>
+@if (error()) { <p-message severity="error" [text]="error()!" styleClass="mb-3" /> }
+
+@if (!loading()) {
+  <div class="flex flex-col gap-4">
+    <div class="card" style="max-width: 700px">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="field col-span-2">
+          <label>Client *</label>
+          <p-select [options]="clients()" optionLabel="name" optionValue="id"
+            [(ngModel)]="form.clientId" (onChange)="onClientChange()" placeholder="Select client" styleClass="w-full" />
+        </div>
+        <div class="field">
+          <label>Issue Date</label>
+          <input pInputText type="date" [(ngModel)]="form.issueDate" class="w-full" />
+        </div>
+        <div class="field">
+          <label>Due Date</label>
+          <input pInputText type="date" [(ngModel)]="form.dueDate" class="w-full" />
+        </div>
+        <div class="field">
+          <label>Tax Rate (e.g. 0.0875 for 8.75%)</label>
+          <input pInputText type="number" [(ngModel)]="form.taxRate" step="0.0001" class="w-full" placeholder="0.0875" />
+        </div>
+        <div class="field col-span-2">
+          <label>Notes</label>
+          <textarea pTextarea [(ngModel)]="form.notes" class="w-full" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+
+    @if (isNew) {
+      <div class="card">
+        <h3 style="margin:0 0 1rem">Line Items</h3>
+        <p-table [value]="lineItems()">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Project</th>
+              <th>Description</th>
+              <th style="width:90px">Qty/Hrs</th>
+              <th style="width:100px">Rate</th>
+              <th style="width:100px">Amount</th>
+              <th style="width:40px"></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-item let-i="rowIndex">
+            <tr>
+              <td>
+                <p-select [options]="filteredProjects()" optionLabel="name" optionValue="id"
+                  [(ngModel)]="item.projectId" placeholder="—" styleClass="w-full" />
+              </td>
+              <td><input pInputText [(ngModel)]="item.description" class="w-full" /></td>
+              <td><input pInputText type="number" [(ngModel)]="item.quantity" (ngModelChange)="calcLine(item)" class="w-full" /></td>
+              <td><input pInputText type="number" [(ngModel)]="item.unitPrice" (ngModelChange)="calcLine(item)" class="w-full" /></td>
+              <td class="text-right font-semibold">{{ formatCurrency(item.amount) }}</td>
+              <td><p-button icon="pi pi-times" [text]="true" severity="danger" size="small" (click)="removeLine(i)" /></td>
+            </tr>
+          </ng-template>
+        </p-table>
+        <p-button label="Add Line" icon="pi pi-plus" severity="secondary" size="small" styleClass="mt-2" (click)="addLine()" />
+
+        <div class="totals-summary mt-3">
+          <div class="flex justify-end gap-4 text-sm">
+            <span>Subtotal: <strong>{{ formatCurrency(subtotal) }}</strong></span>
+            @if (form.taxRate) { <span>Tax: <strong>{{ formatCurrency(taxAmount) }}</strong></span> }
+            <span>Total: <strong>{{ formatCurrency(total) }}</strong></span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <div class="flex gap-2">
+      <a routerLink="/invoices"><p-button label="Cancel" severity="secondary" /></a>
+      <p-button label="Save Invoice" [loading]="saving()" (click)="save()" />
+    </div>
+  </div>
+}

@@ -1,0 +1,30 @@
+<div class="app-layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <span class="brand">UpStart</span>
+      <span class="brand-sub">Back Office</span>
+    </div>
+
+    <ul class="nav-list">
+      @for (item of navItems; track item.route) {
+        <li>
+          <a [routerLink]="item.route" routerLinkActive="active" class="nav-link">
+            <i class="pi {{ item.icon }}"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+
+    <div class="sidebar-footer">
+      @if (me()) {
+        <span class="user-name">{{ displayName }}</span>
+      }
+      <button pButton severity="secondary" size="small" (click)="signOut()" label="Sign out"></button>
+    </div>
+  </nav>
+
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

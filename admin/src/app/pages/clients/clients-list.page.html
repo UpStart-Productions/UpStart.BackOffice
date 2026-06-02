@@ -1,0 +1,37 @@
+<h2 class="page-title">Clients</h2>
+
+@if (error()) { <p-message severity="error" [text]="error()!" styleClass="mb-3" /> }
+
+<div class="flex mb-3">
+  <a routerLink="/clients/new"><p-button label="New Client" icon="pi pi-plus" /></a>
+</div>
+
+<div class="card">
+  <p-table [value]="clients()" [loading]="loading()" stripedRows>
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Name</th>
+        <th>Code</th>
+        <th>Email</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-client>
+      <tr>
+        <td><a [routerLink]="['/clients', client.id]" class="text-primary">{{ client.name }}</a></td>
+        <td><code>{{ client.code }}</code></td>
+        <td>{{ client.email || '—' }}</td>
+        <td><p-tag [value]="client.isActive ? 'Active' : 'Inactive'" [severity]="client.isActive ? 'success' : 'secondary'" /></td>
+        <td>
+          <a [routerLink]="['/clients', client.id]"><p-button icon="pi pi-pencil" [text]="true" size="small" /></a>
+          <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (click)="confirmDelete(client)" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr><td colspan="5" class="text-center p-4">No clients yet.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+<p-confirmDialog />

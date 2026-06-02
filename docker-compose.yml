@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: ubo_db
+    environment:
+      POSTGRES_USER: ubo
+      POSTGRES_PASSWORD: ubo
+      POSTGRES_DB: ubo
+    ports:
+      - "5433:5432"
+    volumes:
+      - ubo_pgdata:/var/lib/postgresql/data
+
+volumes:
+  ubo_pgdata:

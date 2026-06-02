@@ -1,0 +1,42 @@
+<h2 class="page-title">Invoices</h2>
+@if (error()) { <p-message severity="error" [text]="error()!" styleClass="mb-3" /> }
+<div class="flex mb-3">
+  <a routerLink="/invoices/new"><p-button label="New Invoice" icon="pi pi-plus" /></a>
+</div>
+<div class="card">
+  <p-table [value]="invoices()" [loading]="loading()" stripedRows>
+    <ng-template pTemplate="header">
+      <tr>
+        <th>Number</th>
+        <th>Client</th>
+        <th>Issue Date</th>
+        <th>Due Date</th>
+        <th>Total</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-inv>
+      <tr>
+        <td><a [routerLink]="['/invoices', inv.id]" class="text-primary font-semibold">{{ inv.displayNumber }}</a></td>
+        <td>{{ inv.client.name }}</td>
+        <td>{{ formatDate(inv.issueDate) }}</td>
+        <td>{{ inv.dueDate ? formatDate(inv.dueDate) : '—' }}</td>
+        <td>{{ formatAmount(inv.total) }}</td>
+        <td><p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" /></td>
+        <td class="flex gap-1">
+          <p-button icon="pi pi-file-pdf" [text]="true" size="small" (click)="downloadPdf(inv)" pTooltip="Download PDF" />
+          @if (inv.status === 'DRAFT') {
+            <p-button icon="pi pi-send" [text]="true" size="small" (click)="send(inv)" pTooltip="Send to client" />
+          }
+          <a [routerLink]="['/invoices', inv.id]"><p-button icon="pi pi-pencil" [text]="true" size="small" /></a>
+          <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (click)="confirmDelete(inv)" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template pTemplate="emptymessage">
+      <tr><td colspan="7" class="text-center p-4">No invoices yet.</td></tr>
+    </ng-template>
+  </p-table>
+</div>
+<p-confirmDialog />
