@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import puppeteer from 'puppeteer';
-import { Decimal } from '@prisma/client/runtime/library';
+
+type Numeric = { toString(): string } | number;
 
 type LineItem = {
   description: string;
-  quantity: number | Decimal;
-  unitPrice: number | Decimal;
-  amount: number | Decimal;
+  quantity: Numeric;
+  unitPrice: Numeric;
+  amount: Numeric;
   project?: { name: string } | null;
 };
 
@@ -15,15 +16,15 @@ type InvoiceData = {
   issueDate: Date;
   dueDate?: Date | null;
   notes?: string | null;
-  subtotal: number | Decimal;
-  taxRate?: number | Decimal | null;
-  taxAmount?: number | Decimal | null;
-  total: number | Decimal;
+  subtotal: Numeric;
+  taxRate?: Numeric | null;
+  taxAmount?: Numeric | null;
+  total: Numeric;
   client: { name: string; email?: string | null; address?: string | null; city?: string | null; state?: string | null; zip?: string | null };
   lineItems: LineItem[];
 };
 
-function fmt(val: number | Decimal | null | undefined): string {
+function fmt(val: Numeric | null | undefined): string {
   if (val == null) return '$0.00';
   return '$' + Number(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }

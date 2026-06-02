@@ -21,7 +21,7 @@ export class DevAuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
     const email =
-      (request.headers['x-user-email'] as string)?.trim() ?? 'admin@upstart.test';
+      (request.headers['x-user-email'] as string)?.trim() || 'admin@upstart.test';
     const isSuperHeader = request.headers['x-super-admin'] === 'true';
 
     const user = await this.prisma.user.findUnique({

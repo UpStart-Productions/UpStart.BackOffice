@@ -8,13 +8,14 @@ import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
+import { PageComponent } from '../../ui/layout/page.component';
 
 type Client = { id: string; name: string; code: string; email?: string; phone?: string; isActive: boolean };
 
 @Component({
   selector: 'app-clients-list-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule],
+  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule, PageComponent],
   providers: [ConfirmationService],
   templateUrl: './clients-list.page.html',
 })

@@ -1,36 +1,65 @@
-<h2 class="page-title">Projects</h2>
-@if (error()) { <p-message severity="error" [text]="error()!" styleClass="mb-3" /> }
-<div class="flex mb-3">
-  <a routerLink="/projects/new"><p-button label="New Project" icon="pi pi-plus" /></a>
-</div>
-<div class="card">
-  <p-table [value]="projects()" [loading]="loading()" stripedRows>
-    <ng-template pTemplate="header">
-      <tr>
-        <th>Name</th>
-        <th>Client</th>
-        <th>Rate</th>
-        <th>Billable</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-project>
-      <tr>
-        <td><a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a></td>
-        <td>{{ project.client.name }}</td>
-        <td>{{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : '—' }}</td>
-        <td><i class="pi" [class.pi-check-circle]="project.isBillable" [class.pi-circle]="!project.isBillable"></i></td>
-        <td><p-tag [value]="project.isActive ? 'Active' : 'Inactive'" [severity]="project.isActive ? 'success' : 'secondary'" /></td>
-        <td>
-          <a [routerLink]="['/projects', project.id]"><p-button icon="pi pi-pencil" [text]="true" size="small" /></a>
-          <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (click)="confirmDelete(project)" />
-        </td>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr><td colspan="6" class="text-center p-4">No projects yet.</td></tr>
-    </ng-template>
-  </p-table>
-</div>
-<p-confirmDialog />
+<app-page title="Projects" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+  <div class="card">
+    <h2 class="page-title page-title-in-card">Projects</h2>
+    <div class="toolbar">
+      <a pButton label="New Project" icon="pi pi-plus" routerLink="/projects/new"></a>
+    </div>
+    <p-table [value]="projects()" [loading]="loading()" styleClass="table-bordered">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Name</th>
+          <th>Client</th>
+          <th>Rate</th>
+          <th>Billable</th>
+          <th>Status</th>
+          <th style="width: 6rem"></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-project>
+        <tr>
+          <td>
+            <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
+          </td>
+          <td>{{ project.client.name }}</td>
+          <td>{{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : '—' }}</td>
+          <td>
+            <i
+              class="pi"
+              [class.pi-check-circle]="project.isBillable"
+              [class.pi-circle]="!project.isBillable"
+            ></i>
+          </td>
+          <td>
+            <p-tag
+              [value]="project.isActive ? 'Active' : 'Inactive'"
+              [severity]="project.isActive ? 'success' : 'secondary'"
+            />
+          </td>
+          <td>
+            <a [routerLink]="['/projects', project.id]">
+              <p-button icon="pi pi-pencil" [text]="true" size="small" />
+            </a>
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [text]="true"
+              size="small"
+              (click)="confirmDelete(project)"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center p-4 text-color-secondary">No projects yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+  <p-confirmDialog />
+</app-page>

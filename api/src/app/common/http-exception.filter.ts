@@ -8,6 +8,11 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+/** Routes used by GrovLink / Nonprofit.Mobile.Platform — not this API. */
+function isForeignAdminRoute(path: string): boolean {
+  return path.startsWith('/api/admin/') || path.startsWith('/admin/');
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
@@ -38,16 +43,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     const error = exception instanceof HttpException ? exception.name : 'Internal Server Error';
+    const path = (req.url ?? req.path ?? '/').replace(/\?.*/, '');
+    const isDev = process.env.NODE_ENV !== 'production';
+    const foreignAdmin =
+      status === HttpStatus.NOT_FOUND && isDev && isForeignAdminRoute(path);
 
-    this.logger.error(
-      `[${requestId ?? 'unknown'}] ${status} ${exception instanceof Error ? exception.message : String(exception)}`,
-    );
+    if (foreignAdmin) {
+      this.logger.debug(
+        `Foreign admin route (close other local admin tabs or point them at port 3000): ${req.method} ${path}`,
+      );
+    } else {
+      this.logger.error(
+        `[${requestId ?? 'unknown'}] ${status} ${exception instanceof Error ? exception.message : String(exception)}`,
+      );
+    }
 
     res.status(status).json({
       statusCode: status,
       message,
       error,
-      path: req.url ?? req.path ?? '/',
+      path,
       ...(requestId ? { requestId } : {}),
     });
   }

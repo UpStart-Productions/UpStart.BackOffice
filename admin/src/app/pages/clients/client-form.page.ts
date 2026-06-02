@@ -8,11 +8,21 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
+import { PageComponent } from '../../ui/layout/page.component';
 
 @Component({
   selector: 'app-client-form-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, MessageModule, TextareaModule, ToggleSwitchModule],
+  imports: [
+    FormsModule,
+    RouterLink,
+    ButtonModule,
+    InputTextModule,
+    MessageModule,
+    TextareaModule,
+    ToggleSwitchModule,
+    PageComponent,
+  ],
   templateUrl: './client-form.page.html',
 })
 export class ClientFormPage implements OnInit {

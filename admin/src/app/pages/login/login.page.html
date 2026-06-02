@@ -9,15 +9,20 @@
       <p-message severity="error" [text]="error()!" styleClass="w-full mb-3" />
     }
 
+    @if (!useCognito) {
+      <p-message severity="info" styleClass="w-full mb-3"
+        text="Dev mode: use admin@upstart.test (created by npm run dev:seed)." />
+    }
+
     @if (!needsNewPassword()) {
-      <div class="field">
+      <div class="form-field">
         <label for="email">Email</label>
         <input pInputText id="email" type="email" [(ngModel)]="email" class="w-full"
-          (keydown.enter)="signIn()" placeholder="you@example.com" />
+          (keydown.enter)="signIn()" [placeholder]="useCognito ? 'you@example.com' : 'admin@upstart.test'" />
       </div>
 
       @if (useCognito) {
-        <div class="field">
+        <div class="form-field">
           <label for="password">Password</label>
           <p-password id="password" [(ngModel)]="password" [feedback]="false" styleClass="w-full"
             inputStyleClass="w-full" (onKeydown)="$event.key === 'Enter' && signIn()" />
@@ -26,7 +31,7 @@
 
       <p-button label="Sign In" [loading]="loading()" (click)="signIn()" styleClass="w-full" />
     } @else {
-      <div class="field">
+      <div class="form-field">
         <label for="newpass">New Password</label>
         <p-password id="newpass" [(ngModel)]="newPassword" styleClass="w-full" inputStyleClass="w-full" />
       </div>

@@ -1,0 +1,120 @@
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+  color: var(--text-color);
+}
+
+.required-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 0.25rem;
+  border-radius: 50%;
+  background-color: var(--color-error);
+  vertical-align: middle;
+}
+
+.page-header-with-back {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.text-primary {
+  color: var(--p-primary-color);
+  text-decoration: none;
+  font-weight: 500;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.text-muted {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+/* Flex / layout helpers used in templates */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.justify-content-end,
+.justify-end {
+  justify-content: flex-end;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 1rem;
+}
+
+.gap-4 {
+  gap: 1.5rem;
+}
+
+/* Time entry: full-bleed Harvest sheet inside layout main */
+.layout-main--flush {
+  margin: 0 -2rem;
+  padding-bottom: 0;
+}
+
+.p-datatable.table-bordered .p-datatable-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.p-datatable.table-bordered .p-datatable-tbody > tr > td {
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.p-datatable.table-bordered .p-datatable-tbody > tr:last-child > td {
+  border-bottom: none;
+}

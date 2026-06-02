@@ -48,6 +48,7 @@ export class ApiService {
       if (res.status === 401 && !this.signingOut) {
         this.signingOut = true;
         this.auth.clear();
+        sessionStorage.setItem('ubo_auth_error', 'Session expired. Please sign in again.');
         this.router.navigate(['/login']);
         if (this.cognito.useCognito) this.cognito.signOut().catch(() => {});
         return new Promise<T>(() => {});

@@ -1,5 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
+import { workspaceGuard } from './core/workspace.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -11,7 +12,7 @@ export const appRoutes: Route[] = [
   {
     path: '',
     component: ShellComponent,
-    canActivate: [authGuard],
+    canActivate: [authGuard, workspaceGuard],
     children: [
       {
         path: 'time-entry',

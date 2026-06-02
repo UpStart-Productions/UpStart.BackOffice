@@ -1,0 +1,122 @@
+/* Form and content area layout (shared by Organization, Mobile App Config, Users, Showcase, etc.) */
+
+.showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.showcase-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.showcase-half {
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.showcase-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.showcase-flex-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.showcase-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 2rem 0 1rem;
+  color: var(--text-color);
+}
+
+.showcase-section-title:first-child {
+  margin-top: 0;
+}
+
+.showcase-section-title-sm {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.showcase-full {
+  flex: 1 1 auto;
+  min-width: 400px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+/* Color input (swatch + hex) – e.g. Mobile App Config branding */
+.color-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.color-swatch {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--p-color-500);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.color-hex {
+  width: 7rem;
+  min-width: 7rem;
+}
+
+/* Image upload preview – e.g. Organization logo, Mobile App Config images */
+.image-preview-area {
+  min-height: 4rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0;
+  color: var(--p-color-500);
+  font-size: 0.875rem;
+}
+
+.image-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.image-preview img {
+  max-height: 12rem;
+  max-width: 32rem;
+  object-fit: contain;
+}
+
+.fileupload-hide-label .p-fileupload-basic-content > span {
+  display: none;
+}

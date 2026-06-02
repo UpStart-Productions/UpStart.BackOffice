@@ -1,0 +1,13 @@
+.layout-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem 0;
+  gap: 0.5rem;
+  border-top: 1px solid var(--surface-border);
+
+  .footer-logo-img {
+    height: 3rem;
+    width: auto;
+  }
+}

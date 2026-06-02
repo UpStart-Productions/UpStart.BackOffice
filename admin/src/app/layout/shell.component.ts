@@ -1,45 +1,59 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
+import { NgClass } from '@angular/common';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
-import { ApiService } from '../core/api.service';
-
-type Me = { firstName?: string; lastName?: string; email: string; workspaces: { slug: string; name: string }[] };
+import { MeResponse, WorkspaceService } from '../core/workspace.service';
+import { AppFooterComponent } from './app-footer.component';
+import { AppSidebarComponent, NavItem } from './app-sidebar.component';
+import { AppTopbarComponent } from './app-topbar.component';
+import { LayoutService } from './layout.service';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonModule],
+  imports: [NgClass, RouterOutlet, AppTopbarComponent, AppSidebarComponent, AppFooterComponent],
   templateUrl: './shell.component.html',
-  styleUrl: './shell.component.scss',
 })
 export class ShellComponent implements OnInit {
   private readonly auth = inject(AuthStoreService);
   private readonly cognito = inject(CognitoAuthService);
-  private readonly api = inject(ApiService);
+  private readonly workspace = inject(WorkspaceService);
   private readonly router = inject(Router);
+  readonly layout = inject(LayoutService);
 
-  me = signal<Me | null>(null);
-  workspaceSlug = signal('');
+  me = signal<MeResponse | null>(null);
+  flushMain = signal(false);
 
-  navItems = [
-    { label: 'Time Entry', icon: 'pi-clock', route: '/time-entry' },
+  navItems: NavItem[] = [
+    { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
     { label: 'Invoices', icon: 'pi-file-invoice', route: '/invoices' },
     { label: 'Clients', icon: 'pi-users', route: '/clients' },
     { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
   ];
 
+  containerClass = computed(() => {
+    const state = this.layout.layoutState();
+    return {
+      'layout-static': true,
+      'layout-static-inactive': state.staticMenuDesktopInactive,
+      'layout-mobile-active': state.mobileMenuActive,
+    };
+  });
+
+  constructor() {
+    this.router.events
+      .pipe(filter((e) => e instanceof NavigationEnd))
+      .subscribe(() => {
+        this.flushMain.set(this.router.url.startsWith('/time-entry'));
+      });
+  }
+
   async ngOnInit() {
-    this.workspaceSlug.set(this.auth.workspaceSlug);
-    try {
-      const me = await this.api.get<Me>('/users/me');
-      this.me.set(me);
-      if (!this.auth.workspaceSlug && me.workspaces.length > 0) {
-        this.auth.workspaceSlug = me.workspaces[0].slug;
-        this.workspaceSlug.set(me.workspaces[0].slug);
-      }
-    } catch { /* ignore */ }
+    this.flushMain.set(this.router.url.startsWith('/time-entry'));
+    const me = await this.workspace.getReady();
+    if (me) this.me.set(me);
   }
 
   get displayName(): string {
@@ -53,5 +67,9 @@ export class ShellComponent implements OnInit {
     this.auth.clear();
     if (this.cognito.useCognito) await this.cognito.signOut();
     else this.router.navigate(['/login']);
+  }
+
+  onMaskClick() {
+    this.layout.closeMobileMenu();
   }
 }

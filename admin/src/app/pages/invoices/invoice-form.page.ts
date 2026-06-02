@@ -10,6 +10,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
+import { PageComponent } from '../../ui/layout/page.component';
 
 type Client = { id: string; name: string };
 type Project = { id: string; name: string; clientId: string };
@@ -25,7 +26,18 @@ type LineItem = {
 @Component({
   selector: 'app-invoice-form-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, MessageModule, TextareaModule, SelectModule, ToggleSwitchModule, TableModule],
+  imports: [
+    FormsModule,
+    RouterLink,
+    ButtonModule,
+    InputTextModule,
+    MessageModule,
+    TextareaModule,
+    SelectModule,
+    ToggleSwitchModule,
+    TableModule,
+    PageComponent,
+  ],
   templateUrl: './invoice-form.page.html',
 })
 export class InvoiceFormPage implements OnInit {

@@ -1,12 +1,16 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
+import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
+import { WorkspaceService } from '../../core/workspace.service';
+
+const DEV_LOGIN_EMAIL = 'admin@upstart.test';
 
 @Component({
   selector: 'app-login-page',
@@ -15,12 +19,14 @@ import { CognitoAuthService } from '../../core/cognito-auth.service';
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   private readonly auth = inject(AuthStoreService);
+  private readonly api = inject(ApiService);
   private readonly cognito = inject(CognitoAuthService);
+  private readonly workspace = inject(WorkspaceService);
   private readonly router = inject(Router);
 
-  email = '';
+  email = DEV_LOGIN_EMAIL;
   password = '';
   loading = signal(false);
   error = signal<string | null>(null);
@@ -29,13 +35,38 @@ export class LoginPage {
 
   get useCognito() { return this.cognito.useCognito; }
 
+  ngOnInit() {
+    if (!this.useCognito && !this.email.trim()) {
+      this.email = DEV_LOGIN_EMAIL;
+    }
+    const authError = sessionStorage.getItem('ubo_auth_error');
+    if (authError) {
+      this.error.set(authError);
+      sessionStorage.removeItem('ubo_auth_error');
+    }
+  }
+
   async signIn() {
     this.error.set(null);
     if (!this.email.trim()) { this.error.set('Email is required'); return; }
 
     if (!this.useCognito) {
       this.auth.baseEmail = this.email.trim();
-      this.router.navigate(['/time-entry']);
+      this.workspace.reset();
+      this.loading.set(true);
+      try {
+        await this.api.get('/users/me');
+        await this.router.navigate(['/time-entry']);
+      } catch (err) {
+        this.auth.clear();
+        this.error.set(
+          err instanceof Error
+            ? err.message
+            : 'Sign in failed. Run npm run dev:seed and use admin@upstart.test.',
+        );
+      } finally {
+        this.loading.set(false);
+      }
       return;
     }
 

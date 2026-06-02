@@ -1,92 +1,181 @@
-<h2 class="page-title">Time Entry</h2>
+<div class="harvest-timesheet">
+  <header class="timesheet-header">
+    <h1>Time</h1>
+    <div class="week-nav">
+      <button type="button" class="nav-btn" (click)="prevWeek()" aria-label="Previous week">
+        ‹
+      </button>
+      <span class="week-range">{{ weekLabel() }}</span>
+      <button type="button" class="nav-btn" (click)="nextWeek()" aria-label="Next week">
+        ›
+      </button>
+      @if (!isCurrentWeek()) {
+        <button type="button" class="this-week" (click)="goToThisWeek()">This week</button>
+      }
+    </div>
+  </header>
 
-@if (error()) {
-  <p-message severity="error" [text]="error()!" styleClass="mb-3" />
-}
+  @if (error()) {
+    <div class="error-banner" role="alert">{{ error() }}</div>
+  }
 
-@if (runningEntry()) {
-  <div class="running-timer card mb-3">
-    <i class="pi pi-clock" style="color: var(--p-primary-color)"></i>
-    <span>Timer running: <strong>{{ runningEntry()!.project.name }}</strong>
-      — {{ runningEntry()!.project.client.name }}</span>
-    <p-button size="small" severity="danger" label="Stop Timer"
-      (click)="stopTimer(runningEntry()!.id)" />
-  </div>
-}
-
-<div class="flex gap-2 mb-3">
-  <p-button label="Log Time" icon="pi pi-plus" (click)="openNew()" />
-</div>
-
-<div class="card">
-  <p-table [value]="entries()" [loading]="loading()" stripedRows>
-    <ng-template pTemplate="header">
-      <tr>
-        <th>Date</th>
-        <th>Project</th>
-        <th>Client</th>
-        <th>Description</th>
-        <th>Duration</th>
-        <th>Billable</th>
-        <th></th>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="body" let-entry>
-      <tr>
-        <td>{{ formatDate(entry.startedAt) }}</td>
-        <td>{{ entry.project.name }}</td>
-        <td>{{ entry.project.client.name }}</td>
-        <td>{{ entry.description || '—' }}</td>
-        <td>
-          @if (!entry.stoppedAt) {
-            <span style="color: var(--p-primary-color)">Running...</span>
-          } @else {
-            {{ formatDuration(entry.durationMin) }}
+  <div class="timer-row">
+    <div class="timer-project">
+      <button
+        type="button"
+        class="project-trigger"
+        [class.placeholder]="!timerProjectId()"
+        (click)="toggleProjectPicker(); $event.stopPropagation()"
+        [disabled]="!!runningEntry()"
+      >
+        {{ timerProjectLabel() || 'Select a project' }}
+      </button>
+      @if (projectPickerOpen() && !runningEntry()) {
+        <div class="project-dropdown" (click)="$event.stopPropagation()">
+          <input
+            class="search"
+            type="text"
+            placeholder="Search projects..."
+            [ngModel]="projectSearch()"
+            (ngModelChange)="projectSearch.set($event)"
+            (click)="$event.stopPropagation()"
+          />
+          @for (p of filteredProjects(); track p.id) {
+            <button type="button" class="option" (click)="selectTimerProject(p)">
+              <span class="client">{{ p.client.name }}</span>
+              {{ p.name }}
+            </button>
+          } @empty {
+            <div class="empty">No projects found</div>
           }
-        </td>
-        <td><i class="pi" [class.pi-check-circle]="entry.isBillable" [class.pi-circle]="!entry.isBillable"></i></td>
-        <td>
-          <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small"
-            (click)="confirmDelete(entry)" />
-        </td>
-      </tr>
-    </ng-template>
-    <ng-template pTemplate="emptymessage">
-      <tr><td colspan="7" class="text-center p-4">No time entries yet.</td></tr>
-    </ng-template>
-  </p-table>
-</div>
-
-<p-dialog header="Log Time" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: '480px' }">
-  <div class="flex flex-col gap-3 pt-2">
-    <div class="field">
-      <label>Project</label>
-      <p-select [options]="projects()" optionLabel="name" optionValue="id"
-        [(ngModel)]="form.projectId" placeholder="Select project" styleClass="w-full" />
+        </div>
+      }
     </div>
-    <div class="field">
-      <label>Description</label>
-      <input pInputText [(ngModel)]="form.description" class="w-full" placeholder="What did you work on?" />
+    <div class="timer-notes">
+      <label class="sr-only" for="timer-notes">Notes</label>
+      <input
+        id="timer-notes"
+        type="text"
+        placeholder="What are you working on?"
+        [ngModel]="timerNotes()"
+        (ngModelChange)="timerNotes.set($event)"
+        [disabled]="!!runningEntry()"
+      />
     </div>
-    <div class="flex gap-3">
-      <div class="field flex-1">
-        <label>Start</label>
-        <input pInputText type="datetime-local" [(ngModel)]="form.startedAt" class="w-full" />
-      </div>
-      <div class="field flex-1">
-        <label>Stop (optional)</label>
-        <input pInputText type="datetime-local" [(ngModel)]="form.stoppedAt" class="w-full" />
-      </div>
-    </div>
-    <div class="flex align-items-center gap-2">
-      <p-toggleSwitch [(ngModel)]="form.isBillable" />
-      <label>Billable</label>
+    <div class="timer-actions">
+      @if (runningEntry(); as run) {
+        <span class="running-label" [title]="projectLabel(run.project)">
+          {{ run.project.client.name }} / {{ run.project.name }}
+        </span>
+        <span class="timer-elapsed">{{ elapsedLabel() }}</span>
+        <button type="button" class="btn-stop" [disabled]="saving()" (click)="stopTimer()">
+          ■ Stop
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="btn-start"
+          [disabled]="saving() || !timerProjectId()"
+          (click)="startTimer()"
+        >
+          ▶ Start
+        </button>
+      }
     </div>
   </div>
-  <ng-template pTemplate="footer">
-    <p-button label="Cancel" severity="secondary" (click)="dialogVisible.set(false)" />
-    <p-button label="Save" [loading]="saving()" (click)="save()" />
-  </ng-template>
-</p-dialog>
 
-<p-confirmDialog />
+  @if (loading()) {
+    <div class="loading-overlay">Loading timesheet…</div>
+  } @else {
+    <div class="grid-scroll">
+      <table class="timesheet-grid">
+        <thead>
+          <tr>
+            <th class="col-project" scope="col">Project</th>
+            @for (d of days(); track dayKey(d)) {
+              <th scope="col" [class.today]="isDayToday(d)">
+                {{ dayLabel(d).short }}
+                <span class="dom">{{ dayLabel(d).dom }}</span>
+              </th>
+            }
+            <th class="col-total" scope="col">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of gridProjects(); track p.id) {
+            <tr>
+              <td class="col-project">
+                <span class="client-name">{{ p.client.name }}</span>
+                {{ p.name }}
+              </td>
+              @for (d of days(); track dayKey(d)) {
+                <td
+                  class="cell-hours"
+                  [class.today]="isDayToday(d)"
+                >
+                  @if (isEditing(p.id, d)) {
+                    <input
+                      type="text"
+                      [ngModel]="editDraft()"
+                      (ngModelChange)="editDraft.set($event)"
+                      (blur)="commitEdit(p.id, d)"
+                      (keydown)="onCellKeydown($event, p.id, d)"
+                      autofocus
+                    />
+                  } @else {
+                    <span
+                      class="cell-display"
+                      (click)="startEdit(p.id, d)"
+                      [attr.aria-label]="'Hours for ' + p.name + ' on ' + dayKey(d)"
+                    >{{ formatCellHours(cellHours(p.id, d)) }}</span>
+                  }
+                </td>
+              }
+              <td class="col-total">{{ formatTotal(rowTotalHours(p.id)) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td class="col-project" [attr.colspan]="9" style="text-align: center; padding: 2rem; color: #6b7785;">
+                No time this week. Start the timer or add a project row below.
+              </td>
+            </tr>
+          }
+        </tbody>
+        @if (gridProjects().length > 0) {
+          <tfoot>
+            <tr>
+              <td class="col-project">Day total</td>
+              @for (d of days(); track dayKey(d)) {
+                <td>{{ formatTotal(dayTotalHours(d)) }}</td>
+              }
+              <td class="week-total">{{ formatTotal(weekTotalHours()) }}</td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+    </div>
+
+    <div class="add-row">
+      <button type="button" (click)="toggleAddRowPicker(); $event.stopPropagation()">+ Add row for another project</button>
+      @if (addRowPickerOpen()) {
+        <div class="project-dropdown" style="position: relative; margin-top: 0.5rem; max-width: 320px;" (click)="$event.stopPropagation()">
+          <input
+            class="search"
+            type="text"
+            placeholder="Search projects..."
+            [ngModel]="addRowSearch()"
+            (ngModelChange)="addRowSearch.set($event)"
+          />
+          @for (p of addRowProjects(); track p.id) {
+            <button type="button" class="option" (click)="addProjectRow(p)">
+              <span class="client">{{ p.client.name }}</span>
+              {{ p.name }}
+            </button>
+          } @empty {
+            <div class="empty">All projects are on the timesheet</div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

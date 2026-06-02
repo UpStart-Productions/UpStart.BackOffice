@@ -1,0 +1,103 @@
+@use 'mixins' as *;
+
+.layout-topbar {
+  position: fixed;
+  height: 4rem;
+  z-index: 997;
+  left: 0;
+  top: 0;
+  width: 100%;
+  padding: 0 2rem;
+  background-color: var(--surface-card);
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .layout-topbar-logo-container {
+    width: 20rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .layout-topbar-logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--p-primary-600);
+    text-decoration: none;
+    line-height: 1.2;
+
+    small {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-color-secondary);
+    }
+  }
+
+  .layout-topbar-action {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    padding: 0;
+    color: var(--text-color);
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    border-radius: var(--content-border-radius);
+
+    &:hover {
+      background-color: var(--surface-hover);
+    }
+
+    &:focus-visible {
+      @include focused();
+    }
+
+    i {
+      font-size: 1.25rem;
+    }
+  }
+
+  .layout-menu-button {
+    margin-right: 0.25rem;
+  }
+
+  .layout-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .topbar-user-name {
+    font-size: 0.875rem;
+    color: var(--text-color-secondary);
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 992px) {
+  .layout-topbar .layout-menu-button {
+    display: none;
+  }
+}
+
+@media (max-width: 991px) {
+  .layout-topbar .layout-topbar-logo-container {
+    width: auto;
+    flex: 1;
+  }
+
+  .layout-topbar .topbar-user-name {
+    display: none;
+  }
+}

@@ -171,11 +171,13 @@ export class InvoicesController {
     if (!invoice.client.email) throw new BadRequestException('Client has no email address');
 
     const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
+    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName);
     const result = await this.mail.sendInvoice({
       to: invoice.client.email,
       toName: invoice.client.name,
       invoiceNumber: invoice.displayNumber,
       clientName: invoice.client.name,
+      pdfBuffer,
       notes: invoice.notes ?? undefined,
     });
 

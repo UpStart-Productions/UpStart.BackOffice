@@ -1,30 +1,19 @@
-<div class="app-layout">
-  <nav class="sidebar">
-    <div class="sidebar-header">
-      <span class="brand">UpStart</span>
-      <span class="brand-sub">Back Office</span>
+<div class="layout-wrapper" [ngClass]="containerClass()">
+  <app-topbar [userName]="displayName" (signOut)="signOut()" />
+  <app-sidebar [navItems]="navItems" />
+  <div class="layout-main-container">
+    <div class="layout-main" [class.layout-main--flush]="flushMain()">
+      <router-outlet />
     </div>
-
-    <ul class="nav-list">
-      @for (item of navItems; track item.route) {
-        <li>
-          <a [routerLink]="item.route" routerLinkActive="active" class="nav-link">
-            <i class="pi {{ item.icon }}"></i>
-            <span>{{ item.label }}</span>
-          </a>
-        </li>
-      }
-    </ul>
-
-    <div class="sidebar-footer">
-      @if (me()) {
-        <span class="user-name">{{ displayName }}</span>
-      }
-      <button pButton severity="secondary" size="small" (click)="signOut()" label="Sign out"></button>
-    </div>
-  </nav>
-
-  <main class="main-content">
-    <router-outlet />
-  </main>
+    @if (!flushMain()) {
+      <app-footer />
+    }
+  </div>
+  <div
+    class="layout-mask"
+    (click)="onMaskClick()"
+    role="button"
+    tabindex="-1"
+    aria-label="Close menu"
+  ></div>
 </div>

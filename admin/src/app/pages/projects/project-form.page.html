@@ -1,40 +1,82 @@
-<h2 class="page-title">{{ isNew ? 'New Project' : 'Edit Project' }}</h2>
-@if (error()) { <p-message severity="error" [text]="error()!" styleClass="mb-3" /> }
+<app-page [title]="isNew ? 'New Project' : 'Edit Project'" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  } @else if (!loading()) {
+    <form class="card" (ngSubmit)="save()">
+      <div class="page-header-with-back">
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          type="button"
+          routerLink="/projects"
+          aria-label="Back to Projects"
+        />
+        <h2 class="page-title page-title-in-card mb-0">
+          {{ isNew ? 'New Project' : 'Edit Project' }}
+        </h2>
+      </div>
 
-@if (!loading()) {
-  <div class="card" style="max-width: 560px">
-    <div class="flex flex-col gap-3">
-      <div class="field">
-        <label>Client *</label>
-        <p-select [options]="clients()" optionLabel="name" optionValue="id"
-          [(ngModel)]="form.clientId" placeholder="Select client" styleClass="w-full" />
-      </div>
-      <div class="field">
-        <label>Project Name *</label>
-        <input pInputText [(ngModel)]="form.name" class="w-full" />
-      </div>
-      <div class="field">
-        <label>Description</label>
-        <textarea pTextarea [(ngModel)]="form.description" class="w-full" rows="3"></textarea>
-      </div>
-      <div class="field">
-        <label>Hourly Rate (optional override)</label>
-        <input pInputText type="number" [(ngModel)]="form.hourlyRate" class="w-full" placeholder="e.g. 150" />
-      </div>
-      <div class="flex gap-4">
-        <div class="flex align-items-center gap-2">
-          <p-toggleSwitch [(ngModel)]="form.isBillable" />
-          <label>Billable</label>
+      <div class="showcase-flex-col">
+        <div class="form-field showcase-full">
+          <label for="clientId">Client <span class="required-dot" aria-hidden="true"></span></label>
+          <p-select
+            inputId="clientId"
+            [options]="clients()"
+            optionLabel="name"
+            optionValue="id"
+            [(ngModel)]="form.clientId"
+            name="clientId"
+            placeholder="Select client"
+            styleClass="w-full"
+          />
         </div>
-        <div class="flex align-items-center gap-2">
-          <p-toggleSwitch [(ngModel)]="form.isActive" />
-          <label>Active</label>
+        <div class="form-field showcase-full">
+          <label for="name">Project Name <span class="required-dot" aria-hidden="true"></span></label>
+          <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" />
+        </div>
+        <div class="form-field showcase-full">
+          <label for="description">Description</label>
+          <textarea
+            pTextarea
+            id="description"
+            name="description"
+            [(ngModel)]="form.description"
+            class="w-full"
+            rows="3"
+          ></textarea>
+        </div>
+        <div class="form-field showcase-full">
+          <label for="hourlyRate">Hourly Rate (optional override)</label>
+          <input
+            pInputText
+            id="hourlyRate"
+            name="hourlyRate"
+            type="number"
+            [(ngModel)]="form.hourlyRate"
+            class="w-full"
+            placeholder="e.g. 150"
+          />
+        </div>
+        <div class="showcase-row">
+          <div class="flex align-items-center gap-2">
+            <p-toggleSwitch [(ngModel)]="form.isBillable" name="isBillable" />
+            <label>Billable</label>
+          </div>
+          <div class="flex align-items-center gap-2">
+            <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
+            <label>Active</label>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="flex gap-2 mt-4">
-      <a routerLink="/projects"><p-button label="Cancel" severity="secondary" /></a>
-      <p-button label="Save" [loading]="saving()" (click)="save()" />
-    </div>
-  </div>
-}
+
+      <div class="form-actions">
+        <a pButton label="Cancel" class="p-button-secondary" routerLink="/projects"></a>
+        <button pButton type="submit" label="Save" [loading]="saving()"></button>
+      </div>
+    </form>
+  }
+</app-page>

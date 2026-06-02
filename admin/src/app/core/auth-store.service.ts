@@ -33,7 +33,7 @@ export class AuthStoreService {
       const token = await this.cognito.getIdToken();
       if (token) headers['Authorization'] = `Bearer ${token}`;
     } else {
-      if (this.baseEmail) headers['x-user-email'] = this.baseEmail;
+      headers['x-user-email'] = this.baseEmail.trim() || 'admin@upstart.test';
     }
 
     if (this.workspaceSlug) headers['x-workspace-slug'] = this.workspaceSlug;

@@ -1,63 +1,96 @@
-<h2 class="page-title">{{ isNew ? 'New Client' : 'Edit Client' }}</h2>
-
-@if (error()) { <p-message severity="error" [text]="error()!" styleClass="mb-3" /> }
-
-@if (!loading()) {
-  <div class="card" style="max-width: 640px">
-    <div class="grid grid-cols-2 gap-3">
-      <div class="field col-span-2">
-        <label>Client Name *</label>
-        <input pInputText [(ngModel)]="form.name" class="w-full" placeholder="UpStart Productions" />
-      </div>
-      <div class="field">
-        <label>Invoice Code *</label>
-        <input pInputText [(ngModel)]="form.code" class="w-full" placeholder="UPSP" maxlength="8"
-          style="text-transform: uppercase" />
-        <small class="text-muted">Prepended to invoice numbers, e.g. UPSP-0001</small>
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input pInputText type="email" [(ngModel)]="form.email" class="w-full" />
-      </div>
-      <div class="field">
-        <label>Phone</label>
-        <input pInputText [(ngModel)]="form.phone" class="w-full" />
-      </div>
-      <div class="field">
-        <label>Website</label>
-        <input pInputText [(ngModel)]="form.website" class="w-full" placeholder="https://" />
-      </div>
-      <div class="field col-span-2">
-        <label>Address</label>
-        <input pInputText [(ngModel)]="form.address" class="w-full" />
-      </div>
-      <div class="field">
-        <label>City</label>
-        <input pInputText [(ngModel)]="form.city" class="w-full" />
-      </div>
-      <div class="flex gap-2">
-        <div class="field flex-1">
-          <label>State</label>
-          <input pInputText [(ngModel)]="form.state" class="w-full" maxlength="2" />
-        </div>
-        <div class="field flex-1">
-          <label>Zip</label>
-          <input pInputText [(ngModel)]="form.zip" class="w-full" />
-        </div>
-      </div>
-      <div class="field col-span-2">
-        <label>Notes</label>
-        <textarea pTextarea [(ngModel)]="form.notes" class="w-full" rows="3"></textarea>
-      </div>
-      <div class="flex align-items-center gap-2">
-        <p-toggleSwitch [(ngModel)]="form.isActive" />
-        <label>Active</label>
-      </div>
+<app-page [title]="isNew ? 'New Client' : 'Edit Client'" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
     </div>
+  } @else if (!loading()) {
+    <form class="card" (ngSubmit)="save()">
+      <div class="page-header-with-back">
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          type="button"
+          routerLink="/clients"
+          aria-label="Back to Clients"
+        />
+        <h2 class="page-title page-title-in-card mb-0">
+          {{ isNew ? 'New Client' : 'Edit Client' }}
+        </h2>
+      </div>
 
-    <div class="flex gap-2 mt-4">
-      <a routerLink="/clients"><p-button label="Cancel" severity="secondary" /></a>
-      <p-button label="Save" [loading]="saving()" (click)="save()" />
-    </div>
-  </div>
-}
+      <div class="showcase-flex-col">
+        <div class="form-field showcase-full">
+          <label for="name">Client Name <span class="required-dot" aria-hidden="true"></span></label>
+          <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="UpStart Productions" />
+        </div>
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="code">Invoice Code <span class="required-dot" aria-hidden="true"></span></label>
+            <input
+              pInputText
+              id="code"
+              name="code"
+              [(ngModel)]="form.code"
+              class="w-full"
+              placeholder="UPSP"
+              maxlength="8"
+              style="text-transform: uppercase"
+            />
+            <small class="text-muted">Prepended to invoice numbers, e.g. UPSP-0001</small>
+          </div>
+          <div class="form-field showcase-half">
+            <label for="email">Email</label>
+            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
+          </div>
+        </div>
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="phone">Phone</label>
+            <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="website">Website</label>
+            <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
+          </div>
+        </div>
+        <div class="form-field showcase-full">
+          <label for="address">Address</label>
+          <input pInputText id="address" name="address" [(ngModel)]="form.address" class="w-full" />
+        </div>
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="city">City</label>
+            <input pInputText id="city" name="city" [(ngModel)]="form.city" class="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <div class="showcase-row">
+              <div class="form-field flex-1">
+                <label for="state">State</label>
+                <input pInputText id="state" name="state" [(ngModel)]="form.state" class="w-full" maxlength="2" />
+              </div>
+              <div class="form-field flex-1">
+                <label for="zip">Zip</label>
+                <input pInputText id="zip" name="zip" [(ngModel)]="form.zip" class="w-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-field showcase-full">
+          <label for="notes">Notes</label>
+          <textarea pTextarea id="notes" name="notes" [(ngModel)]="form.notes" class="w-full" rows="3"></textarea>
+        </div>
+        <div class="flex align-items-center gap-2">
+          <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
+          <label>Active</label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a pButton label="Cancel" class="p-button-secondary" routerLink="/clients"></a>
+        <button pButton type="submit" label="Save" [loading]="saving()"></button>
+      </div>
+    </form>
+  }
+</app-page>

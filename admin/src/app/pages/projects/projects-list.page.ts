@@ -8,13 +8,14 @@ import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
+import { PageComponent } from '../../ui/layout/page.component';
 
 type Project = { id: string; name: string; isBillable: boolean; isActive: boolean; hourlyRate?: number; client: { id: string; name: string } };
 
 @Component({
   selector: 'app-projects-list-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule],
+  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule, PageComponent],
   providers: [ConfirmationService],
   templateUrl: './projects-list.page.html',
 })

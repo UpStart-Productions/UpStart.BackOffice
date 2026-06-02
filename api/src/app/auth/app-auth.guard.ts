@@ -15,8 +15,11 @@ export class AppAuthGuard implements CanActivate {
     const hasBearerToken =
       typeof request.headers.authorization === 'string' &&
       request.headers.authorization.startsWith('Bearer ');
+    const cognitoConfigured = !!(
+      process.env.COGNITO_USER_POOL_ID?.trim() && process.env.COGNITO_CLIENT_ID?.trim()
+    );
 
-    if (hasBearerToken) return this.jwtAuthGuard.canActivate(context);
+    if (hasBearerToken && cognitoConfigured) return this.jwtAuthGuard.canActivate(context);
     if (process.env.NODE_ENV !== 'production') return this.devAuthGuard.canActivate(context);
     return this.jwtAuthGuard.canActivate(context);
   }

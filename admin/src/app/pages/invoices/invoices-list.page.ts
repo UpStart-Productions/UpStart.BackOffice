@@ -6,8 +6,10 @@ import { MessageModule } from 'primeng/message';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
+import { PageComponent } from '../../ui/layout/page.component';
 
 type Invoice = {
   id: string; displayNumber: string; status: string;
@@ -18,7 +20,16 @@ type Invoice = {
 @Component({
   selector: 'app-invoices-list-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule],
+  imports: [
+    RouterLink,
+    ButtonModule,
+    TableModule,
+    MessageModule,
+    ConfirmDialogModule,
+    TagModule,
+    TooltipModule,
+    PageComponent,
+  ],
   providers: [ConfirmationService],
   templateUrl: './invoices-list.page.html',
 })
