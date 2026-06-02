@@ -1,0 +1,23 @@
+version: 1
+# Monorepo: admin SPA only. API runs on EC2.
+# Set in Amplify Console env vars: API_BASE_URL, AMPLIFY_REDIRECT_SIGN_IN, AMPLIFY_REDIRECT_SIGN_OUT
+applications:
+  - appRoot: admin
+    frontend:
+      buildPath: /
+      phases:
+        preBuild:
+          commands:
+            - npm ci
+            - node scripts/set-amplify-env.js
+        build:
+          commands:
+            - npx nx build admin --configuration=amplify
+      artifacts:
+        baseDirectory: dist/admin/browser
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - .nx/cache/**/*
