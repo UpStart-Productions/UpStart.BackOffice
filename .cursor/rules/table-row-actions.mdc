@@ -50,6 +50,6 @@ getRowActions(row: MyRow): RowActionItem[] {
 
 - First column: narrow (`width: 3rem`), holds only the menu trigger
 - Menu trigger: vertical ellipsis (`pi-ellipsis-v`), not horizontal
-- Destructive actions: `severity: 'danger'`; disable/enable toggles: `severity: 'warn'`
+- Destructive actions: `icon: 'pi pi-trash'`, `severity: 'danger'` (see `delete-icon.mdc`); disable/enable toggles: `severity: 'warn'`
 - Define actions in a `getRowActions(row)` method on the page component
 - Do not add a right-side column of `p-button` icons for row actions

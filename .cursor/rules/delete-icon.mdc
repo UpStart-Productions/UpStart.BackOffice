@@ -1,0 +1,41 @@
+---
+description: Standard red trash icon for delete actions in the admin UI
+globs: admin/**/*.{ts,html,scss}
+alwaysApply: true
+---
+
+# Delete icon
+
+Use a **red trash can** for every delete control in the admin app (consistent with table row menus).
+
+## Inline delete buttons
+
+```html
+<p-button
+  icon="pi pi-trash"
+  [text]="true"
+  severity="danger"
+  size="small"
+  aria-label="Delete …"
+  (click)="…"
+/>
+```
+
+- Icon: `pi pi-trash` (not `pi-times`, `pi-ban`, etc.)
+- Style: `severity="danger"` and `[text]="true"` unless a filled button is required
+- Always set a specific `aria-label` (e.g. `Delete line`, `Remove task`)
+
+## Table row menus
+
+Row delete actions use the same icon via `RowActionItem`:
+
+```typescript
+{ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(row) }
+```
+
+See `table-row-actions.mdc` and `confirm-delete.mdc` for menu placement and confirmation before destructive API calls.
+
+## Do not
+
+- Use `pi-times` for delete (reserved for close/clear, e.g. search clear)
+- Skip confirmation when deleting persisted records (see `confirm-delete.mdc`)

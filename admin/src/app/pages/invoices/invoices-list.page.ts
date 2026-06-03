@@ -5,6 +5,7 @@ import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TagModule } from 'primeng/tag';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import {
@@ -36,6 +37,7 @@ export class InvoicesListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly toast = inject(MessageService);
 
   invoices = signal<Invoice[]>([]);
   loading = signal(true);
@@ -67,16 +69,25 @@ export class InvoicesListPage implements OnInit {
         id: 'send',
         label: 'Send to client',
         icon: 'pi pi-send',
-        command: () => this.send(invoice),
+        command: () => this.send(invoice, false),
+      });
+    } else if (invoice.status === 'SENT' || invoice.status === 'PAID') {
+      actions.push({
+        id: 'resend',
+        label: 'Resend to client',
+        icon: 'pi pi-replay',
+        command: () => this.send(invoice, true),
       });
     }
-    actions.push(
-      {
+    if (invoice.status === 'DRAFT') {
+      actions.push({
         id: 'edit',
         label: 'Edit',
         icon: 'pi pi-pencil',
-        command: () => this.router.navigate(['/invoices', invoice.id]),
-      },
+        command: () => this.router.navigate(['/invoices', invoice.id, 'edit']),
+      });
+    }
+    actions.push(
       {
         id: 'delete',
         label: 'Delete',
@@ -102,14 +113,28 @@ export class InvoicesListPage implements OnInit {
     } catch (err) { this.error.set(err instanceof Error ? err.message : 'PDF download failed'); }
   }
 
-  async send(invoice: Invoice) {
+  async send(invoice: Invoice, resend: boolean) {
+    this.error.set(null);
     try {
       const result = await this.api.post<{ sent: boolean; error?: string }>(
         `/invoices/${invoice.id}/send`,
       );
-      if (result.sent) await this.load();
-      else this.error.set(result.error ?? 'Send failed');
-    } catch (err) { this.error.set(err instanceof Error ? err.message : 'Send failed'); }
+      if (result.sent) {
+        await this.load();
+        this.toast.add({
+          severity: 'success',
+          summary: resend ? 'Invoice resent' : 'Invoice sent',
+          detail: resend
+            ? `${invoice.displayNumber} was emailed to the client again.`
+            : `${invoice.displayNumber} was emailed to the client.`,
+          life: 6000,
+        });
+      } else {
+        this.error.set(result.error ?? (resend ? 'Resend failed' : 'Send failed'));
+      }
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : resend ? 'Resend failed' : 'Send failed');
+    }
   }
 
   confirmDelete(invoice: Invoice) {

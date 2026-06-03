@@ -20,6 +20,7 @@ type LineItem = {
   unitPrice: number;
   amount: number;
   timeEntryIds: string[];
+  projectName?: string;
 };
 
 type PeriodType = 'month' | 'quarter' | 'custom';
@@ -101,6 +102,7 @@ export class InvoiceFormPage implements OnInit {
   readonly quarters = QUARTERS;
 
   id = signal<string | null>(null);
+  displayNumber = signal<string | null>(null);
   loading = signal(true);
   saving = signal(false);
   generating = signal(false);
@@ -147,12 +149,15 @@ export class InvoiceFormPage implements OnInit {
     items.forEach((item, index) => {
       const pid = item.projectId || '_none';
       const last = groups[groups.length - 1];
+      const projectName =
+        item.projectName ||
+        (item.projectId ? (nameById.get(item.projectId) ?? 'Project') : 'Other');
       if (last && last.projectId === pid) {
         last.rows.push({ item, index });
       } else {
         groups.push({
           projectId: pid,
-          projectName: item.projectId ? (nameById.get(item.projectId) ?? 'Project') : 'Other',
+          projectName,
           rows: [{ item, index }],
         });
       }
@@ -161,6 +166,8 @@ export class InvoiceFormPage implements OnInit {
   });
 
   get isNew() { return !this.id(); }
+  get isDraftEdit() { return !!this.id(); }
+  get canEditLines() { return this.isNew || this.isDraftEdit; }
   get subtotal() { return this.lineItems().reduce((s, i) => s + i.amount, 0); }
   get taxAmount() { return this.form.taxRate ? this.subtotal * this.form.taxRate : 0; }
   get total() { return this.subtotal + this.taxAmount; }
@@ -185,13 +192,23 @@ export class InvoiceFormPage implements OnInit {
       this.id.set(id);
       try {
         const inv = await this.api.get<{
+          status: string;
+          displayNumber: string;
           clientId: string;
           issueDate: string;
           dueDate?: string;
           notes?: string;
           taxRate?: number;
-          lineItems: LineItem[];
+          subtotal: number;
+          taxAmount?: number | null;
+          total: number;
+          lineItems: Array<LineItem & { project?: { name: string } | null }>;
         }>(`/invoices/${id}`);
+        if (inv.status !== 'DRAFT') {
+          await this.router.navigate(['/invoices', id]);
+          return;
+        }
+        this.displayNumber.set(inv.displayNumber);
         this.form = {
           clientId: inv.clientId,
           issueDate: inv.issueDate.slice(0, 10),
@@ -202,6 +219,7 @@ export class InvoiceFormPage implements OnInit {
         this.lineItems.set(
           inv.lineItems.map((li) => ({
             projectId: li.projectId ?? '',
+            projectName: li.project?.name,
             description: li.description,
             quantity: Number(li.quantity),
             unitPrice: Number(li.unitPrice),
@@ -327,23 +345,32 @@ export class InvoiceFormPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      const payload = {
-        clientId: this.form.clientId,
-        issueDate: this.form.issueDate,
-        dueDate: this.form.dueDate || undefined,
-        notes: this.form.notes || undefined,
-        taxRate: this.form.taxRate || undefined,
-        lineItems: this.lineItems().map((li, i) => ({
-          projectId: li.projectId || undefined,
-          description: li.description,
-          quantity: li.quantity,
-          unitPrice: li.unitPrice,
-          sortOrder: i,
-          timeEntryIds: li.timeEntryIds.length ? li.timeEntryIds : undefined,
-        })),
-      };
-      if (this.isNew) await this.api.post('/invoices', payload);
-      else await this.api.put(`/invoices/${this.id()}`, { notes: this.form.notes, dueDate: this.form.dueDate, taxRate: this.form.taxRate });
+      const lineItems = this.lineItems().map((li, i) => ({
+        projectId: li.projectId || undefined,
+        description: li.description,
+        quantity: li.quantity,
+        unitPrice: li.unitPrice,
+        sortOrder: i,
+        timeEntryIds: li.timeEntryIds.length ? li.timeEntryIds : undefined,
+      }));
+
+      if (this.isNew) {
+        await this.api.post('/invoices', {
+          clientId: this.form.clientId,
+          issueDate: this.form.issueDate,
+          dueDate: this.form.dueDate || undefined,
+          notes: this.form.notes || undefined,
+          taxRate: this.form.taxRate || undefined,
+          lineItems,
+        });
+      } else {
+        await this.api.put(`/invoices/${this.id()}`, {
+          notes: this.form.notes,
+          dueDate: this.form.dueDate || undefined,
+          taxRate: this.form.taxRate ?? undefined,
+          lineItems,
+        });
+      }
       this.router.navigate(['/invoices']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');

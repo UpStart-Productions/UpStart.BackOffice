@@ -83,7 +83,7 @@ export class PdfService {
 <meta charset="utf-8">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #2d2d2d; background: #fcfcfb; }
+  body { font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #2d2d2d; background: #ffffff; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
   .company { font-size: 22px; font-weight: 600; color: #2d2d2d; }
   .invoice-label { font-size: 28px; font-weight: 500; color: #6b6b6b; }
@@ -103,7 +103,7 @@ export class PdfService {
   .totals-table { min-width: 280px; }
   .totals-table td { border: none; padding: 4px 12px; }
   .totals-table .total-row td { font-weight: 700; font-size: 15px; border-top: 2px solid #7c3aed; padding-top: 10px; margin-top: 6px; color: #2d2d2d; }
-  .notes { margin-top: 32px; padding: 16px; background: #f9f9f7; border-radius: 6px; font-size: 13px; color: #6b6b6b; border: 1px solid #eaeaea; }
+  .notes { margin-top: 32px; padding: 16px; background: #ffffff; border-radius: 6px; font-size: 13px; color: #6b6b6b; border: 1px solid #eaeaea; }
   .notes label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6b6b; display: block; margin-bottom: 6px; }
 </style>
 </head>

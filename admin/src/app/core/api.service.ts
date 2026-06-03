@@ -104,14 +104,22 @@ export class ApiService {
     }
   }
 
-  async downloadPdf(path: string, filename: string): Promise<void> {
+  async fetchPdfBlob(path: string): Promise<Blob> {
     const options = await this.auth.getHeaders({ method: 'GET' });
     const res = await fetch(`${this.base}${path}`, options);
-    if (!res.ok) throw new Error(`PDF download failed: ${res.status}`);
-    const blob = await res.blob();
+    if (!res.ok) {
+      throw new Error(`PDF load failed: ${res.status}`);
+    }
+    return res.blob();
+  }
+
+  async downloadPdf(path: string, filename: string): Promise<void> {
+    const blob = await this.fetchPdfBlob(path);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = filename; a.click();
+    a.href = url;
+    a.download = filename;
+    a.click();
     URL.revokeObjectURL(url);
   }
 }

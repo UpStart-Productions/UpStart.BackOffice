@@ -30,9 +30,14 @@ export const appRoutes: Route[] = [
           import('./pages/invoices/invoice-form.page').then((m) => m.InvoiceFormPage),
       },
       {
-        path: 'invoices/:id',
+        path: 'invoices/:id/edit',
         loadComponent: () =>
           import('./pages/invoices/invoice-form.page').then((m) => m.InvoiceFormPage),
+      },
+      {
+        path: 'invoices/:id',
+        loadComponent: () =>
+          import('./pages/invoices/invoice-detail.page').then((m) => m.InvoiceDetailPage),
       },
       {
         path: 'clients',

@@ -17,7 +17,11 @@
             aria-label="Back to Invoices"
           />
           <h2 class="page-title page-title-in-card mb-0">
-            {{ isNew ? 'New Invoice' : 'Edit Invoice' }}
+            @if (isNew) {
+              New Invoice
+            } @else {
+              Edit draft {{ displayNumber() }}
+            }
           </h2>
         </div>
 
@@ -33,12 +37,20 @@
               (onChange)="onClientChange()"
               placeholder="Select client"
               styleClass="w-full"
+              [disabled]="isDraftEdit"
             />
           </div>
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="issueDate">Issue Date</label>
-              <input pInputText id="issueDate" type="date" [(ngModel)]="form.issueDate" class="w-full" />
+              <input
+                pInputText
+                id="issueDate"
+                type="date"
+                [(ngModel)]="form.issueDate"
+                class="w-full"
+                [disabled]="isDraftEdit"
+              />
             </div>
             <div class="form-field showcase-half">
               <label for="dueDate">Due Date</label>
@@ -64,7 +76,7 @@
         </div>
       </div>
 
-      @if (isNew) {
+      @if (canEditLines) {
         <div class="card invoice-generate-card">
           <h4 class="showcase-section-title">Generate from time</h4>
           <p class="invoice-generate-hint text-sm text-muted mb-3">
@@ -207,7 +219,11 @@
 
           @if (lineItems().length === 0) {
             <p class="text-sm text-muted mt-3">
-              Generate from time or add lines manually.
+              @if (isNew) {
+                Generate from time or add lines manually.
+              } @else {
+                Add lines manually or generate from time above.
+              }
             </p>
           } @else {
             @for (group of projectGroups(); track group.projectId) {
@@ -255,10 +271,11 @@
                       <td class="text-right font-semibold">{{ formatCurrency(row.item.amount) }}</td>
                       <td>
                         <p-button
-                          icon="pi pi-times"
+                          icon="pi pi-trash"
                           [text]="true"
                           severity="danger"
                           size="small"
+                          aria-label="Delete line"
                           (click)="removeLine(row.index)"
                         />
                       </td>

@@ -8,7 +8,6 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -41,11 +40,9 @@ type SortBy = 'name' | 'email' | 'role';
     InputIconModule,
     SelectModule,
     TagModule,
-    ToastModule,
     RowActionsMenuComponent,
     AddEditUserModalComponent,
   ],
-  providers: [MessageService],
   templateUrl: './users-list.page.html',
 })
 export class UsersListPage {

@@ -27,7 +27,10 @@
             <app-row-actions-menu [items]="getRowActions(inv)" ariaLabel="Invoice actions" />
           </td>
           <td>
-            <a [routerLink]="['/invoices', inv.id]" class="text-primary font-semibold">{{ inv.displayNumber }}</a>
+            <a
+              [routerLink]="inv.status === 'DRAFT' ? ['/invoices', inv.id, 'edit'] : ['/invoices', inv.id]"
+              class="text-primary font-semibold"
+            >{{ inv.displayNumber }}</a>
           </td>
           <td>{{ inv.client.name }}</td>
           <td>{{ formatDate(inv.issueDate) }}</td>

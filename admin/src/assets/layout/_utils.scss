@@ -27,10 +27,10 @@
 }
 
 .p-toast {
-  &.p-toast-top-right,
-  &.p-toast-top-left,
-  &.p-toast-top-center {
-    top: 100px;
+  &.p-toast-bottom-right,
+  &.p-toast-bottom-left,
+  &.p-toast-bottom-center {
+    bottom: 1.5rem;
   }
 }
 

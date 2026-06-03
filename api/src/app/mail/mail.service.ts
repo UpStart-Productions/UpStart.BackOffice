@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import { SendEmailCommand, SendRawEmailCommand, SESClient } from '@aws-sdk/client-ses';
 import { resolveExplicitAwsCredentials } from '../common/aws-credentials.util';
+import { buildMultipartEmail } from './mime-email.util';
 
 const DEFAULT_FROM_EMAIL = 'noreply@upstartproductions.com';
 const FROM_NAME = 'UpStart Back Office';
@@ -41,16 +42,25 @@ export class MailService {
     const html = this.buildInvoiceEmailHtml(params);
 
     try {
-      // SES raw message for attachment support would require mime encoding.
-      // For now send HTML body only; PDF download link can be added when file storage is wired.
-      await this.ses.send(new SendEmailCommand({
-        Source: `${this.fromName} <${this.fromEmail}>`,
-        Destination: { ToAddresses: [params.to] },
-        Message: {
-          Subject: { Data: subject, Charset: 'UTF-8' },
-          Body: { Html: { Data: html, Charset: 'UTF-8' } },
+      const from = `${this.fromName} <${this.fromEmail}>`;
+      const raw = buildMultipartEmail({
+        from,
+        to: params.to,
+        subject,
+        html,
+        attachment: {
+          filename: `${params.invoiceNumber}.pdf`,
+          content: params.pdfBuffer,
+          contentType: 'application/pdf',
         },
-      }));
+      });
+      await this.ses.send(
+        new SendRawEmailCommand({
+          Source: this.fromEmail,
+          Destinations: [params.to],
+          RawMessage: { Data: raw },
+        }),
+      );
       return { sent: true };
     } catch (err) {
       this.logger.error(`Failed to send invoice email: ${String(err)}`);
@@ -98,9 +108,14 @@ export class MailService {
     <div style="padding:32px;">
     <h2 style="color:#2d2d2d;margin-top:0;font-weight:500;">Invoice ${params.invoiceNumber}</h2>
     <p style="color:#2d2d2d;">${greeting}</p>
-    <p style="color:#2d2d2d;">Please find invoice <strong>${params.invoiceNumber}</strong> from <strong>${this.fromName}</strong>.</p>
+    <p style="color:#2d2d2d;">Please find invoice <strong>${params.invoiceNumber}</strong> attached to this email.</p>
     ${params.notes ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${params.notes}</p>` : ''}
-    <p style="color:#6b6b6b;font-size:14px;margin-top:32px;">Questions? Reply to this email.</p>
+    <p style="color:#2d2d2d;margin-top:28px;">Thank you for your business.</p>
+    <p style="color:#2d2d2d;margin-top:16px;line-height:1.5;">
+      Jeff Denton<br>
+      <span style="color:#6b6b6b;">Founder, UpStart Productions</span>
+    </p>
+    <p style="color:#6b6b6b;font-size:14px;margin-top:28px;">Questions? Reply to this email.</p>
     </div>
   </div>
 </body>

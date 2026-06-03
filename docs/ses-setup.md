@@ -59,7 +59,7 @@ If this succeeds, SES and `.env` are correct. If it fails, read the AWS error (u
 1. Client record must have a valid **email** address.
 2. Open **Invoices** → draft invoice → row menu → **Send to client**.
 
-The email is HTML notification text today; **PDF is not attached** yet (use **Download PDF** separately).
+The email includes the invoice **PDF as an attachment** (same file saved under `clients/{clientId}/invoices/`).
 
 ## Production (EC2)
 

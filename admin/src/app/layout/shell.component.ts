@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common';
 import { Component, computed, inject, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
 import { SessionService } from '../core/session.service';
@@ -17,6 +18,7 @@ import { LayoutService } from './layout.service';
     NgClass,
     RouterOutlet,
     ConfirmDialogModule,
+    ToastModule,
     AppTopbarComponent,
     AppSidebarComponent,
     AppFooterComponent,

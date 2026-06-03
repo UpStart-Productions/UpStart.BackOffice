@@ -38,3 +38,7 @@ confirmDelete(item: Item) {
 ## Row actions
 
 Table delete menu items should call a `confirmDelete*` method, not delete inline. See `table-row-actions.mdc`.
+
+## Delete icon
+
+All delete controls use `pi pi-trash` with `severity="danger"`. See `delete-icon.mdc`.

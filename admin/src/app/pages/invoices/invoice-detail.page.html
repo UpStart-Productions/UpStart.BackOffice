@@ -1,0 +1,59 @@
+<app-page title="Invoice" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  } @else if (!loading() && invoice(); as inv) {
+    <div class="showcase-flex-col">
+      <div class="card invoice-detail-header">
+        <div class="page-header-with-back">
+          <p-button
+            icon="pi pi-arrow-left"
+            [rounded]="true"
+            [text]="true"
+            severity="secondary"
+            type="button"
+            routerLink="/invoices"
+            aria-label="Back to Invoices"
+          />
+          <div class="invoice-detail-title-block">
+            <h2 class="page-title page-title-in-card mb-0">{{ inv.displayNumber }}</h2>
+            <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
+          </div>
+        </div>
+        <div class="invoice-detail-meta text-sm">
+          <span><strong>Client:</strong> {{ inv.client.name }}</span>
+          <span><strong>Issue date:</strong> {{ formatDate(inv.issueDate) }}</span>
+          @if (inv.dueDate) {
+            <span><strong>Due:</strong> {{ formatDate(inv.dueDate) }}</span>
+          }
+          <span><strong>Total:</strong> {{ formatAmount(inv.total) }}</span>
+        </div>
+        <div class="invoice-detail-actions">
+          <p-button
+            label="Download PDF"
+            icon="pi pi-download"
+            severity="secondary"
+            (click)="downloadPdf()"
+          />
+          @if (canResend) {
+            <p-button
+              label="Resend to client"
+              icon="pi pi-replay"
+              [loading]="sending()"
+              (click)="resend()"
+            />
+          }
+        </div>
+      </div>
+
+      <div class="card invoice-pdf-card">
+        @if (pdfUrl()) {
+          <iframe [src]="pdfUrl()!" class="invoice-pdf-frame" [title]="inv.displayNumber + ' PDF'"></iframe>
+        } @else {
+          <p class="text-sm text-muted p-4">PDF could not be loaded.</p>
+        }
+      </div>
+    </div>
+  }
+</app-page>

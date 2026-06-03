@@ -9,7 +9,7 @@ import { AppAuthGuard } from '../auth/app-auth.guard';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
-import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { CreateInvoiceDto, CreateInvoiceLineItemDto } from './dto/create-invoice.dto';
 import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoiceFromTimeService } from './invoice-from-time.service';
@@ -92,32 +92,7 @@ export class InvoicesController {
         },
       });
 
-      for (let i = 0; i < dto.lineItems.length; i++) {
-        const item = dto.lineItems[i];
-        const amount = Math.round(item.quantity * item.unitPrice * 100) / 100;
-        const line = await tx.invoiceLineItem.create({
-          data: {
-            invoiceId: invoice.id,
-            projectId: item.projectId,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            amount,
-            sortOrder: item.sortOrder ?? i,
-          },
-        });
-
-        const entryIds = item.timeEntryIds ?? [];
-        if (entryIds.length > 0) {
-          const updated = await tx.timeEntry.updateMany({
-            where: { id: { in: entryIds }, invoiceLineItemId: null },
-            data: { invoiceLineItemId: line.id },
-          });
-          if (updated.count !== entryIds.length) {
-            throw new BadRequestException('One or more time entries could not be linked to the invoice');
-          }
-        }
-      }
+      await this.syncLineItems(tx, invoice.id, dto.lineItems);
 
       return tx.invoice.findUniqueOrThrow({
         where: { id: invoice.id },
@@ -140,20 +115,60 @@ export class InvoicesController {
   async update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto) {
     const existing = await this.prisma.invoice.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Invoice not found');
-    const invoice = await this.prisma.invoice.update({
-      where: { id },
-      data: {
-        ...(dto.issueDate !== undefined && { issueDate: new Date(dto.issueDate) }),
-        ...(dto.dueDate !== undefined && { dueDate: new Date(dto.dueDate) }),
-        ...(dto.notes !== undefined && { notes: dto.notes }),
-        ...(dto.taxRate !== undefined && { taxRate: dto.taxRate }),
-        ...(dto.status !== undefined && {
-          status: dto.status,
-          ...(dto.status === 'SENT' && !existing.sentAt ? { sentAt: new Date() } : {}),
-          ...(dto.status === 'PAID' && !existing.paidAt ? { paidAt: new Date() } : {}),
-        }),
-      },
-      include: invoiceInclude,
+    if (existing.status !== 'DRAFT') {
+      throw new BadRequestException('Only draft invoices can be edited');
+    }
+    if (dto.lineItems !== undefined) {
+      if (dto.lineItems.length === 0) {
+        throw new BadRequestException('At least one line item is required');
+      }
+      await this.invoiceFromTime.assertTimeEntriesLinkable(existing.clientId, dto.lineItems);
+    }
+
+    const invoice = await this.prisma.$transaction(async (tx) => {
+      if (dto.lineItems) {
+        await tx.timeEntry.updateMany({
+          where: { invoiceLineItem: { invoiceId: id } },
+          data: { invoiceLineItemId: null },
+        });
+        await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+        await this.syncLineItems(tx, id, dto.lineItems);
+      }
+
+      const subtotal = dto.lineItems
+        ? dto.lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
+        : Number(existing.subtotal);
+      const taxRate =
+        dto.taxRate !== undefined
+          ? dto.taxRate
+          : existing.taxRate != null
+            ? Number(existing.taxRate)
+            : undefined;
+      const taxAmount = taxRate ? subtotal * taxRate : 0;
+      const total = subtotal + taxAmount;
+
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          ...(dto.issueDate !== undefined && { issueDate: new Date(dto.issueDate) }),
+          ...(dto.dueDate !== undefined && { dueDate: dto.dueDate ? new Date(dto.dueDate) : null }),
+          ...(dto.notes !== undefined && { notes: dto.notes }),
+          ...(dto.lineItems || dto.taxRate !== undefined
+            ? {
+                subtotal,
+                taxRate,
+                taxAmount: taxAmount || undefined,
+                total,
+              }
+            : {}),
+          ...(dto.status !== undefined && {
+            status: dto.status,
+            ...(dto.status === 'SENT' && !existing.sentAt ? { sentAt: new Date() } : {}),
+            ...(dto.status === 'PAID' && !existing.paidAt ? { paidAt: new Date() } : {}),
+          }),
+        },
+        include: invoiceInclude,
+      });
     });
     await this.generateAndStorePdf(invoice);
     return invoice;
@@ -193,6 +208,9 @@ export class InvoicesController {
       include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
+    if (invoice.status === 'VOID') {
+      throw new BadRequestException('Cannot send a void invoice');
+    }
     if (!invoice.client.email) throw new BadRequestException('Client has no email address');
 
     const pdfBuffer = await this.generateAndStorePdf(invoice);
@@ -208,11 +226,47 @@ export class InvoicesController {
     if (result.sent) {
       await this.prisma.invoice.update({
         where: { id },
-        data: { status: 'SENT', sentAt: invoice.sentAt ?? new Date() },
+        data: {
+          status: invoice.status === 'DRAFT' ? 'SENT' : invoice.status,
+          sentAt: new Date(),
+        },
       });
     }
 
     return { sent: result.sent, error: result.error };
+  }
+
+  private async syncLineItems(
+    tx: Prisma.TransactionClient,
+    invoiceId: string,
+    lineItems: CreateInvoiceLineItemDto[],
+  ) {
+    for (let i = 0; i < lineItems.length; i++) {
+      const item = lineItems[i];
+      const amount = Math.round(item.quantity * item.unitPrice * 100) / 100;
+      const line = await tx.invoiceLineItem.create({
+        data: {
+          invoiceId,
+          projectId: item.projectId,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount,
+          sortOrder: item.sortOrder ?? i,
+        },
+      });
+
+      const entryIds = item.timeEntryIds ?? [];
+      if (entryIds.length > 0) {
+        const updated = await tx.timeEntry.updateMany({
+          where: { id: { in: entryIds }, invoiceLineItemId: null },
+          data: { invoiceLineItemId: line.id },
+        });
+        if (updated.count !== entryIds.length) {
+          throw new BadRequestException('One or more time entries could not be linked to the invoice');
+        }
+      }
+    }
   }
 
   private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
