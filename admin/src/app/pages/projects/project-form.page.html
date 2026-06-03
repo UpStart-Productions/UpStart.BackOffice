@@ -71,6 +71,65 @@
             <label>Active</label>
           </div>
         </div>
+
+        <div class="tasks-section">
+          <div class="form-field">
+            <h3 class="showcase-section-title mb-1">Tasks</h3>
+          <p class="text-color-secondary mt-0 mb-3 text-sm">
+            Billable and non-billable tasks for timesheet entries on this project.
+          </p>
+
+          <p-table [value]="tasks()" styleClass="table-bordered">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Task name</th>
+                <th style="width: 8rem">Billable</th>
+                <th style="width: 3rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-task let-rowIndex="rowIndex">
+              <tr>
+                <td>
+                  <input
+                    pInputText
+                    [(ngModel)]="task.name"
+                    [name]="'task-name-' + rowIndex"
+                    class="w-full"
+                    placeholder="e.g. Development"
+                  />
+                </td>
+                <td>
+                  <p-toggleSwitch
+                    [(ngModel)]="task.isBillable"
+                    [name]="'task-billable-' + rowIndex"
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    pButton
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [text]="true"
+                    (click)="removeTask(rowIndex)"
+                    aria-label="Remove task"
+                  ></button>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+
+          <button
+            type="button"
+            pButton
+            label="+ Add task"
+            [text]="true"
+            severity="secondary"
+            class="mt-2 p-0"
+            (click)="addTask()"
+          ></button>
+          </div>
+        </div>
       </div>
 
       <div class="form-actions">

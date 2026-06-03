@@ -67,16 +67,35 @@ model Project {
   updatedAt   DateTime @updatedAt
 
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tasks            ProjectTask[]
   timeEntries      TimeEntry[]
   invoiceLineItems InvoiceLineItem[]
 
   @@index([clientId])
 }
 
+model ProjectTask {
+  id         String   @id @default(cuid())
+  projectId  String
+  name       String
+  isBillable Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  timeEntries TimeEntry[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
 model TimeEntry {
   id                String    @id @default(cuid())
   userId            String
   projectId         String
+  projectTaskId     String?
   description       String?   @db.Text
   startedAt         DateTime
   stoppedAt         DateTime?
@@ -89,10 +108,12 @@ model TimeEntry {
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectTask     ProjectTask?     @relation(fields: [projectTaskId], references: [id], onDelete: SetNull)
   invoiceLineItem InvoiceLineItem? @relation(fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([projectId])
+  @@index([projectTaskId])
   @@index([invoiceLineItemId])
   @@index([startedAt])
 }

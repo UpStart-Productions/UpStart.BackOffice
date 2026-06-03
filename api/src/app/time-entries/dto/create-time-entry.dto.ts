@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 
 export class CreateTimeEntryDto {
   @ApiProperty() @IsString() projectId!: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() projectTaskId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() description?: string;
   @ApiProperty() @IsDateString() startedAt!: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() stoppedAt?: string;

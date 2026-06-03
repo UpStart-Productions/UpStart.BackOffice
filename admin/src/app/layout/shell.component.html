@@ -2,12 +2,10 @@
   <app-topbar [userName]="displayName" (signOut)="signOut()" />
   <app-sidebar [navItems]="navItems()" />
   <div class="layout-main-container">
-    <div class="layout-main" [class.layout-main--flush]="flushMain()">
+    <div class="layout-main">
       <router-outlet />
     </div>
-    @if (!flushMain()) {
-      <app-footer />
-    }
+    <app-footer />
   </div>
   <div
     class="layout-mask"

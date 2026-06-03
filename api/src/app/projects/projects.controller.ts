@@ -6,7 +6,9 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { SyncProjectTasksDto } from './dto/project-task.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-tasks.util';
 
 @ApiTags('projects')
 @ApiBearerAuth()
@@ -20,7 +22,7 @@ export class ProjectsController {
   async list(@Query('clientId') clientId?: string) {
     return this.prisma.project.findMany({
       where: clientId ? { clientId } : undefined,
-      include: { client: { select: { id: true, name: true, code: true } } },
+      include: activeTasksInclude,
       orderBy: { name: 'asc' },
     });
   }
@@ -36,7 +38,7 @@ export class ProjectsController {
         isBillable: dto.isBillable ?? true,
         isActive: dto.isActive ?? true,
       },
-      include: { client: { select: { id: true, name: true, code: true } } },
+      include: projectInclude,
     });
   }
 
@@ -44,7 +46,7 @@ export class ProjectsController {
   async get(@Param('id') id: string) {
     const project = await this.prisma.project.findUnique({
       where: { id },
-      include: { client: { select: { id: true, name: true, code: true } } },
+      include: projectInclude,
     });
     if (!project) throw new NotFoundException('Project not found');
     return project;
@@ -64,7 +66,18 @@ export class ProjectsController {
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
-      include: { client: { select: { id: true, name: true, code: true } } },
+      include: projectInclude,
+    });
+  }
+
+  @Put(':id/tasks')
+  async syncTasks(@Param('id') id: string, @Body() dto: SyncProjectTasksDto) {
+    const existing = await this.prisma.project.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Project not found');
+    await syncProjectTasks(this.prisma, id, dto.tasks);
+    return this.prisma.project.findUnique({
+      where: { id },
+      include: projectInclude,
     });
   }
 

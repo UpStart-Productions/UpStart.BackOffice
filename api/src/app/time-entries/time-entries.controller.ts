@@ -6,6 +6,7 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { UserContext } from '../common/app.types';
+import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { UpdateTimeEntryDto } from './dto/update-time-entry.dto';
@@ -13,6 +14,17 @@ import { UpdateTimeEntryDto } from './dto/update-time-entry.dto';
 function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
   return Math.round((stoppedAt.getTime() - startedAt.getTime()) / 60000);
 }
+
+const entryInclude = {
+  project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
+  projectTask: { select: { id: true, name: true, isBillable: true } },
+  user: { select: { id: true, firstName: true, lastName: true, email: true } },
+};
+
+const entryIncludeWithoutUser = {
+  project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
+  projectTask: { select: { id: true, name: true, isBillable: true } },
+};
 
 @ApiTags('time-entries')
 @ApiBearerAuth()
@@ -43,10 +55,7 @@ export class TimeEntriesController {
           },
         } : {}),
       },
-      include: {
-        project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
-      },
+      include: entryInclude,
       orderBy: { startedAt: 'desc' },
     });
   }
@@ -57,21 +66,26 @@ export class TimeEntriesController {
     const startedAt = new Date(dto.startedAt);
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
+    const isBillable = await resolveTimeEntryBillable(
+      this.prisma,
+      dto.projectId,
+      dto.projectTaskId,
+      dto.isBillable,
+    );
 
     return this.prisma.timeEntry.create({
       data: {
         userId: user.id,
         projectId: dto.projectId,
+        projectTaskId: dto.projectTaskId,
         description: dto.description,
         startedAt,
         stoppedAt,
         durationMin,
-        isBillable: dto.isBillable ?? true,
+        isBillable,
         hourlyRate: dto.hourlyRate,
       },
-      include: {
-        project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
-      },
+      include: entryIncludeWithoutUser,
     });
   }
 
@@ -86,6 +100,7 @@ export class TimeEntriesController {
     return this.prisma.timeEntry.update({
       where: { id },
       data: { stoppedAt, durationMin },
+      include: entryIncludeWithoutUser,
     });
   }
 
@@ -93,10 +108,7 @@ export class TimeEntriesController {
   async get(@Param('id') id: string) {
     const entry = await this.prisma.timeEntry.findUnique({
       where: { id },
-      include: {
-        project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
-      },
+      include: entryInclude,
     });
     if (!entry) throw new NotFoundException('Time entry not found');
     return entry;
@@ -107,20 +119,32 @@ export class TimeEntriesController {
     const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
     if (!entry) throw new NotFoundException('Time entry not found');
 
+    const projectId = dto.projectId ?? entry.projectId;
+    const projectTaskId = dto.projectTaskId !== undefined ? dto.projectTaskId : entry.projectTaskId ?? undefined;
     const startedAt = dto.startedAt ? new Date(dto.startedAt) : entry.startedAt;
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : entry.stoppedAt ?? undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
+    const isBillable = await resolveTimeEntryBillable(
+      this.prisma,
+      projectId,
+      projectTaskId,
+      dto.isBillable ?? entry.isBillable,
+    );
 
     return this.prisma.timeEntry.update({
       where: { id },
       data: {
         ...(dto.projectId !== undefined && { projectId: dto.projectId }),
+        ...(dto.projectTaskId !== undefined && { projectTaskId: dto.projectTaskId }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.startedAt !== undefined && { startedAt }),
         ...(dto.stoppedAt !== undefined && { stoppedAt, durationMin }),
-        ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
+        ...(dto.isBillable !== undefined || dto.projectTaskId !== undefined || dto.projectId !== undefined
+          ? { isBillable }
+          : {}),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
       },
+      include: entryIncludeWithoutUser,
     });
   }
 

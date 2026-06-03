@@ -1,0 +1,15 @@
+.tasks-section {
+  width: 50%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  .showcase-section-title {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .tasks-section {
+    width: 100%;
+  }
+}

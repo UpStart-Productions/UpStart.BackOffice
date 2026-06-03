@@ -4,6 +4,7 @@ dist
 tmp
 .nx/cache
 .nx/workspace-data
+.angular/
 *.js.map
 admin/src/environments/environment.production.generated.ts
 admin/src/environments/environment.development.generated.ts

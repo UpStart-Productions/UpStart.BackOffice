@@ -6,11 +6,12 @@ export function dateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Sunday-start week containing `anchor`. */
+/** Monday-start week containing `anchor`. */
 export function startOfWeek(anchor: Date): Date {
   const d = new Date(anchor);
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - d.getDay());
+  const daysFromMonday = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - daysFromMonday);
   return d;
 }
 
@@ -32,11 +33,37 @@ export function isToday(d: Date): boolean {
   return isSameDay(d, new Date());
 }
 
-/** End of week day (Saturday 23:59:59.999) for API `to` query. */
+/** End of week day (Sunday 23:59:59.999) for API `to` query. */
 export function endOfWeek(weekStart: Date): Date {
   const end = addDays(weekStart, 6);
   end.setHours(23, 59, 59, 999);
   return end;
+}
+
+/** Harvest-style heading, e.g. "Tuesday, 05 May". */
+export function formatDayHeading(d: Date): string {
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleDateString('en-US', { month: 'short' });
+  return `${weekday}, ${day} ${month}`;
+}
+
+/** Display minutes as H:MM (Harvest-style). */
+export function formatDurationMin(totalMin: number): string {
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
+export function formatDurationHours(hours: number): string {
+  return formatDurationMin(hoursToMinutes(hours));
+}
+
+/** Parse H:MM or decimal hours into minutes. */
+export function parseDurationInput(raw: string): number | null {
+  const hours = parseHoursInput(raw);
+  if (hours === null) return null;
+  return hoursToMinutes(hours);
 }
 
 export function formatWeekRange(weekStart: Date): string {
