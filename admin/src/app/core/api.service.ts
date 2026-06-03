@@ -49,9 +49,9 @@ export class ApiService {
         this.signingOut = true;
         this.auth.clear();
         sessionStorage.setItem('ubo_auth_error', 'Session expired. Please sign in again.');
-        this.router.navigate(['/login']);
-        if (this.cognito.useCognito) this.cognito.signOut().catch(() => {});
-        return new Promise<T>(() => {});
+        if (this.cognito.useCognito) await this.cognito.clearLocalSession();
+        await this.router.navigate(['/login']);
+        throw new Error(`API error 401: ${extractMessage(res.status, text)}`);
       }
       throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
     }
@@ -84,9 +84,9 @@ export class ApiService {
         this.signingOut = true;
         this.auth.clear();
         sessionStorage.setItem('ubo_auth_error', 'Session expired. Please sign in again.');
-        this.router.navigate(['/login']);
-        if (this.cognito.useCognito) this.cognito.signOut().catch(() => {});
-        return new Promise<T>(() => {});
+        if (this.cognito.useCognito) await this.cognito.clearLocalSession();
+        await this.router.navigate(['/login']);
+        throw new Error(`API error 401: ${extractMessage(res.status, text)}`);
       }
       throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
     }

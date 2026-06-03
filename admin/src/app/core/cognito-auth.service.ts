@@ -195,6 +195,17 @@ export class CognitoAuthService {
     });
   }
 
+  /** Clear Cognito tokens locally without an OAuth redirect (failed API verification, 401, etc.). */
+  async clearLocalSession(): Promise<void> {
+    if (!this.useCognito) return;
+    this.cachedIdToken = null;
+    try {
+      await signOut({ global: true });
+    } catch {
+      /* ignore — in-memory cache is already cleared */
+    }
+  }
+
   async signOut(): Promise<void> {
     if (!this.useCognito) return;
     this.cachedIdToken = null;

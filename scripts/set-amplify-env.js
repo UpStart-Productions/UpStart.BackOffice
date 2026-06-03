@@ -10,9 +10,42 @@ function escape(s) {
   return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001/api';
-const redirectSignIn = process.env.AMPLIFY_REDIRECT_SIGN_IN || 'http://localhost:4201/';
-const redirectSignOut = process.env.AMPLIFY_REDIRECT_SIGN_OUT || 'http://localhost:4201/';
+function fail(message) {
+  console.error(`set-amplify-env: ${message}`);
+  process.exit(1);
+}
+
+function requireHttpsUrl(name, raw, { requireApiSuffix = false } = {}) {
+  const url = (raw || '').trim().replace(/\/$/, '');
+  if (!url) fail(`${name} is required for Amplify builds.`);
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    fail(`${name} must be a valid URL (got "${raw}").`);
+  }
+
+  const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  if (parsed.protocol !== 'https:' && !isLocalhost) {
+    fail(`${name} must use HTTPS in production (got ${parsed.protocol}//${parsed.host}).`);
+  }
+
+  if (requireApiSuffix && !parsed.pathname.endsWith('/api')) {
+    fail(`${name} should end with /api (got "${url}"). Example: https://api.example.com/api`);
+  }
+
+  return url;
+}
+
+const apiBaseUrl = requireHttpsUrl('API_BASE_URL', process.env.API_BASE_URL, {
+  requireApiSuffix: true,
+});
+const redirectSignIn = requireHttpsUrl('AMPLIFY_REDIRECT_SIGN_IN', process.env.AMPLIFY_REDIRECT_SIGN_IN);
+const redirectSignOut = requireHttpsUrl(
+  'AMPLIFY_REDIRECT_SIGN_OUT',
+  process.env.AMPLIFY_REDIRECT_SIGN_OUT,
+);
 const poolId = process.env.COGNITO_USER_POOL_ID || 'us-west-2_IlJRXdK5X';
 const clientId = process.env.COGNITO_CLIENT_ID || '5oi5vfbt574mqect5psnqkqabn';
 const region = process.env.COGNITO_REGION || 'us-west-2';
@@ -42,8 +75,8 @@ export const environment = {
     region: '${escape(region)}',
     domainPrefix: '${escape(domainPrefix)}',
     ${customDomainLine}
-    redirectSignIn: '${escape(redirectSignIn)}',
-    redirectSignOut: '${escape(redirectSignOut)}',
+    redirectSignIn: '${escape(redirectSignIn)}/',
+    redirectSignOut: '${escape(redirectSignOut)}/',
   },
 };
 `;

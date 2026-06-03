@@ -56,9 +56,6 @@ export class LoginPage implements OnInit {
       this.loginError = authError;
       sessionStorage.removeItem('ubo_auth_error');
     }
-    if (this.useCognito && this.cognito.hasCachedToken()) {
-      void this.router.navigate(['/time-entry']);
-    }
   }
 
   async signInWithEmailPassword() {
