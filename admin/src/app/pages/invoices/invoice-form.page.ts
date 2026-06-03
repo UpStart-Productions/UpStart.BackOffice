@@ -48,11 +48,7 @@ type InvoicePreview = {
   }>;
 };
 
-type ProjectLineGroup = {
-  projectId: string;
-  projectName: string;
-  rows: Array<{ item: LineItem; index: number }>;
-};
+type LineItemRow = { item: LineItem; index: number };
 
 const MONTHS = [
   { label: 'January', value: 1 },
@@ -141,33 +137,15 @@ export class InvoiceFormPage implements OnInit {
 
   lineItems = signal<LineItem[]>([]);
 
-  readonly projectGroups = computed((): ProjectLineGroup[] => {
-    const items = this.lineItems();
-    const nameById = new Map(this.projects().map((p) => [p.id, p.name]));
-    const groups: ProjectLineGroup[] = [];
-
-    items.forEach((item, index) => {
-      const pid = item.projectId || '_none';
-      const last = groups[groups.length - 1];
-      const projectName =
-        item.projectName ||
-        (item.projectId ? (nameById.get(item.projectId) ?? 'Project') : 'Other');
-      if (last && last.projectId === pid) {
-        last.rows.push({ item, index });
-      } else {
-        groups.push({
-          projectId: pid,
-          projectName,
-          rows: [{ item, index }],
-        });
-      }
-    });
-    return groups;
-  });
+  readonly lineItemRows = computed((): LineItemRow[] =>
+    this.lineItems().map((item, index) => ({ item, index })),
+  );
 
   get isNew() { return !this.id(); }
   get isDraftEdit() { return !!this.id(); }
   get canEditLines() { return this.isNew || this.isDraftEdit; }
+  /** Hide per-row project when Generate from time already filters to one project. */
+  get hideLineProjectColumn() { return !!this.generate.projectId; }
   get subtotal() { return this.lineItems().reduce((s, i) => s + i.amount, 0); }
   get taxAmount() { return this.form.taxRate ? this.subtotal * this.form.taxRate : 0; }
   get total() { return this.subtotal + this.taxAmount; }
@@ -243,7 +221,8 @@ export class InvoiceFormPage implements OnInit {
     }
   }
 
-  addLine(projectId = '') {
+  addLine() {
+    const projectId = this.generate.projectId || '';
     this.lineItems.update((items) => [
       ...items,
       { projectId, description: '', quantity: 0, unitPrice: 0, amount: 0, timeEntryIds: [] },

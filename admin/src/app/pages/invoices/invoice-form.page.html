@@ -213,7 +213,7 @@
               icon="pi pi-plus"
               severity="secondary"
               size="small"
-              (click)="addLine(generate.projectId)"
+              (click)="addLine()"
             />
           </div>
 
@@ -226,64 +226,75 @@
               }
             </p>
           } @else {
-            @for (group of projectGroups(); track group.projectId) {
-              <section class="invoice-project-block">
-                <h5 class="invoice-project-title">{{ group.projectName }}</h5>
-                <p-table [value]="group.rows" styleClass="table-bordered">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th>Description</th>
-                      <th style="width: 90px">Qty/Hrs</th>
-                      <th style="width: 100px">Rate</th>
-                      <th style="width: 100px">Amount</th>
-                      <th style="width: 40px"></th>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="body" let-row>
-                    <tr>
-                      <td>
-                        <textarea
-                          pTextarea
-                          [(ngModel)]="row.item.description"
-                          class="w-full invoice-line-desc"
-                          rows="3"
-                        ></textarea>
-                      </td>
-                      <td>
-                        <input
-                          pInputText
-                          type="number"
-                          [(ngModel)]="row.item.quantity"
-                          (ngModelChange)="calcLine(row.item)"
-                          class="w-full"
-                          step="0.01"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          pInputText
-                          type="number"
-                          [(ngModel)]="row.item.unitPrice"
-                          (ngModelChange)="calcLine(row.item)"
-                          class="w-full"
-                        />
-                      </td>
-                      <td class="text-right font-semibold">{{ formatCurrency(row.item.amount) }}</td>
-                      <td>
-                        <p-button
-                          icon="pi pi-trash"
-                          [text]="true"
-                          severity="danger"
-                          size="small"
-                          aria-label="Delete line"
-                          (click)="removeLine(row.index)"
-                        />
-                      </td>
-                    </tr>
-                  </ng-template>
-                </p-table>
-              </section>
-            }
+            <p-table [value]="lineItemRows()" styleClass="table-bordered mt-3">
+              <ng-template pTemplate="header">
+                <tr>
+                  @if (!hideLineProjectColumn) {
+                    <th style="width: 160px">Project</th>
+                  }
+                  <th>Description</th>
+                  <th style="width: 90px">Qty/Hrs</th>
+                  <th style="width: 100px">Rate</th>
+                  <th style="width: 100px">Amount</th>
+                  <th style="width: 40px"></th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr>
+                  @if (!hideLineProjectColumn) {
+                    <td>
+                      <p-select
+                        [options]="filteredProjects()"
+                        optionLabel="name"
+                        optionValue="id"
+                        [(ngModel)]="row.item.projectId"
+                        placeholder="—"
+                        [showClear]="true"
+                        styleClass="w-full"
+                      />
+                    </td>
+                  }
+                  <td>
+                    <textarea
+                      pTextarea
+                      [(ngModel)]="row.item.description"
+                      class="w-full invoice-line-desc"
+                      rows="3"
+                    ></textarea>
+                  </td>
+                  <td>
+                    <input
+                      pInputText
+                      type="number"
+                      [(ngModel)]="row.item.quantity"
+                      (ngModelChange)="calcLine(row.item)"
+                      class="w-full"
+                      step="0.01"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      pInputText
+                      type="number"
+                      [(ngModel)]="row.item.unitPrice"
+                      (ngModelChange)="calcLine(row.item)"
+                      class="w-full"
+                    />
+                  </td>
+                  <td class="text-right font-semibold">{{ formatCurrency(row.item.amount) }}</td>
+                  <td>
+                    <p-button
+                      icon="pi pi-trash"
+                      [text]="true"
+                      severity="danger"
+                      size="small"
+                      aria-label="Delete line"
+                      (click)="removeLine(row.index)"
+                    />
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
 
             <div class="flex justify-end gap-4 text-sm mt-4">
               <span>Subtotal: <strong>{{ formatCurrency(subtotal) }}</strong></span>
