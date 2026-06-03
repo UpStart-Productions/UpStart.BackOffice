@@ -1,5 +1,4 @@
 import { inject, Injectable } from '@angular/core';
-import { Router } from '@angular/router';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { environment } from '../../environments/environment';
@@ -23,15 +22,14 @@ function extractMessage(status: number, bodyText: string): string {
 export class ApiService {
   private readonly auth = inject(AuthStoreService);
   private readonly cognito = inject(CognitoAuthService);
-  private readonly router = inject(Router);
   private readonly base = environment.apiBaseUrl;
-  private signingOut = false;
 
-  resetSigningOut() { this.signingOut = false; }
-
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    if (this.signingOut) return new Promise<T>(() => {});
-
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    retriedAfterRefresh = false,
+  ): Promise<T> {
     const options: RequestInit = { method };
     if (body !== undefined) {
       options.body = JSON.stringify(body);
@@ -45,13 +43,15 @@ export class ApiService {
     const text = await res.text();
 
     if (!res.ok) {
-      if (res.status === 401 && !this.signingOut) {
-        this.signingOut = true;
-        this.auth.clear();
-        sessionStorage.setItem('ubo_auth_error', 'Session expired. Please sign in again.');
-        if (this.cognito.useCognito) await this.cognito.clearLocalSession();
-        await this.router.navigate(['/login']);
-        throw new Error(`API error 401: ${extractMessage(res.status, text)}`);
+      if (
+        res.status === 401 &&
+        !retriedAfterRefresh &&
+        this.cognito.useCognito
+      ) {
+        const refreshed = await this.cognito.refreshSession();
+        if (refreshed) {
+          return this.request<T>(method, path, body, true);
+        }
       }
       throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
     }
@@ -67,9 +67,12 @@ export class ApiService {
   delete<T>(path: string): Promise<T> { return this.request<T>('DELETE', path); }
 
   /** Multipart upload; do not set Content-Type so the browser sets the boundary. */
-  async uploadFile<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
-    if (this.signingOut) return new Promise<T>(() => {});
-
+  async uploadFile<T>(
+    path: string,
+    file: File,
+    fieldName = 'file',
+    retriedAfterRefresh = false,
+  ): Promise<T> {
     const formData = new FormData();
     formData.append(fieldName, file);
     const options = await this.auth.getHeaders({ method: 'POST', body: formData });
@@ -80,13 +83,15 @@ export class ApiService {
     const text = await res.text();
 
     if (!res.ok) {
-      if (res.status === 401 && !this.signingOut) {
-        this.signingOut = true;
-        this.auth.clear();
-        sessionStorage.setItem('ubo_auth_error', 'Session expired. Please sign in again.');
-        if (this.cognito.useCognito) await this.cognito.clearLocalSession();
-        await this.router.navigate(['/login']);
-        throw new Error(`API error 401: ${extractMessage(res.status, text)}`);
+      if (
+        res.status === 401 &&
+        !retriedAfterRefresh &&
+        this.cognito.useCognito
+      ) {
+        const refreshed = await this.cognito.refreshSession();
+        if (refreshed) {
+          return this.uploadFile<T>(path, file, fieldName, true);
+        }
       }
       throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
     }

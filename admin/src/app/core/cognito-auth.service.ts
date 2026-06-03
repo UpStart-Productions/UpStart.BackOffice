@@ -195,17 +195,6 @@ export class CognitoAuthService {
     });
   }
 
-  /** Clear Cognito tokens locally without an OAuth redirect (failed API verification, 401, etc.). */
-  async clearLocalSession(): Promise<void> {
-    if (!this.useCognito) return;
-    this.cachedIdToken = null;
-    try {
-      await signOut({ global: true });
-    } catch {
-      /* ignore — in-memory cache is already cleared */
-    }
-  }
-
   async signOut(): Promise<void> {
     if (!this.useCognito) return;
     this.cachedIdToken = null;
@@ -216,13 +205,27 @@ export class CognitoAuthService {
     await signOut({ global: true, oauth: { redirectUrl } });
   }
 
+  async refreshSession(): Promise<string | null> {
+    if (!this.useCognito) return null;
+    try {
+      const session = await fetchAuthSession({ forceRefresh: true });
+      this.cachedIdToken = session.tokens?.idToken?.toString() ?? null;
+    } catch {
+      this.cachedIdToken = null;
+    }
+    return this.cachedIdToken;
+  }
+
   async getIdToken(): Promise<string | null> {
     if (!this.useCognito) return null;
     try {
       const session = await fetchAuthSession();
       this.cachedIdToken = session.tokens?.idToken?.toString() ?? null;
+      if (!this.cachedIdToken) {
+        return this.refreshSession();
+      }
     } catch {
-      this.cachedIdToken = null;
+      return this.refreshSession();
     }
     return this.cachedIdToken;
   }

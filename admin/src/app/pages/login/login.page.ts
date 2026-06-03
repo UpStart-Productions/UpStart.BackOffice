@@ -10,8 +10,6 @@ import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
 
-const DEV_LOGIN_EMAIL = 'admin@upstart.test';
-
 type CognitoFormMode = 'login' | 'forgot-request' | 'forgot-confirm' | 'new-password-required';
 
 @Component({
@@ -29,7 +27,7 @@ export class LoginPage implements OnInit {
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  email = DEV_LOGIN_EMAIL;
+  email = '';
   password = '';
   resetCode = '';
   newPassword = '';
@@ -47,15 +45,7 @@ export class LoginPage implements OnInit {
   }
 
   ngOnInit() {
-    this.api.resetSigningOut();
-    if (!this.useCognito && !this.email.trim()) {
-      this.email = DEV_LOGIN_EMAIL;
-    }
-    const authError = sessionStorage.getItem('ubo_auth_error');
-    if (authError) {
-      this.loginError = authError;
-      sessionStorage.removeItem('ubo_auth_error');
-    }
+    sessionStorage.removeItem('ubo_auth_error');
   }
 
   async signInWithEmailPassword() {
@@ -76,8 +66,8 @@ export class LoginPage implements OnInit {
         this.auth.clear();
         this.loginError =
           err instanceof Error
-            ? err.message
-            : 'Sign in failed. Run npm run dev:seed and use admin@upstart.test.';
+            ? err.message.replace(/^API error \d+: /, '')
+            : 'Could not sign in with that email.';
       } finally {
         this.loading = false;
         this.cdr.detectChanges();
@@ -206,7 +196,7 @@ export class LoginPage implements OnInit {
       const name = (err as { name: string }).name;
       const message = (err as { message?: string }).message ?? '';
       if (name === 'NotAuthorizedException' || message.includes('Incorrect username or password')) {
-        return 'Invalid email or password.';
+        return 'Incorrect email or password.';
       }
       if (name === 'UserNotFoundException') {
         return 'No sign-in account for this email. Ask an admin to create your account first.';
