@@ -5,6 +5,7 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { SyncProjectTasksDto } from './dto/project-task.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -15,7 +16,10 @@ import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-
 @UseGuards(AppAuthGuard)
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageFolders: StorageFoldersService,
+  ) {}
 
   @Get()
   @ApiQuery({ name: 'clientId', required: false })
@@ -29,7 +33,10 @@ export class ProjectsController {
 
   @Post()
   async create(@Body() dto: CreateProjectDto) {
-    return this.prisma.project.create({
+    const client = await this.prisma.client.findUnique({ where: { id: dto.clientId } });
+    if (!client) throw new NotFoundException('Client not found');
+
+    const project = await this.prisma.project.create({
       data: {
         clientId: dto.clientId,
         name: dto.name,
@@ -40,6 +47,8 @@ export class ProjectsController {
       },
       include: projectInclude,
     });
+    await this.storageFolders.ensureProjectFolder(project.clientId, project.id);
+    return project;
   }
 
   @Get(':id')
@@ -85,6 +94,7 @@ export class ProjectsController {
   async remove(@Param('id') id: string) {
     const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Project not found');
+    await this.storageFolders.removeProjectTree(existing.clientId, id);
     await this.prisma.project.delete({ where: { id } });
     return { deleted: true };
   }

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+import { publicUrlForKey } from './asset-url.util';
 import { StorageService } from './storage.interface';
 
 const UPLOADS_ROOT = path.join(process.cwd(), 'uploads');
-const URL_PREFIX = '/api/uploads/';
 
 @Injectable()
 export class LocalStorageService implements StorageService {
@@ -19,7 +19,7 @@ export class LocalStorageService implements StorageService {
     const fullPath = path.join(UPLOADS_ROOT, key);
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, buffer);
-    return URL_PREFIX + key.replace(/\\/g, '/');
+    return publicUrlForKey(key);
   }
 
   async copy({
@@ -33,7 +33,7 @@ export class LocalStorageService implements StorageService {
     const dest = path.join(UPLOADS_ROOT, destKey);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(src, dest);
-    return URL_PREFIX + destKey.replace(/\\/g, '/');
+    return publicUrlForKey(destKey);
   }
 
   async delete(key: string): Promise<void> {
@@ -51,7 +51,22 @@ export class LocalStorageService implements StorageService {
     return fs.readFileSync(path.join(UPLOADS_ROOT, key));
   }
 
+  async deletePrefix(prefix: string): Promise<void> {
+    const dir = path.join(UPLOADS_ROOT, prefix.replace(/\/$/, ''));
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   keyFromUrl(url: string): string {
-    return url.replace(/^\/api\/uploads\//, '').replace(/\\/g, '/');
+    if (url.startsWith('/api/uploads/')) return url.replace(/^\/api\/uploads\//, '').replace(/\\/g, '/');
+    if (url.includes('.amazonaws.com/')) {
+      try {
+        return new URL(url).pathname.replace(/^\//, '');
+      } catch {
+        /* fall through */
+      }
+    }
+    return url.replace(/\\/g, '/');
   }
 }

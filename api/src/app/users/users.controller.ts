@@ -25,6 +25,7 @@ import { RequireSuperGuard } from '../auth/require-super.guard';
 import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateUserDto, SetUserActiveDto, UpdateUserDto } from './dto/user.dto';
@@ -60,7 +61,7 @@ function toListItem(user: {
     firstName: user.firstName,
     lastName: user.lastName,
     name: displayName(user),
-    avatarUrl: user.avatarUrl,
+    avatarUrl: toPublicAssetUrl(user.avatarUrl),
     role: user.role,
     hourlyRate: user.hourlyRate != null ? Number(user.hourlyRate) : null,
     isActive: user.isActive,
@@ -103,7 +104,7 @@ export class UsersController {
       firstName: row.firstName,
       lastName: row.lastName,
       name: displayName(row),
-      avatarUrl: row.avatarUrl,
+      avatarUrl: toPublicAssetUrl(row.avatarUrl),
       role: row.role,
       hourlyRate: row.hourlyRate != null ? Number(row.hourlyRate) : null,
       isSuper: row.isSuper,
@@ -309,7 +310,7 @@ export class UsersController {
       data: { avatarUrl: url },
     });
 
-    return { url };
+    return { url: toPublicAssetUrl(url) ?? url };
   }
 
   private async deleteStoredAvatar(avatarUrl: string): Promise<void> {

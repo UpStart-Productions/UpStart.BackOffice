@@ -2,19 +2,20 @@ import { Injectable } from '@nestjs/common';
 import {
   CopyObjectCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { publicUrlForKey } from './asset-url.util';
 import { StorageService } from './storage.interface';
 
 @Injectable()
 export class S3StorageService implements StorageService {
   private readonly client: S3Client;
   private readonly bucket: string;
-  private readonly publicBaseUrl: string;
-
   constructor() {
     const bucket = process.env.S3_BUCKET;
     const region =
@@ -26,15 +27,6 @@ export class S3StorageService implements StorageService {
 
     this.bucket = bucket;
     this.client = new S3Client({ region });
-
-    const customUrl = process.env.S3_PUBLIC_URL;
-    this.publicBaseUrl = customUrl
-      ? customUrl.replace(/\/$/, '')
-      : `https://${bucket}.s3.${region}.amazonaws.com`;
-  }
-
-  private urlForKey(key: string): string {
-    return `${this.publicBaseUrl}/${key}`;
   }
 
   async upload({
@@ -54,7 +46,7 @@ export class S3StorageService implements StorageService {
         ContentType: mimeType ?? 'application/octet-stream',
       }),
     );
-    return this.urlForKey(key);
+    return publicUrlForKey(key);
   }
 
   async copy({
@@ -71,7 +63,7 @@ export class S3StorageService implements StorageService {
         Key: destKey,
       }),
     );
-    return this.urlForKey(destKey);
+    return publicUrlForKey(destKey);
   }
 
   async delete(key: string): Promise<void> {
@@ -113,12 +105,45 @@ export class S3StorageService implements StorageService {
     return Buffer.concat(chunks);
   }
 
+  async deletePrefix(prefix: string): Promise<void> {
+    const normalized = prefix.replace(/\/$/, '') + '/';
+    let continuationToken: string | undefined;
+
+    do {
+      const list = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: normalized,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      const keys = (list.Contents ?? [])
+        .map((o) => o.Key)
+        .filter((k): k is string => !!k);
+
+      if (keys.length > 0) {
+        await this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: this.bucket,
+            Delete: { Objects: keys.map((Key) => ({ Key })) },
+          }),
+        );
+      }
+
+      continuationToken = list.IsTruncated ? list.NextContinuationToken : undefined;
+    } while (continuationToken);
+  }
+
   keyFromUrl(url: string): string {
-    const prefix = this.publicBaseUrl.endsWith('/')
-      ? this.publicBaseUrl
-      : this.publicBaseUrl + '/';
-    if (url.startsWith(prefix)) return url.slice(prefix.length);
     if (url.startsWith('/api/uploads/')) return url.replace(/^\/api\/uploads\//, '');
+    if (url.includes('.amazonaws.com/')) {
+      try {
+        return new URL(url).pathname.replace(/^\//, '');
+      } catch {
+        /* fall through */
+      }
+    }
     return url;
   }
 }

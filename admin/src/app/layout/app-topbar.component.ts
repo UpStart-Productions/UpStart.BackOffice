@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { Component, effect, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { LayoutService } from './layout.service';
@@ -54,4 +54,11 @@ export class AppTopbarComponent {
   avatarUrl = input<string | null | undefined>(null);
   signOut = output<void>();
   avatarImageError = false;
+
+  constructor() {
+    effect(() => {
+      this.avatarUrl();
+      this.avatarImageError = false;
+    });
+  }
 }

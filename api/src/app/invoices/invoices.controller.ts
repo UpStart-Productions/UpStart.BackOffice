@@ -3,13 +3,25 @@ import {
   Param, Post, Put, Res, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { PdfService } from './pdf.service';
+
+const invoiceInclude = {
+  client: true,
+  lineItems: {
+    include: { project: { select: { id: true, name: true } } },
+    orderBy: { sortOrder: 'asc' as const },
+  },
+} satisfies Prisma.InvoiceInclude;
+
+type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceInclude }>;
 
 @ApiTags('invoices')
 @ApiBearerAuth()
@@ -20,6 +32,7 @@ export class InvoicesController {
     private readonly prisma: PrismaService,
     private readonly pdf: PdfService,
     private readonly mail: MailService,
+    private readonly storageFolders: StorageFoldersService,
   ) {}
 
   @Get()
@@ -68,10 +81,7 @@ export class InvoicesController {
           })),
         },
       },
-      include: {
-        client: true,
-        lineItems: { include: { project: { select: { id: true, name: true } } }, orderBy: { sortOrder: 'asc' } },
-      },
+      include: invoiceInclude,
     });
   }
 
@@ -79,10 +89,7 @@ export class InvoicesController {
   async get(@Param('id') id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
-      include: {
-        client: true,
-        lineItems: { include: { project: { select: { id: true, name: true } } }, orderBy: { sortOrder: 'asc' } },
-      },
+      include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     return invoice;
@@ -92,7 +99,7 @@ export class InvoicesController {
   async update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto) {
     const existing = await this.prisma.invoice.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Invoice not found');
-    return this.prisma.invoice.update({
+    const invoice = await this.prisma.invoice.update({
       where: { id },
       data: {
         ...(dto.issueDate !== undefined && { issueDate: new Date(dto.issueDate) }),
@@ -105,17 +112,17 @@ export class InvoicesController {
           ...(dto.status === 'PAID' && !existing.paidAt ? { paidAt: new Date() } : {}),
         }),
       },
-      include: {
-        client: true,
-        lineItems: { include: { project: { select: { id: true, name: true } } }, orderBy: { sortOrder: 'asc' } },
-      },
+      include: invoiceInclude,
     });
+    await this.generateAndStorePdf(invoice);
+    return invoice;
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const existing = await this.prisma.invoice.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Invoice not found');
+    await this.storageFolders.removeInvoicePdf(existing.clientId, existing.displayNumber);
     await this.prisma.invoice.delete({ where: { id } });
     return { deleted: true };
   }
@@ -124,15 +131,11 @@ export class InvoicesController {
   async downloadPdf(@Res() res: Response, @Param('id') id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
-      include: {
-        client: true,
-        lineItems: { include: { project: { select: { id: true, name: true } } }, orderBy: { sortOrder: 'asc' } },
-      },
+      include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
-    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName);
+    const pdfBuffer = await this.generateAndStorePdf(invoice);
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -146,16 +149,12 @@ export class InvoicesController {
   async send(@Param('id') id: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
-      include: {
-        client: true,
-        lineItems: { include: { project: { select: { id: true, name: true } } }, orderBy: { sortOrder: 'asc' } },
-      },
+      include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
     if (!invoice.client.email) throw new BadRequestException('Client has no email address');
 
-    const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
-    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName);
+    const pdfBuffer = await this.generateAndStorePdf(invoice);
     const result = await this.mail.sendInvoice({
       to: invoice.client.email,
       toName: invoice.client.name,
@@ -173,5 +172,16 @@ export class InvoicesController {
     }
 
     return { sent: result.sent, error: result.error };
+  }
+
+  private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
+    const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
+    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName);
+    await this.storageFolders.saveInvoicePdf(
+      invoice.clientId,
+      invoice.displayNumber,
+      pdfBuffer,
+    );
+    return pdfBuffer;
   }
 }

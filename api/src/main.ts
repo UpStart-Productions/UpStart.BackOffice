@@ -12,8 +12,6 @@ import * as express from 'express';
 import { AppModule } from './app/app.module';
 import { HttpExceptionFilter } from './app/common/http-exception.filter';
 
-const uploadsPath = path.join(process.cwd(), 'uploads');
-
 const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT ?? '10mb';
 
 async function bootstrap() {
@@ -89,7 +87,6 @@ async function bootstrap() {
   }
 
   app.setGlobalPrefix('api');
-  app.useStaticAssets(uploadsPath, { prefix: '/api/uploads/', index: false });
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

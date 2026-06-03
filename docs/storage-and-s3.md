@@ -2,21 +2,37 @@
 
 **AWS region:** This project always uses **`us-west-2`** for S3, Cognito, SES, and other AWS services.
 
-Uploads use a configurable backend: **local disk** (`STORAGE_PROVIDER=local`, default) or **S3** (`STORAGE_PROVIDER=s3`). Keys are object paths in the bucket; folders appear when the first file is written (no pre-create on client/project save).
+Uploads use a configurable backend: **local disk** (`STORAGE_PROVIDER=local`, default) or **S3** (`STORAGE_PROVIDER=s3`). Keys are object paths in the bucket.
 
 ## Key layout
 
 | Prefix | Path | Description |
 |--------|------|-------------|
-| `avatars/` | `{userId}/` | User avatars and other account assets |
-| `clients/` | `{clientId}/` | Client logo and client-level files |
-| `clients/` | `{clientId}/projects/{projectId}/` | Project-specific files |
-| `clients/` | `{clientId}/invoices/{invoiceId}.pdf` | Invoice PDFs (per-client; preferred over a global `invoices/` tree) |
+| `avatars/` | `{userId}/` | User avatars |
+| `clients/` | `{clientId}/` | Client root (`.keep` on create) |
+| `clients/` | `{clientId}/invoices/` | Invoice PDFs + `.keep` on client create |
+| `clients/` | `{clientId}/invoices/{displayNumber}.pdf` | Invoice PDF (saved on download, send, or update) |
+| `clients/` | `{clientId}/projects/{projectId}/` | Project files + `.keep` on project create |
+
+Placeholder files use the name **`.keep`** (zero bytes) so empty prefixes appear as folders in Cyberduck and the S3 console.
+
+## Lifecycle
+
+| Event | Storage action |
+|--------|----------------|
+| Client created | `clients/{id}/.keep`, `clients/{id}/invoices/.keep` |
+| Project created | `clients/{clientId}/projects/{projectId}/.keep` |
+| Client deleted | Remove entire `clients/{id}/` prefix |
+| Project deleted | Remove `clients/{clientId}/projects/{projectId}/` prefix |
+| Invoice PDF generated | `clients/{clientId}/invoices/{displayNumber}.pdf` |
+| Invoice deleted | Remove that PDF key |
+
+Backfill existing rows: `npx tsx tools/backfill-storage-folders.ts`
 
 ## Local vs S3
 
-- **Local:** Files under `uploads/`; served at `/api/uploads/{key}`. DB stores relative URLs (e.g. `/api/uploads/avatars/...`).
-- **S3:** DB stores full public URLs. Set `S3_PUBLIC_URL` for CloudFront or a custom domain. Ensure the bucket allows read access from the admin origin (bucket policy or CDN).
+- **Local:** Files under `uploads/`; served at `/api/uploads/{key}`.
+- **S3:** Objects stay private in the bucket. The API stores proxy paths like `/api/uploads/{key}` and serves files via `GET /api/uploads/*` using IAM credentials.
 
 ## Environment
 
@@ -24,6 +40,5 @@ Uploads use a configurable backend: **local disk** (`STORAGE_PROVIDER=local`, de
 |----------|----------|--------|
 | `STORAGE_PROVIDER` | No | `local` (default) or `s3` |
 | `S3_BUCKET` | When `s3` | e.g. `upstart-back-office-files` |
-| `S3_REGION` | No | Optional; defaults to `AWS_REGION` (`us-west-2`) |
-| `S3_PUBLIC_URL` | No | Override public base URL |
-| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | When `s3` | Same keys as Cognito/SES; IAM needs `s3:PutObject`, `GetObject`, `DeleteObject` on the bucket |
+| `S3_REGION` | No | Defaults to `AWS_REGION` (`us-west-2`) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | When `s3` | Same keys as Cognito/SES; needs `s3:PutObject`, `GetObject`, `DeleteObject`, `ListBucket` (for prefix delete) |

@@ -1,7 +1,7 @@
 <div class="layout-wrapper" [ngClass]="containerClass()">
   <app-topbar
     [userName]="displayName"
-    [avatarUrl]="me()?.avatarUrl"
+    [avatarUrl]="session.me()?.avatarUrl"
     (signOut)="signOut()"
   />
   <app-sidebar [navItems]="navItems()" />

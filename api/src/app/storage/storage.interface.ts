@@ -17,4 +17,7 @@ export interface StorageService {
 
   /** Extract storage key from a URL previously returned by upload/copy. */
   keyFromUrl(url: string): string;
+
+  /** Delete all objects under a prefix (e.g. `clients/{id}/`). */
+  deletePrefix(prefix: string): Promise<void>;
 }

@@ -5,6 +5,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 
@@ -13,7 +14,10 @@ import { UpdateClientDto } from './dto/update-client.dto';
 @UseGuards(AppAuthGuard)
 @Controller('clients')
 export class ClientsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageFolders: StorageFoldersService,
+  ) {}
 
   @Get()
   async list() {
@@ -22,7 +26,7 @@ export class ClientsController {
 
   @Post()
   async create(@Body() dto: CreateClientDto) {
-    return this.prisma.client.create({
+    const client = await this.prisma.client.create({
       data: {
         name: dto.name,
         code: dto.code.toUpperCase(),
@@ -37,6 +41,8 @@ export class ClientsController {
         isActive: dto.isActive ?? true,
       },
     });
+    await this.storageFolders.ensureClientFolders(client.id);
+    return client;
   }
 
   @Get(':id')
@@ -72,6 +78,7 @@ export class ClientsController {
   async remove(@Param('id') id: string) {
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
+    await this.storageFolders.removeClientTree(id);
     await this.prisma.client.delete({ where: { id } });
     return { deleted: true };
   }

@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 const COGNITO_JWKS_URI = (region: string, userPoolId: string) =>
   `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
@@ -104,7 +105,7 @@ export class JwtAuthGuard implements CanActivate {
       name: user.name,
       firstName: user.firstName,
       lastName: user.lastName,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: toPublicAssetUrl(user.avatarUrl),
       role: user.role,
       isSuper: user.isSuper,
     } satisfies UserContext;
