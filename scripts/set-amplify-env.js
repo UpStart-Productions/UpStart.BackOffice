@@ -37,6 +37,7 @@ export const environment = {
     userPoolId: 'us-west-2_lIJRXdK5X',
     userPoolClientId: '5oi5vfbt574mqect5psnqkqabn',
     region: 'us-west-2',
+    domainPrefix: 'us-west-2iljrxdk5x',
     redirectSignIn: '${escape(redirectSignIn)}',
     redirectSignOut: '${escape(redirectSignOut)}',
   },
