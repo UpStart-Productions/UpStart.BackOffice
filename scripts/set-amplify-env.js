@@ -2,6 +2,11 @@
 /**
  * Writes admin/src/environments/environment.production.generated.ts with
  * API_BASE_URL and Cognito settings from env (for Amplify builds).
+ *
+ * Amplify Console env vars (match Nonprofit.Mobile.Platform):
+ *   API_BASE_URL, AMPLIFY_REDIRECT_SIGN_IN, AMPLIFY_REDIRECT_SIGN_OUT,
+ *   AMPLIFY_COGNITO_CUSTOM_DOMAIN, AMPLIFY_MONOREPO_APP_ROOT=admin,
+ *   COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID, COGNITO_REGION, COGNITO_DOMAIN_PREFIX
  */
 const fs = require('fs');
 const path = require('path');
@@ -27,6 +32,13 @@ function requireHttpsUrl(name, raw, { requireApiSuffix = false } = {}) {
   }
 
   const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}$/.test(parsed.hostname);
+  if (isIpAddress) {
+    fail(
+      `${name} must be a domain name, not an IP address (got ${parsed.hostname}). ` +
+        'Use e.g. https://api.heyupstart.com/api',
+    );
+  }
   if (parsed.protocol !== 'https:' && !isLocalhost) {
     fail(`${name} must use HTTPS in production (got ${parsed.protocol}//${parsed.host}).`);
   }
@@ -50,7 +62,11 @@ const poolId = process.env.COGNITO_USER_POOL_ID || 'us-west-2_IlJRXdK5X';
 const clientId = process.env.COGNITO_CLIENT_ID || '5oi5vfbt574mqect5psnqkqabn';
 const region = process.env.COGNITO_REGION || 'us-west-2';
 const domainPrefix = process.env.COGNITO_DOMAIN_PREFIX || 'us-west-2iljrxdk5x';
-const customDomain = (process.env.COGNITO_CUSTOM_DOMAIN || '').trim();
+const customDomain = (
+  process.env.AMPLIFY_COGNITO_CUSTOM_DOMAIN ||
+  process.env.COGNITO_CUSTOM_DOMAIN ||
+  ''
+).trim();
 const customDomainLine = customDomain
   ? `customDomain: '${escape(customDomain)}',`
   : 'customDomain: undefined,';
@@ -86,3 +102,4 @@ fs.writeFileSync(outPath, content, 'utf8');
 console.log('Wrote', outPath);
 console.log('  apiBaseUrl:', apiBaseUrl);
 console.log('  redirectSignIn:', redirectSignIn);
+console.log('  customDomain:', customDomain || '(none)');

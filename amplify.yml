@@ -1,6 +1,13 @@
 version: 1
 # Monorepo: admin SPA only. API runs on EC2.
-# Set in Amplify Console env vars: API_BASE_URL, AMPLIFY_REDIRECT_SIGN_IN, AMPLIFY_REDIRECT_SIGN_OUT
+# Set in Amplify Console (match Nonprofit.Mobile.Platform):
+#   AMPLIFY_MONOREPO_APP_ROOT=admin
+#   AMPLIFY_DIFF_DEPLOY=false
+#   API_BASE_URL=https://api.heyupstart.com/api
+#   AMPLIFY_REDIRECT_SIGN_IN=https://app.heyupstart.com/
+#   AMPLIFY_REDIRECT_SIGN_OUT=https://app.heyupstart.com/
+#   AMPLIFY_COGNITO_CUSTOM_DOMAIN=auth.heyupstart.com
+#   COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID, COGNITO_REGION, COGNITO_DOMAIN_PREFIX
 applications:
   - appRoot: admin
     frontend:

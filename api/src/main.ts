@@ -68,7 +68,7 @@ async function bootstrap() {
   } else {
     const corsOrigins = (process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()) ?? []).filter(Boolean);
     const allowLocalNetwork = process.env.CORS_ALLOW_LOCAL_NETWORK === 'true';
-    Logger.log(`CORS: ${corsOrigins.length} origin(s) configured`);
+    Logger.log(`CORS: ${corsOrigins.length} origin(s) configured: ${corsOrigins.join(', ') || '(none)'}`);
     app.enableCors({
       origin: (origin, callback) => {
         if (!origin || corsOrigins.includes(origin)) {
@@ -79,7 +79,8 @@ async function bootstrap() {
           const isLocal = /^https?:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1)(:\d+)?$/.test(origin);
           if (isLocal) { callback(null, true); return; }
         }
-        callback(new Error('Not allowed by CORS'));
+        Logger.warn(`CORS blocked origin: ${origin} (allowed: ${corsOrigins.join(', ') || 'none'})`);
+        callback(null, false);
       },
       credentials: true,
       allowedHeaders,

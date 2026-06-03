@@ -22,10 +22,8 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://ubo:ubo@db:5432/ubo?schema=public
-      # CORS
       CORS_ORIGINS: ${CORS_ORIGINS:-}
       CORS_ALLOW_LOCAL_NETWORK: ${CORS_ALLOW_LOCAL_NETWORK:-}
-      # AWS
       AWS_REGION: ${AWS_REGION:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
@@ -33,14 +31,11 @@ services:
       S3_BUCKET: ${S3_BUCKET:-}
       S3_REGION: ${S3_REGION:-}
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
-      # Cognito
       COGNITO_REGION: ${COGNITO_REGION:-}
       COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:-}
       COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
-      # SES (email)
       MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
-      # API base URL (used in email links)
       API_BASE_URL: ${API_BASE_URL:-}
     ports:
       - "80:3000"

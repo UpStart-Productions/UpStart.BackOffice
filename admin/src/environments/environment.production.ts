@@ -1,5 +1,5 @@
 export const environment = {
-  apiBaseUrl: '/api',
+  apiBaseUrl: 'https://api.heyupstart.com/api',
   useCognito: true,
   cognitoGoogleSignIn: false,
   cognito: {
@@ -8,7 +8,7 @@ export const environment = {
     region: 'us-west-2',
     domainPrefix: 'REPLACE_ME',
     customDomain: undefined as string | undefined,
-    redirectSignIn: 'https://app.upstartbackoffice.com/',
-    redirectSignOut: 'https://app.upstartbackoffice.com/',
+    redirectSignIn: 'https://app.heyupstart.com/',
+    redirectSignOut: 'https://app.heyupstart.com/',
   },
 };
