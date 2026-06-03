@@ -9,7 +9,6 @@ import { SelectModule } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { ApiService } from '../../core/api.service';
-import { AuthStoreService } from '../../core/auth-store.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
 type Client = { id: string; name: string };
@@ -42,7 +41,6 @@ type LineItem = {
 })
 export class InvoiceFormPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -67,15 +65,14 @@ export class InvoiceFormPage implements OnInit {
   ]);
 
   get isNew() { return !this.id(); }
-  get wsSlug() { return this.auth.workspaceSlug; }
   get subtotal() { return this.lineItems().reduce((s, i) => s + i.amount, 0); }
   get taxAmount() { return this.form.taxRate ? this.subtotal * this.form.taxRate : 0; }
   get total() { return this.subtotal + this.taxAmount; }
 
   async ngOnInit() {
     const [clients, projects] = await Promise.all([
-      this.api.get<Client[]>(`/workspaces/${this.wsSlug}/clients`).catch(() => [] as Client[]),
-      this.api.get<Project[]>(`/workspaces/${this.wsSlug}/projects`).catch(() => [] as Project[]),
+      this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
+      this.api.get<Project[]>('/projects').catch(() => [] as Project[]),
     ]);
     this.clients.set(clients);
     this.projects.set(projects);
@@ -85,7 +82,7 @@ export class InvoiceFormPage implements OnInit {
       this.id.set(id);
       try {
         const inv = await this.api.get<{ clientId: string; issueDate: string; dueDate?: string; notes?: string; taxRate?: number; lineItems: LineItem[] }>(
-          `/workspaces/${this.wsSlug}/invoices/${id}`
+          `/invoices/${id}`
         );
         this.form = {
           clientId: inv.clientId,
@@ -139,8 +136,8 @@ export class InvoiceFormPage implements OnInit {
           sortOrder: i,
         })),
       };
-      if (this.isNew) await this.api.post(`/workspaces/${this.wsSlug}/invoices`, payload);
-      else await this.api.put(`/workspaces/${this.wsSlug}/invoices/${this.id()}`, { notes: this.form.notes, dueDate: this.form.dueDate, taxRate: this.form.taxRate });
+      if (this.isNew) await this.api.post('/invoices', payload);
+      else await this.api.put(`/invoices/${this.id()}`, { notes: this.form.notes, dueDate: this.form.dueDate, taxRate: this.form.taxRate });
       this.router.navigate(['/invoices']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');

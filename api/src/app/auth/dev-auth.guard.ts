@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   CanActivate,
   ExecutionContext,
   ForbiddenException,
@@ -8,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserContext, WorkspaceContext } from '../workspace/workspace.types';
+import { UserContext } from '../common/app.types';
 
 @Injectable()
 export class DevAuthGuard implements CanActivate {
@@ -26,7 +25,17 @@ export class DevAuthGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, name: true, firstName: true, lastName: true, avatarUrl: true, isActive: true, isSuper: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        role: true,
+        isActive: true,
+        isSuper: true,
+      },
     });
 
     if (!user) throw new UnauthorizedException('Dev user not found. Run seed.');
@@ -39,24 +48,9 @@ export class DevAuthGuard implements CanActivate {
       firstName: user.firstName,
       lastName: user.lastName,
       avatarUrl: user.avatarUrl,
+      role: user.role,
       isSuper: isSuperHeader || user.isSuper,
     } satisfies UserContext;
-
-    if (request.user.isSuper) return true;
-
-    const workspace = (request as Request & { workspace?: WorkspaceContext }).workspace;
-    if (!workspace) {
-      const path = (request.path || '').replace(/\?.*/, '');
-      if (path.endsWith('/me') || path.endsWith('/my-workspaces')) return true;
-      throw new BadRequestException('Workspace context required. Send x-workspace-slug.');
-    }
-
-    const membership = await this.prisma.workspaceUser.findUnique({
-      where: { workspaceId_userId: { workspaceId: workspace.id, userId: user.id } },
-    });
-    if (!membership) {
-      throw new ForbiddenException({ message: 'User is not a member of this workspace', workspaceSlug: workspace.slug });
-    }
 
     return true;
   }

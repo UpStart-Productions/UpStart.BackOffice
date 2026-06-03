@@ -1,6 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
-import { workspaceGuard } from './core/workspace.guard';
+import { sessionGuard, superGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -12,7 +12,7 @@ export const appRoutes: Route[] = [
   {
     path: '',
     component: ShellComponent,
-    canActivate: [authGuard, workspaceGuard],
+    canActivate: [authGuard, sessionGuard],
     children: [
       {
         path: 'time-entry',
@@ -63,6 +63,12 @@ export const appRoutes: Route[] = [
         path: 'projects/:id',
         loadComponent: () =>
           import('./pages/projects/project-form.page').then((m) => m.ProjectFormPage),
+      },
+      {
+        path: 'users',
+        loadComponent: () =>
+          import('./pages/users/users-list.page').then((m) => m.UsersListPage),
+        canActivate: [superGuard],
       },
       { path: '', redirectTo: 'time-entry', pathMatch: 'full' },
     ],

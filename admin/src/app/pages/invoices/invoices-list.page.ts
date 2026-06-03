@@ -8,7 +8,6 @@ import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/api.service';
-import { AuthStoreService } from '../../core/auth-store.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
 type Invoice = {
@@ -35,7 +34,6 @@ type Invoice = {
 })
 export class InvoicesListPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
   private readonly confirm = inject(ConfirmationService);
 
   invoices = signal<Invoice[]>([]);
@@ -47,7 +45,7 @@ export class InvoicesListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const data = await this.api.get<Invoice[]>(`/workspaces/${this.auth.workspaceSlug}/invoices`);
+      const data = await this.api.get<Invoice[]>('/invoices');
       this.invoices.set(data);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load invoices');
@@ -62,7 +60,7 @@ export class InvoicesListPage implements OnInit {
   async downloadPdf(invoice: Invoice) {
     try {
       await this.api.downloadPdf(
-        `/workspaces/${this.auth.workspaceSlug}/invoices/${invoice.id}/pdf`,
+        `/invoices/${invoice.id}/pdf`,
         `${invoice.displayNumber}.pdf`,
       );
     } catch (err) { this.error.set(err instanceof Error ? err.message : 'PDF download failed'); }
@@ -71,7 +69,7 @@ export class InvoicesListPage implements OnInit {
   async send(invoice: Invoice) {
     try {
       const result = await this.api.post<{ sent: boolean; error?: string }>(
-        `/workspaces/${this.auth.workspaceSlug}/invoices/${invoice.id}/send`,
+        `/invoices/${invoice.id}/send`,
       );
       if (result.sent) await this.load();
       else this.error.set(result.error ?? 'Send failed');
@@ -83,7 +81,7 @@ export class InvoicesListPage implements OnInit {
       message: `Delete invoice ${invoice.displayNumber}?`,
       accept: async () => {
         try {
-          await this.api.delete(`/workspaces/${this.auth.workspaceSlug}/invoices/${invoice.id}`);
+          await this.api.delete(`/invoices/${invoice.id}`);
           await this.load();
         } catch (err) { this.error.set(err instanceof Error ? err.message : 'Delete failed'); }
       },

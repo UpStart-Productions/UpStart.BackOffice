@@ -5,8 +5,8 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
+import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserContext, WorkspaceContext } from '../workspace/workspace.types';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { UpdateTimeEntryDto } from './dto/update-time-entry.dto';
 
@@ -17,13 +17,9 @@ function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
 @ApiTags('time-entries')
 @ApiBearerAuth()
 @UseGuards(AppAuthGuard)
-@Controller('workspaces/:workspaceSlug/time-entries')
+@Controller('time-entries')
 export class TimeEntriesController {
   constructor(private readonly prisma: PrismaService) {}
-
-  private workspace(req: Request) {
-    return (req as Request & { workspace?: WorkspaceContext }).workspace!;
-  }
 
   @Get()
   @ApiQuery({ name: 'projectId', required: false })
@@ -31,16 +27,13 @@ export class TimeEntriesController {
   @ApiQuery({ name: 'from', required: false })
   @ApiQuery({ name: 'to', required: false })
   async list(
-    @Req() req: Request,
     @Query('projectId') projectId?: string,
     @Query('userId') userId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const ws = this.workspace(req);
     return this.prisma.timeEntry.findMany({
       where: {
-        workspaceId: ws.id,
         ...(projectId ? { projectId } : {}),
         ...(userId ? { userId } : {}),
         ...(from || to ? {
@@ -60,7 +53,6 @@ export class TimeEntriesController {
 
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateTimeEntryDto) {
-    const ws = this.workspace(req);
     const user = req.user as UserContext;
     const startedAt = new Date(dto.startedAt);
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : undefined;
@@ -68,7 +60,6 @@ export class TimeEntriesController {
 
     return this.prisma.timeEntry.create({
       data: {
-        workspaceId: ws.id,
         userId: user.id,
         projectId: dto.projectId,
         description: dto.description,
@@ -85,9 +76,8 @@ export class TimeEntriesController {
   }
 
   @Post(':id/stop')
-  async stop(@Req() req: Request, @Param('id') id: string) {
-    const ws = this.workspace(req);
-    const entry = await this.prisma.timeEntry.findFirst({ where: { id, workspaceId: ws.id } });
+  async stop(@Param('id') id: string) {
+    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
     if (!entry) throw new NotFoundException('Time entry not found');
     if (entry.stoppedAt) throw new NotFoundException('Timer already stopped');
 
@@ -100,10 +90,9 @@ export class TimeEntriesController {
   }
 
   @Get(':id')
-  async get(@Req() req: Request, @Param('id') id: string) {
-    const ws = this.workspace(req);
-    const entry = await this.prisma.timeEntry.findFirst({
-      where: { id, workspaceId: ws.id },
+  async get(@Param('id') id: string) {
+    const entry = await this.prisma.timeEntry.findUnique({
+      where: { id },
       include: {
         project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
         user: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -114,9 +103,8 @@ export class TimeEntriesController {
   }
 
   @Put(':id')
-  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateTimeEntryDto) {
-    const ws = this.workspace(req);
-    const entry = await this.prisma.timeEntry.findFirst({ where: { id, workspaceId: ws.id } });
+  async update(@Param('id') id: string, @Body() dto: UpdateTimeEntryDto) {
+    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
     if (!entry) throw new NotFoundException('Time entry not found');
 
     const startedAt = dto.startedAt ? new Date(dto.startedAt) : entry.startedAt;
@@ -137,9 +125,8 @@ export class TimeEntriesController {
   }
 
   @Delete(':id')
-  async remove(@Req() req: Request, @Param('id') id: string) {
-    const ws = this.workspace(req);
-    const entry = await this.prisma.timeEntry.findFirst({ where: { id, workspaceId: ws.id } });
+  async remove(@Param('id') id: string) {
+    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
     if (!entry) throw new NotFoundException('Time entry not found');
     await this.prisma.timeEntry.delete({ where: { id } });
     return { deleted: true };

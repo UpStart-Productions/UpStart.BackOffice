@@ -3,7 +3,6 @@ import { CognitoAuthService } from './cognito-auth.service';
 
 const KEYS = {
   baseEmail: 'ubo_base_email',
-  workspaceSlug: 'ubo_workspace_slug',
 } as const;
 
 @Injectable({ providedIn: 'root' })
@@ -16,12 +15,8 @@ export class AuthStoreService {
     else localStorage.removeItem(KEYS.baseEmail);
   }
 
-  get workspaceSlug(): string { return localStorage.getItem(KEYS.workspaceSlug) ?? ''; }
-  set workspaceSlug(v: string) { localStorage.setItem(KEYS.workspaceSlug, v ?? ''); }
-
   clear() {
     localStorage.removeItem(KEYS.baseEmail);
-    localStorage.removeItem(KEYS.workspaceSlug);
   }
 
   async getHeaders(options?: RequestInit): Promise<RequestInit> {
@@ -35,8 +30,6 @@ export class AuthStoreService {
     } else {
       headers['x-user-email'] = this.baseEmail.trim() || 'admin@upstart.test';
     }
-
-    if (this.workspaceSlug) headers['x-workspace-slug'] = this.workspaceSlug;
 
     return { ...options, headers };
   }

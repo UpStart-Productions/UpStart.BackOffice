@@ -4,7 +4,7 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
-import { MeResponse, WorkspaceService } from '../core/workspace.service';
+import { MeResponse, SessionService } from '../core/session.service';
 import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
 import { AppTopbarComponent } from './app-topbar.component';
@@ -19,19 +19,25 @@ import { LayoutService } from './layout.service';
 export class ShellComponent implements OnInit {
   private readonly auth = inject(AuthStoreService);
   private readonly cognito = inject(CognitoAuthService);
-  private readonly workspace = inject(WorkspaceService);
+  private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   readonly layout = inject(LayoutService);
 
   me = signal<MeResponse | null>(null);
   flushMain = signal(false);
 
-  navItems: NavItem[] = [
-    { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
-    { label: 'Invoices', icon: 'pi-file-invoice', route: '/invoices' },
-    { label: 'Clients', icon: 'pi-users', route: '/clients' },
-    { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
-  ];
+  navItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [
+      { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
+      { label: 'Invoices', icon: 'pi-file-invoice', route: '/invoices' },
+      { label: 'Clients', icon: 'pi-users', route: '/clients' },
+      { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
+    ];
+    if (this.me()?.isSuper) {
+      items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
+    }
+    return items;
+  });
 
   containerClass = computed(() => {
     const state = this.layout.layoutState();
@@ -52,7 +58,7 @@ export class ShellComponent implements OnInit {
 
   async ngOnInit() {
     this.flushMain.set(this.router.url.startsWith('/time-entry'));
-    const me = await this.workspace.getReady();
+    const me = await this.session.getReady();
     if (me) this.me.set(me);
   }
 
@@ -65,6 +71,7 @@ export class ShellComponent implements OnInit {
 
   async signOut() {
     this.auth.clear();
+    this.session.reset();
     if (this.cognito.useCognito) await this.cognito.signOut();
     else this.router.navigate(['/login']);
   }

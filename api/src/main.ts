@@ -36,7 +36,6 @@ async function bootstrap() {
     'authorization',
     'x-request-id',
     'x-user-email',
-    'x-workspace-slug',
     'x-impersonate-user-id',
     'x-super-admin',
     'content-type',

@@ -11,71 +11,41 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('Seeding...');
 
-  // Create default workspace
-  const workspace = await prisma.workspace.upsert({
-    where: { slug: 'upstart' },
-    update: {},
-    create: { slug: 'upstart', name: 'UpStart Productions' },
-  });
-  console.log(`Workspace: ${workspace.name}`);
-
-  // Create dev admin user (local only)
   const devUser = await prisma.user.upsert({
     where: { email: 'admin@upstart.test' },
-    update: {},
+    update: { role: 'ADMIN', isSuper: true, isActive: true, hourlyRate: 150 },
     create: {
       email: 'admin@upstart.test',
       firstName: 'Admin',
       lastName: 'User',
+      role: 'ADMIN',
       isSuper: true,
       isActive: true,
+      hourlyRate: 150,
     },
   });
   console.log(`User: ${devUser.email}`);
 
-  await prisma.workspaceUser.upsert({
-    where: { workspaceId_userId: { workspaceId: workspace.id, userId: devUser.id } },
-    update: {},
-    create: {
-      workspaceId: workspace.id,
-      userId: devUser.id,
-      role: 'ADMIN',
-      hourlyRate: 150,
-    },
-  });
-
-  // Create Jeff (Cognito user)
   const jeff = await prisma.user.upsert({
     where: { email: 'jeff@heyupstart.com' },
-    update: {},
+    update: { role: 'ADMIN', isSuper: true, isActive: true, hourlyRate: 150 },
     create: {
       email: 'jeff@heyupstart.com',
       firstName: 'Jeff',
       lastName: 'Denton',
       name: 'Jeff Denton',
+      role: 'ADMIN',
       isSuper: true,
       isActive: true,
+      hourlyRate: 150,
     },
   });
   console.log(`User: ${jeff.email}`);
 
-  await prisma.workspaceUser.upsert({
-    where: { workspaceId_userId: { workspaceId: workspace.id, userId: jeff.id } },
-    update: {},
-    create: {
-      workspaceId: workspace.id,
-      userId: jeff.id,
-      role: 'ADMIN',
-      hourlyRate: 150,
-    },
-  });
-
-  // Create a sample client
   const client = await prisma.client.upsert({
-    where: { workspaceId_code: { workspaceId: workspace.id, code: 'SMPL' } },
+    where: { code: 'SMPL' },
     update: {},
     create: {
-      workspaceId: workspace.id,
       name: 'Sample Client',
       code: 'SMPL',
       email: 'billing@sampleclient.com',
@@ -83,13 +53,11 @@ async function main() {
   });
   console.log(`Client: ${client.name}`);
 
-  // Create a sample project
   await prisma.project.upsert({
     where: { id: 'seed-project-1' },
     update: {},
     create: {
       id: 'seed-project-1',
-      workspaceId: workspace.id,
       clientId: client.id,
       name: 'Website Redesign',
       hourlyRate: 150,

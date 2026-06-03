@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { UserContext } from '../workspace/workspace.types';
+import { UserContext } from '../common/app.types';
 
 @Injectable()
 export class RequireSuperGuard implements CanActivate {

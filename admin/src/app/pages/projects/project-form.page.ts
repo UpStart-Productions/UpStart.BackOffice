@@ -9,7 +9,6 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
-import { AuthStoreService } from '../../core/auth-store.service';
 
 type Client = { id: string; name: string };
 
@@ -31,7 +30,6 @@ type Client = { id: string; name: string };
 })
 export class ProjectFormPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -44,11 +42,10 @@ export class ProjectFormPage implements OnInit {
   form = { clientId: '', name: '', description: '', hourlyRate: null as number | null, isBillable: true, isActive: true };
 
   get isNew() { return !this.id(); }
-  get wsSlug() { return this.auth.workspaceSlug; }
 
   async ngOnInit() {
     const [clientsData] = await Promise.all([
-      this.api.get<Client[]>(`/workspaces/${this.wsSlug}/clients`).catch(() => [] as Client[]),
+      this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
     ]);
     this.clients.set(clientsData);
 
@@ -56,7 +53,7 @@ export class ProjectFormPage implements OnInit {
     if (id) {
       this.id.set(id);
       try {
-        const project = await this.api.get<typeof this.form & { id: string }>(`/workspaces/${this.wsSlug}/projects/${id}`);
+        const project = await this.api.get<typeof this.form & { id: string }>(`/projects/${id}`);
         this.form = { clientId: project.clientId, name: project.name, description: project.description ?? '', hourlyRate: project.hourlyRate, isBillable: project.isBillable, isActive: project.isActive };
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load project');
@@ -70,8 +67,8 @@ export class ProjectFormPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      if (this.isNew) await this.api.post(`/workspaces/${this.wsSlug}/projects`, this.form);
-      else await this.api.put(`/workspaces/${this.wsSlug}/projects/${this.id()}`, this.form);
+      if (this.isNew) await this.api.post('/projects', this.form);
+      else await this.api.put(`/projects/${this.id()}`, this.form);
       this.router.navigate(['/projects']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');

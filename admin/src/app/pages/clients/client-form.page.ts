@@ -7,7 +7,6 @@ import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
-import { AuthStoreService } from '../../core/auth-store.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
 @Component({
@@ -27,7 +26,6 @@ import { PageComponent } from '../../ui/layout/page.component';
 })
 export class ClientFormPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -39,14 +37,13 @@ export class ClientFormPage implements OnInit {
   form = { name: '', code: '', email: '', phone: '', address: '', city: '', state: '', zip: '', website: '', notes: '', isActive: true };
 
   get isNew() { return !this.id(); }
-  get wsSlug() { return this.auth.workspaceSlug; }
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.id.set(id);
       try {
-        const client = await this.api.get<typeof this.form & { id: string }>(`/workspaces/${this.wsSlug}/clients/${id}`);
+        const client = await this.api.get<typeof this.form & { id: string }>(`/clients/${id}`);
         this.form = { ...client };
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load client');
@@ -61,9 +58,9 @@ export class ClientFormPage implements OnInit {
     this.error.set(null);
     try {
       if (this.isNew) {
-        await this.api.post(`/workspaces/${this.wsSlug}/clients`, this.form);
+        await this.api.post('/clients', this.form);
       } else {
-        await this.api.put(`/workspaces/${this.wsSlug}/clients/${this.id()}`, this.form);
+        await this.api.put(`/clients/${this.id()}`, this.form);
       }
       this.router.navigate(['/clients']);
     } catch (err) {

@@ -134,9 +134,6 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       .filter((p): p is Project => !!p);
   });
 
-  get wsSlug() {
-    return this.auth.workspaceSlug;
-  }
 
   ngOnInit() {
     this.timerInterval = setInterval(() => this.tick.update((n) => n + 1), 1000);
@@ -155,7 +152,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   async loadProjects() {
     try {
       const data = await this.api.get<Project[]>(
-        `/workspaces/${this.wsSlug}/projects`,
+        '/projects',
       );
       this.projects.set(data);
     } catch {
@@ -170,11 +167,11 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       const from = this.weekAnchor().toISOString();
       const to = endOfWeek(this.weekAnchor()).toISOString();
       let data = await this.api.get<TimeEntry[]>(
-        `/workspaces/${this.wsSlug}/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
       );
       if (!data.some((e) => !e.stoppedAt)) {
         const all = await this.api.get<TimeEntry[]>(
-          `/workspaces/${this.wsSlug}/time-entries`,
+          '/time-entries',
         );
         const active = all.find((e) => !e.stoppedAt);
         if (active && !data.some((e) => e.id === active.id)) {
@@ -336,7 +333,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
       for (const e of existing) {
         await this.api.delete(
-          `/workspaces/${this.wsSlug}/time-entries/${e.id}`,
+          `/time-entries/${e.id}`,
         );
       }
 
@@ -346,7 +343,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
         const stoppedAt = new Date(
           startedAt.getTime() + hoursToMinutes(hours) * 60_000,
         );
-        await this.api.post(`/workspaces/${this.wsSlug}/time-entries`, {
+        await this.api.post('/time-entries', {
           projectId,
           startedAt: startedAt.toISOString(),
           stoppedAt: stoppedAt.toISOString(),
@@ -375,7 +372,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.api.post(`/workspaces/${this.wsSlug}/time-entries`, {
+      await this.api.post('/time-entries', {
         projectId,
         description: this.timerNotes().trim() || undefined,
         startedAt: new Date().toISOString(),
@@ -396,7 +393,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     this.error.set(null);
     try {
       await this.api.post(
-        `/workspaces/${this.wsSlug}/time-entries/${running.id}/stop`,
+        `/time-entries/${running.id}/stop`,
       );
       await this.loadWeek();
     } catch (err) {

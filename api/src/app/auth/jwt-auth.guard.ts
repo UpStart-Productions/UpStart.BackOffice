@@ -1,16 +1,14 @@
 import {
-  BadRequestException,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserContext, WorkspaceContext } from '../workspace/workspace.types';
 
 const COGNITO_JWKS_URI = (region: string, userPoolId: string) =>
   `https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`;
@@ -84,32 +82,32 @@ export class JwtAuthGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, name: true, firstName: true, lastName: true, avatarUrl: true, isActive: true, isSuper: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        avatarUrl: true,
+        role: true,
+        isActive: true,
+        isSuper: true,
+      },
     });
 
     if (!user) throw new UnauthorizedException('User not found. Contact your administrator.');
     if (!user.isActive) throw new UnauthorizedException('Account is disabled.');
 
     request.user = {
-      id: user.id, email: user.email, name: user.name, firstName: user.firstName,
-      lastName: user.lastName, avatarUrl: user.avatarUrl, isSuper: user.isSuper,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      isSuper: user.isSuper,
     } satisfies UserContext;
-
-    if (request.user.isSuper) return true;
-
-    const workspace = (request as Request & { workspace?: WorkspaceContext }).workspace;
-    if (!workspace) {
-      const path = (request.path || '').replace(/\?.*/, '');
-      if (path.endsWith('/me') || path.endsWith('/my-workspaces')) return true;
-      throw new BadRequestException('Workspace context required. Send x-workspace-slug.');
-    }
-
-    const membership = await this.prisma.workspaceUser.findUnique({
-      where: { workspaceId_userId: { workspaceId: workspace.id, userId: user.id } },
-    });
-    if (!membership) {
-      throw new ForbiddenException({ message: 'User is not a member of this workspace', workspaceSlug: workspace.slug });
-    }
 
     return true;
   }

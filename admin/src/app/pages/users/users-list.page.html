@@ -1,0 +1,93 @@
+<app-page title="Users" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+
+  <div class="card">
+    <h2 class="page-title page-title-in-card">Users</h2>
+
+    <div class="toolbar">
+      <button pButton label="Add User" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
+    </div>
+
+    <div class="toolbar mt-3">
+      <p-iconfield iconPosition="left">
+        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+        <input
+          pInputText
+          type="text"
+          placeholder="Search by name or email…"
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchInput($event)"
+        />
+      </p-iconfield>
+      @if (searchQuery) {
+        <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
+      }
+      <p-select
+        [(ngModel)]="sortBy"
+        [options]="sortOptions"
+        optionLabel="label"
+        optionValue="value"
+        placeholder="Sort by"
+        styleClass="ml-2"
+      />
+    </div>
+
+    <p-table [value]="filteredUsers" [loading]="loading()" styleClass="table-bordered mt-3">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Hourly rate</th>
+          <th>Status</th>
+          <th style="width: 10rem"></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-user>
+        <tr [class.user-disabled]="!user.isActive">
+          <td>{{ user.name || '—' }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ roleLabel(user.role) }}{{ user.isSuper ? ' (super)' : '' }}</td>
+          <td>{{ user.hourlyRate != null ? ('$' + user.hourlyRate) : '—' }}</td>
+          <td>
+            <p-tag
+              [value]="user.isActive ? 'Active' : 'Disabled'"
+              [severity]="user.isActive ? 'success' : 'secondary'"
+            />
+          </td>
+          <td>
+            <p-button icon="pi pi-pencil" [text]="true" size="small" (click)="openEdit(user)" />
+            @if (useCognito) {
+              <p-button
+                icon="pi pi-envelope"
+                [text]="true"
+                size="small"
+                (click)="invite(user)"
+              />
+            }
+            <p-button
+              [icon]="user.isActive ? 'pi pi-ban' : 'pi pi-check-circle'"
+              [text]="true"
+              size="small"
+              severity="warn"
+              (click)="toggleActive(user)"
+            />
+            <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (click)="confirmDelete(user)" />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center p-4 text-color-secondary">No users found.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <app-add-edit-user-modal #addEditModal />
+  <p-confirmDialog />
+</app-page>

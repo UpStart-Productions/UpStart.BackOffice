@@ -37,7 +37,6 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (cognito: CognitoAuthService, auth: AuthStoreService) => async () => {
         await cognito.init();
-        if (cognito.wasOAuthCallback) { auth.workspaceSlug = ''; }
         if (cognito.useCognito && cognito.hasCachedToken()) {
           const email = await cognito.getEmailFromSession();
           if (email) auth.baseEmail = email;

@@ -6,7 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum WorkspaceRole {
+enum UserRole {
   ADMIN
   MEMBER
 }
@@ -19,118 +19,78 @@ enum InvoiceStatus {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  name      String?
-  avatarUrl String?
-  isActive  Boolean  @default(true)
-  isSuper   Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  email      String   @unique
+  firstName  String?
+  lastName   String?
+  name       String?
+  avatarUrl  String?
+  role       UserRole @default(MEMBER)
+  hourlyRate Decimal? @db.Decimal(10, 2)
+  isActive   Boolean  @default(true)
+  isSuper    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  workspaceUsers WorkspaceUser[]
-  timeEntries    TimeEntry[]
-}
-
-model Workspace {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  workspaceUsers WorkspaceUser[]
-  clients        Client[]
-  projects       Project[]
-  timeEntries    TimeEntry[]
-  invoices       Invoice[]
-}
-
-model WorkspaceUser {
-  id          String        @id @default(cuid())
-  workspaceId String
-  userId      String
-  role        WorkspaceRole @default(MEMBER)
-  hourlyRate  Decimal?      @db.Decimal(10, 2)
-  createdAt   DateTime      @default(now())
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, userId])
-  @@index([workspaceId])
-  @@index([userId])
+  timeEntries TimeEntry[]
 }
 
 model Client {
-  id          String   @id @default(cuid())
-  workspaceId String
-  name        String
-  code        String   // e.g. "UPSP" — prepended to invoice numbers
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  zip         String?
-  website     String?
-  notes       String?  @db.Text
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique // e.g. "UPSP" — prepended to invoice numbers
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  website   String?
+  notes     String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  projects  Project[]
-  invoices  Invoice[]
-
-  @@unique([workspaceId, code])
-  @@index([workspaceId])
+  projects Project[]
+  invoices Invoice[]
 }
 
 model Project {
   id          String   @id @default(cuid())
-  workspaceId String
   clientId    String
   name        String
   description String?  @db.Text
-  hourlyRate  Decimal? @db.Decimal(10, 2) // project-level rate (overrides workspace member rate)
+  hourlyRate  Decimal? @db.Decimal(10, 2)
   isBillable  Boolean  @default(true)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  client           Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   timeEntries      TimeEntry[]
   invoiceLineItems InvoiceLineItem[]
 
-  @@index([workspaceId])
   @@index([clientId])
 }
 
 model TimeEntry {
-  id                String   @id @default(cuid())
-  workspaceId       String
+  id                String    @id @default(cuid())
   userId            String
   projectId         String
-  description       String?  @db.Text
+  description       String?   @db.Text
   startedAt         DateTime
   stoppedAt         DateTime?
-  durationMin       Int?     // computed minutes; null while timer running
-  isBillable        Boolean  @default(true)
-  hourlyRate        Decimal? @db.Decimal(10, 2) // rate snapshot at creation
-  invoiceLineItemId String?  // set when billed on an invoice
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  durationMin       Int?
+  isBillable        Boolean   @default(true)
+  hourlyRate        Decimal?  @db.Decimal(10, 2)
+  invoiceLineItemId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   invoiceLineItem InvoiceLineItem? @relation(fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
 
-  @@index([workspaceId])
   @@index([userId])
   @@index([projectId])
   @@index([invoiceLineItemId])
@@ -139,16 +99,15 @@ model TimeEntry {
 
 model Invoice {
   id            String        @id @default(cuid())
-  workspaceId   String
   clientId      String
-  number        Int           // auto-increment per workspace
-  displayNumber String        // e.g. "UPSP-0001"
+  number        Int           @unique
+  displayNumber String
   status        InvoiceStatus @default(DRAFT)
   issueDate     DateTime
   dueDate       DateTime?
   notes         String?       @db.Text
   subtotal      Decimal       @db.Decimal(10, 2)
-  taxRate       Decimal?      @db.Decimal(5, 4)  // e.g. 0.0875 for 8.75%
+  taxRate       Decimal?      @db.Decimal(5, 4)
   taxAmount     Decimal?      @db.Decimal(10, 2)
   total         Decimal       @db.Decimal(10, 2)
   sentAt        DateTime?
@@ -156,12 +115,9 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  client    Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   lineItems InvoiceLineItem[]
 
-  @@unique([workspaceId, number])
-  @@index([workspaceId])
   @@index([clientId])
   @@index([status])
 }

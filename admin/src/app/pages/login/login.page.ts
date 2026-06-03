@@ -8,7 +8,7 @@ import { PasswordModule } from 'primeng/password';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
-import { WorkspaceService } from '../../core/workspace.service';
+import { SessionService } from '../../core/session.service';
 
 const DEV_LOGIN_EMAIL = 'admin@upstart.test';
 
@@ -25,7 +25,7 @@ export class LoginPage implements OnInit {
   private readonly auth = inject(AuthStoreService);
   private readonly api = inject(ApiService);
   private readonly cognito = inject(CognitoAuthService);
-  private readonly workspace = inject(WorkspaceService);
+  private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
@@ -70,7 +70,7 @@ export class LoginPage implements OnInit {
 
     if (!this.useCognito) {
       this.auth.baseEmail = this.email.trim();
-      this.workspace.reset();
+      this.session.reset();
       this.loading = true;
       try {
         await this.api.get('/users/me');
@@ -196,8 +196,8 @@ export class LoginPage implements OnInit {
     await this.cognito.getIdToken();
     const email = await this.cognito.getEmailFromSession();
     if (email) this.auth.baseEmail = email;
-    this.workspace.reset();
-    await this.workspace.getReady();
+    this.session.reset();
+    await this.session.getReady();
     await this.router.navigate(['/time-entry']);
   }
 

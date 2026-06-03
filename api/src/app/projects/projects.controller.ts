@@ -1,43 +1,34 @@
 import {
   Body, Controller, Delete, Get, NotFoundException, Param,
-  Post, Put, Query, Req, UseGuards,
+  Post, Put, Query, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
-import { WorkspaceContext } from '../workspace/workspace.types';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
 @ApiTags('projects')
 @ApiBearerAuth()
 @UseGuards(AppAuthGuard)
-@Controller('workspaces/:workspaceSlug/projects')
+@Controller('projects')
 export class ProjectsController {
   constructor(private readonly prisma: PrismaService) {}
 
-  private workspace(req: Request) {
-    return (req as Request & { workspace?: WorkspaceContext }).workspace!;
-  }
-
   @Get()
   @ApiQuery({ name: 'clientId', required: false })
-  async list(@Req() req: Request, @Query('clientId') clientId?: string) {
-    const ws = this.workspace(req);
+  async list(@Query('clientId') clientId?: string) {
     return this.prisma.project.findMany({
-      where: { workspaceId: ws.id, ...(clientId ? { clientId } : {}) },
+      where: clientId ? { clientId } : undefined,
       include: { client: { select: { id: true, name: true, code: true } } },
       orderBy: { name: 'asc' },
     });
   }
 
   @Post()
-  async create(@Req() req: Request, @Body() dto: CreateProjectDto) {
-    const ws = this.workspace(req);
+  async create(@Body() dto: CreateProjectDto) {
     return this.prisma.project.create({
       data: {
-        workspaceId: ws.id,
         clientId: dto.clientId,
         name: dto.name,
         description: dto.description,
@@ -50,10 +41,9 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  async get(@Req() req: Request, @Param('id') id: string) {
-    const ws = this.workspace(req);
-    const project = await this.prisma.project.findFirst({
-      where: { id, workspaceId: ws.id },
+  async get(@Param('id') id: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id },
       include: { client: { select: { id: true, name: true, code: true } } },
     });
     if (!project) throw new NotFoundException('Project not found');
@@ -61,9 +51,8 @@ export class ProjectsController {
   }
 
   @Put(':id')
-  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateProjectDto) {
-    const ws = this.workspace(req);
-    const existing = await this.prisma.project.findFirst({ where: { id, workspaceId: ws.id } });
+  async update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
+    const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Project not found');
     return this.prisma.project.update({
       where: { id },
@@ -80,9 +69,8 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  async remove(@Req() req: Request, @Param('id') id: string) {
-    const ws = this.workspace(req);
-    const existing = await this.prisma.project.findFirst({ where: { id, workspaceId: ws.id } });
+  async remove(@Param('id') id: string) {
+    const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Project not found');
     await this.prisma.project.delete({ where: { id } });
     return { deleted: true };

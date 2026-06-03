@@ -7,7 +7,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
-import { AuthStoreService } from '../../core/auth-store.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
 type Client = { id: string; name: string; code: string; email?: string; phone?: string; isActive: boolean };
@@ -21,7 +20,6 @@ type Client = { id: string; name: string; code: string; email?: string; phone?: 
 })
 export class ClientsListPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
   private readonly confirm = inject(ConfirmationService);
 
   clients = signal<Client[]>([]);
@@ -35,7 +33,7 @@ export class ClientsListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const data = await this.api.get<Client[]>(`/workspaces/${this.auth.workspaceSlug}/clients`);
+      const data = await this.api.get<Client[]>('/clients');
       this.clients.set(data);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load clients');
@@ -47,7 +45,7 @@ export class ClientsListPage implements OnInit {
       message: `Delete "${client.name}"? This cannot be undone.`,
       accept: async () => {
         try {
-          await this.api.delete(`/workspaces/${this.auth.workspaceSlug}/clients/${client.id}`);
+          await this.api.delete(`/clients/${client.id}`);
           await this.load();
         } catch (err) { this.error.set(err instanceof Error ? err.message : 'Delete failed'); }
       },

@@ -1,14 +1,9 @@
 // Shared types between API and Angular frontend
 
-export type WorkspaceDto = {
-  id: string;
-  slug: string;
-  name: string;
-};
+export type UserRole = 'ADMIN' | 'MEMBER';
 
 export type ClientDto = {
   id: string;
-  workspaceId: string;
   name: string;
   code: string;
   email?: string | null;
@@ -26,7 +21,6 @@ export type ClientDto = {
 
 export type ProjectDto = {
   id: string;
-  workspaceId: string;
   clientId: string;
   name: string;
   description?: string | null;
@@ -38,7 +32,6 @@ export type ProjectDto = {
 
 export type TimeEntryDto = {
   id: string;
-  workspaceId: string;
   userId: string;
   projectId: string;
   description?: string | null;
@@ -68,7 +61,6 @@ export type InvoiceLineItemDto = {
 
 export type InvoiceDto = {
   id: string;
-  workspaceId: string;
   clientId: string;
   number: number;
   displayNumber: string;
@@ -93,6 +85,19 @@ export type MeDto = {
   lastName?: string | null;
   name?: string | null;
   avatarUrl?: string | null;
+  role: UserRole;
+  hourlyRate?: number | null;
   isSuper: boolean;
-  workspaces: Array<WorkspaceDto & { role: 'ADMIN' | 'MEMBER'; hourlyRate?: number | null }>;
+};
+
+export type UserListDto = {
+  id: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+  role: UserRole;
+  hourlyRate?: number | null;
+  isActive: boolean;
+  isSuper: boolean;
 };

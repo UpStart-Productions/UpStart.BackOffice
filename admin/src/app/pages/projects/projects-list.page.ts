@@ -7,7 +7,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
-import { AuthStoreService } from '../../core/auth-store.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
 type Project = { id: string; name: string; isBillable: boolean; isActive: boolean; hourlyRate?: number; client: { id: string; name: string } };
@@ -21,7 +20,6 @@ type Project = { id: string; name: string; isBillable: boolean; isActive: boolea
 })
 export class ProjectsListPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
   private readonly confirm = inject(ConfirmationService);
 
   projects = signal<Project[]>([]);
@@ -33,7 +31,7 @@ export class ProjectsListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const data = await this.api.get<Project[]>(`/workspaces/${this.auth.workspaceSlug}/projects`);
+      const data = await this.api.get<Project[]>('/projects');
       this.projects.set(data);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load projects');
@@ -45,7 +43,7 @@ export class ProjectsListPage implements OnInit {
       message: `Delete "${project.name}"?`,
       accept: async () => {
         try {
-          await this.api.delete(`/workspaces/${this.auth.workspaceSlug}/projects/${project.id}`);
+          await this.api.delete(`/projects/${project.id}`);
           await this.load();
         } catch (err) { this.error.set(err instanceof Error ? err.message : 'Delete failed'); }
       },
