@@ -1,7 +1,6 @@
 import { NgClass } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter } from 'rxjs';
+import { Router, RouterOutlet } from '@angular/router';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
 import { MeResponse, SessionService } from '../core/session.service';
@@ -24,7 +23,6 @@ export class ShellComponent implements OnInit {
   readonly layout = inject(LayoutService);
 
   me = signal<MeResponse | null>(null);
-  flushMain = signal(false);
 
   navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -48,16 +46,7 @@ export class ShellComponent implements OnInit {
     };
   });
 
-  constructor() {
-    this.router.events
-      .pipe(filter((e) => e instanceof NavigationEnd))
-      .subscribe(() => {
-        this.flushMain.set(this.router.url.startsWith('/time-entry'));
-      });
-  }
-
   async ngOnInit() {
-    this.flushMain.set(this.router.url.startsWith('/time-entry'));
     const me = await this.session.getReady();
     if (me) this.me.set(me);
   }

@@ -6,54 +6,36 @@ import {
   OnDestroy,
   OnInit,
   signal,
+  viewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
-import { AuthStoreService } from '../../core/auth-store.service';
+import { PageComponent } from '../../ui/layout/page.component';
+import { TimeEntryModalComponent } from './time-entry-modal.component';
+import type { Project, TimeEntry } from './time-entry.types';
 import {
   addDays,
   dateKey,
-  dayLabel as formatDayLabel,
+  dayLabel,
   endOfWeek,
-  formatCellHours as formatCellHoursUtil,
+  formatDayHeading,
+  formatDurationMin,
   formatElapsed,
-  formatWeekRange,
-  hoursToMinutes,
+  isSameDay,
   isToday,
-  minutesToHours,
-  parseHoursInput,
   startOfWeek,
   weekDays,
 } from './timesheet.utils';
 
-export type Project = {
-  id: string;
-  name: string;
-  client: { id: string; name: string };
-};
-
-export type TimeEntry = {
-  id: string;
-  description?: string;
-  startedAt: string;
-  stoppedAt?: string;
-  durationMin?: number;
-  isBillable: boolean;
-  project: Project;
-};
-
-type CellEdit = { projectId: string; dayKey: string };
-
 @Component({
   selector: 'app-time-entry-list-page',
   standalone: true,
-  imports: [FormsModule],
+  imports: [PageComponent, TimeEntryModalComponent],
   templateUrl: './time-entry-list.page.html',
   styleUrl: './time-entry-list.page.scss',
 })
 export class TimeEntryListPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
-  private readonly auth = inject(AuthStoreService);
+  private readonly modal = viewChild.required(TimeEntryModalComponent);
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private readonly tick = signal(0);
@@ -64,76 +46,73 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   error = signal<string | null>(null);
   saving = signal(false);
 
-  weekAnchor = signal(startOfWeek(new Date()));
-  extraProjectIds = signal<string[]>([]);
+  selectedDay = signal(new Date());
+  private loadedWeekKey = signal(dateKey(startOfWeek(new Date())));
 
-  timerProjectId = signal('');
-  timerNotes = signal('');
-  projectPickerOpen = signal(false);
-  projectSearch = signal('');
-  addRowPickerOpen = signal(false);
-  addRowSearch = signal('');
-
-  editingCell = signal<CellEdit | null>(null);
-  editDraft = signal('');
-
-  readonly days = computed(() => weekDays(this.weekAnchor()));
-  readonly weekLabel = computed(() => formatWeekRange(this.weekAnchor()));
-  readonly isCurrentWeek = computed(() =>
-    dateKey(this.weekAnchor()) === dateKey(startOfWeek(new Date())),
-  );
+  readonly weekStart = computed(() => startOfWeek(this.selectedDay()));
+  readonly days = computed(() => weekDays(this.weekStart()));
+  readonly isSelectedToday = computed(() => isToday(this.selectedDay()));
+  readonly dayHeading = computed(() => formatDayHeading(this.selectedDay()));
 
   readonly runningEntry = computed(() => {
     this.tick();
     return this.entries().find((e) => !e.stoppedAt) ?? null;
   });
 
-  readonly elapsedLabel = computed(() => {
+  readonly runningElapsedMin = computed(() => {
     const running = this.runningEntry();
-    if (!running) return '0:00:00';
+    if (!running) return 0;
     const ms = Date.now() - new Date(running.startedAt).getTime();
-    return formatElapsed(ms);
+    return Math.round(ms / 60_000);
   });
 
-  readonly filteredProjects = computed(() => {
-    const q = this.projectSearch().trim().toLowerCase();
-    const list = this.projects();
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.client.name.toLowerCase().includes(q),
-    );
+  readonly dayEntries = computed(() => {
+    const key = dateKey(this.selectedDay());
+    const running = this.runningEntry();
+    return this.entries()
+      .filter((e) => {
+        if (dateKey(new Date(e.startedAt)) !== key) return false;
+        if (!e.stoppedAt && running && e.id !== running.id) return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime(),
+      );
   });
 
-  readonly addRowProjects = computed(() => {
-    const q = this.addRowSearch().trim().toLowerCase();
-    const used = new Set(this.gridProjectIds());
-    const list = this.projects().filter((p) => !used.has(p.id));
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.client.name.toLowerCase().includes(q),
-    );
-  });
-
-  readonly gridProjectIds = computed(() => {
-    const ids = new Set<string>();
+  readonly dayTotalMin = computed(() => {
+    const running = this.runningEntry();
+    const key = dateKey(this.selectedDay());
+    let total = 0;
     for (const e of this.entries()) {
-      if (e.stoppedAt) ids.add(e.project.id);
+      if (dateKey(new Date(e.startedAt)) !== key) continue;
+      if (!e.stoppedAt) {
+        if (e.id === running?.id) total += this.runningElapsedMin();
+      } else {
+        total += e.durationMin ?? 0;
+      }
     }
-    for (const id of this.extraProjectIds()) ids.add(id);
-    return [...ids];
+    return total;
   });
 
-  readonly gridProjects = computed(() => {
-    const byId = new Map(this.projects().map((p) => [p.id, p]));
-    return this.gridProjectIds()
-      .map((id) => byId.get(id))
-      .filter((p): p is Project => !!p);
+  readonly weekTotalMin = computed(() => {
+    const running = this.runningEntry();
+    const weekKeys = new Set(this.days().map((d) => dateKey(d)));
+    let total = 0;
+    for (const e of this.entries()) {
+      const key = dateKey(new Date(e.startedAt));
+      if (!weekKeys.has(key)) continue;
+      if (!e.stoppedAt) {
+        if (e.id === running?.id) {
+          total += this.runningElapsedMin();
+        }
+      } else {
+        total += e.durationMin ?? 0;
+      }
+    }
+    return total;
   });
-
 
   ngOnInit() {
     this.timerInterval = setInterval(() => this.tick.update((n) => n + 1), 1000);
@@ -151,9 +130,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   async loadProjects() {
     try {
-      const data = await this.api.get<Project[]>(
-        '/projects',
-      );
+      const data = await this.api.get<Project[]>('/projects');
       this.projects.set(data);
     } catch {
       /* ignore */
@@ -164,26 +141,20 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const from = this.weekAnchor().toISOString();
-      const to = endOfWeek(this.weekAnchor()).toISOString();
+      const from = this.weekStart().toISOString();
+      const to = endOfWeek(this.weekStart()).toISOString();
       let data = await this.api.get<TimeEntry[]>(
         `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
       );
       if (!data.some((e) => !e.stoppedAt)) {
-        const all = await this.api.get<TimeEntry[]>(
-          '/time-entries',
-        );
+        const all = await this.api.get<TimeEntry[]>('/time-entries');
         const active = all.find((e) => !e.stoppedAt);
         if (active && !data.some((e) => e.id === active.id)) {
           data = [active, ...data];
         }
       }
       this.entries.set(data);
-      const running = data.find((e) => !e.stoppedAt);
-      if (running) {
-        this.timerProjectId.set(running.project.id);
-        this.timerNotes.set(running.description ?? '');
-      }
+      this.loadedWeekKey.set(dateKey(startOfWeek(this.selectedDay())));
     } catch (err) {
       this.error.set(
         err instanceof Error ? err.message : 'Failed to load timesheet',
@@ -193,19 +164,35 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     }
   }
 
-  prevWeek() {
-    this.weekAnchor.set(addDays(this.weekAnchor(), -7));
+  prevDay() {
+    this.selectedDay.set(addDays(this.selectedDay(), -1));
+    void this.loadWeekIfNeeded();
+  }
+
+  nextDay() {
+    this.selectedDay.set(addDays(this.selectedDay(), 1));
+    void this.loadWeekIfNeeded();
+  }
+
+  goToToday() {
+    this.selectedDay.set(new Date());
     void this.loadWeek();
   }
 
-  nextWeek() {
-    this.weekAnchor.set(addDays(this.weekAnchor(), 7));
-    void this.loadWeek();
+  selectDay(d: Date) {
+    this.selectedDay.set(new Date(d));
+    void this.loadWeekIfNeeded();
   }
 
-  goToThisWeek() {
-    this.weekAnchor.set(startOfWeek(new Date()));
-    void this.loadWeek();
+  private async loadWeekIfNeeded() {
+    const key = dateKey(startOfWeek(this.selectedDay()));
+    if (key !== this.loadedWeekKey()) {
+      await this.loadWeek();
+    }
+  }
+
+  isDaySelected(d: Date): boolean {
+    return isSameDay(d, this.selectedDay());
   }
 
   isDayToday(d: Date): boolean {
@@ -216,155 +203,56 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     return dateKey(d);
   }
 
-  dayLabel(d: Date) {
-    return formatDayLabel(d);
+  dayShortLabel(d: Date): string {
+    return dayLabel(d).short;
   }
 
-  projectLabel(p: Project): string {
-    return `${p.client.name} / ${p.name}`;
-  }
-
-  timerProjectLabel(): string {
-    const id = this.timerProjectId();
-    const p = this.projects().find((x) => x.id === id);
-    return p ? this.projectLabel(p) : '';
-  }
-
-  toggleProjectPicker() {
-    this.projectPickerOpen.update((v) => !v);
-    if (this.projectPickerOpen()) this.projectSearch.set('');
-  }
-
-  selectTimerProject(p: Project) {
-    this.timerProjectId.set(p.id);
-    this.projectPickerOpen.set(false);
-    this.projectSearch.set('');
-  }
-
-  toggleAddRowPicker() {
-    this.addRowPickerOpen.update((v) => !v);
-    if (this.addRowPickerOpen()) this.addRowSearch.set('');
-  }
-
-  addProjectRow(p: Project) {
-    if (!this.extraProjectIds().includes(p.id)) {
-      this.extraProjectIds.update((ids) => [...ids, p.id]);
-    }
-    this.addRowPickerOpen.set(false);
-    this.addRowSearch.set('');
-  }
-
-  cellHours(projectId: string, d: Date): number {
+  dayTotalFor(d: Date): number {
     const key = dateKey(d);
-    let min = 0;
+    const running = this.runningEntry();
+    let total = 0;
     for (const e of this.entries()) {
-      if (e.project.id !== projectId || e.stoppedAt == null) continue;
-      if (dateKey(new Date(e.startedAt)) === key) {
-        min += e.durationMin ?? 0;
+      if (dateKey(new Date(e.startedAt)) !== key) continue;
+      if (!e.stoppedAt) {
+        if (e.id === running?.id) total += this.runningElapsedMin();
+      } else {
+        total += e.durationMin ?? 0;
       }
     }
-    return minutesToHours(min);
+    return total;
   }
 
-  rowTotalHours(projectId: string): number {
-    return this.days().reduce(
-      (sum, d) => sum + this.cellHours(projectId, d),
-      0,
-    );
-  }
-
-  dayTotalHours(d: Date): number {
-    return this.gridProjectIds().reduce(
-      (sum, pid) => sum + this.cellHours(pid, d),
-      0,
-    );
-  }
-
-  weekTotalHours(): number {
-    return this.days().reduce((sum, d) => sum + this.dayTotalHours(d), 0);
-  }
-
-  isEditing(projectId: string, d: Date): boolean {
-    const c = this.editingCell();
-    return !!c && c.projectId === projectId && c.dayKey === dateKey(d);
-  }
-
-  startEdit(projectId: string, d: Date) {
-    if (this.saving()) return;
-    this.editingCell.set({ projectId, dayKey: dateKey(d) });
-    this.editDraft.set(formatCellHoursUtil(this.cellHours(projectId, d)));
-  }
-
-  cancelEdit() {
-    this.editingCell.set(null);
-    this.editDraft.set('');
-  }
-
-  async commitEdit(projectId: string, d: Date) {
-    const parsed = parseHoursInput(this.editDraft());
-    if (parsed === null) {
-      this.error.set('Invalid time. Use hours (2.5) or H:MM (2:30).');
-      return;
+  entryDurationLabel(entry: TimeEntry): string {
+    if (!entry.stoppedAt) {
+      const ms = Date.now() - new Date(entry.startedAt).getTime();
+      const min = Math.max(0, Math.round(ms / 60_000));
+      return formatDurationMin(min);
     }
-    this.editingCell.set(null);
-    this.editDraft.set('');
-    await this.setCellHours(projectId, d, parsed);
+    return formatDurationMin(entry.durationMin ?? 0);
   }
 
-  onCellKeydown(event: KeyboardEvent, projectId: string, d: Date) {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      void this.commitEdit(projectId, d);
-    }
-    if (event.key === 'Escape') this.cancelEdit();
+  projectTitle(entry: TimeEntry): string {
+    return `${entry.project.name} (${entry.project.client.name})`;
   }
 
-  private async setCellHours(projectId: string, d: Date, hours: number) {
-    this.saving.set(true);
-    this.error.set(null);
-    try {
-      const key = dateKey(d);
-      const existing = this.entries().filter(
-        (e) =>
-          e.project.id === projectId &&
-          e.stoppedAt != null &&
-          dateKey(new Date(e.startedAt)) === key,
-      );
-
-      for (const e of existing) {
-        await this.api.delete(
-          `/time-entries/${e.id}`,
-        );
-      }
-
-      if (hours > 0) {
-        const startedAt = new Date(d);
-        startedAt.setHours(9, 0, 0, 0);
-        const stoppedAt = new Date(
-          startedAt.getTime() + hoursToMinutes(hours) * 60_000,
-        );
-        await this.api.post('/time-entries', {
-          projectId,
-          startedAt: startedAt.toISOString(),
-          stoppedAt: stoppedAt.toISOString(),
-          isBillable: true,
-        });
-      }
-
-      await this.loadWeek();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to save');
-    } finally {
-      this.saving.set(false);
-    }
+  async openTrackTimeModal() {
+    const result = await this.modal().open({
+      day: this.selectedDay(),
+      projects: this.projects(),
+    });
+    if (result !== 'cancelled') await this.loadWeek();
   }
 
-  async startTimer() {
-    const projectId = this.timerProjectId();
-    if (!projectId) {
-      this.error.set('Choose a project to start the timer.');
-      return;
-    }
+  async openEditModal(entry: TimeEntry) {
+    const result = await this.modal().open({
+      day: this.selectedDay(),
+      projects: this.projects(),
+      entry,
+    });
+    if (result !== 'cancelled') await this.loadWeek();
+  }
+
+  async startFromEntry(entry: TimeEntry) {
     if (this.runningEntry()) {
       this.error.set('Stop the current timer first.');
       return;
@@ -373,10 +261,10 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     this.error.set(null);
     try {
       await this.api.post('/time-entries', {
-        projectId,
-        description: this.timerNotes().trim() || undefined,
+        projectId: entry.project.id,
+        projectTaskId: entry.projectTaskId ?? entry.projectTask?.id,
+        description: entry.description?.trim() || undefined,
         startedAt: new Date().toISOString(),
-        isBillable: true,
       });
       await this.loadWeek();
     } catch (err) {
@@ -392,9 +280,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.api.post(
-        `/time-entries/${running.id}/stop`,
-      );
+      await this.api.post(`/time-entries/${running.id}/stop`);
       await this.loadWeek();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to stop timer');
@@ -403,17 +289,12 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     }
   }
 
-  formatTotal(h: number): string {
-    return h > 0 ? formatCellHoursUtil(h) : '–';
-  }
-
-  formatCellHours(hours: number): string {
-    return formatCellHoursUtil(hours);
+  formatMin(min: number): string {
+    return formatDurationMin(min);
   }
 
   @HostListener('document:click')
   closeDropdowns() {
-    this.projectPickerOpen.set(false);
-    this.addRowPickerOpen.set(false);
+    this.modal()?.closeProjectPicker();
   }
 }

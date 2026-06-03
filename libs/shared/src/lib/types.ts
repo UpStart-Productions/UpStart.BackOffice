@@ -19,6 +19,15 @@ export type ClientDto = {
   updatedAt: string;
 };
 
+export type ProjectTaskDto = {
+  id: string;
+  projectId: string;
+  name: string;
+  isBillable: boolean;
+  sortOrder: number;
+  isActive: boolean;
+};
+
 export type ProjectDto = {
   id: string;
   clientId: string;
@@ -28,12 +37,14 @@ export type ProjectDto = {
   isBillable: boolean;
   isActive: boolean;
   client: { id: string; name: string; code: string };
+  tasks?: ProjectTaskDto[];
 };
 
 export type TimeEntryDto = {
   id: string;
   userId: string;
   projectId: string;
+  projectTaskId?: string | null;
   description?: string | null;
   startedAt: string;
   stoppedAt?: string | null;
@@ -42,6 +53,7 @@ export type TimeEntryDto = {
   hourlyRate?: number | null;
   invoiceLineItemId?: string | null;
   project: { id: string; name: string; client: { id: string; name: string } };
+  projectTask?: { id: string; name: string; isBillable: boolean } | null;
   user: { id: string; firstName?: string | null; lastName?: string | null; email: string };
 };
 

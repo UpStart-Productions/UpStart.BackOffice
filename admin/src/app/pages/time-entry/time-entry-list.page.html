@@ -1,181 +1,140 @@
-<div class="harvest-timesheet">
-  <header class="timesheet-header">
-    <h1>Time</h1>
-    <div class="week-nav">
-      <button type="button" class="nav-btn" (click)="prevWeek()" aria-label="Previous week">
-        ‹
-      </button>
-      <span class="week-range">{{ weekLabel() }}</span>
-      <button type="button" class="nav-btn" (click)="nextWeek()" aria-label="Next week">
-        ›
-      </button>
-      @if (!isCurrentWeek()) {
-        <button type="button" class="this-week" (click)="goToThisWeek()">This week</button>
-      }
-    </div>
-  </header>
-
+<app-page title="Timesheet" [skipTitle]="true">
   @if (error()) {
-    <div class="error-banner" role="alert">{{ error() }}</div>
+    <div class="card">
+      <div class="error-banner" role="alert">{{ error() }}</div>
+    </div>
   }
 
-  <div class="timer-row">
-    <div class="timer-project">
-      <button
-        type="button"
-        class="project-trigger"
-        [class.placeholder]="!timerProjectId()"
-        (click)="toggleProjectPicker(); $event.stopPropagation()"
-        [disabled]="!!runningEntry()"
-      >
-        {{ timerProjectLabel() || 'Select a project' }}
+  <div class="card harvest-timesheet">
+    <header class="timesheet-header">
+      <h2 class="page-title page-title-in-card mb-0">Timesheet</h2>
+      <button type="button" class="btn-track" (click)="openTrackTimeModal()">
+        + Track time
       </button>
-      @if (projectPickerOpen() && !runningEntry()) {
-        <div class="project-dropdown" (click)="$event.stopPropagation()">
-          <input
-            class="search"
-            type="text"
-            placeholder="Search projects..."
-            [ngModel]="projectSearch()"
-            (ngModelChange)="projectSearch.set($event)"
-            (click)="$event.stopPropagation()"
-          />
-          @for (p of filteredProjects(); track p.id) {
-            <button type="button" class="option" (click)="selectTimerProject(p)">
-              <span class="client">{{ p.client.name }}</span>
-              {{ p.name }}
-            </button>
-          } @empty {
-            <div class="empty">No projects found</div>
-          }
-        </div>
+    </header>
+
+    <div class="date-nav">
+      <div class="date-picker">
+        <button type="button" class="nav-btn" (click)="prevDay()" aria-label="Previous day">
+          ‹
+        </button>
+        <span class="date-label">{{ dayHeading() }}</span>
+        <button type="button" class="nav-btn" (click)="nextDay()" aria-label="Next day">
+          ›
+        </button>
+      </div>
+      @if (!isSelectedToday()) {
+        <button type="button" class="return-today" (click)="goToToday()">Return to today</button>
       }
     </div>
-    <div class="timer-notes">
-      <label class="sr-only" for="timer-notes">Notes</label>
-      <input
-        id="timer-notes"
-        type="text"
-        placeholder="What are you working on?"
-        [ngModel]="timerNotes()"
-        (ngModelChange)="timerNotes.set($event)"
-        [disabled]="!!runningEntry()"
-      />
-    </div>
-    <div class="timer-actions">
-      @if (runningEntry(); as run) {
-        <span class="running-label" [title]="projectLabel(run.project)">
-          {{ run.project.client.name }} / {{ run.project.name }}
-        </span>
-        <span class="timer-elapsed">{{ elapsedLabel() }}</span>
-        <button type="button" class="btn-stop" [disabled]="saving()" (click)="stopTimer()">
-          ■ Stop
-        </button>
-      } @else {
+
+    <div class="week-bar">
+      @for (d of days(); track dayKey(d)) {
         <button
           type="button"
-          class="btn-start"
-          [disabled]="saving() || !timerProjectId()"
-          (click)="startTimer()"
+          class="week-day"
+          [class.selected]="isDaySelected(d)"
+          [class.today]="isDayToday(d)"
+          (click)="selectDay(d)"
         >
-          ▶ Start
+          <span class="weekday">{{ dayShortLabel(d) }}</span>
+          <span class="day-hours">
+            @if (dayTotalFor(d) > 0) {
+              <i class="pi pi-clock day-clock" aria-hidden="true"></i>
+            }
+            {{ formatMin(dayTotalFor(d)) }}
+          </span>
         </button>
       }
+      <div class="week-total">
+        <span class="week-total-label">Week total</span>
+        <span class="week-total-value">{{ formatMin(weekTotalMin()) }}</span>
+      </div>
     </div>
-  </div>
 
-  @if (loading()) {
-    <div class="loading-overlay">Loading timesheet…</div>
-  } @else {
-    <div class="grid-scroll">
-      <table class="timesheet-grid">
-        <thead>
-          <tr>
-            <th class="col-project" scope="col">Project</th>
-            @for (d of days(); track dayKey(d)) {
-              <th scope="col" [class.today]="isDayToday(d)">
-                {{ dayLabel(d).short }}
-                <span class="dom">{{ dayLabel(d).dom }}</span>
-              </th>
-            }
-            <th class="col-total" scope="col">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (p of gridProjects(); track p.id) {
-            <tr>
-              <td class="col-project">
-                <span class="client-name">{{ p.client.name }}</span>
-                {{ p.name }}
-              </td>
-              @for (d of days(); track dayKey(d)) {
-                <td
-                  class="cell-hours"
-                  [class.today]="isDayToday(d)"
-                >
-                  @if (isEditing(p.id, d)) {
-                    <input
-                      type="text"
-                      [ngModel]="editDraft()"
-                      (ngModelChange)="editDraft.set($event)"
-                      (blur)="commitEdit(p.id, d)"
-                      (keydown)="onCellKeydown($event, p.id, d)"
-                      autofocus
-                    />
-                  } @else {
-                    <span
-                      class="cell-display"
-                      (click)="startEdit(p.id, d)"
-                      [attr.aria-label]="'Hours for ' + p.name + ' on ' + dayKey(d)"
-                    >{{ formatCellHours(cellHours(p.id, d)) }}</span>
-                  }
-                </td>
+    @if (loading()) {
+      <div class="loading-overlay">Loading timesheet…</div>
+    } @else {
+      <div class="entry-list">
+        @if (runningEntry(); as run) {
+          <article class="entry-row running">
+            <div class="entry-main">
+              <h3 class="entry-project">{{ projectTitle(run) }}</h3>
+              @if (run.projectTask?.name) {
+                <p class="entry-task">{{ run.projectTask.name }}</p>
               }
-              <td class="col-total">{{ formatTotal(rowTotalHours(p.id)) }}</td>
-            </tr>
-          } @empty {
-            <tr>
-              <td class="col-project" [attr.colspan]="9" style="text-align: center; padding: 2rem; color: #6b7785;">
-                No time this week. Start the timer or add a project row below.
-              </td>
-            </tr>
-          }
-        </tbody>
-        @if (gridProjects().length > 0) {
-          <tfoot>
-            <tr>
-              <td class="col-project">Day total</td>
-              @for (d of days(); track dayKey(d)) {
-                <td>{{ formatTotal(dayTotalHours(d)) }}</td>
+              @if (run.description) {
+                <p class="entry-notes">{{ run.description }}</p>
               }
-              <td class="week-total">{{ formatTotal(weekTotalHours()) }}</td>
-            </tr>
-          </tfoot>
+            </div>
+            <div class="entry-actions">
+              <span class="entry-duration">{{ entryDurationLabel(run) }}</span>
+              <button
+                type="button"
+                class="btn-stop"
+                [disabled]="saving()"
+                (click)="stopTimer()"
+              >
+                ■ Stop
+              </button>
+            </div>
+          </article>
         }
-      </table>
-    </div>
 
-    <div class="add-row">
-      <button type="button" (click)="toggleAddRowPicker(); $event.stopPropagation()">+ Add row for another project</button>
-      @if (addRowPickerOpen()) {
-        <div class="project-dropdown" style="position: relative; margin-top: 0.5rem; max-width: 320px;" (click)="$event.stopPropagation()">
-          <input
-            class="search"
-            type="text"
-            placeholder="Search projects..."
-            [ngModel]="addRowSearch()"
-            (ngModelChange)="addRowSearch.set($event)"
-          />
-          @for (p of addRowProjects(); track p.id) {
-            <button type="button" class="option" (click)="addProjectRow(p)">
-              <span class="client">{{ p.client.name }}</span>
-              {{ p.name }}
-            </button>
-          } @empty {
-            <div class="empty">All projects are on the timesheet</div>
+        @for (entry of dayEntries(); track entry.id) {
+          @if (entry.stoppedAt) {
+            <article class="entry-row">
+              <div class="entry-main">
+                <h3 class="entry-project">{{ projectTitle(entry) }}</h3>
+                @if (entry.projectTask?.name) {
+                  <p class="entry-task">{{ entry.projectTask.name }}</p>
+                }
+                @if (entry.description) {
+                  <p class="entry-notes">{{ entry.description }}</p>
+                }
+              </div>
+              <div class="entry-actions">
+                <span class="entry-duration">{{ entryDurationLabel(entry) }}</span>
+                <button
+                  type="button"
+                  class="btn-start-entry"
+                  [disabled]="saving() || !!runningEntry()"
+                  (click)="startFromEntry(entry)"
+                  title="Start timer for this entry"
+                >
+                  <i class="pi pi-clock" aria-hidden="true"></i>
+                  Start
+                </button>
+                <button
+                  type="button"
+                  class="btn-edit"
+                  (click)="openEditModal(entry)"
+                >
+                  Edit
+                </button>
+              </div>
+            </article>
           }
-        </div>
-      }
-    </div>
-  }
-</div>
+        } @empty {
+          @if (!runningEntry()) {
+            <div class="empty-day">
+              <p>No time tracked for this day.</p>
+              <button type="button" class="btn-track-inline" (click)="openTrackTimeModal()">
+                + Track time
+              </button>
+            </div>
+          }
+        }
+
+        @if (dayEntries().length > 0 || runningEntry()) {
+          <footer class="day-total">
+            <span class="day-total-label">Total:</span>
+            <span class="day-total-value">{{ formatMin(dayTotalMin()) }}</span>
+          </footer>
+        }
+      </div>
+    }
+  </div>
+</app-page>
+
+<app-time-entry-modal />
