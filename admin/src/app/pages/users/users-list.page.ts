@@ -13,6 +13,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
+import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import {
   RowActionsMenuComponent,
@@ -51,6 +52,7 @@ type SortBy = 'name' | 'email' | 'role';
 export class UsersListPage {
   private readonly api = inject(ApiService);
   private readonly cognito = inject(CognitoAuthService);
+  private readonly session = inject(SessionService);
   private readonly confirm = inject(ConfirmationService);
   private readonly toast = inject(MessageService);
 
@@ -131,12 +133,17 @@ export class UsersListPage {
 
   async openAdd() {
     const modal = this.addEditModalRef();
-    if (await modal?.open()) await this.load();
+    if (await modal?.open()) await this.afterUserSaved();
   }
 
   async openEdit(user: UserRow) {
     const modal = this.addEditModalRef();
-    if (await modal?.open(user)) await this.load();
+    if (await modal?.open(user)) await this.afterUserSaved();
+  }
+
+  private async afterUserSaved() {
+    await this.load();
+    await this.session.refresh();
   }
 
   async toggleActive(user: UserRow) {

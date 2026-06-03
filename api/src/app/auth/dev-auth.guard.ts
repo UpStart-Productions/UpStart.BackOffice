@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { UserContext } from '../common/app.types';
 
 @Injectable()
@@ -47,7 +48,7 @@ export class DevAuthGuard implements CanActivate {
       name: user.name,
       firstName: user.firstName,
       lastName: user.lastName,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: toPublicAssetUrl(user.avatarUrl),
       role: user.role,
       isSuper: isSuperHeader || user.isSuper,
     } satisfies UserContext;

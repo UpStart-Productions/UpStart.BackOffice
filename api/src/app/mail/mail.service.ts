@@ -12,7 +12,7 @@ export class MailService {
   private readonly fromName: string;
 
   constructor() {
-    const region = process.env.AWS_REGION?.trim() || 'us-east-1';
+    const region = process.env.AWS_REGION?.trim() || 'us-west-2';
     const hasAwsCreds = process.env.AWS_ACCESS_KEY_ID?.trim() && process.env.AWS_SECRET_ACCESS_KEY?.trim();
 
     if (hasAwsCreds) {

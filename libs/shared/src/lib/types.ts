@@ -108,6 +108,7 @@ export type UserListDto = {
   firstName?: string | null;
   lastName?: string | null;
   name?: string | null;
+  avatarUrl?: string | null;
   role: UserRole;
   hourlyRate?: number | null;
   isActive: boolean;

@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { Component, effect, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { LayoutService } from './layout.service';
@@ -24,6 +24,15 @@ import { LayoutService } from './layout.service';
         </a>
       </div>
       <div class="layout-topbar-actions">
+        @if (avatarUrl() && !avatarImageError) {
+          <img
+            [src]="avatarUrl()!"
+            alt=""
+            class="topbar-user-avatar"
+            referrerpolicy="no-referrer"
+            (error)="avatarImageError = true"
+          />
+        }
         @if (userName()) {
           <span class="topbar-user-name">{{ userName() }}</span>
         }
@@ -42,5 +51,14 @@ import { LayoutService } from './layout.service';
 export class AppTopbarComponent {
   readonly layout = inject(LayoutService);
   userName = input('');
+  avatarUrl = input<string | null | undefined>(null);
   signOut = output<void>();
+  avatarImageError = false;
+
+  constructor() {
+    effect(() => {
+      this.avatarUrl();
+      this.avatarImageError = false;
+    });
+  }
 }

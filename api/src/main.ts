@@ -87,8 +87,10 @@ async function bootstrap() {
   }
 
   app.setGlobalPrefix('api');
+
   const port = process.env.PORT || 3001;
   await app.listen(port);
+  Logger.log(`Storage: ${process.env.STORAGE_PROVIDER === 's3' ? 'S3' : 'local'}`);
   Logger.log(`🚀 Application is running on: http://localhost:${port}/api`);
 }
 

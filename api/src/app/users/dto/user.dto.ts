@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Allow, IsBoolean, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateUserDto {
@@ -45,6 +45,11 @@ export class UpdateUserDto {
   @IsOptional()
   @IsNumber()
   hourlyRate?: number | null;
+
+  /** Set to null to remove avatar; omit to leave unchanged. */
+  @IsOptional()
+  @Allow()
+  avatarUrl?: string | null;
 }
 
 export class SetUserActiveDto {

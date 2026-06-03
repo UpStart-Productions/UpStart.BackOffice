@@ -3,7 +3,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
-import { MeResponse, SessionService } from '../core/session.service';
+import { SessionService } from '../core/session.service';
 import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
 import { AppTopbarComponent } from './app-topbar.component';
@@ -18,11 +18,9 @@ import { LayoutService } from './layout.service';
 export class ShellComponent implements OnInit {
   private readonly auth = inject(AuthStoreService);
   private readonly cognito = inject(CognitoAuthService);
-  private readonly session = inject(SessionService);
+  protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   readonly layout = inject(LayoutService);
-
-  me = signal<MeResponse | null>(null);
 
   navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
@@ -31,7 +29,7 @@ export class ShellComponent implements OnInit {
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
     ];
-    if (this.me()?.isSuper) {
+    if (this.session.me()?.isSuper) {
       items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
     }
     return items;
@@ -47,12 +45,11 @@ export class ShellComponent implements OnInit {
   });
 
   async ngOnInit() {
-    const me = await this.session.getReady();
-    if (me) this.me.set(me);
+    await this.session.getReady();
   }
 
   get displayName(): string {
-    const m = this.me();
+    const m = this.session.me();
     if (!m) return '';
     if (m.firstName || m.lastName) return `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim();
     return m.email;
