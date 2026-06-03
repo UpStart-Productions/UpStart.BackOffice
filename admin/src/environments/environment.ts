@@ -1,6 +1,7 @@
 export const environment = {
   apiBaseUrl: '/api',
   useCognito: false,
+  cognitoGoogleSignIn: false,
   cognito: null as {
     userPoolId: string;
     userPoolClientId: string;

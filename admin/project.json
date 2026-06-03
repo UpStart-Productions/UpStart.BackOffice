@@ -40,7 +40,13 @@
         "development": {
           "optimization": false,
           "extractLicenses": false,
-          "sourceMap": true
+          "sourceMap": true,
+          "fileReplacements": [
+            {
+              "replace": "admin/src/environments/environment.ts",
+              "with": "admin/src/environments/environment.development.generated.ts"
+            }
+          ]
         }
       },
       "defaultConfiguration": "production"

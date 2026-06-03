@@ -1,41 +1,214 @@
-<div class="login-wrapper">
-  <div class="login-card">
+<div class="login-page">
+  <div class="login-card card">
     <div class="login-header">
       <h1>UpStart</h1>
       <p>Back Office</p>
     </div>
-
-    @if (error()) {
-      <p-message severity="error" [text]="error()!" styleClass="w-full mb-3" />
-    }
 
     @if (!useCognito) {
       <p-message severity="info" styleClass="w-full mb-3"
         text="Dev mode: use admin@upstart.test (created by npm run dev:seed)." />
     }
 
-    @if (!needsNewPassword()) {
-      <div class="form-field">
-        <label for="email">Email</label>
-        <input pInputText id="email" type="email" [(ngModel)]="email" class="w-full"
-          (keydown.enter)="signIn()" [placeholder]="useCognito ? 'you@example.com' : 'admin@upstart.test'" />
-      </div>
-
-      @if (useCognito) {
-        <div class="form-field">
-          <label for="password">Password</label>
-          <p-password id="password" [(ngModel)]="password" [feedback]="false" styleClass="w-full"
-            inputStyleClass="w-full" (onKeydown)="$event.key === 'Enter' && signIn()" />
-        </div>
+    @if (useCognito) {
+      @switch (cognitoMode) {
+        @case ('login') {
+          <form (ngSubmit)="signInWithEmailPassword()" class="login-form">
+            <div class="form-field mb-3">
+              <label for="email">Email</label>
+              <input
+                pInputText
+                id="email"
+                type="email"
+                [(ngModel)]="email"
+                name="email"
+                required
+                placeholder="you@example.com"
+                class="w-full"
+              />
+            </div>
+            <div class="form-field mb-3">
+              <label for="password">Password</label>
+              <p-password
+                id="password"
+                [(ngModel)]="password"
+                name="password"
+                [feedback]="false"
+                styleClass="w-full"
+                inputStyleClass="w-full"
+                placeholder="••••••••"
+              />
+            </div>
+            @if (loginError) {
+              <p class="login-error mb-3">{{ loginError }}</p>
+            }
+            <div class="login-actions mb-3">
+              <p-button
+                label="Sign in"
+                type="submit"
+                styleClass="w-full"
+                [disabled]="!email || !password || loading"
+                [loading]="loading"
+              />
+            </div>
+            <p class="forgot-link mb-0">
+              <button type="button" class="link-button" (click)="showForgotRequest()">
+                Forgot password?
+              </button>
+            </p>
+          </form>
+        }
+        @case ('new-password-required') {
+          <p class="mb-3">Your account uses a temporary password. Set a new password to continue.</p>
+          <form (ngSubmit)="submitNewPassword()" class="login-form">
+            <div class="form-field mb-3">
+              <label for="newPasswordLogin">New password</label>
+              <p-password
+                id="newPasswordLogin"
+                [(ngModel)]="newPassword"
+                name="newPasswordLogin"
+                styleClass="w-full"
+                inputStyleClass="w-full"
+                placeholder="At least 8 characters"
+              />
+            </div>
+            <div class="form-field mb-3">
+              <label for="newPasswordConfirmLogin">Confirm new password</label>
+              <p-password
+                id="newPasswordConfirmLogin"
+                [(ngModel)]="newPasswordConfirm"
+                name="newPasswordConfirmLogin"
+                [feedback]="false"
+                styleClass="w-full"
+                inputStyleClass="w-full"
+              />
+            </div>
+            @if (newPasswordError) {
+              <p class="login-error mb-3">{{ newPasswordError }}</p>
+            }
+            <div class="login-actions mb-3">
+              <p-button
+                label="Set password and sign in"
+                type="submit"
+                styleClass="w-full"
+                [disabled]="!newPassword || !newPasswordConfirm || loading"
+                [loading]="loading"
+              />
+            </div>
+            <p>
+              <button type="button" class="link-button" (click)="backToLogin()">Back to sign in</button>
+            </p>
+          </form>
+        }
+        @case ('forgot-request') {
+          <form (ngSubmit)="requestResetCode()" class="login-form">
+            <p class="mb-3">Enter your email and we'll send you a code to reset your password.</p>
+            <div class="form-field mb-3">
+              <label for="forgotEmail">Email</label>
+              <input
+                pInputText
+                id="forgotEmail"
+                type="email"
+                [(ngModel)]="email"
+                name="forgotEmail"
+                required
+                placeholder="you@example.com"
+                class="w-full"
+              />
+            </div>
+            @if (forgotError) {
+              <p class="login-error mb-3">{{ forgotError }}</p>
+            }
+            @if (forgotSuccess) {
+              <p class="login-success mb-3">{{ forgotSuccess }}</p>
+            }
+            <div class="login-actions mb-3">
+              <p-button
+                label="Send reset code"
+                type="submit"
+                styleClass="w-full"
+                [disabled]="!email || loading"
+                [loading]="loading"
+              />
+            </div>
+            <p>
+              <button type="button" class="link-button" (click)="backToLogin()">Back to sign in</button>
+            </p>
+          </form>
+        }
+        @case ('forgot-confirm') {
+          <form (ngSubmit)="confirmResetPassword()" class="login-form">
+            <p class="mb-3">Enter the code from your email and your new password.</p>
+            <div class="form-field mb-3">
+              <label for="resetCode">Verification code</label>
+              <input
+                pInputText
+                id="resetCode"
+                type="text"
+                [(ngModel)]="resetCode"
+                name="resetCode"
+                required
+                placeholder="123456"
+                class="w-full"
+              />
+            </div>
+            <div class="form-field mb-3">
+              <label for="newPassword">New password</label>
+              <p-password
+                id="newPassword"
+                [(ngModel)]="newPassword"
+                name="newPassword"
+                styleClass="w-full"
+                inputStyleClass="w-full"
+                placeholder="••••••••"
+              />
+            </div>
+            @if (resetError) {
+              <p class="login-error mb-3">{{ resetError }}</p>
+            }
+            <div class="login-actions mb-3">
+              <p-button
+                label="Reset password"
+                type="submit"
+                styleClass="w-full"
+                [disabled]="!resetCode || !newPassword || loading"
+                [loading]="loading"
+              />
+            </div>
+            <p>
+              <button type="button" class="link-button" (click)="backToLogin()">Back to sign in</button>
+            </p>
+          </form>
+        }
       }
-
-      <p-button label="Sign In" [loading]="loading()" (click)="signIn()" styleClass="w-full" />
     } @else {
-      <div class="form-field">
-        <label for="newpass">New Password</label>
-        <p-password id="newpass" [(ngModel)]="newPassword" styleClass="w-full" inputStyleClass="w-full" />
-      </div>
-      <p-button label="Set Password" [loading]="loading()" (click)="confirmNewPassword()" styleClass="w-full" />
+      <form (ngSubmit)="signInWithEmailPassword()" class="login-form">
+        <div class="form-field mb-3">
+          <label for="devEmail">Email</label>
+          <input
+            pInputText
+            id="devEmail"
+            type="email"
+            [(ngModel)]="email"
+            name="devEmail"
+            required
+            placeholder="admin@upstart.test"
+            class="w-full"
+          />
+        </div>
+        @if (loginError) {
+          <p class="login-error mb-3">{{ loginError }}</p>
+        }
+        <div class="login-actions">
+          <p-button
+            label="Sign in"
+            type="submit"
+            styleClass="w-full"
+            [disabled]="!email || loading"
+            [loading]="loading"
+          />
+        </div>
+      </form>
     }
   </div>
 </div>
