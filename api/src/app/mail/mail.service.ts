@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import { resolveExplicitAwsCredentials } from '../common/aws-credentials.util';
 
 const DEFAULT_FROM_EMAIL = 'noreply@upstartproductions.com';
 const FROM_NAME = 'UpStart Back Office';
@@ -7,23 +8,25 @@ const FROM_NAME = 'UpStart Back Office';
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly ses: SESClient | null = null;
+  private readonly ses: SESClient;
   private readonly fromEmail: string;
   private readonly fromName: string;
 
   constructor() {
     const region = process.env.AWS_REGION?.trim() || 'us-west-2';
-    const hasAwsCreds = process.env.AWS_ACCESS_KEY_ID?.trim() && process.env.AWS_SECRET_ACCESS_KEY?.trim();
-
-    if (hasAwsCreds) {
-      this.ses = new SESClient({ region });
-      this.fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || DEFAULT_FROM_EMAIL;
-      this.fromName = process.env.MAIL_FROM_NAME?.trim() || FROM_NAME;
-    } else {
-      this.logger.warn('AWS credentials not set. Emails will not be sent.');
-      this.fromEmail = DEFAULT_FROM_EMAIL;
-      this.fromName = FROM_NAME;
-    }
+    const credentials = resolveExplicitAwsCredentials();
+    this.ses = new SESClient({
+      region,
+      ...(credentials ? { credentials } : {}),
+    });
+    this.fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || DEFAULT_FROM_EMAIL;
+    this.fromName = process.env.MAIL_FROM_NAME?.trim() || FROM_NAME;
+    const credSource = credentials
+      ? 'env keys'
+      : process.env.AWS_PROFILE?.trim()
+        ? `profile ${process.env.AWS_PROFILE.trim()}`
+        : 'default AWS credential chain';
+    this.logger.log(`SES ready (region=${region}, from=${this.fromEmail}, ${credSource})`);
   }
 
   async sendInvoice(params: {
@@ -34,8 +37,6 @@ export class MailService {
     pdfBuffer: Buffer;
     notes?: string;
   }): Promise<{ sent: boolean; error?: string }> {
-    if (!this.ses) return { sent: false, error: 'Email not configured' };
-
     const subject = `Invoice ${params.invoiceNumber} from ${this.fromName}`;
     const html = this.buildInvoiceEmailHtml(params);
 
@@ -62,7 +63,6 @@ export class MailService {
     subject: string;
     html: string;
   }): Promise<{ sent: boolean; error?: string }> {
-    if (!this.ses) return { sent: false, error: 'Email not configured' };
     try {
       await this.ses.send(new SendEmailCommand({
         Source: `${this.fromName} <${this.fromEmail}>`,

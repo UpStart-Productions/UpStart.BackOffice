@@ -68,6 +68,7 @@ export type InvoiceLineItemDto = {
   unitPrice: number;
   amount: number;
   sortOrder: number;
+  timeEntryIds?: string[];
   project?: { id: string; name: string } | null;
 };
 

@@ -38,13 +38,46 @@ export class ClientFormPage implements OnInit {
 
   get isNew() { return !this.id(); }
 
+  private patchForm(client: Partial<typeof this.form>) {
+    this.form = {
+      name: client.name ?? '',
+      code: client.code ?? '',
+      email: client.email ?? '',
+      phone: client.phone ?? '',
+      address: client.address ?? '',
+      city: client.city ?? '',
+      state: client.state ?? '',
+      zip: client.zip ?? '',
+      website: client.website ?? '',
+      notes: client.notes ?? '',
+      isActive: client.isActive ?? true,
+    };
+  }
+
+  private buildPayload() {
+    const emptyToUndefined = (v: string) => (v.trim() ? v.trim() : undefined);
+    return {
+      name: this.form.name.trim(),
+      code: this.form.code.trim(),
+      email: emptyToUndefined(this.form.email),
+      phone: emptyToUndefined(this.form.phone),
+      address: emptyToUndefined(this.form.address),
+      city: emptyToUndefined(this.form.city),
+      state: emptyToUndefined(this.form.state),
+      zip: emptyToUndefined(this.form.zip),
+      website: emptyToUndefined(this.form.website),
+      notes: emptyToUndefined(this.form.notes),
+      isActive: this.form.isActive,
+    };
+  }
+
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.id.set(id);
       try {
         const client = await this.api.get<typeof this.form & { id: string }>(`/clients/${id}`);
-        this.form = { ...client };
+        this.patchForm(client);
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load client');
       }
@@ -57,10 +90,11 @@ export class ClientFormPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
+      const payload = this.buildPayload();
       if (this.isNew) {
-        await this.api.post('/clients', this.form);
+        await this.api.post('/clients', payload);
       } else {
-        await this.api.put(`/clients/${this.id()}`, this.form);
+        await this.api.put(`/clients/${this.id()}`, payload);
       }
       this.router.navigate(['/clients']);
     } catch (err) {

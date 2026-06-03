@@ -10,6 +10,7 @@
     "dev:seed-if-needed": "tsx tools/dev/seed-if-needed.ts",
     "add-super-user": "tsx tools/add-super-user.ts",
     "invite-user": "tsx tools/invite-user.ts",
+    "test-ses": "tsx tools/test-ses.ts",
     "backfill-storage-folders": "tsx tools/backfill-storage-folders.ts",
     "dev:api": "node scripts/kill-dev-ports.js && npx nx serve api",
     "dev:admin": "npx nx serve admin",

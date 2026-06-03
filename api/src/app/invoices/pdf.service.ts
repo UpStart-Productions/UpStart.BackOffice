@@ -9,7 +9,8 @@ type LineItem = {
   quantity: Numeric;
   unitPrice: Numeric;
   amount: Numeric;
-  project?: { name: string } | null;
+  projectId?: string | null;
+  project?: { id: string; name: string } | null;
 };
 
 type InvoiceData = {
@@ -66,13 +67,7 @@ export class PdfService {
       ? `<img src="${logoUri}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
       : `<div class="company">${fromName}</div>`;
 
-    const rows = invoice.lineItems.map((item) => `
-      <tr>
-        <td>${item.description}${item.project ? ` <span class="project">${item.project.name}</span>` : ''}</td>
-        <td class="num">${Number(item.quantity).toFixed(2)}</td>
-        <td class="num">${fmt(item.unitPrice)}</td>
-        <td class="num">${fmt(item.amount)}</td>
-      </tr>`).join('');
+    const projectSections = buildProjectSections(invoice.lineItems);
 
     const clientAddr = [
       invoice.client.name,
@@ -100,8 +95,10 @@ export class PdfService {
   thead tr { background: #f5f3ff; }
   th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #5b21b6; border-bottom: 2px solid #ddd6fe; }
   td { padding: 10px 12px; border-bottom: 1px solid #eaeaea; vertical-align: top; }
+  td.desc { white-space: pre-line; }
   .num { text-align: right; }
-  .project { display: block; font-size: 11px; color: #6b6b6b; margin-top: 2px; }
+  .project-section { margin-bottom: 28px; }
+  .project-heading { font-size: 15px; font-weight: 600; color: #5b21b6; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #ddd6fe; }
   .totals { display: flex; justify-content: flex-end; }
   .totals-table { min-width: 280px; }
   .totals-table td { border: none; padding: 4px 12px; }
@@ -133,17 +130,7 @@ export class PdfService {
   ${invoice.dueDate ? `<div class="meta-block"><label>Due Date</label><p>${fmtDate(invoice.dueDate)}</p></div>` : ''}
 </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Description</th>
-      <th class="num">Qty / Hrs</th>
-      <th class="num">Rate</th>
-      <th class="num">Amount</th>
-    </tr>
-  </thead>
-  <tbody>${rows}</tbody>
-</table>
+${projectSections}
 
 <div class="totals">
   <table class="totals-table">
@@ -157,4 +144,67 @@ ${invoice.notes ? `<div class="notes"><label>Notes</label>${invoice.notes}</div>
 </body>
 </html>`;
   }
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function buildProjectSections(lineItems: LineItem[]): string {
+  const tableHead = `
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="num">Qty / Hrs</th>
+        <th class="num">Rate</th>
+        <th class="num">Amount</th>
+      </tr>
+    </thead>`;
+
+  const groupMap = new Map<string, { projectId: string | null; projectName: string; items: LineItem[] }>();
+  for (const item of lineItems) {
+    const projectId = item.projectId ?? item.project?.id ?? null;
+    const key = projectId ?? '__none__';
+    let group = groupMap.get(key);
+    if (!group) {
+      group = {
+        projectId,
+        projectName: item.project?.name ?? 'Other',
+        items: [],
+      };
+      groupMap.set(key, group);
+    }
+    group.items.push(item);
+  }
+
+  const groups = [...groupMap.values()].sort((a, b) =>
+    a.projectName.localeCompare(b.projectName),
+  );
+
+  return groups.map((group) => {
+    const rows = group.items.map((item) => `
+      <tr>
+        <td class="desc">${escapeHtml(item.description)}</td>
+        <td class="num">${Number(item.quantity).toFixed(2)}</td>
+        <td class="num">${fmt(item.unitPrice)}</td>
+        <td class="num">${fmt(item.amount)}</td>
+      </tr>`).join('');
+
+    const heading = group.projectId
+      ? `<div class="project-heading">${escapeHtml(group.projectName)}</div>`
+      : '';
+
+    return `
+      <div class="project-section">
+        ${heading}
+        <table>
+          ${tableHead}
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
 }

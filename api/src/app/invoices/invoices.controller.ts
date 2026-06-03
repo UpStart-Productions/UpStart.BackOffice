@@ -1,6 +1,6 @@
 import {
   BadRequestException, Body, Controller, Delete, Get, NotFoundException,
-  Param, Post, Put, Res, UseGuards,
+  Param, Post, Put, Query, Res, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
@@ -10,7 +10,9 @@ import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { InvoiceFromTimeService } from './invoice-from-time.service';
 import { PdfService } from './pdf.service';
 
 const invoiceInclude = {
@@ -33,7 +35,21 @@ export class InvoicesController {
     private readonly pdf: PdfService,
     private readonly mail: MailService,
     private readonly storageFolders: StorageFoldersService,
+    private readonly invoiceFromTime: InvoiceFromTimeService,
   ) {}
+
+  @Get('preview')
+  async preview(@Query() query: InvoicePreviewQueryDto) {
+    const client = await this.prisma.client.findUnique({ where: { id: query.clientId } });
+    if (!client) throw new NotFoundException('Client not found');
+    if (query.projectId) {
+      const project = await this.prisma.project.findFirst({
+        where: { id: query.projectId, clientId: query.clientId },
+      });
+      if (!project) throw new NotFoundException('Project not found for this client');
+    }
+    return this.invoiceFromTime.buildPreview(query);
+  }
 
   @Get()
   async list() {
@@ -48,6 +64,8 @@ export class InvoicesController {
     const client = await this.prisma.client.findUnique({ where: { id: dto.clientId } });
     if (!client) throw new NotFoundException('Client not found');
 
+    await this.invoiceFromTime.assertTimeEntriesLinkable(dto.clientId, dto.lineItems);
+
     const lastInvoice = await this.prisma.invoice.findFirst({
       orderBy: { number: 'desc' },
     });
@@ -58,30 +76,53 @@ export class InvoicesController {
     const taxAmount = dto.taxRate ? subtotal * dto.taxRate : 0;
     const total = subtotal + taxAmount;
 
-    return this.prisma.invoice.create({
-      data: {
-        clientId: dto.clientId,
-        number,
-        displayNumber,
-        issueDate: new Date(dto.issueDate),
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
-        notes: dto.notes,
-        subtotal,
-        taxRate: dto.taxRate,
-        taxAmount: taxAmount || undefined,
-        total,
-        lineItems: {
-          create: dto.lineItems.map((item, i) => ({
+    return this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.create({
+        data: {
+          clientId: dto.clientId,
+          number,
+          displayNumber,
+          issueDate: new Date(dto.issueDate),
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+          notes: dto.notes,
+          subtotal,
+          taxRate: dto.taxRate,
+          taxAmount: taxAmount || undefined,
+          total,
+        },
+      });
+
+      for (let i = 0; i < dto.lineItems.length; i++) {
+        const item = dto.lineItems[i];
+        const amount = Math.round(item.quantity * item.unitPrice * 100) / 100;
+        const line = await tx.invoiceLineItem.create({
+          data: {
+            invoiceId: invoice.id,
             projectId: item.projectId,
             description: item.description,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            amount: item.quantity * item.unitPrice,
+            amount,
             sortOrder: item.sortOrder ?? i,
-          })),
-        },
-      },
-      include: invoiceInclude,
+          },
+        });
+
+        const entryIds = item.timeEntryIds ?? [];
+        if (entryIds.length > 0) {
+          const updated = await tx.timeEntry.updateMany({
+            where: { id: { in: entryIds }, invoiceLineItemId: null },
+            data: { invoiceLineItemId: line.id },
+          });
+          if (updated.count !== entryIds.length) {
+            throw new BadRequestException('One or more time entries could not be linked to the invoice');
+          }
+        }
+      }
+
+      return tx.invoice.findUniqueOrThrow({
+        where: { id: invoice.id },
+        include: invoiceInclude,
+      });
     });
   }
 

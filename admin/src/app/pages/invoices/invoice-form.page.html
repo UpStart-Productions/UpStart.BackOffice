@@ -65,79 +65,217 @@
       </div>
 
       @if (isNew) {
-        <div class="card">
-          <h4 class="showcase-section-title">Line Items</h4>
-          <p-table [value]="lineItems()" styleClass="table-bordered">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Project</th>
-                <th>Description</th>
-                <th style="width: 90px">Qty/Hrs</th>
-                <th style="width: 100px">Rate</th>
-                <th style="width: 100px">Amount</th>
-                <th style="width: 40px"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-item let-i="rowIndex">
-              <tr>
-                <td>
+        <div class="card invoice-generate-card">
+          <h4 class="showcase-section-title">Generate from time</h4>
+          <p class="invoice-generate-hint text-sm text-muted mb-3">
+            Pull uninvoiced billable time for the selected period. Entries must fall entirely within the period.
+          </p>
+
+          <div class="showcase-flex-col">
+            <div class="form-field showcase-full">
+              <label for="genProjectId">Project (optional)</label>
+              <p-select
+                inputId="genProjectId"
+                [options]="filteredProjects()"
+                optionLabel="name"
+                optionValue="id"
+                [(ngModel)]="generate.projectId"
+                [disabled]="!form.clientId"
+                placeholder="All projects for client"
+                [showClear]="true"
+                styleClass="w-full"
+              />
+            </div>
+
+            <div class="invoice-period-row">
+              <div class="form-field invoice-period-field">
+                <label for="periodType">Period</label>
+                <p-select
+                  inputId="periodType"
+                  [options]="periodTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [(ngModel)]="generate.periodType"
+                  styleClass="w-full"
+                />
+              </div>
+              <div class="form-field invoice-period-field">
+                <label for="periodYear">Year</label>
+                <p-select
+                  inputId="periodYear"
+                  [options]="yearOptions"
+                  [(ngModel)]="generate.year"
+                  styleClass="w-full"
+                />
+              </div>
+              <div class="form-field invoice-period-field">
+                @if (generate.periodType === 'month') {
+                  <label for="periodMonth">Month</label>
                   <p-select
-                    [options]="filteredProjects()"
-                    optionLabel="name"
-                    optionValue="id"
-                    [(ngModel)]="item.projectId"
-                    placeholder="—"
+                    inputId="periodMonth"
+                    [options]="months"
+                    optionLabel="label"
+                    optionValue="value"
+                    [(ngModel)]="generate.month"
                     styleClass="w-full"
                   />
-                </td>
-                <td><input pInputText [(ngModel)]="item.description" class="w-full" /></td>
-                <td>
-                  <input
-                    pInputText
-                    type="number"
-                    [(ngModel)]="item.quantity"
-                    (ngModelChange)="calcLine(item)"
-                    class="w-full"
+                } @else if (generate.periodType === 'quarter') {
+                  <label for="periodQuarter">Quarter</label>
+                  <p-select
+                    inputId="periodQuarter"
+                    [options]="quarters"
+                    optionLabel="label"
+                    optionValue="value"
+                    [(ngModel)]="generate.quarter"
+                    styleClass="w-full"
                   />
-                </td>
-                <td>
-                  <input
-                    pInputText
-                    type="number"
-                    [(ngModel)]="item.unitPrice"
-                    (ngModelChange)="calcLine(item)"
-                    class="w-full"
-                  />
-                </td>
-                <td class="text-right font-semibold">{{ formatCurrency(item.amount) }}</td>
-                <td>
-                  <p-button
-                    icon="pi pi-times"
-                    [text]="true"
-                    severity="danger"
-                    size="small"
-                    (click)="removeLine(i)"
-                  />
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-          <p-button
-            label="Add Line"
-            icon="pi pi-plus"
-            severity="secondary"
-            size="small"
-            styleClass="mt-3"
-            (click)="addLine()"
-          />
+                } @else {
+                  <span class="invoice-period-range-label" id="periodRangeLabel">Date range</span>
+                  <div class="invoice-date-range" aria-labelledby="periodRangeLabel">
+                    <input
+                      pInputText
+                      id="periodFrom"
+                      type="date"
+                      [(ngModel)]="generate.from"
+                      class="w-full"
+                      aria-label="From"
+                    />
+                    <span class="invoice-date-range-sep" aria-hidden="true">–</span>
+                    <input
+                      pInputText
+                      id="periodTo"
+                      type="date"
+                      [(ngModel)]="generate.to"
+                      class="w-full"
+                      aria-label="To"
+                    />
+                  </div>
+                }
+              </div>
+            </div>
 
-          <div class="flex justify-end gap-4 text-sm mt-4">
-            <span>Subtotal: <strong>{{ formatCurrency(subtotal) }}</strong></span>
-            @if (form.taxRate) {
-              <span>Tax: <strong>{{ formatCurrency(taxAmount) }}</strong></span>
+            <div class="invoice-generate-actions">
+              <p-button
+                label="Generate from time"
+                icon="pi pi-clock"
+                [loading]="generating()"
+                [disabled]="!form.clientId"
+                (click)="generateFromTime()"
+              />
+              @if (periodLabel()) {
+                <span class="text-sm text-muted">Period: {{ periodLabel() }}</span>
+              }
+            </div>
+
+            @if (generateMessage()) {
+              <p-message
+                [severity]="missingRates().length ? 'warn' : 'info'"
+                [text]="generateMessage()!"
+              />
             }
-            <span>Total: <strong>{{ formatCurrency(total) }}</strong></span>
+
+            @if (missingRates().length) {
+              <div class="missing-rates-list">
+                <p class="text-sm font-semibold mb-2">Entries missing hourly rate</p>
+                <ul class="text-sm">
+                  @for (row of missingRates(); track row.entryId) {
+                    <li>
+                      {{ row.projectName }}
+                      @if (row.taskName) {
+                        — {{ row.taskName }}
+                      }
+                      ({{ formatMissingDate(row.startedAt) }})
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
           </div>
+        </div>
+
+        <div class="card">
+          <div class="invoice-lines-header">
+            <h4 class="showcase-section-title mb-0">Line items</h4>
+            <p-button
+              label="Add line"
+              icon="pi pi-plus"
+              severity="secondary"
+              size="small"
+              (click)="addLine(generate.projectId)"
+            />
+          </div>
+
+          @if (lineItems().length === 0) {
+            <p class="text-sm text-muted mt-3">
+              Generate from time or add lines manually.
+            </p>
+          } @else {
+            @for (group of projectGroups(); track group.projectId) {
+              <section class="invoice-project-block">
+                <h5 class="invoice-project-title">{{ group.projectName }}</h5>
+                <p-table [value]="group.rows" styleClass="table-bordered">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Description</th>
+                      <th style="width: 90px">Qty/Hrs</th>
+                      <th style="width: 100px">Rate</th>
+                      <th style="width: 100px">Amount</th>
+                      <th style="width: 40px"></th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>
+                        <textarea
+                          pTextarea
+                          [(ngModel)]="row.item.description"
+                          class="w-full invoice-line-desc"
+                          rows="3"
+                        ></textarea>
+                      </td>
+                      <td>
+                        <input
+                          pInputText
+                          type="number"
+                          [(ngModel)]="row.item.quantity"
+                          (ngModelChange)="calcLine(row.item)"
+                          class="w-full"
+                          step="0.01"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          pInputText
+                          type="number"
+                          [(ngModel)]="row.item.unitPrice"
+                          (ngModelChange)="calcLine(row.item)"
+                          class="w-full"
+                        />
+                      </td>
+                      <td class="text-right font-semibold">{{ formatCurrency(row.item.amount) }}</td>
+                      <td>
+                        <p-button
+                          icon="pi pi-times"
+                          [text]="true"
+                          severity="danger"
+                          size="small"
+                          (click)="removeLine(row.index)"
+                        />
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </section>
+            }
+
+            <div class="flex justify-end gap-4 text-sm mt-4">
+              <span>Subtotal: <strong>{{ formatCurrency(subtotal) }}</strong></span>
+              @if (form.taxRate) {
+                <span>Tax: <strong>{{ formatCurrency(taxAmount) }}</strong></span>
+              }
+              <span>Total: <strong>{{ formatCurrency(total) }}</strong></span>
+            </div>
+          }
         </div>
       }
 

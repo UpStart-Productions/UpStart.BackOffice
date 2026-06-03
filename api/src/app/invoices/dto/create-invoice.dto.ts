@@ -10,6 +10,9 @@ export class CreateInvoiceLineItemDto {
   @ApiProperty() @IsNumber() @Type(() => Number) quantity!: number;
   @ApiProperty() @IsNumber() @Type(() => Number) unitPrice!: number;
   @ApiPropertyOptional() @IsNumber() @IsOptional() @Type(() => Number) sortOrder?: number;
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray() @IsString({ each: true }) @IsOptional()
+  timeEntryIds?: string[];
 }
 
 export class CreateInvoiceDto {

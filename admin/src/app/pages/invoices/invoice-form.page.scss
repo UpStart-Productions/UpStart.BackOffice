@@ -1,0 +1,87 @@
+.invoice-generate-hint {
+  margin-top: 0;
+}
+
+.invoice-period-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.invoice-period-field {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.invoice-period-range-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.invoice-date-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+.invoice-date-range-sep {
+  flex-shrink: 0;
+  color: var(--text-color-secondary, #6b6b6b);
+}
+
+.invoice-generate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.missing-rates-list {
+  padding: 0.75rem 1rem;
+  background: var(--p-content-background, #fafafa);
+  border: 1px solid var(--p-content-border-color, #eaeaea);
+  border-radius: 6px;
+
+  ul {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+}
+
+.invoice-lines-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.invoice-project-block {
+  margin-top: 1.25rem;
+
+  &:first-of-type {
+    margin-top: 0.75rem;
+  }
+}
+
+.invoice-project-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--p-primary-color, #5b21b6);
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--p-content-border-color, #ddd6fe);
+}
+
+.invoice-line-desc {
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+}
