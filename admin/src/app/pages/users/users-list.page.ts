@@ -9,10 +9,15 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import {
+  RowActionsMenuComponent,
+  RowActionItem,
+} from '../../ui/row-actions-menu/row-actions-menu.component';
 import {
   AddEditUserModalComponent,
   type UserRow,
@@ -36,9 +41,11 @@ type SortBy = 'name' | 'email' | 'role';
     InputIconModule,
     SelectModule,
     TagModule,
+    ToastModule,
+    RowActionsMenuComponent,
     AddEditUserModalComponent,
   ],
-  providers: [ConfirmationService],
+  providers: [ConfirmationService, MessageService],
   templateUrl: './users-list.page.html',
 })
 export class UsersListPage {
@@ -168,6 +175,37 @@ export class UsersListPage {
         }
       },
     });
+  }
+
+  getRowActions(user: UserRow): RowActionItem[] {
+    const actions: RowActionItem[] = [
+      { id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEdit(user) },
+    ];
+    if (this.useCognito) {
+      actions.push({
+        id: 'invite',
+        label: 'Send sign-in invite',
+        icon: 'pi pi-envelope',
+        command: () => this.invite(user),
+      });
+    }
+    actions.push(
+      {
+        id: user.isActive ? 'disable' : 'enable',
+        label: user.isActive ? 'Disable' : 'Enable',
+        icon: user.isActive ? 'pi pi-ban' : 'pi pi-check-circle',
+        severity: 'warn',
+        command: () => this.toggleActive(user),
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDelete(user),
+      },
+    );
+    return actions;
   }
 
   get useCognito() {

@@ -12,17 +12,20 @@
     <p-table [value]="invoices()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
+          <th style="width: 3rem"></th>
           <th>Number</th>
           <th>Client</th>
           <th>Issue Date</th>
           <th>Due Date</th>
           <th>Total</th>
           <th>Status</th>
-          <th style="width: 8rem"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-inv>
         <tr>
+          <td>
+            <app-row-actions-menu [items]="getRowActions(inv)" ariaLabel="Invoice actions" />
+          </td>
           <td>
             <a [routerLink]="['/invoices', inv.id]" class="text-primary font-semibold">{{ inv.displayNumber }}</a>
           </td>
@@ -32,36 +35,6 @@
           <td>{{ formatAmount(inv.total) }}</td>
           <td>
             <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
-          </td>
-          <td>
-            <div class="flex gap-1">
-              <p-button
-                icon="pi pi-file-pdf"
-                [text]="true"
-                size="small"
-                (click)="downloadPdf(inv)"
-                pTooltip="Download PDF"
-              />
-              @if (inv.status === 'DRAFT') {
-                <p-button
-                  icon="pi pi-send"
-                  [text]="true"
-                  size="small"
-                  (click)="send(inv)"
-                  pTooltip="Send to client"
-                />
-              }
-              <a [routerLink]="['/invoices', inv.id]">
-                <p-button icon="pi pi-pencil" [text]="true" size="small" />
-              </a>
-              <p-button
-                icon="pi pi-trash"
-                severity="danger"
-                [text]="true"
-                size="small"
-                (click)="confirmDelete(inv)"
-              />
-            </div>
           </td>
         </tr>
       </ng-template>

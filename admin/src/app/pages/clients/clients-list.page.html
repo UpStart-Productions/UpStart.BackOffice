@@ -12,15 +12,18 @@
     <p-table [value]="clients()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
+          <th style="width: 3rem"></th>
           <th>Name</th>
           <th>Code</th>
           <th>Email</th>
           <th>Status</th>
-          <th style="width: 6rem"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-client>
         <tr>
+          <td>
+            <app-row-actions-menu [items]="getRowActions(client)" ariaLabel="Client actions" />
+          </td>
           <td>
             <a [routerLink]="['/clients', client.id]" class="text-primary">{{ client.name }}</a>
           </td>
@@ -30,18 +33,6 @@
             <p-tag
               [value]="client.isActive ? 'Active' : 'Inactive'"
               [severity]="client.isActive ? 'success' : 'secondary'"
-            />
-          </td>
-          <td>
-            <a [routerLink]="['/clients', client.id]">
-              <p-button icon="pi pi-pencil" [text]="true" size="small" />
-            </a>
-            <p-button
-              icon="pi pi-trash"
-              severity="danger"
-              [text]="true"
-              size="small"
-              (click)="confirmDelete(client)"
             />
           </td>
         </tr>

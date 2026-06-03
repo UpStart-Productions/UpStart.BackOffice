@@ -29,7 +29,7 @@ export class ShellComponent implements OnInit {
   navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
-      { label: 'Invoices', icon: 'pi-file-invoice', route: '/invoices' },
+      { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
     ];

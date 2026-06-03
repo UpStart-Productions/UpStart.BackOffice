@@ -1,4 +1,5 @@
 <app-page title="Users" [skipTitle]="true">
+  <p-toast />
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -39,16 +40,19 @@
     <p-table [value]="filteredUsers" [loading]="loading()" styleClass="table-bordered mt-3">
       <ng-template pTemplate="header">
         <tr>
+          <th style="width: 3rem"></th>
           <th>Name</th>
           <th>Email</th>
           <th>Role</th>
           <th>Hourly rate</th>
           <th>Status</th>
-          <th style="width: 10rem"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-user>
         <tr [class.user-disabled]="!user.isActive">
+          <td>
+            <app-row-actions-menu [items]="getRowActions(user)" ariaLabel="User actions" />
+          </td>
           <td>{{ user.name || '—' }}</td>
           <td>{{ user.email }}</td>
           <td>{{ roleLabel(user.role) }}{{ user.isSuper ? ' (super)' : '' }}</td>
@@ -58,25 +62,6 @@
               [value]="user.isActive ? 'Active' : 'Disabled'"
               [severity]="user.isActive ? 'success' : 'secondary'"
             />
-          </td>
-          <td>
-            <p-button icon="pi pi-pencil" [text]="true" size="small" (click)="openEdit(user)" />
-            @if (useCognito) {
-              <p-button
-                icon="pi pi-envelope"
-                [text]="true"
-                size="small"
-                (click)="invite(user)"
-              />
-            }
-            <p-button
-              [icon]="user.isActive ? 'pi pi-ban' : 'pi pi-check-circle'"
-              [text]="true"
-              size="small"
-              severity="warn"
-              (click)="toggleActive(user)"
-            />
-            <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (click)="confirmDelete(user)" />
           </td>
         </tr>
       </ng-template>

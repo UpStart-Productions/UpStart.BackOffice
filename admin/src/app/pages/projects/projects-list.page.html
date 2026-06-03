@@ -12,16 +12,19 @@
     <p-table [value]="projects()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
+          <th style="width: 3rem"></th>
           <th>Name</th>
           <th>Client</th>
           <th>Rate</th>
           <th>Billable</th>
           <th>Status</th>
-          <th style="width: 6rem"></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-project>
         <tr>
+          <td>
+            <app-row-actions-menu [items]="getRowActions(project)" ariaLabel="Project actions" />
+          </td>
           <td>
             <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
           </td>
@@ -38,18 +41,6 @@
             <p-tag
               [value]="project.isActive ? 'Active' : 'Inactive'"
               [severity]="project.isActive ? 'success' : 'secondary'"
-            />
-          </td>
-          <td>
-            <a [routerLink]="['/projects', project.id]">
-              <p-button icon="pi pi-pencil" [text]="true" size="small" />
-            </a>
-            <p-button
-              icon="pi pi-trash"
-              severity="danger"
-              [text]="true"
-              size="small"
-              (click)="confirmDelete(project)"
             />
           </td>
         </tr>

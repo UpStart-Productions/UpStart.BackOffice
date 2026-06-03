@@ -1,14 +1,17 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import {
+  RowActionsMenuComponent,
+  RowActionItem,
+} from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type Invoice = {
   id: string; displayNumber: string; status: string;
@@ -26,14 +29,15 @@ type Invoice = {
     MessageModule,
     ConfirmDialogModule,
     TagModule,
-    TooltipModule,
     PageComponent,
+    RowActionsMenuComponent,
   ],
   providers: [ConfirmationService],
   templateUrl: './invoices-list.page.html',
 })
 export class InvoicesListPage implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
   private readonly confirm = inject(ConfirmationService);
 
   invoices = signal<Invoice[]>([]);
@@ -50,6 +54,41 @@ export class InvoicesListPage implements OnInit {
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load invoices');
     } finally { this.loading.set(false); }
+  }
+
+  getRowActions(invoice: Invoice): RowActionItem[] {
+    const actions: RowActionItem[] = [
+      {
+        id: 'pdf',
+        label: 'Download PDF',
+        icon: 'pi pi-file-pdf',
+        command: () => this.downloadPdf(invoice),
+      },
+    ];
+    if (invoice.status === 'DRAFT') {
+      actions.push({
+        id: 'send',
+        label: 'Send to client',
+        icon: 'pi pi-send',
+        command: () => this.send(invoice),
+      });
+    }
+    actions.push(
+      {
+        id: 'edit',
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => this.router.navigate(['/invoices', invoice.id]),
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDelete(invoice),
+      },
+    );
+    return actions;
   }
 
   statusSeverity(status: string): string {
