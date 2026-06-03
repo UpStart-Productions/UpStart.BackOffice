@@ -1,7 +1,6 @@
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -10,8 +9,9 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
-import { ConfirmationService, MessageService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -36,7 +36,6 @@ type SortBy = 'name' | 'email' | 'role';
     TableModule,
     ButtonModule,
     MessageModule,
-    ConfirmDialogModule,
     InputTextModule,
     IconFieldModule,
     InputIconModule,
@@ -46,14 +45,14 @@ type SortBy = 'name' | 'email' | 'role';
     RowActionsMenuComponent,
     AddEditUserModalComponent,
   ],
-  providers: [ConfirmationService, MessageService],
+  providers: [MessageService],
   templateUrl: './users-list.page.html',
 })
 export class UsersListPage {
   private readonly api = inject(ApiService);
   private readonly cognito = inject(CognitoAuthService);
   private readonly session = inject(SessionService);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
 
   users = signal<UserRow[]>([]);
@@ -170,9 +169,8 @@ export class UsersListPage {
   }
 
   confirmDelete(user: UserRow) {
-    this.confirm.confirm({
+    this.deleteConfirm.confirm({
       message: `Delete ${user.email}? Their time entries will also be removed.`,
-      acceptButtonStyleClass: 'p-button-danger',
       accept: async () => {
         try {
           await this.api.delete(`/users/${user.id}`);

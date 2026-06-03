@@ -1,0 +1,40 @@
+---
+description: All delete actions must show a confirmation dialog before calling the API
+globs: admin/**/*.{ts,html}
+alwaysApply: true
+---
+
+# Confirm before delete
+
+Every **delete** action in the admin app must ask the user to confirm first, unless a task explicitly says to skip confirmation.
+
+## Implementation
+
+1. Use `ConfirmDeleteService` from `admin/src/app/core/confirm-delete.service.ts` (wraps PrimeNG `ConfirmationService`).
+2. Ensure `<p-confirmDialog />` is present once in `shell.component.html` (app layout). Do not add duplicate confirm dialogs on feature pages.
+3. `ConfirmationService` is provided in `app.config.ts`.
+
+```typescript
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+
+private readonly confirmDelete = inject(ConfirmDeleteService);
+
+confirmDelete(item: Item) {
+  this.confirmDelete.confirm({
+    message: `Delete "${item.name}"? This cannot be undone.`,
+    accept: async () => {
+      await this.api.delete(`/items/${item.id}`);
+      await this.load();
+    },
+  });
+}
+```
+
+## Do not
+
+- Call `api.delete()` directly from a button click without confirmation.
+- Use `window.confirm()` — use the shared PrimeNG dialog for consistent UX.
+
+## Row actions
+
+Table delete menu items should call a `confirmDelete*` method, not delete inline. See `table-row-actions.mdc`.

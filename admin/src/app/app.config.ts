@@ -6,6 +6,7 @@ import {
 import { provideRouter, withEnabledBlockingInitialNavigation } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { ConfirmationService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
@@ -16,17 +17,17 @@ import { CognitoAuthService } from './core/cognito-auth.service';
 const UpStartPreset = definePreset(Aura, {
   semantic: {
     primary: {
-      50: '#fdf2f8',
-      100: '#fce7f3',
-      200: '#fbcfe8',
-      300: '#f9a8d4',
-      400: '#f472b6',
-      500: '#c026a0',
-      600: '#a21caf',
-      700: '#86198f',
-      800: '#701a75',
-      900: '#4a044e',
-      950: '#2e0231',
+      50: '#f5f3ff',
+      100: '#ede9fe',
+      200: '#ddd6fe',
+      300: '#c4b5fd',
+      400: '#a78bfa',
+      500: '#8b5cf6',
+      600: '#7c3aed',
+      700: '#6d28d9',
+      800: '#5b21b6',
+      900: '#4c1d95',
+      950: '#2e1065',
     },
   },
 });
@@ -49,6 +50,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(appRoutes, withEnabledBlockingInitialNavigation()),
     provideHttpClient(),
     provideAnimationsAsync(),
+    ConfirmationService,
     providePrimeNG({
       theme: { preset: UpStartPreset, options: { darkModeSelector: '.app-dark' } },
     }),

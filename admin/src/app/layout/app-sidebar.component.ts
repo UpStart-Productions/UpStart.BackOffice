@@ -13,7 +13,6 @@ export type NavItem = { label: string; icon: string; route: string };
     <div class="layout-sidebar">
       <ul class="layout-menu">
         <li class="layout-root-menuitem">
-          <div class="layout-menuitem-root-text">Menu</div>
           <ul>
             @for (item of navItems(); track item.route) {
               <li>

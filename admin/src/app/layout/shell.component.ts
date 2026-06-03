@@ -1,6 +1,7 @@
 import { NgClass } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
 import { SessionService } from '../core/session.service';
@@ -12,7 +13,14 @@ import { LayoutService } from './layout.service';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [NgClass, RouterOutlet, AppTopbarComponent, AppSidebarComponent, AppFooterComponent],
+  imports: [
+    NgClass,
+    RouterOutlet,
+    ConfirmDialogModule,
+    AppTopbarComponent,
+    AppSidebarComponent,
+    AppFooterComponent,
+  ],
   templateUrl: './shell.component.html',
 })
 export class ShellComponent implements OnInit {

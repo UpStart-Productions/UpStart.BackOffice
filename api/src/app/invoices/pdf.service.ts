@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import puppeteer from 'puppeteer';
+import { getUpstartLogoDataUri } from './brand-logo';
 
 type Numeric = { toString(): string } | number;
 
@@ -60,6 +61,11 @@ export class PdfService {
   }
 
   private buildInvoiceHtml(invoice: InvoiceData, fromName: string): string {
+    const logoUri = getUpstartLogoDataUri();
+    const logoHtml = logoUri
+      ? `<img src="${logoUri}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
+      : `<div class="company">${fromName}</div>`;
+
     const rows = invoice.lineItems.map((item) => `
       <tr>
         <td>${item.description}${item.project ? ` <span class="project">${item.project.name}</span>` : ''}</td>
@@ -82,32 +88,32 @@ export class PdfService {
 <meta charset="utf-8">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #1a1a1a; }
+  body { font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #2d2d2d; background: #fcfcfb; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-  .company { font-size: 22px; font-weight: 700; color: #111; }
-  .invoice-label { font-size: 28px; font-weight: 300; color: #555; }
-  .invoice-number { font-size: 18px; font-weight: 600; }
+  .company { font-size: 22px; font-weight: 600; color: #2d2d2d; }
+  .invoice-label { font-size: 28px; font-weight: 500; color: #6b6b6b; }
+  .invoice-number { font-size: 18px; font-weight: 600; color: #7c3aed; }
   .meta { display: flex; gap: 48px; margin-bottom: 40px; }
-  .meta-block label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; display: block; margin-bottom: 4px; }
-  .meta-block p { font-size: 14px; color: #222; line-height: 1.5; }
+  .meta-block label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6b6b; display: block; margin-bottom: 4px; }
+  .meta-block p { font-size: 14px; color: #2d2d2d; line-height: 1.5; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  thead tr { background: #f5f5f5; }
-  th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #666; border-bottom: 2px solid #e0e0e0; }
-  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  thead tr { background: #f5f3ff; }
+  th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #5b21b6; border-bottom: 2px solid #ddd6fe; }
+  td { padding: 10px 12px; border-bottom: 1px solid #eaeaea; vertical-align: top; }
   .num { text-align: right; }
-  .project { display: block; font-size: 11px; color: #888; margin-top: 2px; }
+  .project { display: block; font-size: 11px; color: #6b6b6b; margin-top: 2px; }
   .totals { display: flex; justify-content: flex-end; }
   .totals-table { min-width: 280px; }
   .totals-table td { border: none; padding: 4px 12px; }
-  .totals-table .total-row td { font-weight: 700; font-size: 15px; border-top: 2px solid #222; padding-top: 10px; margin-top: 6px; }
-  .notes { margin-top: 32px; padding: 16px; background: #f9f9f9; border-radius: 6px; font-size: 13px; color: #555; }
-  .notes label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #888; display: block; margin-bottom: 6px; }
+  .totals-table .total-row td { font-weight: 700; font-size: 15px; border-top: 2px solid #7c3aed; padding-top: 10px; margin-top: 6px; color: #2d2d2d; }
+  .notes { margin-top: 32px; padding: 16px; background: #f9f9f7; border-radius: 6px; font-size: 13px; color: #6b6b6b; border: 1px solid #eaeaea; }
+  .notes label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6b6b; display: block; margin-bottom: 6px; }
 </style>
 </head>
 <body>
 <div class="header">
   <div>
-    <div class="company">${fromName}</div>
+    ${logoHtml}
   </div>
   <div style="text-align:right">
     <div class="invoice-label">Invoice</div>

@@ -2,7 +2,8 @@
 
 .layout-topbar {
   position: fixed;
-  height: 4rem;
+  min-height: 4.5rem;
+  height: 4.5rem;
   z-index: 997;
   left: 0;
   top: 0;
@@ -15,26 +16,22 @@
   justify-content: space-between;
 
   .layout-topbar-logo-container {
-    width: 20rem;
+    width: 22rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
   }
 
   .layout-topbar-logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--p-primary-600);
+    display: flex;
+    align-items: center;
     text-decoration: none;
-    line-height: 1.2;
+    line-height: 0;
 
-    small {
+    .topbar-logo-img {
+      height: 3.25rem;
+      width: auto;
       display: block;
-      font-size: 0.65rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-color-secondary);
     }
   }
 

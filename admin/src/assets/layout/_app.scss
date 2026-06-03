@@ -112,3 +112,26 @@
 .p-datatable.table-bordered .p-datatable-tbody > tr:last-child > td {
   border-bottom: none;
 }
+
+/* App-wide PrimeNG buttons (use pButton / p-button — avoid per-page button colors) */
+.p-button.p-button-primary:not(:disabled):hover {
+  background: var(--brand-primary-hover);
+  border-color: var(--brand-primary-hover);
+}
+
+.p-button.p-button-secondary:not(:disabled):hover,
+.p-button.p-button-outlined:not(:disabled):hover {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.p-button.p-button-text:not(:disabled),
+.p-button.p-button-link:not(:disabled) {
+  color: var(--brand-primary);
+}
+
+.p-button.p-button-text:not(:disabled):hover,
+.p-button.p-button-link:not(:disabled):hover {
+  color: var(--brand-primary-hover);
+  background: rgba(124, 58, 237, 0.06);
+}

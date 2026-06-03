@@ -3,8 +3,8 @@ import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ConfirmationService } from 'primeng/api';
+
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -18,14 +18,13 @@ type Client = { id: string; name: string; code: string; email?: string; phone?: 
 @Component({
   selector: 'app-clients-list-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule, PageComponent, RowActionsMenuComponent],
-  providers: [ConfirmationService],
+  imports: [RouterLink, ButtonModule, TableModule, MessageModule, TagModule, PageComponent, RowActionsMenuComponent],
   templateUrl: './clients-list.page.html',
 })
 export class ClientsListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   clients = signal<Client[]>([]);
   loading = signal(true);
@@ -64,13 +63,15 @@ export class ClientsListPage implements OnInit {
   }
 
   confirmDelete(client: Client) {
-    this.confirm.confirm({
+    this.deleteConfirm.confirm({
       message: `Delete "${client.name}"? This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`/clients/${client.id}`);
           await this.load();
-        } catch (err) { this.error.set(err instanceof Error ? err.message : 'Delete failed'); }
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Delete failed');
+        }
       },
     });
   }

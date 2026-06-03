@@ -4,6 +4,7 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import {
   formatDayHeading,
   formatDurationMin,
@@ -159,7 +160,6 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
                 type="button"
                 pButton
                 label="Start timer"
-                severity="success"
                 [loading]="saving()"
                 [disabled]="!canSubmit() || saving()"
                 (click)="startTimer()"
@@ -182,7 +182,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       font-size: 13px;
       font-weight: 600;
       margin-bottom: 0.35rem;
-      color: #1d2b36;
+      color: #2d2d2d;
     }
 
     .project-picker {
@@ -198,7 +198,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       padding: 0.625rem 0.75rem;
       font-size: 14px;
       cursor: pointer;
-      color: #1d2b36;
+      color: #2d2d2d;
 
       &.placeholder {
         color: #9aa5b1;
@@ -272,7 +272,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       background: #fff;
       padding: 0.625rem 0.75rem;
       font-size: 14px;
-      color: #1d2b36;
+      color: #2d2d2d;
     }
 
     .error-text {
@@ -297,6 +297,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 })
 export class TimeEntryModalComponent {
   private readonly api = inject(ApiService);
+  private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   visible = false;
   saving = signal(false);
@@ -524,15 +525,23 @@ export class TimeEntryModalComponent {
     }
   }
 
-  async deleteEntry() {
+  deleteEntry() {
     const existing = this.editingEntry();
     if (!existing) return;
 
+    const label = `${existing.project.name} (${existing.project.client.name})`;
+    this.deleteConfirm.confirm({
+      message: `Delete this time entry for "${label}"? This cannot be undone.`,
+      accept: () => this.performDelete(existing.id),
+    });
+  }
+
+  private async performDelete(entryId: string) {
     this.saving.set(true);
     this.error.set(null);
 
     try {
-      await this.api.delete(`/time-entries/${existing.id}`);
+      await this.api.delete(`/time-entries/${entryId}`);
       this.visible = false;
       this.resolve?.('deleted');
       this.resolve = null;

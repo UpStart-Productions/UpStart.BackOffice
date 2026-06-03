@@ -3,8 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -18,14 +17,13 @@ type Project = { id: string; name: string; isBillable: boolean; isActive: boolea
 @Component({
   selector: 'app-projects-list-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TableModule, MessageModule, ConfirmDialogModule, TagModule, PageComponent, RowActionsMenuComponent],
-  providers: [ConfirmationService],
+  imports: [RouterLink, ButtonModule, TableModule, MessageModule, TagModule, PageComponent, RowActionsMenuComponent],
   templateUrl: './projects-list.page.html',
 })
 export class ProjectsListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   projects = signal<Project[]>([]);
   loading = signal(true);
@@ -62,13 +60,15 @@ export class ProjectsListPage implements OnInit {
   }
 
   confirmDelete(project: Project) {
-    this.confirm.confirm({
-      message: `Delete "${project.name}"?`,
+    this.deleteConfirm.confirm({
+      message: `Delete "${project.name}"? This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`/projects/${project.id}`);
           await this.load();
-        } catch (err) { this.error.set(err instanceof Error ? err.message : 'Delete failed'); }
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Delete failed');
+        }
       },
     });
   }

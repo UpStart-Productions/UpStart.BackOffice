@@ -90,13 +90,18 @@ export class MailService {
 <!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;margin:0;padding:20px;">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:32px;">
-    <h2 style="color:#1a1a1a;margin-top:0;">Invoice ${params.invoiceNumber}</h2>
-    <p style="color:#333;">${greeting}</p>
-    <p style="color:#333;">Please find attached invoice <strong>${params.invoiceNumber}</strong> from <strong>${this.fromName}</strong>.</p>
-    ${params.notes ? `<p style="color:#555;border-left:3px solid #ddd;padding-left:12px;">${params.notes}</p>` : ''}
-    <p style="color:#555;font-size:14px;margin-top:32px;">Questions? Reply to this email.</p>
+<body style="font-family:'Satoshi',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fcfcfb;margin:0;padding:20px;">
+  <div style="max-width:600px;margin:0 auto;background:#fefefd;border:1px solid #eaeaea;border-radius:8px;overflow:hidden;">
+    <div style="background:#7c3aed;padding:16px 32px;">
+      <p style="margin:0;font-size:14px;font-weight:600;color:#fff;letter-spacing:0.02em;">UpStart Back Office</p>
+    </div>
+    <div style="padding:32px;">
+    <h2 style="color:#2d2d2d;margin-top:0;font-weight:500;">Invoice ${params.invoiceNumber}</h2>
+    <p style="color:#2d2d2d;">${greeting}</p>
+    <p style="color:#2d2d2d;">Please find invoice <strong>${params.invoiceNumber}</strong> from <strong>${this.fromName}</strong>.</p>
+    ${params.notes ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${params.notes}</p>` : ''}
+    <p style="color:#6b6b6b;font-size:14px;margin-top:32px;">Questions? Reply to this email.</p>
+    </div>
   </div>
 </body>
 </html>`;

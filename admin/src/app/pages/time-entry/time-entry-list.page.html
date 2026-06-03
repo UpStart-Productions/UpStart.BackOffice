@@ -6,26 +6,30 @@
   }
 
   <div class="card harvest-timesheet">
-    <header class="timesheet-header">
-      <h2 class="page-title page-title-in-card mb-0">Timesheet</h2>
-      <button type="button" class="btn-track" (click)="openTrackTimeModal()">
-        + Track time
-      </button>
-    </header>
+    <h2 class="page-title page-title-in-card timesheet-title">Timesheet</h2>
 
-    <div class="date-nav">
-      <div class="date-picker">
-        <button type="button" class="nav-btn" (click)="prevDay()" aria-label="Previous day">
-          ‹
-        </button>
-        <span class="date-label">{{ dayHeading() }}</span>
-        <button type="button" class="nav-btn" (click)="nextDay()" aria-label="Next day">
-          ›
-        </button>
+    <div class="timesheet-controls">
+      <div class="date-nav">
+        <div class="date-picker">
+          <button type="button" class="nav-btn" (click)="prevDay()" aria-label="Previous day">
+            ‹
+          </button>
+          <span class="date-label">{{ dayHeading() }}</span>
+          <button type="button" class="nav-btn" (click)="nextDay()" aria-label="Next day">
+            ›
+          </button>
+        </div>
+        @if (!isSelectedToday()) {
+          <button
+            type="button"
+            pButton
+            label="Return to today"
+            [text]="true"
+            (click)="goToToday()"
+          ></button>
+        }
       </div>
-      @if (!isSelectedToday()) {
-        <button type="button" class="return-today" (click)="goToToday()">Return to today</button>
-      }
+      <button type="button" pButton label="+ Track time" (click)="openTrackTimeModal()"></button>
     </div>
 
     <div class="week-bar">
@@ -39,7 +43,9 @@
         >
           <span class="weekday">{{ dayShortLabel(d) }}</span>
           <span class="day-hours">
-            @if (dayTotalFor(d) > 0) {
+            @if (isDayRunning(d)) {
+              <i class="pi pi-clock day-clock day-clock-active" aria-hidden="true"></i>
+            } @else if (dayTotalFor(d) > 0) {
               <i class="pi pi-clock day-clock" aria-hidden="true"></i>
             }
             {{ formatMin(dayTotalFor(d)) }}
@@ -59,7 +65,10 @@
         @if (runningEntry(); as run) {
           <article class="entry-row running">
             <div class="entry-main">
-              <h3 class="entry-project">{{ projectTitle(run) }}</h3>
+              <h3 class="entry-project">
+                <i class="pi pi-clock entry-running-icon" aria-hidden="true"></i>
+                {{ projectTitle(run) }}
+              </h3>
               @if (run.projectTask?.name) {
                 <p class="entry-task">{{ run.projectTask.name }}</p>
               }
@@ -68,15 +77,16 @@
               }
             </div>
             <div class="entry-actions">
-              <span class="entry-duration">{{ entryDurationLabel(run) }}</span>
+              <span class="entry-duration entry-duration-live">{{ entryDurationLabel(run) }}</span>
               <button
                 type="button"
-                class="btn-stop"
+                pButton
+                label="■ Stop"
+                severity="danger"
+                class="timer-stop-btn"
                 [disabled]="saving()"
                 (click)="stopTimer()"
-              >
-                ■ Stop
-              </button>
+              ></button>
             </div>
           </article>
         }
@@ -97,21 +107,22 @@
                 <span class="entry-duration">{{ entryDurationLabel(entry) }}</span>
                 <button
                   type="button"
-                  class="btn-start-entry"
+                  pButton
+                  label="Start"
+                  icon="pi pi-clock"
+                  severity="secondary"
                   [disabled]="saving() || !!runningEntry()"
                   (click)="startFromEntry(entry)"
                   title="Start timer for this entry"
-                >
-                  <i class="pi pi-clock" aria-hidden="true"></i>
-                  Start
-                </button>
+                ></button>
                 <button
                   type="button"
-                  class="btn-edit"
+                  pButton
+                  label="Edit"
+                  severity="secondary"
+                  [outlined]="true"
                   (click)="openEditModal(entry)"
-                >
-                  Edit
-                </button>
+                ></button>
               </div>
             </article>
           }
@@ -119,9 +130,13 @@
           @if (!runningEntry()) {
             <div class="empty-day">
               <p>No time tracked for this day.</p>
-              <button type="button" class="btn-track-inline" (click)="openTrackTimeModal()">
-                + Track time
-              </button>
+              <button
+                type="button"
+                pButton
+                label="+ Track time"
+                [text]="true"
+                (click)="openTrackTimeModal()"
+              ></button>
             </div>
           }
         }

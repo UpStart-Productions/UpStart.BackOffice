@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem;
-  background: var(--surface-ground);
+  background: var(--color-background, var(--surface-ground));
 }
 
 .login-card {
@@ -17,20 +17,20 @@
   text-align: center;
   margin-bottom: 2rem;
 
-  h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--p-primary-600);
-    margin: 0;
-    line-height: 1;
+  .login-logo {
+    height: 3.5rem;
+    width: auto;
+    display: block;
+    margin: 0 auto;
   }
 
   p {
     font-size: 0.875rem;
     color: var(--text-color-secondary);
-    margin: 0.25rem 0 0;
+    margin: 0.75rem 0 0;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
+    font-weight: 600;
   }
 }
 

@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { ApiService } from '../../core/api.service';
+import { ButtonModule } from 'primeng/button';
 import { PageComponent } from '../../ui/layout/page.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
 import type { Project, TimeEntry } from './time-entry.types';
@@ -29,7 +30,7 @@ import {
 @Component({
   selector: 'app-time-entry-list-page',
   standalone: true,
-  imports: [PageComponent, TimeEntryModalComponent],
+  imports: [ButtonModule, PageComponent, TimeEntryModalComponent],
   templateUrl: './time-entry-list.page.html',
   styleUrl: './time-entry-list.page.scss',
 })
@@ -199,6 +200,12 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     return isToday(d);
   }
 
+  isDayRunning(d: Date): boolean {
+    const running = this.runningEntry();
+    if (!running) return false;
+    return dateKey(d) === dateKey(new Date(running.startedAt));
+  }
+
   dayKey(d: Date): string {
     return dateKey(d);
   }
@@ -257,18 +264,22 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       this.error.set('Stop the current timer first.');
       return;
     }
+    if (!entry.stoppedAt) {
+      return;
+    }
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.api.post('/time-entries', {
-        projectId: entry.project.id,
-        projectTaskId: entry.projectTaskId ?? entry.projectTask?.id,
-        description: entry.description?.trim() || undefined,
-        startedAt: new Date().toISOString(),
-      });
-      await this.loadWeek();
+      const updated = await this.api.post<TimeEntry>(
+        `/time-entries/${entry.id}/restart`,
+        {},
+      );
+      this.entries.update((list) =>
+        list.map((e) => (e.id === updated.id ? updated : e)),
+      );
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to start timer');
+      await this.loadWeek();
     } finally {
       this.saving.set(false);
     }

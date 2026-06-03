@@ -1,6 +1,17 @@
 import {
-  Body, Controller, Delete, Get, NotFoundException, Param,
-  Post, Put, Query, Req, UseGuards,
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -63,6 +74,9 @@ export class TimeEntriesController {
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateTimeEntryDto) {
     const user = req.user as UserContext;
+    if (!dto.stoppedAt) {
+      await this.assertNoRunningTimer(user.id);
+    }
     const startedAt = new Date(dto.startedAt);
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
@@ -84,6 +98,29 @@ export class TimeEntriesController {
         durationMin,
         isBillable,
         hourlyRate: dto.hourlyRate,
+      },
+      include: entryIncludeWithoutUser,
+    });
+  }
+
+  @Post(':id/restart')
+  async restart(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as UserContext;
+    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
+    if (!entry) throw new NotFoundException('Time entry not found');
+    if (entry.userId !== user.id) throw new NotFoundException('Time entry not found');
+    if (!entry.stoppedAt) {
+      throw new BadRequestException('This entry is already running');
+    }
+
+    await this.assertNoRunningTimer(user.id);
+
+    return this.prisma.timeEntry.update({
+      where: { id },
+      data: {
+        startedAt: new Date(),
+        stoppedAt: null,
+        durationMin: null,
       },
       include: entryIncludeWithoutUser,
     });
@@ -154,5 +191,14 @@ export class TimeEntriesController {
     if (!entry) throw new NotFoundException('Time entry not found');
     await this.prisma.timeEntry.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  private async assertNoRunningTimer(userId: string) {
+    const running = await this.prisma.timeEntry.findFirst({
+      where: { userId, stoppedAt: null },
+    });
+    if (running) {
+      throw new ConflictException('Stop the current timer before starting another');
+    }
   }
 }

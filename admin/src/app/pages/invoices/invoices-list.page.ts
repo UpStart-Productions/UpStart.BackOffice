@@ -3,8 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { ConfirmationService } from 'primeng/api';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -27,18 +26,16 @@ type Invoice = {
     ButtonModule,
     TableModule,
     MessageModule,
-    ConfirmDialogModule,
     TagModule,
     PageComponent,
     RowActionsMenuComponent,
   ],
-  providers: [ConfirmationService],
   templateUrl: './invoices-list.page.html',
 })
 export class InvoicesListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
-  private readonly confirm = inject(ConfirmationService);
+  private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   invoices = signal<Invoice[]>([]);
   loading = signal(true);
@@ -116,13 +113,15 @@ export class InvoicesListPage implements OnInit {
   }
 
   confirmDelete(invoice: Invoice) {
-    this.confirm.confirm({
-      message: `Delete invoice ${invoice.displayNumber}?`,
+    this.deleteConfirm.confirm({
+      message: `Delete invoice ${invoice.displayNumber}? This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`/invoices/${invoice.id}`);
           await this.load();
-        } catch (err) { this.error.set(err instanceof Error ? err.message : 'Delete failed'); }
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Delete failed');
+        }
       },
     });
   }
