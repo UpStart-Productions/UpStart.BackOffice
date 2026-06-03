@@ -19,8 +19,8 @@ async function main() {
   });
   console.log(`Workspace: ${workspace.name}`);
 
-  // Create super admin user
-  const user = await prisma.user.upsert({
+  // Create dev admin user (local only)
+  const devUser = await prisma.user.upsert({
     where: { email: 'admin@upstart.test' },
     update: {},
     create: {
@@ -31,15 +31,40 @@ async function main() {
       isActive: true,
     },
   });
-  console.log(`User: ${user.email}`);
+  console.log(`User: ${devUser.email}`);
 
-  // Add user to workspace as admin
   await prisma.workspaceUser.upsert({
-    where: { workspaceId_userId: { workspaceId: workspace.id, userId: user.id } },
+    where: { workspaceId_userId: { workspaceId: workspace.id, userId: devUser.id } },
     update: {},
     create: {
       workspaceId: workspace.id,
-      userId: user.id,
+      userId: devUser.id,
+      role: 'ADMIN',
+      hourlyRate: 150,
+    },
+  });
+
+  // Create Jeff (Cognito user)
+  const jeff = await prisma.user.upsert({
+    where: { email: 'jeff@heyupstart.com' },
+    update: {},
+    create: {
+      email: 'jeff@heyupstart.com',
+      firstName: 'Jeff',
+      lastName: 'Denton',
+      name: 'Jeff Denton',
+      isSuper: true,
+      isActive: true,
+    },
+  });
+  console.log(`User: ${jeff.email}`);
+
+  await prisma.workspaceUser.upsert({
+    where: { workspaceId_userId: { workspaceId: workspace.id, userId: jeff.id } },
+    update: {},
+    create: {
+      workspaceId: workspace.id,
+      userId: jeff.id,
       role: 'ADMIN',
       hourlyRate: 150,
     },
