@@ -11,6 +11,8 @@ import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { LeadsModule } from './leads/leads.module';
+import { ArtifactsModule } from './artifacts/artifacts.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -29,6 +31,8 @@ import { HealthController } from './health.controller';
     ProjectsModule,
     TimeEntriesModule,
     InvoicesModule,
+    LeadsModule,
+    ArtifactsModule,
   ],
 })
 export class AppModule implements NestModule {

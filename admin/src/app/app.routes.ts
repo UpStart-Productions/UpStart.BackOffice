@@ -75,6 +75,21 @@ export const appRoutes: Route[] = [
           import('./pages/users/users-list.page').then((m) => m.UsersListPage),
         canActivate: [superGuard],
       },
+      {
+        path: 'pipeline',
+        loadComponent: () =>
+          import('./pages/pipeline/pipeline-board.page').then((m) => m.PipelineBoardPage),
+      },
+      {
+        path: 'pipeline/new',
+        loadComponent: () =>
+          import('./pages/pipeline/lead-detail.page').then((m) => m.LeadDetailPage),
+      },
+      {
+        path: 'pipeline/:id',
+        loadComponent: () =>
+          import('./pages/pipeline/lead-detail.page').then((m) => m.LeadDetailPage),
+      },
       { path: '', redirectTo: 'time-entry', pathMatch: 'full' },
     ],
   },

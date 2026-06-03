@@ -38,6 +38,7 @@ export class ShellComponent implements OnInit {
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
+      { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
     ];
     if (this.session.me()?.isSuper) {
       items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });

@@ -1,0 +1,80 @@
+.pipeline-board {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.5rem;
+}
+
+.pipeline-col {
+  min-width: 220px;
+  flex: 1;
+  background: var(--surface-ground);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.pipeline-col-header {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pipeline-badge {
+  display: inline-block;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pipeline-card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.pipeline-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.pipeline-card-org {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.2rem;
+}
+
+.pipeline-card-contact {
+  font-size: 0.78rem;
+  color: var(--text-color-secondary);
+}
+
+.pipeline-card-next {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  margin-top: 0.35rem;
+  font-style: italic;
+}
+
+.pipeline-empty {
+  font-size: 0.8rem;
+  color: var(--text-color-secondary);
+  text-align: center;
+  padding: 0.75rem 0;
+}

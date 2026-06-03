@@ -1,0 +1,167 @@
+<app-page [title]="isNew ? 'New Lead' : form.organization" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  } @else if (!loading()) {
+
+    <!-- Lead Form -->
+    <form class="card" (ngSubmit)="save()">
+      <div class="page-header-with-back">
+        <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true"
+          severity="secondary" type="button" routerLink="/pipeline" aria-label="Back to Pipeline" />
+        <h2 class="page-title page-title-in-card mb-0">
+          {{ isNew ? 'New Lead' : form.organization }}
+        </h2>
+        @if (!isNew && !isConverted) {
+          <p-button
+            label="Convert to Client"
+            icon="pi pi-arrow-right"
+            type="button"
+            style="margin-left: auto"
+            (onClick)="showConvertDialog.set(true)"
+          />
+        }
+        @if (isConverted) {
+          <p-tag value="Converted to Client" severity="success" />
+        }
+      </div>
+
+      <div class="showcase-flex-col">
+        <!-- Row 1: Org + Stage -->
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="organization">Organization <span class="required-dot" aria-hidden="true"></span></label>
+            <input pInputText id="organization" name="organization" [(ngModel)]="form.organization" class="w-full" placeholder="Nonprofit Name" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="stage">Stage</label>
+            <p-select inputId="stage" name="stage" [(ngModel)]="form.stage" [options]="stages" optionLabel="label" optionValue="value" styleClass="w-full" />
+          </div>
+        </div>
+
+        <!-- Row 2: Contact + Role -->
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="primaryContact">Primary Contact</label>
+            <input pInputText id="primaryContact" name="primaryContact" [(ngModel)]="form.primaryContact" class="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="contactRole">Role / Title</label>
+            <input pInputText id="contactRole" name="contactRole" [(ngModel)]="form.contactRole" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Row 3: Email + Phone -->
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="email">Email</label>
+            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="phone">Phone</label>
+            <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Row 4: Website + Warm Connection -->
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="website">Website</label>
+            <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="warmConnection">Warm Connection</label>
+            <input pInputText id="warmConnection" name="warmConnection" [(ngModel)]="form.warmConnection" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Row 5: Source + Category -->
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="source">Source</label>
+            <p-select inputId="source" name="source" [(ngModel)]="form.source" [options]="sources" optionLabel="label" optionValue="value" placeholder="Select source" [showClear]="true" styleClass="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="category">Category</label>
+            <p-select inputId="category" name="category" [(ngModel)]="form.category" [options]="categories" optionLabel="label" optionValue="value" placeholder="Select category" [showClear]="true" styleClass="w-full" />
+          </div>
+        </div>
+
+        <!-- Service Interests -->
+        <div class="form-field showcase-full">
+          <label>Service Interest</label>
+          <div class="flex flex-wrap gap-2 mt-1">
+            @for (svc of serviceOptions; track svc) {
+              <button
+                type="button"
+                pButton
+                [label]="svc"
+                size="small"
+                [outlined]="!hasServiceInterest(svc)"
+                (click)="toggleServiceInterest(svc)"
+              ></button>
+            }
+          </div>
+        </div>
+
+        <!-- Row 6: Last Contact + Next Action Date -->
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="lastContactDate">Last Contact</label>
+            <input pInputText id="lastContactDate" name="lastContactDate" type="date" [(ngModel)]="form.lastContactDate" class="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="nextActionDate">Next Action Date</label>
+            <input pInputText id="nextActionDate" name="nextActionDate" type="date" [(ngModel)]="form.nextActionDate" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Next Action -->
+        <div class="form-field showcase-full">
+          <label for="nextAction">Next Action</label>
+          <input pInputText id="nextAction" name="nextAction" [(ngModel)]="form.nextAction" class="w-full" />
+        </div>
+
+        <!-- Notes -->
+        <div class="form-field showcase-full">
+          <label for="notes">Notes</label>
+          <textarea pTextarea id="notes" name="notes" [(ngModel)]="form.notes" class="w-full" rows="5"></textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a pButton label="Cancel" class="p-button-secondary" routerLink="/pipeline"></a>
+        <button pButton type="submit" label="Save" [loading]="saving()"></button>
+      </div>
+    </form>
+
+    <!-- Artifacts Panel (only for existing leads) -->
+    @if (!isNew) {
+      <app-artifacts-panel [leadId]="id()!" />
+    }
+  }
+</app-page>
+
+<!-- Convert to Client Dialog -->
+<p-dialog
+  header="Convert to Client"
+  [(visible)]="showConvertDialog"
+  [modal]="true"
+  [style]="{ width: '400px' }"
+>
+  <p class="mb-3">
+    This will create a new Client record for <strong>{{ form.organization }}</strong>
+    and migrate all attached artifacts. You'll need an invoice code to get started.
+  </p>
+  <div class="form-field">
+    <label for="convertCode">Invoice Code <span class="required-dot" aria-hidden="true"></span></label>
+    <input pInputText id="convertCode" [(ngModel)]="convertCode" class="w-full"
+      placeholder="e.g. LOVN" maxlength="8" style="text-transform:uppercase" />
+    <small class="text-muted">Prepended to invoice numbers, e.g. LOVN-0001</small>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" severity="secondary" (onClick)="showConvertDialog.set(false)" />
+    <p-button label="Convert" icon="pi pi-check" [loading]="converting()" (onClick)="convertToClient()" />
+  </ng-template>
+</p-dialog>

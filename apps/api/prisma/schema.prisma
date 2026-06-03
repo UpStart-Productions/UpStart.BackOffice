@@ -18,6 +18,47 @@ enum InvoiceStatus {
   VOID
 }
 
+enum LeadStage {
+  NEW_LEAD
+  DISCOVERY
+  PROPOSAL_SENT
+  ACTIVE_CLIENT
+  PAST_CLIENT
+  ON_HOLD
+}
+
+enum LeadSource {
+  WARM_OUTREACH
+  REFERRAL
+  INBOUND
+  EVENT
+  SOCIAL
+  COLD_OUTREACH
+}
+
+enum OrgCategory {
+  RECOVERY
+  FAMILY
+  YOUTH
+  FAITH
+  HEALTH
+  DISABILITY
+  EDUCATION
+  JOBS_WORKFORCE
+  PETS
+  FUNDING
+  HUNGER
+  VIOLENCE
+  ACTIVITIES
+  OTHER
+}
+
+enum ArtifactType {
+  FILE
+  LINK
+  NOTE
+}
+
 model User {
   id         String   @id @default(cuid())
   email      String   @unique
@@ -36,9 +77,9 @@ model User {
 }
 
 model Client {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   name      String
-  code      String   @unique // e.g. "UPSP" — prepended to invoice numbers
+  code      String       @unique // e.g. "UPSP" — prepended to invoice numbers
   email     String?
   phone     String?
   address   String?
@@ -46,13 +87,71 @@ model Client {
   state     String?
   zip       String?
   website   String?
-  notes     String?  @db.Text
-  isActive  Boolean  @default(true)
+  notes     String?      @db.Text
+  category  OrgCategory?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  projects   Project[]
+  invoices   Invoice[]
+  artifacts  Artifact[]
+  convertedFromLead Lead?
+}
+
+model Lead {
+  id                String      @id @default(cuid())
+  organization      String
+  primaryContact    String?
+  contactRole       String?
+  email             String?
+  phone             String?
+  website           String?
+  stage             LeadStage   @default(NEW_LEAD)
+  source            LeadSource?
+  warmConnection    String?
+  category          OrgCategory?
+  serviceInterests  String[]
+  nextAction        String?     @db.Text
+  nextActionDate    DateTime?
+  lastContactDate   DateTime?
+  notes             String?     @db.Text
+  convertedClientId String?     @unique
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  convertedClient Client?    @relation(fields: [convertedClientId], references: [id])
+  artifacts       Artifact[]
+
+  @@index([stage])
+}
+
+model Artifact {
+  id       String       @id @default(cuid())
+  leadId   String?
+  clientId String?
+  type     ArtifactType
+  title    String
+
+  // FILE
+  fileUrl  String?
+  fileSize Int?
+  mimeType String?
+
+  // LINK
+  url      String?
+
+  // NOTE (Quill delta JSON stored as text)
+  content  String? @db.Text
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  projects Project[]
-  invoices Invoice[]
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([clientId])
 }
 
 model Project {

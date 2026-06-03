@@ -1,0 +1,55 @@
+<app-page title="Pipeline" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+
+  <div class="card">
+    <h2 class="page-title page-title-in-card">Client Pipeline</h2>
+    <div class="toolbar">
+      <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" style="margin-left: auto"></a>
+    </div>
+
+    @if (loading()) {
+      <p class="text-color-secondary">Loading...</p>
+    } @else {
+      <div class="pipeline-board">
+        @for (stage of stages; track stage.key) {
+          <div class="pipeline-col">
+            <div class="pipeline-col-header">
+              <span>{{ stage.label }}</span>
+              <span class="pipeline-badge">{{ leadsForStage(stage.key).length }}</span>
+            </div>
+
+            @for (lead of leadsForStage(stage.key); track lead.id) {
+              <div class="pipeline-card" (click)="openLead(lead.id)">
+                <div class="pipeline-card-top">
+                  <div class="pipeline-card-org">{{ lead.organization }}</div>
+                  <app-row-actions-menu
+                    [items]="getRowActions(lead)"
+                    ariaLabel="Lead actions"
+                    (click)="$event.stopPropagation()"
+                  />
+                </div>
+                @if (lead.primaryContact) {
+                  <div class="pipeline-card-contact">
+                    {{ lead.primaryContact }}
+                    @if (lead.contactRole) { · {{ lead.contactRole }} }
+                  </div>
+                }
+                @if (lead.nextAction) {
+                  <div class="pipeline-card-next">→ {{ lead.nextAction }}</div>
+                }
+              </div>
+            }
+
+            @if (leadsForStage(stage.key).length === 0) {
+              <div class="pipeline-empty">Empty</div>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</app-page>
