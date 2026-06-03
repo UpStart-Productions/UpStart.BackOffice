@@ -6,13 +6,18 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Patch,
   Post,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
@@ -20,7 +25,12 @@ import { RequireSuperGuard } from '../auth/require-super.guard';
 import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { ImageResizeService } from '../storage/image-resize.service';
+import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateUserDto, SetUserActiveDto, UpdateUserDto } from './dto/user.dto';
+
+const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 function displayName(user: {
   firstName?: string | null;
@@ -38,6 +48,7 @@ function toListItem(user: {
   firstName: string | null;
   lastName: string | null;
   name: string | null;
+  avatarUrl: string | null;
   role: 'ADMIN' | 'MEMBER';
   hourlyRate: { toNumber?: () => number } | null;
   isActive: boolean;
@@ -49,6 +60,7 @@ function toListItem(user: {
     firstName: user.firstName,
     lastName: user.lastName,
     name: displayName(user),
+    avatarUrl: user.avatarUrl,
     role: user.role,
     hourlyRate: user.hourlyRate != null ? Number(user.hourlyRate) : null,
     isActive: user.isActive,
@@ -64,6 +76,8 @@ export class UsersController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cognito: CognitoService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
+    private readonly imageResize: ImageResizeService,
   ) {}
 
   @Get('me')
@@ -94,6 +108,21 @@ export class UsersController {
       hourlyRate: row.hourlyRate != null ? Number(row.hourlyRate) : null,
       isSuper: row.isSuper,
     };
+  }
+
+  @Post('me/avatar')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: AVATAR_MAX_BYTES },
+    }),
+  )
+  async uploadMyAvatar(
+    @Req() req: Request,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string } | undefined,
+  ) {
+    const caller = req.user as UserContext;
+    return this.uploadAvatarForUser(caller.id, file);
   }
 
   @Get()
@@ -152,6 +181,10 @@ export class UsersController {
       dto.lastName !== undefined ? dto.lastName.trim() || null : existing.lastName;
     const name = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
+    if (dto.avatarUrl === null && existing.avatarUrl) {
+      await this.deleteStoredAvatar(existing.avatarUrl);
+    }
+
     const user = await this.prisma.user.update({
       where: { id },
       data: {
@@ -161,10 +194,28 @@ export class UsersController {
         ...(dto.firstName !== undefined || dto.lastName !== undefined ? { name } : {}),
         ...(dto.role !== undefined && { role: dto.role }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
+        ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
       },
     });
 
     return { user: toListItem(user) };
+  }
+
+  @Post(':id/avatar')
+  @UseGuards(RequireSuperGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: AVATAR_MAX_BYTES },
+    }),
+  )
+  async uploadUserAvatar(
+    @Param('id') id: string,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string } | undefined,
+  ) {
+    const existing = await this.prisma.user.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('User not found');
+    return this.uploadAvatarForUser(id, file);
   }
 
   @Patch(':id/active')
@@ -215,7 +266,60 @@ export class UsersController {
     const existing = await this.prisma.user.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('User not found');
 
+    if (existing.avatarUrl) {
+      await this.deleteStoredAvatar(existing.avatarUrl);
+    }
+
     await this.prisma.user.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  private async uploadAvatarForUser(
+    userId: string,
+    file: { buffer: Buffer; mimetype: string } | undefined,
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('No file uploaded');
+    }
+    if (!ALLOWED_AVATAR_MIMES.includes(file.mimetype)) {
+      throw new BadRequestException('Invalid file type. Allowed: PNG, JPEG, GIF, WebP');
+    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
+    });
+    if (!existing) throw new NotFoundException('User not found');
+
+    const processed = await this.imageResize.process(file.buffer, file.mimetype, 'avatar');
+    const filename = `${userId}-${Date.now()}${processed.ext}`;
+    const key = `avatars/${userId}/${filename}`;
+    const url = await this.storage.upload({
+      buffer: processed.buffer,
+      key,
+      mimeType: processed.mimeType,
+    });
+
+    if (existing.avatarUrl) {
+      await this.deleteStoredAvatar(existing.avatarUrl);
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: url },
+    });
+
+    return { url };
+  }
+
+  private async deleteStoredAvatar(avatarUrl: string): Promise<void> {
+    try {
+      const key = this.storage.keyFromUrl(avatarUrl);
+      if (key && !key.startsWith('http')) {
+        await this.storage.delete(key);
+      }
+    } catch {
+      /* best-effort cleanup */
+    }
   }
 }

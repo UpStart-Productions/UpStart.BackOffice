@@ -5,7 +5,7 @@ export const environment = {
   cognito: {
     userPoolId: 'REPLACE_ME',
     userPoolClientId: 'REPLACE_ME',
-    region: 'us-east-1',
+    region: 'us-west-2',
     domainPrefix: 'REPLACE_ME',
     customDomain: undefined as string | undefined,
     redirectSignIn: 'https://app.upstartbackoffice.com/',

@@ -22,6 +22,9 @@ const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
   { label: 'User', value: 'MEMBER' },
 ];
 
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
 @Component({
   selector: 'app-add-edit-user-modal',
   standalone: true,
@@ -34,6 +37,24 @@ const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
     MessageModule,
     SelectModule,
   ],
+  styles: `
+    .avatar-upload-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .avatar-preview {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .avatar-preview img {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  `,
   template: `
     <p-dialog
       [header]="isEdit() ? 'Edit User' : 'Add User'"
@@ -44,6 +65,44 @@ const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
       (onHide)="onDialogHide()"
     >
       <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-field mb-3">
+          <label>Avatar</label>
+          <div class="avatar-upload-section">
+            @if (avatarPreview() || (isEdit() && user()?.avatarUrl && !removeAvatar)) {
+              <div class="avatar-preview">
+                <img
+                  [src]="avatarPreview() || user()?.avatarUrl"
+                  alt="Avatar preview"
+                />
+                <button
+                  type="button"
+                  pButton
+                  icon="pi pi-trash"
+                  severity="danger"
+                  [text]="true"
+                  [rounded]="true"
+                  (click)="clearAvatar()"
+                  aria-label="Remove avatar"
+                ></button>
+              </div>
+            }
+            <input
+              type="file"
+              accept="image/*"
+              (change)="onAvatarSelected($event)"
+              id="userAvatarInput"
+              style="display: none;"
+            />
+            <button
+              type="button"
+              pButton
+              label="Choose Image"
+              icon="pi pi-upload"
+              severity="secondary"
+              (click)="triggerAvatarUpload()"
+            ></button>
+          </div>
+        </div>
         <div class="showcase-row mb-3">
           <div class="showcase-half form-field">
             <label for="user-firstName">First name</label>
@@ -108,6 +167,9 @@ export class AddEditUserModalComponent {
   error = signal<string | null>(null);
   isEdit = signal(false);
   user = signal<UserRow | null>(null);
+  avatarPreview = signal<string | null>(null);
+  removeAvatar = false;
+  selectedAvatarFile: File | null = null;
   readonly roleOptions = ROLE_OPTIONS;
 
   form = new FormGroup({
@@ -127,6 +189,9 @@ export class AddEditUserModalComponent {
       this.isEdit.set(!!existing);
       this.visible = true;
       this.error.set(null);
+      this.avatarPreview.set(null);
+      this.selectedAvatarFile = null;
+      this.removeAvatar = false;
       this.form.reset({
         firstName: existing?.firstName ?? '',
         lastName: existing?.lastName ?? '',
@@ -145,6 +210,45 @@ export class AddEditUserModalComponent {
   onDialogHide() {
     this.form.reset();
     this.error.set(null);
+    this.avatarPreview.set(null);
+    this.selectedAvatarFile = null;
+    this.removeAvatar = false;
+  }
+
+  onAvatarSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!AVATAR_MIMES.includes(file.type)) {
+      this.error.set('Invalid file type. Use PNG, JPEG, GIF, or WebP.');
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      this.error.set('Image must be less than 5MB.');
+      return;
+    }
+    this.error.set(null);
+    this.selectedAvatarFile = file;
+    this.removeAvatar = false;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.avatarPreview.set(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearAvatar() {
+    this.selectedAvatarFile = null;
+    this.avatarPreview.set(null);
+    if (this.isEdit()) {
+      this.removeAvatar = true;
+    }
+    const input = document.getElementById('userAvatarInput') as HTMLInputElement | null;
+    if (input) input.value = '';
+  }
+
+  triggerAvatarUpload() {
+    document.getElementById('userAvatarInput')?.click();
   }
 
   cancel() {
@@ -168,20 +272,33 @@ export class AddEditUserModalComponent {
       lastName: v.lastName?.trim() || undefined,
       role: v.role,
       hourlyRate: v.hourlyRate,
+      ...(this.removeAvatar ? { avatarUrl: null as null } : {}),
     };
 
     try {
       const existing = this.user();
+      let userId: string;
+
       if (existing) {
         await this.api.patch(`/users/${existing.id}`, payload);
+        userId = existing.id;
         this.toast.add({ severity: 'success', summary: 'Saved', detail: 'User updated.' });
       } else {
-        await this.api.post('/users', {
+        const created = await this.api.post<{ user: UserRow }>('/users', {
           ...payload,
           email: v.email!.trim().toLowerCase(),
         });
+        userId = created.user.id;
         this.toast.add({ severity: 'success', summary: 'Added', detail: 'User added.' });
       }
+
+      if (this.selectedAvatarFile) {
+        await this.api.uploadFile<{ url: string }>(
+          `/users/${userId}/avatar`,
+          this.selectedAvatarFile,
+        );
+      }
+
       this.visible = false;
       this.resolve?.(true);
       this.resolve = null;

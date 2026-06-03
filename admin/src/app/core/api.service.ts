@@ -66,6 +66,39 @@ export class ApiService {
   patch<T>(path: string, body?: unknown): Promise<T> { return this.request<T>('PATCH', path, body); }
   delete<T>(path: string): Promise<T> { return this.request<T>('DELETE', path); }
 
+  /** Multipart upload; do not set Content-Type so the browser sets the boundary. */
+  async uploadFile<T>(path: string, file: File, fieldName = 'file'): Promise<T> {
+    if (this.signingOut) return new Promise<T>(() => {});
+
+    const formData = new FormData();
+    formData.append(fieldName, file);
+    const options = await this.auth.getHeaders({ method: 'POST', body: formData });
+    const headers = options.headers as Record<string, string>;
+    delete headers['Content-Type'];
+
+    const res = await fetch(`${this.base}${path}`, options);
+    const text = await res.text();
+
+    if (!res.ok) {
+      if (res.status === 401 && !this.signingOut) {
+        this.signingOut = true;
+        this.auth.clear();
+        sessionStorage.setItem('ubo_auth_error', 'Session expired. Please sign in again.');
+        this.router.navigate(['/login']);
+        if (this.cognito.useCognito) this.cognito.signOut().catch(() => {});
+        return new Promise<T>(() => {});
+      }
+      throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
+    }
+
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as unknown as T;
+    }
+  }
+
   async downloadPdf(path: string, filename: string): Promise<void> {
     const options = await this.auth.getHeaders({ method: 'GET' });
     const res = await fetch(`${this.base}${path}`, options);

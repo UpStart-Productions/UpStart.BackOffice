@@ -14,7 +14,7 @@ function escape(s) {
 
 const poolId = (process.env.COGNITO_USER_POOL_ID || '').trim();
 const clientId = (process.env.COGNITO_CLIENT_ID || '').trim();
-const region = (process.env.COGNITO_REGION || 'us-east-1').trim();
+const region = (process.env.COGNITO_REGION || 'us-west-2').trim();
 const domainPrefix = (process.env.COGNITO_DOMAIN_PREFIX || '').trim();
 const customDomain = (process.env.COGNITO_CUSTOM_DOMAIN || '').trim();
 const redirectSignIn = (process.env.COGNITO_REDIRECT_SIGN_IN || 'http://localhost:4201/').trim();
