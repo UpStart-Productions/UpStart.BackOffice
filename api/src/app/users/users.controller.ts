@@ -12,12 +12,8 @@ import {
   Patch,
   Post,
   Req,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { isAdminRole, type UserRole } from '@upstart/back-office/shared';
@@ -29,7 +25,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
-import { CreateUserDto, SetUserActiveDto, UpdateUserDto } from './dto/user.dto';
+import { CreateUserDto, SetUserActiveDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
 
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -115,18 +111,9 @@ export class UsersController {
   }
 
   @Post('me/avatar')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: AVATAR_MAX_BYTES },
-    }),
-  )
-  async uploadMyAvatar(
-    @Req() req: Request,
-    @UploadedFile() file: { buffer: Buffer; mimetype: string } | undefined,
-  ) {
+  async uploadMyAvatar(@Req() req: Request, @Body() dto: UploadAvatarDto) {
     const caller = req.user as UserContext;
-    return this.uploadAvatarForUser(caller.id, file);
+    return this.uploadAvatarFromDto(caller.id, dto);
   }
 
   @Get()
@@ -216,16 +203,10 @@ export class UsersController {
   }
 
   @Post(':id/avatar')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: AVATAR_MAX_BYTES },
-    }),
-  )
   async uploadUserAvatar(
     @Req() req: Request,
     @Param('id') id: string,
-    @UploadedFile() file: { buffer: Buffer; mimetype: string } | undefined,
+    @Body() dto: UploadAvatarDto,
   ) {
     const caller = req.user as UserContext;
     const targetUserId = id === 'me' ? caller.id : id;
@@ -236,7 +217,7 @@ export class UsersController {
 
     const existing = await this.prisma.user.findUnique({ where: { id: targetUserId } });
     if (!existing) throw new NotFoundException('User not found');
-    return this.uploadAvatarForUser(targetUserId, file);
+    return this.uploadAvatarFromDto(targetUserId, dto);
   }
 
   @Patch(':id/active')
@@ -293,6 +274,22 @@ export class UsersController {
 
     await this.prisma.user.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  private uploadAvatarFromDto(userId: string, dto: UploadAvatarDto) {
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(dto.fileBase64, 'base64');
+    } catch {
+      throw new BadRequestException('Invalid file data');
+    }
+    if (!buffer.length) {
+      throw new BadRequestException('No file uploaded');
+    }
+    if (buffer.length > AVATAR_MAX_BYTES) {
+      throw new BadRequestException('Image must be less than 5MB');
+    }
+    return this.uploadAvatarForUser(userId, { buffer, mimetype: dto.mimeType });
   }
 
   private async uploadAvatarForUser(

@@ -3,6 +3,18 @@ import { Transform } from 'class-transformer';
 
 const USER_ROLES = ['ADMIN', 'MEMBER'] as const;
 
+const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
+
+export class UploadAvatarDto {
+  @IsNotEmpty()
+  @IsString()
+  fileBase64!: string;
+
+  @IsNotEmpty()
+  @IsIn(AVATAR_MIMES)
+  mimeType!: (typeof AVATAR_MIMES)[number];
+}
+
 export class CreateUserDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsNotEmpty()

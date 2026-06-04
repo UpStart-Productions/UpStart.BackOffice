@@ -66,6 +66,25 @@ export class ApiService {
   patch<T>(path: string, body?: unknown): Promise<T> { return this.request<T>('PATCH', path, body); }
   delete<T>(path: string): Promise<T> { return this.request<T>('DELETE', path); }
 
+  /** JSON base64 avatar upload (avoids multipart issues with CloudFront/WAF). */
+  async uploadAvatar<T>(path: string, file: File): Promise<T> {
+    const fileBase64 = await this.fileToBase64(file);
+    return this.post<T>(path, { fileBase64, mimeType: file.type });
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.includes(',') ? result.split(',')[1]! : result;
+        resolve(base64);
+      };
+      reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   /** Multipart upload; do not set Content-Type so the browser sets the boundary. */
   async uploadFile<T>(
     path: string,

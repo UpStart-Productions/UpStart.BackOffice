@@ -295,7 +295,7 @@ export class AddEditUserModalComponent {
       }
 
       if (this.selectedAvatarFile) {
-        await this.api.uploadFile<{ url: string }>(
+        await this.api.uploadAvatar<{ url: string }>(
           `/users/${userId}/avatar`,
           this.selectedAvatarFile,
         );
