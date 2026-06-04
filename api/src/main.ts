@@ -18,7 +18,7 @@ const CORS_METHODS = ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'
 
 function parseCorsOrigins(): string[] {
   return (process.env.CORS_ORIGINS?.split(',') ?? [])
-    .map((s) => s.trim().replace(/\/$/, ''))
+    .map((s) => s.trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, ''))
     .filter(Boolean);
 }
 
@@ -74,7 +74,8 @@ async function bootstrap() {
         if (!origin || isLocalhost || isLocalNetwork || isCorsOriginAllowed(origin, devOrigins)) {
           callback(null, true);
         } else {
-          callback(new Error('Not allowed by CORS'));
+          Logger.warn(`CORS blocked origin: "${origin}"`);
+          callback(null, false);
         }
       },
       credentials: true,
@@ -102,7 +103,7 @@ async function bootstrap() {
           if (isLocal) { callback(null, true); return; }
         }
         Logger.warn(`CORS blocked origin: "${origin}" (allowed: ${corsOrigins.join(', ') || 'none'})`);
-        callback(new Error('Not allowed by CORS'));
+        callback(null, false);
       },
       credentials: true,
       allowedHeaders,

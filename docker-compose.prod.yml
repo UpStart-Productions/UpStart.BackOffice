@@ -22,8 +22,8 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://ubo:ubo@db:5432/ubo?schema=public
-      # Required: every HTTPS admin origin (see .env.production.example)
-      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # Required: admin origin(s). Default matches production custom domain.
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://office.heyupstart.com}
       CORS_ALLOW_LOCAL_NETWORK: ${CORS_ALLOW_LOCAL_NETWORK:-}
       AWS_REGION: ${AWS_REGION:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
