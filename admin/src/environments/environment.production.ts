@@ -8,7 +8,7 @@ export const environment = {
     region: 'us-west-2',
     domainPrefix: 'REPLACE_ME',
     customDomain: undefined as string | undefined,
-    redirectSignIn: 'https://app.heyupstart.com/',
-    redirectSignOut: 'https://app.heyupstart.com/',
+    redirectSignIn: 'https://office.heyupstart.com/',
+    redirectSignOut: 'https://office.heyupstart.com/',
   },
 };

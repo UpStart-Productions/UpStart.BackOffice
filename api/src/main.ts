@@ -14,6 +14,20 @@ import { HttpExceptionFilter } from './app/common/http-exception.filter';
 
 const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT ?? '10mb';
 
+const CORS_METHODS = ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'] as const;
+
+function parseCorsOrigins(): string[] {
+  return (process.env.CORS_ORIGINS?.split(',') ?? [])
+    .map((s) => s.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+}
+
+function isCorsOriginAllowed(origin: string | undefined, allowed: string[]): boolean {
+  if (!origin) return true;
+  const normalized = origin.replace(/\/$/, '');
+  return allowed.includes(normalized) || allowed.includes(origin);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
@@ -50,13 +64,14 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('docs', app, document);
 
+    const devOrigins = parseCorsOrigins();
     app.enableCors({
       origin: (origin, callback) => {
         const isLocalhost = origin && /^https?:\/\/localhost(:\d+)?$/.test(origin);
         const isLocalNetwork =
           origin &&
           /^https?:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1)(:\d+)?$/.test(origin);
-        if (!origin || isLocalhost || isLocalNetwork) {
+        if (!origin || isLocalhost || isLocalNetwork || isCorsOriginAllowed(origin, devOrigins)) {
           callback(null, true);
         } else {
           callback(new Error('Not allowed by CORS'));
@@ -64,14 +79,21 @@ async function bootstrap() {
       },
       credentials: true,
       allowedHeaders,
+      methods: [...CORS_METHODS],
     });
   } else {
-    const corsOrigins = (process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()) ?? []).filter(Boolean);
+    const corsOrigins = parseCorsOrigins();
     const allowLocalNetwork = process.env.CORS_ALLOW_LOCAL_NETWORK === 'true';
-    Logger.log(`CORS: ${corsOrigins.length} origin(s) configured: ${corsOrigins.join(', ') || '(none)'}`);
+    if (corsOrigins.length === 0) {
+      Logger.error(
+        'CORS_ORIGINS is empty — set comma-separated admin URLs (e.g. https://office.heyupstart.com)',
+      );
+    } else {
+      Logger.log(`CORS: ${corsOrigins.length} origin(s): ${corsOrigins.join(', ')}`);
+    }
     app.enableCors({
       origin: (origin, callback) => {
-        if (!origin || corsOrigins.includes(origin)) {
+        if (isCorsOriginAllowed(origin, corsOrigins)) {
           callback(null, true);
           return;
         }
@@ -79,11 +101,12 @@ async function bootstrap() {
           const isLocal = /^https?:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1)(:\d+)?$/.test(origin);
           if (isLocal) { callback(null, true); return; }
         }
-        Logger.warn(`CORS blocked origin: ${origin} (allowed: ${corsOrigins.join(', ') || 'none'})`);
-        callback(null, false);
+        Logger.warn(`CORS blocked origin: "${origin}" (allowed: ${corsOrigins.join(', ') || 'none'})`);
+        callback(new Error('Not allowed by CORS'));
       },
       credentials: true,
       allowedHeaders,
+      methods: [...CORS_METHODS],
     });
   }
 
