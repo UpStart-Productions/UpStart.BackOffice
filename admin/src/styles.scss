@@ -104,7 +104,8 @@ body {
   gap: 0.35rem;
 }
 .artifact-item-info { display: flex; flex-direction: column; gap: 0.1rem; }
-.artifact-item-header { display: flex; align-items: center; justify-content: space-between; }
+.artifact-item-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+.artifact-item-heading { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 .artifact-title { font-weight: 500; font-size: 0.9rem; }
 .artifact-meta { font-size: 0.75rem; color: var(--text-color-secondary); }
 .artifact-note-content { font-size: 0.85rem; color: var(--text-color-secondary); white-space: pre-wrap; margin: 0; }
@@ -166,14 +167,19 @@ body {
   color: var(--text-color-secondary);
   letter-spacing: 0.05em;
 }
-.artifact-file-name {
+.artifact-file-footer {
+  border-top: 1px solid var(--surface-border);
   padding: 0.4rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.artifact-file-name {
   font-size: 0.78rem;
   font-weight: 500;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  border-top: 1px solid var(--surface-border);
 }
 
 // Link cards
@@ -233,7 +239,7 @@ body {
 .artifact-card-delete {
   position: absolute;
   top: 4px;
-  right: 4px;
+  right: -6px;
   opacity: 0;
   transition: opacity 0.15s;
   background: rgba(255,255,255,0.85) !important;

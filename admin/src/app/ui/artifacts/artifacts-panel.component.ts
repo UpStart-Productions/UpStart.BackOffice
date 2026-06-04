@@ -20,7 +20,9 @@ type Artifact = {
   createdAt: string;
 };
 
-const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']);
+/** Raster images only — SVG and documents use icon cards (img preview often fails for SVG). */
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
 
 @Component({
   selector: 'app-artifacts-panel',
@@ -78,7 +80,10 @@ const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp
                         <span class="artifact-file-ext">{{ fileExt(a) }}</span>
                       </div>
                     }
-                    <div class="artifact-file-name">{{ a.title }}</div>
+                    <div class="artifact-file-footer">
+                      <div class="artifact-file-name">{{ a.title }}</div>
+                      <time class="artifact-meta">{{ formatCreatedDate(a.createdAt) }}</time>
+                    </div>
                   </a>
                 </div>
               }
@@ -117,6 +122,7 @@ const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp
                     </div>
                     <div class="artifact-link-title">{{ a.title }}</div>
                     <div class="artifact-link-url">{{ a.url }}</div>
+                    <time class="artifact-meta">{{ formatCreatedDate(a.createdAt) }}</time>
                   </a>
                 </div>
               }
@@ -144,7 +150,10 @@ const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp
               @for (a of notes(); track a.id) {
                 <div class="artifact-item artifact-item--note">
                   <div class="artifact-item-header">
-                    <span class="artifact-title">{{ a.title }}</span>
+                    <div class="artifact-item-heading">
+                      <span class="artifact-title">{{ a.title }}</span>
+                      <time class="artifact-meta">{{ formatCreatedDate(a.createdAt) }}</time>
+                    </div>
                     <button pButton icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (click)="deleteArtifact(a)"></button>
                   </div>
                   <div class="artifact-note-content ql-editor" [innerHTML]="sanitizeHtml(a.content)"></div>
@@ -186,10 +195,17 @@ export class ArtifactsPanelComponent implements OnInit {
     return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
   }
 
+  private fileExtension(a: Artifact): string {
+    const name = a.fileUrl ?? a.title;
+    return name.split('.').pop()?.toLowerCase() ?? '';
+  }
+
   isImage(a: Artifact): boolean {
-    if (a.mimeType && IMAGE_TYPES.has(a.mimeType)) return true;
-    const ext = (a.fileUrl ?? '').split('.').pop()?.toLowerCase() ?? '';
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+    const mime = a.mimeType ?? '';
+    if (mime === 'image/svg+xml') return false;
+    if (mime && IMAGE_MIME_TYPES.has(mime)) return true;
+    const ext = this.fileExtension(a);
+    return RASTER_EXTENSIONS.has(ext);
   }
 
   fileHref(a: Artifact): string {
@@ -197,17 +213,34 @@ export class ArtifactsPanelComponent implements OnInit {
   }
 
   fileExt(a: Artifact): string {
-    return ((a.fileUrl ?? a.title).split('.').pop() ?? '').toUpperCase().slice(0, 4);
+    return this.fileExtension(a).toUpperCase().slice(0, 4);
   }
 
   fileIcon(a: Artifact): string {
     const mime = a.mimeType ?? '';
-    const ext = (a.fileUrl ?? '').split('.').pop()?.toLowerCase() ?? '';
+    const ext = this.fileExtension(a);
+
     if (mime === 'application/pdf' || ext === 'pdf') return 'pi-file-pdf';
+    if (
+      mime === 'application/msword' ||
+      mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      ext === 'doc' ||
+      ext === 'docx'
+    ) {
+      return 'pi-file-word';
+    }
+    if (
+      mime === 'application/vnd.ms-excel' ||
+      mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      ext === 'xls' ||
+      ext === 'xlsx'
+    ) {
+      return 'pi-file-excel';
+    }
+    if (mime === 'text/plain' || ext === 'txt') return 'pi-file';
+    if (mime === 'image/svg+xml' || ext === 'svg') return 'pi-image';
     if (mime.startsWith('video/')) return 'pi-video';
     if (mime.startsWith('audio/')) return 'pi-volume-up';
-    if (['doc', 'docx'].includes(ext)) return 'pi-file-word';
-    if (['xls', 'xlsx'].includes(ext)) return 'pi-file-excel';
     return 'pi-file';
   }
 
@@ -300,6 +333,10 @@ export class ArtifactsPanelComponent implements OnInit {
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Delete failed');
     }
+  }
+
+  formatCreatedDate(iso: string): string {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   formatSize(bytes?: number): string {

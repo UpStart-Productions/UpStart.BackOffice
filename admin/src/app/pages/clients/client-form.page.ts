@@ -8,6 +8,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 
 @Component({
   selector: 'app-client-form-page',
@@ -21,6 +22,7 @@ import { PageComponent } from '../../ui/layout/page.component';
     TextareaModule,
     ToggleSwitchModule,
     PageComponent,
+    ArtifactsPanelComponent,
   ],
   templateUrl: './client-form.page.html',
 })
