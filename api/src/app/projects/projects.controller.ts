@@ -3,7 +3,7 @@ import {
   Post, Put, Query, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { AppAuthGuard } from '../auth/app-auth.guard';
+import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -13,7 +13,7 @@ import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-
 
 @ApiTags('projects')
 @ApiBearerAuth()
-@UseGuards(AppAuthGuard)
+@UseGuards(StaffAuthGuard)
 @Controller('projects')
 export class ProjectsController {
   constructor(

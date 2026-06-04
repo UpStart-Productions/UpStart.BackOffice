@@ -195,6 +195,17 @@ export class CognitoAuthService {
     });
   }
 
+  /** Clear Cognito session locally without an OAuth redirect (sign-out from the app). */
+  async clearLocalSession(): Promise<void> {
+    if (!this.useCognito) return;
+    this.cachedIdToken = null;
+    try {
+      await signOut({ global: true });
+    } catch {
+      /* ignore */
+    }
+  }
+
   async signOut(): Promise<void> {
     if (!this.useCognito) return;
     this.cachedIdToken = null;

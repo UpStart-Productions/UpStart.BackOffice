@@ -6,9 +6,26 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
+import type { ClientDto } from '@upstart/back-office/shared';
+
+type ClientForm = {
+  name: string;
+  code: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  website: string;
+  notes: string;
+  isActive: boolean;
+};
 
 @Component({
   selector: 'app-client-form-page',
@@ -25,35 +42,64 @@ import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.comp
     ArtifactsPanelComponent,
   ],
   templateUrl: './client-form.page.html',
+  styleUrl: './client-form.page.scss',
 })
 export class ClientFormPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toast = inject(MessageService);
+  private readonly confirm = inject(ConfirmDeleteService);
 
   id = signal<string | null>(null);
   loading = signal(true);
   saving = signal(false);
+  portalBusy = signal(false);
   error = signal<string | null>(null);
+  portalEnabled = signal(false);
+  portalUrl = signal<string | null>(null);
 
-  form = { name: '', code: '', email: '', phone: '', address: '', city: '', state: '', zip: '', website: '', notes: '', isActive: true };
+  form: ClientForm = {
+    name: '',
+    code: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    website: '',
+    notes: '',
+    isActive: true,
+  };
 
-  get isNew() { return !this.id(); }
+  get isNew() {
+    return !this.id();
+  }
 
-  private patchForm(client: Partial<typeof this.form>) {
+  private str(v: string | null | undefined): string {
+    return v ?? '';
+  }
+
+  private patchForm(client: ClientDto) {
     this.form = {
-      name: client.name ?? '',
-      code: client.code ?? '',
-      email: client.email ?? '',
-      phone: client.phone ?? '',
-      address: client.address ?? '',
-      city: client.city ?? '',
-      state: client.state ?? '',
-      zip: client.zip ?? '',
-      website: client.website ?? '',
-      notes: client.notes ?? '',
-      isActive: client.isActive ?? true,
+      name: client.name,
+      code: client.code,
+      email: this.str(client.email),
+      phone: this.str(client.phone),
+      address: this.str(client.address),
+      city: this.str(client.city),
+      state: this.str(client.state),
+      zip: this.str(client.zip),
+      website: this.str(client.website),
+      notes: this.str(client.notes),
+      isActive: client.isActive,
     };
+  }
+
+  private applyPortal(client: Pick<ClientDto, 'portalEnabled' | 'portalUrl'>) {
+    this.portalEnabled.set(!!client.portalEnabled);
+    this.portalUrl.set(client.portalUrl ?? null);
   }
 
   private buildPayload() {
@@ -78,8 +124,9 @@ export class ClientFormPage implements OnInit {
     if (id) {
       this.id.set(id);
       try {
-        const client = await this.api.get<typeof this.form & { id: string }>(`/clients/${id}`);
+        const client = await this.api.get<ClientDto>(`/clients/${id}`);
         this.patchForm(client);
+        this.applyPortal(client);
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load client');
       }
@@ -88,7 +135,10 @@ export class ClientFormPage implements OnInit {
   }
 
   async save() {
-    if (!this.form.name || !this.form.code) { this.error.set('Name and Code are required'); return; }
+    if (!this.form.name || !this.form.code) {
+      this.error.set('Name and Code are required');
+      return;
+    }
     this.saving.set(true);
     this.error.set(null);
     try {
@@ -101,6 +151,79 @@ export class ClientFormPage implements OnInit {
       this.router.navigate(['/clients']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
-    } finally { this.saving.set(false); }
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async onPortalToggle(enabled: boolean) {
+    if (this.isNew || this.portalBusy()) return;
+
+    this.portalBusy.set(true);
+    this.error.set(null);
+    try {
+      const path = enabled ? 'enable' : 'disable';
+      const client = await this.api.post<ClientDto>(`/clients/${this.id()}/portal/${path}`, {});
+      this.applyPortal(client);
+      this.toast.add({
+        severity: 'success',
+        summary: enabled ? 'Portal enabled' : 'Portal disabled',
+        detail: enabled
+          ? 'Copy the portal link and send it to your client.'
+          : 'The portal link no longer works.',
+      });
+    } catch (err) {
+      this.portalEnabled.set(!enabled);
+      this.error.set(err instanceof Error ? err.message : 'Portal update failed');
+    } finally {
+      this.portalBusy.set(false);
+    }
+  }
+
+  confirmRegeneratePortalLink() {
+    this.confirm.confirm({
+      header: 'Regenerate portal link',
+      message:
+        'Generate a new portal link? The old link will stop working immediately.',
+      accept: () => this.regeneratePortalLink(),
+    });
+  }
+
+  private async regeneratePortalLink() {
+    if (this.isNew || this.portalBusy()) return;
+
+    this.portalBusy.set(true);
+    this.error.set(null);
+    try {
+      const client = await this.api.post<ClientDto>(
+        `/clients/${this.id()}/portal/regenerate`,
+        {},
+      );
+      this.applyPortal(client);
+      this.toast.add({
+        severity: 'success',
+        summary: 'Link regenerated',
+        detail: 'Send the new portal link to your client.',
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to regenerate link');
+    } finally {
+      this.portalBusy.set(false);
+    }
+  }
+
+  async copyPortalLink() {
+    const url = this.portalUrl();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      this.toast.add({ severity: 'success', summary: 'Copied', detail: 'Portal link copied.' });
+    } catch {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Copy failed',
+        detail: 'Select and copy the link manually.',
+      });
+    }
   }
 }

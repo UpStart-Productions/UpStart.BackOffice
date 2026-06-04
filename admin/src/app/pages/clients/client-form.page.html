@@ -85,6 +85,58 @@
           <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
           <label>Active</label>
         </div>
+
+        @if (!isNew) {
+          <div class="portal-section">
+            <h3 class="text-lg font-semibold mb-2">Client portal</h3>
+            <p class="text-color-secondary mb-3">
+              Share a bookmarkable link — no login or password for your client.
+            </p>
+            <div class="flex align-items-center gap-2 mb-3">
+              <p-toggleSwitch
+                [ngModel]="portalEnabled()"
+                (ngModelChange)="onPortalToggle($event)"
+                [disabled]="portalBusy()"
+                name="portalEnabled"
+              />
+              <label>Portal enabled</label>
+            </div>
+            @if (portalEnabled() && portalUrl()) {
+              <div class="form-field">
+                <label for="portalUrl">Portal link</label>
+                <div class="portal-link-row">
+                  <input
+                    pInputText
+                    id="portalUrl"
+                    [value]="portalUrl()!"
+                    readonly
+                    class="w-full"
+                  />
+                  <button
+                    type="button"
+                    pButton
+                    label="Copy"
+                    icon="pi pi-copy"
+                    severity="secondary"
+                    (click)="copyPortalLink()"
+                  ></button>
+                </div>
+              </div>
+              <div class="portal-actions">
+                <button
+                  type="button"
+                  pButton
+                  label="Regenerate link"
+                  icon="pi pi-refresh"
+                  severity="warn"
+                  [outlined]="true"
+                  [loading]="portalBusy()"
+                  (click)="confirmRegeneratePortalLink()"
+                ></button>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       <div class="form-actions">

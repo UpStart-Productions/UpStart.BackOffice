@@ -9,6 +9,7 @@ datasource db {
 enum UserRole {
   ADMIN
   MEMBER
+  CLIENT
 }
 
 enum InvoiceStatus {
@@ -69,10 +70,11 @@ model User {
   role       UserRole @default(MEMBER)
   hourlyRate Decimal? @db.Decimal(10, 2)
   isActive   Boolean  @default(true)
-  isSuper    Boolean  @default(false)
+  clientId   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  client      Client?      @relation(fields: [clientId], references: [id])
   timeEntries TimeEntry[]
 }
 
@@ -90,12 +92,16 @@ model Client {
   notes     String?      @db.Text
   category  OrgCategory?
   isActive  Boolean      @default(true)
+  portalEnabled       Boolean   @default(false)
+  portalToken         String?   @unique
+  portalTokenCreatedAt DateTime?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
   projects   Project[]
   invoices   Invoice[]
   artifacts  Artifact[]
+  users      User[]
   convertedFromLead Lead?
 }
 

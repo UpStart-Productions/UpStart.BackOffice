@@ -1,6 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
-import { sessionGuard, superGuard } from './core/session.guard';
+import { sessionGuard, adminGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -73,7 +73,7 @@ export const appRoutes: Route[] = [
         path: 'users',
         loadComponent: () =>
           import('./pages/users/users-list.page').then((m) => m.UsersListPage),
-        canActivate: [superGuard],
+        canActivate: [adminGuard],
       },
       {
         path: 'pipeline',

@@ -8,7 +8,7 @@
     "dev:migrate": "npx prisma migrate dev --name dev --skip-generate",
     "dev:seed": "npx prisma db seed",
     "dev:seed-if-needed": "tsx tools/dev/seed-if-needed.ts",
-    "add-super-user": "tsx tools/add-super-user.ts",
+    "add-admin-user": "tsx tools/add-admin-user.ts",
     "invite-user": "tsx tools/invite-user.ts",
     "test-ses": "tsx tools/test-ses.ts",
     "backfill-storage-folders": "tsx tools/backfill-storage-folders.ts",

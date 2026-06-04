@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { isAdminRole, isStaffRole } from '@upstart/back-office/shared';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { SessionService } from './session.service';
@@ -12,13 +13,25 @@ export const sessionGuard: CanActivateFn = async () => {
   const router = inject(Router);
 
   let me = await session.getReady();
-  if (me) return true;
+  if (me) {
+    if (!isStaffRole(me.role)) {
+      router.navigate(['/login']);
+      return false;
+    }
+    return true;
+  }
 
   if (cognito.useCognito) {
     await cognito.refreshSession();
     session.reset();
     me = await session.getReady();
-    if (me) return true;
+    if (me) {
+      if (!isStaffRole(me.role)) {
+        router.navigate(['/login']);
+        return false;
+      }
+      return true;
+    }
 
     const token = await cognito.getIdToken();
     if (token) return true;
@@ -33,13 +46,16 @@ export const sessionGuard: CanActivateFn = async () => {
   return false;
 };
 
-export const superGuard: CanActivateFn = async () => {
+export const adminGuard: CanActivateFn = async () => {
   const session = inject(SessionService);
   const router = inject(Router);
 
   const me = await session.getReady();
-  if (me?.isSuper) return true;
+  if (me && isAdminRole(me.role)) return true;
 
   router.navigate(['/time-entry']);
   return false;
 };
+
+/** @deprecated Use adminGuard */
+export const superGuard = adminGuard;

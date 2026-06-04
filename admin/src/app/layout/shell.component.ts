@@ -10,6 +10,7 @@ import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
 import { AppTopbarComponent } from './app-topbar.component';
 import { LayoutService } from './layout.service';
+import { isAdminRole } from '@upstart/back-office/shared';
 
 @Component({
   selector: 'app-shell',
@@ -40,7 +41,7 @@ export class ShellComponent implements OnInit {
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
       { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
     ];
-    if (this.session.me()?.isSuper) {
+    if (isAdminRole(this.session.me()?.role ?? 'MEMBER')) {
       items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
     }
     return items;
@@ -69,8 +70,8 @@ export class ShellComponent implements OnInit {
   async signOut() {
     this.auth.clear();
     this.session.reset();
-    if (this.cognito.useCognito) await this.cognito.signOut();
-    else this.router.navigate(['/login']);
+    if (this.cognito.useCognito) await this.cognito.clearLocalSession();
+    await this.router.navigate(['/login']);
   }
 
   onMaskClick() {

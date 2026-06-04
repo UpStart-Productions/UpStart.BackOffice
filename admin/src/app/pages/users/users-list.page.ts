@@ -22,7 +22,7 @@ import {
   AddEditUserModalComponent,
   type UserRow,
 } from '../../ui/add-edit-user-modal/add-edit-user-modal.component';
-import type { UserListDto } from '@upstart/back-office/shared';
+import { roleLabel, type UserListDto } from '@upstart/back-office/shared';
 
 type SortBy = 'name' | 'email' | 'role';
 
@@ -109,9 +109,7 @@ export class UsersListPage {
     }
   }
 
-  roleLabel(role: string): string {
-    return role === 'ADMIN' ? 'Admin' : 'User';
-  }
+  roleLabel = roleLabel;
 
   async load() {
     this.loading.set(true);

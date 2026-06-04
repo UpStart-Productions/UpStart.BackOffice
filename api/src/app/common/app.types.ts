@@ -1,3 +1,5 @@
+import type { UserRole } from '@upstart/back-office/shared';
+
 export type UserContext = {
   id: string;
   email: string;
@@ -5,8 +7,8 @@ export type UserContext = {
   firstName?: string | null;
   lastName?: string | null;
   avatarUrl?: string | null;
-  role: 'ADMIN' | 'MEMBER';
-  isSuper: boolean;
+  role: UserRole;
+  clientId?: string | null;
 };
 
 declare global {
@@ -14,6 +16,8 @@ declare global {
     interface Request {
       requestId?: string;
       user?: UserContext;
+      /** Set by PortalSessionGuard after magic-link or session cookie auth. */
+      portalClientId?: string;
     }
   }
 }

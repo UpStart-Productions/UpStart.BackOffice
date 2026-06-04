@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { AppAuthGuard } from '../auth/app-auth.guard';
+import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -39,7 +39,7 @@ const entryIncludeWithoutUser = {
 
 @ApiTags('time-entries')
 @ApiBearerAuth()
-@UseGuards(AppAuthGuard)
+@UseGuards(StaffAuthGuard)
 @Controller('time-entries')
 export class TimeEntriesController {
   constructor(private readonly prisma: PrismaService) {}

@@ -13,13 +13,14 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import type { UserListDto, UserRole } from '@upstart/back-office/shared';
 
 export type UserRow = UserListDto;
 
 const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
   { label: 'Admin', value: 'ADMIN' },
-  { label: 'User', value: 'MEMBER' },
+  { label: 'Staff', value: 'MEMBER' },
 ];
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -160,6 +161,7 @@ const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 })
 export class AddEditUserModalComponent {
   private readonly api = inject(ApiService);
+  private readonly session = inject(SessionService);
   private readonly toast = inject(MessageService);
 
   visible = false;
@@ -196,7 +198,7 @@ export class AddEditUserModalComponent {
         firstName: existing?.firstName ?? '',
         lastName: existing?.lastName ?? '',
         email: existing?.email ?? '',
-        role: existing?.role ?? 'MEMBER',
+        role: existing?.role === 'CLIENT' ? 'MEMBER' : (existing?.role ?? 'MEMBER'),
         hourlyRate: existing?.hourlyRate ?? null,
       });
       if (existing) {
@@ -293,10 +295,13 @@ export class AddEditUserModalComponent {
       }
 
       if (this.selectedAvatarFile) {
-        await this.api.uploadFile<{ url: string }>(
-          `/users/${userId}/avatar`,
-          this.selectedAvatarFile,
-        );
+        const me = this.session.me();
+        const avatarPath =
+          me?.id === userId ? '/users/me/avatar' : `/users/${userId}/avatar`;
+        await this.api.uploadFile<{ url: string }>(avatarPath, this.selectedAvatarFile);
+        if (me?.id === userId) {
+          await this.session.refresh();
+        }
       }
 
       this.visible = false;

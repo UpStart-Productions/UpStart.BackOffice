@@ -3,15 +3,38 @@ import {
   Post, Put, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AppAuthGuard } from '../auth/app-auth.guard';
+import { StaffAuthGuard } from '../auth/staff-auth.guard';
+import { generatePortalToken } from '../portal/portal-token.util';
+import { toStaffClientView } from '../portal/portal-client.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 
+const clientSelect = {
+  id: true,
+  name: true,
+  code: true,
+  email: true,
+  phone: true,
+  address: true,
+  city: true,
+  state: true,
+  zip: true,
+  website: true,
+  notes: true,
+  category: true,
+  isActive: true,
+  portalEnabled: true,
+  portalToken: true,
+  portalTokenCreatedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 @ApiTags('clients')
 @ApiBearerAuth()
-@UseGuards(AppAuthGuard)
+@UseGuards(StaffAuthGuard)
 @Controller('clients')
 export class ClientsController {
   constructor(
@@ -21,7 +44,28 @@ export class ClientsController {
 
   @Get()
   async list() {
-    return this.prisma.client.findMany({ orderBy: { name: 'asc' } });
+    const clients = await this.prisma.client.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        email: true,
+        phone: true,
+        address: true,
+        city: true,
+        state: true,
+        zip: true,
+        website: true,
+        notes: true,
+        category: true,
+        isActive: true,
+        portalEnabled: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    return clients;
   }
 
   @Post()
@@ -40,23 +84,27 @@ export class ClientsController {
         notes: dto.notes,
         isActive: dto.isActive ?? true,
       },
+      select: clientSelect,
     });
     await this.storageFolders.ensureClientFolders(client.id);
-    return client;
+    return toStaffClientView(client);
   }
 
   @Get(':id')
   async get(@Param('id') id: string) {
-    const client = await this.prisma.client.findUnique({ where: { id } });
+    const client = await this.prisma.client.findUnique({
+      where: { id },
+      select: clientSelect,
+    });
     if (!client) throw new NotFoundException('Client not found');
-    return client;
+    return toStaffClientView(client);
   }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
-    return this.prisma.client.update({
+    const client = await this.prisma.client.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -71,7 +119,57 @@ export class ClientsController {
         ...(dto.notes !== undefined && { notes: dto.notes }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
+      select: clientSelect,
     });
+    return toStaffClientView(client);
+  }
+
+  @Post(':id/portal/enable')
+  async enablePortal(@Param('id') id: string) {
+    const existing = await this.prisma.client.findUnique({ where: { id }, select: clientSelect });
+    if (!existing) throw new NotFoundException('Client not found');
+
+    const portalToken = existing.portalToken ?? generatePortalToken();
+    const client = await this.prisma.client.update({
+      where: { id },
+      data: {
+        portalEnabled: true,
+        portalToken,
+        ...(!existing.portalToken ? { portalTokenCreatedAt: new Date() } : {}),
+      },
+      select: clientSelect,
+    });
+    return toStaffClientView(client);
+  }
+
+  @Post(':id/portal/disable')
+  async disablePortal(@Param('id') id: string) {
+    const existing = await this.prisma.client.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Client not found');
+
+    const client = await this.prisma.client.update({
+      where: { id },
+      data: { portalEnabled: false },
+      select: clientSelect,
+    });
+    return toStaffClientView(client);
+  }
+
+  @Post(':id/portal/regenerate')
+  async regeneratePortal(@Param('id') id: string) {
+    const existing = await this.prisma.client.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Client not found');
+
+    const client = await this.prisma.client.update({
+      where: { id },
+      data: {
+        portalToken: generatePortalToken(),
+        portalTokenCreatedAt: new Date(),
+        portalEnabled: true,
+      },
+      select: clientSelect,
+    });
+    return toStaffClientView(client);
   }
 
   @Delete(':id')

@@ -23,7 +23,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://ubo:ubo@db:5432/ubo?schema=public
       # Required: admin origin(s). Default matches production custom domain.
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://office.heyupstart.com}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://office.heyupstart.com,https://heyupstart.com,https://www.heyupstart.com}
       CORS_ALLOW_LOCAL_NETWORK: ${CORS_ALLOW_LOCAL_NETWORK:-}
       AWS_REGION: ${AWS_REGION:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
@@ -38,6 +38,10 @@ services:
       MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
       API_BASE_URL: ${API_BASE_URL:-}
+      PORTAL_BASE_URL: ${PORTAL_BASE_URL:-https://heyupstart.com/clients}
+      PORTAL_SESSION_SECRET: ${PORTAL_SESSION_SECRET:-}
+      PORTAL_SESSION_MAX_AGE_DAYS: ${PORTAL_SESSION_MAX_AGE_DAYS:-90}
+      PORTAL_COOKIE_DOMAIN: ${PORTAL_COOKIE_DOMAIN:-}
     ports:
       - "80:3000"
     depends_on:

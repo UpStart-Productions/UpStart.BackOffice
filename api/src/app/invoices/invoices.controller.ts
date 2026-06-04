@@ -5,7 +5,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
 import { Response } from 'express';
-import { AppAuthGuard } from '../auth/app-auth.guard';
+import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
@@ -27,7 +27,7 @@ type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceIncl
 
 @ApiTags('invoices')
 @ApiBearerAuth()
-@UseGuards(AppAuthGuard)
+@UseGuards(StaffAuthGuard)
 @Controller('invoices')
 export class InvoicesController {
   constructor(

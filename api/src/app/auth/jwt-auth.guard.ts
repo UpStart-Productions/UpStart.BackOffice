@@ -58,7 +58,8 @@ export class JwtAuthGuard implements CanActivate {
     if (!region || !userPoolId) throw new UnauthorizedException('Cognito not configured');
 
     const issuer = `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`;
-    const clientId = process.env.COGNITO_CLIENT_ID;
+    const clientIds = [process.env.COGNITO_CLIENT_ID?.trim()].filter(Boolean);
+    if (clientIds.length === 0) throw new UnauthorizedException('Cognito not configured');
 
     type CognitoPayload = jwt.JwtPayload & { email?: string; 'cognito:username'?: string };
     let decoded: CognitoPayload;
@@ -67,7 +68,7 @@ export class JwtAuthGuard implements CanActivate {
         jwt.verify(token, this.getSigningKey as jwt.GetPublicKeyOrSecret, {
           algorithms: ['RS256'],
           issuer,
-          audience: clientId,
+          audience: clientIds.length === 1 ? clientIds[0] : (clientIds as [string, ...string[]]),
         }, (err, payload) => {
           if (err) reject(err); else resolve(payload as CognitoPayload);
         });
@@ -92,7 +93,7 @@ export class JwtAuthGuard implements CanActivate {
         avatarUrl: true,
         role: true,
         isActive: true,
-        isSuper: true,
+        clientId: true,
       },
     });
 
@@ -107,7 +108,7 @@ export class JwtAuthGuard implements CanActivate {
       lastName: user.lastName,
       avatarUrl: toPublicAssetUrl(user.avatarUrl),
       role: user.role,
-      isSuper: user.isSuper,
+      clientId: user.clientId,
     } satisfies UserContext;
 
     return true;

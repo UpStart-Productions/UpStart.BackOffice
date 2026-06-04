@@ -1,6 +1,6 @@
 // Shared types between API and Angular frontend
 
-export type UserRole = 'ADMIN' | 'MEMBER';
+export type UserRole = 'ADMIN' | 'MEMBER' | 'CLIENT';
 
 export type ClientDto = {
   id: string;
@@ -15,6 +15,8 @@ export type ClientDto = {
   website?: string | null;
   notes?: string | null;
   isActive: boolean;
+  portalEnabled?: boolean;
+  portalUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -100,7 +102,7 @@ export type MeDto = {
   avatarUrl?: string | null;
   role: UserRole;
   hourlyRate?: number | null;
-  isSuper: boolean;
+  clientId?: string | null;
 };
 
 export type UserListDto = {
@@ -113,5 +115,46 @@ export type UserListDto = {
   role: UserRole;
   hourlyRate?: number | null;
   isActive: boolean;
-  isSuper: boolean;
+  clientId?: string | null;
+  client?: { id: string; name: string; code: string } | null;
+};
+
+/** Public client org view on heyupstart.com portal. */
+export type PortalClientViewDto = {
+  id: string;
+  name: string;
+  code: string;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+};
+
+export type PortalSessionDto = {
+  client: PortalClientViewDto;
+  sessionToken: string;
+};
+
+export type PortalInvoiceDto = {
+  id: string;
+  displayNumber: string;
+  status: InvoiceStatus;
+  issueDate: string;
+  dueDate?: string | null;
+  total: number;
+  paidAt?: string | null;
+  lineItems: {
+    id: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    project?: { id: string; name: string } | null;
+  }[];
+};
+
+export type PortalProjectDto = {
+  id: string;
+  name: string;
+  description?: string | null;
+  isBillable: boolean;
 };

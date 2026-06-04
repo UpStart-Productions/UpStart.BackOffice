@@ -1,7 +1,6 @@
 import {
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -9,6 +8,7 @@ import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { UserContext } from '../common/app.types';
+import type { UserRole } from '@upstart/back-office/shared';
 
 @Injectable()
 export class DevAuthGuard implements CanActivate {
@@ -22,7 +22,7 @@ export class DevAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const email =
       (request.headers['x-user-email'] as string)?.trim() || 'admin@upstart.test';
-    const isSuperHeader = request.headers['x-super-admin'] === 'true';
+    const roleHeader = (request.headers['x-user-role'] as string)?.trim().toUpperCase();
 
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -35,12 +35,14 @@ export class DevAuthGuard implements CanActivate {
         avatarUrl: true,
         role: true,
         isActive: true,
-        isSuper: true,
+        clientId: true,
       },
     });
 
     if (!user) throw new UnauthorizedException('Dev user not found. Run seed.');
     if (!user.isActive) throw new UnauthorizedException('Account is disabled.');
+
+    const role = (roleHeader || user.role) as UserRole;
 
     request.user = {
       id: user.id,
@@ -49,8 +51,8 @@ export class DevAuthGuard implements CanActivate {
       firstName: user.firstName,
       lastName: user.lastName,
       avatarUrl: toPublicAssetUrl(user.avatarUrl),
-      role: user.role,
-      isSuper: isSuperHeader || user.isSuper,
+      role,
+      clientId: user.clientId,
     } satisfies UserContext;
 
     return true;

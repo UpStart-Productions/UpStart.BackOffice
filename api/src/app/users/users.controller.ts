@@ -20,8 +20,9 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { isAdminRole, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
-import { RequireSuperGuard } from '../auth/require-super.guard';
+import { RequireAdminGuard } from '../auth/require-admin.guard';
 import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -50,10 +51,11 @@ function toListItem(user: {
   lastName: string | null;
   name: string | null;
   avatarUrl: string | null;
-  role: 'ADMIN' | 'MEMBER';
+  role: UserRole;
   hourlyRate: { toNumber?: () => number } | null;
   isActive: boolean;
-  isSuper: boolean;
+  clientId: string | null;
+  client?: { id: string; name: string; code: string } | null;
 }) {
   return {
     id: user.id,
@@ -65,7 +67,8 @@ function toListItem(user: {
     role: user.role,
     hourlyRate: user.hourlyRate != null ? Number(user.hourlyRate) : null,
     isActive: user.isActive,
-    isSuper: user.isSuper,
+    clientId: user.clientId,
+    client: user.client ?? null,
   };
 }
 
@@ -95,7 +98,7 @@ export class UsersController {
         avatarUrl: true,
         role: true,
         hourlyRate: true,
-        isSuper: true,
+        clientId: true,
       },
     });
     return {
@@ -107,7 +110,7 @@ export class UsersController {
       avatarUrl: toPublicAssetUrl(row.avatarUrl),
       role: row.role,
       hourlyRate: row.hourlyRate != null ? Number(row.hourlyRate) : null,
-      isSuper: row.isSuper,
+      clientId: row.clientId,
     };
   }
 
@@ -127,16 +130,19 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(RequireSuperGuard)
+  @UseGuards(RequireAdminGuard)
   async list() {
     const users = await this.prisma.user.findMany({
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
+      include: {
+        client: { select: { id: true, name: true, code: true } },
+      },
     });
     return { users: users.map(toListItem) };
   }
 
   @Post()
-  @UseGuards(RequireSuperGuard)
+  @UseGuards(RequireAdminGuard)
   async create(@Body() dto: CreateUserDto) {
     const email = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({ where: { email } });
@@ -156,6 +162,10 @@ export class UsersController {
         name,
         role: dto.role,
         hourlyRate: dto.hourlyRate,
+        clientId: null,
+      },
+      include: {
+        client: { select: { id: true, name: true, code: true } },
       },
     });
 
@@ -163,7 +173,7 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(RequireSuperGuard)
+  @UseGuards(RequireAdminGuard)
   async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     const existing = await this.prisma.user.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('User not found');
@@ -193,9 +203,12 @@ export class UsersController {
         ...(dto.firstName !== undefined && { firstName }),
         ...(dto.lastName !== undefined && { lastName }),
         ...(dto.firstName !== undefined || dto.lastName !== undefined ? { name } : {}),
-        ...(dto.role !== undefined && { role: dto.role }),
+        ...(dto.role !== undefined && { role: dto.role, clientId: null }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+      },
+      include: {
+        client: { select: { id: true, name: true, code: true } },
       },
     });
 
@@ -203,7 +216,6 @@ export class UsersController {
   }
 
   @Post(':id/avatar')
-  @UseGuards(RequireSuperGuard)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
@@ -211,16 +223,22 @@ export class UsersController {
     }),
   )
   async uploadUserAvatar(
+    @Req() req: Request,
     @Param('id') id: string,
     @UploadedFile() file: { buffer: Buffer; mimetype: string } | undefined,
   ) {
+    const caller = req.user as UserContext;
+    if (!isAdminRole(caller.role) && caller.id !== id) {
+      throw new ForbiddenException('Admin access required');
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('User not found');
     return this.uploadAvatarForUser(id, file);
   }
 
   @Patch(':id/active')
-  @UseGuards(RequireSuperGuard)
+  @UseGuards(RequireAdminGuard)
   async setActive(@Req() req: Request, @Param('id') id: string, @Body() dto: SetUserActiveDto) {
     const caller = req.user as UserContext;
     if (caller.id === id && !dto.isActive) {
@@ -239,7 +257,7 @@ export class UsersController {
   }
 
   @Post(':id/invite')
-  @UseGuards(RequireSuperGuard)
+  @UseGuards(RequireAdminGuard)
   async invite(@Param('id') id: string) {
     if (!this.cognito.isConfigured) {
       throw new BadRequestException(
@@ -257,7 +275,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(RequireSuperGuard)
+  @UseGuards(RequireAdminGuard)
   async remove(@Req() req: Request, @Param('id') id: string) {
     const caller = req.user as UserContext;
     if (caller.id === id) {

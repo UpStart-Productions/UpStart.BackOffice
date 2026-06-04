@@ -20,18 +20,23 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: email.trim() },
-    update: { isSuper: true, isActive: true, role: 'ADMIN', firstName: firstName.trim(), lastName: lastName.trim() },
+    update: {
+      role: 'ADMIN',
+      isActive: true,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      clientId: null,
+    },
     create: {
       email: email.trim(),
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role: 'ADMIN',
-      isSuper: true,
       isActive: true,
     },
   });
 
-  console.log(`Super user created/updated: ${user.email} (id: ${user.id})`);
+  console.log(`Admin user created/updated: ${user.email} (id: ${user.id})`);
 }
 
 main()

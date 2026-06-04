@@ -50,8 +50,8 @@ async function bootstrap() {
     'authorization',
     'x-request-id',
     'x-user-email',
+    'x-user-role',
     'x-impersonate-user-id',
-    'x-super-admin',
     'content-type',
   ];
 

@@ -6,13 +6,16 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UserContext } from '../common/app.types';
+import { isAdminRole } from '@upstart/back-office/shared';
 
 @Injectable()
-export class RequireSuperGuard implements CanActivate {
+export class RequireAdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user as UserContext | undefined;
-    if (!user?.isSuper) throw new ForbiddenException('Super admin required');
+    if (!user || !isAdminRole(user.role)) {
+      throw new ForbiddenException('Admin access required');
+    }
     return true;
   }
 }

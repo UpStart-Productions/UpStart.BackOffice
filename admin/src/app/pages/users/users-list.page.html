@@ -54,7 +54,12 @@
           </td>
           <td>{{ user.name || '—' }}</td>
           <td>{{ user.email }}</td>
-          <td>{{ roleLabel(user.role) }}{{ user.isSuper ? ' (super)' : '' }}</td>
+          <td>
+            {{ roleLabel(user.role) }}
+            @if (user.client) {
+              <span class="text-color-secondary"> · {{ user.client.name }}</span>
+            }
+          </td>
           <td>{{ user.hourlyRate != null ? ('$' + user.hourlyRate) : '—' }}</td>
           <td>
             <p-tag

@@ -1,6 +1,8 @@
 import { Allow, IsBoolean, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
+const USER_ROLES = ['ADMIN', 'MEMBER'] as const;
+
 export class CreateUserDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
   @IsNotEmpty()
@@ -16,8 +18,8 @@ export class CreateUserDto {
   lastName?: string;
 
   @IsNotEmpty()
-  @IsIn(['ADMIN', 'MEMBER'])
-  role!: 'ADMIN' | 'MEMBER';
+  @IsIn(USER_ROLES)
+  role!: (typeof USER_ROLES)[number];
 
   @IsOptional()
   @IsNumber()
@@ -39,8 +41,8 @@ export class UpdateUserDto {
   lastName?: string;
 
   @IsOptional()
-  @IsIn(['ADMIN', 'MEMBER'])
-  role?: 'ADMIN' | 'MEMBER';
+  @IsIn(USER_ROLES)
+  role?: (typeof USER_ROLES)[number];
 
   @IsOptional()
   @IsNumber()
