@@ -29,7 +29,6 @@ export class CreateLeadDto {
   @ApiPropertyOptional() @IsString() @IsOptional() website?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() warmConnection?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() nextAction?: string;
-  @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
 
   @ApiPropertyOptional({ enum: LeadStage })
   @IsEnum(LeadStage)

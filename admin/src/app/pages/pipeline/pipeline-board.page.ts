@@ -70,21 +70,33 @@ export class PipelineBoardPage implements OnInit {
   }
 
   getRowActions(lead: Lead): RowActionItem[] {
-    return [
+    const actions: RowActionItem[] = [
       {
         id: 'edit',
         label: 'Open',
         icon: 'pi pi-arrow-right',
         command: () => this.router.navigate(['/pipeline', lead.id]),
       },
-      {
-        id: 'delete',
-        label: 'Delete',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        command: () => this.confirmDelete(lead),
-      },
     ];
+
+    if (lead.stage !== 'ACTIVE_CLIENT' && lead.stage !== 'PAST_CLIENT') {
+      actions.push({
+        id: 'convert',
+        label: 'Convert to Client',
+        icon: 'pi pi-user-plus',
+        command: () => this.router.navigate(['/pipeline', lead.id], { queryParams: { convert: '1' } }),
+      });
+    }
+
+    actions.push({
+      id: 'delete',
+      label: 'Delete',
+      icon: 'pi pi-trash',
+      severity: 'danger',
+      command: () => this.confirmDelete(lead),
+    });
+
+    return actions;
   }
 
   confirmDelete(lead: Lead) {

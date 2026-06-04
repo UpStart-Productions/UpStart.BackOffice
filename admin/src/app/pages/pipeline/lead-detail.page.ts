@@ -88,7 +88,6 @@ export class LeadDetailPage implements OnInit {
     nextAction: '',
     nextActionDate: '',
     lastContactDate: '',
-    notes: '',
   };
 
   get isNew() { return !this.id(); }
@@ -114,7 +113,6 @@ export class LeadDetailPage implements OnInit {
       nextAction:      (lead['nextAction'] as string) ?? '',
       nextActionDate:  toDateStr(lead['nextActionDate']),
       lastContactDate: toDateStr(lead['lastContactDate']),
-      notes:           (lead['notes'] as string) ?? '',
     };
     this._convertedClientId = (lead['convertedClientId'] as string) ?? null;
   }
@@ -136,7 +134,6 @@ export class LeadDetailPage implements OnInit {
       nextAction:      e(this.form.nextAction),
       nextActionDate:  this.form.nextActionDate || undefined,
       lastContactDate: this.form.lastContactDate || undefined,
-      notes:           e(this.form.notes),
     };
   }
 
@@ -147,6 +144,9 @@ export class LeadDetailPage implements OnInit {
       try {
         const lead = await this.api.get<Record<string, unknown>>(`/leads/${id}`);
         this.patchForm(lead);
+        if (this.route.snapshot.queryParamMap.get('convert') === '1') {
+          this.showConvertDialog.set(true);
+        }
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load lead');
       }

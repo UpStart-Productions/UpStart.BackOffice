@@ -66,7 +66,25 @@ async function main() {
   });
 
   // ── Client Pipeline leads from Notion ────────────────────────────────────
-  const leads: Parameters<typeof prisma.lead.upsert>[0]['create'][] = [
+  type LeadSeed = {
+    organization: string;
+    primaryContact?: string;
+    contactRole?: string;
+    email?: string;
+    phone?: string;
+    website?: string;
+    stage: string;
+    source?: string;
+    warmConnection?: string;
+    category?: string;
+    serviceInterests?: string[];
+    nextAction?: string;
+    nextActionDate?: Date;
+    lastContactDate?: Date;
+    note?: string; // becomes a Note artifact
+  };
+
+  const leads: LeadSeed[] = [
     {
       organization: 'Furnish Hope',
       email: 'megan@furnishhope.com',
@@ -77,7 +95,7 @@ async function main() {
       serviceInterests: ['Informational Interview'],
       nextAction: 'Find decision-maker contact name, then send email draft',
       nextActionDate: new Date('2026-04-10'),
-      notes: 'Based in Central Oregon (Bend area) — geography stretch for Phase 1, but very strong ICP fit. Mission: furnishing homes for people in need. Serves veterans, recovery graduates, unhoused individuals, disaster families, foster youth, DV survivors, disability. Relies on a network of referring agencies. No contact name found on site — research needed.',
+      note: 'Based in Central Oregon (Bend area) — geography stretch for Phase 1, but very strong ICP fit. Mission: furnishing homes for people in need. Serves veterans, recovery graduates, unhoused individuals, disaster families, foster youth, DV survivors, disability. Relies on a network of referring agencies. No contact name found on site — research needed.',
     },
     {
       organization: 'Love INC of Newberg',
@@ -92,7 +110,7 @@ async function main() {
       lastContactDate: new Date('2026-01-26'),
       nextActionDate: new Date('2026-04-08'),
       nextAction: 'Email Tracy White (Advertising/PR Director) — introduce GrovLink app concept, ask about website management',
-      notes: 'Jeff is on Spring fundraiser steering committee. Key contacts: Christopher White (ED), Beth (volunteer/board), Tracy White (advertising/PR — PRIMARY decision-maker for app). Running 2-3yr deficit.',
+      note: 'Jeff is on Spring fundraiser steering committee. Key contacts: Christopher White (ED), Beth (volunteer/board), Tracy White (advertising/PR — PRIMARY decision-maker for app). Running 2-3yr deficit.',
     },
     {
       organization: 'Provoking Hope',
@@ -105,7 +123,7 @@ async function main() {
       serviceInterests: ['Informational Interview'],
       nextAction: 'Review email draft and send',
       nextActionDate: new Date('2026-04-07'),
-      notes: 'Strong ICP fit. Wrap-around recovery services in the Willamette Valley — mentors, parenting groups, sober living, drug court advocacy, harm reduction, youth recovery, and workforce training.',
+      note: 'Strong ICP fit. Wrap-around recovery services in the Willamette Valley — mentors, parenting groups, sober living, drug court advocacy, harm reduction, youth recovery, and workforce training.',
     },
     {
       organization: 'MacHub',
@@ -118,7 +136,7 @@ async function main() {
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
       nextAction: 'Send email draft to Cami Nyquist',
-      notes: 'Also affiliated with Mac Habitat for Humanity.',
+      note: 'Also affiliated with Mac Habitat for Humanity.',
     },
     {
       organization: "Juliette's House",
@@ -127,7 +145,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'OTHER',
       serviceInterests: ['Informational Interview'],
-      notes: 'Child abuse intervention. Sensitive mission area — approach carefully, lead with community visibility angle.',
+      note: 'Child abuse intervention. Sensitive mission area — approach carefully, lead with community visibility angle.',
     },
     {
       organization: 'White Bird Clinic',
@@ -137,7 +155,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
-      notes: 'Hannah will be working here soon.',
+      note: 'Hannah will be working here soon.',
     },
     {
       organization: 'Northwest Family Services',
@@ -157,7 +175,7 @@ async function main() {
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
       nextAction: 'Send email draft — consider targeting Amber Hansen-Moore (Deputy Director)',
-      notes: 'State org serving all of Yamhill County. 2M lbs of food/year across 35+ partner pantries. Anydoor Yamhill shows tech-forward thinking.',
+      note: 'State org serving all of Yamhill County. 2M lbs of food/year across 35+ partner pantries. Anydoor Yamhill shows tech-forward thinking.',
     },
     {
       organization: 'City Team',
@@ -179,7 +197,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
-      notes: 'There are 16 Early Learning Hubs in Oregon. This could be a decent candidate for a GrovLink implementation.',
+      note: 'There are 16 Early Learning Hubs in Oregon. This could be a decent candidate for a GrovLink implementation.',
     },
     {
       organization: 'Chehalem Youth & Family Services',
@@ -191,7 +209,7 @@ async function main() {
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
       nextAction: 'Send email draft to Charlie Rice',
-      notes: 'Located in Newberg, OR — same town as Jeff. Founded 1970. 200+ people receive supportive services annually.',
+      note: 'Located in Newberg, OR — same town as Jeff. Founded 1970. 200+ people receive supportive services annually.',
     },
     {
       organization: 'Stand Up Girl',
@@ -208,7 +226,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'PETS',
       serviceInterests: ['Informational Interview'],
-      notes: 'Department of the Humane Society.',
+      note: 'Department of the Humane Society.',
     },
     {
       organization: 'The Peer Company / MHA Oregon',
@@ -221,7 +239,7 @@ async function main() {
       category: 'RECOVERY',
       serviceInterests: ['Informational Interview'],
       warmConnection: 'James Hinton (AA James) works here — warm intro possible',
-      notes: 'Also: Tarra McCarthy, Director of Development & Community Engagement.',
+      note: 'Also: Tarra McCarthy, Director of Development & Community Engagement.',
     },
     {
       organization: 'Community Action Partnerships of Oregon',
@@ -230,7 +248,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
-      notes: 'State parent org of YCAP. Umbrella for 18 community orgs across Oregon. High leverage if relationship develops.',
+      note: 'State parent org of YCAP. Umbrella for 18 community orgs across Oregon. High leverage if relationship develops.',
     },
     {
       organization: 'The Giving Plate',
@@ -239,7 +257,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'HUNGER',
       serviceInterests: ['Informational Interview'],
-      notes: 'Shelley Gibbs did some work with them.',
+      note: 'Shelley Gibbs did some work with them.',
     },
     {
       organization: 'Transition Oregon',
@@ -257,7 +275,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'JOBS_WORKFORCE',
       serviceInterests: ['Informational Interview'],
-      notes: 'Focus: incarceration-to-work. Strong mission alignment with recovery community.',
+      note: 'Focus: incarceration-to-work. Strong mission alignment with recovery community.',
     },
     {
       organization: 'Nestucca Valley Community Alliance',
@@ -266,7 +284,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'EDUCATION',
       serviceInterests: ['Informational Interview'],
-      notes: 'Facebook-only web presence — no standalone site found. Strong signal of digital visibility gap.',
+      note: 'Facebook-only web presence — no standalone site found. Strong signal of digital visibility gap.',
     },
     {
       organization: 'Unidos (Yamhill County)',
@@ -275,7 +293,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'OTHER',
       serviceInterests: ['Informational Interview'],
-      notes: 'Immigration and social services. Multilingual community — potential for high-impact visibility work.',
+      note: 'Immigration and social services. Multilingual community — potential for high-impact visibility work.',
     },
     {
       organization: 'Yoop',
@@ -292,7 +310,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
-      notes: 'Large org — serves all of Oregon and several WA counties. High visibility, may have more bureaucracy.',
+      note: 'Large org — serves all of Oregon and several WA counties. High visibility, may have more bureaucracy.',
     },
     {
       organization: 'Oregon Impact Fund',
@@ -301,7 +319,7 @@ async function main() {
       source: 'COLD_OUTREACH',
       category: 'FUNDING',
       serviceInterests: ['Informational Interview'],
-      notes: 'Funding source, not a direct GrovLink client prospect. Track as relationship to cultivate.',
+      note: 'Funding source, not a direct GrovLink client prospect. Track as relationship to cultivate.',
     },
     {
       organization: 'Recovery Works Northwest',
@@ -322,15 +340,25 @@ async function main() {
     },
   ];
 
-  for (const lead of leads) {
+  for (const { note, ...leadData } of leads) {
     const existing = await prisma.lead.findFirst({
-      where: { organization: lead.organization },
+      where: { organization: leadData.organization },
     });
     if (existing) {
-      console.log(`Lead (exists): ${lead.organization}`);
+      console.log(`Lead (exists): ${leadData.organization}`);
     } else {
-      await prisma.lead.create({ data: lead });
-      console.log(`Lead (created): ${lead.organization}`);
+      const lead = await prisma.lead.create({ data: leadData });
+      console.log(`Lead (created): ${leadData.organization}`);
+      if (note) {
+        await prisma.artifact.create({
+          data: {
+            leadId: lead.id,
+            type: 'NOTE',
+            title: 'Research Notes',
+            content: `<p>${note}</p>`,
+          },
+        });
+      }
     }
   }
 

@@ -5,22 +5,23 @@
     </div>
   } @else if (!loading()) {
 
-    <!-- Lead Form -->
     <form class="card" (ngSubmit)="save()">
       <div class="page-header-with-back">
-        <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true"
-          severity="secondary" type="button" routerLink="/pipeline" aria-label="Back to Pipeline" />
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          type="button"
+          routerLink="/pipeline"
+          aria-label="Back to Pipeline"
+        />
         <h2 class="page-title page-title-in-card mb-0">
           {{ isNew ? 'New Lead' : form.organization }}
         </h2>
+        <span style="flex: 1"></span>
         @if (!isNew && !isConverted) {
-          <p-button
-            label="Convert to Client"
-            icon="pi pi-arrow-right"
-            type="button"
-            style="margin-left: auto"
-            (onClick)="showConvertDialog.set(true)"
-          />
+          <button pButton type="button" label="Convert to Client" icon="pi pi-arrow-right" (click)="showConvertDialog.set(true)"></button>
         }
         @if (isConverted) {
           <p-tag value="Converted to Client" severity="success" />
@@ -28,7 +29,6 @@
       </div>
 
       <div class="showcase-flex-col">
-        <!-- Row 1: Org + Stage -->
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="organization">Organization <span class="required-dot" aria-hidden="true"></span></label>
@@ -40,7 +40,6 @@
           </div>
         </div>
 
-        <!-- Row 2: Contact + Role -->
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="primaryContact">Primary Contact</label>
@@ -52,7 +51,6 @@
           </div>
         </div>
 
-        <!-- Row 3: Email + Phone -->
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="email">Email</label>
@@ -64,7 +62,6 @@
           </div>
         </div>
 
-        <!-- Row 4: Website + Warm Connection -->
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="website">Website</label>
@@ -76,7 +73,6 @@
           </div>
         </div>
 
-        <!-- Row 5: Source + Category -->
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="source">Source</label>
@@ -88,7 +84,6 @@
           </div>
         </div>
 
-        <!-- Service Interests -->
         <div class="form-field showcase-full">
           <label>Service Interest</label>
           <div class="flex flex-wrap gap-2 mt-1">
@@ -105,7 +100,6 @@
           </div>
         </div>
 
-        <!-- Row 6: Last Contact + Next Action Date -->
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="lastContactDate">Last Contact</label>
@@ -117,17 +111,11 @@
           </div>
         </div>
 
-        <!-- Next Action -->
         <div class="form-field showcase-full">
           <label for="nextAction">Next Action</label>
           <input pInputText id="nextAction" name="nextAction" [(ngModel)]="form.nextAction" class="w-full" />
         </div>
 
-        <!-- Notes -->
-        <div class="form-field showcase-full">
-          <label for="notes">Notes</label>
-          <textarea pTextarea id="notes" name="notes" [(ngModel)]="form.notes" class="w-full" rows="5"></textarea>
-        </div>
       </div>
 
       <div class="form-actions">
@@ -136,14 +124,12 @@
       </div>
     </form>
 
-    <!-- Artifacts Panel (only for existing leads) -->
     @if (!isNew) {
       <app-artifacts-panel [leadId]="id()!" />
     }
   }
 </app-page>
 
-<!-- Convert to Client Dialog -->
 <p-dialog
   header="Convert to Client"
   [(visible)]="showConvertDialog"

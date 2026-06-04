@@ -47,7 +47,6 @@ export class LeadsController {
         nextAction: dto.nextAction,
         nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : undefined,
         lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : undefined,
-        notes: dto.notes,
       },
     });
   }
@@ -83,7 +82,6 @@ export class LeadsController {
         ...(dto.nextAction !== undefined && { nextAction: dto.nextAction }),
         ...(dto.nextActionDate !== undefined && { nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : null }),
         ...(dto.lastContactDate !== undefined && { lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : null }),
-        ...(dto.notes !== undefined && { notes: dto.notes }),
       },
     });
   }

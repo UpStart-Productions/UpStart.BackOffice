@@ -1,12 +1,11 @@
-import {
-  Component, inject, input, OnInit, signal,
-} from '@angular/core';
+import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { TabsModule } from 'primeng/tabs';
 import { MessageModule } from 'primeng/message';
+import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 
 type Artifact = {
@@ -21,10 +20,12 @@ type Artifact = {
   createdAt: string;
 };
 
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']);
+
 @Component({
   selector: 'app-artifacts-panel',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TabsModule, MessageModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, TabsModule, MessageModule, QuillModule],
   template: `
     <div class="card">
       <h3 class="showcase-section-title mb-3">Attachments</h3>
@@ -33,83 +34,136 @@ type Artifact = {
         <p-message severity="error" [text]="error()!" />
       }
 
-      <p-tabs>
-        <!-- FILES -->
-        <p-tab value="files">
-          <ng-template pTemplate="header"><i class="pi pi-paperclip"></i>&nbsp;Files</ng-template>
-          <div class="artifact-list">
-            @for (a of files(); track a.id) {
-              <div class="artifact-item">
-                <div class="artifact-item-info">
-                  <a class="artifact-title" [href]="'/api/uploads/' + a.fileUrl" target="_blank">{{ a.title }}</a>
-                  <span class="artifact-meta">{{ formatSize(a.fileSize) }} · {{ a.mimeType }}</span>
-                </div>
-                <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteArtifact(a)" />
-              </div>
-            }
-            @if (files().length === 0) {
-              <p class="artifact-empty">No files attached yet.</p>
-            }
-          </div>
-          <div class="artifact-add-row">
-            <input type="file" #fileInput style="display:none" (change)="onFileSelected($event)" />
-            <p-button label="Upload File" icon="pi pi-upload" severity="secondary" (onClick)="fileInput.click()" [loading]="uploading()" />
-          </div>
-        </p-tab>
+      <p-tabs [value]="0">
+        <p-tablist>
+          <p-tab [value]="0"><i class="pi pi-paperclip"></i>&nbsp; Files ({{ files().length }})</p-tab>
+          <p-tab [value]="1"><i class="pi pi-link"></i>&nbsp; Links ({{ links().length }})</p-tab>
+          <p-tab [value]="2"><i class="pi pi-file-edit"></i>&nbsp; Notes ({{ notes().length }})</p-tab>
+        </p-tablist>
 
-        <!-- LINKS -->
-        <p-tab value="links">
-          <ng-template pTemplate="header"><i class="pi pi-link"></i>&nbsp;Links</ng-template>
-          <div class="artifact-list">
-            @for (a of links(); track a.id) {
-              <div class="artifact-item">
-                <div class="artifact-item-info">
-                  <a class="artifact-title" [href]="a.url" target="_blank">{{ a.title }}</a>
-                  <span class="artifact-meta">{{ a.url }}</span>
-                </div>
-                <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteArtifact(a)" />
-              </div>
-            }
-            @if (links().length === 0) {
-              <p class="artifact-empty">No links yet.</p>
-            }
-          </div>
-          <div class="artifact-add-form">
-            <input pInputText [(ngModel)]="newLinkTitle" placeholder="Title" class="w-full" />
-            <input pInputText [(ngModel)]="newLinkUrl" placeholder="https://..." class="w-full" />
-            <p-button label="Add Link" icon="pi pi-plus" severity="secondary" (onClick)="addLink()" [disabled]="!newLinkTitle || !newLinkUrl" />
-          </div>
-        </p-tab>
+        <p-tabpanels>
 
-        <!-- NOTES -->
-        <p-tab value="notes">
-          <ng-template pTemplate="header"><i class="pi pi-file-edit"></i>&nbsp;Notes</ng-template>
-          <div class="artifact-list">
-            @for (a of notes(); track a.id) {
-              <div class="artifact-item artifact-item--note">
-                <div class="artifact-item-header">
-                  <span class="artifact-title">{{ a.title }}</span>
-                  <p-button icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (onClick)="deleteArtifact(a)" />
+          <!-- ── FILES ──────────────────────────────────────────────────── -->
+          <p-tabpanel [value]="0">
+            <div class="artifact-add-row">
+              <input type="file" multiple #fileInput style="display:none" (change)="onFilesSelected($event)" />
+              <button pButton label="Upload Files" icon="pi pi-upload" severity="secondary" (click)="fileInput.click()" [loading]="uploading()"></button>
+              @if (uploadProgress().length) {
+                <div class="artifact-upload-progress">
+                  @for (p of uploadProgress(); track p.name) {
+                    <span class="artifact-upload-item">
+                      <i class="pi" [class.pi-check]="p.done" [class.pi-spin]="!p.done" [class.pi-spinner]="!p.done"></i>
+                      {{ p.name }}
+                    </span>
+                  }
                 </div>
-                <p class="artifact-note-content">{{ a.content }}</p>
+              }
+            </div>
+
+            <div class="artifact-card-grid">
+              @for (a of files(); track a.id) {
+                <div class="artifact-file-card">
+                  <button
+                    class="artifact-card-delete"
+                    pButton icon="pi pi-trash"
+                    [rounded]="true" [text]="true" severity="danger" size="small"
+                    (click)="deleteArtifact(a)"
+                  ></button>
+                  <a [href]="fileHref(a)" target="_blank" class="artifact-file-card-inner">
+                    @if (isImage(a)) {
+                      <img [src]="fileHref(a)" [alt]="a.title" class="artifact-file-thumb" />
+                    } @else {
+                      <div class="artifact-file-icon-wrap">
+                        <i class="pi {{ fileIcon(a) }} artifact-file-icon"></i>
+                        <span class="artifact-file-ext">{{ fileExt(a) }}</span>
+                      </div>
+                    }
+                    <div class="artifact-file-name">{{ a.title }}</div>
+                  </a>
+                </div>
+              }
+              @if (files().length === 0) {
+                <p class="artifact-empty">No files attached yet.</p>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- ── LINKS ──────────────────────────────────────────────────── -->
+          <p-tabpanel [value]="1">
+            <div class="artifact-add-form">
+              <div class="form-field">
+                <label>Title</label>
+                <input pInputText [(ngModel)]="newLinkTitle" placeholder="e.g. Proposal Doc" class="w-full" />
               </div>
-            }
-            @if (notes().length === 0) {
-              <p class="artifact-empty">No notes yet.</p>
-            }
-          </div>
-          <div class="artifact-add-form">
-            <input pInputText [(ngModel)]="newNoteTitle" placeholder="Note title" class="w-full" />
-            <textarea pTextarea [(ngModel)]="newNoteContent" placeholder="Note content..." class="w-full" rows="4"></textarea>
-            <p-button label="Add Note" icon="pi pi-plus" severity="secondary" (onClick)="addNote()" [disabled]="!newNoteTitle || !newNoteContent" />
-          </div>
-        </p-tab>
+              <div class="form-field">
+                <label>URL</label>
+                <input pInputText [(ngModel)]="newLinkUrl" placeholder="https://..." class="w-full" />
+              </div>
+              <button pButton label="Add Link" icon="pi pi-plus" severity="secondary" (click)="addLink()" [disabled]="!newLinkTitle || !newLinkUrl"></button>
+            </div>
+
+            <div class="artifact-card-grid">
+              @for (a of links(); track a.id) {
+                <div class="artifact-link-card">
+                  <button
+                    class="artifact-card-delete"
+                    pButton icon="pi pi-trash"
+                    [rounded]="true" [text]="true" severity="danger" size="small"
+                    (click)="deleteArtifact(a)"
+                  ></button>
+                  <a [href]="a.url" target="_blank" class="artifact-link-card-inner">
+                    <div class="artifact-link-icon-wrap">
+                      <i class="pi pi-link artifact-link-icon"></i>
+                    </div>
+                    <div class="artifact-link-title">{{ a.title }}</div>
+                    <div class="artifact-link-url">{{ a.url }}</div>
+                  </a>
+                </div>
+              }
+              @if (links().length === 0) {
+                <p class="artifact-empty">No links yet.</p>
+              }
+            </div>
+          </p-tabpanel>
+
+          <!-- ── NOTES ──────────────────────────────────────────────────── -->
+          <p-tabpanel [value]="2">
+            <div class="artifact-add-form">
+              <div class="form-field">
+                <label>Title</label>
+                <input pInputText [(ngModel)]="newNoteTitle" placeholder="e.g. Research Notes" class="w-full" />
+              </div>
+              <quill-editor
+                [(ngModel)]="newNoteContent"
+                placeholder="Write your note..."
+                [styles]="{ 'min-height': '140px' }"
+              ></quill-editor>
+              <button pButton label="Add Note" icon="pi pi-plus" severity="secondary" (click)="addNote()" [disabled]="!newNoteTitle || !newNoteContent"></button>
+            </div>
+            <div class="artifact-list">
+              @for (a of notes(); track a.id) {
+                <div class="artifact-item artifact-item--note">
+                  <div class="artifact-item-header">
+                    <span class="artifact-title">{{ a.title }}</span>
+                    <button pButton icon="pi pi-trash" [rounded]="true" [text]="true" severity="danger" (click)="deleteArtifact(a)"></button>
+                  </div>
+                  <div class="artifact-note-content ql-editor" [innerHTML]="sanitizeHtml(a.content)"></div>
+                </div>
+              }
+              @if (notes().length === 0) {
+                <p class="artifact-empty">No notes yet.</p>
+              }
+            </div>
+          </p-tabpanel>
+
+        </p-tabpanels>
       </p-tabs>
     </div>
   `,
 })
 export class ArtifactsPanelComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   leadId = input<string | undefined>(undefined);
   clientId = input<string | undefined>(undefined);
@@ -117,6 +171,7 @@ export class ArtifactsPanelComponent implements OnInit {
   artifacts = signal<Artifact[]>([]);
   error = signal<string | null>(null);
   uploading = signal(false);
+  uploadProgress = signal<{ name: string; done: boolean }[]>([]);
 
   files = () => this.artifacts().filter(a => a.type === 'FILE');
   links = () => this.artifacts().filter(a => a.type === 'LINK');
@@ -126,6 +181,35 @@ export class ArtifactsPanelComponent implements OnInit {
   newLinkUrl = '';
   newNoteTitle = '';
   newNoteContent = '';
+
+  sanitizeHtml(html?: string): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+  }
+
+  isImage(a: Artifact): boolean {
+    if (a.mimeType && IMAGE_TYPES.has(a.mimeType)) return true;
+    const ext = (a.fileUrl ?? '').split('.').pop()?.toLowerCase() ?? '';
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+  }
+
+  fileHref(a: Artifact): string {
+    return `/api/uploads/${a.fileUrl}`;
+  }
+
+  fileExt(a: Artifact): string {
+    return ((a.fileUrl ?? a.title).split('.').pop() ?? '').toUpperCase().slice(0, 4);
+  }
+
+  fileIcon(a: Artifact): string {
+    const mime = a.mimeType ?? '';
+    const ext = (a.fileUrl ?? '').split('.').pop()?.toLowerCase() ?? '';
+    if (mime === 'application/pdf' || ext === 'pdf') return 'pi-file-pdf';
+    if (mime.startsWith('video/')) return 'pi-video';
+    if (mime.startsWith('audio/')) return 'pi-volume-up';
+    if (['doc', 'docx'].includes(ext)) return 'pi-file-word';
+    if (['xls', 'xlsx'].includes(ext)) return 'pi-file-excel';
+    return 'pi-file';
+  }
 
   async ngOnInit() {
     await this.load();
@@ -147,18 +231,32 @@ export class ArtifactsPanelComponent implements OnInit {
     }
   }
 
-  async onFileSelected(event: Event) {
+  async onFilesSelected(event: Event) {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+    const files = Array.from(input.files ?? []);
+    if (!files.length) return;
+
     this.uploading.set(true);
-    try {
-      const param = this.leadId() ? `leadId=${this.leadId()}` : `clientId=${this.clientId()}`;
-      await this.api.uploadFile(`/artifacts/upload?${param}`, file);
-      await this.load();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Upload failed');
-    } finally { this.uploading.set(false); input.value = ''; }
+    this.uploadProgress.set(files.map(f => ({ name: f.name, done: false })));
+    this.error.set(null);
+
+    const param = this.leadId() ? `leadId=${this.leadId()}` : `clientId=${this.clientId()}`;
+
+    for (const file of files) {
+      try {
+        await this.api.uploadFile(`/artifacts/upload?${param}`, file);
+        this.uploadProgress.update(prev =>
+          prev.map(p => p.name === file.name ? { ...p, done: true } : p)
+        );
+      } catch (err) {
+        this.error.set(`Failed to upload "${file.name}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }
+
+    await this.load();
+    this.uploading.set(false);
+    input.value = '';
+    setTimeout(() => this.uploadProgress.set([]), 2000);
   }
 
   async addLink() {

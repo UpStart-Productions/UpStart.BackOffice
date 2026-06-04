@@ -115,7 +115,6 @@ model Lead {
   nextAction        String?     @db.Text
   nextActionDate    DateTime?
   lastContactDate   DateTime?
-  notes             String?     @db.Text
   convertedClientId String?     @unique
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt

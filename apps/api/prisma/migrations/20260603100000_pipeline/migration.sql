@@ -30,7 +30,6 @@ CREATE TABLE "Lead" (
     "nextAction" TEXT,
     "nextActionDate" TIMESTAMP(3),
     "lastContactDate" TIMESTAMP(3),
-    "notes" TEXT,
     "convertedClientId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
