@@ -228,13 +228,15 @@ export class UsersController {
     @UploadedFile() file: { buffer: Buffer; mimetype: string } | undefined,
   ) {
     const caller = req.user as UserContext;
-    if (!isAdminRole(caller.role) && caller.id !== id) {
+    const targetUserId = id === 'me' ? caller.id : id;
+
+    if (targetUserId !== caller.id && !isAdminRole(caller.role)) {
       throw new ForbiddenException('Admin access required');
     }
 
-    const existing = await this.prisma.user.findUnique({ where: { id } });
+    const existing = await this.prisma.user.findUnique({ where: { id: targetUserId } });
     if (!existing) throw new NotFoundException('User not found');
-    return this.uploadAvatarForUser(id, file);
+    return this.uploadAvatarForUser(targetUserId, file);
   }
 
   @Patch(':id/active')

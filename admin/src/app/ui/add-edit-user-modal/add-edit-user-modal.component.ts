@@ -295,11 +295,11 @@ export class AddEditUserModalComponent {
       }
 
       if (this.selectedAvatarFile) {
-        const me = this.session.me();
-        const avatarPath =
-          me?.id === userId ? '/users/me/avatar' : `/users/${userId}/avatar`;
-        await this.api.uploadFile<{ url: string }>(avatarPath, this.selectedAvatarFile);
-        if (me?.id === userId) {
+        await this.api.uploadFile<{ url: string }>(
+          `/users/${userId}/avatar`,
+          this.selectedAvatarFile,
+        );
+        if (this.session.me()?.id === userId) {
           await this.session.refresh();
         }
       }
