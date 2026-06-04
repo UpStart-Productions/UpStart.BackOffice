@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY api/ ./api/
 COPY apps/ ./apps/
+COPY libs/ ./libs/
 COPY nx.json tsconfig.base.json ./
 COPY prisma.config.ts ./
 

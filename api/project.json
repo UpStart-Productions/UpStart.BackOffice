@@ -20,7 +20,7 @@
       }
     },
     "build": {
-      "dependsOn": ["prisma-generate"],
+      "dependsOn": ["prisma-generate", "shared:build"],
       "executor": "nx:run-commands",
       "options": {
         "command": "webpack-cli build",
