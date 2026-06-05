@@ -1,6 +1,10 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
 import { ApiService } from '../../core/api.service';
@@ -34,8 +38,20 @@ export const STAGES: { key: string; label: string; color: string }[] = [
 @Component({
   selector: 'app-pipeline-board-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TagModule, MessageModule, PageComponent, RowActionsMenuComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    ButtonModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
+    TagModule,
+    MessageModule,
+    PageComponent,
+    RowActionsMenuComponent,
+  ],
   templateUrl: './pipeline-board.page.html',
+  styleUrl: './pipeline-board.page.scss',
 })
 export class PipelineBoardPage implements OnInit {
   private readonly api = inject(ApiService);
@@ -45,14 +61,60 @@ export class PipelineBoardPage implements OnInit {
   leads = signal<Lead[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  searchQuery = '';
+  searchDebounced = signal('');
+
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly stages = STAGES;
 
+  readonly filteredLeads = computed(() => {
+    const q = this.searchDebounced().trim().toLowerCase();
+    const list = this.leads();
+    if (!q) return list;
+    return list.filter((lead) => this.leadMatchesSearch(lead, q));
+  });
+
   leadsForStage = (stageKey: string) =>
-    this.leads().filter(l => l.stage === stageKey);
+    this.filteredLeads().filter(l => l.stage === stageKey);
 
   async ngOnInit() {
     await this.load();
+  }
+
+  onSearchInput(value: string) {
+    this.searchQuery = value;
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.searchDebounced.set(value);
+      this.searchTimer = null;
+    }, 150);
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.searchDebounced.set('');
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = null;
+    }
+  }
+
+  private leadMatchesSearch(lead: Lead, q: string): boolean {
+    const haystack = [
+      lead.organization,
+      lead.primaryContact,
+      lead.contactRole,
+      lead.email,
+      lead.nextAction,
+      lead.source,
+      lead.category,
+      ...lead.serviceInterests,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(q);
   }
 
   async load() {

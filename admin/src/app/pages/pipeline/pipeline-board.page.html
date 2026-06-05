@@ -11,6 +11,23 @@
       <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new"></a>
     </div>
 
+    <div class="toolbar mt-3">
+      <p-iconfield iconPosition="left" class="pipeline-search">
+        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+        <input
+          pInputText
+          type="text"
+          class="w-full"
+          placeholder="Search by organization, contact, email…"
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchInput($event)"
+        />
+      </p-iconfield>
+      @if (searchQuery) {
+        <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
+      }
+    </div>
+
     @if (loading()) {
       <p class="text-color-secondary">Loading...</p>
     } @else {
