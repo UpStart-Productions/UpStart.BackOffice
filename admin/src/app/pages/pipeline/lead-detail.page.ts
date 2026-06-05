@@ -54,6 +54,7 @@ const SERVICE_OPTIONS = [
     PageComponent, ArtifactsPanelComponent,
   ],
   templateUrl: './lead-detail.page.html',
+  styleUrl: './lead-detail.page.scss',
 })
 export class LeadDetailPage implements OnInit {
   private readonly api = inject(ApiService);
@@ -72,6 +73,7 @@ export class LeadDetailPage implements OnInit {
   readonly sources = SOURCES;
   readonly categories = CATEGORIES;
   readonly serviceOptions = SERVICE_OPTIONS;
+  serviceInterests = signal<string[]>([]);
 
   form = {
     organization: '',
@@ -84,7 +86,6 @@ export class LeadDetailPage implements OnInit {
     source: '' as string | null,
     warmConnection: '',
     category: '' as string | null,
-    serviceInterests: [] as string[],
     nextAction: '',
     nextActionDate: '',
     lastContactDate: '',
@@ -109,12 +110,12 @@ export class LeadDetailPage implements OnInit {
       source:          (lead['source'] as string) ?? null,
       warmConnection:  (lead['warmConnection'] as string) ?? '',
       category:        (lead['category'] as string) ?? null,
-      serviceInterests:(lead['serviceInterests'] as string[]) ?? [],
       nextAction:      (lead['nextAction'] as string) ?? '',
       nextActionDate:  toDateStr(lead['nextActionDate']),
       lastContactDate: toDateStr(lead['lastContactDate']),
     };
     this._convertedClientId = (lead['convertedClientId'] as string) ?? null;
+    this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);
   }
 
   private buildPayload() {
@@ -130,7 +131,7 @@ export class LeadDetailPage implements OnInit {
       source:          this.form.source || undefined,
       warmConnection:  e(this.form.warmConnection),
       category:        this.form.category || undefined,
-      serviceInterests: this.form.serviceInterests,
+      serviceInterests: this.serviceInterests(),
       nextAction:      e(this.form.nextAction),
       nextActionDate:  this.form.nextActionDate || undefined,
       lastContactDate: this.form.lastContactDate || undefined,
@@ -155,17 +156,11 @@ export class LeadDetailPage implements OnInit {
   }
 
   toggleServiceInterest(service: string) {
-    const current = this.form.serviceInterests;
-    const idx = current.indexOf(service);
-    if (idx === -1) {
-      this.form.serviceInterests = [...current, service];
-    } else {
-      this.form.serviceInterests = current.filter(s => s !== service);
-    }
-  }
-
-  hasServiceInterest(service: string) {
-    return this.form.serviceInterests.includes(service);
+    this.serviceInterests.update((current) =>
+      current.includes(service)
+        ? current.filter((s) => s !== service)
+        : [...current, service],
+    );
   }
 
   async save() {

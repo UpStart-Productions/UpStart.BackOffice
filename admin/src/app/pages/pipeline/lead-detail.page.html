@@ -86,16 +86,14 @@
 
         <div class="form-field showcase-full">
           <label>Service Interest</label>
-          <div class="flex flex-wrap gap-2 mt-1">
+          <div class="service-interest-pills">
             @for (svc of serviceOptions; track svc) {
               <button
                 type="button"
-                pButton
-                [label]="svc"
-                size="small"
-                [outlined]="!hasServiceInterest(svc)"
+                class="service-interest-pill"
+                [class.service-interest-pill--selected]="serviceInterests().includes(svc)"
                 (click)="toggleServiceInterest(svc)"
-              ></button>
+              >{{ svc }}</button>
             }
           </div>
         </div>

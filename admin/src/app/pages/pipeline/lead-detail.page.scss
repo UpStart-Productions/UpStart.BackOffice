@@ -1,0 +1,33 @@
+.service-interest-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.service-interest-pill {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-radius: 999px;
+  background: var(--surface-card, #fff);
+  color: var(--text-color, #495057);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &:hover:not(.service-interest-pill--selected) {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+  }
+
+  &--selected {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+    color: #fff;
+  }
+}
