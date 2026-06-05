@@ -9,29 +9,28 @@
     <h2 class="page-title page-title-in-card">Client Pipeline</h2>
     <div class="toolbar">
       <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new"></a>
-    </div>
-
-    <div class="toolbar mt-3">
-      <p-iconfield iconPosition="left" class="pipeline-search">
-        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-        <input
-          pInputText
-          type="text"
-          class="w-full"
-          placeholder="Search by organization, contact, email…"
-          [ngModel]="searchQuery"
-          (ngModelChange)="onSearchInput($event)"
-        />
-      </p-iconfield>
-      @if (searchQuery) {
-        <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
-      }
+      <div class="pipeline-toolbar-search">
+        <p-iconfield iconPosition="left" class="pipeline-search">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by organization, contact, email…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
+        }
+      </div>
     </div>
 
     @if (loading()) {
       <p class="text-color-secondary">Loading...</p>
     } @else {
-      <div class="pipeline-board">
+      <div class="pipeline-board" cdkDropListGroup>
         @for (stage of stages; track stage.key) {
           <div class="pipeline-col">
             <div class="pipeline-col-header">
@@ -39,8 +38,22 @@
               <span class="pipeline-badge">{{ leadsForStage(stage.key).length }}</span>
             </div>
 
-            @for (lead of leadsForStage(stage.key); track lead.id) {
-              <div class="pipeline-card" (click)="openLead(lead.id)">
+            <div
+              class="pipeline-col-body"
+              cdkDropList
+              cdkDropListSortingDisabled
+              [cdkDropListData]="stage.key"
+              (cdkDropListDropped)="onDrop($event)"
+            >
+              @for (lead of leadsForStage(stage.key); track lead.id) {
+                <div
+                  class="pipeline-card"
+                  cdkDrag
+                  [cdkDragData]="lead"
+                  (cdkDragStarted)="onDragStarted()"
+                  (cdkDragEnded)="onDragEnded()"
+                  (click)="openLead(lead.id)"
+                >
                 <div class="pipeline-card-top">
                   <div class="pipeline-card-org">{{ lead.organization }}</div>
                   <app-row-actions-menu
@@ -55,15 +68,33 @@
                     @if (lead.contactRole) { · {{ lead.contactRole }} }
                   </div>
                 }
+                @if (lead.email) {
+                  <div class="pipeline-card-email">
+                    <span>{{ lead.email }}</span>
+                    <button
+                      type="button"
+                      pButton
+                      icon="pi pi-copy"
+                      [text]="true"
+                      size="small"
+                      [attr.aria-label]="'Copy ' + lead.email"
+                      (click)="copyEmail($event, lead.email)"
+                    ></button>
+                  </div>
+                }
                 @if (lead.nextAction) {
-                  <div class="pipeline-card-next">→ {{ lead.nextAction }}</div>
+                  <div class="pipeline-card-next-wrap">
+                    <hr class="pipeline-card-divider" />
+                    <div class="pipeline-card-next">{{ lead.nextAction }}</div>
+                  </div>
                 }
               </div>
-            }
+              }
 
-            @if (leadsForStage(stage.key).length === 0) {
-              <div class="pipeline-empty">Empty</div>
-            }
+              @if (leadsForStage(stage.key).length === 0) {
+                <div class="pipeline-empty">Drop leads here</div>
+              }
+            </div>
           </div>
         }
       </div>

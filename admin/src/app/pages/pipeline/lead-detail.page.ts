@@ -70,8 +70,8 @@ export class LeadDetailPage implements OnInit {
   convertCode = '';
 
   readonly stages = STAGES.map(s => ({ label: s.label, value: s.key }));
-  readonly sources = SOURCES;
-  readonly categories = CATEGORIES;
+  readonly sources = [...SOURCES].sort((a, b) => a.label.localeCompare(b.label));
+  readonly categories = [...CATEGORIES].sort((a, b) => a.label.localeCompare(b.label));
   readonly serviceOptions = SERVICE_OPTIONS;
   serviceInterests = signal<string[]>([]);
 

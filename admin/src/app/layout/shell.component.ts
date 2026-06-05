@@ -35,15 +35,16 @@ export class ShellComponent implements OnInit {
 
   navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
+      { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
-      { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
     ];
     if (isAdminRole(this.session.me()?.role ?? 'MEMBER')) {
-      items.push({ label: 'Users',     icon: 'pi-user-edit', route: '/users' });
-      items.push({ label: 'Settings',  icon: 'pi-cog',       route: '/settings' });
+      items.push({ divider: true });
+      items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
+      items.push({ label: 'Settings', icon: 'pi-cog', route: '/settings' });
     }
     return items;
   });

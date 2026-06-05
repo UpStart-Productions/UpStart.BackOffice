@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -7,6 +8,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -40,6 +42,7 @@ export const STAGES: { key: string; label: string; color: string }[] = [
   standalone: true,
   imports: [
     FormsModule,
+    DragDropModule,
     RouterLink,
     ButtonModule,
     IconFieldModule,
@@ -57,6 +60,7 @@ export class PipelineBoardPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly toast = inject(MessageService);
 
   leads = signal<Lead[]>([]);
   loading = signal(true);
@@ -65,6 +69,7 @@ export class PipelineBoardPage implements OnInit {
   searchDebounced = signal('');
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private suppressCardClick = false;
 
   readonly stages = STAGES;
 
@@ -128,7 +133,54 @@ export class PipelineBoardPage implements OnInit {
   }
 
   openLead(id: string) {
+    if (this.suppressCardClick) return;
     this.router.navigate(['/pipeline', id]);
+  }
+
+  onDragStarted() {
+    this.suppressCardClick = true;
+  }
+
+  onDragEnded() {
+    setTimeout(() => {
+      this.suppressCardClick = false;
+    }, 0);
+  }
+
+  onDrop(event: CdkDragDrop<string>) {
+    const lead = event.item.data as Lead;
+    const targetStage = event.container.data;
+    if (!lead || lead.stage === targetStage) return;
+    void this.moveLeadToStage(lead, targetStage);
+  }
+
+  private async moveLeadToStage(lead: Lead, newStage: string) {
+    const previousStage = lead.stage;
+    this.leads.update((list) =>
+      list.map((item) => (item.id === lead.id ? { ...item, stage: newStage } : item)),
+    );
+
+    try {
+      await this.api.put(`/leads/${lead.id}`, { stage: newStage });
+      const stageLabel = this.stages.find((s) => s.key === newStage)?.label ?? newStage;
+      this.toast.add({
+        severity: 'success',
+        summary: 'Stage updated',
+        detail: `"${lead.organization}" moved to ${stageLabel}`,
+        life: 2500,
+      });
+    } catch (err) {
+      this.leads.update((list) =>
+        list.map((item) => (item.id === lead.id ? { ...item, stage: previousStage } : item)),
+      );
+      this.error.set(err instanceof Error ? err.message : 'Failed to move lead');
+    }
+  }
+
+  copyEmail(event: Event, email: string) {
+    event.stopPropagation();
+    void navigator.clipboard.writeText(email);
+    this.toast.add({ severity: 'success', summary: 'Copied', detail: 'Email copied to clipboard', life: 2000 });
   }
 
   getRowActions(lead: Lead): RowActionItem[] {

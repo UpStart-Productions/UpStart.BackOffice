@@ -1,5 +1,12 @@
+.pipeline-toolbar-search {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
 .pipeline-search {
-  flex: 1;
+  width: 16rem;
   min-width: 12rem;
   max-width: 24rem;
 }
@@ -19,6 +26,21 @@
   background: var(--surface-ground);
   border-radius: 8px;
   padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.pipeline-col-body {
+  flex: 1;
+  min-height: 5rem;
+  border-radius: 6px;
+  transition: background-color 0.15s, outline-color 0.15s;
+
+  &.cdk-drop-list-receiving {
+    background: color-mix(in srgb, var(--primary-color) 8%, transparent);
+    outline: 2px dashed color-mix(in srgb, var(--primary-color) 45%, transparent);
+    outline-offset: -2px;
+  }
 }
 
 .pipeline-col-header {
@@ -46,11 +68,31 @@
   border-radius: 6px;
   padding: 0.65rem 0.75rem;
   margin-bottom: 0.5rem;
-  cursor: pointer;
+  cursor: grab;
   transition: box-shadow 0.15s;
 
   &:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &.cdk-drag-preview {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    cursor: grabbing;
+  }
+
+  &.cdk-drag-placeholder {
+    opacity: 0.35;
+    border-style: dashed;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &.cdk-drag-animating {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
   }
 }
 
@@ -71,11 +113,38 @@
   color: var(--text-color-secondary);
 }
 
-.pipeline-card-next {
-  font-size: 0.75rem;
+.pipeline-card-email {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  font-size: 0.78rem;
   color: var(--text-color-secondary);
-  margin-top: 0.35rem;
-  font-style: italic;
+  margin-top: 0.25rem;
+
+  span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.pipeline-card-next-wrap {
+  margin-top: 0.5rem;
+}
+
+.pipeline-card-divider {
+  border: none;
+  border-top: 1px solid var(--surface-border);
+  margin: 0 0 0.5rem;
+}
+
+.pipeline-card-next {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: limegreen;
+  line-height: 1.35;
 }
 
 .pipeline-empty {
