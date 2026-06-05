@@ -57,16 +57,17 @@
   header="Generate API Key"
   [(visible)]="showGenerateDialog"
   [modal]="true"
-  [style]="{ width: '480px' }"
+  [style]="{ width: '640px', maxWidth: '92vw' }"
   (onHide)="onDialogHide()"
 >
   @if (!newKey()) {
     <!-- Step 1: name entry -->
-    <div class="flex flex-column gap-3 pt-2">
-      <label for="keyName" class="font-semibold">Service Name</label>
+    <div class="form-field pt-2">
+      <label for="keyName">Service Name</label>
       <input
         pInputText
         id="keyName"
+        class="w-full"
         placeholder="e.g. Donor Readiness Audit"
         [(ngModel)]="keyName"
         (keydown.enter)="generate()"
@@ -83,15 +84,19 @@
     </ng-template>
   } @else {
     <!-- Step 2: display key once -->
-    <div class="flex flex-column gap-3 pt-2">
-      <p-message severity="warn" text="Copy this key now — it will not be shown again." />
-      <label class="font-semibold">{{ newKeyName() }}</label>
-      <div class="flex align-items-center gap-2">
-        <code class="flex-1 p-2 surface-100 border-round text-sm" style="word-break: break-all;">{{ newKey() }}</code>
-        <button pButton icon="pi pi-copy" class="p-button-text p-button-sm" (click)="copyKey()" pTooltip="Copy"></button>
+    <div class="pt-2 w-full">
+      <div class="form-field mb-3">
+        <label class="font-semibold">{{ newKeyName() }}</label>
+        <code class="w-full block p-2 surface-100 border-round text-sm" style="word-break: break-all;">{{ newKey() }}</code>
       </div>
+      <p-message
+        severity="warn"
+        styleClass="w-full"
+        text="Copy this key now — it will not be shown again."
+      />
     </div>
     <ng-template pTemplate="footer">
+      <button pButton label="Copy" icon="pi pi-copy" class="p-button-text" (click)="copyKey()"></button>
       <button pButton label="Done" (click)="showGenerateDialog = false"></button>
     </ng-template>
   }

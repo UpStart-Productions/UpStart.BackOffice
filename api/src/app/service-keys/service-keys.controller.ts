@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Delete, Get, Param,
+  Body, Controller, Delete, Get, Param, Patch,
   Post, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -28,6 +28,20 @@ export class ServiceKeysController {
   @Post()
   generate(@Body() dto: CreateServiceKeyDto) {
     return this.keys.generate(dto.name);
+  }
+
+  /** Permanently delete a revoked key. */
+  @Delete(':id/permanent')
+  async deletePermanently(@Param('id') id: string) {
+    await this.keys.deletePermanently(id);
+    return { deleted: true };
+  }
+
+  /** Reinstate a revoked key. */
+  @Patch(':id/reinstate')
+  async reinstate(@Param('id') id: string) {
+    await this.keys.reinstate(id);
+    return { reinstated: true };
   }
 
   /** Revoke a key (soft-delete). */

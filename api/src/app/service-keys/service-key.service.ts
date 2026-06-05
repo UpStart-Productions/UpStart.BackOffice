@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -75,5 +75,28 @@ export class ServiceKeyService {
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  /** Restore a revoked key. */
+  async reinstate(id: string): Promise<void> {
+    const record = await this.prisma.serviceKey.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException('Service key not found');
+    if (record.isActive) {
+      throw new BadRequestException('Key is already active');
+    }
+    await this.prisma.serviceKey.update({
+      where: { id },
+      data: { isActive: true },
+    });
+  }
+
+  /** Permanently remove a revoked key from the database. */
+  async deletePermanently(id: string): Promise<void> {
+    const record = await this.prisma.serviceKey.findUnique({ where: { id } });
+    if (!record) throw new NotFoundException('Service key not found');
+    if (record.isActive) {
+      throw new BadRequestException('Revoke the key before deleting it');
+    }
+    await this.prisma.serviceKey.delete({ where: { id } });
   }
 }

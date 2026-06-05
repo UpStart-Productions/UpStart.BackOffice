@@ -4,7 +4,7 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { MessageService } from 'primeng/api';
+import { MessageService, ConfirmationService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
@@ -43,6 +43,7 @@ export class SettingsPage implements OnInit {
   private readonly api          = inject(ApiService);
   private readonly toast        = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly confirmation = inject(ConfirmationService);
 
   keys      = signal<ServiceKey[]>([]);
   loading   = signal(true);
@@ -109,6 +110,7 @@ export class SettingsPage implements OnInit {
 
   confirmRevoke(key: ServiceKey) {
     this.deleteConfirm.confirm({
+      header: 'Confirm revoke',
       message: `Revoke "${key.name}"? Any service using this key will immediately lose access.`,
       accept: async () => {
         try {
@@ -122,8 +124,57 @@ export class SettingsPage implements OnInit {
     });
   }
 
+  confirmDelete(key: ServiceKey) {
+    this.deleteConfirm.confirm({
+      message: `Delete "${key.name}" permanently? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.api.delete(`/service-keys/${key.id}/permanent`);
+          await this.load();
+          this.toast.add({ severity: 'success', summary: 'Deleted', detail: `"${key.name}" has been removed`, life: 4000 });
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Failed to delete key');
+        }
+      },
+    });
+  }
+
+  confirmReinstate(key: ServiceKey) {
+    this.confirmation.confirm({
+      header: 'Confirm reinstate',
+      message: `Reinstate "${key.name}"? Services using this key will regain access.`,
+      icon: 'pi pi-exclamation-triangle',
+      rejectButtonStyleClass: 'p-button-secondary',
+      accept: async () => {
+        try {
+          await this.api.patch(`/service-keys/${key.id}/reinstate`);
+          await this.load();
+          this.toast.add({ severity: 'success', summary: 'Reinstated', detail: `"${key.name}" is active again`, life: 4000 });
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Failed to reinstate key');
+        }
+      },
+    });
+  }
+
   getRowActions(key: ServiceKey): RowActionItem[] {
-    if (!key.isActive) return [];
+    if (!key.isActive) {
+      return [
+        {
+          id: 'reinstate',
+          label: 'Reinstate',
+          icon: 'pi pi-check-circle',
+          command: () => this.confirmReinstate(key),
+        },
+        {
+          id: 'delete',
+          label: 'Delete',
+          icon: 'pi pi-trash',
+          severity: 'danger',
+          command: () => this.confirmDelete(key),
+        },
+      ];
+    }
     return [
       {
         id: 'revoke',
