@@ -1,6 +1,7 @@
 import { Component, effect, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { resolveAssetUrl } from '../core/asset-url.util';
 import { LayoutService } from './layout.service';
 
 @Component({
@@ -31,7 +32,7 @@ import { LayoutService } from './layout.service';
       <div class="layout-topbar-actions">
         @if (avatarUrl() && !avatarImageError) {
           <img
-            [src]="avatarUrl()!"
+            [src]="resolveAssetUrl(avatarUrl())!"
             alt=""
             class="topbar-user-avatar"
             referrerpolicy="no-referrer"
@@ -55,6 +56,7 @@ import { LayoutService } from './layout.service';
 })
 export class AppTopbarComponent {
   readonly layout = inject(LayoutService);
+  readonly resolveAssetUrl = resolveAssetUrl;
   userName = input('');
   avatarUrl = input<string | null | undefined>(null);
   signOut = output<void>();

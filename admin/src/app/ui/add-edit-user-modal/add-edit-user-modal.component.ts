@@ -13,6 +13,7 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 import { SessionService } from '../../core/session.service';
 import type { UserListDto, UserRole } from '@upstart/back-office/shared';
 
@@ -72,7 +73,7 @@ const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
             @if (avatarPreview() || (isEdit() && user()?.avatarUrl && !removeAvatar)) {
               <div class="avatar-preview">
                 <img
-                  [src]="avatarPreview() || user()?.avatarUrl"
+                  [src]="avatarPreview() || resolveAssetUrl(user()?.avatarUrl)"
                   alt="Avatar preview"
                 />
                 <button
@@ -160,6 +161,7 @@ const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
   `,
 })
 export class AddEditUserModalComponent {
+  readonly resolveAssetUrl = resolveAssetUrl;
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(MessageService);
