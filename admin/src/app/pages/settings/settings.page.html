@@ -1,0 +1,98 @@
+<app-page title="Settings">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+
+  <div class="card">
+    <h2 class="page-title page-title-in-card">API Keys</h2>
+    <p class="text-color-secondary mt-0 mb-3">
+      Grant external services access to UBO. Each key is shown once on creation — store it securely.
+    </p>
+
+    <div class="toolbar">
+      <button pButton label="Generate Key" icon="pi pi-plus" class="p-button-sm" (click)="openGenerate()"></button>
+    </div>
+
+    <p-table [value]="keys()" [loading]="loading()" styleClass="table-bordered mt-3">
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem"></th>
+          <th>Name</th>
+          <th>Key</th>
+          <th>Last Used</th>
+          <th>Created</th>
+          <th>Status</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-key>
+        <tr>
+          <td>
+            <app-row-actions-menu [items]="getRowActions(key)" ariaLabel="Key actions" />
+          </td>
+          <td>{{ key.name }}</td>
+          <td><code class="text-sm">{{ key.keyPrefix }}</code></td>
+          <td>{{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '—' }}</td>
+          <td>{{ formatDate(key.createdAt) }}</td>
+          <td>
+            <p-tag
+              [value]="key.isActive ? 'Active' : 'Revoked'"
+              [severity]="key.isActive ? 'success' : 'secondary'"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center p-4 text-color-secondary">No API keys yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</app-page>
+
+<!-- Generate Key Dialog -->
+<p-dialog
+  header="Generate API Key"
+  [(visible)]="showGenerateDialog"
+  [modal]="true"
+  [style]="{ width: '480px' }"
+  (onHide)="onDialogHide()"
+>
+  @if (!newKey()) {
+    <!-- Step 1: name entry -->
+    <div class="flex flex-column gap-3 pt-2">
+      <label for="keyName" class="font-semibold">Service Name</label>
+      <input
+        pInputText
+        id="keyName"
+        placeholder="e.g. Donor Readiness Audit"
+        [(ngModel)]="keyName"
+        (keydown.enter)="generate()"
+      />
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Cancel" class="p-button-text" (click)="showGenerateDialog = false"></button>
+      <button
+        pButton label="Generate"
+        [disabled]="!keyName.trim() || generating()"
+        [loading]="generating()"
+        (click)="generate()"
+      ></button>
+    </ng-template>
+  } @else {
+    <!-- Step 2: display key once -->
+    <div class="flex flex-column gap-3 pt-2">
+      <p-message severity="warn" text="Copy this key now — it will not be shown again." />
+      <label class="font-semibold">{{ newKeyName() }}</label>
+      <div class="flex align-items-center gap-2">
+        <code class="flex-1 p-2 surface-100 border-round text-sm" style="word-break: break-all;">{{ newKey() }}</code>
+        <button pButton icon="pi pi-copy" class="p-button-text p-button-sm" (click)="copyKey()" pTooltip="Copy"></button>
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton label="Done" (click)="showGenerateDialog = false"></button>
+    </ng-template>
+  }
+</p-dialog>

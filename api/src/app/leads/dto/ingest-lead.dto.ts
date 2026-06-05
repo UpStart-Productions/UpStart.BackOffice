@@ -1,0 +1,45 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsArray,
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUrl,
+} from 'class-validator';
+
+/**
+ * Payload sent by the Donor Readiness Audit Lambda when an audit completes.
+ * Used by POST /leads/ingest.
+ */
+export class IngestLeadDto {
+  /** Org name extracted from the audit report (report.org_name) */
+  @ApiProperty() @IsString() organization!: string;
+
+  /** The URL that was audited */
+  @ApiProperty() @IsString() website!: string;
+
+  /** The S3 key for the audit PDF (e.g. "loveincnewberg.org/report.pdf") */
+  @ApiProperty() @IsString() auditReportKey!: string;
+
+  /** Submitter email */
+  @ApiPropertyOptional() @IsEmail() @IsOptional() email?: string;
+
+  /** Submitter first name */
+  @ApiPropertyOptional() @IsString() @IsOptional() firstName?: string;
+
+  /** Submitter last name */
+  @ApiPropertyOptional() @IsString() @IsOptional() lastName?: string;
+
+  /** Submitter role / title */
+  @ApiPropertyOptional() @IsString() @IsOptional() role?: string;
+
+  /** Service interest labels derived from audit findings (already normalized) */
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  serviceInterests?: string[];
+
+  /** ISO date string for when the audit ran */
+  @ApiPropertyOptional() @IsString() @IsOptional() auditDate?: string;
+}

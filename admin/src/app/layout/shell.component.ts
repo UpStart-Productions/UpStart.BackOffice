@@ -42,7 +42,8 @@ export class ShellComponent implements OnInit {
       { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
     ];
     if (isAdminRole(this.session.me()?.role ?? 'MEMBER')) {
-      items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
+      items.push({ label: 'Users',     icon: 'pi-user-edit', route: '/users' });
+      items.push({ label: 'Settings',  icon: 'pi-cog',       route: '/settings' });
     }
     return items;
   });

@@ -76,6 +76,12 @@ export const appRoutes: Route[] = [
         canActivate: [adminGuard],
       },
       {
+        path: 'settings',
+        loadComponent: () =>
+          import('./pages/settings/settings.page').then((m) => m.SettingsPage),
+        canActivate: [adminGuard],
+      },
+      {
         path: 'pipeline',
         loadComponent: () =>
           import('./pages/pipeline/pipeline-board.page').then((m) => m.PipelineBoardPage),

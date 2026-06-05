@@ -1,14 +1,18 @@
 import {
   Body, Controller, Delete, Get, NotFoundException,
   Param, Post, Put, Query, UseGuards, ConflictException,
+  HttpCode, HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { LeadStage } from '@prisma/client';
+import { ArtifactType, LeadStage, LeadSource } from '@prisma/client';
+import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
+import { ServiceKeyService } from '../service-keys/service-key.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { IngestLeadDto } from './dto/ingest-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 
 @ApiTags('leads')
@@ -19,6 +23,7 @@ export class LeadsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageFolders: StorageFoldersService,
+    private readonly serviceKeys: ServiceKeyService,
   ) {}
 
   @Get()
@@ -94,6 +99,67 @@ export class LeadsController {
     return { deleted: true };
   }
 
+  /**
+   * Ingest a lead from the Donor Readiness Audit Lambda.
+   * Protected by x-webhook-secret header (AuditWebhookGuard).
+   * Deduplicates by normalized website domain — if a lead already exists for
+   * this domain, returns 200 with { duplicate: true, leadId } and does nothing.
+   */
+  @Post('ingest')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ServiceKeyGuard)
+  async ingest(@Body() dto: IngestLeadDto) {
+    const domain = this._normalizeDomain(dto.website);
+
+    // Dedup: check for any existing lead with the same website domain
+    const existing = await this.prisma.lead.findFirst({
+      where: { website: { contains: domain } },
+      select: { id: true, organization: true },
+    });
+    if (existing) {
+      return { duplicate: true, leadId: existing.id, organization: existing.organization };
+    }
+
+    const primaryContact = [dto.firstName, dto.lastName].filter(Boolean).join(' ') || undefined;
+    const auditDate = dto.auditDate ? new Date(dto.auditDate) : new Date();
+    const nextActionDate = new Date(auditDate);
+    nextActionDate.setDate(nextActionDate.getDate() + 3);
+
+    const lead = await this.prisma.lead.create({
+      data: {
+        organization: dto.organization,
+        website: dto.website,
+        email: dto.email,
+        primaryContact: primaryContact ?? undefined,
+        contactRole: dto.role,
+        source: LeadSource.INBOUND,
+        stage: LeadStage.DISCOVERY,
+        serviceInterests: dto.serviceInterests ?? [],
+        nextAction: 'Follow up on donor readiness audit',
+        nextActionDate,
+        lastContactDate: auditDate,
+        artifacts: {
+          create: [
+            // Source note — where this lead came from
+            {
+              type: ArtifactType.NOTE,
+              title: 'Lead Source',
+              content: `Created automatically from Donor Readiness Audit submission.\nAudit date: ${auditDate.toISOString().slice(0, 10)}\nWebsite audited: ${dto.website}`,
+            },
+            // Link to the audit PDF in S3
+            {
+              type: ArtifactType.LINK,
+              title: 'Donor Readiness Audit Report',
+              url: dto.auditReportKey,
+            },
+          ],
+        },
+      },
+    });
+
+    return { duplicate: false, leadId: lead.id, organization: lead.organization };
+  }
+
   /** Convert a lead to a Client. Creates the client record, links artifacts, marks lead as ACTIVE_CLIENT. */
   @Post(':id/convert')
   async convert(@Param('id') id: string, @Body() dto: ConvertLeadDto) {
@@ -133,5 +199,14 @@ export class LeadsController {
 
       return client;
     });
+  }
+
+  private _normalizeDomain(url: string): string {
+    try {
+      const full = url.startsWith('http') ? url : `https://${url}`;
+      return new URL(full).hostname.replace(/^www\./, '');
+    } catch {
+      return url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    }
   }
 }

@@ -247,6 +247,17 @@ model Invoice {
   @@index([status])
 }
 
+model ServiceKey {
+  id          String    @id @default(cuid())
+  name        String    // human label, e.g. "Donor Readiness Audit"
+  keyHash     String    @unique
+  keyPrefix   String    // masked display, e.g. "ubo_abcd...wxyz"
+  lastUsedAt  DateTime?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model InvoiceLineItem {
   id          String   @id @default(cuid())
   invoiceId   String
