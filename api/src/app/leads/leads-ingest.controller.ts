@@ -56,11 +56,11 @@ export class LeadsIngestController {
               title:   'Lead Source',
               content: `Created automatically from Donor Readiness Audit submission.\nAudit date: ${auditDate.toISOString().slice(0, 10)}\nWebsite audited: ${dto.website}`,
             },
-            {
+            ...(dto.auditReportUrl ? [{
               type:  ArtifactType.LINK,
               title: 'Donor Readiness Audit Report',
-              url:   `https://donor-readiness-audit-jobs.s3.amazonaws.com/${dto.auditReportKey}`,
-            },
+              url:   dto.auditReportUrl,
+            }] : []),
           ],
         },
       },
