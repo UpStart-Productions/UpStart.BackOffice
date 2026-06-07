@@ -59,7 +59,7 @@ export class LeadsIngestController {
             {
               type:  ArtifactType.LINK,
               title: 'Donor Readiness Audit Report',
-              url:   dto.auditReportKey,
+              url:   `https://donor-readiness-audit-jobs.s3.amazonaws.com/${dto.auditReportKey}`,
             },
           ],
         },
