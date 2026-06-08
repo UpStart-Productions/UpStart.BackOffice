@@ -10,14 +10,38 @@
 
     <div class="timesheet-controls">
       <div class="date-nav">
-        <div class="date-picker">
-          <button type="button" class="nav-btn" (click)="prevDay()" aria-label="Previous day">
-            ‹
+        <div class="date-picker-group">
+          <div class="date-picker">
+            <button type="button" class="nav-btn" (click)="prevDay()" aria-label="Previous day">
+              ‹
+            </button>
+            <span class="date-label">{{ dayHeading() }}</span>
+            <button type="button" class="nav-btn" (click)="nextDay()" aria-label="Next day">
+              ›
+            </button>
+          </div>
+          <button
+            type="button"
+            class="calendar-btn"
+            (click)="datePopover.toggle($event)"
+            aria-label="Jump to date"
+            aria-haspopup="dialog"
+          >
+            <i class="pi pi-calendar" aria-hidden="true"></i>
           </button>
-          <span class="date-label">{{ dayHeading() }}</span>
-          <button type="button" class="nav-btn" (click)="nextDay()" aria-label="Next day">
-            ›
-          </button>
+          <p-popover
+            #datePopover
+            appendTo="body"
+            styleClass="timesheet-date-popover"
+            [dismissable]="true"
+          >
+            <p-datepicker
+              [inline]="true"
+              [ngModel]="selectedDay()"
+              [defaultDate]="selectedDay()"
+              (onSelect)="jumpToDay($event, datePopover)"
+            />
+          </p-popover>
         </div>
         @if (!isSelectedToday()) {
           <button

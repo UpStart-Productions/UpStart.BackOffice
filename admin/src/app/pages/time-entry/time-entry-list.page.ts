@@ -8,8 +8,11 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
 import { ButtonModule } from 'primeng/button';
+import { DatePickerModule } from 'primeng/datepicker';
+import { Popover, PopoverModule } from 'primeng/popover';
 import { PageComponent } from '../../ui/layout/page.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
 import type { Project, TimeEntry } from './time-entry.types';
@@ -30,7 +33,14 @@ import {
 @Component({
   selector: 'app-time-entry-list-page',
   standalone: true,
-  imports: [ButtonModule, PageComponent, TimeEntryModalComponent],
+  imports: [
+    ButtonModule,
+    DatePickerModule,
+    FormsModule,
+    PageComponent,
+    PopoverModule,
+    TimeEntryModalComponent,
+  ],
   templateUrl: './time-entry-list.page.html',
   styleUrl: './time-entry-list.page.scss',
 })
@@ -182,6 +192,12 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   selectDay(d: Date) {
     this.selectedDay.set(new Date(d));
+    void this.loadWeekIfNeeded();
+  }
+
+  jumpToDay(date: Date, popover: Popover) {
+    this.selectedDay.set(new Date(date));
+    popover.hide();
     void this.loadWeekIfNeeded();
   }
 

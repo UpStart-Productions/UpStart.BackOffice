@@ -160,6 +160,9 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
                 type="button"
                 pButton
                 label="Start timer"
+                icon="pi pi-clock"
+                severity="success"
+                [outlined]="true"
                 [loading]="saving()"
                 [disabled]="!canSubmit() || saving()"
                 (click)="startTimer()"
