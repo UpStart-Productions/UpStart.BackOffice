@@ -53,7 +53,7 @@ export const adminGuard: CanActivateFn = async () => {
   const me = await session.getReady();
   if (me && isAdminRole(me.role)) return true;
 
-  router.navigate(['/time-entry']);
+  router.navigate(['/dashboard']);
   return false;
 };
 

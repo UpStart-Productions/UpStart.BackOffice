@@ -25,10 +25,10 @@ export const loginGuard: CanActivateFn = async () => {
 
   if (cognito.useCognito) {
     const token = await cognito.getIdToken();
-    if (token) { router.navigate(['/time-entry']); return false; }
+    if (token) { router.navigate(['/dashboard']); return false; }
     return true;
   }
 
-  if (auth.baseEmail) { router.navigate(['/time-entry']); return false; }
+  if (auth.baseEmail) { router.navigate(['/dashboard']); return false; }
   return true;
 };

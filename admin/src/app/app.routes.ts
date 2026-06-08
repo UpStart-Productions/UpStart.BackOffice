@@ -15,6 +15,11 @@ export const appRoutes: Route[] = [
     canActivate: [authGuard, sessionGuard],
     children: [
       {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage),
+      },
+      {
         path: 'time-entry',
         loadComponent: () =>
           import('./pages/time-entry/time-entry-list.page').then((m) => m.TimeEntryListPage),
@@ -96,8 +101,8 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/pipeline/lead-detail.page').then((m) => m.LeadDetailPage),
       },
-      { path: '', redirectTo: 'time-entry', pathMatch: 'full' },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },
-  { path: '**', redirectTo: 'time-entry', pathMatch: 'full' },
+  { path: '**', redirectTo: 'dashboard', pathMatch: 'full' },
 ];

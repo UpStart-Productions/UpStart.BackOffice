@@ -61,7 +61,7 @@ export class LoginPage implements OnInit {
       this.loading = true;
       try {
         await this.api.get('/users/me');
-        await this.router.navigate(['/time-entry']);
+        await this.router.navigate(['/dashboard']);
       } catch (err) {
         this.auth.clear();
         this.loginError =
@@ -185,7 +185,7 @@ export class LoginPage implements OnInit {
     if (email) this.auth.baseEmail = email;
     this.session.reset();
     await this.session.getReady();
-    await this.router.navigate(['/time-entry']);
+    await this.router.navigate(['/dashboard']);
   }
 
   private getAuthErrorMessage(err: unknown): string {

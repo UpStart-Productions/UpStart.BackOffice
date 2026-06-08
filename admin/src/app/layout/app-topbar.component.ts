@@ -19,7 +19,7 @@ import { LayoutService } from './layout.service';
         >
           <i class="pi pi-bars"></i>
         </button>
-        <a class="layout-topbar-logo" routerLink="/time-entry">
+        <a class="layout-topbar-logo" routerLink="/dashboard">
           <img
             src="/images/upstart-logo-dark.svg"
             alt="UpStart Back Office"

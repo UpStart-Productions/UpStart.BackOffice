@@ -1,0 +1,114 @@
+<app-page title="Dashboard" [skipTitle]="true">
+  @if (loading() && timeLoading() && pipelineLoading()) {
+    <p class="text-muted">Loading dashboard…</p>
+  } @else if (error()) {
+    <div class="card">
+      <div class="error-banner" role="alert">{{ error() }}</div>
+    </div>
+  } @else {
+    <div class="stat-cards mb-4">
+      <div class="stat-card stat-card--clients">
+        <small class="text-muted">Clients</small>
+        <h3 class="m-0">{{ clientsCount() }}</h3>
+      </div>
+      <div class="stat-card stat-card--projects">
+        <small class="text-muted">Active projects</small>
+        <h3 class="m-0">{{ projectsCount() }}</h3>
+      </div>
+      <div class="stat-card stat-card--hours">
+        <small class="text-muted">Hours this week</small>
+        <h3 class="m-0">{{ weekHoursLabel() }}</h3>
+      </div>
+      <div class="stat-card stat-card--leads">
+        <small class="text-muted">Open leads</small>
+        <h3 class="m-0">{{ openLeadsCount() }}</h3>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      @for (w of orderedWidgets(); track w.id) {
+        <div
+          class="dashboard-grid-slot"
+          [style.grid-column]="'span ' + w.span"
+          [style.grid-row]="w.height === 'tall' ? 'span 2' : null"
+          [pDroppable]="droppableScope"
+          (onDrop)="onWidgetDrop($event, w.id)"
+        >
+          <div
+            class="dashboard-grid-draggable"
+            [pDraggable]="w.id"
+            dragHandle=".dashboard-widget-drag-handle, .dashboard-widget-drag-handle i"
+          >
+            @switch (w.id) {
+              @case ('time-today') {
+                <app-dashboard-widget
+                  [title]="w.title"
+                  [icon]="w.icon"
+                  [iconColor]="w.iconColor"
+                  [span]="w.span"
+                  [height]="w.height"
+                  [showDragHandle]="true"
+                >
+                  <app-dashboard-time-today-widget
+                    [entries]="timeEntries()"
+                    [loading]="timeLoading()"
+                    [error]="timeError()"
+                    [tick]="tick()"
+                  />
+                </app-dashboard-widget>
+              }
+              @case ('pipeline') {
+                <app-dashboard-widget
+                  [title]="w.title"
+                  [icon]="w.icon"
+                  [iconColor]="w.iconColor"
+                  [span]="w.span"
+                  [height]="w.height"
+                  [showDragHandle]="true"
+                >
+                  <app-dashboard-pipeline-widget
+                    [leads]="leads()"
+                    [loading]="pipelineLoading()"
+                    [error]="pipelineError()"
+                  />
+                </app-dashboard-widget>
+              }
+              @case ('invoices') {
+                <app-dashboard-widget
+                  [title]="w.title"
+                  [icon]="w.icon"
+                  [iconColor]="w.iconColor"
+                  [span]="w.span"
+                  [height]="w.height"
+                  [showDragHandle]="true"
+                >
+                  <app-dashboard-invoices-widget
+                    [invoices]="invoices()"
+                    [loading]="invoicesLoading()"
+                    [error]="invoicesError()"
+                  />
+                </app-dashboard-widget>
+              }
+              @case ('projects') {
+                <app-dashboard-widget
+                  [title]="w.title"
+                  [icon]="w.icon"
+                  [iconColor]="w.iconColor"
+                  [span]="w.span"
+                  [height]="w.height"
+                  [showDragHandle]="true"
+                >
+                  <app-dashboard-projects-widget
+                    [projects]="projects()"
+                    [loading]="projectsLoading()"
+                    [error]="projectsError()"
+                  />
+                </app-dashboard-widget>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</app-page>

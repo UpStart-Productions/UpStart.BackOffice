@@ -164,3 +164,84 @@
   color: var(--brand-primary-hover);
   background: rgba(124, 58, 237, 0.06);
 }
+
+/* Dashboard: 3-column grid for widgets */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 300px;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-grid-slot {
+  min-height: 0;
+  min-width: 0;
+  border-radius: var(--content-border-radius);
+  transition: background-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-grid-slot.p-draggable-enter {
+  background-color: var(--color-severity-info-bg);
+  box-shadow: inset 0 0 0 2px var(--color-severity-info-text);
+}
+
+.dashboard-grid-draggable {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 5.5rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--content-border-radius);
+  border-left: 3px solid var(--brand-primary);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(45, 45, 45, 0.06);
+}
+
+.stat-card--clients {
+  border-left-color: var(--brand-primary);
+}
+
+.stat-card--projects {
+  border-left-color: var(--color-severity-info-text);
+}
+
+.stat-card--hours {
+  border-left-color: var(--brand-lime);
+}
+
+.stat-card--leads {
+  border-left-color: var(--color-severity-success-text);
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  background: #fdecea;
+  border: 1px solid #f5c6c6;
+  border-radius: 4px;
+  color: #a94442;
+  font-size: 13px;
+}
+
+@media (max-width: 991px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

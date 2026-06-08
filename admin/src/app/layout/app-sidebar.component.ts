@@ -24,7 +24,7 @@ export type NavItem =
                   <a
                     [routerLink]="item.route"
                     routerLinkActive="active-route"
-                    [routerLinkActiveOptions]="{ exact: item.route === '/time-entry' }"
+                    [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' || item.route === '/time-entry' }"
                     class="layout-menuitem-link"
                   >
                     <i class="pi layout-menuitem-icon {{ item.icon }}"></i>

@@ -35,6 +35,7 @@ export class ShellComponent implements OnInit {
 
   navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
+      { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
       { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
