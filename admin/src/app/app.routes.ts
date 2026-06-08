@@ -45,6 +45,11 @@ export const appRoutes: Route[] = [
           import('./pages/invoices/invoice-detail.page').then((m) => m.InvoiceDetailPage),
       },
       {
+        path: 'reports',
+        loadComponent: () =>
+          import('./pages/reports/reports.page').then((m) => m.ReportsPage),
+      },
+      {
         path: 'clients',
         loadComponent: () =>
           import('./pages/clients/clients-list.page').then((m) => m.ClientsListPage),

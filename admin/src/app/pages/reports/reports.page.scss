@@ -1,0 +1,84 @@
+.report-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.report-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.report-filter-field {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  margin-bottom: 0;
+}
+
+.report-range-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.report-date-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  input[type='date'] {
+    border: 1px solid var(--color-border);
+    border-radius: var(--content-border-radius);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    background: #fff;
+  }
+}
+
+.report-run-wrap {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.report-message {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.report-period-label {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+}
+
+.report-tabs {
+  margin-top: 0.5rem;
+}
+
+.report-empty {
+  margin: 1.5rem 0;
+}
+
+.report-stat-cards {
+  margin-bottom: 1.5rem;
+}
+
+.report-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.report-table {
+  margin-bottom: 1.5rem;
+}
+
+.report-section-title + .report-table:last-child {
+  margin-bottom: 0;
+}

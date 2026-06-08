@@ -41,6 +41,7 @@ export class ShellComponent implements OnInit {
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
+      { label: 'Reports', icon: 'pi-chart-line', route: '/reports' },
     ];
     if (isAdminRole(this.session.me()?.role ?? 'MEMBER')) {
       items.push({ divider: true });

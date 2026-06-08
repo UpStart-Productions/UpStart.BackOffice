@@ -1,0 +1,274 @@
+<app-page title="Reports" [skipTitle]="true">
+  <div class="card">
+    <h2 class="page-title page-title-in-card">Reports</h2>
+
+    <div class="report-filters">
+      <div class="report-filters-row">
+        <div class="form-field report-filter-field">
+          <label for="reportPeriodType">Period</label>
+          <p-select
+            inputId="reportPeriodType"
+            [options]="periodTypeOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filters.periodType"
+            styleClass="w-full"
+          />
+        </div>
+        <div class="form-field report-filter-field">
+          <label for="reportYear">Year</label>
+          <p-select
+            inputId="reportYear"
+            [options]="yearOptions"
+            [(ngModel)]="filters.year"
+            styleClass="w-full"
+          />
+        </div>
+        <div class="form-field report-filter-field">
+          @if (filters.periodType === 'month') {
+            <label for="reportMonth">Month</label>
+            <p-select
+              inputId="reportMonth"
+              [options]="months"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="filters.month"
+              styleClass="w-full"
+            />
+          } @else if (filters.periodType === 'quarter') {
+            <label for="reportQuarter">Quarter</label>
+            <p-select
+              inputId="reportQuarter"
+              [options]="quarters"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="filters.quarter"
+              styleClass="w-full"
+            />
+          } @else {
+            <span class="report-range-label" id="reportRangeLabel">Date range</span>
+            <div class="report-date-range" aria-labelledby="reportRangeLabel">
+              <input
+                id="reportFrom"
+                type="date"
+                [(ngModel)]="filters.from"
+                aria-label="From date"
+              />
+              <span class="text-muted">to</span>
+              <input id="reportTo" type="date" [(ngModel)]="filters.to" aria-label="To date" />
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="report-filters-row">
+        <div class="form-field report-filter-field">
+          <label for="reportClient">Client</label>
+          <p-select
+            inputId="reportClient"
+            [options]="clientOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filters.clientId"
+            styleClass="w-full"
+          />
+        </div>
+        @if (isAdmin()) {
+          <div class="form-field report-filter-field">
+            <label for="reportUser">User</label>
+            <p-select
+              inputId="reportUser"
+              [options]="userOptions()"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="filters.userId"
+              styleClass="w-full"
+            />
+          </div>
+        }
+        <div class="report-run-wrap">
+          <button
+            type="button"
+            pButton
+            label="Run report"
+            icon="pi pi-play"
+            [loading]="loading()"
+            (click)="runReport()"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    @if (error()) {
+      <p-message severity="error" [text]="error()!" class="report-message" />
+    }
+
+    @if (hasRun() && periodLabel()) {
+      <p class="report-period-label text-muted">Showing data for {{ periodLabel() }}</p>
+    }
+
+    <p-tabs [(value)]="activeTab" class="report-tabs">
+      <p-tablist>
+        <p-tab [value]="0">Time</p-tab>
+        <p-tab [value]="1">Invoices</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel [value]="0">
+          @if (!hasRun()) {
+            <p class="text-muted report-empty">Choose a period and run the report to see time data.</p>
+          } @else if (loading()) {
+            <p class="text-muted report-empty">Loading…</p>
+          } @else {
+            <div class="stat-cards report-stat-cards">
+              <div class="stat-card stat-card--hours">
+                <small class="text-muted">Total hours</small>
+                <h3 class="m-0">{{ formatMin(timeSummary().totalMin) }}</h3>
+              </div>
+              <div class="stat-card stat-card--projects">
+                <small class="text-muted">Billable</small>
+                <h3 class="m-0">{{ formatMin(timeSummary().billableMin) }}</h3>
+              </div>
+              <div class="stat-card stat-card--clients">
+                <small class="text-muted">Non-billable</small>
+                <h3 class="m-0">{{ formatMin(timeSummary().nonBillableMin) }}</h3>
+              </div>
+              <div class="stat-card stat-card--leads">
+                <small class="text-muted">Entries</small>
+                <h3 class="m-0">{{ timeSummary().entryCount }}</h3>
+              </div>
+            </div>
+
+            @if (timeByProject().length === 0) {
+              <p class="text-muted">No completed time entries in this period.</p>
+            } @else {
+              <h3 class="report-section-title">Hours by project</h3>
+              <p-table [value]="timeByProject()" styleClass="table-bordered report-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Client</th>
+                    <th>Project</th>
+                    <th class="text-right">Total</th>
+                    <th class="text-right">Billable</th>
+                    <th class="text-right">Non-billable</th>
+                    <th class="text-right">Entries</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                  <tr>
+                    <td>{{ row.clientName }}</td>
+                    <td>{{ row.projectName }}</td>
+                    <td class="text-right font-semibold">{{ formatMin(row.totalMin) }}</td>
+                    <td class="text-right">{{ formatMin(row.billableMin) }}</td>
+                    <td class="text-right">{{ formatMin(row.nonBillableMin) }}</td>
+                    <td class="text-right">{{ row.entryCount }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="footer">
+                  <tr>
+                    <td colspan="2" class="font-semibold">Total</td>
+                    <td class="text-right font-semibold">{{ formatMin(timeSummary().totalMin) }}</td>
+                    <td class="text-right font-semibold">{{ formatMin(timeSummary().billableMin) }}</td>
+                    <td class="text-right font-semibold">{{ formatMin(timeSummary().nonBillableMin) }}</td>
+                    <td class="text-right font-semibold">{{ timeSummary().entryCount }}</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            }
+          }
+        </p-tabpanel>
+
+        <p-tabpanel [value]="1">
+          @if (!hasRun()) {
+            <p class="text-muted report-empty">Choose a period and run the report to see invoice data.</p>
+          } @else if (loading()) {
+            <p class="text-muted report-empty">Loading…</p>
+          } @else {
+            <div class="stat-cards report-stat-cards">
+              <div class="stat-card stat-card--clients">
+                <small class="text-muted">Total invoiced</small>
+                <h3 class="m-0">{{ formatAmount(invoiceSummary().total) }}</h3>
+              </div>
+              <div class="stat-card stat-card--projects">
+                <small class="text-muted">Invoices</small>
+                <h3 class="m-0">{{ invoiceSummary().count }}</h3>
+              </div>
+              <div class="stat-card stat-card--hours">
+                <small class="text-muted">Paid</small>
+                <h3 class="m-0">{{ invoiceSummary().paid }}</h3>
+              </div>
+              <div class="stat-card stat-card--leads">
+                <small class="text-muted">Draft / Sent</small>
+                <h3 class="m-0">{{ invoiceSummary().draft }} / {{ invoiceSummary().sent }}</h3>
+              </div>
+            </div>
+
+            @if (invoicesByClient().length === 0) {
+              <p class="text-muted">No invoices with issue dates in this period.</p>
+            } @else {
+              <h3 class="report-section-title">Totals by client</h3>
+              <p-table [value]="invoicesByClient()" styleClass="table-bordered report-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Client</th>
+                    <th class="text-right">Invoices</th>
+                    <th class="text-right">Total</th>
+                    <th class="text-right">Paid</th>
+                    <th class="text-right">Sent</th>
+                    <th class="text-right">Draft</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                  <tr>
+                    <td>{{ row.clientName }}</td>
+                    <td class="text-right">{{ row.invoiceCount }}</td>
+                    <td class="text-right font-semibold">{{ formatAmount(row.total) }}</td>
+                    <td class="text-right">{{ formatAmount(row.paid) }}</td>
+                    <td class="text-right">{{ formatAmount(row.sent) }}</td>
+                    <td class="text-right">{{ formatAmount(row.draft) }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="footer">
+                  <tr>
+                    <td class="font-semibold">Total</td>
+                    <td class="text-right font-semibold">{{ invoiceSummary().count }}</td>
+                    <td class="text-right font-semibold">{{ formatAmount(invoiceSummary().total) }}</td>
+                    <td colspan="3"></td>
+                  </tr>
+                </ng-template>
+              </p-table>
+
+              <h3 class="report-section-title">Invoices in period</h3>
+              <p-table [value]="filteredInvoicesList()" styleClass="table-bordered report-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Number</th>
+                    <th>Client</th>
+                    <th>Issue date</th>
+                    <th class="text-right">Total</th>
+                    <th>Status</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-inv>
+                  <tr>
+                    <td>
+                      <a
+                        [routerLink]="inv.status === 'DRAFT' ? ['/invoices', inv.id, 'edit'] : ['/invoices', inv.id]"
+                        class="text-primary font-semibold"
+                      >{{ inv.displayNumber }}</a>
+                    </td>
+                    <td>{{ inv.client.name }}</td>
+                    <td>{{ formatDate(inv.issueDate) }}</td>
+                    <td class="text-right font-semibold">{{ formatAmount(inv.total) }}</td>
+                    <td>
+                      <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            }
+          }
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </div>
+</app-page>
