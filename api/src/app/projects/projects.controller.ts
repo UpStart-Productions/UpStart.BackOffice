@@ -44,6 +44,10 @@ export class ProjectsController {
         clientId: dto.clientId,
         name: dto.name,
         description: dto.description,
+        contactFirstName: dto.contactFirstName?.trim() || null,
+        contactLastName: dto.contactLastName?.trim() || null,
+        contactPhone: dto.contactPhone?.trim() || null,
+        contactEmail: dto.contactEmail?.trim() || null,
         hourlyRate: dto.hourlyRate,
         isBillable: dto.isBillable ?? true,
         isActive: dto.isActive ?? true,
@@ -79,6 +83,18 @@ export class ProjectsController {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.clientId !== undefined && { clientId: dto.clientId }),
         ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.contactFirstName !== undefined && {
+          contactFirstName: dto.contactFirstName?.trim() || null,
+        }),
+        ...(dto.contactLastName !== undefined && {
+          contactLastName: dto.contactLastName?.trim() || null,
+        }),
+        ...(dto.contactPhone !== undefined && {
+          contactPhone: dto.contactPhone?.trim() || null,
+        }),
+        ...(dto.contactEmail !== undefined && {
+          contactEmail: dto.contactEmail?.trim() || null,
+        }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),

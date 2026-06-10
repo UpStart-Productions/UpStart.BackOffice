@@ -172,6 +172,10 @@ model Project {
   clientId    String
   name        String
   description String?  @db.Text
+  contactFirstName String?
+  contactLastName  String?
+  contactPhone     String?
+  contactEmail     String?
   hourlyRate  Decimal? @db.Decimal(10, 2)
   isBillable  Boolean  @default(true)
   isActive    Boolean  @default(true)

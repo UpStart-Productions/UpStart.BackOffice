@@ -9,6 +9,8 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -28,6 +30,10 @@ type ProjectResponse = {
   clientId: string;
   name: string;
   description?: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
   hourlyRate?: number | null;
   isBillable: boolean;
   isActive: boolean;
@@ -52,6 +58,8 @@ type ProjectResponse = {
     TextareaModule,
     ToggleSwitchModule,
     SelectModule,
+    InputNumberModule,
+    AccordionModule,
     PageComponent,
     ArtifactsPanelComponent,
   ],
@@ -90,11 +98,17 @@ export class ProjectFormPage implements OnInit {
   readonly asanaLinked = computed(
     () => !!(this.asanaLink.projectGid && this.asanaLink.sectionGid),
   );
+  readonly manualTaskCount = computed(() => this.manualTasks().length);
+  readonly asanaTaskCount = computed(() => this.asanaTasks().length);
 
   form = {
     clientId: '',
     name: '',
     description: '',
+    contactFirstName: '',
+    contactLastName: '',
+    contactPhone: '',
+    contactEmail: '',
     hourlyRate: null as number | null,
     isBillable: true,
     isActive: true,
@@ -102,6 +116,13 @@ export class ProjectFormPage implements OnInit {
 
   get isNew() {
     return !this.id();
+  }
+
+  contactDisplayName(): string {
+    return [this.form.contactFirstName, this.form.contactLastName]
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(' ');
   }
 
   async ngOnInit() {
@@ -137,6 +158,10 @@ export class ProjectFormPage implements OnInit {
       clientId: project.clientId,
       name: project.name,
       description: project.description ?? '',
+      contactFirstName: project.contactFirstName ?? '',
+      contactLastName: project.contactLastName ?? '',
+      contactPhone: project.contactPhone ?? '',
+      contactEmail: project.contactEmail ?? '',
       hourlyRate: project.hourlyRate ?? null,
       isBillable: project.isBillable,
       isActive: project.isActive,
@@ -315,7 +340,7 @@ export class ProjectFormPage implements OnInit {
     this.error.set(null);
     try {
       await this.api.put(`/projects/${projectId}`, {
-        ...this.form,
+        ...this.projectPayload(),
         ...this.asanaLinkPayload(),
       });
       const project = await this.api.post<ProjectResponse>(`/projects/${projectId}/asana/sync`);
@@ -330,6 +355,22 @@ export class ProjectFormPage implements OnInit {
     } finally {
       this.syncingAsana.set(false);
     }
+  }
+
+  private projectPayload() {
+    const trim = (v: string) => v.trim() || undefined;
+    return {
+      clientId: this.form.clientId,
+      name: this.form.name,
+      description: trim(this.form.description),
+      contactFirstName: trim(this.form.contactFirstName),
+      contactLastName: trim(this.form.contactLastName),
+      contactPhone: trim(this.form.contactPhone),
+      contactEmail: trim(this.form.contactEmail),
+      hourlyRate: this.form.hourlyRate,
+      isBillable: this.form.isBillable,
+      isActive: this.form.isActive,
+    };
   }
 
   async save() {
@@ -362,17 +403,17 @@ export class ProjectFormPage implements OnInit {
       const asanaPayload = this.asanaLinkPayload();
 
       if (this.isNew) {
-        const created = await this.api.post<ProjectResponse>('/projects', this.form);
+        const created = await this.api.post<ProjectResponse>('/projects', this.projectPayload());
         projectId = created.id;
         if (asanaPayload.asanaSectionGid) {
           await this.api.put(`/projects/${projectId}`, {
-            ...this.form,
+            ...this.projectPayload(),
             ...asanaPayload,
           });
         }
       } else {
         await this.api.put(`/projects/${projectId}`, {
-          ...this.form,
+          ...this.projectPayload(),
           ...asanaPayload,
         });
       }

@@ -37,6 +37,10 @@ export type ProjectDto = {
   clientId: string;
   name: string;
   description?: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
   hourlyRate?: number | null;
   isBillable: boolean;
   isActive: boolean;

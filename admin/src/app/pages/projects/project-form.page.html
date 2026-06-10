@@ -49,99 +49,37 @@
             rows="3"
           ></textarea>
         </div>
-        <div class="form-field showcase-full">
+
+        <div class="form-field project-rate-row">
           <label for="hourlyRate">Hourly Rate (optional override)</label>
-          <input
-            pInputText
-            id="hourlyRate"
-            name="hourlyRate"
-            type="number"
-            [(ngModel)]="form.hourlyRate"
-            class="w-full"
-            placeholder="e.g. 150"
-          />
-        </div>
-        <div class="showcase-row">
-          <div class="flex align-items-center gap-2">
-            <p-toggleSwitch [(ngModel)]="form.isBillable" name="isBillable" />
-            <label>Billable</label>
-          </div>
-          <div class="flex align-items-center gap-2">
-            <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
-            <label>Active</label>
-          </div>
-        </div>
-
-        @if (!isNew && asanaConnected()) {
-          <div class="asana-section">
-            <div class="form-field">
-              <h3 class="showcase-section-title mb-1">Asana</h3>
-              <p class="text-color-secondary mt-0 mb-3 text-sm">
-                Link an Asana board and section. Only incomplete tasks from that section appear on timesheets.
-              </p>
-            </div>
-
-            <div class="showcase-flex-col">
-              <div class="form-field showcase-full">
-                <label for="asanaProject">Board</label>
-                <p-select
-                  inputId="asanaProject"
-                  [options]="asanaProjects()"
-                  optionLabel="name"
-                  optionValue="gid"
-                  [ngModel]="asanaLink.projectGid"
-                  (ngModelChange)="onAsanaProjectChange($event)"
-                  name="asanaProject"
-                  placeholder="Select Asana board"
-                  [loading]="loadingAsanaProjects()"
-                  [showClear]="true"
-                  styleClass="w-full"
-                />
+          <div class="project-rate-controls">
+            <p-inputNumber
+              inputId="hourlyRate"
+              name="hourlyRate"
+              [(ngModel)]="form.hourlyRate"
+              mode="decimal"
+              prefix="$"
+              locale="en-US"
+              [min]="0"
+              [minFractionDigits]="2"
+              [maxFractionDigits]="2"
+              styleClass="project-rate-input"
+              inputStyleClass="project-rate-input-field"
+            />
+            <div class="project-rate-toggles">
+              <div class="flex align-items-center gap-2">
+                <p-toggleSwitch [(ngModel)]="form.isBillable" name="isBillable" />
+                <label>Billable</label>
               </div>
-
-              @if (asanaLink.projectGid) {
-                <div class="form-field showcase-full">
-                  <label for="asanaSection">Section <span class="required-dot" aria-hidden="true"></span></label>
-                  <p-select
-                    inputId="asanaSection"
-                    [options]="asanaSections()"
-                    optionLabel="name"
-                    optionValue="gid"
-                    [(ngModel)]="asanaLink.sectionGid"
-                    name="asanaSection"
-                    placeholder="Select section"
-                    [loading]="loadingAsanaSections()"
-                    styleClass="w-full"
-                  />
-                  @if (asanaSectionsError()) {
-                    <p class="text-color-secondary text-sm mt-2 mb-0">{{ asanaSectionsError() }}</p>
-                  }
-                </div>
-              }
-
-              @if (asanaLinked()) {
-                <div class="flex flex-wrap gap-2 align-items-center">
-                  <button
-                    type="button"
-                    pButton
-                    label="Refresh from Asana"
-                    icon="pi pi-refresh"
-                    [loading]="syncingAsana()"
-                    (click)="refreshFromAsana()"
-                  ></button>
-                  <button
-                    type="button"
-                    pButton
-                    label="Unlink"
-                    severity="danger"
-                    [text]="true"
-                    (click)="confirmUnlinkAsana()"
-                  ></button>
-                </div>
-              }
+              <div class="flex align-items-center gap-2">
+                <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
+                <label>Active</label>
+              </div>
             </div>
           </div>
-        } @else if (!isNew && asanaStatus() && !asanaConnected()) {
+        </div>
+
+        @if (!isNew && asanaStatus() && !asanaConnected()) {
           <p-message
             severity="info"
             styleClass="w-full"
@@ -149,98 +87,255 @@
           />
         }
 
-        <div class="tasks-section">
-          <div class="form-field">
-            <h3 class="showcase-section-title mb-1">Manual tasks</h3>
-          <p class="text-color-secondary mt-0 mb-3 text-sm">
-            Billable and non-billable tasks for timesheet entries on this project.
-          </p>
-
-          <p-table [value]="manualTasks()" styleClass="table-bordered">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Task name</th>
-                <th style="width: 8rem">Billable</th>
-                <th style="width: 3rem"></th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-task let-rowIndex="rowIndex">
-              <tr>
-                <td>
+        <p-accordion class="project-sections-accordion" [multiple]="true">
+          <p-accordion-panel value="contact">
+            <p-accordion-header>
+              <span class="project-accordion-header">
+                <span class="project-accordion-title">Contact person</span>
+                @if (contactDisplayName()) {
+                  <span class="project-accordion-meta">{{ contactDisplayName() }}</span>
+                }
+              </span>
+            </p-accordion-header>
+            <p-accordion-content>
+              <div class="contact-fields">
+                <div class="form-field">
+                  <label for="contactFirstName">First name</label>
                   <input
                     pInputText
-                    [(ngModel)]="task.name"
-                    [name]="'task-name-' + rowIndex"
+                    id="contactFirstName"
+                    name="contactFirstName"
+                    [(ngModel)]="form.contactFirstName"
                     class="w-full"
-                    placeholder="e.g. Development"
                   />
-                </td>
-                <td>
-                  <p-toggleSwitch
-                    [(ngModel)]="task.isBillable"
-                    [name]="'task-billable-' + rowIndex"
+                </div>
+                <div class="form-field">
+                  <label for="contactLastName">Last name</label>
+                  <input
+                    pInputText
+                    id="contactLastName"
+                    name="contactLastName"
+                    [(ngModel)]="form.contactLastName"
+                    class="w-full"
                   />
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    pButton
-                    icon="pi pi-trash"
-                    severity="danger"
-                    [text]="true"
-                    (click)="removeTask(rowIndex)"
-                    aria-label="Remove task"
-                  ></button>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+                </div>
+                <div class="form-field">
+                  <label for="contactPhone">Phone</label>
+                  <input
+                    pInputText
+                    id="contactPhone"
+                    name="contactPhone"
+                    [(ngModel)]="form.contactPhone"
+                    class="w-full"
+                  />
+                </div>
+                <div class="form-field">
+                  <label for="contactEmail">Email</label>
+                  <input
+                    pInputText
+                    id="contactEmail"
+                    name="contactEmail"
+                    type="email"
+                    [(ngModel)]="form.contactEmail"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+            </p-accordion-content>
+          </p-accordion-panel>
 
-          <button
-            type="button"
-            pButton
-            label="+ Add task"
-            [text]="true"
-            severity="secondary"
-            class="mt-2 p-0"
-            (click)="addTask()"
-          ></button>
-          </div>
-        </div>
+          @if (!isNew && asanaConnected()) {
+            <p-accordion-panel value="asana">
+              <p-accordion-header>
+                <span class="project-accordion-header">
+                  <span class="project-accordion-title">Asana configuration</span>
+                  @if (asanaLinked()) {
+                    <i
+                      class="pi pi-check-circle project-accordion-check"
+                      aria-label="Configured"
+                    ></i>
+                  }
+                </span>
+              </p-accordion-header>
+              <p-accordion-content>
+                <p class="text-color-secondary mt-0 mb-3 text-sm">
+                  Link an Asana board and section. Only incomplete tasks from that section appear on timesheets.
+                </p>
 
-        @if (asanaTasks().length > 0) {
-          <div class="tasks-section">
-            <div class="form-field">
-              <h3 class="showcase-section-title mb-1">Asana tasks</h3>
+                <div class="showcase-flex-col">
+                  <div class="form-field showcase-full">
+                    <label for="asanaProject">Board</label>
+                    <p-select
+                      inputId="asanaProject"
+                      [options]="asanaProjects()"
+                      optionLabel="name"
+                      optionValue="gid"
+                      [ngModel]="asanaLink.projectGid"
+                      (ngModelChange)="onAsanaProjectChange($event)"
+                      name="asanaProject"
+                      placeholder="Select Asana board"
+                      [loading]="loadingAsanaProjects()"
+                      [showClear]="true"
+                      styleClass="w-full"
+                    />
+                  </div>
+
+                  @if (asanaLink.projectGid) {
+                    <div class="form-field showcase-full">
+                      <label for="asanaSection">Section <span class="required-dot" aria-hidden="true"></span></label>
+                      <p-select
+                        inputId="asanaSection"
+                        [options]="asanaSections()"
+                        optionLabel="name"
+                        optionValue="gid"
+                        [(ngModel)]="asanaLink.sectionGid"
+                        name="asanaSection"
+                        placeholder="Select section"
+                        [loading]="loadingAsanaSections()"
+                        styleClass="w-full"
+                      />
+                      @if (asanaSectionsError()) {
+                        <p class="text-color-secondary text-sm mt-2 mb-0">{{ asanaSectionsError() }}</p>
+                      }
+                    </div>
+                  }
+
+                  @if (asanaLinked()) {
+                    <div class="flex flex-wrap gap-2 align-items-center">
+                      <button
+                        type="button"
+                        pButton
+                        label="Refresh from Asana"
+                        icon="pi pi-refresh"
+                        [loading]="syncingAsana()"
+                        (click)="refreshFromAsana()"
+                      ></button>
+                      <button
+                        type="button"
+                        pButton
+                        label="Unlink"
+                        severity="danger"
+                        [text]="true"
+                        (click)="confirmUnlinkAsana()"
+                      ></button>
+                    </div>
+                  }
+                </div>
+              </p-accordion-content>
+            </p-accordion-panel>
+          }
+
+          <p-accordion-panel value="manual-tasks">
+            <p-accordion-header>
+              <span class="project-accordion-header">
+                <span class="project-accordion-title">Manual tasks</span>
+                <span class="project-accordion-meta">({{ manualTaskCount() }})</span>
+              </span>
+            </p-accordion-header>
+            <p-accordion-content>
               <p class="text-color-secondary mt-0 mb-3 text-sm">
-                Synced from {{ asanaProjectLabel() }} · {{ asanaSectionLabel() }}. Names are read-only.
+                Billable and non-billable tasks for timesheet entries on this project.
               </p>
 
-              <p-table [value]="asanaTasks()" styleClass="table-bordered">
+              <p-table [value]="manualTasks()" styleClass="table-bordered">
                 <ng-template pTemplate="header">
                   <tr>
                     <th>Task name</th>
                     <th style="width: 8rem">Billable</th>
+                    <th style="width: 3rem"></th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-task let-rowIndex="rowIndex">
                   <tr>
                     <td>
-                      <span>{{ task.name }}</span>
-                      <p-tag value="Asana" severity="info" class="ml-2" />
+                      <input
+                        pInputText
+                        [(ngModel)]="task.name"
+                        [name]="'task-name-' + rowIndex"
+                        class="w-full"
+                        placeholder="e.g. Development"
+                      />
                     </td>
                     <td>
                       <p-toggleSwitch
                         [(ngModel)]="task.isBillable"
-                        [name]="'asana-task-billable-' + rowIndex"
+                        [name]="'task-billable-' + rowIndex"
                       />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        pButton
+                        icon="pi pi-trash"
+                        severity="danger"
+                        [text]="true"
+                        (click)="removeTask(rowIndex)"
+                        aria-label="Remove task"
+                      ></button>
                     </td>
                   </tr>
                 </ng-template>
               </p-table>
-            </div>
-          </div>
-        }
+
+              <button
+                type="button"
+                pButton
+                label="+ Add task"
+                [text]="true"
+                severity="secondary"
+                class="mt-2 p-0"
+                (click)="addTask()"
+              ></button>
+            </p-accordion-content>
+          </p-accordion-panel>
+
+          @if (!isNew && asanaConnected()) {
+            <p-accordion-panel value="asana-tasks">
+              <p-accordion-header>
+                <span class="project-accordion-header">
+                  <span class="project-accordion-title">Asana tasks</span>
+                  <span class="project-accordion-meta">({{ asanaTaskCount() }})</span>
+                </span>
+              </p-accordion-header>
+              <p-accordion-content>
+                @if (asanaLinked()) {
+                  <p class="text-color-secondary mt-0 mb-3 text-sm">
+                    Synced from {{ asanaProjectLabel() }} · {{ asanaSectionLabel() }}. Names are read-only.
+                  </p>
+                } @else {
+                  <p class="text-color-secondary mt-0 mb-3 text-sm">
+                    Link a board and section in Asana configuration, then refresh to sync tasks.
+                  </p>
+                }
+
+                @if (asanaTasks().length > 0) {
+                  <p-table [value]="asanaTasks()" styleClass="table-bordered">
+                    <ng-template pTemplate="header">
+                      <tr>
+                        <th>Task name</th>
+                        <th style="width: 8rem">Billable</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-task let-rowIndex="rowIndex">
+                      <tr>
+                        <td>
+                          <span>{{ task.name }}</span>
+                          <p-tag value="Asana" severity="info" class="ml-2" />
+                        </td>
+                        <td>
+                          <p-toggleSwitch
+                            [(ngModel)]="task.isBillable"
+                            [name]="'asana-task-billable-' + rowIndex"
+                          />
+                        </td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                }
+              </p-accordion-content>
+            </p-accordion-panel>
+          }
+        </p-accordion>
       </div>
 
       <div class="form-actions">
