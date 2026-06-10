@@ -2,6 +2,27 @@
   margin-top: 0;
 }
 
+.invoice-form-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  .page-header-with-back {
+    margin-bottom: 0;
+    flex: 1 1 auto;
+  }
+}
+
+.invoice-form-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
 .invoice-period-row {
   display: flex;
   flex-wrap: wrap;

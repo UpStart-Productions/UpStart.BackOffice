@@ -60,6 +60,11 @@ enum ArtifactType {
   NOTE
 }
 
+enum ProjectTaskSource {
+  MANUAL
+  ASANA
+}
+
 model User {
   id         String   @id @default(cuid())
   email      String   @unique
@@ -170,6 +175,10 @@ model Project {
   hourlyRate  Decimal? @db.Decimal(10, 2)
   isBillable  Boolean  @default(true)
   isActive    Boolean  @default(true)
+  asanaProjectGid  String?
+  asanaProjectName String?
+  asanaSectionGid  String?
+  asanaSectionName String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -183,20 +192,40 @@ model Project {
 }
 
 model ProjectTask {
-  id         String   @id @default(cuid())
-  projectId  String
-  name       String
-  isBillable Boolean  @default(true)
-  sortOrder  Int      @default(0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String            @id @default(cuid())
+  projectId    String
+  name         String
+  source       ProjectTaskSource @default(MANUAL)
+  asanaTaskGid String?
+  isBillable   Boolean           @default(true)
+  sortOrder    Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   timeEntries TimeEntry[]
 
-  @@unique([projectId, name])
+  @@unique([projectId, asanaTaskGid])
   @@index([projectId])
+  @@index([projectId, source])
+}
+
+model AsanaIntegration {
+  id                         String    @id @default("default")
+  clientId                   String?
+  clientSecretEnc            String?
+  redirectUri                String?
+  accessTokenEnc             String?
+  refreshTokenEnc            String?
+  tokenExpiresAt             DateTime?
+  workspaceGid               String?
+  workspaceName              String?
+  connectedByEmail           String?
+  pendingOAuthState          String?
+  pendingOAuthStateExpiresAt DateTime?
+  connectedAt                DateTime?
+  updatedAt                  DateTime  @updatedAt
 }
 
 model TimeEntry {

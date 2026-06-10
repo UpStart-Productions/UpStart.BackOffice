@@ -53,6 +53,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   entries = signal<TimeEntry[]>([]);
   projects = signal<Project[]>([]);
+  asanaConnected = signal(false);
   loading = signal(true);
   error = signal<string | null>(null);
   saving = signal(false);
@@ -135,8 +136,17 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   }
 
   private async init() {
-    await this.loadProjects();
+    await Promise.all([this.loadProjects(), this.loadAsanaStatus()]);
     await this.loadWeek();
+  }
+
+  async loadAsanaStatus() {
+    try {
+      const status = await this.api.get<{ connected: boolean }>('/asana/status');
+      this.asanaConnected.set(status.connected);
+    } catch {
+      this.asanaConnected.set(false);
+    }
   }
 
   async loadProjects() {
@@ -262,6 +272,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     const result = await this.modal().open({
       day: this.selectedDay(),
       projects: this.projects(),
+      asanaConnected: this.asanaConnected(),
     });
     if (result !== 'cancelled') await this.loadWeek();
   }
@@ -270,6 +281,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     const result = await this.modal().open({
       day: this.selectedDay(),
       projects: this.projects(),
+      asanaConnected: this.asanaConnected(),
       entry,
     });
     if (result !== 'cancelled') await this.loadWeek();

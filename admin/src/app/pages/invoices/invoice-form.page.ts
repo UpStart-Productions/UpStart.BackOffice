@@ -103,6 +103,7 @@ export class InvoiceFormPage implements OnInit {
   displayNumber = signal<string | null>(null);
   loading = signal(true);
   saving = signal(false);
+  sending = signal(false);
   generating = signal(false);
   error = signal<string | null>(null);
   generateMessage = signal<string | null>(null);
@@ -370,5 +371,44 @@ export class InvoiceFormPage implements OnInit {
 
   formatCurrency(n: number): string {
     return '$' + n.toFixed(2);
+  }
+
+  async downloadPdf() {
+    const id = this.id();
+    const number = this.displayNumber();
+    if (!id || !number) return;
+    try {
+      await this.api.downloadPdf(`/invoices/${id}/pdf`, `${number}.pdf`);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'PDF download failed');
+    }
+  }
+
+  async sendToClient() {
+    const id = this.id();
+    const number = this.displayNumber();
+    if (!id || !number) return;
+    this.sending.set(true);
+    this.error.set(null);
+    try {
+      const result = await this.api.post<{ sent: boolean; error?: string }>(
+        `/invoices/${id}/send`,
+      );
+      if (result.sent) {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Invoice sent',
+          detail: `${number} was emailed to the client.`,
+          life: 6000,
+        });
+        await this.router.navigate(['/invoices', id]);
+      } else {
+        this.error.set(result.error ?? 'Send failed');
+      }
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Send failed');
+    } finally {
+      this.sending.set(false);
+    }
   }
 }

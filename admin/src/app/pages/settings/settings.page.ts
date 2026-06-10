@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
@@ -20,6 +21,21 @@ interface ServiceKey {
   isActive:   boolean;
   lastUsedAt: string | null;
   createdAt:  string;
+}
+
+interface AsanaStatus {
+  configured: boolean;
+  connected: boolean;
+  workspaceName?: string | null;
+  connectedByEmail?: string | null;
+  connectedAt?: string | null;
+}
+
+interface AsanaConfig {
+  clientId: string;
+  redirectUri: string;
+  hasClientSecret: boolean;
+  suggestedRedirectUri: string;
 }
 
 @Component({
@@ -69,11 +85,25 @@ export class SettingsPage implements OnInit {
   private readonly toast        = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly confirmation = inject(ConfirmationService);
+  private readonly route        = inject(ActivatedRoute);
+  private readonly router       = inject(Router);
 
   keys      = signal<ServiceKey[]>([]);
+  asana     = signal<AsanaStatus | null>(null);
   loading   = signal(true);
   error     = signal<string | null>(null);
   generating = signal(false);
+  asanaConnecting = signal(false);
+  asanaDisconnecting = signal(false);
+  asanaSavingConfig = signal(false);
+
+  asanaConfigForm = {
+    clientId: '',
+    clientSecret: '',
+    redirectUri: '',
+  };
+  asanaHasClientSecret = signal(false);
+  asanaSuggestedRedirectUri = signal('');
 
   showGenerateDialog = false;
   keyName   = '';
@@ -82,19 +112,154 @@ export class SettingsPage implements OnInit {
 
   ngOnInit() {
     void this.load();
+    void this.handleAsanaCallback();
+  }
+
+  private async handleAsanaCallback() {
+    const asana = this.route.snapshot.queryParamMap.get('asana');
+    if (!asana) return;
+    await this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { asana: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+    if (asana === 'connected') {
+      this.toast.add({
+        severity: 'success',
+        summary: 'Asana connected',
+        detail: 'Your Asana workspace is linked to Back Office.',
+        life: 5000,
+      });
+      await this.loadAsana();
+    } else if (asana === 'error') {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Asana connection failed',
+        detail: 'Could not connect Asana. Check your app credentials and try again.',
+        life: 6000,
+      });
+    }
   }
 
   async load() {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const keys = await this.api.get<ServiceKey[]>('/service-keys');
+      const [keys, asanaStatus, asanaConfig] = await Promise.all([
+        this.api.get<ServiceKey[]>('/service-keys'),
+        this.api.get<AsanaStatus>('/asana/status').catch(() => null),
+        this.api.get<AsanaConfig>('/asana/config').catch(() => null),
+      ]);
       this.keys.set(keys);
+      this.asana.set(asanaStatus);
+      this.applyAsanaConfig(asanaConfig);
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to load keys');
+      this.error.set(err instanceof Error ? err.message : 'Failed to load settings');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private applyAsanaConfig(config: AsanaConfig | null) {
+    if (!config) return;
+    this.asanaConfigForm = {
+      clientId: config.clientId,
+      clientSecret: '',
+      redirectUri: config.redirectUri,
+    };
+    this.asanaHasClientSecret.set(config.hasClientSecret);
+    this.asanaSuggestedRedirectUri.set(config.suggestedRedirectUri);
+  }
+
+  async saveAsanaConfig() {
+    const clientId = this.asanaConfigForm.clientId.trim();
+    const redirectUri = this.asanaConfigForm.redirectUri.trim();
+    const clientSecret = this.asanaConfigForm.clientSecret.trim();
+
+    if (!clientId || !redirectUri) {
+      this.error.set('Client ID and redirect URI are required');
+      return;
+    }
+    if (!clientSecret && !this.asanaHasClientSecret()) {
+      this.error.set('Client secret is required');
+      return;
+    }
+
+    this.asanaSavingConfig.set(true);
+    this.error.set(null);
+    try {
+      const config = await this.api.put<AsanaConfig>('/asana/config', {
+        clientId,
+        redirectUri,
+        ...(clientSecret ? { clientSecret } : {}),
+      });
+      this.applyAsanaConfig(config);
+      await this.loadAsana();
+      this.toast.add({
+        severity: 'success',
+        summary: 'Saved',
+        detail: 'Asana app credentials saved.',
+        life: 3000,
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to save Asana config');
+    } finally {
+      this.asanaSavingConfig.set(false);
+    }
+  }
+
+  useSuggestedRedirectUri() {
+    this.asanaConfigForm.redirectUri = this.asanaSuggestedRedirectUri();
+  }
+
+  async loadAsana() {
+    try {
+      const [asanaStatus, asanaConfig] = await Promise.all([
+        this.api.get<AsanaStatus>('/asana/status'),
+        this.api.get<AsanaConfig>('/asana/config'),
+      ]);
+      this.asana.set(asanaStatus);
+      this.applyAsanaConfig(asanaConfig);
+    } catch {
+      this.asana.set(null);
+    }
+  }
+
+  async connectAsana() {
+    this.asanaConnecting.set(true);
+    this.error.set(null);
+    try {
+      const result = await this.api.post<{ url: string }>('/asana/connect');
+      window.location.href = result.url;
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to start Asana connection');
+      this.asanaConnecting.set(false);
+    }
+  }
+
+  confirmDisconnectAsana() {
+    this.deleteConfirm.confirm({
+      header: 'Disconnect Asana',
+      message: 'Disconnect Asana from Back Office? Project links will stop syncing until you reconnect.',
+      accept: async () => {
+        this.asanaDisconnecting.set(true);
+        try {
+          await this.api.delete('/asana/disconnect');
+          await this.loadAsana();
+          this.toast.add({
+            severity: 'info',
+            summary: 'Asana disconnected',
+            detail: 'Asana has been disconnected.',
+            life: 4000,
+          });
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Failed to disconnect Asana');
+        } finally {
+          this.asanaDisconnecting.set(false);
+        }
+      },
+    });
   }
 
   openGenerate() {

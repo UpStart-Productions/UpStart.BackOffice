@@ -6,23 +6,42 @@
   } @else if (!loading()) {
     <div class="showcase-flex-col">
       <div class="card">
-        <div class="page-header-with-back">
-          <p-button
-            icon="pi pi-arrow-left"
-            [rounded]="true"
-            [text]="true"
-            severity="secondary"
-            type="button"
-            routerLink="/invoices"
-            aria-label="Back to Invoices"
-          />
-          <h2 class="page-title page-title-in-card mb-0">
-            @if (isNew) {
-              New Invoice
-            } @else {
-              Edit draft {{ displayNumber() }}
-            }
-          </h2>
+        <div class="invoice-form-header">
+          <div class="page-header-with-back">
+            <p-button
+              icon="pi pi-arrow-left"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              type="button"
+              routerLink="/invoices"
+              aria-label="Back to Invoices"
+            />
+            <h2 class="page-title page-title-in-card mb-0">
+              @if (isNew) {
+                New Invoice
+              } @else {
+                Edit draft {{ displayNumber() }}
+              }
+            </h2>
+          </div>
+          @if (isDraftEdit) {
+            <div class="invoice-form-header-actions">
+              <p-button
+                label="Download PDF"
+                icon="pi pi-download"
+                severity="secondary"
+                [outlined]="true"
+                (click)="downloadPdf()"
+              />
+              <p-button
+                label="Send to client"
+                icon="pi pi-send"
+                [loading]="sending()"
+                (click)="sendToClient()"
+              />
+            </div>
+          }
         </div>
 
         <div class="showcase-flex-col">

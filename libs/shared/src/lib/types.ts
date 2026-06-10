@@ -25,6 +25,8 @@ export type ProjectTaskDto = {
   id: string;
   projectId: string;
   name: string;
+  source?: 'MANUAL' | 'ASANA';
+  asanaTaskGid?: string | null;
   isBillable: boolean;
   sortOrder: number;
   isActive: boolean;
@@ -38,6 +40,10 @@ export type ProjectDto = {
   hourlyRate?: number | null;
   isBillable: boolean;
   isActive: boolean;
+  asanaProjectGid?: string | null;
+  asanaProjectName?: string | null;
+  asanaSectionGid?: string | null;
+  asanaSectionName?: string | null;
   client: { id: string; name: string; code: string };
   tasks?: ProjectTaskDto[];
 };

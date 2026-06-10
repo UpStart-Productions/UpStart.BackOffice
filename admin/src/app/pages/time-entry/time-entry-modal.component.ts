@@ -63,20 +63,38 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
           </div>
         </div>
 
-        @if (projectTasks().length > 0) {
+        @if (manualTasks().length > 0) {
           <div class="form-field">
             <label for="entry-task">Task</label>
             <select
               id="entry-task"
               class="task-select"
-              [ngModel]="taskId()"
-              (ngModelChange)="taskId.set($event)"
+              [ngModel]="manualTaskId()"
+              (ngModelChange)="onManualTaskChange($event)"
             >
-              <option value="" disabled>Select a task</option>
-              @for (t of projectTasks(); track t.id) {
+              <option value="">Select a task</option>
+              @for (t of manualTasks(); track t.id) {
                 <option [value]="t.id">
                   {{ t.name }} ({{ t.isBillable ? 'Billable' : 'Non-billable' }})
                 </option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (showAsanaTaskPicker()) {
+          <div class="form-field">
+            <label for="entry-asana-task">Asana task</label>
+            <select
+              id="entry-asana-task"
+              class="task-select"
+              [ngModel]="asanaTaskId()"
+              (ngModelChange)="onAsanaTaskChange($event)"
+              [disabled]="loadingAsanaNotes()"
+            >
+              <option value="">Select an Asana task</option>
+              @for (t of asanaTasks(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
               }
             </select>
           </div>
@@ -309,25 +327,47 @@ export class TimeEntryModalComponent {
   entryDay = signal(new Date());
   editingEntry = signal<TimeEntry | null>(null);
   projects = signal<Project[]>([]);
+  asanaConnected = signal(false);
 
   projectId = signal('');
-  taskId = signal('');
+  manualTaskId = signal('');
+  asanaTaskId = signal('');
   notes = signal('');
   durationInput = signal('');
   projectPickerOpen = signal(false);
   projectSearch = signal('');
+  loadingAsanaNotes = signal(false);
 
-  readonly projectTasks = computed(() => {
+  readonly selectedProject = computed(() => {
     const id = this.projectId();
-    const project = this.projects().find((p) => p.id === id);
-    return project?.tasks ?? [];
+    return this.projects().find((p) => p.id === id);
   });
 
-  readonly requiresTask = computed(() => this.projectTasks().length > 0);
+  readonly manualTasks = computed(() => {
+    const tasks = this.selectedProject()?.tasks ?? [];
+    return tasks.filter((t) => t.source !== 'ASANA');
+  });
+
+  readonly asanaTasks = computed(() => {
+    const tasks = this.selectedProject()?.tasks ?? [];
+    return tasks.filter((t) => t.source === 'ASANA');
+  });
+
+  readonly showAsanaTaskPicker = computed(
+    () => this.asanaConnected() && this.asanaTasks().length > 0,
+  );
+
+  readonly requiresTask = computed(
+    () => this.manualTasks().length > 0 || this.showAsanaTaskPicker(),
+  );
+
+  readonly hasSelectedTask = computed(
+    () => !!(this.manualTaskId() || this.asanaTaskId()),
+  );
 
   readonly canSubmit = computed(() => {
     if (!this.projectId()) return false;
-    if (this.requiresTask() && !this.taskId()) return false;
+    if (this.requiresTask() && !this.hasSelectedTask()) return false;
     return true;
   });
 
@@ -357,36 +397,58 @@ export class TimeEntryModalComponent {
   open(options: {
     day: Date;
     projects: Project[];
+    asanaConnected?: boolean;
     entry?: TimeEntry;
   }): Promise<TimeEntryModalResult> {
     return new Promise((resolve) => {
       this.resolve = resolve;
       this.projects.set(options.projects);
+      this.asanaConnected.set(options.asanaConnected ?? false);
       this.entryDay.set(new Date(options.day));
       this.editingEntry.set(options.entry ?? null);
       this.isEdit.set(!!options.entry);
       this.error.set(null);
       this.projectPickerOpen.set(false);
       this.projectSearch.set('');
+      this.loadingAsanaNotes.set(false);
 
       if (options.entry) {
         this.projectId.set(options.entry.project.id);
-        this.taskId.set(options.entry.projectTaskId ?? options.entry.projectTask?.id ?? '');
         this.notes.set(options.entry.description ?? '');
         this.durationInput.set(
           options.entry.durationMin != null
             ? formatDurationMin(options.entry.durationMin)
             : '',
         );
+        this.setTaskIdsFromEntry(options.entry);
       } else {
         this.projectId.set('');
-        this.taskId.set('');
+        this.manualTaskId.set('');
+        this.asanaTaskId.set('');
         this.notes.set('');
         this.durationInput.set('');
       }
 
       this.visible = true;
     });
+  }
+
+  private setTaskIdsFromEntry(entry: TimeEntry) {
+    const taskId = entry.projectTaskId ?? entry.projectTask?.id ?? '';
+    if (!taskId) {
+      this.manualTaskId.set('');
+      this.asanaTaskId.set('');
+      return;
+    }
+    const project = this.projects().find((p) => p.id === entry.project.id);
+    const task = project?.tasks?.find((t) => t.id === taskId);
+    if (task?.source === 'ASANA') {
+      this.asanaTaskId.set(taskId);
+      this.manualTaskId.set('');
+    } else {
+      this.manualTaskId.set(taskId);
+      this.asanaTaskId.set('');
+    }
   }
 
   projectLabel(): string {
@@ -404,8 +466,44 @@ export class TimeEntryModalComponent {
     this.projectId.set(p.id);
     this.projectPickerOpen.set(false);
     this.projectSearch.set('');
-    const tasks = p.tasks ?? [];
-    this.taskId.set(tasks.length === 1 ? tasks[0].id : '');
+    this.manualTaskId.set('');
+    this.asanaTaskId.set('');
+    const manual = (p.tasks ?? []).filter((t) => t.source !== 'ASANA');
+    if (manual.length === 1) {
+      this.manualTaskId.set(manual[0].id);
+    }
+  }
+
+  onManualTaskChange(taskId: string) {
+    this.manualTaskId.set(taskId);
+    if (taskId) this.asanaTaskId.set('');
+  }
+
+  async onAsanaTaskChange(taskId: string) {
+    this.asanaTaskId.set(taskId);
+    if (taskId) this.manualTaskId.set('');
+
+    if (!taskId) return;
+
+    const task = this.asanaTasks().find((t) => t.id === taskId);
+    if (!task?.asanaTaskGid) return;
+
+    this.loadingAsanaNotes.set(true);
+    try {
+      const result = await this.api.get<{ notes: string | null; permalinkUrl: string | null }>(
+        `/asana/tasks/${encodeURIComponent(task.asanaTaskGid)}/notes`,
+      );
+      const parts: string[] = [];
+      if (result.notes) parts.push(result.notes);
+      if (result.permalinkUrl) parts.push(result.permalinkUrl);
+      if (parts.length > 0) {
+        this.notes.set(parts.join('\n\n'));
+      }
+    } catch {
+      /* keep existing notes if Asana fetch fails */
+    } finally {
+      this.loadingAsanaNotes.set(false);
+    }
   }
 
   onDialogHide() {
@@ -425,12 +523,16 @@ export class TimeEntryModalComponent {
     return d;
   }
 
+  private selectedProjectTaskId(): string {
+    return this.asanaTaskId() || this.manualTaskId();
+  }
+
   private entryPayload(projectId: string) {
     const payload: Record<string, unknown> = {
       projectId,
       description: this.notes().trim() || undefined,
     };
-    const taskId = this.taskId();
+    const taskId = this.selectedProjectTaskId();
     if (taskId) payload['projectTaskId'] = taskId;
     return payload;
   }
@@ -441,8 +543,8 @@ export class TimeEntryModalComponent {
       this.error.set('Choose a project.');
       return;
     }
-    if (this.requiresTask() && !this.taskId()) {
-      this.error.set('Choose a task.');
+    if (this.requiresTask() && !this.hasSelectedTask()) {
+      this.error.set('Choose a task or Asana task.');
       return;
     }
 
@@ -504,8 +606,8 @@ export class TimeEntryModalComponent {
       this.error.set('Choose a project.');
       return;
     }
-    if (this.requiresTask() && !this.taskId()) {
-      this.error.set('Choose a task.');
+    if (this.requiresTask() && !this.hasSelectedTask()) {
+      this.error.set('Choose a task or Asana task.');
       return;
     }
 

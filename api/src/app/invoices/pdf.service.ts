@@ -94,6 +94,10 @@ export class PdfService {
   table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
   thead tr { background: #f5f3ff; }
   th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #5b21b6; border-bottom: 2px solid #ddd6fe; }
+  th.num { text-align: right; white-space: nowrap; }
+  th.col-qty, td.col-qty { width: 96px; min-width: 96px; white-space: nowrap; }
+  th.col-rate, td.col-rate { width: 80px; min-width: 80px; white-space: nowrap; }
+  th.col-amount, td.col-amount { width: 96px; min-width: 96px; white-space: nowrap; }
   td { padding: 10px 12px; border-bottom: 1px solid #eaeaea; vertical-align: top; }
   td.desc { white-space: pre-line; }
   .num { text-align: right; }
@@ -159,9 +163,9 @@ function buildProjectSections(lineItems: LineItem[]): string {
     <thead>
       <tr>
         <th>Description</th>
-        <th class="num">Qty / Hrs</th>
-        <th class="num">Rate</th>
-        <th class="num">Amount</th>
+        <th class="num col-qty">Qty / Hrs</th>
+        <th class="num col-rate">Rate</th>
+        <th class="num col-amount">Amount</th>
       </tr>
     </thead>`;
 
@@ -189,9 +193,9 @@ function buildProjectSections(lineItems: LineItem[]): string {
     const rows = group.items.map((item) => `
       <tr>
         <td class="desc">${escapeHtml(item.description)}</td>
-        <td class="num">${Number(item.quantity).toFixed(2)}</td>
-        <td class="num">${fmt(item.unitPrice)}</td>
-        <td class="num">${fmt(item.amount)}</td>
+        <td class="num col-qty">${Number(item.quantity).toFixed(2)}</td>
+        <td class="num col-rate">${fmt(item.unitPrice)}</td>
+        <td class="num col-amount">${fmt(item.amount)}</td>
       </tr>`).join('');
 
     const heading = group.projectId

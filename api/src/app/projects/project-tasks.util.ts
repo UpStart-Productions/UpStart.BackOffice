@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { ProjectTaskSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectTaskInputDto } from '../projects/dto/project-task.dto';
 
@@ -22,13 +23,16 @@ export async function syncProjectTasks(
   projectId: string,
   tasks: ProjectTaskInputDto[],
 ) {
-  const names = tasks.map((t) => t.name.trim().toLowerCase());
+  const manualTasks = tasks.map((t) => ({ ...t, name: t.name.trim() })).filter((t) => t.name);
+  const names = manualTasks.map((t) => t.name.toLowerCase());
   if (new Set(names).size !== names.length) {
-    throw new BadRequestException('Task names must be unique within a project');
+    throw new BadRequestException('Task names must be unique');
   }
 
-  const existing = await prisma.projectTask.findMany({ where: { projectId } });
-  const incomingIds = new Set(tasks.filter((t) => t.id).map((t) => t.id!));
+  const existing = await prisma.projectTask.findMany({
+    where: { projectId, source: ProjectTaskSource.MANUAL },
+  });
+  const incomingIds = new Set(manualTasks.filter((t) => t.id).map((t) => t.id!));
 
   for (const task of existing) {
     if (!incomingIds.has(task.id)) {
@@ -36,18 +40,14 @@ export async function syncProjectTasks(
     }
   }
 
-  for (let i = 0; i < tasks.length; i++) {
-    const task = tasks[i];
-    const name = task.name.trim();
-    if (!name) {
-      throw new BadRequestException('Task name is required');
-    }
-
+  for (let i = 0; i < manualTasks.length; i++) {
+    const task = manualTasks[i];
     const data = {
-      name,
+      name: task.name,
       isBillable: task.isBillable ?? true,
       sortOrder: task.sortOrder ?? i,
       isActive: task.isActive ?? true,
+      source: ProjectTaskSource.MANUAL,
     };
 
     if (task.id && existing.some((e) => e.id === task.id)) {

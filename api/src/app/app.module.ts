@@ -15,6 +15,7 @@ import { LeadsModule } from './leads/leads.module';
 import { PortalModule } from './portal/portal.module';
 import { ServiceKeysModule } from './service-keys/service-keys.module';
 import { ArtifactsModule } from './artifacts/artifacts.module';
+import { AsanaModule } from './asana/asana.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -37,6 +38,7 @@ import { HealthController } from './health.controller';
     ArtifactsModule,
     PortalModule,
     ServiceKeysModule,
+    AsanaModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -1,14 +1,16 @@
 import {
   Body, Controller, Delete, Get, NotFoundException, Param,
-  Post, Put, Query, UseGuards,
+  Patch, Post, Put, Query, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ProjectTaskSource } from '@prisma/client';
+import { AsanaSyncService } from '../asana/asana-sync.service';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { SyncProjectTasksDto } from './dto/project-task.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
+import { UpdateAsanaTaskBillablesDto, UpdateProjectDto } from './dto/update-project.dto';
 import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-tasks.util';
 
 @ApiTags('projects')
@@ -19,6 +21,7 @@ export class ProjectsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageFolders: StorageFoldersService,
+    private readonly asanaSync: AsanaSyncService,
   ) {}
 
   @Get()
@@ -65,7 +68,12 @@ export class ProjectsController {
   async update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
     const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Project not found');
-    return this.prisma.project.update({
+
+    const asanaLinkChanged =
+      (dto.asanaProjectGid !== undefined && dto.asanaProjectGid !== existing.asanaProjectGid) ||
+      (dto.asanaSectionGid !== undefined && dto.asanaSectionGid !== existing.asanaSectionGid);
+
+    const project = await this.prisma.project.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -74,7 +82,55 @@ export class ProjectsController {
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.asanaProjectGid !== undefined && { asanaProjectGid: dto.asanaProjectGid }),
+        ...(dto.asanaProjectName !== undefined && { asanaProjectName: dto.asanaProjectName }),
+        ...(dto.asanaSectionGid !== undefined && { asanaSectionGid: dto.asanaSectionGid }),
+        ...(dto.asanaSectionName !== undefined && { asanaSectionName: dto.asanaSectionName }),
       },
+      include: projectInclude,
+    });
+
+    if (asanaLinkChanged && project.asanaSectionGid) {
+      return this.asanaSync.syncProjectTasks(id);
+    }
+
+    if (
+      dto.asanaProjectGid === null ||
+      dto.asanaSectionGid === null
+    ) {
+      await this.prisma.projectTask.updateMany({
+        where: { projectId: id, source: ProjectTaskSource.ASANA },
+        data: { isActive: false },
+      });
+    }
+
+    return project;
+  }
+
+  @Post(':id/asana/sync')
+  async syncAsanaTasks(@Param('id') id: string) {
+    const existing = await this.prisma.project.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Project not found');
+    return this.asanaSync.syncProjectTasks(id);
+  }
+
+  @Patch(':id/asana-tasks')
+  async updateAsanaTaskBillables(
+    @Param('id') id: string,
+    @Body() dto: UpdateAsanaTaskBillablesDto,
+  ) {
+    const existing = await this.prisma.project.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Project not found');
+
+    for (const task of dto.tasks) {
+      await this.prisma.projectTask.updateMany({
+        where: { id: task.id, projectId: id, source: ProjectTaskSource.ASANA },
+        data: { isBillable: task.isBillable },
+      });
+    }
+
+    return this.prisma.project.findUnique({
+      where: { id },
       include: projectInclude,
     });
   }

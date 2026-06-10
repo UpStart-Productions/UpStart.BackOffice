@@ -2,6 +2,8 @@ export type ProjectTask = {
   id: string;
   projectId: string;
   name: string;
+  source?: 'MANUAL' | 'ASANA';
+  asanaTaskGid?: string | null;
   isBillable: boolean;
   sortOrder: number;
   isActive: boolean;
@@ -29,6 +31,7 @@ export type TimeEntry = {
 export type ProjectTaskDraft = {
   id?: string;
   name: string;
+  source?: 'MANUAL' | 'ASANA';
   isBillable: boolean;
   sortOrder: number;
   isActive: boolean;

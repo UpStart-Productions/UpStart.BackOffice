@@ -5,6 +5,114 @@
     </div>
   }
 
+  <div class="card mb-3">
+    <h2 class="page-title page-title-in-card">Asana</h2>
+    <p class="text-color-secondary mt-0 mb-3 text-sm">
+      In the Asana app under <strong>OAuth → Permission scopes</strong>: turn off Full permissions, then enable
+      <code>projects:read</code>, <code>tasks:read</code>, <code>users:read</code>, and <code>workspaces:read</code>.
+      Under <strong>Manage distribution</strong>, allow your workspace to use the app.
+    </p>
+
+    <div class="showcase-flex-col mb-4">
+      <div class="form-field showcase-full">
+        <label for="asanaClientId">Client ID</label>
+        <input
+          pInputText
+          id="asanaClientId"
+          class="w-full"
+          [(ngModel)]="asanaConfigForm.clientId"
+          name="asanaClientId"
+          autocomplete="off"
+        />
+      </div>
+      <div class="form-field showcase-full">
+        <label for="asanaClientSecret">Client secret</label>
+        <input
+          pInputText
+          id="asanaClientSecret"
+          type="password"
+          class="w-full"
+          [(ngModel)]="asanaConfigForm.clientSecret"
+          name="asanaClientSecret"
+          [placeholder]="asanaHasClientSecret() ? 'Leave blank to keep existing secret' : 'Required'"
+          autocomplete="new-password"
+        />
+      </div>
+      <div class="form-field showcase-full">
+        <label for="asanaRedirectUri">Redirect URI</label>
+        <input
+          pInputText
+          id="asanaRedirectUri"
+          class="w-full"
+          [(ngModel)]="asanaConfigForm.redirectUri"
+          name="asanaRedirectUri"
+          autocomplete="off"
+        />
+        @if (asanaSuggestedRedirectUri()) {
+          <p class="text-color-secondary text-sm mt-2 mb-0">
+            Add this exact URL in the Asana app:
+            <code class="text-sm">{{ asanaSuggestedRedirectUri() }}</code>
+            <button
+              type="button"
+              pButton
+              label="Use"
+              [text]="true"
+              class="p-0 ml-2"
+              (click)="useSuggestedRedirectUri()"
+            ></button>
+          </p>
+        }
+      </div>
+      <div>
+        <button
+          type="button"
+          pButton
+          label="Save credentials"
+          [loading]="asanaSavingConfig()"
+          (click)="saveAsanaConfig()"
+        ></button>
+      </div>
+    </div>
+
+    @if (asana(); as status) {
+      @if (status.connected) {
+        <div class="flex flex-column gap-2 mb-3">
+          <div><strong>Workspace:</strong> {{ status.workspaceName ?? '—' }}</div>
+          @if (status.connectedByEmail) {
+            <div><strong>Connected by:</strong> {{ status.connectedByEmail }}</div>
+          }
+          @if (status.connectedAt) {
+            <div><strong>Connected:</strong> {{ formatDate(status.connectedAt) }}</div>
+          }
+        </div>
+        <button
+          type="button"
+          pButton
+          label="Disconnect Asana"
+          severity="danger"
+          [outlined]="true"
+          [loading]="asanaDisconnecting()"
+          (click)="confirmDisconnectAsana()"
+        ></button>
+      } @else {
+        <button
+          type="button"
+          pButton
+          label="Connect Asana"
+          icon="pi pi-link"
+          [loading]="asanaConnecting()"
+          [disabled]="!status.configured"
+          (click)="connectAsana()"
+        ></button>
+        @if (!status.configured) {
+          <p class="text-color-secondary text-sm mt-2 mb-0">
+            Save your app credentials above before connecting.
+          </p>
+        }
+      }
+    }
+  </div>
+
   <div class="card">
     <h2 class="page-title page-title-in-card">API Keys</h2>
     <p class="text-color-secondary mt-0 mb-3">
