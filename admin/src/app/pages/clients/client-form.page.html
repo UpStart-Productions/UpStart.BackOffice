@@ -68,7 +68,17 @@
             <div class="showcase-row">
               <div class="form-field flex-1">
                 <label for="state">State</label>
-                <input pInputText id="state" name="state" [(ngModel)]="form.state" class="w-full" maxlength="2" />
+                <p-select
+                  inputId="state"
+                  name="state"
+                  [options]="usStates"
+                  optionLabel="name"
+                  optionValue="code"
+                  [(ngModel)]="form.state"
+                  placeholder="Select state"
+                  [showClear]="true"
+                  styleClass="w-full"
+                />
               </div>
               <div class="form-field flex-1">
                 <label for="zip">Zip</label>

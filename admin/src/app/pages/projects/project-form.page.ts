@@ -88,6 +88,8 @@ export class ProjectFormPage implements OnInit {
   loadingAsanaProjects = signal(false);
   loadingAsanaSections = signal(false);
   asanaSectionsError = signal<string | null>(null);
+  asanaSectionValidationError = signal<string | null>(null);
+  accordionOpenPanels: string[] = [];
 
   asanaLink = {
     projectGid: null as string | null,
@@ -266,8 +268,22 @@ export class ProjectFormPage implements OnInit {
     this.asanaLink.sectionGid = null;
     this.asanaSections.set([]);
     this.asanaSectionsError.set(null);
+    this.asanaSectionValidationError.set(null);
     if (projectGid) {
       await this.loadAsanaSections(projectGid);
+    }
+  }
+
+  onAsanaSectionChange(sectionGid: string | null) {
+    this.asanaLink.sectionGid = sectionGid;
+    if (sectionGid) {
+      this.asanaSectionValidationError.set(null);
+    }
+  }
+
+  private openAccordionPanel(panel: string) {
+    if (!this.accordionOpenPanels.includes(panel)) {
+      this.accordionOpenPanels = [...this.accordionOpenPanels, panel];
     }
   }
 
@@ -380,9 +396,11 @@ export class ProjectFormPage implements OnInit {
     }
 
     if (this.asanaLink.projectGid && !this.asanaLink.sectionGid) {
-      this.error.set('Select an Asana section when a board is linked');
+      this.asanaSectionValidationError.set('Select an Asana section when a board is linked');
+      this.openAccordionPanel('asana');
       return;
     }
+    this.asanaSectionValidationError.set(null);
 
     const taskDrafts = this.manualTasks()
       .map((t) => ({ ...t, name: t.name.trim() }))

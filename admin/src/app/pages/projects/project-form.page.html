@@ -87,7 +87,11 @@
           />
         }
 
-        <p-accordion class="project-sections-accordion" [multiple]="true">
+        <p-accordion
+          class="project-sections-accordion"
+          [multiple]="true"
+          [(value)]="accordionOpenPanels"
+        >
           <p-accordion-panel value="contact">
             <p-accordion-header>
               <span class="project-accordion-header">
@@ -188,12 +192,20 @@
                         [options]="asanaSections()"
                         optionLabel="name"
                         optionValue="gid"
-                        [(ngModel)]="asanaLink.sectionGid"
+                        [ngModel]="asanaLink.sectionGid"
+                        (ngModelChange)="onAsanaSectionChange($event)"
                         name="asanaSection"
                         placeholder="Select section"
                         [loading]="loadingAsanaSections()"
                         styleClass="w-full"
                       />
+                      @if (asanaSectionValidationError()) {
+                        <p-message
+                          severity="error"
+                          [text]="asanaSectionValidationError()!"
+                          styleClass="mt-2 mb-0 w-full"
+                        />
+                      }
                       @if (asanaSectionsError()) {
                         <p class="text-color-secondary text-sm mt-2 mb-0">{{ asanaSectionsError() }}</p>
                       }

@@ -8,12 +8,14 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import type { ClientDto } from '@upstart/back-office/shared';
+import { US_STATES } from '@upstart/back-office/shared';
 
 type ClientProject = {
   id: string;
@@ -48,6 +50,7 @@ type ClientForm = {
     MessageModule,
     TextareaModule,
     ToggleSwitchModule,
+    SelectModule,
     TableModule,
     TagModule,
     PageComponent,
@@ -62,6 +65,8 @@ export class ClientFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+
+  readonly usStates = US_STATES;
 
   id = signal<string | null>(null);
   loading = signal(true);
