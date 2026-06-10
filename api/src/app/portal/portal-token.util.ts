@@ -9,7 +9,9 @@ export function portalBaseUrl(): string {
 }
 
 export function buildPortalUrl(token: string): string {
-  return `${portalBaseUrl()}/${token}`;
+  const base = portalBaseUrl();
+  const params = new URLSearchParams({ token });
+  return `${base}?${params.toString()}`;
 }
 
 export function readRequestCookie(cookieHeader: string | undefined, name: string): string | undefined {

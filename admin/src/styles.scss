@@ -102,13 +102,43 @@ body {
   flex-direction: column;
   align-items: stretch;
   gap: 0.35rem;
+  background: var(--surface-card, #fff);
 }
 .artifact-item-info { display: flex; flex-direction: column; gap: 0.1rem; }
 .artifact-item-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
 .artifact-item-heading { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 .artifact-title { font-weight: 500; font-size: 0.9rem; }
 .artifact-meta { font-size: 0.75rem; color: var(--text-color-secondary); }
-.artifact-note-content { font-size: 0.85rem; color: var(--text-color-secondary); white-space: pre-wrap; margin: 0; }
+.artifact-note-content {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text-color, #2d2d2d);
+  white-space: pre-wrap;
+  margin: 0;
+
+  p,
+  li,
+  ol,
+  ul {
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+
+  &.ql-editor {
+    padding: 0;
+    height: auto;
+    overflow: visible;
+  }
+}
 .artifact-empty { font-size: 0.85rem; color: var(--text-color-secondary); margin: 0; }
 .artifact-add-row { margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .artifact-add-form { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
@@ -132,7 +162,7 @@ body {
   background: var(--surface-ground);
   transition: box-shadow 0.15s;
   &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  &:hover .artifact-card-delete { opacity: 1; }
+  &:hover .artifact-card-actions { opacity: 1; }
 }
 .artifact-file-card-inner {
   display: flex;
@@ -140,6 +170,9 @@ body {
   text-decoration: none;
   color: inherit;
   height: 100%;
+  &--clickable {
+    cursor: pointer;
+  }
 }
 .artifact-file-thumb {
   width: 100%;
@@ -235,7 +268,21 @@ body {
   text-overflow: ellipsis;
 }
 
-// Shared delete button — hidden until card hovered
+// Shared card action buttons — hidden until card hovered
+.artifact-card-actions {
+  position: absolute;
+  top: 4px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 1;
+}
+.artifact-card-action {
+  background: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(2px);
+}
 .artifact-card-delete {
   position: absolute;
   top: 4px;

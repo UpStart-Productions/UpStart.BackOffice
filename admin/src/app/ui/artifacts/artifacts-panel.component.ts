@@ -7,6 +7,7 @@ import { TabsModule } from 'primeng/tabs';
 import { MessageModule } from 'primeng/message';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 
 type Artifact = {
   id: string;
@@ -65,15 +66,41 @@ const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
             <div class="artifact-card-grid">
               @for (a of files(); track a.id) {
                 <div class="artifact-file-card">
-                  <button
-                    class="artifact-card-delete"
-                    pButton icon="pi pi-trash"
-                    [rounded]="true" [text]="true" severity="danger" size="small"
-                    (click)="deleteArtifact(a)"
-                  ></button>
-                  <a [href]="fileHref(a)" target="_blank" class="artifact-file-card-inner">
+                  <div class="artifact-card-actions">
+                    <button
+                      class="artifact-card-action"
+                      pButton
+                      icon="pi pi-download"
+                      [rounded]="true"
+                      [text]="true"
+                      severity="secondary"
+                      size="small"
+                      [attr.aria-label]="'Download ' + a.title"
+                      (click)="downloadFile(a, $event)"
+                    ></button>
+                    <button
+                      class="artifact-card-action"
+                      pButton
+                      icon="pi pi-trash"
+                      [rounded]="true"
+                      [text]="true"
+                      severity="danger"
+                      size="small"
+                      [attr.aria-label]="'Delete ' + a.title"
+                      (click)="deleteArtifact(a, $event)"
+                    ></button>
+                  </div>
+                  <div
+                    class="artifact-file-card-inner"
+                    [class.artifact-file-card-inner--clickable]="isBrowserViewable(a)"
+                    [attr.role]="isBrowserViewable(a) ? 'button' : null"
+                    [attr.tabindex]="isBrowserViewable(a) ? 0 : null"
+                    (click)="openFile(a)"
+                    (keydown.enter)="openFile(a)"
+                    (keydown.space)="openFile(a); $event.preventDefault()"
+                  >
                     @if (isImage(a)) {
-                      <img [src]="fileHref(a)" [alt]="a.title" class="artifact-file-thumb" />
+                      <img [src]="fileUrl(a)" [alt]="a.title" class="artifact-file-thumb" />
                     } @else {
                       <div class="artifact-file-icon-wrap">
                         <i class="pi {{ fileIcon(a) }} artifact-file-icon"></i>
@@ -84,7 +111,7 @@ const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
                       <div class="artifact-file-name">{{ a.title }}</div>
                       <time class="artifact-meta">{{ formatCreatedDate(a.createdAt) }}</time>
                     </div>
-                  </a>
+                  </div>
                 </div>
               }
               @if (files().length === 0) {
@@ -217,8 +244,47 @@ export class ArtifactsPanelComponent {
     return RASTER_EXTENSIONS.has(ext);
   }
 
-  fileHref(a: Artifact): string {
-    return `/api/uploads/${a.fileUrl}`;
+  isPdf(a: Artifact): boolean {
+    const mime = a.mimeType ?? '';
+    const ext = this.fileExtension(a);
+    return mime === 'application/pdf' || ext === 'pdf';
+  }
+
+  isBrowserViewable(a: Artifact): boolean {
+    return this.isImage(a) || this.isPdf(a);
+  }
+
+  fileUrl(a: Artifact): string {
+    if (!a.fileUrl) return '';
+    return resolveAssetUrl(`/api/uploads/${a.fileUrl}`) ?? '';
+  }
+
+  openFile(a: Artifact) {
+    if (!this.isBrowserViewable(a)) return;
+    const url = this.fileUrl(a);
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  async downloadFile(a: Artifact, event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
+    const url = this.fileUrl(a);
+    if (!url) return;
+
+    this.error.set(null);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = a.title;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Download failed');
+    }
   }
 
   fileExt(a: Artifact): string {
@@ -339,7 +405,9 @@ export class ArtifactsPanelComponent {
     }
   }
 
-  async deleteArtifact(a: Artifact) {
+  async deleteArtifact(a: Artifact, event?: Event) {
+    event?.stopPropagation();
+    event?.preventDefault();
     try {
       await this.api.delete(`/artifacts/${a.id}`);
       await this.load();

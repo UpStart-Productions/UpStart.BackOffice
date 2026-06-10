@@ -19,6 +19,7 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.35rem;
+    background: var(--surface-card, #fff);
   }
 }
 
@@ -45,10 +46,28 @@
 }
 
 .artifact-note-content {
-  font-size: 0.85rem;
-  color: var(--text-color-secondary);
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--text-color, #2d2d2d);
   white-space: pre-wrap;
   margin: 0;
+
+  p,
+  li,
+  ol,
+  ul {
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .artifact-empty {
