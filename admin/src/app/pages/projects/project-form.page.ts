@@ -8,6 +8,7 @@ import { TableModule } from 'primeng/table';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
@@ -52,6 +53,7 @@ export class ProjectFormPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toast = inject(MessageService);
 
   id = signal<string | null>(null);
   loading = signal(true);
@@ -108,6 +110,8 @@ export class ProjectFormPage implements OnInit {
       }
     } else {
       this.tasks.set(this.defaultTasks());
+      const clientId = this.route.snapshot.queryParamMap.get('clientId');
+      if (clientId) this.form.clientId = clientId;
     }
     this.loading.set(false);
   }
@@ -171,7 +175,21 @@ export class ProjectFormPage implements OnInit {
         })),
       });
 
-      this.router.navigate(['/projects']);
+      if (this.isNew) {
+        this.id.set(projectId);
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Project created successfully.',
+        });
+        await this.router.navigate(['/projects', projectId], { replaceUrl: true });
+      } else {
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Project saved successfully.',
+        });
+      }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
     } finally {

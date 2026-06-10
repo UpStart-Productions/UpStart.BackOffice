@@ -6,12 +6,22 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import type { ClientDto } from '@upstart/back-office/shared';
+
+type ClientProject = {
+  id: string;
+  name: string;
+  isBillable: boolean;
+  isActive: boolean;
+  hourlyRate?: number | null;
+};
 
 type ClientForm = {
   name: string;
@@ -38,6 +48,8 @@ type ClientForm = {
     MessageModule,
     TextareaModule,
     ToggleSwitchModule,
+    TableModule,
+    TagModule,
     PageComponent,
     ArtifactsPanelComponent,
   ],
@@ -58,6 +70,8 @@ export class ClientFormPage implements OnInit {
   error = signal<string | null>(null);
   portalEnabled = signal(false);
   portalUrl = signal<string | null>(null);
+  projects = signal<ClientProject[]>([]);
+  projectsLoading = signal(false);
 
   form: ClientForm = {
     name: '',
@@ -127,11 +141,27 @@ export class ClientFormPage implements OnInit {
         const client = await this.api.get<ClientDto>(`/clients/${id}`);
         this.patchForm(client);
         this.applyPortal(client);
+        await this.loadProjects();
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load client');
       }
     }
     this.loading.set(false);
+  }
+
+  private async loadProjects() {
+    const clientId = this.id();
+    if (!clientId) return;
+
+    this.projectsLoading.set(true);
+    try {
+      const data = await this.api.get<ClientProject[]>(`/projects?clientId=${clientId}`);
+      this.projects.set(data);
+    } catch {
+      this.projects.set([]);
+    } finally {
+      this.projectsLoading.set(false);
+    }
   }
 
   async save() {
@@ -144,11 +174,21 @@ export class ClientFormPage implements OnInit {
     try {
       const payload = this.buildPayload();
       if (this.isNew) {
-        await this.api.post('/clients', payload);
+        const created = await this.api.post<ClientDto>('/clients', payload);
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Client created successfully.',
+        });
+        await this.router.navigate(['/clients', created.id], { replaceUrl: true });
       } else {
         await this.api.put(`/clients/${this.id()}`, payload);
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Client saved successfully.',
+        });
       }
-      this.router.navigate(['/clients']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
     } finally {

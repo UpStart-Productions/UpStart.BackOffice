@@ -155,6 +155,55 @@
     </form>
 
     @if (!isNew) {
+      <div class="card">
+        <div class="projects-header">
+          <h3 class="text-lg font-semibold mb-0">Projects</h3>
+          <a
+            pButton
+            label="New Project"
+            icon="pi pi-plus"
+            [routerLink]="['/projects/new']"
+            [queryParams]="{ clientId: id() }"
+          ></a>
+        </div>
+        <p-table [value]="projects()" [loading]="projectsLoading()" styleClass="table-bordered">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Name</th>
+              <th>Rate</th>
+              <th>Billable</th>
+              <th>Status</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-project>
+            <tr>
+              <td>
+                <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
+              </td>
+              <td>{{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : '—' }}</td>
+              <td>
+                <i
+                  class="pi"
+                  [class.pi-check-circle]="project.isBillable"
+                  [class.pi-circle]="!project.isBillable"
+                ></i>
+              </td>
+              <td>
+                <p-tag
+                  [value]="project.isActive ? 'Active' : 'Inactive'"
+                  [severity]="project.isActive ? 'success' : 'secondary'"
+                />
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center p-4 text-color-secondary">No projects yet.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
       <app-artifacts-panel [clientId]="id()!" />
     }
   }

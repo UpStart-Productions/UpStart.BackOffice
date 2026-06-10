@@ -8,6 +8,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
@@ -60,6 +61,7 @@ export class LeadDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toast = inject(MessageService);
 
   id = signal<string | null>(null);
   loading = signal(true);
@@ -170,9 +172,19 @@ export class LeadDetailPage implements OnInit {
     try {
       if (this.isNew) {
         const lead = await this.api.post<{ id: string }>('/leads', this.buildPayload());
-        this.router.navigate(['/pipeline', lead.id]);
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Lead created successfully.',
+        });
+        await this.router.navigate(['/pipeline', lead.id], { replaceUrl: true });
       } else {
         await this.api.put(`/leads/${this.id()}`, this.buildPayload());
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Lead saved successfully.',
+        });
       }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');

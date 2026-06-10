@@ -7,6 +7,7 @@ import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
@@ -91,6 +92,7 @@ const QUARTERS = [
 })
 export class InvoiceFormPage implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly toast = inject(MessageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -334,7 +336,7 @@ export class InvoiceFormPage implements OnInit {
       }));
 
       if (this.isNew) {
-        await this.api.post('/invoices', {
+        const created = await this.api.post<{ id: string }>('/invoices', {
           clientId: this.form.clientId,
           issueDate: this.form.issueDate,
           dueDate: this.form.dueDate || undefined,
@@ -342,6 +344,12 @@ export class InvoiceFormPage implements OnInit {
           taxRate: this.form.taxRate || undefined,
           lineItems,
         });
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Invoice created successfully.',
+        });
+        await this.router.navigate(['/invoices', created.id, 'edit'], { replaceUrl: true });
       } else {
         await this.api.put(`/invoices/${this.id()}`, {
           notes: this.form.notes,
@@ -349,8 +357,12 @@ export class InvoiceFormPage implements OnInit {
           taxRate: this.form.taxRate ?? undefined,
           lineItems,
         });
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: 'Invoice saved successfully.',
+        });
       }
-      this.router.navigate(['/invoices']);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
     } finally { this.saving.set(false); }

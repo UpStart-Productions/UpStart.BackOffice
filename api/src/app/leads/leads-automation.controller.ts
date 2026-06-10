@@ -10,6 +10,25 @@ import { AutomationNoteDto } from './dto/automation-note.dto';
 const OFFICE_BASE_URL = 'https://office.heyupstart.com';
 
 /**
+ * The admin NOTE editor (ngx-quill) renders artifact.content as raw HTML
+ * via [innerHTML] with the ql-editor class — it does NOT parse Quill Delta
+ * JSON. Convert plain-text research notes into Quill-compatible HTML:
+ * blank-line-separated blocks become <p> paragraphs, single newlines
+ * within a block become <br>.
+ */
+function plainTextToQuillHtml(text: string): string {
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  return text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter((block) => block.length > 0)
+    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+/**
  * Narrow, read/append-only endpoints for the weekly pipeline-outreach
  * automation (and similar service-to-service jobs). Guarded by
  * ServiceKeyGuard (x-api-key) — deliberately separate from the
@@ -72,9 +91,7 @@ export class LeadsAutomationController {
     const pickedDate = dto.pickedDate ? new Date(dto.pickedDate) : new Date();
     const title = dto.title ?? `Research Note - ${pickedDate.toISOString().slice(0, 10)}`;
 
-    // Quill-compatible delta: a single text insert preserves line breaks
-    // and renders as plain paragraphs in the admin NOTE editor.
-    const delta = JSON.stringify({ ops: [{ insert: `${dto.content}\n` }] });
+    const html = plainTextToQuillHtml(dto.content);
 
     const [artifact, updatedLead] = await this.prisma.$transaction([
       this.prisma.artifact.create({
@@ -82,7 +99,7 @@ export class LeadsAutomationController {
           leadId: id,
           type: ArtifactType.NOTE,
           title,
-          content: delta,
+          content: html,
         },
       }),
       this.prisma.lead.update({
