@@ -10,6 +10,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import {
   ProjectTaskDraft,
   SUGGESTED_PROJECT_TASKS,
@@ -42,6 +43,7 @@ type ProjectResponse = {
     ToggleSwitchModule,
     SelectModule,
     PageComponent,
+    ArtifactsPanelComponent,
   ],
   templateUrl: './project-form.page.html',
   styleUrl: './project-form.page.scss',

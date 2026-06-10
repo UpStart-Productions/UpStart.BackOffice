@@ -38,6 +38,31 @@ interface ServiceKey {
     RowActionsMenuComponent,
   ],
   templateUrl: './settings.page.html',
+  styles: [
+    `
+      .api-key-row {
+        display: flex;
+        align-items: stretch;
+        gap: 0.5rem;
+      }
+
+      .api-key-value {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: block;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--color-border);
+        border-radius: var(--content-border-radius);
+        background: var(--color-background);
+        font-size: 0.875rem;
+        word-break: break-all;
+      }
+
+      .api-key-row .p-button {
+        flex-shrink: 0;
+      }
+    `,
+  ],
 })
 export class SettingsPage implements OnInit {
   private readonly api          = inject(ApiService);
@@ -101,6 +126,10 @@ export class SettingsPage implements OnInit {
     if (!key) return;
     void navigator.clipboard.writeText(key);
     this.toast.add({ severity: 'success', summary: 'Copied', detail: 'Key copied to clipboard', life: 2000 });
+  }
+
+  closeGenerateDialog() {
+    this.showGenerateDialog = false;
   }
 
   onDialogHide() {

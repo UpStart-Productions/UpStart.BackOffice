@@ -11,12 +11,21 @@ const DEFAULT_MAX_AGE_DAYS = 90;
 
 @Injectable()
 export class PortalSessionService {
+  private warnedMissingSecret = false;
+
   private get secret(): string {
-    const secret =
-      process.env.PORTAL_SESSION_SECRET?.trim() ||
+    const configured = process.env.PORTAL_SESSION_SECRET?.trim();
+    if (!configured && process.env.NODE_ENV === 'production' && !this.warnedMissingSecret) {
+      this.warnedMissingSecret = true;
+      console.warn(
+        'PORTAL_SESSION_SECRET is not set — portal sessions are using an insecure fallback. Set PORTAL_SESSION_SECRET in production.',
+      );
+    }
+    return (
+      configured ||
       process.env.COGNITO_CLIENT_ID?.trim() ||
-      'dev-portal-session-secret';
-    return secret;
+      'dev-portal-session-secret'
+    );
   }
 
   private get maxAgeMs(): number {

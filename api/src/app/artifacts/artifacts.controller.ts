@@ -15,15 +15,22 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { projectRootPrefix } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateArtifactDto } from './dto/create-artifact.dto';
 import { UpdateArtifactDto } from './dto/update-artifact.dto';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
+
+type ArtifactParent = {
+  leadId?: string;
+  clientId?: string;
+  projectId?: string;
+};
 
 @ApiTags('artifacts')
 @ApiBearerAuth()
@@ -36,24 +43,31 @@ export class ArtifactsController {
   ) {}
 
   @Get()
-  async list(@Query('leadId') leadId?: string, @Query('clientId') clientId?: string) {
-    if (!leadId && !clientId) throw new BadRequestException('leadId or clientId required');
+  @ApiQuery({ name: 'leadId', required: false })
+  @ApiQuery({ name: 'clientId', required: false })
+  @ApiQuery({ name: 'projectId', required: false })
+  async list(
+    @Query('leadId') leadId?: string,
+    @Query('clientId') clientId?: string,
+    @Query('projectId') projectId?: string,
+  ) {
+    const parent = this.resolveParent({ leadId, clientId, projectId });
     return this.prisma.artifact.findMany({
-      where: {
-        ...(leadId ? { leadId } : {}),
-        ...(clientId && !leadId ? { clientId } : {}),
-      },
+      where: parent,
       orderBy: { createdAt: 'desc' },
     });
   }
 
   @Post()
   async create(@Body() dto: CreateArtifactDto) {
-    if (!dto.leadId && !dto.clientId) throw new BadRequestException('leadId or clientId required');
+    const parent = this.resolveParent({
+      leadId: dto.leadId,
+      clientId: dto.clientId,
+      projectId: dto.projectId,
+    });
     return this.prisma.artifact.create({
       data: {
-        leadId: dto.leadId,
-        clientId: dto.clientId,
+        ...parent,
         type: dto.type,
         title: dto.title,
         fileUrl: dto.fileUrl,
@@ -73,11 +87,12 @@ export class ArtifactsController {
     @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string; size: number },
     @Query('leadId') leadId?: string,
     @Query('clientId') clientId?: string,
+    @Query('projectId') projectId?: string,
   ) {
-    if (!leadId && !clientId) throw new BadRequestException('leadId or clientId required');
+    const parent = this.resolveParent({ leadId, clientId, projectId });
     if (!file) throw new BadRequestException('file is required');
 
-    const folder = leadId ? `leads/${leadId}` : `clients/${clientId}`;
+    const folder = await this.uploadFolder(parent);
     const ext = extname(file.originalname);
     const key = `${folder}/artifacts/${randomUUID()}${ext}`;
 
@@ -85,8 +100,7 @@ export class ArtifactsController {
 
     return this.prisma.artifact.create({
       data: {
-        leadId,
-        clientId,
+        ...parent,
         type: 'FILE',
         title: file.originalname,
         fileUrl: key,
@@ -119,5 +133,24 @@ export class ArtifactsController {
     }
     await this.prisma.artifact.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  private resolveParent(parent: ArtifactParent): ArtifactParent {
+    const keys = (['leadId', 'clientId', 'projectId'] as const).filter((key) => parent[key]);
+    if (keys.length !== 1) {
+      throw new BadRequestException('Exactly one of leadId, clientId, or projectId required');
+    }
+    return { [keys[0]]: parent[keys[0]] };
+  }
+
+  private async uploadFolder(parent: ArtifactParent): Promise<string> {
+    if (parent.leadId) return `leads/${parent.leadId}`;
+    if (parent.clientId) return `clients/${parent.clientId}`;
+    if (parent.projectId) {
+      const project = await this.prisma.project.findUnique({ where: { id: parent.projectId } });
+      if (!project) throw new NotFoundException('Project not found');
+      return projectRootPrefix(project.clientId, parent.projectId);
+    }
+    throw new BadRequestException('Exactly one of leadId, clientId, or projectId required');
   }
 }

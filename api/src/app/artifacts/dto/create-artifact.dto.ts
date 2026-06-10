@@ -5,6 +5,7 @@ import { IsEnum, IsInt, IsOptional, IsString, IsUrl } from 'class-validator';
 export class CreateArtifactDto {
   @ApiPropertyOptional() @IsString() @IsOptional() leadId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() projectId?: string;
 
   @ApiProperty({ enum: ArtifactType }) @IsEnum(ArtifactType) type!: ArtifactType;
   @ApiProperty() @IsString() title!: string;

@@ -52,7 +52,6 @@
   </div>
 </app-page>
 
-<!-- Generate Key Dialog -->
 <p-dialog
   header="Generate API Key"
   [(visible)]="showGenerateDialog"
@@ -61,7 +60,6 @@
   (onHide)="onDialogHide()"
 >
   @if (!newKey()) {
-    <!-- Step 1: name entry -->
     <div class="form-field pt-2">
       <label for="keyName">Service Name</label>
       <input
@@ -73,21 +71,21 @@
         (keydown.enter)="generate()"
       />
     </div>
-    <ng-template pTemplate="footer">
-      <button pButton label="Cancel" class="p-button-text" (click)="showGenerateDialog = false"></button>
-      <button
-        pButton label="Generate"
-        [disabled]="!keyName.trim() || generating()"
-        [loading]="generating()"
-        (click)="generate()"
-      ></button>
-    </ng-template>
   } @else {
-    <!-- Step 2: display key once -->
     <div class="pt-2 w-full">
       <div class="form-field mb-3">
         <label class="font-semibold">{{ newKeyName() }}</label>
-        <code class="w-full block p-2 surface-100 border-round text-sm" style="word-break: break-all;">{{ newKey() }}</code>
+        <div class="api-key-row">
+          <code class="api-key-value">{{ newKey() }}</code>
+          <button
+            type="button"
+            pButton
+            icon="pi pi-copy"
+            severity="secondary"
+            aria-label="Copy API key"
+            (click)="copyKey()"
+          ></button>
+        </div>
       </div>
       <p-message
         severity="warn"
@@ -95,9 +93,33 @@
         text="Copy this key now — it will not be shown again."
       />
     </div>
-    <ng-template pTemplate="footer">
-      <button pButton label="Copy" icon="pi pi-copy" class="p-button-text" (click)="copyKey()"></button>
-      <button pButton label="Done" (click)="showGenerateDialog = false"></button>
-    </ng-template>
   }
+
+  <ng-template pTemplate="footer">
+    @if (!newKey()) {
+      <button
+        type="button"
+        pButton
+        label="Cancel"
+        severity="secondary"
+        [text]="true"
+        (click)="showGenerateDialog = false"
+      ></button>
+      <button
+        type="button"
+        pButton
+        label="Generate"
+        [disabled]="!keyName.trim() || generating()"
+        [loading]="generating()"
+        (click)="generate()"
+      ></button>
+    } @else {
+      <button
+        type="button"
+        pButton
+        label="Close"
+        (click)="closeGenerateDialog()"
+      ></button>
+    }
+  </ng-template>
 </p-dialog>

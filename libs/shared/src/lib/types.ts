@@ -152,9 +152,22 @@ export type PortalInvoiceDto = {
   }[];
 };
 
+export type PortalArtifactDto = {
+  id: string;
+  type: 'FILE' | 'LINK' | 'NOTE';
+  title: string;
+  fileSize?: number | null;
+  mimeType?: string | null;
+  url?: string | null;
+  content?: string | null;
+  createdAt: string;
+};
+
 export type PortalProjectDto = {
   id: string;
   name: string;
   description?: string | null;
   isBillable: boolean;
+  artifacts: PortalArtifactDto[];
+  invoices: PortalInvoiceDto[];
 };

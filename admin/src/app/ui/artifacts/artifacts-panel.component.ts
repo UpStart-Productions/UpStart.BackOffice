@@ -1,4 +1,4 @@
-import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { Component, effect, inject, input, signal, untracked } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -170,12 +170,21 @@ const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
     </div>
   `,
 })
-export class ArtifactsPanelComponent implements OnInit {
+export class ArtifactsPanelComponent {
   private readonly api = inject(ApiService);
   private readonly sanitizer = inject(DomSanitizer);
 
   leadId = input<string | undefined>(undefined);
   clientId = input<string | undefined>(undefined);
+  projectId = input<string | undefined>(undefined);
+
+  constructor() {
+    effect(() => {
+      const param = this.queryParam;
+      if (!param) return;
+      untracked(() => void this.load());
+    });
+  }
 
   artifacts = signal<Artifact[]>([]);
   error = signal<string | null>(null);
@@ -244,14 +253,18 @@ export class ArtifactsPanelComponent implements OnInit {
     return 'pi-file';
   }
 
-  async ngOnInit() {
-    await this.load();
-  }
-
   private get queryParam() {
     if (this.leadId()) return `leadId=${this.leadId()}`;
+    if (this.projectId()) return `projectId=${this.projectId()}`;
     if (this.clientId()) return `clientId=${this.clientId()}`;
     return '';
+  }
+
+  private get parentPayload() {
+    if (this.leadId()) return { leadId: this.leadId() };
+    if (this.projectId()) return { projectId: this.projectId() };
+    if (this.clientId()) return { clientId: this.clientId() };
+    return {};
   }
 
   async load() {
@@ -273,7 +286,7 @@ export class ArtifactsPanelComponent implements OnInit {
     this.uploadProgress.set(files.map(f => ({ name: f.name, done: false })));
     this.error.set(null);
 
-    const param = this.leadId() ? `leadId=${this.leadId()}` : `clientId=${this.clientId()}`;
+    const param = this.queryParam;
 
     for (const file of files) {
       try {
@@ -296,7 +309,7 @@ export class ArtifactsPanelComponent implements OnInit {
     if (!this.newLinkTitle || !this.newLinkUrl) return;
     try {
       await this.api.post('/artifacts', {
-        ...(this.leadId() ? { leadId: this.leadId() } : { clientId: this.clientId() }),
+        ...this.parentPayload,
         type: 'LINK',
         title: this.newLinkTitle,
         url: this.newLinkUrl,
@@ -313,7 +326,7 @@ export class ArtifactsPanelComponent implements OnInit {
     if (!this.newNoteTitle || !this.newNoteContent) return;
     try {
       await this.api.post('/artifacts', {
-        ...(this.leadId() ? { leadId: this.leadId() } : { clientId: this.clientId() }),
+        ...this.parentPayload,
         type: 'NOTE',
         title: this.newNoteTitle,
         content: this.newNoteContent,

@@ -137,5 +137,9 @@
         <button pButton type="submit" label="Save" [loading]="saving()"></button>
       </div>
     </form>
+
+    @if (!isNew) {
+      <app-artifacts-panel [projectId]="id()!" />
+    }
   }
 </app-page>

@@ -132,11 +132,12 @@ model Lead {
 }
 
 model Artifact {
-  id       String       @id @default(cuid())
-  leadId   String?
-  clientId String?
-  type     ArtifactType
-  title    String
+  id        String       @id @default(cuid())
+  leadId    String?
+  clientId  String?
+  projectId String?
+  type      ArtifactType
+  title     String
 
   // FILE
   fileUrl  String?
@@ -152,11 +153,13 @@ model Artifact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  client  Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
   @@index([clientId])
+  @@index([projectId])
 }
 
 model Project {
@@ -174,6 +177,7 @@ model Project {
   tasks            ProjectTask[]
   timeEntries      TimeEntry[]
   invoiceLineItems InvoiceLineItem[]
+  artifacts        Artifact[]
 
   @@index([clientId])
 }
