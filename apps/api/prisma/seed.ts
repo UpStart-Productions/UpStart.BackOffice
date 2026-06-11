@@ -40,13 +40,18 @@ async function main() {
   });
   console.log(`User: ${jeff.email}`);
 
-  await prisma.bookingSettings.upsert({
-    where: { id: 'default' },
-    update: { hostUserId: jeff.id, bufferMin: 0 },
+  await prisma.bookingType.upsert({
+    where: { slug: 'upstart-discovery' },
+    update: { hostUserId: jeff.id },
     create: {
-      id: 'default',
+      id: 'bt_upstart_discovery',
+      slug: 'upstart-discovery',
+      name: 'UpStart Discovery Chat',
+      brand: 'UpStart',
       hostUserId: jeff.id,
       publicPageUrl: 'http://localhost:4321/book-discovery-chat',
+      calendarEventTitle: 'Discovery Chat with UpStart Productions',
+      pipelineNoteTitle: 'Discovery call',
       availabilityRules: {
         create: [
           { dayOfWeek: 2, startMinute: 9 * 60, endMinute: 12 * 60 },
@@ -57,7 +62,7 @@ async function main() {
       },
     },
   });
-  console.log('Booking settings seeded (Tue/Thu 9am–5pm Pacific)');
+  console.log('Booking type seeded (upstart-discovery, Tue/Thu 9am–5pm Pacific)');
 
   const client = await prisma.client.upsert({
     where: { code: 'SMPL' },

@@ -8,8 +8,8 @@ import {
 import {
   ArtifactType,
   Booking,
-  BookingSettings,
   BookingStatus,
+  BookingType,
   LeadSource,
   LeadStage,
   Prisma,
@@ -25,18 +25,25 @@ import {
   generateSlotsForRange,
 } from './booking-slots.util';
 import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingSettingsDto } from './dto/update-booking-settings.dto';
+import { UpsertBookingTypeDto } from './dto/upsert-booking-type.dto';
 import {
   normalizeWebsiteDomain,
   normalizeWebsiteForStorage,
 } from '../leads/lead-website.util';
 
-const SETTINGS_ID = 'default';
-const EVENT_TITLE = 'Discovery Chat with UpStart Productions';
-const DEFAULT_PUBLIC_PAGE_URL = 'https://heyupstart.com/book-discovery-chat';
+export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
+
+type BookingTypeWithRules = BookingType & {
+  availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
+  host: { email: string; name: string | null; firstName: string | null };
+};
 
 function normalizePublicPageUrl(url: string): string {
   return url.trim().replace(/\/$/, '');
+}
+
+function normalizeSlug(slug: string): string {
+  return slug.trim().toLowerCase();
 }
 
 @Injectable()
@@ -49,18 +56,30 @@ export class BookingService {
     private readonly googleCalendar: GoogleCalendarService,
   ) {}
 
-  async getPublicMeta() {
-    const settings = await this.ensureSettings();
+  async getPublicMeta(slug: string = DEFAULT_BOOKING_SLUG) {
+    const type = await this.requireActiveType(slug);
     return {
-      durationMin: settings.durationMin,
-      timezone: settings.timezone,
-      maxDaysAhead: settings.maxDaysAhead,
-      hostName: settings.host.name ?? settings.host.firstName ?? 'UpStart',
+      slug: type.slug,
+      name: type.name,
+      brand: type.brand,
+      durationMin: type.durationMin,
+      timezone: type.timezone,
+      maxDaysAhead: type.maxDaysAhead,
+      hostName: type.host.name ?? type.host.firstName ?? 'UpStart',
+      isBillable: type.isBillable,
+      priceCents: type.priceCents,
+      currency: type.currency,
+      paymentRequired: type.paymentRequired,
     };
   }
 
-  async getSlots(fromIso: string, toIso: string, guestTimezone?: string) {
-    const settings = await this.ensureSettings();
+  async getSlots(
+    slug: string,
+    fromIso: string,
+    toIso: string,
+    guestTimezone?: string,
+  ) {
+    const type = await this.requireActiveType(slug);
     const from = parseISO(fromIso);
     const to = parseISO(toIso);
     if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from >= to) {
@@ -75,26 +94,27 @@ export class BookingService {
       select: { startAt: true, endAt: true },
     });
 
-    const calendarBusy = await this.googleCalendar.getBusyWindows(from, to, settings.timezone);
+    const calendarBusy = await this.googleCalendar.getBusyWindows(from, to, type.timezone);
     const blocked = [...booked, ...calendarBusy];
 
     const slots = generateSlotsForRange({
       from,
       to,
-      timeZone: settings.timezone,
-      rules: settings.availabilityRules,
-      durationMin: settings.durationMin,
-      minNoticeHours: settings.minNoticeHours,
-      maxDaysAhead: settings.maxDaysAhead,
+      timeZone: type.timezone,
+      rules: type.availabilityRules,
+      durationMin: type.durationMin,
+      minNoticeHours: type.minNoticeHours,
+      maxDaysAhead: type.maxDaysAhead,
       booked: blocked,
     });
 
-    const displayTz = guestTimezone?.trim() || settings.timezone;
+    const displayTz = guestTimezone?.trim() || type.timezone;
 
     return {
-      timezone: settings.timezone,
+      slug: type.slug,
+      timezone: type.timezone,
       displayTimezone: displayTz,
-      durationMin: settings.durationMin,
+      durationMin: type.durationMin,
       slots: slots.map((s) => ({
         startAt: s.startAt.toISOString(),
         endAt: s.endAt.toISOString(),
@@ -104,17 +124,27 @@ export class BookingService {
     };
   }
 
-  async createBooking(dto: CreateBookingDto) {
-    const settings = await this.ensureSettings();
+  async createBooking(slug: string, dto: CreateBookingDto) {
+    const type = await this.requireActiveType(slug);
+
+    if (type.paymentRequired) {
+      throw new BadRequestException('This booking type requires payment (not yet supported)');
+    }
+
     const startAt = parseISO(dto.startAt);
     if (Number.isNaN(startAt.getTime())) {
       throw new BadRequestException('Invalid startAt');
     }
-    const endAt = new Date(startAt.getTime() + settings.durationMin * 60_000);
+    const endAt = new Date(startAt.getTime() + type.durationMin * 60_000);
 
     const dayStart = addDays(startAt, -1);
     const dayEnd = addDays(startAt, 1);
-    const { slots } = await this.getSlots(dayStart.toISOString(), dayEnd.toISOString(), dto.guestTimezone);
+    const { slots } = await this.getSlots(
+      slug,
+      dayStart.toISOString(),
+      dayEnd.toISOString(),
+      dto.guestTimezone,
+    );
     const valid = slots.some((s) => s.startAt === startAt.toISOString());
     if (!valid) {
       throw new BadRequestException('That time is no longer available');
@@ -126,10 +156,13 @@ export class BookingService {
       });
       if (conflict) throw new ConflictException('That time was just booked');
 
-      const lead = await this.upsertLead(tx, dto, startAt);
+      const lead = type.createLead
+        ? await this.upsertLead(tx, dto, startAt, type)
+        : null;
 
       return tx.booking.create({
         data: {
+          bookingTypeId: type.id,
           startAt,
           endAt,
           guestName: dto.guestName.trim(),
@@ -137,14 +170,14 @@ export class BookingService {
           guestOrg: dto.guestOrg?.trim() || null,
           guestMessage: dto.guestMessage?.trim() || null,
           guestTimezone: dto.guestTimezone?.trim() || null,
-          leadId: lead.id,
+          leadId: lead?.id ?? null,
         },
-        include: { lead: true },
+        include: { lead: true, bookingType: true },
       });
     });
 
-    void this.sendConfirmationEmails(booking, settings);
-    void this.syncGoogleCalendarEvent(booking, settings);
+    void this.sendConfirmationEmails(booking, type);
+    void this.syncGoogleCalendarEvent(booking, type);
 
     return this.toPublicBooking(booking);
   }
@@ -166,73 +199,169 @@ export class BookingService {
     return this.toPublicBooking(updated);
   }
 
+  async deleteBooking(id: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id } });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (booking.status === BookingStatus.CONFIRMED && booking.googleEventId) {
+      void this.googleCalendar.deleteBookingEvent(booking.googleEventId);
+    }
+
+    await this.prisma.booking.delete({ where: { id } });
+    return { deleted: true };
+  }
+
   async getByToken(token: string) {
     const booking = await this.prisma.booking.findUnique({ where: { cancelToken: token } });
     if (!booking) throw new NotFoundException('Booking not found');
     return this.toPublicBooking(booking);
   }
 
-  async listBookings(status?: BookingStatus) {
+  async listBookings(status?: BookingStatus, bookingTypeId?: string) {
     return this.prisma.booking.findMany({
-      where: status ? { status } : undefined,
+      where: {
+        ...(status ? { status } : {}),
+        ...(bookingTypeId ? { bookingTypeId } : {}),
+      },
       orderBy: { startAt: 'asc' },
       include: {
         lead: { select: { id: true, organization: true, stage: true } },
+        bookingType: { select: { id: true, slug: true, name: true, brand: true } },
       },
     });
   }
 
-  async getSettings() {
-    const settings = await this.ensureSettings();
-    return this.toSettingsDto(settings);
+  async listBookingTypes() {
+    const types = await this.prisma.bookingType.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      include: {
+        host: { select: { email: true, name: true, firstName: true } },
+        availabilityRules: true,
+        _count: { select: { bookings: true } },
+      },
+    });
+    return types.map((t) => this.toBookingTypeDto(t));
   }
 
-  async updateSettings(dto: UpdateBookingSettingsDto) {
-    if (dto.hostUserId) {
-      const user = await this.prisma.user.findUnique({ where: { id: dto.hostUserId } });
-      if (!user) throw new BadRequestException('Host user not found');
-    }
+  async getBookingType(id: string) {
+    const type = await this.prisma.bookingType.findUnique({
+      where: { id },
+      include: {
+        host: { select: { email: true, name: true, firstName: true } },
+        availabilityRules: true,
+        _count: { select: { bookings: true } },
+      },
+    });
+    if (!type) throw new NotFoundException('Booking type not found');
+    return this.toBookingTypeDto(type);
+  }
 
-    if (dto.availabilityRules) {
-      for (const rule of dto.availabilityRules) {
-        if (rule.startMinute >= rule.endMinute) {
-          throw new BadRequestException('Availability end must be after start');
-        }
-      }
-    }
+  async createBookingType(dto: UpsertBookingTypeDto) {
+    this.validateAvailabilityRules(dto.availabilityRules);
+    const hostUserId = dto.hostUserId ?? (await this.defaultHostUserId());
+    await this.assertHostUser(hostUserId);
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.bookingSettings.upsert({
-        where: { id: SETTINGS_ID },
-        create: {
-          id: SETTINGS_ID,
-          hostUserId: dto.hostUserId ?? (await this.defaultHostUserId()),
+    const slug = normalizeSlug(dto.slug);
+    const existing = await this.prisma.bookingType.findUnique({ where: { slug } });
+    if (existing) throw new ConflictException('A booking type with this slug already exists');
+
+    const type = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.bookingType.create({
+        data: {
+          slug,
+          name: dto.name.trim(),
+          brand: dto.brand?.trim() || null,
+          isActive: dto.isActive ?? true,
+          hostUserId,
           durationMin: dto.durationMin ?? 30,
-          bufferMin: dto.bufferMin ?? 0,
           minNoticeHours: dto.minNoticeHours ?? 4,
           maxDaysAhead: dto.maxDaysAhead ?? 60,
           timezone: dto.timezone ?? 'America/Los_Angeles',
-          publicPageUrl: normalizePublicPageUrl(dto.publicPageUrl ?? DEFAULT_PUBLIC_PAGE_URL),
+          publicPageUrl: normalizePublicPageUrl(
+            dto.publicPageUrl ?? 'https://heyupstart.com/book',
+          ),
+          calendarEventTitle: dto.calendarEventTitle?.trim() || dto.name.trim(),
+          createLead: dto.createLead ?? true,
+          leadStage: dto.leadStage ?? LeadStage.DISCOVERY,
+          leadSource: dto.leadSource ?? LeadSource.INBOUND,
+          pipelineNoteTitle: dto.pipelineNoteTitle?.trim() || null,
+          priceCents: dto.priceCents ?? null,
+          currency: dto.currency ?? 'USD',
+          isBillable: dto.isBillable ?? false,
+          paymentRequired: dto.paymentRequired ?? false,
+          sortOrder: dto.sortOrder ?? 0,
         },
-        update: {
+      });
+
+      if (dto.availabilityRules?.length) {
+        await tx.bookingAvailabilityRule.createMany({
+          data: dto.availabilityRules.map((r) => ({
+            bookingTypeId: created.id,
+            dayOfWeek: r.dayOfWeek,
+            startMinute: r.startMinute,
+            endMinute: r.endMinute,
+          })),
+        });
+      }
+
+      return created;
+    });
+
+    return this.getBookingType(type.id);
+  }
+
+  async updateBookingType(id: string, dto: UpsertBookingTypeDto) {
+    this.validateAvailabilityRules(dto.availabilityRules);
+    const current = await this.prisma.bookingType.findUnique({ where: { id } });
+    if (!current) throw new NotFoundException('Booking type not found');
+
+    const slug = normalizeSlug(dto.slug);
+    if (slug !== current.slug) {
+      const conflict = await this.prisma.bookingType.findUnique({ where: { slug } });
+      if (conflict) throw new ConflictException('A booking type with this slug already exists');
+    }
+
+    if (dto.hostUserId) await this.assertHostUser(dto.hostUserId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.bookingType.update({
+        where: { id },
+        data: {
+          slug,
+          name: dto.name.trim(),
+          brand: dto.brand?.trim() || null,
+          ...(dto.isActive !== undefined && { isActive: dto.isActive }),
           ...(dto.hostUserId !== undefined && { hostUserId: dto.hostUserId }),
           ...(dto.durationMin !== undefined && { durationMin: dto.durationMin }),
-          ...(dto.bufferMin !== undefined && { bufferMin: dto.bufferMin }),
           ...(dto.minNoticeHours !== undefined && { minNoticeHours: dto.minNoticeHours }),
           ...(dto.maxDaysAhead !== undefined && { maxDaysAhead: dto.maxDaysAhead }),
           ...(dto.timezone !== undefined && { timezone: dto.timezone }),
           ...(dto.publicPageUrl !== undefined && {
             publicPageUrl: normalizePublicPageUrl(dto.publicPageUrl),
           }),
+          ...(dto.calendarEventTitle !== undefined && {
+            calendarEventTitle: dto.calendarEventTitle.trim(),
+          }),
+          ...(dto.createLead !== undefined && { createLead: dto.createLead }),
+          ...(dto.leadStage !== undefined && { leadStage: dto.leadStage }),
+          ...(dto.leadSource !== undefined && { leadSource: dto.leadSource }),
+          ...(dto.pipelineNoteTitle !== undefined && {
+            pipelineNoteTitle: dto.pipelineNoteTitle?.trim() || null,
+          }),
+          ...(dto.priceCents !== undefined && { priceCents: dto.priceCents }),
+          ...(dto.currency !== undefined && { currency: dto.currency }),
+          ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
+          ...(dto.paymentRequired !== undefined && { paymentRequired: dto.paymentRequired }),
+          ...(dto.sortOrder !== undefined && { sortOrder: dto.sortOrder }),
         },
       });
 
       if (dto.availabilityRules) {
-        await tx.bookingAvailabilityRule.deleteMany({ where: { settingsId: SETTINGS_ID } });
+        await tx.bookingAvailabilityRule.deleteMany({ where: { bookingTypeId: id } });
         if (dto.availabilityRules.length > 0) {
           await tx.bookingAvailabilityRule.createMany({
             data: dto.availabilityRules.map((r) => ({
-              settingsId: SETTINGS_ID,
+              bookingTypeId: id,
               dayOfWeek: r.dayOfWeek,
               startMinute: r.startMinute,
               endMinute: r.endMinute,
@@ -242,46 +371,53 @@ export class BookingService {
       }
     });
 
-    return this.getSettings();
+    return this.getBookingType(id);
   }
 
-  private async ensureSettings(): Promise<
-    BookingSettings & {
-      availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
-      host: { email: string; name: string | null; firstName: string | null };
+  async deleteBookingType(id: string) {
+    const type = await this.prisma.bookingType.findUnique({
+      where: { id },
+      include: { _count: { select: { bookings: true } } },
+    });
+    if (!type) throw new NotFoundException('Booking type not found');
+    if (type._count.bookings > 0) {
+      throw new BadRequestException(
+        'Cannot delete a booking type that has bookings — deactivate it instead',
+      );
     }
-  > {
-    let settings = await this.prisma.bookingSettings.findUnique({
-      where: { id: SETTINGS_ID },
+    await this.prisma.bookingType.delete({ where: { id } });
+    return { deleted: true };
+  }
+
+  private async requireActiveType(slug: string): Promise<BookingTypeWithRules> {
+    const normalized = normalizeSlug(slug);
+    const type = await this.prisma.bookingType.findUnique({
+      where: { slug: normalized },
       include: {
         availabilityRules: true,
         host: { select: { email: true, name: true, firstName: true } },
       },
     });
-
-    if (!settings) {
-      const hostUserId = await this.defaultHostUserId();
-      settings = await this.prisma.bookingSettings.create({
-        data: {
-          id: SETTINGS_ID,
-          hostUserId,
-          availabilityRules: {
-            create: [
-              { dayOfWeek: 2, startMinute: 9 * 60, endMinute: 12 * 60 },
-              { dayOfWeek: 2, startMinute: 13 * 60, endMinute: 17 * 60 },
-              { dayOfWeek: 4, startMinute: 9 * 60, endMinute: 12 * 60 },
-              { dayOfWeek: 4, startMinute: 13 * 60, endMinute: 17 * 60 },
-            ],
-          },
-        },
-        include: {
-          availabilityRules: true,
-          host: { select: { email: true, name: true, firstName: true } },
-        },
-      });
+    if (!type || !type.isActive) {
+      throw new NotFoundException('Booking type not found');
     }
+    return type;
+  }
 
-    return settings;
+  private validateAvailabilityRules(
+    rules: UpsertBookingTypeDto['availabilityRules'],
+  ) {
+    if (!rules) return;
+    for (const rule of rules) {
+      if (rule.startMinute >= rule.endMinute) {
+        throw new BadRequestException('Availability end must be after start');
+      }
+    }
+  }
+
+  private async assertHostUser(hostUserId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: hostUserId } });
+    if (!user) throw new BadRequestException('Host user not found');
   }
 
   private async defaultHostUserId(): Promise<string> {
@@ -303,6 +439,7 @@ export class BookingService {
     tx: Prisma.TransactionClient,
     dto: CreateBookingDto,
     startAt: Date,
+    type: BookingType,
   ) {
     const email = dto.guestEmail.trim().toLowerCase();
     const org = dto.guestOrg?.trim() || dto.guestName.trim();
@@ -326,11 +463,12 @@ export class BookingService {
     }
 
     const callDate = startAt.toISOString().slice(0, 10);
+    const noteTitle = type.pipelineNoteTitle ?? type.name;
     const artifacts: Prisma.ArtifactCreateWithoutLeadInput[] = [
       {
         type: ArtifactType.NOTE,
-        title: `Discovery call — ${callDate}`,
-        content: '<p>Discovery call booked via heyupstart.com.</p>',
+        title: `${noteTitle} — ${callDate}`,
+        content: `<p>${escapeHtml(type.name)} booked via ${escapeHtml(type.publicPageUrl)}.</p>`,
       },
     ];
 
@@ -338,7 +476,7 @@ export class BookingService {
     if (guestMessage) {
       artifacts.push({
         type: ArtifactType.NOTE,
-        title: 'Discovery call note',
+        title: `${noteTitle} note`,
         content: `<p>${escapeHtml(guestMessage)}</p>`,
       });
     }
@@ -348,9 +486,9 @@ export class BookingService {
       primaryContact: dto.guestName.trim(),
       email,
       ...(website ? { website } : {}),
-      stage: LeadStage.DISCOVERY as LeadStage,
-      source: LeadSource.INBOUND,
-      nextAction: 'Discovery call scheduled',
+      stage: type.leadStage,
+      source: type.leadSource,
+      nextAction: `${type.name} scheduled`,
       nextActionDate: startAt,
       lastContactDate: new Date(),
     };
@@ -363,9 +501,9 @@ export class BookingService {
           primaryContact: dto.guestName.trim(),
           email: lead.email ?? email,
           ...(website ? { website: lead.website ?? website } : {}),
-          stage: lead.stage === LeadStage.NEW_LEAD ? LeadStage.DISCOVERY : lead.stage,
-          source: lead.source ?? LeadSource.INBOUND,
-          nextAction: 'Discovery call scheduled',
+          stage: lead.stage === LeadStage.NEW_LEAD ? type.leadStage : lead.stage,
+          source: lead.source ?? type.leadSource,
+          nextAction: `${type.name} scheduled`,
           nextActionDate: startAt,
           lastContactDate: new Date(),
           artifacts: { create: artifacts },
@@ -381,16 +519,14 @@ export class BookingService {
     });
   }
 
-  private async syncGoogleCalendarEvent(
-    booking: Booking,
-    settings: BookingSettings & { host: { email: string; name: string | null; firstName: string | null } },
-  ) {
-    const hostName = settings.host.name ?? settings.host.firstName ?? 'UpStart';
+  private async syncGoogleCalendarEvent(booking: Booking, type: BookingTypeWithRules) {
+    const hostName = type.host.name ?? type.host.firstName ?? 'UpStart';
     const googleEventId = await this.googleCalendar.createBookingEvent({
       booking,
-      hostEmail: settings.host.email,
+      hostEmail: type.host.email,
       hostName,
-      timeZone: settings.timezone,
+      timeZone: type.timezone,
+      title: type.calendarEventTitle,
     });
     if (googleEventId) {
       await this.prisma.booking.update({
@@ -400,26 +536,28 @@ export class BookingService {
     }
   }
 
-  private async sendConfirmationEmails(
-    booking: Booking,
-    settings: BookingSettings & { host: { email: string; name: string | null; firstName: string | null } },
-  ) {
-    const displayTz = booking.guestTimezone ?? settings.timezone;
+  private async sendConfirmationEmails(booking: Booking, type: BookingTypeWithRules) {
+    const displayTz = booking.guestTimezone ?? type.timezone;
     const when = formatSlotLabel(booking.startAt, displayTz);
-    const cancelUrl = `${normalizePublicPageUrl(settings.publicPageUrl)}?cancel=${booking.cancelToken}`;
-    const hostName = settings.host.name ?? settings.host.firstName ?? 'Jeff Denton';
+    const cancelUrl = `${normalizePublicPageUrl(type.publicPageUrl)}?cancel=${booking.cancelToken}`;
+    const hostName = type.host.name ?? type.host.firstName ?? 'UpStart';
+    const brandLabel = type.brand ?? 'UpStart Productions';
     const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@heyupstart.com';
 
     const guestHtml = buildBookingEmailHtml({
+      brandLabel,
       greeting: `Hi ${booking.guestName},`,
-      body: `Your discovery chat with UpStart Productions is confirmed for <strong>${when}</strong>.`,
+      body: `Your <strong>${escapeHtml(type.name)}</strong> is confirmed for <strong>${when}</strong>.`,
       footer: `Need to cancel? <a href="${cancelUrl}">Cancel this booking</a>.`,
     });
 
     const hostHtml = buildBookingEmailHtml({
+      brandLabel,
       greeting: `Hi ${hostName},`,
-      body: `<strong>${booking.guestName}</strong>${booking.guestOrg ? ` (${booking.guestOrg})` : ''} booked a discovery chat for <strong>${when}</strong>.`,
-      extra: booking.guestMessage ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${escapeHtml(booking.guestMessage)}</p>` : undefined,
+      body: `<strong>${booking.guestName}</strong>${booking.guestOrg ? ` (${booking.guestOrg})` : ''} booked <strong>${escapeHtml(type.name)}</strong> for <strong>${when}</strong>.`,
+      extra: booking.guestMessage
+        ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${escapeHtml(booking.guestMessage)}</p>`
+        : undefined,
       footer: `Guest email: <a href="mailto:${booking.guestEmail}">${booking.guestEmail}</a>`,
     });
 
@@ -427,8 +565,8 @@ export class BookingService {
       uid: `booking-${booking.id}@heyupstart.com`,
       startAt: booking.startAt,
       endAt: booking.endAt,
-      title: EVENT_TITLE,
-      description: booking.guestMessage ?? 'Discovery chat with UpStart Productions',
+      title: type.calendarEventTitle,
+      description: booking.guestMessage ?? type.name,
       organizerEmail: fromEmail,
       organizerName: hostName,
       attendeeEmail: booking.guestEmail,
@@ -437,10 +575,10 @@ export class BookingService {
 
     const guestResult = await this.mail.sendWithAttachment({
       to: booking.guestEmail,
-      subject: `Confirmed: Discovery chat on ${when}`,
+      subject: `Confirmed: ${type.name} on ${when}`,
       html: guestHtml,
       attachment: {
-        filename: 'discovery-chat.ics',
+        filename: 'booking.ics',
         content: Buffer.from(ics, 'utf8'),
         contentType: 'text/calendar; method=REQUEST',
       },
@@ -451,8 +589,8 @@ export class BookingService {
     }
 
     const hostResult = await this.mail.sendRaw({
-      to: settings.host.email,
-      subject: `New discovery chat: ${booking.guestName} — ${when}`,
+      to: type.host.email,
+      subject: `New booking: ${type.name} — ${booking.guestName} — ${when}`,
       html: hostHtml,
     });
 
@@ -474,23 +612,39 @@ export class BookingService {
     };
   }
 
-  private toSettingsDto(
-    settings: BookingSettings & {
+  private toBookingTypeDto(
+    type: BookingType & {
       availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
-      host: { email: string; name: string | null; firstName: string | null; id?: string };
+      host: { email: string; name: string | null; firstName: string | null };
+      _count?: { bookings: number };
     },
   ) {
     return {
-      hostUserId: settings.hostUserId,
-      hostEmail: settings.host.email,
-      hostName: settings.host.name ?? settings.host.firstName,
-      durationMin: settings.durationMin,
-      bufferMin: settings.bufferMin,
-      minNoticeHours: settings.minNoticeHours,
-      maxDaysAhead: settings.maxDaysAhead,
-      timezone: settings.timezone,
-      publicPageUrl: settings.publicPageUrl,
-      availabilityRules: settings.availabilityRules.map((r) => ({
+      id: type.id,
+      slug: type.slug,
+      name: type.name,
+      brand: type.brand,
+      isActive: type.isActive,
+      hostUserId: type.hostUserId,
+      hostEmail: type.host.email,
+      hostName: type.host.name ?? type.host.firstName,
+      durationMin: type.durationMin,
+      minNoticeHours: type.minNoticeHours,
+      maxDaysAhead: type.maxDaysAhead,
+      timezone: type.timezone,
+      publicPageUrl: type.publicPageUrl,
+      calendarEventTitle: type.calendarEventTitle,
+      createLead: type.createLead,
+      leadStage: type.leadStage,
+      leadSource: type.leadSource,
+      pipelineNoteTitle: type.pipelineNoteTitle,
+      priceCents: type.priceCents,
+      currency: type.currency,
+      isBillable: type.isBillable,
+      paymentRequired: type.paymentRequired,
+      sortOrder: type.sortOrder,
+      bookingCount: type._count?.bookings ?? 0,
+      availabilityRules: type.availabilityRules.map((r) => ({
         dayOfWeek: r.dayOfWeek,
         startMinute: r.startMinute,
         endMinute: r.endMinute,
@@ -504,6 +658,7 @@ function escapeHtml(s: string): string {
 }
 
 function buildBookingEmailHtml(params: {
+  brandLabel: string;
   greeting: string;
   body: string;
   extra?: string;
@@ -516,7 +671,7 @@ function buildBookingEmailHtml(params: {
 <body style="font-family:'Satoshi',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fcfcfb;margin:0;padding:20px;">
   <div style="max-width:600px;margin:0 auto;background:#fefefd;border:1px solid #eaeaea;border-radius:8px;overflow:hidden;">
     <div style="background:#7c3aed;padding:16px 32px;">
-      <p style="margin:0;font-size:14px;font-weight:600;color:#fff;letter-spacing:0.02em;">UpStart Productions</p>
+      <p style="margin:0;font-size:14px;font-weight:600;color:#fff;letter-spacing:0.02em;">${params.brandLabel}</p>
     </div>
     <div style="padding:32px;">
       <p style="color:#2d2d2d;">${params.greeting}</p>

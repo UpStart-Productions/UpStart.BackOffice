@@ -1,0 +1,22 @@
+<app-page title="Bookings">
+  <div class="card">
+    <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+      <p-tablist>
+        <p-tab value="bookings">Bookings</p-tab>
+        @if (isAdmin()) {
+          <p-tab value="types">Booking types</p-tab>
+        }
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="bookings">
+          <app-bookings-list-panel />
+        </p-tabpanel>
+        @if (isAdmin()) {
+          <p-tabpanel value="types">
+            <app-booking-types-list-panel />
+          </p-tabpanel>
+        }
+      </p-tabpanels>
+    </p-tabs>
+  </div>
+</app-page>

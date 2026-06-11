@@ -86,7 +86,7 @@ model User {
 
   client              Client?          @relation(fields: [clientId], references: [id])
   timeEntries         TimeEntry[]
-  bookingSettingsHost BookingSettings[] @relation("BookingHost")
+  bookingTypesHost BookingType[] @relation("BookingTypeHost")
 }
 
 model Client {
@@ -338,35 +338,55 @@ model InvoiceLineItem {
   @@index([projectId])
 }
 
-model BookingSettings {
-  id             String   @id @default("default")
-  hostUserId     String
-  durationMin    Int      @default(30)
-  bufferMin      Int      @default(0)
-  minNoticeHours Int      @default(4)
-  maxDaysAhead   Int      @default(60)
-  timezone       String   @default("America/Los_Angeles")
-  publicPageUrl  String   @default("https://heyupstart.com/book-discovery-chat")
-  updatedAt      DateTime @updatedAt
+model BookingType {
+  id                 String     @id @default(cuid())
+  slug               String     @unique
+  name               String
+  brand              String?
+  isActive           Boolean    @default(true)
+  hostUserId         String
+  durationMin        Int        @default(30)
+  bufferMin          Int        @default(0)
+  minNoticeHours     Int        @default(4)
+  maxDaysAhead       Int        @default(60)
+  timezone           String     @default("America/Los_Angeles")
+  publicPageUrl      String
+  calendarEventTitle String     @default("Meeting")
+  createLead         Boolean    @default(true)
+  leadStage          LeadStage  @default(DISCOVERY)
+  leadSource         LeadSource @default(INBOUND)
+  pipelineNoteTitle  String?
+  priceCents         Int?
+  currency           String     @default("USD")
+  isBillable         Boolean    @default(false)
+  paymentRequired    Boolean    @default(false)
+  sortOrder          Int        @default(0)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  host              User                      @relation("BookingHost", fields: [hostUserId], references: [id])
+  host              User                      @relation("BookingTypeHost", fields: [hostUserId], references: [id])
   availabilityRules BookingAvailabilityRule[]
+  bookings          Booking[]
+
+  @@index([isActive])
+  @@index([sortOrder])
 }
 
 model BookingAvailabilityRule {
-  id          String @id @default(cuid())
-  settingsId  String @default("default")
-  dayOfWeek   Int
-  startMinute Int
-  endMinute   Int
+  id            String @id @default(cuid())
+  bookingTypeId String
+  dayOfWeek     Int
+  startMinute   Int
+  endMinute     Int
 
-  settings BookingSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  bookingType BookingType @relation(fields: [bookingTypeId], references: [id], onDelete: Cascade)
 
-  @@index([settingsId])
+  @@index([bookingTypeId])
 }
 
 model Booking {
   id            String        @id @default(cuid())
+  bookingTypeId String
   startAt       DateTime
   endAt         DateTime
   status        BookingStatus @default(CONFIRMED)
@@ -381,9 +401,11 @@ model Booking {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  bookingType BookingType @relation(fields: [bookingTypeId], references: [id])
+  lead        Lead?       @relation(fields: [leadId], references: [id], onDelete: SetNull)
 
   @@index([startAt])
   @@index([status])
   @@index([guestEmail])
+  @@index([bookingTypeId])
 }

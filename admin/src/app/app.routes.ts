@@ -109,8 +109,29 @@ export const appRoutes: Route[] = [
       {
         path: 'bookings',
         loadComponent: () =>
-          import('./pages/bookings/bookings-list.page').then((m) => m.BookingsListPage),
+          import('./pages/bookings/bookings.page').then((m) => m.BookingsPage),
       },
+      {
+        path: 'bookings/types',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/bookings/bookings.page').then((m) => m.BookingsPage),
+      },
+      {
+        path: 'bookings/types/new',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/booking-types/booking-type-form.page').then((m) => m.BookingTypeFormPage),
+      },
+      {
+        path: 'bookings/types/:id',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/booking-types/booking-type-form.page').then((m) => m.BookingTypeFormPage),
+      },
+      { path: 'booking-types', redirectTo: 'bookings/types', pathMatch: 'full' },
+      { path: 'booking-types/new', redirectTo: 'bookings/types/new', pathMatch: 'full' },
+      { path: 'booking-types/:id', redirectTo: 'bookings/types/:id', pathMatch: 'full' },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

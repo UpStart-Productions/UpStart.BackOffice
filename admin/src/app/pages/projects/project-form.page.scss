@@ -1,38 +1,6 @@
-.project-rate-controls {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-:host ::ng-deep .project-rate-input {
-  flex: 0 0 25%;
-  max-width: 25%;
-  min-width: 10rem;
-}
-
-:host ::ng-deep .project-rate-input-field {
-  text-align: right;
-  width: 100%;
-}
-
 .form-actions {
   border-top: none;
   padding-top: 0;
-}
-
-.project-rate-toggles {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-  :host ::ng-deep .project-rate-input {
-    flex: 1 1 100%;
-    max-width: 100%;
-  }
 }
 
 .project-sections-accordion {

@@ -24,8 +24,6 @@ import { UpdateGoogleCalendarConfigDto } from './dto/update-google-calendar-conf
 const INTEGRATION_ID = 'default';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
-const EVENT_TITLE = 'Discovery Chat with UpStart Productions';
-
 export type GoogleCalendarStatusDto = {
   connected: boolean;
   configured: boolean;
@@ -252,10 +250,11 @@ export class GoogleCalendarService {
     hostEmail: string;
     hostName: string;
     timeZone: string;
+    title: string;
   }): Promise<string | null> {
     if (!(await this.isConnected())) return null;
 
-    const { booking, hostEmail, hostName, timeZone } = params;
+    const { booking, hostEmail, hostName, timeZone, title } = params;
     const descriptionParts = [
       `Guest: ${booking.guestName}`,
       `Email: ${booking.guestEmail}`,
@@ -270,7 +269,7 @@ export class GoogleCalendarService {
         calendarId: row.calendarId!,
         startAt: booking.startAt,
         endAt: booking.endAt,
-        title: EVENT_TITLE,
+        title,
         description: descriptionParts.join('\n'),
         guestEmail: booking.guestEmail,
         guestName: booking.guestName,

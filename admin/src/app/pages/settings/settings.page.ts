@@ -61,28 +61,6 @@ interface GoogleCalendarOption {
   primary?: boolean;
 }
 
-interface BookingSettings {
-  hostUserId: string;
-  hostEmail: string;
-  hostName: string | null;
-  durationMin: number;
-  minNoticeHours: number;
-  maxDaysAhead: number;
-  timezone: string;
-  publicPageUrl: string;
-  availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
-}
-
-type BookingDayRow = {
-  dayOfWeek: number;
-  label: string;
-  enabled: boolean;
-  startTime: string;
-  endTime: string;
-};
-
-const BOOKING_DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 @Component({
   selector: 'app-settings-page',
   standalone: true,
@@ -167,22 +145,6 @@ export class SettingsPage implements OnInit {
   asanaHasClientSecret = signal(false);
   asanaSuggestedRedirectUri = signal('');
 
-  bookingSettings = signal<BookingSettings | null>(null);
-  bookingSaving = signal(false);
-  bookingForm = {
-    durationMin: 30,
-    minNoticeHours: 4,
-    maxDaysAhead: 60,
-    publicPageUrl: 'https://heyupstart.com/book-discovery-chat',
-  };
-  bookingDays: BookingDayRow[] = BOOKING_DAY_LABELS.map((label, dayOfWeek) => ({
-    dayOfWeek,
-    label,
-    enabled: false,
-    startTime: '09:00',
-    endTime: '17:00',
-  }));
-
   showGenerateDialog = false;
   keyName   = '';
   newKey    = signal<string | null>(null);
@@ -252,13 +214,12 @@ export class SettingsPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [keys, asanaStatus, asanaConfig, googleCalendarStatus, googleCalendarConfig, bookingConfig] = await Promise.all([
+      const [keys, asanaStatus, asanaConfig, googleCalendarStatus, googleCalendarConfig] = await Promise.all([
         this.api.get<ServiceKey[]>('/service-keys'),
         this.api.get<AsanaStatus>('/asana/status').catch(() => null),
         this.api.get<AsanaConfig>('/asana/config').catch(() => null),
         this.api.get<GoogleCalendarStatus>('/google-calendar/status').catch(() => null),
         this.api.get<GoogleCalendarConfig>('/google-calendar/config').catch(() => null),
-        this.api.get<BookingSettings>('/booking/admin/settings').catch(() => null),
       ]);
       this.keys.set(keys);
       this.asana.set(asanaStatus);
@@ -268,7 +229,6 @@ export class SettingsPage implements OnInit {
       if (googleCalendarStatus?.connected) {
         await this.loadGoogleCalendarOptions();
       }
-      this.applyBookingSettings(bookingConfig);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load settings');
     } finally {
@@ -639,67 +599,5 @@ export class SettingsPage implements OnInit {
 
   formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-
-  private applyBookingSettings(config: BookingSettings | null) {
-    if (!config) return;
-    this.bookingSettings.set(config);
-    this.bookingForm = {
-      durationMin: config.durationMin,
-      minNoticeHours: config.minNoticeHours,
-      maxDaysAhead: config.maxDaysAhead,
-      publicPageUrl: config.publicPageUrl,
-    };
-    this.bookingDays = BOOKING_DAY_LABELS.map((label, dayOfWeek) => {
-      const rule = config.availabilityRules.find((r) => r.dayOfWeek === dayOfWeek);
-      return {
-        dayOfWeek,
-        label,
-        enabled: !!rule,
-        startTime: rule ? this.minutesToTime(rule.startMinute) : '09:00',
-        endTime: rule ? this.minutesToTime(rule.endMinute) : '17:00',
-      };
-    });
-  }
-
-  private minutesToTime(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  }
-
-  private timeToMinutes(time: string): number {
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
-  }
-
-  async saveBookingSettings() {
-    this.bookingSaving.set(true);
-    this.error.set(null);
-    try {
-      const availabilityRules = this.bookingDays
-        .filter((d) => d.enabled)
-        .map((d) => ({
-          dayOfWeek: d.dayOfWeek,
-          startMinute: this.timeToMinutes(d.startTime),
-          endMinute: this.timeToMinutes(d.endTime),
-        }));
-
-      const updated = await this.api.post<BookingSettings>('/booking/admin/settings', {
-        ...this.bookingForm,
-        availabilityRules,
-      });
-      this.applyBookingSettings(updated);
-      this.toast.add({
-        severity: 'success',
-        summary: 'Saved',
-        detail: 'Booking settings updated.',
-        life: 3000,
-      });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to save booking settings');
-    } finally {
-      this.bookingSaving.set(false);
-    }
   }
 }

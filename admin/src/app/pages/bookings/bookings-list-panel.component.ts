@@ -1,16 +1,18 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
+import { FormsModule } from '@angular/forms';
 import { MessageModule } from 'primeng/message';
+import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { PageComponent } from '../../ui/layout/page.component';
 import {
   RowActionItem,
   RowActionsMenuComponent,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
+
+type BookingTypeOption = { id: string; name: string; slug: string };
 
 type BookingRow = {
   id: string;
@@ -20,40 +22,53 @@ type BookingRow = {
   guestName: string;
   guestEmail: string;
   guestOrg: string | null;
+  bookingType: { id: string; slug: string; name: string; brand: string | null } | null;
   lead: { id: string; organization: string; stage: string } | null;
 };
 
 @Component({
-  selector: 'app-bookings-list-page',
+  selector: 'app-bookings-list-panel',
   standalone: true,
   imports: [
+    FormsModule,
     RouterLink,
-    ButtonModule,
     TableModule,
     MessageModule,
     TagModule,
-    PageComponent,
+    SelectModule,
     RowActionsMenuComponent,
   ],
-  templateUrl: './bookings-list.page.html',
+  templateUrl: './bookings-list-panel.component.html',
 })
-export class BookingsListPage implements OnInit {
+export class BookingsListPanelComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
 
   bookings = signal<BookingRow[]>([]);
+  types = signal<BookingTypeOption[]>([]);
+  filterTypeId = '';
   loading = signal(true);
   error = signal<string | null>(null);
 
   async ngOnInit() {
-    await this.load();
+    await Promise.all([this.loadTypes(), this.load()]);
+  }
+
+  async loadTypes() {
+    try {
+      const data = await this.api.get<BookingTypeOption[]>('/booking/admin/types');
+      this.types.set(data.map((t) => ({ id: t.id, name: t.name, slug: t.slug })));
+    } catch {
+      this.types.set([]);
+    }
   }
 
   async load() {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const data = await this.api.get<BookingRow[]>('/booking/admin/bookings');
+      const params = this.filterTypeId ? `?bookingTypeId=${encodeURIComponent(this.filterTypeId)}` : '';
+      const data = await this.api.get<BookingRow[]>(`/booking/admin/bookings${params}`);
       this.bookings.set(data);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load bookings');
@@ -77,28 +92,26 @@ export class BookingsListPage implements OnInit {
   }
 
   getRowActions(row: BookingRow): RowActionItem[] {
-    if (row.status !== 'CONFIRMED') return [];
     return [
       {
-        id: 'cancel',
-        label: 'Cancel',
+        id: 'delete',
+        label: 'Delete',
         icon: 'pi pi-trash',
         severity: 'danger',
-        command: () => this.confirmCancel(row),
+        command: () => this.confirmDeleteBooking(row),
       },
     ];
   }
 
-  confirmCancel(row: BookingRow) {
+  confirmDeleteBooking(row: BookingRow) {
     this.confirmDelete.confirm({
-      header: 'Cancel booking',
-      message: `Cancel the discovery chat with ${row.guestName} on ${this.formatWhen(row.startAt)}?`,
+      message: `Delete the booking for ${row.guestName} on ${this.formatWhen(row.startAt)}? This cannot be undone.`,
       accept: async () => {
         try {
-          await this.api.post(`/booking/admin/cancel/${row.id}`, {});
+          await this.api.delete(`/booking/admin/bookings/${row.id}`);
           await this.load();
         } catch (err) {
-          this.error.set(err instanceof Error ? err.message : 'Cancel failed');
+          this.error.set(err instanceof Error ? err.message : 'Failed to delete booking');
         }
       },
     });

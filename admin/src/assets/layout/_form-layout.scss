@@ -58,6 +58,24 @@
   min-width: 400px;
 }
 
+.form-fields-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .form-fields-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .form-fields-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
 .form-actions {
   display: flex;
   gap: 0.5rem;
@@ -68,10 +86,46 @@
   border-top: 1px solid var(--surface-border);
 }
 
+.form-actions-leading {
+  margin-right: auto;
+}
+
 .form-field label {
   display: block;
   margin-bottom: 0.25rem;
   font-weight: 500;
+}
+
+.project-rate-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.project-rate-input {
+  flex: 0 0 25%;
+  max-width: 25%;
+  min-width: 10rem;
+}
+
+.project-rate-input-field {
+  text-align: right;
+  width: 100%;
+}
+
+.project-rate-toggles {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .project-rate-input {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
 }
 
 /* Color input (swatch + hex) – e.g. Mobile App Config branding */

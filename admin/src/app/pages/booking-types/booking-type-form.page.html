@@ -1,0 +1,213 @@
+<app-page [title]="id() ? 'Edit booking type' : 'New booking type'">
+  @if (error()) {
+    <div class="card mb-3">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="card">
+      <p class="text-color-secondary mb-0">Loading…</p>
+    </div>
+  } @else {
+    <div class="card mb-3">
+      <h2 class="page-title page-title-in-card">Basics</h2>
+      <div class="showcase-flex-col">
+        <div class="form-field showcase-full">
+          <label for="btName">Name</label>
+          <input pInputText id="btName" class="w-full" [(ngModel)]="form.name" name="btName" />
+        </div>
+        <div class="form-field showcase-full">
+          <label for="btSlug">Slug</label>
+          <input
+            pInputText
+            id="btSlug"
+            class="w-full"
+            [(ngModel)]="form.slug"
+            name="btSlug"
+            placeholder="upstart-discovery"
+            [disabled]="!!id() && bookingCount() > 0"
+          />
+          <p class="text-color-secondary text-sm mt-2 mb-0">
+            Used in the public API: <code class="text-sm">/booking/{{ form.slug || 'your-slug' }}/slots</code>
+          </p>
+        </div>
+        <div class="form-field showcase-full">
+          <label for="btBrand">Brand (optional)</label>
+          <input pInputText id="btBrand" class="w-full" [(ngModel)]="form.brand" name="btBrand" placeholder="UpStart" />
+        </div>
+        <div class="form-field showcase-full flex align-items-center gap-2">
+          <p-toggleSwitch [(ngModel)]="form.isActive" name="btActive" inputId="btActive" />
+          <label for="btActive">Active — guests can book this type</label>
+        </div>
+        <div class="form-field showcase-full">
+          <label for="btHost">Host</label>
+          <p-select
+            inputId="btHost"
+            [options]="hostOptions()"
+            optionLabel="label"
+            optionValue="id"
+            [(ngModel)]="form.hostUserId"
+            name="btHost"
+            placeholder="Select host"
+            styleClass="w-full"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <h2 class="page-title page-title-in-card">Schedule</h2>
+      <div class="form-fields-4 mb-4">
+        <div class="form-field">
+          <label for="btDuration">Duration (minutes)</label>
+          <input pInputText id="btDuration" type="number" class="w-full" [(ngModel)]="form.durationMin" name="btDuration" />
+        </div>
+        <div class="form-field">
+          <label for="btNotice">Minimum notice (hours)</label>
+          <input pInputText id="btNotice" type="number" class="w-full" [(ngModel)]="form.minNoticeHours" name="btNotice" />
+        </div>
+        <div class="form-field">
+          <label for="btHorizon">How far ahead (days)</label>
+          <input pInputText id="btHorizon" type="number" class="w-full" [(ngModel)]="form.maxDaysAhead" name="btHorizon" />
+        </div>
+        <div class="form-field">
+          <label for="btTimezone">Timezone</label>
+          <p-select
+            inputId="btTimezone"
+            [options]="timezoneOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="form.timezone"
+            name="btTimezone"
+            styleClass="w-full"
+          />
+        </div>
+      </div>
+
+      <p-table [value]="days" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Day</th>
+            <th>Available</th>
+            <th>Start</th>
+            <th>End</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-day>
+          <tr>
+            <td>{{ day.label }}</td>
+            <td>
+              <input type="checkbox" [(ngModel)]="day.enabled" [name]="'day-' + day.dayOfWeek" />
+            </td>
+            <td>
+              <input pInputText type="time" class="w-full" [(ngModel)]="day.startTime" [disabled]="!day.enabled" [name]="'start-' + day.dayOfWeek" />
+            </td>
+            <td>
+              <input pInputText type="time" class="w-full" [(ngModel)]="day.endTime" [disabled]="!day.enabled" [name]="'end-' + day.dayOfWeek" />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+
+    <div class="card mb-3">
+      <h2 class="page-title page-title-in-card">Public page &amp; calendar</h2>
+      <div class="showcase-flex">
+        <div class="form-field showcase-half">
+          <label for="btPublicUrl">Public booking page URL</label>
+          <input pInputText id="btPublicUrl" type="url" class="w-full" [(ngModel)]="form.publicPageUrl" name="btPublicUrl" />
+          <p class="text-color-secondary text-sm mt-2 mb-0">Used for cancel links in confirmation emails.</p>
+        </div>
+        <div class="form-field showcase-half">
+          <label for="btEventTitle">Google Calendar event title</label>
+          <input pInputText id="btEventTitle" class="w-full" [(ngModel)]="form.calendarEventTitle" name="btEventTitle" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <h2 class="page-title page-title-in-card">Pipeline</h2>
+      <div class="showcase-flex-col">
+        <div class="form-field flex align-items-center gap-2">
+          <p-toggleSwitch [(ngModel)]="form.createLead" name="btCreateLead" inputId="btCreateLead" />
+          <label for="btCreateLead">Create or update pipeline lead on booking</label>
+        </div>
+        @if (form.createLead) {
+          <div class="showcase-flex">
+            <div class="form-field showcase-half">
+              <label for="btLeadStage">Lead stage</label>
+              <p-select inputId="btLeadStage" [options]="leadStages" [(ngModel)]="form.leadStage" name="btLeadStage" styleClass="w-full" />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="btLeadSource">Lead source</label>
+              <p-select inputId="btLeadSource" [options]="leadSources" [(ngModel)]="form.leadSource" name="btLeadSource" styleClass="w-full" />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="btNoteTitle">Pipeline note title prefix</label>
+              <input pInputText id="btNoteTitle" class="w-full" [(ngModel)]="form.pipelineNoteTitle" name="btNoteTitle" placeholder="Discovery call" />
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <h2 class="page-title page-title-in-card">Pricing</h2>
+      <p class="text-color-secondary mt-0 mb-3 text-sm">Payment collection is not yet implemented — use these fields to display price and prepare for Stripe later.</p>
+      <div class="form-field project-rate-row">
+        <label for="btPrice">Price</label>
+        <div class="project-rate-controls">
+          <div class="project-rate-toggles">
+            <div class="flex align-items-center gap-2">
+              <p-toggleSwitch
+                [(ngModel)]="form.isBillable"
+                name="btBillable"
+                inputId="btBillable"
+                (ngModelChange)="onBillableChange($event)"
+              />
+              <label for="btBillable">Billable</label>
+            </div>
+          </div>
+          <p-inputNumber
+            inputId="btPrice"
+            name="btPrice"
+            [(ngModel)]="form.priceDollars"
+            mode="decimal"
+            prefix="$"
+            locale="en-US"
+            [min]="0"
+            [minFractionDigits]="2"
+            [maxFractionDigits]="2"
+            [readonly]="!form.isBillable"
+            styleClass="project-rate-input"
+            inputStyleClass="project-rate-input-field"
+          />
+          <div class="project-rate-toggles">
+            <div class="flex align-items-center gap-2">
+              <p-toggleSwitch [(ngModel)]="form.paymentRequired" name="btPayment" inputId="btPayment" />
+              <label for="btPayment">Require payment</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      @if (id() && bookingCount() === 0) {
+        <button
+          type="button"
+          pButton
+          label="Delete"
+          icon="pi pi-trash"
+          severity="danger"
+          [text]="true"
+          class="form-actions-leading"
+          (click)="confirmDeleteType()"
+        ></button>
+      }
+      <a routerLink="/bookings/types" pButton label="Cancel" class="p-button-secondary"></a>
+      <button type="button" pButton label="Save" [loading]="saving()" (click)="save()"></button>
+    </div>
+  }
+</app-page>
