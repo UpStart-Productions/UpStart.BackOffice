@@ -1,0 +1,56 @@
+<app-page title="Discovery bookings">
+  @if (error()) {
+    <div class="card mb-3">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+
+  <div class="card">
+    <p class="text-color-secondary mt-0 mb-3 text-sm">
+      Calls booked via <a href="https://heyupstart.com/book-discovery-chat/" target="_blank" rel="noopener">heyupstart.com/book-discovery-chat</a>.
+      Availability is configured in <a routerLink="/settings">Settings</a>.
+    </p>
+
+    @if (loading()) {
+      <p class="text-color-secondary">Loading…</p>
+    } @else if (bookings().length === 0) {
+      <p class="text-color-secondary mb-0">No bookings yet.</p>
+    } @else {
+      <p-table [value]="bookings()" [rowHover]="true" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>When</th>
+            <th>Guest</th>
+            <th>Organization</th>
+            <th>Status</th>
+            <th>Lead</th>
+            <th style="width: 3rem"></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td>{{ formatWhen(row.startAt) }}</td>
+            <td>
+              <div>{{ row.guestName }}</div>
+              <div class="text-color-secondary text-sm">{{ row.guestEmail }}</div>
+            </td>
+            <td>{{ row.guestOrg ?? '—' }}</td>
+            <td>
+              <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
+            </td>
+            <td>
+              @if (row.lead) {
+                <a [routerLink]="['/pipeline', row.lead.id]">{{ row.lead.organization }}</a>
+              } @else {
+                —
+              }
+            </td>
+            <td>
+              <app-row-actions-menu [items]="getRowActions(row)" />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    }
+  </div>
+</app-page>

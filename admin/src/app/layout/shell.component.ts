@@ -37,6 +37,7 @@ export class ShellComponent implements OnInit {
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
       { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
+      { label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },

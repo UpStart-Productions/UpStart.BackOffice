@@ -106,6 +106,11 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/pipeline/lead-detail.page').then((m) => m.LeadDetailPage),
       },
+      {
+        path: 'bookings',
+        loadComponent: () =>
+          import('./pages/bookings/bookings-list.page').then((m) => m.BookingsListPage),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

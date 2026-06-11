@@ -158,6 +158,254 @@
       </ng-template>
     </p-table>
   </div>
+
+  <div class="card mb-3">
+    <h2 class="page-title page-title-in-card">Discovery chat booking</h2>
+    <p class="text-color-secondary mt-0 mb-3 text-sm">
+      @if (bookingSettings()?.publicPageUrl; as pageUrl) {
+        Public booking page:
+        <a [href]="pageUrl" target="_blank" rel="noopener">{{ pageUrl }}</a>.
+      }
+      Host: {{ bookingSettings()?.hostName ?? '—' }} ({{ bookingSettings()?.hostEmail ?? '—' }}).
+    </p>
+
+    <div class="showcase-flex-col mb-4">
+      <div class="form-field showcase-full">
+        <label for="bookingPublicPageUrl">Public booking page URL</label>
+        <input
+          pInputText
+          id="bookingPublicPageUrl"
+          type="url"
+          class="w-full"
+          [(ngModel)]="bookingForm.publicPageUrl"
+          name="bookingPublicPageUrl"
+          placeholder="https://heyupstart.com/book-discovery-chat"
+        />
+        <p class="text-color-secondary text-sm mt-2 mb-0">
+          Used for cancel links in confirmation emails. For local testing use
+          <code class="text-sm">http://localhost:4321/book-discovery-chat</code>.
+        </p>
+      </div>
+      <div class="form-field showcase-full">
+        <label for="bookingDuration">Call length (minutes)</label>
+        <input
+          pInputText
+          id="bookingDuration"
+          type="number"
+          class="w-full"
+          [(ngModel)]="bookingForm.durationMin"
+          name="bookingDuration"
+        />
+      </div>
+      <div class="form-field showcase-full">
+        <label for="bookingNotice">Minimum notice (hours)</label>
+        <input
+          pInputText
+          id="bookingNotice"
+          type="number"
+          class="w-full"
+          [(ngModel)]="bookingForm.minNoticeHours"
+          name="bookingNotice"
+        />
+      </div>
+      <div class="form-field showcase-full">
+        <label for="bookingHorizon">How far ahead guests can book (days)</label>
+        <input
+          pInputText
+          id="bookingHorizon"
+          type="number"
+          class="w-full"
+          [(ngModel)]="bookingForm.maxDaysAhead"
+          name="bookingHorizon"
+        />
+      </div>
+    </div>
+
+    <p-table [value]="bookingDays" styleClass="p-datatable-sm mb-4">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Day</th>
+          <th>Available</th>
+          <th>Start</th>
+          <th>End</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-day>
+        <tr>
+          <td>{{ day.label }}</td>
+          <td>
+            <input type="checkbox" [(ngModel)]="day.enabled" [name]="'day-' + day.dayOfWeek" />
+          </td>
+          <td>
+            <input
+              pInputText
+              type="time"
+              class="w-full"
+              [(ngModel)]="day.startTime"
+              [disabled]="!day.enabled"
+              [name]="'start-' + day.dayOfWeek"
+            />
+          </td>
+          <td>
+            <input
+              pInputText
+              type="time"
+              class="w-full"
+              [(ngModel)]="day.endTime"
+              [disabled]="!day.enabled"
+              [name]="'end-' + day.dayOfWeek"
+            />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+
+    <button
+      type="button"
+      pButton
+      label="Save booking settings"
+      [loading]="bookingSaving()"
+      (click)="saveBookingSettings()"
+    ></button>
+  </div>
+
+  <div class="card mb-3">
+    <h2 class="page-title page-title-in-card">Google Calendar</h2>
+    <p class="text-color-secondary mt-0 mb-3 text-sm">
+      Connect Google Calendar for discovery chat booking. Busy times on <strong>all</strong> of your
+      Google calendars block available slots; confirmed bookings create events on the calendar you
+      select below.
+      Create OAuth credentials in
+      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a>
+      (Web application) and enable the Google Calendar API.
+    </p>
+
+    <div class="showcase-flex-col mb-4">
+      <div class="form-field showcase-full">
+        <label for="googleClientId">Client ID</label>
+        <input
+          pInputText
+          id="googleClientId"
+          class="w-full"
+          [(ngModel)]="googleCalendarConfigForm.clientId"
+          name="googleClientId"
+          autocomplete="off"
+        />
+      </div>
+      <div class="form-field showcase-full">
+        <label for="googleClientSecret">Client secret</label>
+        <input
+          pInputText
+          id="googleClientSecret"
+          type="password"
+          class="w-full"
+          [(ngModel)]="googleCalendarConfigForm.clientSecret"
+          name="googleClientSecret"
+          [placeholder]="googleCalendarHasClientSecret() ? 'Leave blank to keep existing secret' : 'Required'"
+          autocomplete="new-password"
+        />
+      </div>
+      <div class="form-field showcase-full">
+        <label for="googleRedirectUri">Redirect URI</label>
+        <input
+          pInputText
+          id="googleRedirectUri"
+          class="w-full"
+          [(ngModel)]="googleCalendarConfigForm.redirectUri"
+          name="googleRedirectUri"
+          autocomplete="off"
+        />
+        @if (googleCalendarSuggestedRedirectUri()) {
+          <p class="text-color-secondary text-sm mt-2 mb-0">
+            Add this exact URL in Google Cloud Console:
+            <code class="text-sm">{{ googleCalendarSuggestedRedirectUri() }}</code>
+            <button
+              type="button"
+              pButton
+              label="Use"
+              [text]="true"
+              class="p-0 ml-2"
+              (click)="useSuggestedGoogleCalendarRedirectUri()"
+            ></button>
+          </p>
+        }
+      </div>
+      <div>
+        <button
+          type="button"
+          pButton
+          label="Save credentials"
+          [loading]="googleCalendarSavingConfig()"
+          (click)="saveGoogleCalendarConfig()"
+        ></button>
+      </div>
+    </div>
+
+    @if (googleCalendar(); as gStatus) {
+      @if (gStatus.connected) {
+        <div class="flex flex-column gap-2 mb-3">
+          @if (gStatus.calendarSummary) {
+            <div><strong>Calendar:</strong> {{ gStatus.calendarSummary }}</div>
+          }
+          @if (gStatus.connectedByEmail) {
+            <div><strong>Account:</strong> {{ gStatus.connectedByEmail }}</div>
+          }
+          @if (gStatus.connectedAt) {
+            <div><strong>Connected:</strong> {{ formatDate(gStatus.connectedAt) }}</div>
+          }
+        </div>
+
+        @if (googleCalendarOptions().length) {
+          <div class="form-field showcase-full mb-3">
+            <label for="googleCalendarSelect">Calendar for bookings</label>
+            <p-select
+              inputId="googleCalendarSelect"
+              [options]="googleCalendarOptions()"
+              optionLabel="summary"
+              optionValue="id"
+              [(ngModel)]="googleCalendarSelectedId"
+              name="googleCalendarSelect"
+              placeholder="Select calendar"
+              styleClass="w-full"
+            />
+          </div>
+          <button
+            type="button"
+            pButton
+            label="Save calendar"
+            class="mb-3"
+            [loading]="googleCalendarSavingSelection()"
+            (click)="saveGoogleCalendarSelection()"
+          ></button>
+        }
+
+        <button
+          type="button"
+          pButton
+          label="Disconnect Google Calendar"
+          severity="danger"
+          [outlined]="true"
+          [loading]="googleCalendarDisconnecting()"
+          (click)="confirmDisconnectGoogleCalendar()"
+        ></button>
+      } @else {
+        <button
+          type="button"
+          pButton
+          label="Connect Google Calendar"
+          icon="pi pi-link"
+          [loading]="googleCalendarConnecting()"
+          [disabled]="!gStatus.configured"
+          (click)="connectGoogleCalendar()"
+        ></button>
+        @if (!gStatus.configured) {
+          <p class="text-color-secondary text-sm mt-2 mb-0">
+            Save your app credentials above before connecting.
+          </p>
+        }
+      }
+    }
+  </div>
 </app-page>
 
 <p-dialog

@@ -65,6 +65,11 @@ enum ProjectTaskSource {
   ASANA
 }
 
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
 model User {
   id         String   @id @default(cuid())
   email      String   @unique
@@ -79,8 +84,9 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  client      Client?      @relation(fields: [clientId], references: [id])
-  timeEntries TimeEntry[]
+  client              Client?          @relation(fields: [clientId], references: [id])
+  timeEntries         TimeEntry[]
+  bookingSettingsHost BookingSettings[] @relation("BookingHost")
 }
 
 model Client {
@@ -132,6 +138,7 @@ model Lead {
 
   convertedClient Client?    @relation(fields: [convertedClientId], references: [id])
   artifacts       Artifact[]
+  bookings        Booking[]
 
   @@index([stage])
 }
@@ -232,6 +239,23 @@ model AsanaIntegration {
   updatedAt                  DateTime  @updatedAt
 }
 
+model GoogleCalendarIntegration {
+  id                         String    @id @default("default")
+  clientId                   String?
+  clientSecretEnc            String?
+  redirectUri                String?
+  accessTokenEnc             String?
+  refreshTokenEnc            String?
+  tokenExpiresAt             DateTime?
+  calendarId                 String?
+  calendarSummary            String?
+  connectedByEmail           String?
+  pendingOAuthState          String?
+  pendingOAuthStateExpiresAt DateTime?
+  connectedAt                DateTime?
+  updatedAt                  DateTime  @updatedAt
+}
+
 model TimeEntry {
   id                String    @id @default(cuid())
   userId            String
@@ -312,4 +336,54 @@ model InvoiceLineItem {
 
   @@index([invoiceId])
   @@index([projectId])
+}
+
+model BookingSettings {
+  id             String   @id @default("default")
+  hostUserId     String
+  durationMin    Int      @default(30)
+  bufferMin      Int      @default(0)
+  minNoticeHours Int      @default(4)
+  maxDaysAhead   Int      @default(60)
+  timezone       String   @default("America/Los_Angeles")
+  publicPageUrl  String   @default("https://heyupstart.com/book-discovery-chat")
+  updatedAt      DateTime @updatedAt
+
+  host              User                      @relation("BookingHost", fields: [hostUserId], references: [id])
+  availabilityRules BookingAvailabilityRule[]
+}
+
+model BookingAvailabilityRule {
+  id          String @id @default(cuid())
+  settingsId  String @default("default")
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+
+  settings BookingSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+
+  @@index([settingsId])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  startAt       DateTime
+  endAt         DateTime
+  status        BookingStatus @default(CONFIRMED)
+  guestName     String
+  guestEmail    String
+  guestOrg      String?
+  guestMessage  String?       @db.Text
+  guestTimezone String?
+  cancelToken   String        @unique @default(cuid())
+  leadId        String?
+  googleEventId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([startAt])
+  @@index([status])
+  @@index([guestEmail])
 }

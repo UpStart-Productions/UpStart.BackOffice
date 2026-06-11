@@ -89,6 +89,35 @@ export class MailService {
     }
   }
 
+  async sendWithAttachment(params: {
+    to: string;
+    subject: string;
+    html: string;
+    attachment: { filename: string; content: Buffer; contentType: string };
+  }): Promise<{ sent: boolean; error?: string }> {
+    try {
+      const from = `${this.fromName} <${this.fromEmail}>`;
+      const raw = buildMultipartEmail({
+        from,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+        attachment: params.attachment,
+      });
+      await this.ses.send(
+        new SendRawEmailCommand({
+          Source: this.fromEmail,
+          Destinations: [params.to],
+          RawMessage: { Data: raw },
+        }),
+      );
+      return { sent: true };
+    } catch (err) {
+      this.logger.error(`Failed to send email with attachment: ${String(err)}`);
+      return { sent: false, error: String(err) };
+    }
+  }
+
   private buildInvoiceEmailHtml(params: {
     toName?: string;
     invoiceNumber: string;

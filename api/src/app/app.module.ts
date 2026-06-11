@@ -16,6 +16,8 @@ import { PortalModule } from './portal/portal.module';
 import { ServiceKeysModule } from './service-keys/service-keys.module';
 import { ArtifactsModule } from './artifacts/artifacts.module';
 import { AsanaModule } from './asana/asana.module';
+import { BookingModule } from './booking/booking.module';
+import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -39,6 +41,8 @@ import { HealthController } from './health.controller';
     PortalModule,
     ServiceKeysModule,
     AsanaModule,
+    BookingModule,
+    GoogleCalendarModule,
   ],
 })
 export class AppModule implements NestModule {

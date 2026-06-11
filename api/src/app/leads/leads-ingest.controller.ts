@@ -6,6 +6,7 @@ import { ArtifactType, LeadSource, LeadStage } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
+import { normalizeWebsiteDomain } from './lead-website.util';
 
 @ApiTags('leads')
 @Controller('leads')
@@ -21,7 +22,7 @@ export class LeadsIngestController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(ServiceKeyGuard)
   async ingest(@Body() dto: IngestLeadDto) {
-    const domain = this._normalizeDomain(dto.website);
+    const domain = normalizeWebsiteDomain(dto.website);
 
     const existing = await this.prisma.lead.findFirst({
       where: { website: { contains: domain } },
@@ -67,14 +68,5 @@ export class LeadsIngestController {
     });
 
     return { duplicate: false, leadId: lead.id, organization: lead.organization };
-  }
-
-  private _normalizeDomain(url: string): string {
-    try {
-      const full = url.startsWith('http') ? url : `https://${url}`;
-      return new URL(full).hostname.replace(/^www\./, '');
-    } catch {
-      return url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-    }
   }
 }

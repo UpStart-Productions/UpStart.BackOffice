@@ -40,6 +40,25 @@ async function main() {
   });
   console.log(`User: ${jeff.email}`);
 
+  await prisma.bookingSettings.upsert({
+    where: { id: 'default' },
+    update: { hostUserId: jeff.id, bufferMin: 0 },
+    create: {
+      id: 'default',
+      hostUserId: jeff.id,
+      publicPageUrl: 'http://localhost:4321/book-discovery-chat',
+      availabilityRules: {
+        create: [
+          { dayOfWeek: 2, startMinute: 9 * 60, endMinute: 12 * 60 },
+          { dayOfWeek: 2, startMinute: 13 * 60, endMinute: 17 * 60 },
+          { dayOfWeek: 4, startMinute: 9 * 60, endMinute: 12 * 60 },
+          { dayOfWeek: 4, startMinute: 13 * 60, endMinute: 17 * 60 },
+        ],
+      },
+    },
+  });
+  console.log('Booking settings seeded (Tue/Thu 9am–5pm Pacific)');
+
   const client = await prisma.client.upsert({
     where: { code: 'SMPL' },
     update: {},
