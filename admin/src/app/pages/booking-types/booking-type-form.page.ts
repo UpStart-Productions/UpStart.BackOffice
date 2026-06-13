@@ -240,13 +240,14 @@ export class BookingTypeFormPage implements OnInit {
           endMinute: this.timeToMinutes(d.endTime),
         }));
 
+      const { priceDollars, ...formFields } = this.form;
       const payload = {
-        ...this.form,
+        ...formFields,
         brand: this.form.brand.trim() || undefined,
         pipelineNoteTitle: this.form.pipelineNoteTitle.trim() || undefined,
         priceCents:
-          this.form.isBillable && this.form.priceDollars != null
-            ? Math.round(this.form.priceDollars * 100)
+          this.form.isBillable && priceDollars != null
+            ? Math.round(priceDollars * 100)
             : null,
         paymentRequired: this.form.isBillable && this.form.paymentRequired,
         availabilityRules,
