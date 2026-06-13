@@ -17,9 +17,26 @@ const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT ?? '10mb';
 const CORS_METHODS = ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'] as const;
 
 function parseCorsOrigins(): string[] {
-  return (process.env.CORS_ORIGINS?.split(',') ?? [])
+  const raw = (process.env.CORS_ORIGINS?.split(',') ?? [])
     .map((s) => s.trim().replace(/^["']+|["']+$/g, '').replace(/\/$/, ''))
     .filter(Boolean);
+  const expanded = new Set(raw);
+  for (const origin of raw) {
+    try {
+      const { protocol, hostname } = new URL(origin);
+      if (hostname === 'office.heyupstart.com') {
+        expanded.add(`${protocol}//heyupstart.com`);
+        expanded.add(`${protocol}//www.heyupstart.com`);
+      } else if (hostname === 'heyupstart.com') {
+        expanded.add(`${protocol}//www.heyupstart.com`);
+      } else if (hostname === 'www.heyupstart.com') {
+        expanded.add(`${protocol}//heyupstart.com`);
+      }
+    } catch {
+      // ignore invalid URLs
+    }
+  }
+  return [...expanded];
 }
 
 function isCorsOriginAllowed(origin: string | undefined, allowed: string[]): boolean {
@@ -53,6 +70,7 @@ async function bootstrap() {
     'x-user-role',
     'x-impersonate-user-id',
     'content-type',
+    'accept',
   ];
 
   if (isDev) {
