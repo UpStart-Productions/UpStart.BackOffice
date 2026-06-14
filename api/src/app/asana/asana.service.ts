@@ -173,8 +173,16 @@ export class AsanaService {
     }
 
     const config = await this.resolveOAuthConfig();
-    let accessToken = decryptSecret(row.accessTokenEnc);
-    const refreshToken = decryptSecret(row.refreshTokenEnc);
+    let accessToken: string;
+    let refreshToken: string;
+    try {
+      accessToken = decryptSecret(row.accessTokenEnc);
+      refreshToken = decryptSecret(row.refreshTokenEnc);
+    } catch {
+      throw new UnauthorizedException(
+        'Asana credentials could not be read — disconnect and connect again in Settings',
+      );
+    }
     const needsRefresh =
       !row.tokenExpiresAt ||
       row.tokenExpiresAt.getTime() - Date.now() < TOKEN_REFRESH_BUFFER_MS;

@@ -137,6 +137,10 @@ export class AsanaApiClient {
     return res.json() as Promise<T>;
   }
 
+  private listItems<T extends AsanaResource>(result: AsanaListResponse<T>): T[] {
+    return (result.data ?? []).filter((item): item is T => !!item?.gid);
+  }
+
   async listWorkspaces(): Promise<AsanaResource[]> {
     const me = await this.request<AsanaItemResponse<{ workspaces: AsanaResource[] }>>(
       '/users/me?opt_fields=workspaces,workspaces.name',
@@ -146,9 +150,11 @@ export class AsanaApiClient {
 
   async listProjects(workspaceGid: string): Promise<AsanaResource[]> {
     const result = await this.request<AsanaListResponse<AsanaResource>>(
-      `/projects?workspace=${encodeURIComponent(workspaceGid)}&archived=false&opt_fields=name`,
+      `/workspaces/${encodeURIComponent(workspaceGid)}/projects?archived=false&opt_fields=name`,
     );
-    return result.data.sort((a, b) => a.name.localeCompare(b.name));
+    return this.listItems(result).sort((a, b) =>
+      (a.name ?? '').localeCompare(b.name ?? ''),
+    );
   }
 
   async listSections(projectGid: string): Promise<AsanaResource[]> {
@@ -156,10 +162,14 @@ export class AsanaApiClient {
       const direct = await this.fetchSectionsDirect(projectGid);
       if (direct.length > 0) return direct;
     } catch {
-      // Granular OAuth scopes do not include GET /projects/{gid}/sections — fall back below.
+      // Granular OAuth may not allow GET /projects/{gid}/sections — fall back below.
     }
-    const derived = await this.listSectionsFromProjectTasks(projectGid);
-    if (derived.length > 0) return derived;
+    try {
+      const derived = await this.listSectionsFromProjectTasks(projectGid);
+      if (derived.length > 0) return derived;
+    } catch {
+      // tasks-based discovery failed — return empty or retry direct once below.
+    }
     try {
       return await this.fetchSectionsDirect(projectGid);
     } catch {
@@ -171,7 +181,9 @@ export class AsanaApiClient {
     const result = await this.request<AsanaListResponse<AsanaResource>>(
       `/projects/${encodeURIComponent(projectGid)}/sections?opt_fields=name`,
     );
-    return result.data.sort((a, b) => a.name.localeCompare(b.name));
+    return this.listItems(result).sort((a, b) =>
+      (a.name ?? '').localeCompare(b.name ?? ''),
+    );
   }
 
   private async listSectionsFromProjectTasks(projectGid: string): Promise<AsanaResource[]> {
@@ -189,7 +201,7 @@ export class AsanaApiClient {
         `/projects/${encodeURIComponent(projectGid)}/tasks?${params.toString()}`,
       );
 
-      for (const task of result.data) {
+      for (const task of result.data ?? []) {
         for (const membership of task.memberships ?? []) {
           if (membership.project?.gid !== projectGid) continue;
           if (membership.section?.gid && membership.section.name) {
@@ -210,7 +222,7 @@ export class AsanaApiClient {
     const result = await this.request<AsanaListResponse<AsanaTask>>(
       `/sections/${encodeURIComponent(sectionGid)}/tasks?opt_fields=name,completed`,
     );
-    return result.data.filter((t) => !t.completed);
+    return this.listItems(result).filter((t) => !t.completed);
   }
 
   async getTaskNotes(taskGid: string): Promise<{ notes: string | null; permalinkUrl: string | null }> {
