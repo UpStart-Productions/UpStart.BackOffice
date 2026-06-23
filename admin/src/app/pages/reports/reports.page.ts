@@ -2,6 +2,7 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { UIChart } from 'primeng/chart';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -34,6 +35,7 @@ type TimeEntry = {
   project: {
     id: string;
     name: string;
+    isBillable: boolean;
     client: { id: string; name: string };
   };
   projectTask?: { id: string; name: string; isBillable: boolean } | null;
@@ -74,6 +76,7 @@ type InvoiceClientRow = {
     FormsModule,
     RouterLink,
     ButtonModule,
+    UIChart,
     MessageModule,
     SelectModule,
     TableModule,
@@ -139,23 +142,6 @@ export class ReportsPage implements OnInit {
     ...this.users().map((u) => ({ label: this.userLabel(u), value: u.id })),
   ]);
 
-  readonly timeSummary = computed(() => {
-    const entries = this.completedTimeEntries();
-    let totalMin = 0;
-    let billableMin = 0;
-    for (const e of entries) {
-      const min = e.durationMin ?? 0;
-      totalMin += min;
-      if (e.isBillable) billableMin += min;
-    }
-    return {
-      totalMin,
-      billableMin,
-      nonBillableMin: totalMin - billableMin,
-      entryCount: entries.length,
-    };
-  });
-
   readonly timeByProject = computed((): TimeProjectRow[] => {
     const map = new Map<string, TimeProjectRow>();
     for (const e of this.completedTimeEntries()) {
@@ -172,7 +158,7 @@ export class ReportsPage implements OnInit {
           entryCount: 0,
         } satisfies TimeProjectRow);
       row.totalMin += min;
-      if (e.isBillable) row.billableMin += min;
+      if (this.isEntryBillable(e)) row.billableMin += min;
       else row.nonBillableMin += min;
       row.entryCount += 1;
       map.set(key, row);
@@ -180,6 +166,35 @@ export class ReportsPage implements OnInit {
     return [...map.values()].sort(
       (a, b) => b.totalMin - a.totalMin || a.clientName.localeCompare(b.clientName),
     );
+  });
+
+  readonly totalTimeChart = computed(() =>
+    this.buildProjectChart(this.timeByProject(), (r) => r.totalMin),
+  );
+
+  readonly billableTimeChart = computed(() =>
+    this.buildProjectChart(this.timeByProject(), (r) => r.billableMin),
+  );
+
+  readonly nonBillableTimeChart = computed(() =>
+    this.buildProjectChart(this.timeByProject(), (r) => r.nonBillableMin),
+  );
+
+  readonly timeSummary = computed(() => {
+    const entries = this.completedTimeEntries();
+    let totalMin = 0;
+    let billableMin = 0;
+    for (const e of entries) {
+      const min = e.durationMin ?? 0;
+      totalMin += min;
+      if (this.isEntryBillable(e)) billableMin += min;
+    }
+    return {
+      totalMin,
+      billableMin,
+      nonBillableMin: totalMin - billableMin,
+      entryCount: entries.length,
+    };
   });
 
   readonly invoiceSummary = computed(() => {
@@ -334,6 +349,59 @@ export class ReportsPage implements OnInit {
 
   private completedTimeEntries(): TimeEntry[] {
     return this.timeEntries().filter((e) => e.stoppedAt && (e.durationMin ?? 0) > 0);
+  }
+
+  private isEntryBillable(entry: TimeEntry): boolean {
+    return entry.project.isBillable && entry.isBillable;
+  }
+
+  private buildProjectChart(
+    rows: TimeProjectRow[],
+    getMin: (row: TimeProjectRow) => number,
+  ): { data: { labels: string[]; datasets: { data: number[]; backgroundColor: string[] }[] }; options: Record<string, unknown> } | null {
+    const filtered = rows.filter((r) => getMin(r) > 0);
+    if (filtered.length === 0) return null;
+
+    const colors = [
+      '#7c3aed',
+      '#1565c0',
+      '#2e7d32',
+      '#f59e0b',
+      '#ef4444',
+      '#0891b2',
+      '#9333ea',
+      '#ea580c',
+    ];
+
+    return {
+      data: {
+        labels: filtered.map((r) => r.projectName),
+        datasets: [
+          {
+            data: filtered.map((r) => Math.round((getMin(r) / 60) * 100) / 100),
+            backgroundColor: filtered.map((_, i) => colors[i % colors.length]),
+          },
+        ],
+      },
+      options: {
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { boxWidth: 10, font: { size: 11 } },
+          },
+          tooltip: {
+            callbacks: {
+              title: (items: { dataIndex: number }[]) => {
+                const row = filtered[items[0].dataIndex];
+                return `${row.clientName} — ${row.projectName}`;
+              },
+              label: (ctx: { parsed: number }) => `${ctx.parsed} hrs`,
+            },
+          },
+        },
+        maintainAspectRatio: false,
+      },
+    };
   }
 
   private filteredInvoices(): Invoice[] {

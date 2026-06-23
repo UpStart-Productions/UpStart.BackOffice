@@ -64,6 +64,17 @@ export async function resolveTimeEntryBillable(
   projectTaskId?: string,
   isBillable?: boolean,
 ): Promise<boolean> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { isBillable: true },
+  });
+  if (!project) {
+    throw new BadRequestException('Project not found');
+  }
+  if (!project.isBillable) {
+    return false;
+  }
+
   if (projectTaskId) {
     const task = await prisma.projectTask.findFirst({
       where: { id: projectTaskId, projectId, isActive: true },
