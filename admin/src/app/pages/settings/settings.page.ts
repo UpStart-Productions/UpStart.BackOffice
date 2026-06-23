@@ -10,6 +10,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
+import { AccordionModule } from 'primeng/accordion';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -61,6 +62,14 @@ interface GoogleCalendarOption {
   primary?: boolean;
 }
 
+type SettingsSectionStatus = 'connected' | 'disconnected' | 'error' | 'neutral';
+
+interface SettingsStatusIcon {
+  icon: string;
+  className: string;
+  label: string;
+}
+
 @Component({
   selector: 'app-settings-page',
   standalone: true,
@@ -75,6 +84,7 @@ interface GoogleCalendarOption {
     TagModule,
     TooltipModule,
     SelectModule,
+    AccordionModule,
     RowActionsMenuComponent,
   ],
   templateUrl: './settings.page.html',
@@ -100,6 +110,76 @@ interface GoogleCalendarOption {
 
       .api-key-row .p-button {
         flex-shrink: 0;
+      }
+
+      .google-calendar-label {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+      }
+
+      .google-calendar-select-field {
+        flex: 0 0 50%;
+        max-width: 50%;
+        min-width: 12rem;
+      }
+
+      .google-calendar-actions {
+        flex-shrink: 0;
+      }
+
+      @media (max-width: 768px) {
+        .google-calendar-select-field {
+          flex: 1 1 100%;
+          max-width: 100%;
+        }
+      }
+
+      .settings-sections-accordion {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .settings-accordion-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        min-width: 0;
+        width: 100%;
+      }
+
+      .settings-accordion-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .settings-accordion-meta {
+        color: var(--text-color-secondary);
+        font-weight: 400;
+        font-size: 0.875rem;
+      }
+
+      .settings-accordion-status {
+        font-size: 1rem;
+        flex-shrink: 0;
+      }
+
+      .settings-status-connected {
+        color: var(--p-green-500);
+      }
+
+      .settings-status-disconnected {
+        color: var(--text-color-secondary);
+      }
+
+      .settings-status-error {
+        color: var(--p-red-500);
+      }
+
+      .settings-status-neutral {
+        color: var(--text-color-secondary);
       }
     `,
   ],
@@ -149,6 +229,7 @@ export class SettingsPage implements OnInit {
   keyName   = '';
   newKey    = signal<string | null>(null);
   newKeyName = signal('');
+  accordionOpenPanels: string[] = [];
 
   ngOnInit() {
     void this.load();
@@ -172,8 +253,10 @@ export class SettingsPage implements OnInit {
         detail: 'Discovery bookings will sync to your calendar.',
         life: 5000,
       });
+      this.openAccordionPanel('google-calendar');
       await this.loadGoogleCalendar();
     } else if (status === 'error') {
+      this.openAccordionPanel('google-calendar');
       this.toast.add({
         severity: 'error',
         summary: 'Google Calendar connection failed',
@@ -199,8 +282,10 @@ export class SettingsPage implements OnInit {
         detail: 'Your Asana workspace is linked to Back Office.',
         life: 5000,
       });
+      this.openAccordionPanel('asana');
       await this.loadAsana();
     } else if (asana === 'error') {
+      this.openAccordionPanel('asana');
       this.toast.add({
         severity: 'error',
         summary: 'Asana connection failed',
@@ -599,5 +684,70 @@ export class SettingsPage implements OnInit {
 
   formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  private openAccordionPanel(panel: string) {
+    if (!this.accordionOpenPanels.includes(panel)) {
+      this.accordionOpenPanels = [...this.accordionOpenPanels, panel];
+    }
+  }
+
+  apiKeysSummary(): string {
+    const total = this.keys().length;
+    if (total === 0) return 'No keys';
+    const active = this.keys().filter((k) => k.isActive).length;
+    return `${total} key${total === 1 ? '' : 's'} · ${active} connected`;
+  }
+
+  apiKeysStatus(): SettingsSectionStatus {
+    if (this.error() && this.keys().length === 0 && !this.loading()) return 'error';
+    const total = this.keys().length;
+    if (total === 0) return 'neutral';
+    return this.keys().some((k) => k.isActive) ? 'connected' : 'disconnected';
+  }
+
+  asanaStatus(): SettingsSectionStatus {
+    if (this.loading()) return 'neutral';
+    const status = this.asana();
+    if (status === null) return 'error';
+    if (status.connected) return 'connected';
+    return 'disconnected';
+  }
+
+  googleCalendarStatus(): SettingsSectionStatus {
+    if (this.loading()) return 'neutral';
+    const status = this.googleCalendar();
+    if (status === null) return 'error';
+    if (status.connected) return 'connected';
+    return 'disconnected';
+  }
+
+  sectionStatusIcon(status: SettingsSectionStatus): SettingsStatusIcon {
+    switch (status) {
+      case 'connected':
+        return {
+          icon: 'pi pi-check-circle',
+          className: 'settings-status-connected',
+          label: 'Connected',
+        };
+      case 'disconnected':
+        return {
+          icon: 'pi pi-link',
+          className: 'settings-status-disconnected',
+          label: 'Disconnected',
+        };
+      case 'error':
+        return {
+          icon: 'pi pi-times-circle',
+          className: 'settings-status-error',
+          label: 'Error',
+        };
+      default:
+        return {
+          icon: 'pi pi-minus-circle',
+          className: 'settings-status-neutral',
+          label: 'Not configured',
+        };
+    }
   }
 }

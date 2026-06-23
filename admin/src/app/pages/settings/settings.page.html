@@ -1,300 +1,363 @@
 <app-page title="Settings">
   @if (error()) {
-    <div class="card">
+    <div class="card mb-3">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
 
-  <div class="card mb-3">
-    <h2 class="page-title page-title-in-card">Asana</h2>
-    <p class="text-color-secondary mt-0 mb-3 text-sm">
-      In the Asana app under <strong>OAuth → Permission scopes</strong>: turn off Full permissions, then enable
-      <code>projects:read</code>, <code>tasks:read</code>, <code>users:read</code>, and <code>workspaces:read</code>.
-      Under <strong>Manage distribution</strong>, allow your workspace to use the app.
-    </p>
-
-    <div class="showcase-flex-col mb-4">
-      <div class="form-field showcase-full">
-        <label for="asanaClientId">Client ID</label>
-        <input
-          pInputText
-          id="asanaClientId"
-          class="w-full"
-          [(ngModel)]="asanaConfigForm.clientId"
-          name="asanaClientId"
-          autocomplete="off"
-        />
-      </div>
-      <div class="form-field showcase-full">
-        <label for="asanaClientSecret">Client secret</label>
-        <input
-          pInputText
-          id="asanaClientSecret"
-          type="password"
-          class="w-full"
-          [(ngModel)]="asanaConfigForm.clientSecret"
-          name="asanaClientSecret"
-          [placeholder]="asanaHasClientSecret() ? 'Leave blank to keep existing secret' : 'Required'"
-          autocomplete="new-password"
-        />
-      </div>
-      <div class="form-field showcase-full">
-        <label for="asanaRedirectUri">Redirect URI</label>
-        <input
-          pInputText
-          id="asanaRedirectUri"
-          class="w-full"
-          [(ngModel)]="asanaConfigForm.redirectUri"
-          name="asanaRedirectUri"
-          autocomplete="off"
-        />
-        @if (asanaSuggestedRedirectUri()) {
-          <p class="text-color-secondary text-sm mt-2 mb-0">
-            Add this exact URL in the Asana app:
-            <code class="text-sm">{{ asanaSuggestedRedirectUri() }}</code>
-            <button
-              type="button"
-              pButton
-              label="Use"
-              [text]="true"
-              class="p-0 ml-2"
-              (click)="useSuggestedRedirectUri()"
-            ></button>
-          </p>
-        }
-      </div>
-      <div>
-        <button
-          type="button"
-          pButton
-          label="Save credentials"
-          [loading]="asanaSavingConfig()"
-          (click)="saveAsanaConfig()"
-        ></button>
-      </div>
-    </div>
-
-    @if (asana(); as status) {
-      @if (status.connected) {
-        <div class="flex flex-column gap-2 mb-3">
-          <div><strong>Workspace:</strong> {{ status.workspaceName ?? '—' }}</div>
-          @if (status.connectedByEmail) {
-            <div><strong>Connected by:</strong> {{ status.connectedByEmail }}</div>
-          }
-          @if (status.connectedAt) {
-            <div><strong>Connected:</strong> {{ formatDate(status.connectedAt) }}</div>
-          }
-        </div>
-        <button
-          type="button"
-          pButton
-          label="Disconnect Asana"
-          severity="danger"
-          [outlined]="true"
-          [loading]="asanaDisconnecting()"
-          (click)="confirmDisconnectAsana()"
-        ></button>
-      } @else {
-        <button
-          type="button"
-          pButton
-          label="Connect Asana"
-          icon="pi pi-link"
-          [loading]="asanaConnecting()"
-          [disabled]="!status.configured"
-          (click)="connectAsana()"
-        ></button>
-        @if (!status.configured) {
-          <p class="text-color-secondary text-sm mt-2 mb-0">
-            Save your app credentials above before connecting.
-          </p>
-        }
-      }
-    }
-  </div>
-
   <div class="card">
-    <h2 class="page-title page-title-in-card">API Keys</h2>
-    <p class="text-color-secondary mt-0 mb-3">
-      Grant external services access to UBO. Each key is shown once on creation — store it securely.
-    </p>
-
-    <div class="toolbar">
-      <button pButton label="Generate Key" icon="pi pi-plus" class="p-button-sm" (click)="openGenerate()"></button>
-    </div>
-
-    <p-table [value]="keys()" [loading]="loading()" styleClass="table-bordered mt-3">
-      <ng-template pTemplate="header">
-        <tr>
-          <th style="width: 3rem"></th>
-          <th>Name</th>
-          <th>Key</th>
-          <th>Last Used</th>
-          <th>Created</th>
-          <th>Status</th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-key>
-        <tr>
-          <td>
-            <app-row-actions-menu [items]="getRowActions(key)" ariaLabel="Key actions" />
-          </td>
-          <td>{{ key.name }}</td>
-          <td><code class="text-sm">{{ key.keyPrefix }}</code></td>
-          <td>{{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '—' }}</td>
-          <td>{{ formatDate(key.createdAt) }}</td>
-          <td>
-            <p-tag
-              [value]="key.isActive ? 'Active' : 'Revoked'"
-              [severity]="key.isActive ? 'success' : 'secondary'"
-            />
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="6" class="text-center p-4 text-color-secondary">No API keys yet.</td>
-        </tr>
-      </ng-template>
-    </p-table>
-  </div>
-
-  <div class="card mb-3">
-    <h2 class="page-title page-title-in-card">Google Calendar</h2>
-    <p class="text-color-secondary mt-0 mb-3 text-sm">
-      Connect Google Calendar for discovery chat booking. Busy times on <strong>all</strong> of your
-      Google calendars block available slots; confirmed bookings create events on the calendar you
-      select below.
-      Create OAuth credentials in
-      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a>
-      (Web application) and enable the Google Calendar API.
-    </p>
-
-    <div class="showcase-flex-col mb-4">
-      <div class="form-field showcase-full">
-        <label for="googleClientId">Client ID</label>
-        <input
-          pInputText
-          id="googleClientId"
-          class="w-full"
-          [(ngModel)]="googleCalendarConfigForm.clientId"
-          name="googleClientId"
-          autocomplete="off"
-        />
-      </div>
-      <div class="form-field showcase-full">
-        <label for="googleClientSecret">Client secret</label>
-        <input
-          pInputText
-          id="googleClientSecret"
-          type="password"
-          class="w-full"
-          [(ngModel)]="googleCalendarConfigForm.clientSecret"
-          name="googleClientSecret"
-          [placeholder]="googleCalendarHasClientSecret() ? 'Leave blank to keep existing secret' : 'Required'"
-          autocomplete="new-password"
-        />
-      </div>
-      <div class="form-field showcase-full">
-        <label for="googleRedirectUri">Redirect URI</label>
-        <input
-          pInputText
-          id="googleRedirectUri"
-          class="w-full"
-          [(ngModel)]="googleCalendarConfigForm.redirectUri"
-          name="googleRedirectUri"
-          autocomplete="off"
-        />
-        @if (googleCalendarSuggestedRedirectUri()) {
-          <p class="text-color-secondary text-sm mt-2 mb-0">
-            Add this exact URL in Google Cloud Console:
-            <code class="text-sm">{{ googleCalendarSuggestedRedirectUri() }}</code>
-            <button
-              type="button"
-              pButton
-              label="Use"
-              [text]="true"
-              class="p-0 ml-2"
-              (click)="useSuggestedGoogleCalendarRedirectUri()"
-            ></button>
+    <p-accordion
+      class="settings-sections-accordion"
+      [multiple]="true"
+      [(value)]="accordionOpenPanels"
+    >
+      <p-accordion-panel value="api-keys">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            @let apiStatus = sectionStatusIcon(apiKeysStatus());
+            <i
+              [class]="apiStatus.icon + ' settings-accordion-status ' + apiStatus.className"
+              [attr.aria-label]="apiStatus.label"
+            ></i>
+            <span class="settings-accordion-title">API Keys</span>
+            <span class="settings-accordion-meta">{{ apiKeysSummary() }}</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <p class="text-color-secondary mt-0 mb-3">
+            Grant external services access to UBO. Each key is shown once on creation — store it securely.
           </p>
-        }
-      </div>
-      <div>
-        <button
-          type="button"
-          pButton
-          label="Save credentials"
-          [loading]="googleCalendarSavingConfig()"
-          (click)="saveGoogleCalendarConfig()"
-        ></button>
-      </div>
-    </div>
 
-    @if (googleCalendar(); as gStatus) {
-      @if (gStatus.connected) {
-        <div class="flex flex-column gap-2 mb-3">
-          @if (gStatus.calendarSummary) {
-            <div><strong>Calendar:</strong> {{ gStatus.calendarSummary }}</div>
-          }
-          @if (gStatus.connectedByEmail) {
-            <div><strong>Account:</strong> {{ gStatus.connectedByEmail }}</div>
-          }
-          @if (gStatus.connectedAt) {
-            <div><strong>Connected:</strong> {{ formatDate(gStatus.connectedAt) }}</div>
-          }
-        </div>
-
-        @if (googleCalendarOptions().length) {
-          <div class="form-field showcase-full mb-3">
-            <label for="googleCalendarSelect">Calendar for bookings</label>
-            <p-select
-              inputId="googleCalendarSelect"
-              [options]="googleCalendarOptions()"
-              optionLabel="summary"
-              optionValue="id"
-              [(ngModel)]="googleCalendarSelectedId"
-              name="googleCalendarSelect"
-              placeholder="Select calendar"
-              styleClass="w-full"
-            />
+          <div class="toolbar">
+            <button pButton label="Generate Key" icon="pi pi-plus" class="p-button-sm" (click)="openGenerate()"></button>
           </div>
-          <button
-            type="button"
-            pButton
-            label="Save calendar"
-            class="mb-3"
-            [loading]="googleCalendarSavingSelection()"
-            (click)="saveGoogleCalendarSelection()"
-          ></button>
-        }
 
-        <button
-          type="button"
-          pButton
-          label="Disconnect Google Calendar"
-          severity="danger"
-          [outlined]="true"
-          [loading]="googleCalendarDisconnecting()"
-          (click)="confirmDisconnectGoogleCalendar()"
-        ></button>
-      } @else {
-        <button
-          type="button"
-          pButton
-          label="Connect Google Calendar"
-          icon="pi pi-link"
-          [loading]="googleCalendarConnecting()"
-          [disabled]="!gStatus.configured"
-          (click)="connectGoogleCalendar()"
-        ></button>
-        @if (!gStatus.configured) {
-          <p class="text-color-secondary text-sm mt-2 mb-0">
-            Save your app credentials above before connecting.
+          <p-table [value]="keys()" [loading]="loading()" styleClass="table-bordered mt-3">
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="width: 3rem"></th>
+                <th>Name</th>
+                <th>Key</th>
+                <th>Last Used</th>
+                <th>Created</th>
+                <th>Status</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-key>
+              <tr>
+                <td>
+                  <app-row-actions-menu [items]="getRowActions(key)" ariaLabel="Key actions" />
+                </td>
+                <td>{{ key.name }}</td>
+                <td><code class="text-sm">{{ key.keyPrefix }}</code></td>
+                <td>{{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '—' }}</td>
+                <td>{{ formatDate(key.createdAt) }}</td>
+                <td>
+                  <p-tag
+                    [value]="key.isActive ? 'Active' : 'Revoked'"
+                    [severity]="key.isActive ? 'success' : 'secondary'"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="6" class="text-center p-4 text-color-secondary">No API keys yet.</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </p-accordion-content>
+      </p-accordion-panel>
+
+      <p-accordion-panel value="asana">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            @let asanaStatusIcon = sectionStatusIcon(asanaStatus());
+            <i
+              [class]="asanaStatusIcon.icon + ' settings-accordion-status ' + asanaStatusIcon.className"
+              [attr.aria-label]="asanaStatusIcon.label"
+            ></i>
+            <span class="settings-accordion-title">Asana</span>
+            @if (asana()?.connected && asana()?.workspaceName) {
+              <span class="settings-accordion-meta">{{ asana()?.workspaceName }}</span>
+            }
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <p class="text-color-secondary mt-0 mb-3 text-sm">
+            In the Asana app under <strong>OAuth → Permission scopes</strong>: turn off Full permissions, then enable
+            <code>projects:read</code>, <code>tasks:read</code>, <code>users:read</code>, and <code>workspaces:read</code>.
+            Under <strong>Manage distribution</strong>, allow your workspace to use the app.
           </p>
-        }
-      }
-    }
+
+          <div class="showcase-flex-col mb-4">
+            <div class="form-field showcase-full">
+              <label for="asanaClientId">Client ID</label>
+              <input
+                pInputText
+                id="asanaClientId"
+                class="w-full"
+                [(ngModel)]="asanaConfigForm.clientId"
+                name="asanaClientId"
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-field showcase-full">
+              <label for="asanaClientSecret">Client secret</label>
+              <input
+                pInputText
+                id="asanaClientSecret"
+                type="password"
+                class="w-full"
+                [(ngModel)]="asanaConfigForm.clientSecret"
+                name="asanaClientSecret"
+                [placeholder]="asanaHasClientSecret() ? 'Leave blank to keep existing secret' : 'Required'"
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="form-field showcase-full">
+              <label for="asanaRedirectUri">Redirect URI</label>
+              <input
+                pInputText
+                id="asanaRedirectUri"
+                class="w-full"
+                [(ngModel)]="asanaConfigForm.redirectUri"
+                name="asanaRedirectUri"
+                autocomplete="off"
+              />
+              @if (asanaSuggestedRedirectUri()) {
+                <p class="text-color-secondary text-sm mt-2 mb-0">
+                  Add this exact URL in the Asana app:
+                  <code class="text-sm">{{ asanaSuggestedRedirectUri() }}</code>
+                  <button
+                    type="button"
+                    pButton
+                    label="Use"
+                    [text]="true"
+                    class="p-0 ml-2"
+                    (click)="useSuggestedRedirectUri()"
+                  ></button>
+                </p>
+              }
+            </div>
+            <div>
+              <button
+                type="button"
+                pButton
+                label="Save credentials"
+                [loading]="asanaSavingConfig()"
+                (click)="saveAsanaConfig()"
+              ></button>
+            </div>
+          </div>
+
+          @if (asana(); as status) {
+            @if (status.connected) {
+              <div class="flex flex-column gap-2 mb-3">
+                <div><strong>Workspace:</strong> {{ status.workspaceName ?? '—' }}</div>
+                @if (status.connectedByEmail) {
+                  <div><strong>Connected by:</strong> {{ status.connectedByEmail }}</div>
+                }
+                @if (status.connectedAt) {
+                  <div><strong>Connected:</strong> {{ formatDate(status.connectedAt) }}</div>
+                }
+              </div>
+              <button
+                type="button"
+                pButton
+                label="Disconnect Asana"
+                severity="danger"
+                [outlined]="true"
+                [loading]="asanaDisconnecting()"
+                (click)="confirmDisconnectAsana()"
+              ></button>
+            } @else {
+              <button
+                type="button"
+                pButton
+                label="Connect Asana"
+                icon="pi pi-link"
+                [loading]="asanaConnecting()"
+                [disabled]="!status.configured"
+                (click)="connectAsana()"
+              ></button>
+              @if (!status.configured) {
+                <p class="text-color-secondary text-sm mt-2 mb-0">
+                  Save your app credentials above before connecting.
+                </p>
+              }
+            }
+          }
+        </p-accordion-content>
+      </p-accordion-panel>
+
+      <p-accordion-panel value="google-calendar">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            @let googleStatusIcon = sectionStatusIcon(googleCalendarStatus());
+            <i
+              [class]="googleStatusIcon.icon + ' settings-accordion-status ' + googleStatusIcon.className"
+              [attr.aria-label]="googleStatusIcon.label"
+            ></i>
+            <span class="settings-accordion-title">Google Calendar</span>
+            @if (googleCalendar()?.connected && googleCalendar()?.calendarSummary) {
+              <span class="settings-accordion-meta">{{ googleCalendar()?.calendarSummary }}</span>
+            }
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <p class="text-color-secondary mt-0 mb-3 text-sm">
+            Connect Google Calendar for discovery chat booking. Busy times on <strong>all</strong> of your
+            Google calendars block available slots; confirmed bookings create events on the calendar you
+            select below.
+            Create OAuth credentials in
+            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a>
+            (Web application) and enable the Google Calendar API.
+          </p>
+
+          <div class="showcase-flex-col mb-4">
+            <div class="form-field showcase-full">
+              <label for="googleClientId">Client ID</label>
+              <input
+                pInputText
+                id="googleClientId"
+                class="w-full"
+                [(ngModel)]="googleCalendarConfigForm.clientId"
+                name="googleClientId"
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-field showcase-full">
+              <label for="googleClientSecret">Client secret</label>
+              <input
+                pInputText
+                id="googleClientSecret"
+                type="password"
+                class="w-full"
+                [(ngModel)]="googleCalendarConfigForm.clientSecret"
+                name="googleClientSecret"
+                [placeholder]="googleCalendarHasClientSecret() ? 'Leave blank to keep existing secret' : 'Required'"
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="form-field showcase-full">
+              <label for="googleRedirectUri">Redirect URI</label>
+              <input
+                pInputText
+                id="googleRedirectUri"
+                class="w-full"
+                [(ngModel)]="googleCalendarConfigForm.redirectUri"
+                name="googleRedirectUri"
+                autocomplete="off"
+              />
+              @if (googleCalendarSuggestedRedirectUri()) {
+                <p class="text-color-secondary text-sm mt-2 mb-0">
+                  Add this exact URL in Google Cloud Console:
+                  <code class="text-sm">{{ googleCalendarSuggestedRedirectUri() }}</code>
+                  <button
+                    type="button"
+                    pButton
+                    label="Use"
+                    [text]="true"
+                    class="p-0 ml-2"
+                    (click)="useSuggestedGoogleCalendarRedirectUri()"
+                  ></button>
+                </p>
+              }
+            </div>
+            <div>
+              <button
+                type="button"
+                pButton
+                label="Save credentials"
+                [loading]="googleCalendarSavingConfig()"
+                (click)="saveGoogleCalendarConfig()"
+              ></button>
+            </div>
+          </div>
+
+          @if (googleCalendar(); as gStatus) {
+            @if (gStatus.connected) {
+              <div class="flex flex-column gap-2 mb-3">
+                @if (gStatus.calendarSummary) {
+                  <div><strong>Calendar:</strong> {{ gStatus.calendarSummary }}</div>
+                }
+                @if (gStatus.connectedByEmail) {
+                  <div><strong>Account:</strong> {{ gStatus.connectedByEmail }}</div>
+                }
+                @if (gStatus.connectedAt) {
+                  <div><strong>Connected:</strong> {{ formatDate(gStatus.connectedAt) }}</div>
+                }
+              </div>
+
+              @if (googleCalendarOptions().length) {
+                <div class="google-calendar-row mb-3">
+                  <label for="googleCalendarSelect" class="google-calendar-label">Calendar for bookings</label>
+                  <div class="flex flex-wrap align-items-center gap-3">
+                    <div class="google-calendar-select-field">
+                      <p-select
+                        inputId="googleCalendarSelect"
+                        [options]="googleCalendarOptions()"
+                        optionLabel="summary"
+                        optionValue="id"
+                        [(ngModel)]="googleCalendarSelectedId"
+                        name="googleCalendarSelect"
+                        placeholder="Select calendar"
+                        styleClass="w-full"
+                      />
+                    </div>
+                    <div class="flex align-items-center gap-3 google-calendar-actions">
+                      <button
+                        type="button"
+                        pButton
+                        label="Save calendar"
+                        [loading]="googleCalendarSavingSelection()"
+                        (click)="saveGoogleCalendarSelection()"
+                      ></button>
+                      <button
+                        type="button"
+                        pButton
+                        label="Disconnect Google Calendar"
+                        severity="danger"
+                        [outlined]="true"
+                        [loading]="googleCalendarDisconnecting()"
+                        (click)="confirmDisconnectGoogleCalendar()"
+                      ></button>
+                    </div>
+                  </div>
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  pButton
+                  label="Disconnect Google Calendar"
+                  severity="danger"
+                  [outlined]="true"
+                  class="mb-3"
+                  [loading]="googleCalendarDisconnecting()"
+                  (click)="confirmDisconnectGoogleCalendar()"
+                ></button>
+              }
+            } @else {
+              <button
+                type="button"
+                pButton
+                label="Connect Google Calendar"
+                icon="pi pi-link"
+                [loading]="googleCalendarConnecting()"
+                [disabled]="!gStatus.configured"
+                (click)="connectGoogleCalendar()"
+              ></button>
+              @if (!gStatus.configured) {
+                <p class="text-color-secondary text-sm mt-2 mb-0">
+                  Save your app credentials above before connecting.
+                </p>
+              }
+            }
+          }
+        </p-accordion-content>
+      </p-accordion-panel>
+    </p-accordion>
   </div>
 </app-page>
 
