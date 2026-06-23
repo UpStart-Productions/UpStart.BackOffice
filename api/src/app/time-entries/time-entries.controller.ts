@@ -28,13 +28,13 @@ function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
 
 const entryInclude = {
   project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
-  projectTask: { select: { id: true, name: true, isBillable: true } },
+  projectTask: { select: { id: true, name: true, isBillable: true, source: true } },
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
 };
 
 const entryIncludeWithoutUser = {
   project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
-  projectTask: { select: { id: true, name: true, isBillable: true } },
+  projectTask: { select: { id: true, name: true, isBillable: true, source: true } },
 };
 
 @ApiTags('time-entries')

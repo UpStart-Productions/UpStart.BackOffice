@@ -26,7 +26,7 @@ export type TimeEntry = {
   isBillable: boolean;
   projectTaskId?: string;
   project: Project;
-  projectTask?: { id: string; name: string; isBillable: boolean } | null;
+  projectTask?: { id: string; name: string; isBillable: boolean; source?: 'MANUAL' | 'ASANA' } | null;
 };
 
 export type ProjectTaskDraft = {

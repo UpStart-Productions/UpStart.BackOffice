@@ -464,15 +464,50 @@ export class TimeEntryModalComponent {
       this.asanaTaskId.set('');
       return;
     }
+
     const project = this.projects().find((p) => p.id === entry.project.id);
-    const task = project?.tasks?.find((t) => t.id === taskId);
-    if (task?.source === 'ASANA') {
+    const cachedTask = project?.tasks?.find((t) => t.id === taskId);
+    const isAsana =
+      entry.projectTask?.source === 'ASANA' ||
+      cachedTask?.source === 'ASANA' ||
+      (!!project?.asanaSectionGid && cachedTask?.source !== 'MANUAL' && !!entry.projectTask);
+
+    if (isAsana) {
       this.asanaTaskId.set(taskId);
       this.manualTaskId.set('');
+      this.ensureEntryTaskInProject(entry);
     } else {
       this.manualTaskId.set(taskId);
       this.asanaTaskId.set('');
     }
+  }
+
+  private ensureEntryTaskInProject(entry: TimeEntry) {
+    const taskId = entry.projectTaskId ?? entry.projectTask?.id;
+    const pt = entry.projectTask;
+    if (!taskId || !pt) return;
+
+    this.projects.update((list) =>
+      list.map((p) => {
+        if (p.id !== entry.project.id) return p;
+        if (p.tasks?.some((t) => t.id === taskId)) return p;
+        return {
+          ...p,
+          tasks: [
+            ...(p.tasks ?? []),
+            {
+              id: pt.id,
+              projectId: p.id,
+              name: pt.name,
+              source: 'ASANA' as const,
+              isBillable: pt.isBillable,
+              sortOrder: 999,
+              isActive: true,
+            },
+          ],
+        };
+      }),
+    );
   }
 
   projectLabel(): string {
@@ -535,14 +570,38 @@ export class TimeEntryModalComponent {
     const syncedAsana = (synced.tasks ?? []).filter(
       (t) => t.source === 'ASANA' && t.isActive !== false,
     );
+    const selectedId = this.asanaTaskId();
+    const entryTask = this.editingEntry()?.projectTask;
+
     this.projects.update((list) =>
       list.map((p) => {
         if (p.id !== synced.id) return p;
         const manual = (p.tasks ?? []).filter((t) => t.source !== 'ASANA');
+        let asana = syncedAsana;
+
+        if (
+          selectedId &&
+          !asana.some((t) => t.id === selectedId) &&
+          entryTask?.id === selectedId
+        ) {
+          asana = [
+            {
+              id: entryTask.id,
+              projectId: p.id,
+              name: entryTask.name,
+              source: 'ASANA' as const,
+              isBillable: entryTask.isBillable,
+              sortOrder: 999,
+              isActive: true,
+            },
+            ...asana,
+          ];
+        }
+
         return {
           ...p,
           asanaSectionGid: synced.asanaSectionGid ?? p.asanaSectionGid,
-          tasks: [...manual, ...syncedAsana],
+          tasks: [...manual, ...asana],
         };
       }),
     );
