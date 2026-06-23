@@ -13,6 +13,7 @@ export type Project = {
   id: string;
   name: string;
   client: { id: string; name: string };
+  asanaSectionGid?: string | null;
   tasks?: ProjectTask[];
 };
 

@@ -18,6 +18,9 @@ function encryptionKey(): Buffer {
 }
 
 export function encryptSecret(plaintext: string): string {
+  if (plaintext == null || plaintext === '') {
+    throw new Error('Cannot encrypt empty secret');
+  }
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, encryptionKey(), iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
@@ -26,6 +29,9 @@ export function encryptSecret(plaintext: string): string {
 }
 
 export function decryptSecret(payload: string): string {
+  if (payload == null || payload === '') {
+    throw new Error('Invalid encrypted payload');
+  }
   const [ivB64, tagB64, dataB64] = payload.split('.');
   if (!ivB64 || !tagB64 || !dataB64) {
     throw new Error('Invalid encrypted payload');

@@ -189,13 +189,20 @@ export class AsanaService {
 
     if (needsRefresh) {
       const refreshed = await refreshAsanaToken(config, refreshToken);
+      if (!refreshed.access_token) {
+        throw new UnauthorizedException(
+          'Asana token refresh failed — disconnect and connect again in Settings',
+        );
+      }
       accessToken = refreshed.access_token;
       const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000);
       await this.prisma.asanaIntegration.update({
         where: { id: INTEGRATION_ID },
         data: {
           accessTokenEnc: encryptSecret(refreshed.access_token),
-          refreshTokenEnc: encryptSecret(refreshed.refresh_token),
+          ...(refreshed.refresh_token
+            ? { refreshTokenEnc: encryptSecret(refreshed.refresh_token) }
+            : {}),
           tokenExpiresAt: expiresAt,
         },
       });

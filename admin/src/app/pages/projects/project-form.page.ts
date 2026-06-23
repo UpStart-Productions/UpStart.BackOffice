@@ -230,6 +230,17 @@ export class ProjectFormPage implements OnInit {
     }
   }
 
+  async onAsanaProjectSelectOpen() {
+    if (!this.asanaConnected()) return;
+    await this.loadAsanaProjects();
+  }
+
+  async onAsanaSectionSelectOpen() {
+    const projectGid = this.asanaLink.projectGid;
+    if (!projectGid || !this.asanaConnected()) return;
+    await this.loadAsanaSections(projectGid);
+  }
+
   async loadAsanaSections(projectGid: string) {
     this.loadingAsanaSections.set(true);
     this.asanaSectionsError.set(null);
@@ -359,17 +370,23 @@ export class ProjectFormPage implements OnInit {
         ...this.projectPayload(),
         ...this.asanaLinkPayload(),
       });
-      const project = await this.api.post<ProjectResponse>(`/projects/${projectId}/asana/sync`);
-      this.splitTasks(project.tasks ?? []);
+      await this.syncAsanaTasks(projectId);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Asana sync failed');
+    } finally {
+      this.syncingAsana.set(false);
+    }
+  }
+
+  private async syncAsanaTasks(projectId: string, options?: { silent?: boolean }) {
+    const project = await this.api.post<ProjectResponse>(`/projects/${projectId}/asana/sync`);
+    this.splitTasks(project.tasks ?? []);
+    if (!options?.silent) {
       this.toast.add({
         severity: 'success',
         summary: 'Synced',
         detail: 'Tasks refreshed from Asana.',
       });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Asana sync failed');
-    } finally {
-      this.syncingAsana.set(false);
     }
   }
 

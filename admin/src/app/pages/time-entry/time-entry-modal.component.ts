@@ -85,18 +85,21 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
         @if (showAsanaTaskPicker()) {
           <div class="form-field">
             <label for="entry-asana-task">Asana task</label>
-            <select
-              id="entry-asana-task"
-              class="task-select"
-              [ngModel]="asanaTaskId()"
-              (ngModelChange)="onAsanaTaskChange($event)"
-              [disabled]="loadingAsanaNotes()"
-            >
-              <option value="">Select an Asana task</option>
-              @for (t of asanaTasks(); track t.id) {
-                <option [value]="t.id">{{ t.name }}</option>
-              }
-            </select>
+            @if (syncingAsanaTasks()) {
+              <p class="sync-hint">Syncing from Asana…</p>
+            } @else {
+              <select
+                id="entry-asana-task"
+                class="task-select"
+                [ngModel]="asanaTaskId()"
+                (ngModelChange)="onAsanaTaskChange($event)"
+              >
+                <option value="">Select an Asana task</option>
+                @for (t of asanaTasks(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            }
           </div>
         }
 
@@ -296,6 +299,16 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       color: #2d2d2d;
     }
 
+    .sync-hint {
+      margin: 0;
+      padding: 0.625rem 0.75rem;
+      border: 1px solid #e2e6ea;
+      border-radius: 4px;
+      background: #f8f9fa;
+      font-size: 14px;
+      color: #6b7785;
+    }
+
     .error-text {
       color: #a94442;
       font-size: 13px;
@@ -337,6 +350,9 @@ export class TimeEntryModalComponent {
   projectPickerOpen = signal(false);
   projectSearch = signal('');
   loadingAsanaNotes = signal(false);
+  syncingAsanaTasks = signal(false);
+
+  private asanaSyncPromise: Promise<void> | null = null;
 
   readonly selectedProject = computed(() => {
     const id = this.projectId();
@@ -350,11 +366,11 @@ export class TimeEntryModalComponent {
 
   readonly asanaTasks = computed(() => {
     const tasks = this.selectedProject()?.tasks ?? [];
-    return tasks.filter((t) => t.source === 'ASANA');
+    return tasks.filter((t) => t.source === 'ASANA' && t.isActive !== false);
   });
 
   readonly showAsanaTaskPicker = computed(
-    () => this.asanaConnected() && this.asanaTasks().length > 0,
+    () => this.asanaConnected() && !!this.selectedProject()?.asanaSectionGid,
   );
 
   readonly requiresTask = computed(
@@ -430,6 +446,14 @@ export class TimeEntryModalComponent {
       }
 
       this.visible = true;
+
+      const projectId = options.entry?.project.id;
+      if (projectId) {
+        const project = options.projects.find((p) => p.id === projectId);
+        if (project?.asanaSectionGid && this.asanaConnected()) {
+          void this.syncAsanaTasksIfNeeded(project.id);
+        }
+      }
     });
   }
 
@@ -472,11 +496,56 @@ export class TimeEntryModalComponent {
     if (manual.length === 1) {
       this.manualTaskId.set(manual[0].id);
     }
+    if (p.asanaSectionGid && this.asanaConnected()) {
+      void this.syncAsanaTasksIfNeeded(p.id);
+    }
   }
 
   onManualTaskChange(taskId: string) {
     this.manualTaskId.set(taskId);
     if (taskId) this.asanaTaskId.set('');
+  }
+
+  async syncAsanaTasksIfNeeded(projectId: string) {
+    if (!this.asanaConnected()) return;
+
+    if (this.asanaSyncPromise) {
+      await this.asanaSyncPromise;
+      return;
+    }
+
+    this.syncingAsanaTasks.set(true);
+    this.asanaSyncPromise = this.syncAsanaTasksForProject(projectId).finally(() => {
+      this.syncingAsanaTasks.set(false);
+      this.asanaSyncPromise = null;
+    });
+    await this.asanaSyncPromise;
+  }
+
+  private async syncAsanaTasksForProject(projectId: string) {
+    try {
+      const synced = await this.api.post<Project>(`/projects/${projectId}/asana/sync`);
+      this.applySyncedProject(synced);
+    } catch {
+      /* keep existing tasks if sync fails */
+    }
+  }
+
+  private applySyncedProject(synced: Project) {
+    const syncedAsana = (synced.tasks ?? []).filter(
+      (t) => t.source === 'ASANA' && t.isActive !== false,
+    );
+    this.projects.update((list) =>
+      list.map((p) => {
+        if (p.id !== synced.id) return p;
+        const manual = (p.tasks ?? []).filter((t) => t.source !== 'ASANA');
+        return {
+          ...p,
+          asanaSectionGid: synced.asanaSectionGid ?? p.asanaSectionGid,
+          tasks: [...manual, ...syncedAsana],
+        };
+      }),
+    );
   }
 
   async onAsanaTaskChange(taskId: string) {
