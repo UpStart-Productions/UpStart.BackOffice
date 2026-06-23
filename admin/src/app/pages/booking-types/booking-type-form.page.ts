@@ -256,11 +256,11 @@ export class BookingTypeFormPage implements OnInit {
       if (this.id()) {
         await this.api.put(`/booking/admin/types/${this.id()}`, payload);
         this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Booking type updated.', life: 3000 });
-        await this.load();
+        await this.router.navigate(['/bookings/types']);
       } else {
-        const created = await this.api.post<BookingTypeDto>('/booking/admin/types', payload);
+        await this.api.post<BookingTypeDto>('/booking/admin/types', payload);
         this.toast.add({ severity: 'success', summary: 'Created', detail: 'Booking type created.', life: 3000 });
-        await this.router.navigate(['/bookings/types', created.id]);
+        await this.router.navigate(['/bookings/types']);
       }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to save booking type');

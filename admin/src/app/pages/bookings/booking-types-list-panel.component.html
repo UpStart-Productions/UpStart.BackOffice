@@ -31,7 +31,9 @@
           <app-row-actions-menu [items]="getRowActions(row)" ariaLabel="Booking type actions" />
         </td>
         <td>
-          <a [routerLink]="['/bookings/types', row.id]" class="font-semibold">{{ row.name }}</a>
+          <button type="button" class="booking-type-name-btn" (click)="openTypeDetails(row)">
+            {{ row.name }}
+          </button>
           @if (row.brand) {
             <div class="text-color-secondary text-sm">{{ row.brand }}</div>
           }
@@ -101,5 +103,111 @@
 
   <ng-template pTemplate="footer">
     <p-button label="Close" severity="secondary" (onClick)="closeViewBookings()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [header]="typeDetails()?.name ?? 'Booking type'"
+  [(visible)]="showTypeDetailsDialog"
+  [modal]="true"
+  [style]="{ width: 'min(42rem, 96vw)' }"
+  (onHide)="closeTypeDetails()"
+>
+  @if (typeDetailsError()) {
+    <p-message severity="error" [text]="typeDetailsError()!" class="mb-3" />
+  }
+
+  @if (typeDetailsLoading()) {
+    <p class="text-color-secondary mb-0">Loading…</p>
+  } @else if (typeDetails(); as detail) {
+    <div class="type-detail-section">
+      <h3 class="type-detail-section-title">Basics</h3>
+      <dl class="type-detail-grid">
+        <dt>Status</dt>
+        <dd>
+          <p-tag [value]="detail.isActive ? 'Active' : 'Inactive'" [severity]="detail.isActive ? 'success' : 'secondary'" />
+        </dd>
+        <dt>Slug</dt>
+        <dd><code class="text-sm">{{ detail.slug }}</code></dd>
+        @if (detail.brand) {
+          <dt>Brand</dt>
+          <dd>{{ detail.brand }}</dd>
+        }
+        <dt>Host</dt>
+        <dd>
+          {{ detail.hostName ?? detail.hostEmail }}
+          @if (detail.hostName) {
+            <span class="text-color-secondary text-sm"> ({{ detail.hostEmail }})</span>
+          }
+        </dd>
+        <dt>Bookings</dt>
+        <dd>{{ detail.bookingCount }}</dd>
+      </dl>
+    </div>
+
+    <div class="type-detail-section">
+      <h3 class="type-detail-section-title">Schedule</h3>
+      <dl class="type-detail-grid">
+        <dt>Duration</dt>
+        <dd>{{ detail.durationMin }} min</dd>
+        <dt>Minimum notice</dt>
+        <dd>{{ detail.minNoticeHours }} hours</dd>
+        <dt>Horizon</dt>
+        <dd>{{ detail.maxDaysAhead }} days</dd>
+        <dt>Timezone</dt>
+        <dd>{{ detail.timezone }}</dd>
+        <dt>Availability</dt>
+        <dd>
+          @if (formatAvailabilityRules(detail.availabilityRules).length) {
+            <ul class="type-detail-availability">
+              @for (line of formatAvailabilityRules(detail.availabilityRules); track line) {
+                <li>{{ line }}</li>
+              }
+            </ul>
+          } @else {
+            —
+          }
+        </dd>
+      </dl>
+    </div>
+
+    <div class="type-detail-section">
+      <h3 class="type-detail-section-title">Public page &amp; calendar</h3>
+      <dl class="type-detail-grid">
+        <dt>Public page</dt>
+        <dd>
+          <a [href]="detail.publicPageUrl" target="_blank" rel="noopener">{{ detail.publicPageUrl }}</a>
+        </dd>
+        <dt>Calendar title</dt>
+        <dd>{{ detail.calendarEventTitle }}</dd>
+      </dl>
+    </div>
+
+    <div class="type-detail-section">
+      <h3 class="type-detail-section-title">Pipeline &amp; pricing</h3>
+      <dl class="type-detail-grid">
+        <dt>Creates lead</dt>
+        <dd>{{ detail.createLead ? 'Yes' : 'No' }}</dd>
+        @if (detail.createLead) {
+          <dt>Lead stage</dt>
+          <dd>{{ detail.leadStage }}</dd>
+          <dt>Lead source</dt>
+          <dd>{{ detail.leadSource }}</dd>
+          @if (detail.pipelineNoteTitle) {
+            <dt>Note title</dt>
+            <dd>{{ detail.pipelineNoteTitle }}</dd>
+          }
+        }
+        <dt>Price</dt>
+        <dd>{{ formatPrice(detail) }}</dd>
+      </dl>
+    </div>
+  }
+
+  <ng-template pTemplate="footer">
+    <p-button label="Close" severity="secondary" (onClick)="closeTypeDetails()" />
+    @if (typeDetails()) {
+      <p-button label="Edit" icon="pi pi-pencil" (onClick)="editTypeDetails()" />
+    }
   </ng-template>
 </p-dialog>

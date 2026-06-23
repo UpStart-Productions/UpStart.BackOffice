@@ -1,4 +1,4 @@
-<app-page [title]="id() ? 'Edit booking type' : 'New booking type'">
+<app-page [title]="id() ? 'Edit Booking Type' : 'New Booking Type'" [skipTitle]="true">
   @if (error()) {
     <div class="card mb-3">
       <p-message severity="error" [text]="error()!" />
@@ -10,6 +10,21 @@
       <p class="text-color-secondary mb-0">Loading…</p>
     </div>
   } @else {
+    <div class="page-header-with-back mb-3">
+      <p-button
+        icon="pi pi-arrow-left"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        type="button"
+        routerLink="/bookings/types"
+        aria-label="Back to booking types"
+      />
+      <h2 class="page-title page-title-in-card mb-0">
+        {{ id() ? 'Edit Booking Type' : 'New Booking Type' }}
+      </h2>
+    </div>
+
     <div class="card mb-3">
       <h2 class="page-title page-title-in-card">Basics</h2>
       <div class="showcase-flex-col">
