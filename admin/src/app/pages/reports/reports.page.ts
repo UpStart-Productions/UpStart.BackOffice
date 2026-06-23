@@ -1,10 +1,12 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import type { MenuItem } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { UIChart } from 'primeng/chart';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
+import { SplitButtonModule } from 'primeng/splitbutton';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
@@ -20,6 +22,16 @@ import {
   resolveReportPeriod,
   type ReportPeriodType,
 } from './report-period.util';
+import {
+  exportTimeReportExcel,
+  exportTimeReportPdf,
+  type TimeReportExportData,
+} from './time-report-export.util';
+import {
+  exportInvoiceReportExcel,
+  exportInvoiceReportPdf,
+  type InvoiceReportExportData,
+} from './invoice-report-export.util';
 
 type Client = { id: string; name: string };
 type User = { id: string; firstName?: string | null; lastName?: string | null; email: string };
@@ -79,6 +91,7 @@ type InvoiceClientRow = {
     UIChart,
     MessageModule,
     SelectModule,
+    SplitButtonModule,
     TableModule,
     TabsModule,
     TagModule,
@@ -91,11 +104,16 @@ export class ReportsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
 
+  @ViewChild('totalChartRef') totalChartRef?: UIChart;
+  @ViewChild('billableChartRef') billableChartRef?: UIChart;
+  @ViewChild('nonBillableChartRef') nonBillableChartRef?: UIChart;
+
   readonly months = REPORT_MONTHS;
   readonly quarters = REPORT_QUARTERS;
 
   activeTab = 0;
   loading = signal(false);
+  exporting = signal(false);
   error = signal<string | null>(null);
   periodLabel = signal<string | null>(null);
   hasRun = signal(false);
@@ -141,6 +159,32 @@ export class ReportsPage implements OnInit {
     { label: 'All users', value: '' },
     ...this.users().map((u) => ({ label: this.userLabel(u), value: u.id })),
   ]);
+
+  readonly timeExportMenuItems: MenuItem[] = [
+    {
+      label: 'PDF',
+      icon: 'pi pi-file-pdf',
+      command: () => this.exportTimeReportPdf(),
+    },
+    {
+      label: 'Excel',
+      icon: 'pi pi-file-excel',
+      command: () => this.exportTimeReportExcel(),
+    },
+  ];
+
+  readonly invoiceExportMenuItems: MenuItem[] = [
+    {
+      label: 'PDF',
+      icon: 'pi pi-file-pdf',
+      command: () => this.exportInvoiceReportPdf(),
+    },
+    {
+      label: 'Excel',
+      icon: 'pi pi-file-excel',
+      command: () => this.exportInvoiceReportExcel(),
+    },
+  ];
 
   readonly timeByProject = computed((): TimeProjectRow[] => {
     const map = new Map<string, TimeProjectRow>();
@@ -332,6 +376,22 @@ export class ReportsPage implements OnInit {
     });
   }
 
+  async exportTimeReportPdf() {
+    await this.runTimeReportExport('pdf');
+  }
+
+  exportTimeReportExcel() {
+    void this.runTimeReportExport('excel');
+  }
+
+  async exportInvoiceReportPdf() {
+    await this.runInvoiceReportExport('pdf');
+  }
+
+  exportInvoiceReportExcel() {
+    void this.runInvoiceReportExport('excel');
+  }
+
   statusSeverity(status: string): 'success' | 'info' | 'warn' | 'secondary' | 'danger' {
     switch (status) {
       case 'PAID':
@@ -408,8 +468,138 @@ export class ReportsPage implements OnInit {
     return this.invoices();
   }
 
+  private async runInvoiceReportExport(format: 'pdf' | 'excel') {
+    if (this.filteredInvoicesList().length === 0) return;
+
+    this.exporting.set(true);
+    this.error.set(null);
+
+    try {
+      const exportData = this.buildInvoiceReportExportData();
+      if (format === 'pdf') {
+        await exportInvoiceReportPdf(exportData);
+      } else {
+        exportInvoiceReportExcel(exportData);
+      }
+    } catch (err) {
+      this.error.set(
+        err instanceof Error ? err.message : `Failed to export ${format.toUpperCase()} report`,
+      );
+    } finally {
+      this.exporting.set(false);
+    }
+  }
+
+  private buildInvoiceReportExportData(): InvoiceReportExportData {
+    const summary = this.invoiceSummary();
+    const period = this.periodLabel() ?? 'report';
+
+    return {
+      periodLabel: period,
+      filterSummary: this.invoiceExportFilterSummary(),
+      summary: {
+        total: summary.total,
+        count: summary.count,
+        paidCount: summary.paid,
+        draftCount: summary.draft,
+        sentCount: summary.sent,
+      },
+      byClient: this.invoicesByClient(),
+      invoices: this.filteredInvoicesList().map((inv) => ({
+        displayNumber: inv.displayNumber,
+        clientName: inv.client.name,
+        issueDate: this.formatDate(inv.issueDate),
+        total: Number(inv.total),
+        status: inv.status,
+      })),
+      filenameBase: `invoice-report-${this.pdfFilenameSegment(period)}`,
+    };
+  }
+
+  private invoiceExportFilterSummary(): string | undefined {
+    if (!this.filters.clientId) return undefined;
+    const client = this.clients().find((c) => c.id === this.filters.clientId);
+    return client ? `Client: ${client.name}` : undefined;
+  }
+
+  private async runTimeReportExport(format: 'pdf' | 'excel') {
+    if (this.timeByProject().length === 0) return;
+
+    this.exporting.set(true);
+    this.error.set(null);
+
+    try {
+      const exportData = this.buildTimeReportExportData();
+      if (format === 'pdf') {
+        await exportTimeReportPdf(exportData);
+      } else {
+        exportTimeReportExcel(exportData);
+      }
+    } catch (err) {
+      this.error.set(
+        err instanceof Error ? err.message : `Failed to export ${format.toUpperCase()} report`,
+      );
+    } finally {
+      this.exporting.set(false);
+    }
+  }
+
+  private buildTimeReportExportData(): TimeReportExportData {
+    const summary = this.timeSummary();
+    const period = this.periodLabel() ?? 'report';
+
+    return {
+      periodLabel: period,
+      filterSummary: this.exportFilterSummary(),
+      summary,
+      rows: this.timeByProject(),
+      charts: {
+        total: this.chartImageForExport(
+          this.totalChartRef,
+          `Total hrs (${this.formatMin(summary.totalMin)})`,
+        ),
+        billable: this.chartImageForExport(
+          this.billableChartRef,
+          `Billable hrs (${this.formatMin(summary.billableMin)})`,
+        ),
+        nonBillable: this.chartImageForExport(
+          this.nonBillableChartRef,
+          `Non-billable hrs (${this.formatMin(summary.nonBillableMin)})`,
+        ),
+      },
+      filenameBase: `time-report-${this.pdfFilenameSegment(period)}`,
+    };
+  }
+
+  private chartImageForExport(chart: UIChart | undefined, title: string) {
+    if (!chart) return undefined;
+    const imageDataUrl = chart.getBase64Image();
+    if (!imageDataUrl) return undefined;
+    return { title, imageDataUrl };
+  }
+
+  private exportFilterSummary(): string | undefined {
+    const parts: string[] = [];
+    if (this.filters.clientId) {
+      const client = this.clients().find((c) => c.id === this.filters.clientId);
+      if (client) parts.push(`Client: ${client.name}`);
+    }
+    if (this.filters.userId) {
+      const user = this.users().find((u) => u.id === this.filters.userId);
+      if (user) parts.push(`User: ${this.userLabel(user)}`);
+    }
+    return parts.length ? parts.join(' · ') : undefined;
+  }
+
   private userLabel(u: User): string {
     const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
     return name || u.email;
+  }
+
+  private pdfFilenameSegment(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }

@@ -119,62 +119,69 @@
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
           } @else {
-            <div class="time-summary-row">
-              <div class="time-summary-stats">
-                <div class="stat-card stat-card--hours report-stat-card--compact">
-                  <small class="text-muted">Total hours</small>
-                  <h3 class="m-0">{{ formatMin(timeSummary().totalMin) }}</h3>
-                </div>
-                <div class="stat-card stat-card--projects report-stat-card--compact">
-                  <small class="text-muted">Billable</small>
-                  <h3 class="m-0">{{ formatMin(timeSummary().billableMin) }}</h3>
-                </div>
-                <div class="stat-card stat-card--clients report-stat-card--compact">
-                  <small class="text-muted">Non-billable</small>
-                  <h3 class="m-0">{{ formatMin(timeSummary().nonBillableMin) }}</h3>
-                </div>
+            @if (timeByProject().length > 0) {
+              <div class="report-toolbar">
+                <p-splitButton
+                  label="Export"
+                  icon="pi pi-download"
+                  severity="secondary"
+                  [outlined]="true"
+                  [model]="timeExportMenuItems"
+                  [disabled]="exporting()"
+                  (onClick)="exportTimeReportPdf()"
+                />
               </div>
-              @if (totalTimeChart() || billableTimeChart() || nonBillableTimeChart()) {
-                <div class="time-summary-charts">
-                  @if (totalTimeChart(); as chart) {
-                    <div class="time-chart-block">
-                      <small class="text-muted">Total hrs</small>
-                      <p-chart
-                        type="doughnut"
-                        [data]="chart.data"
-                        [options]="chart.options"
-                        height="9.5rem"
-                        ariaLabel="Total hours by project"
-                      />
-                    </div>
-                  }
-                  @if (billableTimeChart(); as chart) {
-                    <div class="time-chart-block">
-                      <small class="text-muted">Billable hrs</small>
-                      <p-chart
-                        type="doughnut"
-                        [data]="chart.data"
-                        [options]="chart.options"
-                        height="9.5rem"
-                        ariaLabel="Billable hours by project"
-                      />
-                    </div>
-                  }
-                  @if (nonBillableTimeChart(); as chart) {
-                    <div class="time-chart-block">
-                      <small class="text-muted">Non-billable hrs</small>
-                      <p-chart
-                        type="doughnut"
-                        [data]="chart.data"
-                        [options]="chart.options"
-                        height="9.5rem"
-                        ariaLabel="Non-billable hours by project"
-                      />
-                    </div>
-                  }
-                </div>
-              }
-            </div>
+            }
+
+            @if (totalTimeChart() || billableTimeChart() || nonBillableTimeChart()) {
+              <div class="time-summary-charts">
+                @if (totalTimeChart(); as chart) {
+                  <div class="time-chart-block">
+                    <span class="time-chart-title">
+                      Total hrs ({{ formatMin(timeSummary().totalMin) }})
+                    </span>
+                    <p-chart
+                      #totalChartRef
+                      type="doughnut"
+                      [data]="chart.data"
+                      [options]="chart.options"
+                      height="9.5rem"
+                      ariaLabel="Total hours by project"
+                    />
+                  </div>
+                }
+                @if (billableTimeChart(); as chart) {
+                  <div class="time-chart-block">
+                    <span class="time-chart-title">
+                      Billable hrs ({{ formatMin(timeSummary().billableMin) }})
+                    </span>
+                    <p-chart
+                      #billableChartRef
+                      type="doughnut"
+                      [data]="chart.data"
+                      [options]="chart.options"
+                      height="9.5rem"
+                      ariaLabel="Billable hours by project"
+                    />
+                  </div>
+                }
+                @if (nonBillableTimeChart(); as chart) {
+                  <div class="time-chart-block">
+                    <span class="time-chart-title">
+                      Non-billable hrs ({{ formatMin(timeSummary().nonBillableMin) }})
+                    </span>
+                    <p-chart
+                      #nonBillableChartRef
+                      type="doughnut"
+                      [data]="chart.data"
+                      [options]="chart.options"
+                      height="9.5rem"
+                      ariaLabel="Non-billable hours by project"
+                    />
+                  </div>
+                }
+              </div>
+            }
 
             @if (timeByProject().length === 0) {
               <p class="text-muted">No completed time entries in this period.</p>
@@ -221,6 +228,20 @@
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
           } @else {
+            @if (filteredInvoicesList().length > 0) {
+              <div class="report-toolbar">
+                <p-splitButton
+                  label="Export"
+                  icon="pi pi-download"
+                  severity="secondary"
+                  [outlined]="true"
+                  [model]="invoiceExportMenuItems"
+                  [disabled]="exporting()"
+                  (onClick)="exportInvoiceReportPdf()"
+                />
+              </div>
+            }
+
             <div class="stat-cards report-stat-cards">
               <div class="stat-card stat-card--clients">
                 <small class="text-muted">Total invoiced</small>

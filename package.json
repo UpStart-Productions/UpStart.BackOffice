@@ -95,6 +95,8 @@
     "class-validator": "^0.14.3",
     "date-fns": "^4.1.0",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "jwks-rsa": "^3.2.2",
     "ngx-quill": "^30.0.1",
     "pg": "^8.18.0",
@@ -105,6 +107,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "~7.8.0",
     "sharp": "^0.34.5",
-    "swagger-ui-express": "^5.0.0"
+    "swagger-ui-express": "^5.0.0",
+    "xlsx": "^0.18.5"
   }
 }
