@@ -11,9 +11,26 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateInvoiceDto, CreateInvoiceLineItemDto } from './dto/create-invoice.dto';
 import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
+import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoiceFromTimeService } from './invoice-from-time.service';
+import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
+
+const projectContactSelect = {
+  id: true,
+  name: true,
+  contactEmail: true,
+  contactFirstName: true,
+  contactLastName: true,
+} as const;
+
+const sendRecipientsInclude = {
+  client: { select: { name: true, email: true } },
+  lineItems: {
+    include: { project: { select: projectContactSelect } },
+  },
+} satisfies Prisma.InvoiceInclude;
 
 const invoiceInclude = {
   client: true,
@@ -201,8 +218,29 @@ export class InvoicesController {
     res.send(pdfBuffer);
   }
 
+  @Get(':id/send-recipients')
+  async sendRecipients(@Param('id') id: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: sendRecipientsInclude,
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (invoice.status === 'VOID') {
+      throw new BadRequestException('Cannot send a void invoice');
+    }
+
+    return {
+      displayNumber: invoice.displayNumber,
+      client: {
+        name: invoice.client.name,
+        email: invoice.client.email?.trim() || null,
+      },
+      projectContacts: buildProjectContacts(invoice.lineItems),
+    };
+  }
+
   @Post(':id/send')
-  async send(@Param('id') id: string) {
+  async send(@Param('id') id: string, @Body() dto: SendInvoiceDto) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: invoiceInclude,
@@ -211,12 +249,12 @@ export class InvoicesController {
     if (invoice.status === 'VOID') {
       throw new BadRequestException('Cannot send a void invoice');
     }
-    if (!invoice.client.email) throw new BadRequestException('Client has no email address');
 
+    const to = dto.to.trim();
     const pdfBuffer = await this.generateAndStorePdf(invoice);
     const result = await this.mail.sendInvoice({
-      to: invoice.client.email,
-      toName: invoice.client.name,
+      to,
+      toName: dto.toName?.trim() || undefined,
       invoiceNumber: invoice.displayNumber,
       clientName: invoice.client.name,
       pdfBuffer,

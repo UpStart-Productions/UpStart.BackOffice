@@ -9,6 +9,7 @@ import { SessionService } from '../core/session.service';
 import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
 import { AppTopbarComponent } from './app-topbar.component';
+import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialog.component';
 import { LayoutService } from './layout.service';
 import { isAdminRole } from '@upstart/back-office/shared';
 
@@ -23,6 +24,7 @@ import { isAdminRole } from '@upstart/back-office/shared';
     AppTopbarComponent,
     AppSidebarComponent,
     AppFooterComponent,
+    InvoiceSendDialogComponent,
   ],
   templateUrl: './shell.component.html',
 })

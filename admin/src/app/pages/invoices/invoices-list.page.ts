@@ -12,6 +12,7 @@ import {
   RowActionsMenuComponent,
   RowActionItem,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 
 type Invoice = {
   id: string; displayNumber: string; status: string;
@@ -38,6 +39,7 @@ export class InvoicesListPage implements OnInit {
   private readonly router = inject(Router);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
+  private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
 
   invoices = signal<Invoice[]>([]);
   loading = signal(true);
@@ -115,25 +117,21 @@ export class InvoicesListPage implements OnInit {
 
   async send(invoice: Invoice, resend: boolean) {
     this.error.set(null);
-    try {
-      const result = await this.api.post<{ sent: boolean; error?: string }>(
-        `/invoices/${invoice.id}/send`,
-      );
-      if (result.sent) {
-        await this.load();
-        this.toast.add({
-          severity: 'success',
-          summary: resend ? 'Invoice resent' : 'Invoice sent',
-          detail: resend
-            ? `${invoice.displayNumber} was emailed to the client again.`
-            : `${invoice.displayNumber} was emailed to the client.`,
-          life: 6000,
-        });
-      } else {
-        this.error.set(result.error ?? (resend ? 'Resend failed' : 'Send failed'));
-      }
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : resend ? 'Resend failed' : 'Send failed');
+    const result = await this.invoiceSendDialog.open({
+      invoiceId: invoice.id,
+      displayNumber: invoice.displayNumber,
+      resend,
+    });
+    if (result?.sent) {
+      await this.load();
+      this.toast.add({
+        severity: 'success',
+        summary: resend ? 'Invoice resent' : 'Invoice sent',
+        detail: resend
+          ? `${invoice.displayNumber} was emailed to ${result.to} again.`
+          : `${invoice.displayNumber} was emailed to ${result.to}.`,
+        life: 6000,
+      });
     }
   }
 

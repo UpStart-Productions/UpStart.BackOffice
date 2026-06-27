@@ -10,6 +10,7 @@ import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 
 type Client = { id: string; name: string };
 type Project = { id: string; name: string; clientId: string };
@@ -95,6 +96,7 @@ export class InvoiceFormPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
 
   readonly months = MONTHS;
   readonly quarters = QUARTERS;
@@ -103,7 +105,6 @@ export class InvoiceFormPage implements OnInit {
   displayNumber = signal<string | null>(null);
   loading = signal(true);
   saving = signal(false);
-  sending = signal(false);
   generating = signal(false);
   error = signal<string | null>(null);
   generateMessage = signal<string | null>(null);
@@ -388,27 +389,20 @@ export class InvoiceFormPage implements OnInit {
     const id = this.id();
     const number = this.displayNumber();
     if (!id || !number) return;
-    this.sending.set(true);
-    this.error.set(null);
-    try {
-      const result = await this.api.post<{ sent: boolean; error?: string }>(
-        `/invoices/${id}/send`,
-      );
-      if (result.sent) {
-        this.toast.add({
-          severity: 'success',
-          summary: 'Invoice sent',
-          detail: `${number} was emailed to the client.`,
-          life: 6000,
-        });
-        await this.router.navigate(['/invoices', id]);
-      } else {
-        this.error.set(result.error ?? 'Send failed');
-      }
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Send failed');
-    } finally {
-      this.sending.set(false);
+
+    const result = await this.invoiceSendDialog.open({
+      invoiceId: id,
+      displayNumber: number,
+      resend: false,
+    });
+    if (result?.sent) {
+      this.toast.add({
+        severity: 'success',
+        summary: 'Invoice sent',
+        detail: `${number} was emailed to ${result.to}.`,
+        life: 6000,
+      });
+      await this.router.navigate(['/invoices', id]);
     }
   }
 }

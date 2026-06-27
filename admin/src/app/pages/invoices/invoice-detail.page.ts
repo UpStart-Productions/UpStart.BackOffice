@@ -7,6 +7,7 @@ import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 
 type InvoiceDetail = {
   id: string;
@@ -33,10 +34,10 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
 
   loading = signal(true);
   error = signal<string | null>(null);
-  sending = signal(false);
   invoice = signal<InvoiceDetail | null>(null);
   pdfUrl = signal<SafeResourceUrl | null>(null);
 
@@ -117,26 +118,19 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
   async resend() {
     const inv = this.invoice();
     if (!inv) return;
-    this.sending.set(true);
-    this.error.set(null);
-    try {
-      const result = await this.api.post<{ sent: boolean; error?: string }>(
-        `/invoices/${inv.id}/send`,
-      );
-      if (result.sent) {
-        this.toast.add({
-          severity: 'success',
-          summary: 'Invoice resent',
-          detail: `${inv.displayNumber} was emailed to the client again.`,
-          life: 6000,
-        });
-      } else {
-        this.error.set(result.error ?? 'Resend failed');
-      }
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Resend failed');
-    } finally {
-      this.sending.set(false);
+
+    const result = await this.invoiceSendDialog.open({
+      invoiceId: inv.id,
+      displayNumber: inv.displayNumber,
+      resend: true,
+    });
+    if (result?.sent) {
+      this.toast.add({
+        severity: 'success',
+        summary: 'Invoice resent',
+        detail: `${inv.displayNumber} was emailed to ${result.to} again.`,
+        life: 6000,
+      });
     }
   }
 
