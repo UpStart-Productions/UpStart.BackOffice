@@ -26,8 +26,6 @@ type SendRecipients = {
   projectContacts: ProjectContact[];
 };
 
-type ProjectContactOption = ProjectContact & { label: string };
-
 @Component({
   selector: 'app-invoice-send-dialog',
   standalone: true,
@@ -90,6 +88,42 @@ type ProjectContactOption = ProjectContact & { label: string };
     }
     .invoice-send-option-control {
       padding-left: 1.5rem;
+      min-width: 0;
+    }
+    .invoice-send-contact-option {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.35;
+      padding: 0.125rem 0;
+    }
+    .invoice-send-contact-option--selected {
+      gap: 0;
+    }
+    .invoice-send-contact-option-name {
+      font-weight: 500;
+    }
+    .invoice-send-contact-option-email,
+    .invoice-send-contact-option-meta,
+    .invoice-send-contact-option-project {
+      font-size: 0.8125rem;
+      color: var(--text-color-secondary);
+    }
+    :host ::ng-deep .invoice-send-dialog .p-dialog-content {
+      overflow-x: hidden;
+    }
+    :host ::ng-deep .invoice-send-project-select .p-select-label {
+      white-space: normal;
+    }
+    :host ::ng-deep .invoice-send-project-select-panel .p-select-option {
+      white-space: normal;
+      height: auto;
+      align-items: flex-start;
+    }
+    :host ::ng-deep .invoice-send-project-select-panel .p-select-option-check-icon {
+      margin-top: 0.2rem;
     }
   `,
   template: `
@@ -99,6 +133,7 @@ type ProjectContactOption = ProjectContact & { label: string };
       [modal]="true"
       [closable]="!sending()"
       [style]="{ width: 'min(32rem, 96vw)' }"
+      styleClass="invoice-send-dialog"
       (onHide)="onHide()"
     >
       @if (loading()) {
@@ -153,13 +188,34 @@ type ProjectContactOption = ProjectContact & { label: string };
                 <p-select
                   inputId="invoiceSendProjectContact"
                   [options]="projectContactOptions()"
-                  optionLabel="label"
                   optionValue="projectId"
                   [(ngModel)]="selectedProjectId"
                   [disabled]="recipientType !== 'project'"
                   placeholder="Select project contact"
-                  styleClass="w-full"
-                />
+                  styleClass="w-full invoice-send-project-select"
+                  panelStyleClass="invoice-send-project-select-panel"
+                >
+                  <ng-template #selectedItem let-option>
+                    @if (option) {
+                      <div class="invoice-send-contact-option invoice-send-contact-option--selected">
+                        <span class="invoice-send-contact-option-name">
+                          {{ option.contactName || option.email }}
+                        </span>
+                        <span class="invoice-send-contact-option-meta">{{ option.email }}</span>
+                        <span class="invoice-send-contact-option-project">{{ option.projectName }}</span>
+                      </div>
+                    }
+                  </ng-template>
+                  <ng-template #item let-option>
+                    <div class="invoice-send-contact-option">
+                      <span class="invoice-send-contact-option-name">
+                        {{ option.contactName || 'Project contact' }}
+                      </span>
+                      <span class="invoice-send-contact-option-email">{{ option.email }}</span>
+                      <span class="invoice-send-contact-option-project">{{ option.projectName }}</span>
+                    </div>
+                  </ng-template>
+                </p-select>
               </div>
             </div>
           }
@@ -227,7 +283,7 @@ export class InvoiceSendDialogComponent {
   selectedProjectId = '';
   customEmail = '';
 
-  readonly projectContactOptions = signal<ProjectContactOption[]>([]);
+  readonly projectContactOptions = signal<ProjectContact[]>([]);
 
   constructor() {
     effect(() => {
@@ -266,12 +322,7 @@ export class InvoiceSendDialogComponent {
         `/invoices/${req.invoiceId}/send-recipients`,
       );
       this.recipients.set(data);
-      this.projectContactOptions.set(
-        data.projectContacts.map((contact) => ({
-          ...contact,
-          label: this.formatProjectContactLabel(contact),
-        })),
-      );
+      this.projectContactOptions.set(data.projectContacts);
       this.applyDefaultRecipient(data);
     } catch (err) {
       this.loadError.set(err instanceof Error ? err.message : 'Failed to load recipients');
@@ -353,11 +404,6 @@ export class InvoiceSendDialogComponent {
     const email = this.customEmail.trim();
     if (!this.isValidEmail(email)) return null;
     return { to: email };
-  }
-
-  private formatProjectContactLabel(contact: ProjectContact): string {
-    const who = contact.contactName ?? contact.email;
-    return `${who} — ${contact.email} (${contact.projectName})`;
   }
 
   private isValidEmail(value: string): boolean {
