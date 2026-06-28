@@ -1,0 +1,56 @@
+// Panel is appendTo="body", so these styles must be global.
+.p-autocomplete-overlay.global-search-panel {
+  overflow: visible !important;
+
+  .p-autocomplete-list-container {
+    max-height: none !important;
+    overflow: visible !important;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+  }
+
+  .p-autocomplete-list {
+    overflow: visible !important;
+    max-height: none !important;
+    padding: 0;
+  }
+
+  .p-autocomplete-option-group {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .global-search-group-heading {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface-card));
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--brand-primary);
+  }
+
+  .p-autocomplete-option {
+    white-space: normal;
+    height: auto;
+    align-items: flex-start;
+  }
+
+  .global-search-empty,
+  .p-autocomplete-empty-message {
+    padding: 0.75rem;
+    color: var(--text-color-secondary);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+}

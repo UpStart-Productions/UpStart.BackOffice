@@ -8,15 +8,50 @@
     <h2 class="page-title page-title-in-card">Clients</h2>
     <div class="toolbar">
       <a pButton label="New Client" icon="pi pi-plus" routerLink="/clients/new"></a>
+      <div class="toolbar-search">
+        <p-iconfield iconPosition="left" class="toolbar-search-field">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by name, code, email…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button
+            type="button"
+            pButton
+            icon="pi pi-times"
+            [text]="true"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          ></button>
+        }
+      </div>
     </div>
-    <p-table [value]="clients()" [loading]="loading()" styleClass="table-bordered">
+    <p-table
+      [value]="filteredClients()"
+      [loading]="loading()"
+      sortField="name"
+      [sortOrder]="1"
+      styleClass="table-bordered"
+    >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
-          <th>Name</th>
+          <th pSortableColumn="name">
+            Name
+            <p-sortIcon field="name" />
+          </th>
           <th>Code</th>
           <th>Email</th>
-          <th>Status</th>
+          <th pSortableColumn="isActive">
+            Status
+            <p-sortIcon field="isActive" />
+          </th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-client>
@@ -39,7 +74,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="5" class="text-center p-4 text-color-secondary">No clients yet.</td>
+          <td colspan="5" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
         </tr>
       </ng-template>
     </p-table>

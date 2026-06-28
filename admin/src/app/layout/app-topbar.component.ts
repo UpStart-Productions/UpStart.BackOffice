@@ -2,12 +2,13 @@ import { Component, effect, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { resolveAssetUrl } from '../core/asset-url.util';
+import { GlobalSearchComponent } from '../ui/global-search/global-search.component';
 import { LayoutService } from './layout.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, ButtonModule],
+  imports: [RouterLink, ButtonModule, GlobalSearchComponent],
   template: `
     <div class="layout-topbar">
       <div class="layout-topbar-logo-container">
@@ -28,6 +29,9 @@ import { LayoutService } from './layout.service';
             height="49"
           />
         </a>
+      </div>
+      <div class="layout-topbar-search">
+        <app-global-search />
       </div>
       <div class="layout-topbar-actions">
         @if (avatarUrl() && !avatarImageError) {

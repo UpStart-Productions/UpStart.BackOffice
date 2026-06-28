@@ -18,6 +18,7 @@ import { ArtifactsModule } from './artifacts/artifacts.module';
 import { AsanaModule } from './asana/asana.module';
 import { BookingModule } from './booking/booking.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
+import { SearchModule } from './search/search.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -43,6 +44,7 @@ import { HealthController } from './health.controller';
     AsanaModule,
     BookingModule,
     GoogleCalendarModule,
+    SearchModule,
   ],
 })
 export class AppModule implements NestModule {

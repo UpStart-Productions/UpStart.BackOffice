@@ -1,6 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -15,8 +19,13 @@ import {
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 
 type Invoice = {
-  id: string; displayNumber: string; status: string;
-  issueDate: string; dueDate?: string; total: number;
+  id: string;
+  number: number;
+  displayNumber: string;
+  status: string;
+  issueDate: string;
+  dueDate?: string | null;
+  total: number;
   client: { id: string; name: string };
 };
 
@@ -24,8 +33,12 @@ type Invoice = {
   selector: 'app-invoices-list-page',
   standalone: true,
   imports: [
+    FormsModule,
     RouterLink,
     ButtonModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
     TableModule,
     MessageModule,
     TagModule,
@@ -44,14 +57,73 @@ export class InvoicesListPage implements OnInit {
   invoices = signal<Invoice[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  searchQuery = '';
+  searchDebounced = signal('');
+
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly filteredInvoices = computed(() => {
+    const q = this.searchDebounced().trim().toLowerCase();
+    const list = this.invoices();
+    if (!q) return list;
+    return list.filter((invoice) => this.invoiceMatchesSearch(invoice, q));
+  });
+
+  readonly emptyMessage = computed(() => {
+    if (this.searchDebounced().trim() && this.filteredInvoices().length === 0 && this.invoices().length > 0) {
+      return 'No invoices match your search.';
+    }
+    return 'No invoices yet.';
+  });
 
   async ngOnInit() { await this.load(); }
+
+  onSearchInput(value: string) {
+    this.searchQuery = value;
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.searchDebounced.set(value);
+      this.searchTimer = null;
+    }, 150);
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.searchDebounced.set('');
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer);
+      this.searchTimer = null;
+    }
+  }
+
+  private invoiceMatchesSearch(invoice: Invoice, q: string): boolean {
+    const haystack = [
+      invoice.displayNumber,
+      invoice.client.name,
+      invoice.status,
+      invoice.issueDate,
+      invoice.dueDate,
+      this.formatDate(invoice.issueDate),
+      invoice.dueDate ? this.formatDate(invoice.dueDate) : '',
+      this.formatAmount(invoice.total),
+      String(invoice.total),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return haystack.includes(q);
+  }
 
   async load() {
     this.loading.set(true);
     try {
       const data = await this.api.get<Invoice[]>('/invoices');
-      this.invoices.set(data);
+      this.invoices.set(
+        data.map((invoice) => ({
+          ...invoice,
+          total: Number(invoice.total),
+        })),
+      );
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load invoices');
     } finally { this.loading.set(false); }

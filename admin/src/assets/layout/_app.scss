@@ -60,6 +60,19 @@
   margin-bottom: 1rem;
 }
 
+.toolbar-search {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.toolbar-search-field {
+  width: 16rem;
+  min-width: 12rem;
+  max-width: 24rem;
+}
+
 .text-primary {
   color: var(--p-primary-color);
   text-decoration: none;

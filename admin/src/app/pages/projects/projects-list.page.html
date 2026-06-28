@@ -8,16 +8,60 @@
     <h2 class="page-title page-title-in-card">Projects</h2>
     <div class="toolbar">
       <a pButton label="New Project" icon="pi pi-plus" routerLink="/projects/new"></a>
+      <div class="toolbar-search">
+        <p-iconfield iconPosition="left" class="toolbar-search-field">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by project, client…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button
+            type="button"
+            pButton
+            icon="pi pi-times"
+            [text]="true"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          ></button>
+        }
+      </div>
     </div>
-    <p-table [value]="projects()" [loading]="loading()" styleClass="table-bordered">
+    <p-table
+      [value]="filteredProjects()"
+      [loading]="loading()"
+      sortField="name"
+      [sortOrder]="1"
+      styleClass="table-bordered"
+    >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
-          <th>Name</th>
-          <th>Client</th>
-          <th>Rate</th>
-          <th>Billable</th>
-          <th>Status</th>
+          <th pSortableColumn="name">
+            Name
+            <p-sortIcon field="name" />
+          </th>
+          <th pSortableColumn="client.name">
+            Client
+            <p-sortIcon field="client.name" />
+          </th>
+          <th pSortableColumn="hourlyRate">
+            Rate
+            <p-sortIcon field="hourlyRate" />
+          </th>
+          <th pSortableColumn="isBillable">
+            Billable
+            <p-sortIcon field="isBillable" />
+          </th>
+          <th pSortableColumn="isActive">
+            Status
+            <p-sortIcon field="isActive" />
+          </th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-project>
@@ -47,7 +91,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="6" class="text-center p-4 text-color-secondary">No projects yet.</td>
+          <td colspan="6" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
         </tr>
       </ng-template>
     </p-table>

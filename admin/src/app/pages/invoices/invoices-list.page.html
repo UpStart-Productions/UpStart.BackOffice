@@ -8,17 +8,64 @@
     <h2 class="page-title page-title-in-card">Invoices</h2>
     <div class="toolbar">
       <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
+      <div class="toolbar-search">
+        <p-iconfield iconPosition="left" class="toolbar-search-field">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by number, client, status…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button
+            type="button"
+            pButton
+            icon="pi pi-times"
+            [text]="true"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          ></button>
+        }
+      </div>
     </div>
-    <p-table [value]="invoices()" [loading]="loading()" styleClass="table-bordered">
+    <p-table
+      [value]="filteredInvoices()"
+      [loading]="loading()"
+      sortField="number"
+      [sortOrder]="-1"
+      styleClass="table-bordered"
+    >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
-          <th>Number</th>
-          <th>Client</th>
-          <th>Issue Date</th>
-          <th>Due Date</th>
-          <th>Total</th>
-          <th>Status</th>
+          <th pSortableColumn="number">
+            Number
+            <p-sortIcon field="number" />
+          </th>
+          <th pSortableColumn="client.name">
+            Client
+            <p-sortIcon field="client.name" />
+          </th>
+          <th pSortableColumn="issueDate">
+            Issue Date
+            <p-sortIcon field="issueDate" />
+          </th>
+          <th pSortableColumn="dueDate">
+            Due Date
+            <p-sortIcon field="dueDate" />
+          </th>
+          <th pSortableColumn="total">
+            Total
+            <p-sortIcon field="total" />
+          </th>
+          <th pSortableColumn="status">
+            Status
+            <p-sortIcon field="status" />
+          </th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-inv>
@@ -43,7 +90,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="7" class="text-center p-4 text-color-secondary">No invoices yet.</td>
+          <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
         </tr>
       </ng-template>
     </p-table>
