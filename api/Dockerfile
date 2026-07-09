@@ -24,6 +24,19 @@ RUN cd dist/api && npm install --package-lock-only
 FROM node:22-alpine AS runner
 WORKDIR /app
 
+# System Chromium for Puppeteer (bundled Chrome is not in the runner image)
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto-emoji
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Copy built app
 COPY --from=builder /app/dist/api ./dist/api
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma

@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, Delete, Get, NotFoundException,
+  BadRequestException, Body, Controller, Delete, Get, Logger, NotFoundException,
   Param, Post, Put, Query, Res, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -48,6 +48,8 @@ type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceIncl
 @UseGuards(StaffAuthGuard)
 @Controller('invoices')
 export class InvoicesController {
+  private readonly logger = new Logger(InvoicesController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly pdf: PdfService,
@@ -271,7 +273,18 @@ export class InvoicesController {
     }
 
     const to = dto.to.trim();
-    const pdfBuffer = await this.generateAndStorePdf(invoice);
+
+    let pdfBuffer: Buffer;
+    try {
+      pdfBuffer = await this.generateAndStorePdf(invoice);
+    } catch (err) {
+      this.logger.error(`Invoice PDF generation failed (${id}): ${err}`);
+      return {
+        sent: false,
+        error: 'Could not generate the invoice PDF. Please try again in a moment.',
+      };
+    }
+
     const result = await this.mail.sendInvoice({
       to,
       toName: dto.toName?.trim() || undefined,
