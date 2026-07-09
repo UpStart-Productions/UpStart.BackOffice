@@ -106,6 +106,13 @@ export class ProjectsController {
       include: projectInclude,
     });
 
+    if (dto.isBillable === false) {
+      await this.prisma.projectTask.updateMany({
+        where: { projectId: id },
+        data: { isBillable: false },
+      });
+    }
+
     if (asanaLinkChanged && project.asanaSectionGid) {
       return this.asanaSync.syncProjectTasks(id);
     }
@@ -141,7 +148,7 @@ export class ProjectsController {
     for (const task of dto.tasks) {
       await this.prisma.projectTask.updateMany({
         where: { id: task.id, projectId: id, source: ProjectTaskSource.ASANA },
-        data: { isBillable: task.isBillable },
+        data: { isBillable: existing.isBillable ? task.isBillable : false },
       });
     }
 

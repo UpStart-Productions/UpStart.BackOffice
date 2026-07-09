@@ -1,7 +1,6 @@
 import {
   Component,
   computed,
-  HostListener,
   inject,
   OnDestroy,
   OnInit,
@@ -330,10 +329,5 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   formatMin(min: number): string {
     return formatDurationMin(min);
-  }
-
-  @HostListener('document:click')
-  closeDropdowns() {
-    this.modal()?.closeProjectPicker();
   }
 }

@@ -10,6 +10,7 @@ import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
 import { AppTopbarComponent } from './app-topbar.component';
 import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialog.component';
+import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-paid-dialog.component';
 import { LayoutService } from './layout.service';
 import { isAdminRole } from '@upstart/back-office/shared';
 
@@ -25,6 +26,7 @@ import { isAdminRole } from '@upstart/back-office/shared';
     AppSidebarComponent,
     AppFooterComponent,
     InvoiceSendDialogComponent,
+    InvoiceMarkPaidDialogComponent,
   ],
   templateUrl: './shell.component.html',
 })

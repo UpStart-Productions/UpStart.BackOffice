@@ -17,6 +17,11 @@ import {
   RowActionItem,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
+import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
+import {
+  invoiceDueFlag,
+  sortInvoicesForAttention,
+} from './invoice-status.util';
 
 type Invoice = {
   id: string;
@@ -46,6 +51,24 @@ type Invoice = {
     RowActionsMenuComponent,
   ],
   templateUrl: './invoices-list.page.html',
+  styles: [
+    `
+      :host ::ng-deep tr.invoice-row-overdue > td {
+        background: var(--color-severity-danger-bg);
+      }
+
+      :host ::ng-deep tr.invoice-row-due > td {
+        background: var(--color-severity-warning-bg);
+      }
+
+      .invoice-due-cell {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+      }
+    `,
+  ],
 })
 export class InvoicesListPage implements OnInit {
   private readonly api = inject(ApiService);
@@ -53,6 +76,7 @@ export class InvoicesListPage implements OnInit {
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
+  private readonly invoiceMarkPaidDialog = inject(InvoiceMarkPaidDialogService);
 
   invoices = signal<Invoice[]>([]);
   loading = signal(true);
@@ -65,9 +89,19 @@ export class InvoicesListPage implements OnInit {
   readonly filteredInvoices = computed(() => {
     const q = this.searchDebounced().trim().toLowerCase();
     const list = this.invoices();
-    if (!q) return list;
-    return list.filter((invoice) => this.invoiceMatchesSearch(invoice, q));
+    const matches = !q
+      ? list
+      : list.filter((invoice) => this.invoiceMatchesSearch(invoice, q));
+    return sortInvoicesForAttention(matches);
   });
+
+  readonly overdueCount = computed(
+    () => this.invoices().filter((inv) => invoiceDueFlag(inv.dueDate, inv.status) === 'overdue').length,
+  );
+
+  readonly dueCount = computed(
+    () => this.invoices().filter((inv) => invoiceDueFlag(inv.dueDate, inv.status) === 'due').length,
+  );
 
   readonly emptyMessage = computed(() => {
     if (this.searchDebounced().trim() && this.filteredInvoices().length === 0 && this.invoices().length > 0) {
@@ -153,6 +187,14 @@ export class InvoicesListPage implements OnInit {
         command: () => this.send(invoice, true),
       });
     }
+    if (invoice.status === 'SENT') {
+      actions.push({
+        id: 'mark-paid',
+        label: 'Mark as paid',
+        icon: 'pi pi-check',
+        command: () => this.markPaid(invoice),
+      });
+    }
     if (invoice.status === 'DRAFT') {
       actions.push({
         id: 'edit',
@@ -176,6 +218,21 @@ export class InvoicesListPage implements OnInit {
   statusSeverity(status: string): string {
     const map: Record<string, string> = { DRAFT: 'secondary', SENT: 'info', PAID: 'success', VOID: 'danger' };
     return map[status] ?? 'secondary';
+  }
+
+  dueFlag(invoice: Invoice) {
+    return invoiceDueFlag(invoice.dueDate, invoice.status);
+  }
+
+  dueFlagLabel(invoice: Invoice): string | null {
+    const flag = this.dueFlag(invoice);
+    if (flag === 'overdue') return 'Overdue';
+    if (flag === 'due') return 'Due';
+    return null;
+  }
+
+  dueFlagSeverity(invoice: Invoice): string {
+    return this.dueFlag(invoice) === 'overdue' ? 'danger' : 'warn';
   }
 
   async downloadPdf(invoice: Invoice) {
@@ -202,6 +259,24 @@ export class InvoicesListPage implements OnInit {
         detail: resend
           ? `${invoice.displayNumber} was emailed to ${result.to} again.`
           : `${invoice.displayNumber} was emailed to ${result.to}.`,
+        life: 6000,
+      });
+    }
+  }
+
+  async markPaid(invoice: Invoice) {
+    this.error.set(null);
+    const result = await this.invoiceMarkPaidDialog.open({
+      invoiceId: invoice.id,
+      displayNumber: invoice.displayNumber,
+      total: invoice.total,
+    });
+    if (result?.marked) {
+      await this.load();
+      this.toast.add({
+        severity: 'success',
+        summary: 'Invoice marked paid',
+        detail: `${invoice.displayNumber} was marked paid on ${this.formatDate(result.paidAt)}.`,
         life: 6000,
       });
     }

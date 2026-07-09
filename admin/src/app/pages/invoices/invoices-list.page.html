@@ -32,44 +32,37 @@
         }
       </div>
     </div>
+    @if (overdueCount() > 0) {
+      <p-message
+        severity="error"
+        [text]="overdueCount() + ' overdue invoice' + (overdueCount() === 1 ? '' : 's') + ' need attention.'"
+        styleClass="mb-3"
+      />
+    } @else if (dueCount() > 0) {
+      <p-message
+        severity="warn"
+        [text]="dueCount() + ' unpaid invoice' + (dueCount() === 1 ? '' : 's') + ' with upcoming due dates.'"
+        styleClass="mb-3"
+      />
+    }
     <p-table
       [value]="filteredInvoices()"
       [loading]="loading()"
-      sortField="number"
-      [sortOrder]="-1"
       styleClass="table-bordered"
     >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
-          <th pSortableColumn="number">
-            Number
-            <p-sortIcon field="number" />
-          </th>
-          <th pSortableColumn="client.name">
-            Client
-            <p-sortIcon field="client.name" />
-          </th>
-          <th pSortableColumn="issueDate">
-            Issue Date
-            <p-sortIcon field="issueDate" />
-          </th>
-          <th pSortableColumn="dueDate">
-            Due Date
-            <p-sortIcon field="dueDate" />
-          </th>
-          <th pSortableColumn="total">
-            Total
-            <p-sortIcon field="total" />
-          </th>
-          <th pSortableColumn="status">
-            Status
-            <p-sortIcon field="status" />
-          </th>
+          <th>Number</th>
+          <th>Client</th>
+          <th>Issue Date</th>
+          <th>Due Date</th>
+          <th>Total</th>
+          <th>Status</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-inv>
-        <tr>
+        <tr [class.invoice-row-overdue]="dueFlag(inv) === 'overdue'" [class.invoice-row-due]="dueFlag(inv) === 'due'">
           <td>
             <app-row-actions-menu [items]="getRowActions(inv)" ariaLabel="Invoice actions" />
           </td>
@@ -81,7 +74,14 @@
           </td>
           <td>{{ inv.client.name }}</td>
           <td>{{ formatDate(inv.issueDate) }}</td>
-          <td>{{ inv.dueDate ? formatDate(inv.dueDate) : '—' }}</td>
+          <td>
+            <div class="invoice-due-cell">
+              <span>{{ inv.dueDate ? formatDate(inv.dueDate) : '—' }}</span>
+              @if (dueFlagLabel(inv); as label) {
+                <p-tag [value]="label" [severity]="dueFlagSeverity(inv)" />
+              }
+            </div>
+          </td>
           <td>{{ formatAmount(inv.total) }}</td>
           <td>
             <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />

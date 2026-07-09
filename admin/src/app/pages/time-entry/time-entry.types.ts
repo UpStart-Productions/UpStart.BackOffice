@@ -12,6 +12,7 @@ export type ProjectTask = {
 export type Project = {
   id: string;
   name: string;
+  isActive?: boolean;
   client: { id: string; name: string };
   asanaSectionGid?: string | null;
   tasks?: ProjectTask[];

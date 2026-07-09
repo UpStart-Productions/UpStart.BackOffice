@@ -1,4 +1,5 @@
 import { Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 export type DashboardWidgetSpan = 1 | 2 | 3;
 export type DashboardWidgetHeight = 'short' | 'tall';
@@ -13,6 +14,7 @@ export type DashboardWidgetIconColor =
 @Component({
   selector: 'app-dashboard-widget',
   standalone: true,
+  imports: [RouterLink],
   template: `
     <div
       class="card dashboard-widget-card"
@@ -32,6 +34,15 @@ export type DashboardWidgetIconColor =
                 </span>
               }
               <h5 class="dashboard-widget-title">{{ title() }}</h5>
+              @if (seeAllLink()) {
+                <a
+                  [routerLink]="seeAllLink()"
+                  class="dashboard-widget-see-all"
+                  [attr.aria-label]="seeAllAriaLabel() ?? 'See all'"
+                >
+                  <i class="pi pi-arrow-right" aria-hidden="true"></i>
+                </a>
+              }
             }
           </div>
           <div class="dashboard-widget-header-actions">
@@ -106,6 +117,27 @@ export type DashboardWidgetIconColor =
         white-space: nowrap;
       }
 
+      .dashboard-widget-see-all {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 1.75rem;
+        height: 1.75rem;
+        color: var(--color-text-muted);
+        text-decoration: none;
+        border-radius: var(--content-border-radius);
+        transition: color 0.15s ease;
+      }
+
+      .dashboard-widget-see-all:hover {
+        color: var(--brand-primary);
+      }
+
+      .dashboard-widget-see-all i {
+        font-size: 0.875rem;
+      }
+
       .dashboard-widget-header-actions {
         display: flex;
         align-items: center;
@@ -164,4 +196,6 @@ export class DashboardWidgetComponent {
   hideHeader = input<boolean>(false);
   showDragHandle = input<boolean>(false);
   headerRight = input<string | undefined>(undefined);
+  seeAllLink = input<string | undefined>(undefined);
+  seeAllAriaLabel = input<string | undefined>(undefined);
 }

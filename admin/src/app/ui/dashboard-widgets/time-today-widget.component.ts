@@ -1,6 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
+import { DashboardWidgetContentComponent } from '../dashboard-widget/dashboard-widget-content.component';
 import type { TimeEntry } from '../../pages/time-entry/time-entry.types';
 import {
   dateKey,
@@ -12,13 +11,12 @@ import {
 @Component({
   selector: 'app-dashboard-time-today-widget',
   standalone: true,
-  imports: [RouterLink, ButtonModule],
+  imports: [DashboardWidgetContentComponent],
   template: `
-    @if (loading()) {
-      <p class="text-muted mb-0">Loading…</p>
-    } @else if (error()) {
-      <p class="mb-0" role="alert">{{ error() }}</p>
-    } @else {
+    <app-dashboard-widget-content
+      [loading]="loading()"
+      [error]="error()"
+    >
       @if (runningEntry(); as running) {
         <div class="time-running-banner">
           <div class="time-running-label">
@@ -59,11 +57,7 @@ import {
       } @else if (!runningEntry()) {
         <p class="text-muted mb-0">No time tracked today yet.</p>
       }
-
-      <div class="widget-footer">
-        <a pButton label="Open timesheet" icon="pi pi-arrow-right" iconPos="right" routerLink="/time-entry"></a>
-      </div>
-    }
+    </app-dashboard-widget-content>
   `,
   styles: [
     `
@@ -126,48 +120,6 @@ import {
         font-size: 1.25rem;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
-      }
-
-      .dashboard-list {
-        list-style: none;
-        margin: 0 0 1rem;
-        padding: 0;
-      }
-
-      .dashboard-list-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.625rem 0;
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .dashboard-list-item:last-child {
-        border-bottom: none;
-      }
-
-      .dashboard-list-main {
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
-        min-width: 0;
-      }
-
-      .dashboard-list-title {
-        font-weight: 600;
-        font-size: 0.875rem;
-      }
-
-      .dashboard-list-meta {
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-        flex-shrink: 0;
-      }
-
-      .widget-footer {
-        margin-top: auto;
-        padding-top: 0.5rem;
       }
     `,
   ],

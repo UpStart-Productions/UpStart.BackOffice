@@ -238,8 +238,9 @@ export class InvoiceFormPage implements OnInit {
   }
 
   calcLine(item: LineItem) {
-    item.amount = Math.round(item.quantity * item.unitPrice * 100) / 100;
-    this.lineItems.update((items) => [...items]);
+    const quantity = Number(item.quantity) || 0;
+    const unitPrice = Number(item.unitPrice) || 0;
+    item.amount = Math.round(quantity * unitPrice * 100) / 100;
   }
 
   async generateFromTime() {

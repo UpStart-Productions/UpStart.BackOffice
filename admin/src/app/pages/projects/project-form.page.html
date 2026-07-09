@@ -68,7 +68,11 @@
             />
             <div class="project-rate-toggles">
               <div class="flex align-items-center gap-2">
-                <p-toggleSwitch [(ngModel)]="form.isBillable" name="isBillable" />
+                <p-toggleSwitch
+                  [(ngModel)]="form.isBillable"
+                  name="isBillable"
+                  (ngModelChange)="onProjectBillableChange($event)"
+                />
                 <label>Billable</label>
               </div>
               <div class="flex align-items-center gap-2">
@@ -283,6 +287,7 @@
                       <p-toggleSwitch
                         [(ngModel)]="task.isBillable"
                         [name]="'task-billable-' + rowIndex"
+                        [disabled]="!form.isBillable"
                       />
                     </td>
                     <td>
@@ -349,6 +354,7 @@
                           <p-toggleSwitch
                             [(ngModel)]="task.isBillable"
                             [name]="'asana-task-billable-' + rowIndex"
+                            [disabled]="!form.isBillable"
                           />
                         </td>
                       </tr>

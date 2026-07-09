@@ -74,6 +74,7 @@ const WIDGET_CONFIGS: DashboardWidgetConfig[] = [
 
 type Invoice = {
   id: string;
+  number: number;
   displayNumber: string;
   status: string;
   issueDate: string;

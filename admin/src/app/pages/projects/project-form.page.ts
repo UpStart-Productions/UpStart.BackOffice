@@ -179,19 +179,20 @@ export class ProjectFormPage implements OnInit {
         this.ensureAsanaSectionOption(project.asanaSectionGid, project.asanaSectionName);
       }
     }
-    this.splitTasks(project.tasks ?? []);
+    this.splitTasks(project.tasks ?? [], project.isBillable);
   }
 
-  private splitTasks(tasks: ProjectTaskDraft[]) {
+  private splitTasks(tasks: ProjectTaskDraft[], projectBillable = this.form.isBillable) {
     const manual = tasks.filter((t) => t.source !== 'ASANA');
     const asana = tasks.filter((t) => t.source === 'ASANA' && t.isActive);
+    const taskBillable = (value: boolean) => (projectBillable ? value : false);
     this.manualTasks.set(
       manual.length > 0
         ? manual.map((t, i) => ({
             id: t.id,
             name: t.name,
             source: t.source,
-            isBillable: t.isBillable,
+            isBillable: taskBillable(t.isBillable),
             sortOrder: t.sortOrder ?? i,
             isActive: t.isActive ?? true,
           }))
@@ -202,7 +203,7 @@ export class ProjectFormPage implements OnInit {
         id: t.id,
         name: t.name,
         source: 'ASANA' as const,
-        isBillable: t.isBillable,
+        isBillable: taskBillable(t.isBillable),
         sortOrder: t.sortOrder ?? i,
         isActive: t.isActive ?? true,
       })),
@@ -212,11 +213,23 @@ export class ProjectFormPage implements OnInit {
   private defaultTasks(): ProjectTaskDraft[] {
     return SUGGESTED_PROJECT_TASKS.map((t, i) => ({
       name: t.name,
-      isBillable: t.isBillable,
+      isBillable: this.form.isBillable ? t.isBillable : false,
       sortOrder: i,
       isActive: true,
       source: 'MANUAL' as const,
     }));
+  }
+
+  onProjectBillableChange(isBillable: boolean) {
+    this.form.isBillable = isBillable;
+    if (!isBillable) {
+      this.manualTasks.update((tasks) =>
+        tasks.map((t) => ({ ...t, isBillable: false })),
+      );
+      this.asanaTasks.update((tasks) =>
+        tasks.map((t) => ({ ...t, isBillable: false })),
+      );
+    }
   }
 
   async loadAsanaProjects() {
@@ -301,7 +314,13 @@ export class ProjectFormPage implements OnInit {
   addTask() {
     this.manualTasks.update((list) => [
       ...list,
-      { name: '', isBillable: true, sortOrder: list.length, isActive: true, source: 'MANUAL' },
+      {
+        name: '',
+        isBillable: this.form.isBillable,
+        sortOrder: list.length,
+        isActive: true,
+        source: 'MANUAL',
+      },
     ]);
   }
 
@@ -421,7 +440,11 @@ export class ProjectFormPage implements OnInit {
 
     const taskDrafts = this.manualTasks()
       .map((t) => ({ ...t, name: t.name.trim() }))
-      .filter((t) => t.name);
+      .filter((t) => t.name)
+      .map((t) => ({
+        ...t,
+        isBillable: this.form.isBillable ? t.isBillable : false,
+      }));
 
     const duplicateNames = taskDrafts.some(
       (t, i, arr) => arr.findIndex((x) => x.name.toLowerCase() === t.name.toLowerCase()) !== i,
@@ -467,7 +490,7 @@ export class ProjectFormPage implements OnInit {
         await this.api.patch(`/projects/${projectId}/asana-tasks`, {
           tasks: this.asanaTasks().map((t) => ({
             id: t.id!,
-            isBillable: t.isBillable,
+            isBillable: this.form.isBillable ? t.isBillable : false,
           })),
         });
       }

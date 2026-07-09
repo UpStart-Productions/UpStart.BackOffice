@@ -8,6 +8,8 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
+import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
+import { invoiceDueFlag } from './invoice-status.util';
 
 type InvoiceDetail = {
   id: string;
@@ -18,6 +20,8 @@ type InvoiceDetail = {
   subtotal: number;
   taxAmount?: number | null;
   total: number;
+  paidAt?: string | null;
+  amountPaid?: number | null;
   client: { id: string; name: string };
 };
 
@@ -35,6 +39,7 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
   private readonly toast = inject(MessageService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
+  private readonly invoiceMarkPaidDialog = inject(InvoiceMarkPaidDialogService);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -46,6 +51,10 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
   get canResend(): boolean {
     const s = this.invoice()?.status;
     return s === 'SENT' || s === 'PAID';
+  }
+
+  get canMarkPaid(): boolean {
+    return this.invoice()?.status === 'SENT';
   }
 
   async ngOnInit() {
@@ -66,6 +75,7 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
         subtotal: Number(inv.subtotal),
         taxAmount: inv.taxAmount != null ? Number(inv.taxAmount) : null,
         total: Number(inv.total),
+        amountPaid: inv.amountPaid != null ? Number(inv.amountPaid) : null,
       });
 
       const blob = await this.api.fetchPdfBlob(`/invoices/${id}/pdf`);
@@ -91,6 +101,28 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
       VOID: 'danger',
     };
     return map[status] ?? 'secondary';
+  }
+
+  statusLabel(inv: InvoiceDetail): string {
+    if (inv.status === 'PAID' && inv.paidAt) {
+      return `PAID ${this.formatDate(inv.paidAt)}`;
+    }
+    return inv.status;
+  }
+
+  dueFlag(inv: InvoiceDetail) {
+    return invoiceDueFlag(inv.dueDate, inv.status);
+  }
+
+  dueFlagLabel(inv: InvoiceDetail): string | null {
+    const flag = this.dueFlag(inv);
+    if (flag === 'overdue') return 'Overdue';
+    if (flag === 'due') return 'Due';
+    return null;
+  }
+
+  dueFlagSeverity(inv: InvoiceDetail): string {
+    return this.dueFlag(inv) === 'overdue' ? 'danger' : 'warn';
   }
 
   formatDate(iso: string): string {
@@ -129,6 +161,33 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
         severity: 'success',
         summary: 'Invoice resent',
         detail: `${inv.displayNumber} was emailed to ${result.to} again.`,
+        life: 6000,
+      });
+    }
+  }
+
+  async markPaid() {
+    const inv = this.invoice();
+    if (!inv) return;
+
+    const result = await this.invoiceMarkPaidDialog.open({
+      invoiceId: inv.id,
+      displayNumber: inv.displayNumber,
+      total: inv.total,
+    });
+    if (result?.marked) {
+      const updated = await this.api.get<InvoiceDetail>(`/invoices/${inv.id}`);
+      this.invoice.set({
+        ...updated,
+        subtotal: Number(updated.subtotal),
+        taxAmount: updated.taxAmount != null ? Number(updated.taxAmount) : null,
+        total: Number(updated.total),
+        amountPaid: updated.amountPaid != null ? Number(updated.amountPaid) : null,
+      });
+      this.toast.add({
+        severity: 'success',
+        summary: 'Invoice marked paid',
+        detail: `${inv.displayNumber} was marked paid on ${this.formatDate(result.paidAt)}.`,
         life: 6000,
       });
     }

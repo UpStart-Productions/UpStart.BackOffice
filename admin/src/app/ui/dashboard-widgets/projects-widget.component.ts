@@ -1,6 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { DashboardWidgetContentComponent } from '../dashboard-widget/dashboard-widget-content.component';
 
 type Project = {
   id: string;
@@ -12,18 +13,18 @@ type Project = {
 @Component({
   selector: 'app-dashboard-projects-widget',
   standalone: true,
-  imports: [RouterLink, ButtonModule],
+  imports: [RouterLink, ButtonModule, DashboardWidgetContentComponent],
   template: `
-    @if (loading()) {
-      <p class="text-muted mb-0">Loading…</p>
-    } @else if (error()) {
-      <p class="mb-0" role="alert">{{ error() }}</p>
-    } @else if (activeProjects().length === 0) {
-      <p class="text-muted mb-0">No active projects.</p>
-      <div class="widget-footer">
+    <app-dashboard-widget-content
+      [loading]="loading()"
+      [error]="error()"
+      [empty]="activeProjects().length === 0"
+      emptyMessage="No active projects."
+    >
+      <div dashboardWidgetEmptyAction class="widget-footer">
         <a pButton label="New project" icon="pi pi-plus" routerLink="/projects/new"></a>
       </div>
-    } @else {
+
       <ul class="dashboard-list">
         @for (project of activeProjects(); track project.id) {
           <li class="dashboard-list-item">
@@ -34,52 +35,8 @@ type Project = {
           </li>
         }
       </ul>
-
-      <div class="widget-footer">
-        <a pButton label="View all projects" icon="pi pi-arrow-right" iconPos="right" routerLink="/projects"></a>
-      </div>
-    }
+    </app-dashboard-widget-content>
   `,
-  styles: [
-    `
-      .dashboard-list {
-        list-style: none;
-        margin: 0 0 1rem;
-        padding: 0;
-      }
-
-      .dashboard-list-item {
-        padding: 0.625rem 0;
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .dashboard-list-item:last-child {
-        border-bottom: none;
-      }
-
-      .dashboard-list-link {
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
-        color: inherit;
-        text-decoration: none;
-      }
-
-      .dashboard-list-link:hover .dashboard-list-title {
-        color: var(--brand-primary);
-      }
-
-      .dashboard-list-title {
-        font-weight: 600;
-        font-size: 0.875rem;
-      }
-
-      .widget-footer {
-        margin-top: auto;
-        padding-top: 0.5rem;
-      }
-    `,
-  ],
 })
 export class DashboardProjectsWidgetComponent {
   projects = input<Project[]>([]);

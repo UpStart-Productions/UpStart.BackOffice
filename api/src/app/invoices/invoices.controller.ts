@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateInvoiceDto, CreateInvoiceLineItemDto } from './dto/create-invoice.dto';
 import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
+import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { InvoiceFromTimeService } from './invoice-from-time.service';
@@ -237,6 +238,25 @@ export class InvoicesController {
       },
       projectContacts: buildProjectContacts(invoice.lineItems),
     };
+  }
+
+  @Post(':id/mark-paid')
+  async markPaid(@Param('id') id: string, @Body() dto: MarkInvoicePaidDto) {
+    const existing = await this.prisma.invoice.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Invoice not found');
+    if (existing.status !== 'SENT') {
+      throw new BadRequestException('Only sent invoices can be marked as paid');
+    }
+
+    return this.prisma.invoice.update({
+      where: { id },
+      data: {
+        status: 'PAID',
+        paidAt: new Date(dto.paidAt),
+        amountPaid: dto.amountPaid,
+      },
+      include: invoiceInclude,
+    });
   }
 
   @Post(':id/send')

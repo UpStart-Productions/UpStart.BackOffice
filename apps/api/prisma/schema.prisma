@@ -298,6 +298,7 @@ model Invoice {
   total         Decimal       @db.Decimal(10, 2)
   sentAt        DateTime?
   paidAt        DateTime?
+  amountPaid    Decimal?      @db.Decimal(10, 2)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

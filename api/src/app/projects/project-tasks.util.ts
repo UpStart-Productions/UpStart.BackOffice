@@ -23,6 +23,14 @@ export async function syncProjectTasks(
   projectId: string,
   tasks: ProjectTaskInputDto[],
 ) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { isBillable: true },
+  });
+  if (!project) {
+    throw new BadRequestException('Project not found');
+  }
+
   const manualTasks = tasks.map((t) => ({ ...t, name: t.name.trim() })).filter((t) => t.name);
   const names = manualTasks.map((t) => t.name.toLowerCase());
   if (new Set(names).size !== names.length) {
@@ -44,7 +52,7 @@ export async function syncProjectTasks(
     const task = manualTasks[i];
     const data = {
       name: task.name,
-      isBillable: task.isBillable ?? true,
+      isBillable: project.isBillable ? (task.isBillable ?? true) : false,
       sortOrder: task.sortOrder ?? i,
       isActive: task.isActive ?? true,
       source: ProjectTaskSource.MANUAL,

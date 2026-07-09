@@ -15,6 +15,16 @@
   color: var(--text-color-secondary);
 }
 
+.invoice-detail-due--overdue {
+  color: var(--color-severity-danger-text);
+  font-weight: 600;
+}
+
+.invoice-detail-due--due {
+  color: var(--color-severity-warning-text);
+  font-weight: 600;
+}
+
 .invoice-detail-actions {
   display: flex;
   flex-wrap: wrap;

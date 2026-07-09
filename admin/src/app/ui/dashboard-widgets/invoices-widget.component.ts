@@ -2,6 +2,8 @@ import { Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
+import { DashboardWidgetContentComponent } from '../dashboard-widget/dashboard-widget-content.component';
+import { invoiceDueFlag, sortInvoicesForAttention } from '../../pages/invoices/invoice-status.util';
 
 type Invoice = {
   id: string;
@@ -9,6 +11,7 @@ type Invoice = {
   status: string;
   issueDate: string;
   dueDate?: string;
+  number?: number;
   total: number;
   client: { id: string; name: string };
 };
@@ -16,25 +19,35 @@ type Invoice = {
 @Component({
   selector: 'app-dashboard-invoices-widget',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TagModule],
+  imports: [RouterLink, ButtonModule, TagModule, DashboardWidgetContentComponent],
   template: `
-    @if (loading()) {
-      <p class="text-muted mb-0">Loading…</p>
-    } @else if (error()) {
-      <p class="mb-0" role="alert">{{ error() }}</p>
-    } @else if (recentInvoices().length === 0) {
-      <p class="text-muted mb-0">No invoices yet.</p>
-      <div class="widget-footer">
+    <app-dashboard-widget-content
+      [loading]="loading()"
+      [error]="error()"
+      [empty]="recentInvoices().length === 0"
+      emptyMessage="No invoices yet."
+    >
+      <div dashboardWidgetEmptyAction class="widget-footer">
         <a pButton label="Create invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
       </div>
-    } @else {
+
+      @if (overdueCount() > 0) {
+        <p class="overdue-note">{{ overdueCount() }} overdue invoice{{ overdueCount() === 1 ? '' : 's' }}</p>
+      } @else if (dueCount() > 0) {
+        <p class="due-note">{{ dueCount() }} unpaid invoice{{ dueCount() === 1 ? '' : 's' }} due soon</p>
+      }
+
       @if (draftCount() > 0) {
         <p class="draft-note">{{ draftCount() }} draft{{ draftCount() === 1 ? '' : 's' }} ready to send</p>
       }
 
       <ul class="dashboard-list">
         @for (inv of recentInvoices(); track inv.id) {
-          <li class="dashboard-list-item">
+          <li
+            class="dashboard-list-item"
+            [class.dashboard-list-item--overdue]="dueFlag(inv) === 'overdue'"
+            [class.dashboard-list-item--due]="dueFlag(inv) === 'due'"
+          >
             <a
               [routerLink]="inv.status === 'DRAFT' ? ['/invoices', inv.id, 'edit'] : ['/invoices', inv.id]"
               class="dashboard-list-link"
@@ -44,19 +57,33 @@ type Invoice = {
             </a>
             <div class="dashboard-list-right">
               <span class="dashboard-list-amount">{{ formatAmount(inv.total) }}</span>
-              <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
+              @if (dueFlagLabel(inv); as label) {
+                <p-tag [value]="label" [severity]="dueFlagSeverity(inv)" />
+              } @else {
+                <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
+              }
             </div>
           </li>
         }
       </ul>
-
-      <div class="widget-footer">
-        <a pButton label="View all invoices" icon="pi pi-arrow-right" iconPos="right" routerLink="/invoices"></a>
-      </div>
-    }
+    </app-dashboard-widget-content>
   `,
   styles: [
     `
+      .overdue-note {
+        margin: 0 0 0.875rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-severity-danger-text);
+      }
+
+      .due-note {
+        margin: 0 0 0.875rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--color-severity-warning-text);
+      }
+
       .draft-note {
         margin: 0 0 0.875rem;
         font-size: 0.875rem;
@@ -64,60 +91,18 @@ type Invoice = {
         color: var(--color-severity-warning-text);
       }
 
-      .dashboard-list {
-        list-style: none;
-        margin: 0 0 1rem;
-        padding: 0;
+      .dashboard-list-item--overdue {
+        margin: 0 -0.5rem;
+        padding: 0.625rem 0.5rem;
+        border-radius: var(--content-border-radius);
+        background: var(--color-severity-danger-bg);
       }
 
-      .dashboard-list-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.625rem 0;
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .dashboard-list-item:last-child {
-        border-bottom: none;
-      }
-
-      .dashboard-list-link {
-        display: flex;
-        flex-direction: column;
-        gap: 0.125rem;
-        min-width: 0;
-        color: inherit;
-        text-decoration: none;
-      }
-
-      .dashboard-list-link:hover .dashboard-list-title {
-        color: var(--brand-primary);
-      }
-
-      .dashboard-list-title {
-        font-weight: 600;
-        font-size: 0.875rem;
-      }
-
-      .dashboard-list-right {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 0.25rem;
-        flex-shrink: 0;
-      }
-
-      .dashboard-list-amount {
-        font-weight: 600;
-        font-variant-numeric: tabular-nums;
-        font-size: 0.875rem;
-      }
-
-      .widget-footer {
-        margin-top: auto;
-        padding-top: 0.5rem;
+      .dashboard-list-item--due {
+        margin: 0 -0.5rem;
+        padding: 0.625rem 0.5rem;
+        border-radius: var(--content-border-radius);
+        background: var(--color-severity-warning-bg);
       }
     `,
   ],
@@ -131,10 +116,16 @@ export class DashboardInvoicesWidgetComponent {
     () => this.invoices().filter((i) => i.status === 'DRAFT').length,
   );
 
+  readonly overdueCount = computed(
+    () => this.invoices().filter((i) => invoiceDueFlag(i.dueDate, i.status) === 'overdue').length,
+  );
+
+  readonly dueCount = computed(
+    () => this.invoices().filter((i) => invoiceDueFlag(i.dueDate, i.status) === 'due').length,
+  );
+
   readonly recentInvoices = computed(() =>
-    [...this.invoices()]
-      .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
-      .slice(0, 6),
+    sortInvoicesForAttention(this.invoices()).slice(0, 6),
   );
 
   formatAmount(total: number): string {
@@ -157,5 +148,20 @@ export class DashboardInvoicesWidgetComponent {
       default:
         return 'info';
     }
+  }
+
+  dueFlag(invoice: Invoice) {
+    return invoiceDueFlag(invoice.dueDate, invoice.status);
+  }
+
+  dueFlagLabel(invoice: Invoice): string | null {
+    const flag = this.dueFlag(invoice);
+    if (flag === 'overdue') return 'Overdue';
+    if (flag === 'due') return 'Due';
+    return null;
+  }
+
+  dueFlagSeverity(invoice: Invoice): 'success' | 'info' | 'warn' | 'secondary' | 'danger' {
+    return this.dueFlag(invoice) === 'overdue' ? 'danger' : 'warn';
   }
 }

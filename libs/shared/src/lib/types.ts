@@ -99,6 +99,7 @@ export type InvoiceDto = {
   total: number;
   sentAt?: string | null;
   paidAt?: string | null;
+  amountPaid?: number | null;
   client: ClientDto;
   lineItems: InvoiceLineItemDto[];
 };

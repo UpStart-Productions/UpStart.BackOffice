@@ -18,16 +18,24 @@
           />
           <div class="invoice-detail-title-block">
             <h2 class="page-title page-title-in-card mb-0">{{ inv.displayNumber }}</h2>
-            <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
+            <p-tag [value]="statusLabel(inv)" [severity]="statusSeverity(inv.status)" />
+            @if (dueFlagLabel(inv); as label) {
+              <p-tag [value]="label" [severity]="dueFlagSeverity(inv)" />
+            }
           </div>
         </div>
         <div class="invoice-detail-meta text-sm">
           <span><strong>Client:</strong> {{ inv.client.name }}</span>
           <span><strong>Issue date:</strong> {{ formatDate(inv.issueDate) }}</span>
           @if (inv.dueDate) {
-            <span><strong>Due:</strong> {{ formatDate(inv.dueDate) }}</span>
+            <span class="invoice-detail-due" [class.invoice-detail-due--overdue]="dueFlag(inv) === 'overdue'" [class.invoice-detail-due--due]="dueFlag(inv) === 'due'">
+              <strong>Due:</strong> {{ formatDate(inv.dueDate) }}
+            </span>
           }
           <span><strong>Total:</strong> {{ formatAmount(inv.total) }}</span>
+          @if (inv.status === 'PAID' && inv.amountPaid != null && inv.amountPaid !== inv.total) {
+            <span><strong>Paid:</strong> {{ formatAmount(inv.amountPaid) }}</span>
+          }
         </div>
         <div class="invoice-detail-actions">
           <p-button
@@ -36,6 +44,13 @@
             severity="secondary"
             (click)="downloadPdf()"
           />
+          @if (canMarkPaid) {
+            <p-button
+              label="Mark as paid"
+              icon="pi pi-check"
+              (click)="markPaid()"
+            />
+          }
           @if (canResend) {
             <p-button
               label="Resend to client"

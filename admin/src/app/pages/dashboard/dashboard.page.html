@@ -48,6 +48,8 @@
                   [span]="w.span"
                   [height]="w.height"
                   [showDragHandle]="true"
+                  seeAllLink="/time-entry"
+                  seeAllAriaLabel="Open timesheet"
                 >
                   <app-dashboard-time-today-widget
                     [entries]="timeEntries()"
@@ -65,6 +67,8 @@
                   [span]="w.span"
                   [height]="w.height"
                   [showDragHandle]="true"
+                  seeAllLink="/pipeline"
+                  seeAllAriaLabel="Open pipeline"
                 >
                   <app-dashboard-pipeline-widget
                     [leads]="leads()"
@@ -81,6 +85,8 @@
                   [span]="w.span"
                   [height]="w.height"
                   [showDragHandle]="true"
+                  seeAllLink="/invoices"
+                  seeAllAriaLabel="View all invoices"
                 >
                   <app-dashboard-invoices-widget
                     [invoices]="invoices()"
@@ -97,6 +103,8 @@
                   [span]="w.span"
                   [height]="w.height"
                   [showDragHandle]="true"
+                  seeAllLink="/projects"
+                  seeAllAriaLabel="View all projects"
                 >
                   <app-dashboard-projects-widget
                     [projects]="projects()"

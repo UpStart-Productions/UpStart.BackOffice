@@ -1,7 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -17,7 +18,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 @Component({
   selector: 'app-time-entry-modal',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, TextareaModule],
+  imports: [FormsModule, DialogModule, ButtonModule, TextareaModule, SelectModule],
   template: `
     <p-dialog
       [header]="dialogTitle()"
@@ -30,37 +31,36 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       <div class="entry-form">
         <div class="form-field">
           <label for="entry-project">Project</label>
-          <div class="project-picker">
-            <button
-              type="button"
-              id="entry-project"
-              class="project-trigger"
-              [class.placeholder]="!projectId()"
-              (click)="toggleProjectPicker(); $event.stopPropagation()"
-            >
-              {{ projectLabel() || 'Select a project' }}
-            </button>
-            @if (projectPickerOpen()) {
-              <div class="project-dropdown" (click)="$event.stopPropagation()">
-                <input
-                  class="search"
-                  type="text"
-                  placeholder="Search projects..."
-                  [ngModel]="projectSearch()"
-                  (ngModelChange)="projectSearch.set($event)"
-                  (click)="$event.stopPropagation()"
-                />
-                @for (p of filteredProjects(); track p.id) {
-                  <button type="button" class="option" (click)="selectProject(p)">
-                    <span class="client">{{ p.client.name }}</span>
-                    {{ p.name }}
-                  </button>
-                } @empty {
-                  <div class="empty">No projects found</div>
-                }
-              </div>
-            }
-          </div>
+          <p-select
+            inputId="entry-project"
+            [options]="projectOptions()"
+            optionLabel="projectName"
+            optionValue="id"
+            [ngModel]="projectId()"
+            (ngModelChange)="onProjectIdChange($event)"
+            [filter]="true"
+            filterBy="projectName,clientName"
+            filterPlaceholder="Search by client or project…"
+            placeholder="Select a project"
+            styleClass="w-full entry-project-select"
+            panelStyleClass="entry-project-select-panel"
+            appendTo="body"
+          >
+            <ng-template #selectedItem let-option>
+              @if (option) {
+                <span class="entry-project-option">
+                  <span class="entry-project-name">{{ option.projectName }}</span>
+                  <span class="entry-project-client">{{ option.clientName }}</span>
+                </span>
+              }
+            </ng-template>
+            <ng-template #item let-option>
+              <span class="entry-project-option">
+                <span class="entry-project-name">{{ option.projectName }}</span>
+                <span class="entry-project-client">{{ option.clientName }}</span>
+              </span>
+            </ng-template>
+          </p-select>
         </div>
 
         @if (manualTasks().length > 0) {
@@ -209,74 +209,24 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       color: #2d2d2d;
     }
 
-    .project-picker {
-      position: relative;
+    .entry-project-option {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+      min-width: 0;
+      line-height: 1.3;
     }
 
-    .project-trigger {
-      width: 100%;
-      text-align: left;
-      border: 1px solid #e2e6ea;
-      border-radius: 4px;
-      background: #fff;
-      padding: 0.625rem 0.75rem;
-      font-size: 14px;
-      cursor: pointer;
+    .entry-project-name {
+      font-weight: 600;
+      font-size: 0.875rem;
       color: #2d2d2d;
-
-      &.placeholder {
-        color: #9aa5b1;
-      }
     }
 
-    .project-dropdown {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 100;
-      margin-top: 2px;
-      background: #fff;
-      border: 1px solid #e2e6ea;
-      border-radius: 4px;
-      box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
-      max-height: 220px;
-      overflow: auto;
-
-      input.search {
-        width: 100%;
-        border: none;
-        border-bottom: 1px solid #e2e6ea;
-        padding: 0.625rem 0.75rem;
-        font-size: 14px;
-        box-sizing: border-box;
-      }
-
-      button.option {
-        display: block;
-        width: 100%;
-        text-align: left;
-        border: none;
-        background: none;
-        padding: 0.5rem 0.75rem;
-        cursor: pointer;
-        font-size: 13px;
-
-        &:hover {
-          background: #fff8f3;
-        }
-
-        .client {
-          color: #6b7785;
-          font-size: 12px;
-        }
-      }
-
-      .empty {
-        padding: 0.75rem;
-        color: #6b7785;
-        font-size: 13px;
-      }
+    .entry-project-client {
+      font-weight: 400;
+      font-size: 0.8125rem;
+      color: #6b7785;
     }
 
     .duration-input {
@@ -347,8 +297,6 @@ export class TimeEntryModalComponent {
   asanaTaskId = signal('');
   notes = signal('');
   durationInput = signal('');
-  projectPickerOpen = signal(false);
-  projectSearch = signal('');
   loadingAsanaNotes = signal(false);
   syncingAsanaTasks = signal(false);
 
@@ -387,16 +335,20 @@ export class TimeEntryModalComponent {
     return true;
   });
 
-  readonly filteredProjects = computed(() => {
-    const q = this.projectSearch().trim().toLowerCase();
-    const list = this.projects();
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.client.name.toLowerCase().includes(q),
+  readonly selectableProjects = computed(() => {
+    const editingProjectId = this.editingEntry()?.project.id;
+    return this.projects().filter(
+      (p) => p.isActive !== false || p.id === editingProjectId,
     );
   });
+
+  readonly projectOptions = computed(() =>
+    this.selectableProjects().map((p) => ({
+      id: p.id,
+      projectName: p.name,
+      clientName: p.client.name,
+    })),
+  );
 
   readonly dialogTitle = computed(() => {
     const day = formatDayHeading(this.entryDay());
@@ -424,8 +376,6 @@ export class TimeEntryModalComponent {
       this.editingEntry.set(options.entry ?? null);
       this.isEdit.set(!!options.entry);
       this.error.set(null);
-      this.projectPickerOpen.set(false);
-      this.projectSearch.set('');
       this.loadingAsanaNotes.set(false);
 
       if (options.entry) {
@@ -510,21 +460,14 @@ export class TimeEntryModalComponent {
     );
   }
 
-  projectLabel(): string {
-    const id = this.projectId();
+  onProjectIdChange(id: string) {
     const p = this.projects().find((x) => x.id === id);
-    return p ? `${p.client.name} / ${p.name}` : '';
-  }
-
-  toggleProjectPicker() {
-    this.projectPickerOpen.update((v) => !v);
-    if (this.projectPickerOpen()) this.projectSearch.set('');
+    if (!p) return;
+    this.selectProject(p);
   }
 
   selectProject(p: Project) {
     this.projectId.set(p.id);
-    this.projectPickerOpen.set(false);
-    this.projectSearch.set('');
     this.manualTaskId.set('');
     this.asanaTaskId.set('');
     const manual = (p.tasks ?? []).filter((t) => t.source !== 'ASANA');
@@ -636,7 +579,6 @@ export class TimeEntryModalComponent {
 
   onDialogHide() {
     this.error.set(null);
-    this.projectPickerOpen.set(false);
   }
 
   cancel() {
@@ -783,9 +725,5 @@ export class TimeEntryModalComponent {
     } finally {
       this.saving.set(false);
     }
-  }
-
-  closeProjectPicker() {
-    this.projectPickerOpen.set(false);
   }
 }
