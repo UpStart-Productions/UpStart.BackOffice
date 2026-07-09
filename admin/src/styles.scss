@@ -293,3 +293,57 @@ body {
   backdrop-filter: blur(2px);
   z-index: 1;
 }
+
+// Network form field help popovers (appendTo body — must be global)
+.network-flag-help-popover.p-popover {
+  --network-help-popover-bg: var(--sidebar-bg, #1d2b36);
+  --network-help-popover-border: rgba(255, 255, 255, 0.12);
+
+  width: max-content !important;
+  max-width: 15rem !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  background: var(--network-help-popover-bg) !important;
+  border: 1px solid var(--network-help-popover-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+
+  &::before {
+    border-bottom-color: var(--network-help-popover-border) !important;
+  }
+
+  &::after {
+    border-bottom-color: var(--network-help-popover-bg) !important;
+  }
+
+  &.p-popover-flipped::before {
+    border-bottom-color: transparent !important;
+    border-top-color: var(--network-help-popover-border) !important;
+  }
+
+  &.p-popover-flipped::after {
+    border-bottom-color: transparent !important;
+    border-top-color: var(--network-help-popover-bg) !important;
+  }
+
+  .p-popover-content {
+    padding: 0.65rem 0.75rem !important;
+    background: transparent !important;
+    width: auto !important;
+  }
+
+  .field-help-title {
+    margin: 0 0 0.35rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #fff;
+  }
+
+  .field-help-text {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.78);
+  }
+}

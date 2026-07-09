@@ -19,6 +19,7 @@ import { AsanaModule } from './asana/asana.module';
 import { BookingModule } from './booking/booking.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { SearchModule } from './search/search.module';
+import { NetworkModule } from './network/network.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -45,6 +46,7 @@ import { HealthController } from './health.controller';
     BookingModule,
     GoogleCalendarModule,
     SearchModule,
+    NetworkModule,
   ],
 })
 export class AppModule implements NestModule {

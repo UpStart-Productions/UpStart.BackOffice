@@ -77,6 +77,28 @@
     }
   }
 
+  .layout-menu-section {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    &:not(:first-child) {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  .layout-menu-section-label {
+    display: block;
+    padding: 0.15rem 1rem 0.4rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+  }
+
   .layout-menu-divider {
     height: 0;
     margin: 0.5rem 1rem;

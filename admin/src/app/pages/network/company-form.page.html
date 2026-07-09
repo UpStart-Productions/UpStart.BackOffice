@@ -1,0 +1,255 @@
+<app-page [title]="isNew ? 'New Company' : form.name" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  } @else if (!loading()) {
+    <form class="card" (ngSubmit)="save()">
+      <div class="page-header-with-back">
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          type="button"
+          routerLink="/network"
+          aria-label="Back to Network"
+        />
+        <h2 class="page-title page-title-in-card mb-0">
+          {{ isNew ? 'New Company' : form.name }}
+        </h2>
+      </div>
+
+      <div class="showcase-flex-col">
+        <div class="form-field showcase-full">
+          <label for="name">Company name <span class="required-dot" aria-hidden="true"></span></label>
+          <input
+            pInputText
+            id="name"
+            name="name"
+            [(ngModel)]="form.name"
+            class="w-full"
+            placeholder="Acme Dev Studio"
+          />
+        </div>
+
+        <div class="company-line-3">
+          <div class="form-field">
+            <label for="website">Website</label>
+            <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
+          </div>
+          <div class="form-field">
+            <label for="email">Company email</label>
+            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
+          </div>
+          <div class="form-field">
+            <label for="phone">Company phone</label>
+            <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
+          </div>
+        </div>
+
+        <div class="form-field showcase-full">
+          <label for="description">What they do</label>
+          <textarea
+            pTextarea
+            id="description"
+            name="description"
+            [(ngModel)]="form.description"
+            class="w-full"
+            rows="3"
+            placeholder="Short summary of their work in the nonprofit space"
+          ></textarea>
+        </div>
+
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="servicesText">Services</label>
+            <textarea
+              pTextarea
+              id="servicesText"
+              name="servicesText"
+              [(ngModel)]="form.servicesText"
+              class="w-full"
+              rows="4"
+              placeholder="One per line, e.g.&#10;WordPress development&#10;Salesforce consulting"
+            ></textarea>
+          </div>
+          <div class="form-field showcase-half">
+            <label for="productsText">Products</label>
+            <textarea
+              pTextarea
+              id="productsText"
+              name="productsText"
+              [(ngModel)]="form.productsText"
+              class="w-full"
+              rows="4"
+              placeholder="One per line, e.g.&#10;Donor portal SaaS&#10;Volunteer scheduling app"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-field showcase-full">
+          <label>Nonprofit focus areas</label>
+          <div class="focus-category-pills">
+            @for (cat of focusCategories; track cat.value) {
+              <button
+                type="button"
+                class="focus-category-pill"
+                [class.focus-category-pill--selected]="focusCategoriesSelected().includes(cat.value)"
+                (click)="toggleFocusCategory(cat.value)"
+              >{{ cat.label }}</button>
+            }
+          </div>
+        </div>
+
+        <div class="network-flags">
+          <div class="network-flag">
+            <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
+            <label>Active</label>
+          </div>
+          <div class="network-flag">
+            <p-toggleSwitch [(ngModel)]="form.isReferralReady" name="isReferralReady" />
+            <div class="network-flag-label-row">
+              <label>Referral-ready</label>
+              <button
+                type="button"
+                class="network-flag-help"
+                (click)="referralReadyHelp.toggle($event)"
+                aria-label="What does referral-ready mean?"
+              >
+                <i class="pi pi-question-circle" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p-popover
+              #referralReadyHelp
+              appendTo="body"
+              styleClass="network-flag-help-popover"
+              [style]="{ width: 'max-content', maxWidth: '15rem' }"
+              [dismissable]="true"
+            >
+              <p class="field-help-title">Referral-ready</p>
+              <p class="field-help-text">
+                Internal only. Shows this company when you filter Network for people you’d subcontract
+                or send a client referral to. Nothing on your public website uses this flag.
+              </p>
+            </p-popover>
+          </div>
+          <div class="network-flag">
+            <p-toggleSwitch [(ngModel)]="form.isPublicFeatured" name="isPublicFeatured" />
+            <div class="network-flag-label-row">
+              <label>Feature on public site</label>
+              <button
+                type="button"
+                class="network-flag-help"
+                (click)="publicFeaturedHelp.toggle($event)"
+                aria-label="What does feature on public site mean?"
+              >
+                <i class="pi pi-question-circle" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p-popover
+              #publicFeaturedHelp
+              appendTo="body"
+              styleClass="network-flag-help-popover"
+              [style]="{ width: 'max-content', maxWidth: '15rem' }"
+              [dismissable]="true"
+            >
+              <p class="field-help-title">Feature on public site</p>
+              <p class="field-help-text">
+                For your UpStart website later (e.g. Trusted Partners). Only featured companies would
+                appear there. Separate from referral-ready — you can turn either one on without the other.
+              </p>
+            </p-popover>
+          </div>
+        </div>
+
+        <div class="network-contacts-section">
+          <div class="contacts-header">
+            <h3 class="text-lg font-semibold mb-0">Contacts</h3>
+            <button type="button" pButton label="Add contact" icon="pi pi-plus" (click)="addContactRow()"></button>
+          </div>
+
+          @if (contactRows().length === 0) {
+            <p class="network-contacts-empty">No contacts yet.</p>
+          }
+
+          @for (contact of contactRows(); track contact.key) {
+            <div class="network-contact-row">
+              <div class="contact-fields">
+                <div class="form-field">
+                  <label [for]="'contactFirstName-' + contact.key">First name</label>
+                  <input
+                    pInputText
+                    [id]="'contactFirstName-' + contact.key"
+                    [name]="'contactFirstName-' + contact.key"
+                    [(ngModel)]="contact.firstName"
+                    class="w-full"
+                  />
+                </div>
+                <div class="form-field">
+                  <label [for]="'contactLastName-' + contact.key">Last name</label>
+                  <input
+                    pInputText
+                    [id]="'contactLastName-' + contact.key"
+                    [name]="'contactLastName-' + contact.key"
+                    [(ngModel)]="contact.lastName"
+                    class="w-full"
+                  />
+                </div>
+                <div class="form-field">
+                  <label [for]="'contactPhone-' + contact.key">Phone</label>
+                  <input
+                    pInputText
+                    [id]="'contactPhone-' + contact.key"
+                    [name]="'contactPhone-' + contact.key"
+                    [(ngModel)]="contact.phone"
+                    class="w-full"
+                  />
+                </div>
+                <div class="form-field">
+                  <label [for]="'contactEmail-' + contact.key">Email</label>
+                  <input
+                    pInputText
+                    [id]="'contactEmail-' + contact.key"
+                    [name]="'contactEmail-' + contact.key"
+                    type="email"
+                    [(ngModel)]="contact.email"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+              <div class="network-contact-actions">
+                <div class="flex align-items-center gap-2">
+                  <p-toggleSwitch
+                    [ngModel]="contact.isPrimary"
+                    (ngModelChange)="onPrimaryChange(contact.key, $event)"
+                    [name]="'contactPrimary-' + contact.key"
+                  />
+                  <label>Primary</label>
+                </div>
+                <p-button
+                  icon="pi pi-trash"
+                  [text]="true"
+                  severity="danger"
+                  size="small"
+                  type="button"
+                  [attr.aria-label]="'Remove contact ' + (contactDisplayName(contact) || contact.key)"
+                  (click)="confirmRemoveContact(contact)"
+                />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <a pButton label="Cancel" class="p-button-secondary" routerLink="/network"></a>
+        <button pButton type="submit" label="Save" [loading]="saving()"></button>
+      </div>
+    </form>
+
+    @if (!isNew) {
+      <app-artifacts-panel [networkCompanyId]="id()!" />
+    }
+  }
+</app-page>

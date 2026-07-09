@@ -5,7 +5,7 @@ import { LayoutService } from './layout.service';
 
 export type NavItem =
   | { label: string; icon: string; route: string }
-  | { divider: true };
+  | { sectionLabel: string };
 
 @Component({
   selector: 'app-sidebar',
@@ -17,8 +17,10 @@ export type NavItem =
         <li class="layout-root-menuitem">
           <ul>
             @for (item of navItems(); track trackItem($index, item)) {
-              @if ('divider' in item) {
-                <li class="layout-menu-divider" role="separator" aria-hidden="true"></li>
+              @if ('sectionLabel' in item) {
+                <li class="layout-menu-section" role="presentation">
+                  <span class="layout-menu-section-label">{{ item.sectionLabel }}</span>
+                </li>
               } @else {
                 <li>
                   <a
@@ -46,7 +48,7 @@ export class AppSidebarComponent {
   navItems = input<NavItem[]>([]);
 
   trackItem(index: number, item: NavItem): string {
-    return 'divider' in item ? `divider-${index}` : item.route;
+    return 'sectionLabel' in item ? `section-${item.sectionLabel}-${index}` : item.route;
   }
 
   constructor() {

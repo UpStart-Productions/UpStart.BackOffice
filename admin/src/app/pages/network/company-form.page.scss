@@ -1,0 +1,145 @@
+.focus-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.focus-category-pill {
+  border: 1px solid var(--p-content-border-color);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--p-text-color);
+  transition: background-color 0.15s, border-color 0.15s;
+
+  &:hover:not(.focus-category-pill--selected) {
+    background: var(--p-content-hover-background);
+  }
+
+  &--selected {
+    background: var(--p-primary-color);
+    border-color: var(--p-primary-color);
+    color: var(--p-primary-contrast-color);
+  }
+}
+
+.company-line-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .company-line-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.network-contacts-section {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--p-content-border-color);
+}
+
+.contacts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.network-contacts-empty {
+  margin: 0 0 0.5rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}
+
+.network-contact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--p-content-border-color);
+
+  &:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+.contact-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .contact-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .contact-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.network-contact-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  padding-bottom: 0.15rem;
+}
+
+.network-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.network-flag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.network-flag-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.network-flag-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover {
+    color: var(--p-primary-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+
+  .pi {
+    font-size: 0.875rem;
+  }
+}

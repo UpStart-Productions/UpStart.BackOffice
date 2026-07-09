@@ -65,6 +65,21 @@ export const appRoutes: Route[] = [
           import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
       },
       {
+        path: 'network',
+        loadComponent: () =>
+          import('./pages/network/companies-list.page').then((m) => m.NetworkCompaniesListPage),
+      },
+      {
+        path: 'network/new',
+        loadComponent: () =>
+          import('./pages/network/company-form.page').then((m) => m.NetworkCompanyFormPage),
+      },
+      {
+        path: 'network/:id',
+        loadComponent: () =>
+          import('./pages/network/company-form.page').then((m) => m.NetworkCompanyFormPage),
+      },
+      {
         path: 'projects',
         loadComponent: () =>
           import('./pages/projects/projects-list.page').then((m) => m.ProjectsListPage),

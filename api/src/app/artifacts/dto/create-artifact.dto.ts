@@ -6,6 +6,8 @@ export class CreateArtifactDto {
   @ApiPropertyOptional() @IsString() @IsOptional() leadId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() projectId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() networkCompanyId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() networkContactId?: string;
 
   @ApiProperty({ enum: ArtifactType }) @IsEnum(ArtifactType) type!: ArtifactType;
   @ApiProperty() @IsString() title!: string;

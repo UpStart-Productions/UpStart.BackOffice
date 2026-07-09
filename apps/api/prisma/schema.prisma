@@ -143,11 +143,60 @@ model Lead {
   @@index([stage])
 }
 
+model NetworkCompany {
+  id               String        @id @default(cuid())
+  name             String
+  website          String?
+  email            String?
+  phone            String?
+  description      String?       @db.Text
+  services         String[]
+  products         String[]
+  focusCategories  OrgCategory[]
+  notes            String?       @db.Text
+  isActive         Boolean       @default(true)
+  isReferralReady  Boolean       @default(false)
+  isPublicFeatured Boolean       @default(false)
+  publicSortOrder  Int           @default(0)
+  lastContactDate  DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  contacts  NetworkContact[]
+  artifacts Artifact[]
+
+  @@index([name])
+  @@index([isReferralReady])
+  @@index([isPublicFeatured])
+}
+
+model NetworkContact {
+  id              String    @id @default(cuid())
+  companyId       String
+  firstName       String
+  lastName        String?
+  title           String?
+  email           String?
+  phone           String?
+  isPrimary       Boolean   @default(false)
+  lastContactDate DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  company   NetworkCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  artifacts Artifact[]
+
+  @@index([companyId])
+  @@index([email])
+}
+
 model Artifact {
   id        String       @id @default(cuid())
   leadId    String?
   clientId  String?
   projectId String?
+  networkCompanyId String?
+  networkContactId String?
   type      ArtifactType
   title     String
 
@@ -165,13 +214,17 @@ model Artifact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lead    Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  client  Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lead           Lead?           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  client         Client?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project        Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  networkCompany NetworkCompany? @relation(fields: [networkCompanyId], references: [id], onDelete: Cascade)
+  networkContact NetworkContact? @relation(fields: [networkContactId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
   @@index([clientId])
   @@index([projectId])
+  @@index([networkCompanyId])
+  @@index([networkContactId])
 }
 
 model Project {

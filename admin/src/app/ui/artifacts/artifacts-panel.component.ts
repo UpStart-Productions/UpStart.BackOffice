@@ -31,7 +31,7 @@ const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
   imports: [FormsModule, ButtonModule, InputTextModule, TabsModule, MessageModule, QuillModule],
   template: `
     <div class="card">
-      <h3 class="showcase-section-title mb-3">Attachments</h3>
+      <h3 class="showcase-section-title mb-3">{{ sectionTitle() }}</h3>
 
       @if (error()) {
         <p-message severity="error" [text]="error()!" />
@@ -204,6 +204,9 @@ export class ArtifactsPanelComponent {
   leadId = input<string | undefined>(undefined);
   clientId = input<string | undefined>(undefined);
   projectId = input<string | undefined>(undefined);
+  networkCompanyId = input<string | undefined>(undefined);
+  networkContactId = input<string | undefined>(undefined);
+  sectionTitle = input<string>('Attachments');
 
   constructor() {
     effect(() => {
@@ -323,6 +326,8 @@ export class ArtifactsPanelComponent {
     if (this.leadId()) return `leadId=${this.leadId()}`;
     if (this.projectId()) return `projectId=${this.projectId()}`;
     if (this.clientId()) return `clientId=${this.clientId()}`;
+    if (this.networkCompanyId()) return `networkCompanyId=${this.networkCompanyId()}`;
+    if (this.networkContactId()) return `networkContactId=${this.networkContactId()}`;
     return '';
   }
 
@@ -330,6 +335,8 @@ export class ArtifactsPanelComponent {
     if (this.leadId()) return { leadId: this.leadId() };
     if (this.projectId()) return { projectId: this.projectId() };
     if (this.clientId()) return { clientId: this.clientId() };
+    if (this.networkCompanyId()) return { networkCompanyId: this.networkCompanyId() };
+    if (this.networkContactId()) return { networkContactId: this.networkContactId() };
     return {};
   }
 

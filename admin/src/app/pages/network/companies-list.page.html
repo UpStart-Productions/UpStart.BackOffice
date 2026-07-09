@@ -1,0 +1,107 @@
+<app-page title="Network" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+  <div class="card">
+    <h2 class="page-title page-title-in-card">Network</h2>
+    <div class="toolbar">
+      <a pButton label="New Company" icon="pi pi-plus" routerLink="/network/new"></a>
+      <button
+        type="button"
+        pButton
+        [label]="referralOnly() ? 'Showing referral-ready' : 'Referral-ready only'"
+        [icon]="referralOnly() ? 'pi pi-filter-fill' : 'pi pi-filter'"
+        [outlined]="!referralOnly()"
+        severity="secondary"
+        (click)="toggleReferralOnly()"
+      ></button>
+      <div class="toolbar-search">
+        <p-iconfield iconPosition="left" class="toolbar-search-field">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by name, contact, services…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button
+            type="button"
+            pButton
+            icon="pi pi-times"
+            [text]="true"
+            (click)="clearSearch()"
+            aria-label="Clear search"
+          ></button>
+        }
+      </div>
+    </div>
+    <p-table
+      [value]="filteredCompanies()"
+      [loading]="loading()"
+      sortField="name"
+      [sortOrder]="1"
+      styleClass="table-bordered"
+    >
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem"></th>
+          <th pSortableColumn="name">
+            Company
+            <p-sortIcon field="name" />
+          </th>
+          <th>Primary contact</th>
+          <th>Services</th>
+          <th>Referral</th>
+          <th>Public</th>
+          <th pSortableColumn="isActive">
+            Status
+            <p-sortIcon field="isActive" />
+          </th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-company>
+        <tr>
+          <td>
+            <app-row-actions-menu [items]="getRowActions(company)" ariaLabel="Company actions" />
+          </td>
+          <td>
+            <a [routerLink]="['/network', company.id]" class="text-primary">{{ company.name }}</a>
+          </td>
+          <td>{{ primaryContactName(company) }}</td>
+          <td>{{ servicesSummary(company) }}</td>
+          <td>
+            @if (company.isReferralReady) {
+              <p-tag value="Ready" severity="info" />
+            } @else {
+              <span class="text-color-secondary">—</span>
+            }
+          </td>
+          <td>
+            @if (company.isPublicFeatured) {
+              <p-tag value="Featured" severity="success" />
+            } @else {
+              <span class="text-color-secondary">—</span>
+            }
+          </td>
+          <td>
+            <p-tag
+              [value]="company.isActive ? 'Active' : 'Inactive'"
+              [severity]="company.isActive ? 'success' : 'secondary'"
+            />
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</app-page>
