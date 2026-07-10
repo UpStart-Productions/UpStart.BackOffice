@@ -1,0 +1,27 @@
+.network-list-leading-col {
+  width: 6.5rem;
+}
+
+.network-list-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.network-list-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--p-content-hover-background);
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 3rem;
+  text-align: center;
+
+  &--initials {
+    border: 1px solid var(--p-content-border-color);
+  }
+}

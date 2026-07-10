@@ -12,6 +12,10 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
+import { resolveAssetUrl } from '../../core/asset-url.util';
+
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 const FOCUS_CATEGORIES = [
   { label: 'Recovery', value: 'RECOVERY' },
@@ -37,6 +41,7 @@ type NetworkContact = {
   email?: string | null;
   phone?: string | null;
   linkedInUrl?: string | null;
+  avatarUrl?: string | null;
   isPrimary: boolean;
 };
 
@@ -80,6 +85,10 @@ type ContactRow = {
   phone: string;
   linkedInUrl: string;
   isPrimary: boolean;
+  avatarUrl: string | null;
+  avatarPreview: string | null;
+  pendingAvatarFile: File | null;
+  removeAvatar: boolean;
 };
 
 @Component({
@@ -196,6 +205,10 @@ export class NetworkCompanyFormPage implements OnInit {
       phone: this.str(contact.phone),
       linkedInUrl: this.str(contact.linkedInUrl),
       isPrimary: contact.isPrimary,
+      avatarUrl: contact.avatarUrl ?? null,
+      avatarPreview: null,
+      pendingAvatarFile: null,
+      removeAvatar: false,
     }));
   }
 
@@ -214,6 +227,107 @@ export class NetworkCompanyFormPage implements OnInit {
     return [contact.firstName, contact.lastName].filter(Boolean).join(' ');
   }
 
+  contactInitials(contact: Pick<ContactRow, 'firstName' | 'lastName'>): string {
+    const first = contact.firstName.trim().charAt(0);
+    const last = contact.lastName.trim().charAt(0);
+    return (first + last).toUpperCase() || '?';
+  }
+
+  contactAvatarSrc(contact: ContactRow): string | null {
+    if (contact.avatarPreview) return contact.avatarPreview;
+    if (contact.removeAvatar) return null;
+    return resolveAssetUrl(contact.avatarUrl);
+  }
+
+  contactAvatarInputId(contact: ContactRow): string {
+    return `contactAvatarInput-${contact.key}`;
+  }
+
+  triggerContactAvatarUpload(contact: ContactRow) {
+    document.getElementById(this.contactAvatarInputId(contact))?.click();
+  }
+
+  async onContactAvatarSelected(contact: ContactRow, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    if (!AVATAR_MIMES.includes(file.type)) {
+      this.error.set('Invalid file type. Use PNG, JPEG, GIF, or WebP.');
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      this.error.set('Image must be less than 5MB.');
+      return;
+    }
+
+    this.error.set(null);
+
+    if (contact.id) {
+      try {
+        const result = await this.api.uploadAvatar<{ url: string }>(
+          `/network/contacts/${contact.id}/avatar`,
+          file,
+        );
+        this.updateContactRow(contact.key, {
+          avatarUrl: result.url,
+          avatarPreview: null,
+          pendingAvatarFile: null,
+          removeAvatar: false,
+        });
+      } catch (err) {
+        this.error.set(err instanceof Error ? err.message : 'Avatar upload failed');
+      }
+      return;
+    }
+
+    const preview = await this.readFileAsDataUrl(file);
+    this.updateContactRow(contact.key, {
+      avatarPreview: preview,
+      pendingAvatarFile: file,
+      removeAvatar: false,
+    });
+  }
+
+  async clearContactAvatar(contact: ContactRow) {
+    if (contact.id && (contact.avatarUrl || contact.avatarPreview) && !contact.removeAvatar) {
+      try {
+        await this.api.delete(`/network/contacts/${contact.id}/avatar`);
+        this.updateContactRow(contact.key, {
+          avatarUrl: null,
+          avatarPreview: null,
+          pendingAvatarFile: null,
+          removeAvatar: false,
+        });
+      } catch (err) {
+        this.error.set(err instanceof Error ? err.message : 'Failed to remove avatar');
+      }
+      return;
+    }
+
+    this.updateContactRow(contact.key, {
+      avatarPreview: null,
+      pendingAvatarFile: null,
+      removeAvatar: contact.id ? true : false,
+    });
+  }
+
+  private updateContactRow(key: string, patch: Partial<ContactRow>) {
+    this.contactRows.update((rows) =>
+      rows.map((row) => (row.key === key ? { ...row, ...patch } : row)),
+    );
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
   addContactRow() {
     this.contactRows.update((rows) => [
       ...rows,
@@ -225,6 +339,10 @@ export class NetworkCompanyFormPage implements OnInit {
         phone: '',
         linkedInUrl: '',
         isPrimary: rows.length === 0,
+        avatarUrl: null,
+        avatarPreview: null,
+        pendingAvatarFile: null,
+        removeAvatar: false,
       },
     ]);
   }
@@ -298,10 +416,28 @@ export class NetworkCompanyFormPage implements OnInit {
     for (const row of this.contactRows()) {
       if (!row.firstName.trim()) continue;
       const payload = this.buildContactPayload(row);
+
       if (row.id) {
         await this.api.put(`/network/contacts/${row.id}`, payload);
+        if (row.removeAvatar) {
+          await this.api.delete(`/network/contacts/${row.id}/avatar`);
+        } else if (row.pendingAvatarFile) {
+          await this.api.uploadAvatar(
+            `/network/contacts/${row.id}/avatar`,
+            row.pendingAvatarFile,
+          );
+        }
       } else {
-        await this.api.post('/network/contacts', { ...payload, companyId });
+        const created = await this.api.post<NetworkContact>('/network/contacts', {
+          ...payload,
+          companyId,
+        });
+        if (row.pendingAvatarFile) {
+          await this.api.uploadAvatar(
+            `/network/contacts/${created.id}/avatar`,
+            row.pendingAvatarFile,
+          );
+        }
       }
     }
 

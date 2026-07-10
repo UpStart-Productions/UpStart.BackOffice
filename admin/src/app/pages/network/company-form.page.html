@@ -175,6 +175,48 @@
 
           @for (contact of contactRows(); track contact.key) {
             <div class="network-contact-row">
+              <div class="network-contact-avatar-col">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/gif,image/webp"
+                  [id]="contactAvatarInputId(contact)"
+                  class="network-contact-avatar-input"
+                  (change)="onContactAvatarSelected(contact, $event)"
+                />
+                <div class="network-contact-avatar-wrap">
+                  @if (contactAvatarSrc(contact); as avatarSrc) {
+                    <img
+                      [src]="avatarSrc"
+                      [alt]="contactDisplayName(contact) || 'Contact photo'"
+                      class="network-contact-avatar"
+                    />
+                  } @else {
+                    <span class="network-contact-avatar network-contact-avatar--initials" aria-hidden="true">
+                      {{ contactInitials(contact) }}
+                    </span>
+                  }
+                  <button
+                    type="button"
+                    class="network-contact-avatar-upload"
+                    (click)="triggerContactAvatarUpload(contact)"
+                    [attr.aria-label]="'Upload photo for ' + (contactDisplayName(contact) || 'contact')"
+                  >
+                    <i class="pi pi-camera" aria-hidden="true"></i>
+                  </button>
+                </div>
+                @if (contactAvatarSrc(contact)) {
+                  <button
+                    type="button"
+                    pButton
+                    icon="pi pi-trash"
+                    [text]="true"
+                    severity="danger"
+                    size="small"
+                    [attr.aria-label]="'Remove photo for ' + (contactDisplayName(contact) || 'contact')"
+                    (click)="clearContactAvatar(contact)"
+                  ></button>
+                }
+              </div>
               <div class="contact-fields">
                 <div class="form-field">
                   <label [for]="'contactFirstName-' + contact.key">First name</label>

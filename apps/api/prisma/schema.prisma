@@ -179,6 +179,7 @@ model NetworkContact {
   email           String?
   phone           String?
   linkedInUrl     String?
+  avatarUrl       String?
   isPrimary       Boolean   @default(false)
   lastContactDate DateTime?
   createdAt       DateTime  @default(now())

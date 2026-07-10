@@ -13,6 +13,9 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { UploadAvatarDto } from '../users/dto/user.dto';
+import { NetworkContactAvatarService } from './network-contact-avatar.service';
+import { toStaffNetworkContactView } from './network-contact.util';
 import { CreateNetworkContactDto, CreateNetworkContactBodyDto } from './dto/create-network-contact.dto';
 import { UpdateNetworkContactDto } from './dto/update-network-contact.dto';
 
@@ -21,15 +24,19 @@ import { UpdateNetworkContactDto } from './dto/update-network-contact.dto';
 @UseGuards(StaffAuthGuard)
 @Controller('network/contacts')
 export class NetworkContactsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly avatarService: NetworkContactAvatarService,
+  ) {}
 
   @Get()
   @ApiQuery({ name: 'companyId', required: false })
   async list(@Query('companyId') companyId?: string) {
-    return this.prisma.networkContact.findMany({
+    const contacts = await this.prisma.networkContact.findMany({
       where: companyId ? { companyId } : undefined,
       orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
     });
+    return contacts.map(toStaffNetworkContactView);
   }
 
   @Post()
@@ -41,7 +48,7 @@ export class NetworkContactsController {
 
     const isPrimary = dto.isPrimary ?? false;
 
-    return this.prisma.$transaction(async (tx) => {
+    const contact = await this.prisma.$transaction(async (tx) => {
       if (isPrimary) {
         await tx.networkContact.updateMany({
           where: { companyId: dto.companyId, isPrimary: true },
@@ -63,13 +70,15 @@ export class NetworkContactsController {
         },
       });
     });
+
+    return toStaffNetworkContactView(contact);
   }
 
   @Get(':id')
   async get(@Param('id') id: string) {
     const contact = await this.prisma.networkContact.findUnique({ where: { id } });
     if (!contact) throw new NotFoundException('Network contact not found');
-    return contact;
+    return toStaffNetworkContactView(contact);
   }
 
   @Put(':id')
@@ -77,7 +86,7 @@ export class NetworkContactsController {
     const existing = await this.prisma.networkContact.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Network contact not found');
 
-    return this.prisma.$transaction(async (tx) => {
+    const contact = await this.prisma.$transaction(async (tx) => {
       if (dto.isPrimary === true) {
         await tx.networkContact.updateMany({
           where: { companyId: existing.companyId, isPrimary: true, NOT: { id } },
@@ -101,12 +110,27 @@ export class NetworkContactsController {
         },
       });
     });
+
+    return toStaffNetworkContactView(contact);
+  }
+
+  @Post(':id/avatar')
+  async uploadAvatar(@Param('id') id: string, @Body() dto: UploadAvatarDto) {
+    return this.avatarService.upload(id, dto);
+  }
+
+  @Delete(':id/avatar')
+  async removeAvatar(@Param('id') id: string) {
+    return this.avatarService.remove(id);
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const existing = await this.prisma.networkContact.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Network contact not found');
+    if (existing.avatarUrl) {
+      await this.avatarService.deleteStoredAvatar(existing.avatarUrl);
+    }
     await this.prisma.networkContact.delete({ where: { id } });
     return { deleted: true };
   }

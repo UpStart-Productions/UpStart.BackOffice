@@ -15,10 +15,20 @@ import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateNetworkCompanyDto } from './dto/create-network-company.dto';
 import { UpdateNetworkCompanyDto } from './dto/update-network-company.dto';
+import { toStaffNetworkContactView } from './network-contact.util';
 
 const companyInclude: Prisma.NetworkCompanyInclude = {
   contacts: { orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }] },
 };
+
+function toStaffNetworkCompanyView(
+  company: Prisma.NetworkCompanyGetPayload<{ include: typeof companyInclude }>,
+) {
+  return {
+    ...company,
+    contacts: company.contacts.map(toStaffNetworkContactView),
+  };
+}
 
 @ApiTags('network')
 @ApiBearerAuth()
@@ -29,7 +39,7 @@ export class NetworkCompaniesController {
 
   @Get()
   async list() {
-    return this.prisma.networkCompany.findMany({
+    const companies = await this.prisma.networkCompany.findMany({
       include: {
         contacts: {
           orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
@@ -38,6 +48,7 @@ export class NetworkCompaniesController {
       },
       orderBy: { name: 'asc' },
     });
+    return companies.map(toStaffNetworkCompanyView);
   }
 
   @Post()
@@ -82,10 +93,12 @@ export class NetworkCompaniesController {
         });
       }
 
-      return tx.networkCompany.findUniqueOrThrow({
-        where: { id: company.id },
-        include: companyInclude,
-      });
+      return toStaffNetworkCompanyView(
+        await tx.networkCompany.findUniqueOrThrow({
+          where: { id: company.id },
+          include: companyInclude,
+        }),
+      );
     });
   }
 
@@ -96,7 +109,7 @@ export class NetworkCompaniesController {
       include: companyInclude,
     });
     if (!company) throw new NotFoundException('Network company not found');
-    return company;
+    return toStaffNetworkCompanyView(company);
   }
 
   @Put(':id')
@@ -104,7 +117,7 @@ export class NetworkCompaniesController {
     const existing = await this.prisma.networkCompany.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Network company not found');
 
-    return this.prisma.networkCompany.update({
+    const company = await this.prisma.networkCompany.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -126,6 +139,7 @@ export class NetworkCompaniesController {
       },
       include: companyInclude,
     });
+    return toStaffNetworkCompanyView(company);
   }
 
   @Delete(':id')

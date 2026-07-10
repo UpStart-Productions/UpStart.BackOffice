@@ -50,12 +50,15 @@
     >
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 3rem"></th>
+          <th class="network-list-leading-col"></th>
           <th pSortableColumn="name">
             Company
             <p-sortIcon field="name" />
           </th>
-          <th>Primary contact</th>
+          <th pSortableColumn="primaryContactSortName">
+            Primary contact
+            <p-sortIcon field="primaryContactSortName" />
+          </th>
           <th>Services</th>
           <th>Referral</th>
           <th>Public</th>
@@ -68,12 +71,38 @@
       <ng-template pTemplate="body" let-company>
         <tr>
           <td>
-            <app-row-actions-menu [items]="getRowActions(company)" ariaLabel="Company actions" />
+            <div class="network-list-leading">
+              <app-row-actions-menu [items]="getRowActions(company)" ariaLabel="Company actions" />
+              @if (primaryContact(company)) {
+                @if (primaryContactAvatar(company); as avatarSrc) {
+                  <img
+                    class="network-list-avatar"
+                    [src]="avatarSrc"
+                    [alt]="primaryContactName(company)"
+                  />
+                } @else {
+                  <span class="network-list-avatar network-list-avatar--initials" aria-hidden="true">
+                    {{ primaryContactInitials(company) }}
+                  </span>
+                }
+              }
+            </div>
           </td>
           <td>
             <a [routerLink]="['/network', company.id]" class="text-primary">{{ company.name }}</a>
           </td>
-          <td>{{ primaryContactName(company) }}</td>
+          <td>
+            @if (primaryContactLinkedInUrl(company); as linkedInUrl) {
+              <a
+                [href]="linkedInUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary"
+              >{{ primaryContactName(company) }}</a>
+            } @else {
+              {{ primaryContactName(company) }}
+            }
+          </td>
           <td>{{ servicesSummary(company) }}</td>
           <td>
             @if (company.isReferralReady) {

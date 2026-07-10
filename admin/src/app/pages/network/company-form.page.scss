@@ -72,6 +72,68 @@
   }
 }
 
+.network-contact-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  padding-bottom: 0.15rem;
+}
+
+.network-contact-avatar-input {
+  display: none;
+}
+
+.network-contact-avatar-wrap {
+  position: relative;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.network-contact-avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: var(--p-content-hover-background);
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 3.5rem;
+  text-align: center;
+
+  &--initials {
+    border: 1px solid var(--p-content-border-color);
+  }
+}
+
+.network-contact-avatar-upload {
+  position: absolute;
+  right: -0.15rem;
+  bottom: -0.15rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--p-content-background);
+  color: var(--p-text-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: var(--p-primary-color);
+  }
+
+  .pi {
+    font-size: 0.75rem;
+  }
+}
+
 .contact-fields {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

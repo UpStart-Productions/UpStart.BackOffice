@@ -12,6 +12,7 @@ import { TagModule } from 'primeng/tag';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 import {
   RowActionsMenuComponent,
   RowActionItem,
@@ -21,6 +22,8 @@ type NetworkContact = {
   id: string;
   firstName: string;
   lastName?: string | null;
+  avatarUrl?: string | null;
+  linkedInUrl?: string | null;
   isPrimary: boolean;
 };
 
@@ -32,6 +35,7 @@ type NetworkCompany = {
   isReferralReady: boolean;
   isPublicFeatured: boolean;
   contacts: NetworkContact[];
+  primaryContactSortName: string;
 };
 
 @Component({
@@ -51,6 +55,7 @@ type NetworkCompany = {
     RowActionsMenuComponent,
   ],
   templateUrl: './companies-list.page.html',
+  styleUrl: './companies-list.page.scss',
 })
 export class NetworkCompaniesListPage implements OnInit {
   private readonly api = inject(ApiService);
@@ -112,15 +117,46 @@ export class NetworkCompaniesListPage implements OnInit {
     this.referralOnly.update((v) => !v);
   }
 
+  primaryContact(company: NetworkCompany): NetworkContact | null {
+    return company.contacts.find((c) => c.isPrimary) ?? company.contacts[0] ?? null;
+  }
+
   primaryContactName(company: NetworkCompany): string {
-    const contact = company.contacts[0];
+    const contact = this.primaryContact(company);
     if (!contact) return '—';
     return [contact.firstName, contact.lastName].filter(Boolean).join(' ');
   }
 
+  primaryContactLinkedInUrl(company: NetworkCompany): string | null {
+    const url = this.primaryContact(company)?.linkedInUrl?.trim();
+    return url || null;
+  }
+
+  primaryContactAvatar(company: NetworkCompany): string | null {
+    const contact = this.primaryContact(company);
+    if (!contact?.avatarUrl) return null;
+    return resolveAssetUrl(contact.avatarUrl);
+  }
+
+  primaryContactInitials(company: NetworkCompany): string {
+    const contact = this.primaryContact(company);
+    if (!contact) return '?';
+    const first = contact.firstName.trim().charAt(0);
+    const last = (contact.lastName ?? '').trim().charAt(0);
+    return (first + last).toUpperCase() || '?';
+  }
+
+  readonly resolveAssetUrl = resolveAssetUrl;
+
   servicesSummary(company: NetworkCompany): string {
     if (!company.services.length) return '—';
     return company.services.slice(0, 3).join(', ') + (company.services.length > 3 ? '…' : '');
+  }
+
+  private primaryContactSortName(company: Omit<NetworkCompany, 'primaryContactSortName'>): string {
+    const contact = company.contacts.find((c) => c.isPrimary) ?? company.contacts[0];
+    if (!contact) return '';
+    return [contact.firstName, contact.lastName].filter(Boolean).join(' ').toLowerCase();
   }
 
   private companyMatchesSearch(company: NetworkCompany, q: string): boolean {
@@ -141,8 +177,13 @@ export class NetworkCompaniesListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const data = await this.api.get<NetworkCompany[]>('/network/companies');
-      this.companies.set(data);
+      const data = await this.api.get<Omit<NetworkCompany, 'primaryContactSortName'>[]>('/network/companies');
+      this.companies.set(
+        data.map((company) => ({
+          ...company,
+          primaryContactSortName: this.primaryContactSortName(company),
+        })),
+      );
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load network companies');
     } finally {
