@@ -36,6 +36,7 @@ type NetworkContact = {
   lastName?: string | null;
   email?: string | null;
   phone?: string | null;
+  linkedInUrl?: string | null;
   isPrimary: boolean;
 };
 
@@ -77,6 +78,7 @@ type ContactRow = {
   lastName: string;
   email: string;
   phone: string;
+  linkedInUrl: string;
   isPrimary: boolean;
 };
 
@@ -192,6 +194,7 @@ export class NetworkCompanyFormPage implements OnInit {
       lastName: this.str(contact.lastName),
       email: this.str(contact.email),
       phone: this.str(contact.phone),
+      linkedInUrl: this.str(contact.linkedInUrl),
       isPrimary: contact.isPrimary,
     }));
   }
@@ -220,6 +223,7 @@ export class NetworkCompanyFormPage implements OnInit {
         lastName: '',
         email: '',
         phone: '',
+        linkedInUrl: '',
         isPrimary: rows.length === 0,
       },
     ]);
@@ -281,6 +285,7 @@ export class NetworkCompanyFormPage implements OnInit {
       lastName: emptyToUndefined(row.lastName),
       email: emptyToUndefined(row.email),
       phone: emptyToUndefined(row.phone),
+      linkedInUrl: emptyToUndefined(row.linkedInUrl),
       isPrimary: row.isPrimary,
     };
   }

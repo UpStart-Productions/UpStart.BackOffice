@@ -217,6 +217,17 @@
                     class="w-full"
                   />
                 </div>
+                <div class="form-field">
+                  <label [for]="'contactLinkedIn-' + contact.key">LinkedIn</label>
+                  <input
+                    pInputText
+                    [id]="'contactLinkedIn-' + contact.key"
+                    [name]="'contactLinkedIn-' + contact.key"
+                    [(ngModel)]="contact.linkedInUrl"
+                    class="w-full"
+                    placeholder="https://linkedin.com/in/…"
+                  />
+                </div>
               </div>
               <div class="network-contact-actions">
                 <div class="flex align-items-center gap-2">

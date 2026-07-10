@@ -15,6 +15,7 @@ export class CreateNetworkContactDto {
   @IsOptional()
   email?: string;
   @ApiPropertyOptional() @Transform(emptyToUndefined) @IsString() @IsOptional() phone?: string;
+  @ApiPropertyOptional() @Transform(emptyToUndefined) @IsString() @IsOptional() linkedInUrl?: string;
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isPrimary?: boolean;
   @ApiPropertyOptional() @IsDateString() @IsOptional() lastContactDate?: string;
 }

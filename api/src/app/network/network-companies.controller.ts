@@ -73,6 +73,7 @@ export class NetworkCompaniesController {
             title: primaryContact.title?.trim() || null,
             email: primaryContact.email,
             phone: primaryContact.phone,
+            linkedInUrl: primaryContact.linkedInUrl?.trim() || null,
             isPrimary: true,
             lastContactDate: primaryContact.lastContactDate
               ? new Date(primaryContact.lastContactDate)

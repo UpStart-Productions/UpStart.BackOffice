@@ -178,6 +178,7 @@ model NetworkContact {
   title           String?
   email           String?
   phone           String?
+  linkedInUrl     String?
   isPrimary       Boolean   @default(false)
   lastContactDate DateTime?
   createdAt       DateTime  @default(now())

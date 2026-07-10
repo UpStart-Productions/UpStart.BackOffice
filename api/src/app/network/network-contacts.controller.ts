@@ -57,6 +57,7 @@ export class NetworkContactsController {
           title: dto.title?.trim() || null,
           email: dto.email,
           phone: dto.phone,
+          linkedInUrl: dto.linkedInUrl?.trim() || null,
           isPrimary,
           lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : undefined,
         },
@@ -92,6 +93,7 @@ export class NetworkContactsController {
           ...(dto.title !== undefined && { title: dto.title?.trim() || null }),
           ...(dto.email !== undefined && { email: dto.email }),
           ...(dto.phone !== undefined && { phone: dto.phone }),
+          ...(dto.linkedInUrl !== undefined && { linkedInUrl: dto.linkedInUrl?.trim() || null }),
           ...(dto.isPrimary !== undefined && { isPrimary: dto.isPrimary }),
           ...(dto.lastContactDate !== undefined && {
             lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : null,
