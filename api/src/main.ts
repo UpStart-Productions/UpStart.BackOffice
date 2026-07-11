@@ -45,6 +45,18 @@ function isCorsOriginAllowed(origin: string | undefined, allowed: string[]): boo
   return allowed.includes(normalized) || allowed.includes(origin);
 }
 
+// Extension pages (side panel, background) send `chrome-extension://<id>` as
+// their Origin header. Chrome does NOT exempt this from CORS just because
+// the extension declares host_permissions -- the server still has to
+// explicitly allow it, or the browser blocks reading the response (learned
+// the hard way building the GrovLink Web Clipper extension against a
+// similar API). Safe to allow broadly here since auth is Bearer
+// token/x-user-email header, not cookies -- there's no CSRF exposure the
+// way there would be with cookie-based sessions.
+function isChromeExtensionOrigin(origin: string | undefined): boolean {
+  return !!origin && /^chrome-extension:\/\//.test(origin);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
@@ -89,7 +101,13 @@ async function bootstrap() {
         const isLocalNetwork =
           origin &&
           /^https?:\/\/(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1)(:\d+)?$/.test(origin);
-        if (!origin || isLocalhost || isLocalNetwork || isCorsOriginAllowed(origin, devOrigins)) {
+        if (
+          !origin ||
+          isLocalhost ||
+          isLocalNetwork ||
+          isChromeExtensionOrigin(origin) ||
+          isCorsOriginAllowed(origin, devOrigins)
+        ) {
           callback(null, true);
         } else {
           Logger.warn(`CORS blocked origin: "${origin}"`);
@@ -112,7 +130,7 @@ async function bootstrap() {
     }
     app.enableCors({
       origin: (origin, callback) => {
-        if (isCorsOriginAllowed(origin, corsOrigins)) {
+        if (isCorsOriginAllowed(origin, corsOrigins) || isChromeExtensionOrigin(origin)) {
           callback(null, true);
           return;
         }

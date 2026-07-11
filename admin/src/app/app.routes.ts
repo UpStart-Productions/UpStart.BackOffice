@@ -25,6 +25,11 @@ export const appRoutes: Route[] = [
           import('./pages/time-entry/time-entry-list.page').then((m) => m.TimeEntryListPage),
       },
       {
+        path: 'expenses',
+        loadComponent: () =>
+          import('./pages/expenses/expenses-list.page').then((m) => m.ExpensesListPage),
+      },
+      {
         path: 'invoices',
         loadComponent: () =>
           import('./pages/invoices/invoices-list.page').then((m) => m.InvoicesListPage),

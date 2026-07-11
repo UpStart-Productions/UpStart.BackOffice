@@ -1,0 +1,86 @@
+<app-page title="Expenses" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+  <div class="card">
+    <h2 class="page-title page-title-in-card">Expenses</h2>
+    <div class="toolbar">
+      <button type="button" pButton label="New Expense" icon="pi pi-plus" (click)="openNew()"></button>
+      <div class="toolbar-search">
+        <p-iconfield iconPosition="left" class="toolbar-search-field">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by description, category, project…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
+        }
+      </div>
+      <span class="expenses-total">Total: <strong>${{ totalAmount().toFixed(2) }}</strong></span>
+    </div>
+
+    <p-table [value]="filteredExpenses()" [loading]="loading()" sortField="incurredAt" [sortOrder]="-1" styleClass="table-bordered">
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="incurredAt">Date <p-sortIcon field="incurredAt" /></th>
+          <th pSortableColumn="description">Description <p-sortIcon field="description" /></th>
+          <th>Category</th>
+          <th>Project</th>
+          <th>Submitted by</th>
+          <th pSortableColumn="amount">Amount <p-sortIcon field="amount" /></th>
+          <th>Flags</th>
+          <th>Receipt</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-expense>
+        <tr class="expense-row" (click)="openEdit(expense)">
+          <td>{{ expense.incurredAt | date: 'mediumDate' }}</td>
+          <td>{{ expense.description }}</td>
+          <td>{{ expense.category || '—' }}</td>
+          <td>
+            @if (expense.project) {
+              {{ expense.project.name }} <span class="text-color-secondary">({{ expense.project.client.name }})</span>
+            } @else {
+              <span class="text-color-secondary">—</span>
+            }
+          </td>
+          <td>{{ submittedByName(expense) }}</td>
+          <td>{{ formatAmount(expense.amount) }}</td>
+          <td>
+            @if (expense.isReimbursable) {
+              <p-tag value="Reimbursable" severity="warn" />
+            }
+            @if (expense.isBillable) {
+              <p-tag value="Billable" severity="info" />
+            }
+            @if (!expense.isReimbursable && !expense.isBillable) {
+              <span class="text-color-secondary">—</span>
+            }
+          </td>
+          <td>
+            @if (expense.receiptUrl) {
+              <i class="pi pi-file text-primary" aria-label="Has receipt"></i>
+            } @else {
+              <span class="text-color-secondary">—</span>
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center p-4 text-color-secondary">No expenses yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <app-expense-modal />
+</app-page>

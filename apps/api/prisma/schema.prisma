@@ -101,6 +101,7 @@ model User {
 
   client           Client?       @relation(fields: [clientId], references: [id])
   timeEntries      TimeEntry[]
+  expenses         Expense[]
   bookingTypesHost BookingType[] @relation("BookingTypeHost")
 }
 
@@ -266,6 +267,7 @@ model Project {
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   tasks            ProjectTask[]
   timeEntries      TimeEntry[]
+  expenses         Expense[]
   invoiceLineItems InvoiceLineItem[]
   artifacts        Artifact[]
 
@@ -351,6 +353,35 @@ model TimeEntry {
   @@index([projectTaskId])
   @@index([invoiceLineItemId])
   @@index([startedAt])
+}
+
+/// A logged business expense — reimbursable, billable to a client project, or
+/// just recorded for the books. Deliberately separate from the Accounting
+/// module for now: no journal entry is posted automatically. No approval
+/// workflow either — submitted expenses are final immediately (deletable by
+/// staff/admin), unlike Invoice's draft state.
+model Expense {
+  id             String   @id @default(cuid())
+  userId         String
+  projectId      String?
+  description    String
+  amount         Decimal  @db.Decimal(10, 2)
+  category       String?
+  incurredAt     DateTime
+  isReimbursable Boolean  @default(false)
+  isBillable     Boolean  @default(false)
+  paymentMethod  String?
+  receiptUrl     String?
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([incurredAt])
 }
 
 model Invoice {

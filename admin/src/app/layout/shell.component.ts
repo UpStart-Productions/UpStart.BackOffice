@@ -44,6 +44,7 @@ export class ShellComponent implements OnInit {
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
+      { label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
       { sectionLabel: 'Growth' },
       { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },

@@ -1,0 +1,179 @@
+<p-dialog
+  [header]="dialogTitle()"
+  [(visible)]="visible"
+  [modal]="true"
+  [closable]="true"
+  [style]="{ width: '32rem' }"
+  (onHide)="onDialogHide()"
+>
+  <div class="entry-form">
+    <div class="form-field">
+      <label for="expense-description">Description</label>
+      <input
+        pInputText
+        id="expense-description"
+        placeholder="What was this for?"
+        [ngModel]="description()"
+        (ngModelChange)="description.set($event)"
+        class="w-full"
+      />
+    </div>
+
+    <div class="showcase-row">
+      <div class="form-field showcase-half">
+        <label for="expense-amount">Amount</label>
+        <p-inputNumber
+          inputId="expense-amount"
+          mode="decimal"
+          prefix="$"
+          locale="en-US"
+          [min]="0"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          [ngModel]="amount()"
+          (ngModelChange)="amount.set($event)"
+          styleClass="w-full"
+          inputStyleClass="w-full"
+        />
+      </div>
+      <div class="form-field showcase-half">
+        <label for="expense-date">Date incurred</label>
+        <input
+          pInputText
+          id="expense-date"
+          type="date"
+          [ngModel]="incurredAt()"
+          (ngModelChange)="incurredAt.set($event)"
+          class="w-full"
+        />
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label for="expense-category">Category (optional)</label>
+      <input
+        pInputText
+        id="expense-category"
+        list="expense-category-options"
+        placeholder="e.g. Software, Travel, Supplies…"
+        [ngModel]="category()"
+        (ngModelChange)="category.set($event)"
+        class="w-full"
+      />
+      <datalist id="expense-category-options">
+        @for (c of categoryOptions; track c) {
+          <option [value]="c"></option>
+        }
+      </datalist>
+    </div>
+
+    <div class="form-field">
+      <label for="expense-project">Project (optional)</label>
+      <p-select
+        inputId="expense-project"
+        [options]="projectOptions()"
+        optionLabel="projectName"
+        optionValue="id"
+        [ngModel]="projectId()"
+        (ngModelChange)="projectId.set($event)"
+        [filter]="true"
+        filterBy="projectName,clientName"
+        filterPlaceholder="Search by client or project…"
+        placeholder="No project"
+        [showClear]="true"
+        styleClass="w-full"
+        appendTo="body"
+      >
+        <ng-template #selectedItem let-option>
+          @if (option) {
+            <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
+          }
+        </ng-template>
+        <ng-template #item let-option>
+          <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
+        </ng-template>
+      </p-select>
+    </div>
+
+    <div class="showcase-row">
+      <div class="flex align-items-center gap-2">
+        <p-toggleSwitch [ngModel]="isReimbursable()" (ngModelChange)="isReimbursable.set($event)" />
+        <label>Reimbursable</label>
+      </div>
+      <div class="flex align-items-center gap-2">
+        <p-toggleSwitch [ngModel]="isBillable()" (ngModelChange)="isBillable.set($event)" />
+        <label>Billable to client</label>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label for="expense-payment-method">Payment method (optional)</label>
+      <input
+        pInputText
+        id="expense-payment-method"
+        placeholder="e.g. Personal card, Company Amex…"
+        [ngModel]="paymentMethod()"
+        (ngModelChange)="paymentMethod.set($event)"
+        class="w-full"
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="expense-notes">Notes (optional)</label>
+      <textarea
+        pTextarea
+        id="expense-notes"
+        rows="2"
+        [ngModel]="notes()"
+        (ngModelChange)="notes.set($event)"
+        class="w-full"
+      ></textarea>
+    </div>
+
+    <div class="form-field">
+      <label for="expense-receipt">Receipt (optional)</label>
+      @if (existingReceiptUrl(); as url) {
+        <a [href]="url" target="_blank" rel="noopener noreferrer" class="text-primary receipt-link">
+          <i class="pi pi-file"></i> View current receipt
+        </a>
+      }
+      <input id="expense-receipt" type="file" accept="image/*,.pdf" (change)="onReceiptSelected($event)" />
+      @if (receiptPreviewName(); as name) {
+        <span class="text-color-secondary receipt-filename">{{ name }}</span>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="error-text" role="alert">{{ error() }}</div>
+    }
+  </div>
+
+  <ng-template pTemplate="footer">
+    <div class="dialog-footer">
+      <div class="footer-left">
+        @if (isEdit()) {
+          <button
+            type="button"
+            pButton
+            label="Delete"
+            severity="danger"
+            [text]="true"
+            [loading]="saving()"
+            (click)="deleteExpense()"
+          ></button>
+        }
+      </div>
+      <div class="footer-right">
+        <button type="button" pButton label="Cancel" severity="secondary" [text]="true" (click)="cancel()"></button>
+        <button
+          type="button"
+          pButton
+          label="Save"
+          [loading]="saving()"
+          [disabled]="!canSubmit() || saving()"
+          (click)="save()"
+        ></button>
+      </div>
+    </div>
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,46 @@
+.entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: #2d2d2d;
+}
+
+.receipt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  font-size: 13px;
+}
+
+.receipt-filename {
+  display: block;
+  font-size: 12px;
+  margin-top: 0.35rem;
+}
+
+.error-text {
+  color: #a94442;
+  font-size: 13px;
+}
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

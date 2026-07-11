@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
+import { ExpensesModule } from './expenses/expenses.module';
 import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -38,6 +39,7 @@ import { HealthController } from './health.controller';
     ClientsModule,
     ProjectsModule,
     TimeEntriesModule,
+    ExpensesModule,
     InvoicesModule,
     LeadsModule,
     ArtifactsModule,
