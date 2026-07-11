@@ -1,0 +1,55 @@
+<app-page title="Journal" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+  <div class="card">
+    <div class="toolbar">
+      <h2 class="page-title page-title-in-card mb-0">Journal</h2>
+      <a pButton label="New Entry" icon="pi pi-plus" routerLink="/accounting/journal/new"></a>
+    </div>
+
+    <p-table [value]="entries()" [loading]="loading()" styleClass="table-bordered mt-3">
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 110px">Date</th>
+          <th style="width: 130px">Source</th>
+          <th>Memo / lines</th>
+          <th style="width: 100px" class="text-right">Amount</th>
+          <th style="width: 60px"></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-entry>
+        <tr>
+          <td>{{ formatDate(entry.date) }}</td>
+          <td><p-tag [value]="sourceLabel(entry.source)" severity="secondary" /></td>
+          <td>
+            @if (entry.memo) {
+              <div>{{ entry.memo }}</div>
+            }
+            <div class="text-sm text-color-secondary">{{ lineSummary(entry) }}</div>
+          </td>
+          <td class="text-right">{{ formatCurrency(totalDebit(entry)) }}</td>
+          <td>
+            @if (entry.source === 'MANUAL') {
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                severity="danger"
+                size="small"
+                aria-label="Delete entry"
+                (click)="confirmDelete(entry)"
+              />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="5" class="text-center p-4 text-color-secondary">No journal entries yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</app-page>

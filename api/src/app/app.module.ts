@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
+import { AccountingModule } from './accounting/accounting.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { CognitoModule } from './cognito/cognito.module';
@@ -47,6 +48,7 @@ import { HealthController } from './health.controller';
     GoogleCalendarModule,
     SearchModule,
     NetworkModule,
+    AccountingModule,
   ],
 })
 export class AppModule implements NestModule {

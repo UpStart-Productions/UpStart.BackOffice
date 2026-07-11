@@ -53,6 +53,11 @@ export class ShellComponent implements OnInit {
       { label: 'Reports', icon: 'pi-chart-line', route: '/reports' },
     ];
     if (isAdminRole(this.session.me()?.role ?? 'MEMBER')) {
+      items.push({ sectionLabel: 'Accounting' });
+      items.push({ label: 'Chart of Accounts', icon: 'pi-book', route: '/accounting/accounts' });
+      items.push({ label: 'Journal', icon: 'pi-list', route: '/accounting/journal' });
+      items.push({ label: 'Bank Import', icon: 'pi-building-columns', route: '/accounting/bank-import' });
+      items.push({ label: 'Accounting Reports', icon: 'pi-chart-pie', route: '/accounting/reports' });
       items.push({ sectionLabel: 'Admin' });
       items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
       items.push({ label: 'Settings', icon: 'pi-cog', route: '/settings' });

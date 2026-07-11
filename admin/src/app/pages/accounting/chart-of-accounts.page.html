@@ -1,0 +1,96 @@
+<app-page title="Chart of Accounts" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  }
+  <div class="card">
+    <div class="toolbar">
+      <h2 class="page-title page-title-in-card mb-0">Chart of Accounts</h2>
+      <p-button
+        [label]="showAddForm() ? 'Cancel' : 'New Account'"
+        [icon]="showAddForm() ? 'pi pi-times' : 'pi pi-plus'"
+        severity="secondary"
+        [outlined]="showAddForm()"
+        (click)="toggleAddForm()"
+      />
+    </div>
+
+    @if (showAddForm()) {
+      <div class="showcase-row mt-3 mb-3">
+        <div class="form-field" style="width: 120px">
+          <label for="newCode">Code</label>
+          <input pInputText id="newCode" [(ngModel)]="newAccount.code" placeholder="6000" class="w-full" />
+        </div>
+        <div class="form-field showcase-full">
+          <label for="newName">Name</label>
+          <input pInputText id="newName" [(ngModel)]="newAccount.name" placeholder="Account name" class="w-full" />
+        </div>
+        <div class="form-field" style="width: 180px">
+          <label for="newType">Type</label>
+          <p-select
+            inputId="newType"
+            [options]="typeOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="newAccount.type"
+            styleClass="w-full"
+          />
+        </div>
+        <div class="form-field" style="align-self: end">
+          <p-button label="Add" icon="pi pi-check" [loading]="saving()" (click)="createAccount()" />
+        </div>
+      </div>
+    }
+
+    <p-table [value]="accounts()" [loading]="loading()" styleClass="table-bordered mt-2">
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 90px">Code</th>
+          <th>Name</th>
+          <th style="width: 130px">Type</th>
+          <th style="width: 130px" class="text-right">Balance</th>
+          <th style="width: 100px">Status</th>
+          <th style="width: 140px"></th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-account>
+        <tr>
+          <td>{{ account.code }}</td>
+          <td>
+            @if (editingId() === account.id) {
+              <input pInputText [(ngModel)]="editDraft.name" class="w-full" />
+            } @else {
+              {{ account.name }}
+            }
+          </td>
+          <td><p-tag [value]="account.type" [severity]="typeSeverity(account.type)" /></td>
+          <td class="text-right">{{ formatCurrency(account.balance) }}</td>
+          <td>
+            @if (editingId() === account.id) {
+              <input type="checkbox" [(ngModel)]="editDraft.isActive" /> Active
+            } @else {
+              <p-tag
+                [value]="account.isActive ? 'Active' : 'Inactive'"
+                [severity]="account.isActive ? 'success' : 'secondary'"
+              />
+            }
+          </td>
+          <td>
+            @if (editingId() === account.id) {
+              <p-button icon="pi pi-check" [text]="true" size="small" [loading]="saving()" (click)="saveEdit(account)" aria-label="Save" />
+              <p-button icon="pi pi-times" [text]="true" severity="secondary" size="small" (click)="cancelEdit()" aria-label="Cancel" />
+            } @else {
+              <p-button icon="pi pi-pencil" [text]="true" size="small" (click)="startEdit(account)" aria-label="Edit" />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6" class="text-center p-4 text-color-secondary">No accounts yet.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</app-page>

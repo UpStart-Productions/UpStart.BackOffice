@@ -5,6 +5,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
 import { Response } from 'express';
+import { JournalPostingService } from '../accounting/journal-posting.service';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -56,6 +57,7 @@ export class InvoicesController {
     private readonly mail: MailService,
     private readonly storageFolders: StorageFoldersService,
     private readonly invoiceFromTime: InvoiceFromTimeService,
+    private readonly journalPosting: JournalPostingService,
   ) {}
 
   @Get('preview')
@@ -190,6 +192,15 @@ export class InvoicesController {
         include: invoiceInclude,
       });
     });
+
+    // existing.status is guaranteed 'DRAFT' here (guarded above), so any status change is a real transition.
+    if (dto.status === 'SENT') {
+      await this.journalPosting.postInvoiceIssued(invoice.id);
+    }
+    if (dto.status === 'VOID') {
+      await this.journalPosting.reverseInvoiceIssued(invoice.id);
+    }
+
     await this.generateAndStorePdf(invoice);
     return invoice;
   }
@@ -250,7 +261,7 @@ export class InvoicesController {
       throw new BadRequestException('Only sent invoices can be marked as paid');
     }
 
-    return this.prisma.invoice.update({
+    const invoice = await this.prisma.invoice.update({
       where: { id },
       data: {
         status: 'PAID',
@@ -259,6 +270,10 @@ export class InvoicesController {
       },
       include: invoiceInclude,
     });
+
+    await this.journalPosting.postInvoicePayment(invoice.id, dto.amountPaid, new Date(dto.paidAt));
+
+    return invoice;
   }
 
   @Post(':id/send')
@@ -295,13 +310,17 @@ export class InvoicesController {
     });
 
     if (result.sent) {
+      const wasDraft = invoice.status === 'DRAFT';
       await this.prisma.invoice.update({
         where: { id },
         data: {
-          status: invoice.status === 'DRAFT' ? 'SENT' : invoice.status,
+          status: wasDraft ? 'SENT' : invoice.status,
           sentAt: new Date(),
         },
       });
+      if (wasDraft) {
+        await this.journalPosting.postInvoiceIssued(id);
+      }
     }
 
     return { sent: result.sent, error: result.error };

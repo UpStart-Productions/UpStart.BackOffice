@@ -87,6 +87,149 @@ async function main() {
     },
   });
 
+  // ── Chart of accounts ─────────────────────────────────────────────────────
+  // Curated for a solo software/consulting LLC — not a full QuickBooks-style
+  // chart. "Business Checking" is a placeholder until a real bank account is
+  // connected — update its name (and add bank import) once one exists.
+  // Codes leave room to grow within each account type.
+  type AccountSeed = { code: string; name: string; type: string };
+  const accounts: AccountSeed[] = [
+    { code: '1000', name: 'Business Checking', type: 'ASSET' },
+    { code: '1100', name: 'Accounts Receivable', type: 'ASSET' },
+    { code: '2000', name: 'Sales Tax Payable', type: 'LIABILITY' },
+    { code: '2100', name: 'Customer Deposits', type: 'LIABILITY' },
+    { code: '3000', name: "Owner's Equity", type: 'EQUITY' },
+    { code: '3100', name: "Owner's Draw", type: 'EQUITY' },
+    { code: '4000', name: 'Consulting Revenue', type: 'REVENUE' },
+    { code: '4700', name: 'Reimbursable Expense Income', type: 'REVENUE' },
+    { code: '4900', name: 'Uncategorized Income', type: 'REVENUE' },
+    { code: '5000', name: 'Software & Subscriptions', type: 'EXPENSE' },
+    { code: '5100', name: 'Contract Labor', type: 'EXPENSE' },
+    { code: '5200', name: 'Advertising & Marketing', type: 'EXPENSE' },
+    { code: '5300', name: 'Professional Services (Legal & Accounting)', type: 'EXPENSE' },
+    { code: '5400', name: 'Business Insurance', type: 'EXPENSE' },
+    { code: '5500', name: 'Travel', type: 'EXPENSE' },
+    { code: '5600', name: 'Meals & Entertainment', type: 'EXPENSE' },
+    { code: '5700', name: 'Continuing Education', type: 'EXPENSE' },
+    { code: '5800', name: 'Business Licenses & Taxes', type: 'EXPENSE' },
+    { code: '5850', name: 'Bank Fees & Service Charges', type: 'EXPENSE' },
+    { code: '5900', name: 'General & Administrative', type: 'EXPENSE' },
+    { code: '5950', name: 'Reimbursable Expenses', type: 'EXPENSE' },
+    { code: '5990', name: 'Uncategorized Expenses', type: 'EXPENSE' },
+  ];
+  for (const account of accounts) {
+    await prisma.account.upsert({
+      where: { code: account.code },
+      update: { name: account.name, type: account.type as never },
+      create: { code: account.code, name: account.name, type: account.type as never },
+    });
+  }
+  console.log(`Chart of accounts seeded (${accounts.length} accounts)`);
+
+  // ── Dummy journal entries ─────────────────────────────────────────────────
+  // Demo activity for the Journal / Reports pages — a plausible six months of
+  // a solo consultancy: an opening contribution, consulting revenue (some
+  // paid on receipt, some invoiced-then-paid through AR), recurring
+  // software costs, contractor payments, and owner draws. All MANUAL so they
+  // behave like real user-entered entries; fixed ids make this idempotent.
+  const accountsByCode = new Map(
+    (await prisma.account.findMany()).map((a) => [a.code, a] as const),
+  );
+  function accountId(code: string): string {
+    const account = accountsByCode.get(code);
+    if (!account) {
+      throw new Error(`Seed journal entries: missing account ${code} — chart of accounts seed must run first`);
+    }
+    return account.id;
+  }
+
+  type SeedLine = { code: string; debit?: number; credit?: number };
+  type SeedJournalEntry = { id: string; date: string; memo: string; lines: SeedLine[] };
+
+  const journalEntries: SeedJournalEntry[] = [
+    { id: 'seed-je-01', date: '2026-01-05', memo: "Owner contribution — opening balance", lines: [
+      { code: '1000', debit: 10000 }, { code: '3000', credit: 10000 },
+    ] },
+    { id: 'seed-je-02', date: '2026-01-12', memo: 'Consulting revenue — Furnish Hope discovery engagement', lines: [
+      { code: '1000', debit: 2500 }, { code: '4000', credit: 2500 },
+    ] },
+    { id: 'seed-je-03', date: '2026-01-20', memo: 'Software subscriptions (Notion, GitHub, Figma)', lines: [
+      { code: '5000', debit: 84 }, { code: '1000', credit: 84 },
+    ] },
+    { id: 'seed-je-04', date: '2026-02-03', memo: 'Consulting revenue — Love INC of Newberg', lines: [
+      { code: '1000', debit: 3200 }, { code: '4000', credit: 3200 },
+    ] },
+    { id: 'seed-je-05', date: '2026-02-10', memo: 'Contract labor — design contractor', lines: [
+      { code: '5100', debit: 1200 }, { code: '1000', credit: 1200 },
+    ] },
+    { id: 'seed-je-06', date: '2026-02-18', memo: 'Business insurance', lines: [
+      { code: '5900', debit: 175 }, { code: '1000', credit: 175 },
+    ] },
+    { id: 'seed-je-07', date: '2026-03-02', memo: 'Consulting revenue — Provoking Hope (invoiced)', lines: [
+      { code: '1100', debit: 4000 }, { code: '4000', credit: 4000 },
+    ] },
+    { id: 'seed-je-08', date: '2026-03-15', memo: 'Payment received — Provoking Hope', lines: [
+      { code: '1000', debit: 4000 }, { code: '1100', credit: 4000 },
+    ] },
+    { id: 'seed-je-09', date: '2026-03-22', memo: 'Software subscriptions (Notion, GitHub, Figma)', lines: [
+      { code: '5000', debit: 84 }, { code: '1000', credit: 84 },
+    ] },
+    { id: 'seed-je-10', date: '2026-04-04', memo: 'Consulting revenue — MacHub', lines: [
+      { code: '1000', debit: 2800 }, { code: '4000', credit: 2800 },
+    ] },
+    { id: 'seed-je-11', date: '2026-04-12', memo: 'Contract labor — dev contractor', lines: [
+      { code: '5100', debit: 1600 }, { code: '1000', credit: 1600 },
+    ] },
+    { id: 'seed-je-12', date: '2026-04-20', memo: "Owner's draw", lines: [
+      { code: '3100', debit: 2000 }, { code: '1000', credit: 2000 },
+    ] },
+    { id: 'seed-je-13', date: '2026-05-06', memo: 'Consulting revenue — Chehalem Youth & Family Services (invoiced)', lines: [
+      { code: '1100', debit: 3500 }, { code: '4000', credit: 3500 },
+    ] },
+    { id: 'seed-je-14', date: '2026-05-18', memo: 'Payment received — Chehalem Youth & Family Services', lines: [
+      { code: '1000', debit: 3500 }, { code: '1100', credit: 3500 },
+    ] },
+    { id: 'seed-je-15', date: '2026-05-24', memo: 'Software subscriptions (Notion, GitHub, Figma, Zoom)', lines: [
+      { code: '5000', debit: 92 }, { code: '1000', credit: 92 },
+    ] },
+    { id: 'seed-je-16', date: '2026-05-28', memo: 'Bank fees', lines: [
+      { code: '5900', debit: 15 }, { code: '1000', credit: 15 },
+    ] },
+    { id: 'seed-je-17', date: '2026-06-05', memo: 'Consulting revenue — Yamhill Community Action Partnership', lines: [
+      { code: '1000', debit: 2950 }, { code: '4000', credit: 2950 },
+    ] },
+    { id: 'seed-je-18', date: '2026-06-16', memo: 'Contract labor — copywriter', lines: [
+      { code: '5100', debit: 800 }, { code: '1000', credit: 800 },
+    ] },
+    { id: 'seed-je-19', date: '2026-06-30', memo: "Owner's draw", lines: [
+      { code: '3100', debit: 2500 }, { code: '1000', credit: 2500 },
+    ] },
+    { id: 'seed-je-20', date: '2026-07-08', memo: 'Software subscriptions (Notion, GitHub, Figma, Zoom)', lines: [
+      { code: '5000', debit: 88 }, { code: '1000', credit: 88 },
+    ] },
+  ];
+
+  for (const entry of journalEntries) {
+    await prisma.journalEntry.upsert({
+      where: { id: entry.id },
+      update: {},
+      create: {
+        id: entry.id,
+        date: new Date(entry.date),
+        memo: entry.memo,
+        source: 'MANUAL',
+        lines: {
+          create: entry.lines.map((line) => ({
+            accountId: accountId(line.code),
+            debit: line.debit ?? 0,
+            credit: line.credit ?? 0,
+          })),
+        },
+      },
+    });
+  }
+  console.log(`Journal entries seeded (${journalEntries.length} entries)`);
+
   // ── Client Pipeline leads from Notion ────────────────────────────────────
   type LeadSeed = {
     organization: string;

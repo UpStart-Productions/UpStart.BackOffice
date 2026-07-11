@@ -1,0 +1,110 @@
+<app-page title="New Journal Entry" [skipTitle]="true">
+  @if (error()) {
+    <div class="card">
+      <p-message severity="error" [text]="error()!" />
+    </div>
+  } @else if (!loading()) {
+    <div class="showcase-flex-col">
+      <div class="card">
+        <div class="page-header-with-back">
+          <p-button
+            icon="pi pi-arrow-left"
+            [rounded]="true"
+            [text]="true"
+            severity="secondary"
+            type="button"
+            routerLink="/accounting/journal"
+            aria-label="Back to Journal"
+          />
+          <h2 class="page-title page-title-in-card mb-0">New Journal Entry</h2>
+        </div>
+
+        <div class="showcase-row mt-3">
+          <div class="form-field showcase-half">
+            <label for="date">Date</label>
+            <input pInputText id="date" type="date" [(ngModel)]="date" class="w-full" />
+          </div>
+          <div class="form-field showcase-half">
+            <label for="memo">Memo</label>
+            <input pInputText id="memo" [(ngModel)]="memo" placeholder="What is this entry for?" class="w-full" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <h4 class="showcase-section-title mb-0">Lines</h4>
+          <p-button label="Add line" icon="pi pi-plus" severity="secondary" size="small" (click)="addLine()" />
+        </div>
+
+        <p-table [value]="lines()" styleClass="table-bordered mt-3">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Account</th>
+              <th style="width: 130px">Debit</th>
+              <th style="width: 130px">Credit</th>
+              <th style="width: 40px"></th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-line let-i="rowIndex">
+            <tr>
+              <td>
+                <p-select
+                  [options]="accounts()"
+                  optionLabel="name"
+                  optionValue="id"
+                  [(ngModel)]="line.accountId"
+                  placeholder="Select account"
+                  styleClass="w-full"
+                />
+              </td>
+              <td>
+                <input
+                  pInputText
+                  type="number"
+                  step="0.01"
+                  [(ngModel)]="line.debit"
+                  (ngModelChange)="onDebitChange(line)"
+                  class="w-full"
+                />
+              </td>
+              <td>
+                <input
+                  pInputText
+                  type="number"
+                  step="0.01"
+                  [(ngModel)]="line.credit"
+                  (ngModelChange)="onCreditChange(line)"
+                  class="w-full"
+                />
+              </td>
+              <td>
+                <p-button
+                  icon="pi pi-trash"
+                  [text]="true"
+                  severity="danger"
+                  size="small"
+                  aria-label="Remove line"
+                  (click)="removeLine(i)"
+                />
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+
+        <div class="flex justify-end gap-4 text-sm mt-4">
+          <span>Debits: <strong>${{ totalDebit().toFixed(2) }}</strong></span>
+          <span>Credits: <strong>${{ totalCredit().toFixed(2) }}</strong></span>
+          <span [class.text-red-500]="!isBalanced()" [class.text-green-600]="isBalanced()">
+            {{ isBalanced() ? 'Balanced' : 'Not balanced' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="form-actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+        <a pButton label="Cancel" class="p-button-secondary" routerLink="/accounting/journal"></a>
+        <button pButton type="button" label="Save Entry" [loading]="saving()" [disabled]="!isBalanced()" (click)="save()"></button>
+      </div>
+    </div>
+  }
+</app-page>

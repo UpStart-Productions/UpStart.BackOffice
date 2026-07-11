@@ -70,6 +70,21 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum JournalEntrySource {
+  MANUAL
+  INVOICE_ISSUED
+  INVOICE_PAYMENT
+  BANK_IMPORT
+}
+
 model User {
   id         String   @id @default(cuid())
   email      String   @unique
@@ -84,57 +99,57 @@ model User {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  client              Client?          @relation(fields: [clientId], references: [id])
-  timeEntries         TimeEntry[]
+  client           Client?       @relation(fields: [clientId], references: [id])
+  timeEntries      TimeEntry[]
   bookingTypesHost BookingType[] @relation("BookingTypeHost")
 }
 
 model Client {
-  id        String       @id @default(cuid())
-  name      String
-  code      String       @unique // e.g. "UPSP" — prepended to invoice numbers
-  email     String?
-  phone     String?
-  address   String?
-  city      String?
-  state     String?
-  zip       String?
-  website   String?
-  notes     String?      @db.Text
-  category  OrgCategory?
-  isActive  Boolean      @default(true)
-  portalEnabled       Boolean   @default(false)
-  portalToken         String?   @unique
+  id                   String       @id @default(cuid())
+  name                 String
+  code                 String       @unique // e.g. "UPSP" — prepended to invoice numbers
+  email                String?
+  phone                String?
+  address              String?
+  city                 String?
+  state                String?
+  zip                  String?
+  website              String?
+  notes                String?      @db.Text
+  category             OrgCategory?
+  isActive             Boolean      @default(true)
+  portalEnabled        Boolean      @default(false)
+  portalToken          String?      @unique
   portalTokenCreatedAt DateTime?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
-  projects   Project[]
-  invoices   Invoice[]
-  artifacts  Artifact[]
-  users      User[]
+  projects          Project[]
+  invoices          Invoice[]
+  artifacts         Artifact[]
+  users             User[]
   convertedFromLead Lead?
 }
 
 model Lead {
-  id                String      @id @default(cuid())
+  id                String       @id @default(cuid())
   organization      String
   primaryContact    String?
   contactRole       String?
   email             String?
   phone             String?
   website           String?
-  stage             LeadStage   @default(NEW_LEAD)
+  stage             LeadStage    @default(NEW_LEAD)
   source            LeadSource?
   warmConnection    String?
   category          OrgCategory?
   serviceInterests  String[]
-  nextAction        String?     @db.Text
+  nextAction        String?      @db.Text
   nextActionDate    DateTime?
   lastContactDate   DateTime?
-  convertedClientId String?     @unique
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  convertedClientId String?      @unique
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   convertedClient Client?    @relation(fields: [convertedClientId], references: [id])
   artifacts       Artifact[]
@@ -193,14 +208,14 @@ model NetworkContact {
 }
 
 model Artifact {
-  id        String       @id @default(cuid())
-  leadId    String?
-  clientId  String?
-  projectId String?
+  id               String       @id @default(cuid())
+  leadId           String?
+  clientId         String?
+  projectId        String?
   networkCompanyId String?
   networkContactId String?
-  type      ArtifactType
-  title     String
+  type             ArtifactType
+  title            String
 
   // FILE
   fileUrl  String?
@@ -208,10 +223,10 @@ model Artifact {
   mimeType String?
 
   // LINK
-  url      String?
+  url String?
 
   // NOTE (Quill delta JSON stored as text)
-  content  String? @db.Text
+  content String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,23 +245,23 @@ model Artifact {
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  clientId    String
-  name        String
-  description String?  @db.Text
+  id               String   @id @default(cuid())
+  clientId         String
+  name             String
+  description      String?  @db.Text
   contactFirstName String?
   contactLastName  String?
   contactPhone     String?
   contactEmail     String?
-  hourlyRate  Decimal? @db.Decimal(10, 2)
-  isBillable  Boolean  @default(true)
-  isActive    Boolean  @default(true)
+  hourlyRate       Decimal? @db.Decimal(10, 2)
+  isBillable       Boolean  @default(true)
+  isActive         Boolean  @default(true)
   asanaProjectGid  String?
   asanaProjectName String?
   asanaSectionGid  String?
   asanaSectionName String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   tasks            ProjectTask[]
@@ -357,22 +372,23 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  client    Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  lineItems InvoiceLineItem[]
+  client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lineItems      InvoiceLineItem[]
+  journalEntries JournalEntry[]
 
   @@index([clientId])
   @@index([status])
 }
 
 model ServiceKey {
-  id          String    @id @default(cuid())
-  name        String    // human label, e.g. "Donor Readiness Audit"
-  keyHash     String    @unique
-  keyPrefix   String    // masked display, e.g. "ubo_abcd...wxyz"
-  lastUsedAt  DateTime?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String    @id @default(cuid())
+  name       String // human label, e.g. "Donor Readiness Audit"
+  keyHash    String    @unique
+  keyPrefix  String // masked display, e.g. "ubo_abcd...wxyz"
+  lastUsedAt DateTime?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model InvoiceLineItem {
@@ -464,4 +480,92 @@ model Booking {
   @@index([status])
   @@index([guestEmail])
   @@index([bookingTypeId])
+}
+
+/// Chart of accounts. Deliberately flat — no parent/child hierarchy in v1.
+model Account {
+  id        String      @id @default(cuid())
+  code      String      @unique // e.g. "1000" — simple numeric COA, sorted for display
+  name      String
+  type      AccountType
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  lines               JournalLine[]
+  bankTransactions    BankTransaction[]
+  categorizationRules CategorizationRule[]
+
+  @@index([type])
+}
+
+/// A balanced set of debit/credit lines. Source of truth for all reporting —
+/// P&L and Balance Sheet are computed by aggregating JournalLine, never stored.
+model JournalEntry {
+  id        String             @id @default(cuid())
+  date      DateTime
+  memo      String?
+  source    JournalEntrySource @default(MANUAL)
+  invoiceId String?
+  createdAt DateTime           @default(now())
+
+  invoice         Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  lines           JournalLine[]
+  bankTransaction BankTransaction?
+
+  @@index([date])
+  @@index([invoiceId])
+  @@index([source])
+}
+
+model JournalLine {
+  id             String  @id @default(cuid())
+  journalEntryId String
+  accountId      String
+  debit          Decimal @default(0) @db.Decimal(12, 2)
+  credit         Decimal @default(0) @db.Decimal(12, 2)
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id])
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+/// Imported bank activity, held in an uncategorized queue until matched to an
+/// Account and posted as a JournalEntry (source = BANK_IMPORT).
+model BankTransaction {
+  id             String   @id @default(cuid())
+  importBatchId  String?
+  date           DateTime
+  description    String
+  amount         Decimal  @db.Decimal(12, 2) // signed: positive = money in, negative = money out
+  externalId     String?  @unique // dedupe key derived from the CSV row
+  accountId      String? // categorized to this account once matched; null = uncategorized
+  journalEntryId String?  @unique // set once posted to the ledger
+  createdAt      DateTime @default(now())
+
+  account      Account?      @relation(fields: [accountId], references: [id])
+  journalEntry JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
+
+  @@index([date])
+  @@index([accountId])
+  @@index([importBatchId])
+}
+
+/// Learned "this description -> this account" memory. Written automatically
+/// every time a bank transaction is categorized (last choice wins — no
+/// separate rules UI to manage). Read to pre-fill the category on future
+/// imports whose description normalizes to the same key.
+model CategorizationRule {
+  id         String   @id @default(cuid())
+  matchKey   String   @unique // normalized description: lowercased, digits/punctuation stripped
+  accountId  String
+  matchCount Int      @default(1)
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
 }

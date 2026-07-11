@@ -50,6 +50,36 @@ export const appRoutes: Route[] = [
           import('./pages/reports/reports.page').then((m) => m.ReportsPage),
       },
       {
+        path: 'accounting/accounts',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/accounting/chart-of-accounts.page').then((m) => m.ChartOfAccountsPage),
+      },
+      {
+        path: 'accounting/journal',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/accounting/journal-list.page').then((m) => m.JournalListPage),
+      },
+      {
+        path: 'accounting/journal/new',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/accounting/journal-entry-form.page').then((m) => m.JournalEntryFormPage),
+      },
+      {
+        path: 'accounting/bank-import',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/accounting/bank-import.page').then((m) => m.BankImportPage),
+      },
+      {
+        path: 'accounting/reports',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./pages/accounting/accounting-reports.page').then((m) => m.AccountingReportsPage),
+      },
+      {
         path: 'clients',
         loadComponent: () =>
           import('./pages/clients/clients-list.page').then((m) => m.ClientsListPage),
