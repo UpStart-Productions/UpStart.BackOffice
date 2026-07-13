@@ -25,32 +25,31 @@ async function main() {
   });
   console.log(`User: ${devUser.email}`);
 
-  const jeff = await prisma.user.upsert({
-    where: { email: 'jeff@heyupstart.com' },
-    update: { role: 'ADMIN', isActive: true, hourlyRate: 150 },
+  const memberUser = await prisma.user.upsert({
+    where: { email: 'member@upstart.test' },
+    update: { role: 'MEMBER', isActive: true, hourlyRate: 125 },
     create: {
-      email: 'jeff@heyupstart.com',
-      firstName: 'Jeff',
-      lastName: 'Denton',
-      name: 'Jeff Denton',
-      role: 'ADMIN',
+      email: 'member@upstart.test',
+      firstName: 'Sample',
+      lastName: 'Member',
+      role: 'MEMBER',
       isActive: true,
-      hourlyRate: 150,
+      hourlyRate: 125,
     },
   });
-  console.log(`User: ${jeff.email}`);
+  console.log(`User: ${memberUser.email}`);
 
   await prisma.bookingType.upsert({
-    where: { slug: 'upstart-discovery' },
-    update: { hostUserId: jeff.id },
+    where: { slug: 'discovery-call' },
+    update: { hostUserId: devUser.id },
     create: {
-      id: 'bt_upstart_discovery',
-      slug: 'upstart-discovery',
-      name: 'UpStart Discovery Chat',
-      brand: 'UpStart',
-      hostUserId: jeff.id,
-      publicPageUrl: 'http://localhost:4321/book-discovery-chat',
-      calendarEventTitle: 'Discovery Chat with UpStart Productions',
+      id: 'bt_discovery_call',
+      slug: 'discovery-call',
+      name: 'Discovery Call',
+      brand: 'Your Company',
+      hostUserId: devUser.id,
+      publicPageUrl: 'http://localhost:4321/book-discovery-call',
+      calendarEventTitle: 'Discovery Call',
       pipelineNoteTitle: 'Discovery call',
       availabilityRules: {
         create: [
@@ -62,7 +61,7 @@ async function main() {
       },
     },
   });
-  console.log('Booking type seeded (upstart-discovery, Tue/Thu 9am–5pm Pacific)');
+  console.log('Booking type seeded (discovery-call, Tue/Thu 9am–5pm Pacific)');
 
   const client = await prisma.client.upsert({
     where: { code: 'SMPL' },
@@ -275,7 +274,7 @@ async function main() {
       lastContactDate: new Date('2026-01-26'),
       nextActionDate: new Date('2026-04-08'),
       nextAction: 'Email Tracy White (Advertising/PR Director) — introduce GrovLink app concept, ask about website management',
-      note: 'Jeff is on Spring fundraiser steering committee. Key contacts: Christopher White (ED), Beth (volunteer/board), Tracy White (advertising/PR — PRIMARY decision-maker for app). Running 2-3yr deficit.',
+      note: 'On Spring fundraiser steering committee. Key contacts: Christopher White (ED), Beth (volunteer/board), Tracy White (advertising/PR — PRIMARY decision-maker for app). Running 2-3yr deficit.',
     },
     {
       organization: 'Provoking Hope',
@@ -374,7 +373,7 @@ async function main() {
       category: 'FAMILY',
       serviceInterests: ['Informational Interview'],
       nextAction: 'Send email draft to Charlie Rice',
-      note: 'Located in Newberg, OR — same town as Jeff. Founded 1970. 200+ people receive supportive services annually.',
+      note: 'Located in Newberg, OR. Founded 1970. 200+ people receive supportive services annually.',
     },
     {
       organization: 'Stand Up Girl',

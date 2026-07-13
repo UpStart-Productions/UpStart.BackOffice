@@ -130,7 +130,7 @@ export type UserListDto = {
   client?: { id: string; name: string; code: string } | null;
 };
 
-/** Public client org view on heyupstart.com portal. */
+/** Public client org view on the client portal. */
 export type PortalClientViewDto = {
   id: string;
   name: string;

@@ -33,7 +33,7 @@ if (!to) {
 }
 
 const region = process.env.AWS_REGION?.trim() || 'us-west-2';
-const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@heyupstart.com';
+const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@example.com';
 const fromName = process.env.MAIL_FROM_NAME?.trim() || 'UpStart Back Office';
 
 function explicitCreds(): { accessKeyId: string; secretAccessKey: string } | undefined {

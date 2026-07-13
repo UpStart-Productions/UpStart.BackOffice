@@ -7,7 +7,15 @@ import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutomationNoteDto } from './dto/automation-note.dto';
 
-const OFFICE_BASE_URL = 'https://office.heyupstart.com';
+function adminBaseUrl(): string {
+  const fromAdmin = process.env.ADMIN_BASE_URL?.trim();
+  if (fromAdmin) return fromAdmin.replace(/\/$/, '');
+
+  const apiBase = process.env.API_BASE_URL?.trim();
+  if (apiBase) return apiBase.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
+  return 'http://localhost:4201';
+}
 
 /**
  * The admin NOTE editor (ngx-quill) renders artifact.content as raw HTML
@@ -75,7 +83,7 @@ export class LeadsAutomationController {
 
     return leads.map((lead) => ({
       ...lead,
-      officeUrl: `${OFFICE_BASE_URL}/pipeline/${lead.id}`,
+      officeUrl: `${adminBaseUrl()}/pipeline/${lead.id}`,
     }));
   }
 
@@ -111,7 +119,7 @@ export class LeadsAutomationController {
     return {
       leadId: updatedLead.id,
       organization: updatedLead.organization,
-      officeUrl: `${OFFICE_BASE_URL}/pipeline/${updatedLead.id}`,
+      officeUrl: `${adminBaseUrl()}/pipeline/${updatedLead.id}`,
       lastContactDate: updatedLead.lastContactDate,
       artifactId: artifact.id,
     };

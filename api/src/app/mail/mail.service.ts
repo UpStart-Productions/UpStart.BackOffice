@@ -132,7 +132,7 @@ export class MailService {
 <body style="font-family:'Satoshi',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fcfcfb;margin:0;padding:20px;">
   <div style="max-width:600px;margin:0 auto;background:#fefefd;border:1px solid #eaeaea;border-radius:8px;overflow:hidden;">
     <div style="background:#7c3aed;padding:16px 32px;">
-      <p style="margin:0;font-size:14px;font-weight:600;color:#fff;letter-spacing:0.02em;">UpStart Back Office</p>
+      <p style="margin:0;font-size:14px;font-weight:600;color:#fff;letter-spacing:0.02em;">${process.env.MAIL_FROM_NAME?.trim() || 'Back Office'}</p>
     </div>
     <div style="padding:32px;">
     <h2 style="color:#2d2d2d;margin-top:0;font-weight:500;">Invoice ${params.invoiceNumber}</h2>
@@ -140,10 +140,7 @@ export class MailService {
     <p style="color:#2d2d2d;">Please find invoice <strong>${params.invoiceNumber}</strong> attached to this email.</p>
     ${params.notes ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${params.notes}</p>` : ''}
     <p style="color:#2d2d2d;margin-top:28px;">Thank you for your business.</p>
-    <p style="color:#2d2d2d;margin-top:16px;line-height:1.5;">
-      Jeff Denton<br>
-      <span style="color:#6b6b6b;">Founder, UpStart Productions</span>
-    </p>
+    <p style="color:#2d2d2d;margin-top:16px;line-height:1.5;">${process.env.MAIL_FROM_NAME?.trim() || 'Back Office'}</p>
     <p style="color:#6b6b6b;font-size:14px;margin-top:28px;">Questions? Reply to this email.</p>
     </div>
   </div>

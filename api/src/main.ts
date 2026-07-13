@@ -24,13 +24,10 @@ function parseCorsOrigins(): string[] {
   for (const origin of raw) {
     try {
       const { protocol, hostname } = new URL(origin);
-      if (hostname === 'office.heyupstart.com') {
-        expanded.add(`${protocol}//heyupstart.com`);
-        expanded.add(`${protocol}//www.heyupstart.com`);
-      } else if (hostname === 'heyupstart.com') {
-        expanded.add(`${protocol}//www.heyupstart.com`);
-      } else if (hostname === 'www.heyupstart.com') {
-        expanded.add(`${protocol}//heyupstart.com`);
+      if (hostname.startsWith('www.')) {
+        expanded.add(`${protocol}//${hostname.slice(4)}`);
+      } else if (!hostname.includes('localhost') && hostname.includes('.')) {
+        expanded.add(`${protocol}//www.${hostname}`);
       }
     } catch {
       // ignore invalid URLs
@@ -123,7 +120,7 @@ async function bootstrap() {
     const allowLocalNetwork = process.env.CORS_ALLOW_LOCAL_NETWORK === 'true';
     if (corsOrigins.length === 0) {
       Logger.error(
-        'CORS_ORIGINS is empty — set comma-separated admin URLs (e.g. https://office.heyupstart.com)',
+        'CORS_ORIGINS is empty — set comma-separated allowed browser origins (e.g. https://office.example.com)',
       );
     } else {
       Logger.log(`CORS: ${corsOrigins.length} origin(s): ${corsOrigins.join(', ')}`);

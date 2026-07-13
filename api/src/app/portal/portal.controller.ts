@@ -54,7 +54,7 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 /**
- * Public client portal for heyupstart.com — magic-link access, no Cognito login.
+ * Public client portal — magic-link access, no Cognito login.
  * Exchange a portal token for a session, then call other /portal/* routes.
  */
 @ApiTags('portal')

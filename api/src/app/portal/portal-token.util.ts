@@ -5,7 +5,7 @@ export function generatePortalToken(): string {
 }
 
 export function portalBaseUrl(): string {
-  return (process.env.PORTAL_BASE_URL ?? 'https://heyupstart.com/clients').replace(/\/$/, '');
+  return (process.env.PORTAL_BASE_URL ?? 'http://localhost:4321/clients').replace(/\/$/, '');
 }
 
 export function buildPortalUrl(token: string): string {

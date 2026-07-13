@@ -8,5 +8,5 @@ alwaysApply: true
 **All AWS resources for this project use `us-west-2`** (Cognito, SES, S3, SNS, etc.).
 
 - Set `AWS_REGION=us-west-2` and `COGNITO_REGION=us-west-2` in env files.
-- S3 bucket: `upstart-back-office-files` in `us-west-2`.
+- S3 bucket: configure `S3_BUCKET` in `.env` (region `us-west-2`).
 - Code fallbacks for region should default to `us-west-2`, not `us-east-1`.

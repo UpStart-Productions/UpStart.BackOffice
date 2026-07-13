@@ -278,7 +278,7 @@ export class BookingService {
           maxDaysAhead: dto.maxDaysAhead ?? 60,
           timezone: dto.timezone ?? 'America/Los_Angeles',
           publicPageUrl: normalizePublicPageUrl(
-            dto.publicPageUrl ?? 'https://heyupstart.com/book',
+            dto.publicPageUrl ?? 'http://localhost:4321/book',
           ),
           calendarEventTitle: dto.calendarEventTitle?.trim() || dto.name.trim(),
           createLead: dto.createLead ?? true,
@@ -421,11 +421,6 @@ export class BookingService {
   }
 
   private async defaultHostUserId(): Promise<string> {
-    const jeff = await this.prisma.user.findFirst({
-      where: { email: 'jeff@heyupstart.com' },
-      select: { id: true },
-    });
-    if (jeff) return jeff.id;
     const admin = await this.prisma.user.findFirst({
       where: { role: 'ADMIN', isActive: true },
       orderBy: { createdAt: 'asc' },
@@ -540,9 +535,9 @@ export class BookingService {
     const displayTz = booking.guestTimezone ?? type.timezone;
     const when = formatSlotLabel(booking.startAt, displayTz);
     const cancelUrl = `${normalizePublicPageUrl(type.publicPageUrl)}?cancel=${booking.cancelToken}`;
-    const hostName = type.host.name ?? type.host.firstName ?? 'UpStart';
-    const brandLabel = type.brand ?? 'UpStart Productions';
-    const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@heyupstart.com';
+    const hostName = type.host.name ?? type.host.firstName ?? 'Host';
+    const brandLabel = type.brand ?? 'Back Office';
+    const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'noreply@example.com';
 
     const guestHtml = buildBookingEmailHtml({
       brandLabel,
@@ -562,7 +557,7 @@ export class BookingService {
     });
 
     const ics = buildBookingIcs({
-      uid: `booking-${booking.id}@heyupstart.com`,
+      uid: `booking-${booking.id}@${fromEmail.split('@')[1] ?? 'example.com'}`,
       startAt: booking.startAt,
       endAt: booking.endAt,
       title: type.calendarEventTitle,
