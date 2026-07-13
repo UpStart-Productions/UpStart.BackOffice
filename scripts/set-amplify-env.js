@@ -36,7 +36,7 @@ function requireHttpsUrl(name, raw, { requireApiSuffix = false } = {}) {
   if (isIpAddress) {
     fail(
       `${name} must be a domain name, not an IP address (got ${parsed.hostname}). ` +
-        'Use e.g. https://api.heyupstart.com/api',
+        'Use e.g. https://api.example.com/api',
     );
   }
   if (parsed.protocol !== 'https:' && !isLocalhost) {
@@ -58,10 +58,13 @@ const redirectSignOut = requireHttpsUrl(
   'AMPLIFY_REDIRECT_SIGN_OUT',
   process.env.AMPLIFY_REDIRECT_SIGN_OUT,
 );
-const poolId = process.env.COGNITO_USER_POOL_ID || 'us-west-2_IlJRXdK5X';
-const clientId = process.env.COGNITO_CLIENT_ID || '5oi5vfbt574mqect5psnqkqabn';
+const poolId = process.env.COGNITO_USER_POOL_ID;
+const clientId = process.env.COGNITO_CLIENT_ID;
 const region = process.env.COGNITO_REGION || 'us-west-2';
-const domainPrefix = process.env.COGNITO_DOMAIN_PREFIX || 'us-west-2iljrxdk5x';
+const domainPrefix = process.env.COGNITO_DOMAIN_PREFIX;
+if (!poolId) fail('COGNITO_USER_POOL_ID is required for Amplify builds.');
+if (!clientId) fail('COGNITO_CLIENT_ID is required for Amplify builds.');
+if (!domainPrefix) fail('COGNITO_DOMAIN_PREFIX is required for Amplify builds.');
 const customDomain = (
   process.env.AMPLIFY_COGNITO_CUSTOM_DOMAIN ||
   process.env.COGNITO_CUSTOM_DOMAIN ||

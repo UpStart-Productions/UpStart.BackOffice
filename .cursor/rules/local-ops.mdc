@@ -1,0 +1,21 @@
+---
+description: Deployment pipeline and ops documentation
+alwaysApply: true
+---
+
+# Deployment
+
+Push to `main` may run CI (see `.github/workflows/deploy.yml` if present): build API Docker image → registry → server deploy via `scripts/deploy.sh`.
+
+**Operator docs** (for deploy questions — read these when helping with production):
+
+| Doc | Topic |
+|-----|--------|
+| [docs/deployment.md](../docs/deployment.md) | Full production setup overview |
+| [docs/ses-setup.md](../docs/ses-setup.md) | Amazon SES for invoice email |
+| [docs/storage-and-s3.md](../docs/storage-and-s3.md) | S3 bucket layout and IAM |
+| `.env.production.example` | Production env template |
+
+**Repo config files:** `amplify.yml`, `docker-compose.prod.yml`, `scripts/set-amplify-env.js`, `scripts/deploy.sh`.
+
+AWS region is **`us-west-2`** (see `aws-region.mdc`). Do not put secrets or personal emails in tracked files.
