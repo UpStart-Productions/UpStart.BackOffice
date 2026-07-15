@@ -55,6 +55,7 @@
               (onChange)="onClientChange()"
               placeholder="Select client"
               styleClass="w-full"
+              appendTo="body"
               [disabled]="isDraftEdit"
             />
           </div>
@@ -114,6 +115,7 @@
                 placeholder="All projects for client"
                 [showClear]="true"
                 styleClass="w-full"
+                appendTo="body"
               />
             </div>
 
@@ -127,6 +129,7 @@
                   optionValue="value"
                   [(ngModel)]="generate.periodType"
                   styleClass="w-full"
+                  appendTo="body"
                 />
               </div>
               <div class="form-field invoice-period-field">
@@ -136,6 +139,7 @@
                   [options]="yearOptions"
                   [(ngModel)]="generate.year"
                   styleClass="w-full"
+                  appendTo="body"
                 />
               </div>
               <div class="form-field invoice-period-field">
@@ -148,6 +152,7 @@
                     optionValue="value"
                     [(ngModel)]="generate.month"
                     styleClass="w-full"
+                    appendTo="body"
                   />
                 } @else if (generate.periodType === 'quarter') {
                   <label for="periodQuarter">Quarter</label>
@@ -158,6 +163,7 @@
                     optionValue="value"
                     [(ngModel)]="generate.quarter"
                     styleClass="w-full"
+                    appendTo="body"
                   />
                 } @else {
                   <span class="invoice-period-range-label" id="periodRangeLabel">Date range</span>
@@ -269,6 +275,7 @@
                         placeholder="—"
                         [showClear]="true"
                         styleClass="w-full"
+                        appendTo="body"
                       />
                     </td>
                   }

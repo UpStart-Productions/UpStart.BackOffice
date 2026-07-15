@@ -13,6 +13,7 @@
             optionValue="value"
             [(ngModel)]="filters.periodType"
             styleClass="w-full"
+            appendTo="body"
           />
         </div>
         <div class="form-field report-filter-field">
@@ -22,9 +23,10 @@
             [options]="yearOptions"
             [(ngModel)]="filters.year"
             styleClass="w-full"
+            appendTo="body"
           />
         </div>
-        <div class="form-field report-filter-field">
+        <div class="form-field report-filter-field report-filter-field--period-detail">
           @if (filters.periodType === 'month') {
             <label for="reportMonth">Month</label>
             <p-select
@@ -34,6 +36,7 @@
               optionValue="value"
               [(ngModel)]="filters.month"
               styleClass="w-full"
+              appendTo="body"
             />
           } @else if (filters.periodType === 'quarter') {
             <label for="reportQuarter">Quarter</label>
@@ -44,6 +47,7 @@
               optionValue="value"
               [(ngModel)]="filters.quarter"
               styleClass="w-full"
+              appendTo="body"
             />
           } @else {
             <span class="report-range-label" id="reportRangeLabel">Date range</span>
@@ -59,9 +63,6 @@
             </div>
           }
         </div>
-      </div>
-
-      <div class="report-filters-row">
         <div class="form-field report-filter-field">
           <label for="reportClient">Client</label>
           <p-select
@@ -71,6 +72,7 @@
             optionValue="value"
             [(ngModel)]="filters.clientId"
             styleClass="w-full"
+            appendTo="body"
           />
         </div>
         @if (isAdmin()) {
@@ -83,6 +85,7 @@
               optionValue="value"
               [(ngModel)]="filters.userId"
               styleClass="w-full"
+              appendTo="body"
             />
           </div>
         }

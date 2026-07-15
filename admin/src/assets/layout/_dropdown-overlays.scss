@@ -1,0 +1,18 @@
+// Overlay panels append to body — global styles required.
+// Keep PrimeNG's capped list height; hide scrollbars while scroll still works.
+.p-select-overlay,
+.p-multiselect-overlay,
+.p-autocomplete-overlay {
+  .p-select-list-container,
+  .p-multiselect-list-container,
+  .p-autocomplete-list-container {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+  }
+}

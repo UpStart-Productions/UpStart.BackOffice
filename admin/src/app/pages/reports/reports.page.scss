@@ -1,7 +1,4 @@
 .report-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
   margin-bottom: 1.25rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--color-border);
@@ -9,15 +6,23 @@
 
 .report-filters-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
   gap: 1rem;
+  width: 100%;
+  overflow: visible;
 }
 
 .report-filter-field {
-  flex: 1 1 12rem;
-  min-width: 10rem;
+  flex: 0 0 auto;
+  width: 13rem;
+  min-width: 11rem;
   margin-bottom: 0;
+}
+
+.report-filter-field--period-detail {
+  width: auto;
+  min-width: 13rem;
 }
 
 .report-range-label {
@@ -31,7 +36,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 
   input[type='date'] {
     border: 1px solid var(--color-border);
@@ -45,6 +51,7 @@
 .report-run-wrap {
   flex: 0 0 auto;
   margin-left: auto;
+  padding-left: 0.5rem;
 }
 
 .report-message {
