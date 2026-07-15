@@ -92,16 +92,32 @@
             <a [routerLink]="['/network', company.id]" class="text-primary">{{ company.name }}</a>
           </td>
           <td>
-            @if (primaryContactLinkedInUrl(company); as linkedInUrl) {
-              <a
-                [href]="linkedInUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary"
-              >{{ primaryContactName(company) }}</a>
-            } @else {
-              {{ primaryContactName(company) }}
-            }
+            <div class="network-list-contact">
+              @if (primaryContactLinkedInUrl(company); as linkedInUrl) {
+                <a
+                  [href]="linkedInUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary"
+                >{{ primaryContactName(company) }}</a>
+              } @else {
+                {{ primaryContactName(company) }}
+              }
+              @if (primaryContactEmail(company); as email) {
+                <div class="network-list-email">
+                  <span>{{ email }}</span>
+                  <button
+                    type="button"
+                    pButton
+                    icon="pi pi-copy"
+                    [text]="true"
+                    size="small"
+                    [attr.aria-label]="'Copy ' + email"
+                    (click)="copyEmail($event, email)"
+                  ></button>
+                </div>
+              }
+            </div>
           </td>
           <td>{{ servicesSummary(company) }}</td>
           <td>

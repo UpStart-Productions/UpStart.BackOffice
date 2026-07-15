@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
@@ -22,6 +23,7 @@ type NetworkContact = {
   id: string;
   firstName: string;
   lastName?: string | null;
+  email?: string | null;
   avatarUrl?: string | null;
   linkedInUrl?: string | null;
   isPrimary: boolean;
@@ -61,6 +63,7 @@ export class NetworkCompaniesListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly toast = inject(MessageService);
 
   companies = signal<NetworkCompany[]>([]);
   loading = signal(true);
@@ -132,6 +135,17 @@ export class NetworkCompaniesListPage implements OnInit {
     return url || null;
   }
 
+  primaryContactEmail(company: NetworkCompany): string | null {
+    const email = this.primaryContact(company)?.email?.trim();
+    return email || null;
+  }
+
+  copyEmail(event: Event, email: string) {
+    event.stopPropagation();
+    void navigator.clipboard.writeText(email);
+    this.toast.add({ severity: 'success', summary: 'Copied', detail: 'Email copied to clipboard', life: 2000 });
+  }
+
   primaryContactAvatar(company: NetworkCompany): string | null {
     const contact = this.primaryContact(company);
     if (!contact?.avatarUrl) return null;
@@ -163,6 +177,7 @@ export class NetworkCompaniesListPage implements OnInit {
     const haystack = [
       company.name,
       this.primaryContactName(company),
+      this.primaryContactEmail(company) ?? '',
       ...company.services,
       company.isActive ? 'active' : 'inactive',
       company.isReferralReady ? 'referral' : '',
