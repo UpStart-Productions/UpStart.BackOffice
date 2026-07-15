@@ -22,6 +22,7 @@ import {
   AddEditUserModalComponent,
   type UserRow,
 } from '../../ui/add-edit-user-modal/add-edit-user-modal.component';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { roleLabel, type UserListDto } from '@upstart/back-office/shared';
 
 type SortBy = 'name' | 'email' | 'role';
@@ -42,6 +43,7 @@ type SortBy = 'name' | 'email' | 'role';
     TagModule,
     RowActionsMenuComponent,
     AddEditUserModalComponent,
+    CopyEmailComponent,
   ],
   templateUrl: './users-list.page.html',
 })

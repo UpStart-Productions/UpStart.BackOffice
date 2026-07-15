@@ -6,6 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import {
   InvoiceSendDialogRequest,
   InvoiceSendDialogService,
@@ -36,6 +37,7 @@ type SendRecipients = {
     InputTextModule,
     MessageModule,
     SelectModule,
+    CopyEmailComponent,
   ],
   styles: `
     .invoice-send-intro {
@@ -48,6 +50,11 @@ type SendRecipients = {
       border-radius: var(--border-radius);
       background: var(--surface-50);
       border: 1px solid var(--surface-200);
+    }
+    .invoice-send-client-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
     }
     .invoice-send-client-label {
       display: block;
@@ -147,12 +154,14 @@ type SendRecipients = {
 
         <div class="invoice-send-client">
           <span class="invoice-send-client-label">Client</span>
-          <span>{{ recipients()!.client.name }}</span>
-          @if (recipients()!.client.email) {
-            <span class="text-color-secondary text-sm"> — {{ recipients()!.client.email }}</span>
-          } @else {
-            <span class="text-color-secondary text-sm"> — No client email on file</span>
-          }
+          <div class="invoice-send-client-body">
+            <span>{{ recipients()!.client.name }}</span>
+            @if (recipients()!.client.email) {
+              <app-copy-email [email]="recipients()!.client.email" [muted]="true" />
+            } @else {
+              <span class="text-color-secondary text-sm">No client email on file</span>
+            }
+          </div>
         </div>
 
         <div class="invoice-send-options">
@@ -167,7 +176,9 @@ type SendRecipients = {
                 />
                 <span>
                   <span class="invoice-send-option-title">Client email</span>
-                  <p class="invoice-send-option-detail">{{ recipients()!.client.email }}</p>
+                  <p class="invoice-send-option-detail">
+                    <app-copy-email [email]="recipients()!.client.email" [muted]="true" />
+                  </p>
                 </span>
               </span>
             </label>
@@ -201,7 +212,11 @@ type SendRecipients = {
                         <span class="invoice-send-contact-option-name">
                           {{ option.contactName || option.email }}
                         </span>
-                        <span class="invoice-send-contact-option-meta">{{ option.email }}</span>
+                        <app-copy-email
+                          [email]="option.email"
+                          [muted]="true"
+                          [block]="true"
+                        />
                         <span class="invoice-send-contact-option-project">{{ option.projectName }}</span>
                       </div>
                     }
@@ -211,7 +226,11 @@ type SendRecipients = {
                       <span class="invoice-send-contact-option-name">
                         {{ option.contactName || 'Project contact' }}
                       </span>
-                      <span class="invoice-send-contact-option-email">{{ option.email }}</span>
+                      <app-copy-email
+                        [email]="option.email"
+                        [muted]="true"
+                        [block]="true"
+                      />
                       <span class="invoice-send-contact-option-project">{{ option.projectName }}</span>
                     </div>
                   </ng-template>

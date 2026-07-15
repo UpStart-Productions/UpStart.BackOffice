@@ -8,25 +8,11 @@
   gap: 0.35rem;
 }
 
-.network-list-contact {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.network-list-email {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-
-  span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.network-list-services-col {
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .network-list-avatar {

@@ -101,20 +101,7 @@
 }
 
 .pipeline-card-email {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
-  font-size: 0.78rem;
-  color: var(--text-color-secondary);
   margin-top: 0.25rem;
-
-  span {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 }
 
 .pipeline-card-next-wrap {

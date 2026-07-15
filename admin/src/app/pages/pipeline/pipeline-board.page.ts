@@ -13,6 +13,7 @@ import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 
 export type Lead = {
   id: string;
@@ -52,6 +53,7 @@ export const STAGES: { key: string; label: string; color: string }[] = [
     MessageModule,
     PageComponent,
     RowActionsMenuComponent,
+    CopyEmailComponent,
   ],
   templateUrl: './pipeline-board.page.html',
   styleUrl: './pipeline-board.page.scss',
@@ -175,12 +177,6 @@ export class PipelineBoardPage implements OnInit {
       );
       this.error.set(err instanceof Error ? err.message : 'Failed to move lead');
     }
-  }
-
-  copyEmail(event: Event, email: string) {
-    event.stopPropagation();
-    void navigator.clipboard.writeText(email);
-    this.toast.add({ severity: 'success', summary: 'Copied', detail: 'Email copied to clipboard', life: 2000 });
   }
 
   getRowActions(lead: Lead): RowActionItem[] {

@@ -16,6 +16,7 @@ import {
   RowActionsMenuComponent,
   RowActionItem,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 
 type Client = { id: string; name: string; code: string; email?: string; phone?: string; isActive: boolean };
 
@@ -34,6 +35,7 @@ type Client = { id: string; name: string; code: string; email?: string; phone?: 
     TagModule,
     PageComponent,
     RowActionsMenuComponent,
+    CopyEmailComponent,
   ],
   templateUrl: './clients-list.page.html',
 })

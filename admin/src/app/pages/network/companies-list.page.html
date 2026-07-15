@@ -59,7 +59,8 @@
             Primary contact
             <p-sortIcon field="primaryContactSortName" />
           </th>
-          <th>Services</th>
+          <th>Email</th>
+          <th class="network-list-services-col">Services</th>
           <th>Referral</th>
           <th>Public</th>
           <th pSortableColumn="isActive">
@@ -92,34 +93,23 @@
             <a [routerLink]="['/network', company.id]" class="text-primary">{{ company.name }}</a>
           </td>
           <td>
-            <div class="network-list-contact">
-              @if (primaryContactLinkedInUrl(company); as linkedInUrl) {
-                <a
-                  [href]="linkedInUrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-primary"
-                >{{ primaryContactName(company) }}</a>
-              } @else {
-                {{ primaryContactName(company) }}
-              }
-              @if (primaryContactEmail(company); as email) {
-                <div class="network-list-email">
-                  <span>{{ email }}</span>
-                  <button
-                    type="button"
-                    pButton
-                    icon="pi pi-copy"
-                    [text]="true"
-                    size="small"
-                    [attr.aria-label]="'Copy ' + email"
-                    (click)="copyEmail($event, email)"
-                  ></button>
-                </div>
-              }
-            </div>
+            @if (primaryContactLinkedInUrl(company); as linkedInUrl) {
+              <a
+                [href]="linkedInUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary"
+              >{{ primaryContactName(company) }}</a>
+            } @else {
+              {{ primaryContactName(company) }}
+            }
           </td>
-          <td>{{ servicesSummary(company) }}</td>
+          <td>
+            <app-copy-email [email]="primaryContactEmail(company)" />
+          </td>
+          <td class="network-list-services-col" [title]="servicesSummary(company)">
+            {{ servicesSummary(company) }}
+          </td>
           <td>
             @if (company.isReferralReady) {
               <p-tag value="Ready" severity="info" />
@@ -144,7 +134,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
+          <td colspan="8" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
         </tr>
       </ng-template>
     </p-table>

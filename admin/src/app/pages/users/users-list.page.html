@@ -53,7 +53,7 @@
             <app-row-actions-menu [items]="getRowActions(user)" ariaLabel="User actions" />
           </td>
           <td>{{ user.name || '—' }}</td>
-          <td>{{ user.email }}</td>
+          <td><app-copy-email [email]="user.email" [showEmpty]="false" /></td>
           <td>
             {{ roleLabel(user.role) }}
             @if (user.client) {

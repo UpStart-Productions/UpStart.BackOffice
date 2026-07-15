@@ -70,16 +70,7 @@
                 }
                 @if (lead.email) {
                   <div class="pipeline-card-email">
-                    <span>{{ lead.email }}</span>
-                    <button
-                      type="button"
-                      pButton
-                      icon="pi pi-copy"
-                      [text]="true"
-                      size="small"
-                      [attr.aria-label]="'Copy ' + lead.email"
-                      (click)="copyEmail($event, lead.email)"
-                    ></button>
+                    <app-copy-email [email]="lead.email" [muted]="true" [block]="true" />
                   </div>
                 }
                 @if (lead.nextAction) {

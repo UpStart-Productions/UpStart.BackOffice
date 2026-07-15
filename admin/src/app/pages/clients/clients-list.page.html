@@ -63,7 +63,7 @@
             <a [routerLink]="['/clients', client.id]" class="text-primary">{{ client.name }}</a>
           </td>
           <td><code>{{ client.code }}</code></td>
-          <td>{{ client.email || '—' }}</td>
+          <td><app-copy-email [email]="client.email" /></td>
           <td>
             <p-tag
               [value]="client.isActive ? 'Active' : 'Inactive'"
