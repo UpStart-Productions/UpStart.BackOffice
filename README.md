@@ -69,18 +69,15 @@ npm run dev
 
 Open **http://localhost:4201**.
 
-`npm run dev` starts PostgreSQL migrations, seeds sample data if the database is empty, then runs the API and admin app together.
+`npm run dev` starts PostgreSQL migrations, runs seed-if-needed (no-op unless you add seed data), then runs the API and admin app together.
 
 ### First login (development)
 
-With Cognito unset in `.env`, the login page accepts any email that exists in the database. The seed creates:
+With Cognito unset in `.env`, the login page accepts any email that exists in the database. Add a staff user:
 
-| Email | Role |
-|-------|------|
-| `admin@upstart.test` | ADMIN |
-| `member@upstart.test` | MEMBER |
-
-Sample data also includes a client, project, booking type, and chart of accounts so you can explore the app immediately.
+```bash
+npm run add-admin-user
+```
 
 ### Optional features
 
@@ -141,7 +138,7 @@ See **[docs/deployment.md](docs/deployment.md)** for hosting the admin SPA, API,
 | Issue | Check |
 |-------|-------|
 | Admin can't reach API | API running; proxy in `admin/proxy.conf.json` |
-| Login fails (dev) | User exists in DB; run `npm run dev:seed` |
+| Login fails (dev) | User exists in DB; run `npm run add-admin-user` |
 | Migrations fail | Postgres up (`docker compose up -d`); `DATABASE_URL` in `.env` |
 | Email not sending | AWS/SES vars in `.env`; `npm run test-ses -- you@example.com` |
 

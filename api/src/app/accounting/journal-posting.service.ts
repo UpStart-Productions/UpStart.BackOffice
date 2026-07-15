@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Codes the posting logic depends on. Seeded by default — see prisma/seed.ts. */
+/** Codes the posting logic depends on. Must exist in the chart of accounts. */
 export const SYSTEM_ACCOUNT_CODES = {
   CASH: '1000',
   ACCOUNTS_RECEIVABLE: '1100',

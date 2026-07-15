@@ -33,7 +33,7 @@ docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-The API container runs migrations and seed on startup (`api/docker-entrypoint.sh`).
+The API container runs migrations on startup (`api/docker-entrypoint.sh`). Seed is not run automatically in production — use `npm run dev:seed` manually on the server if you add seed data later.
 
 Point your API domain (e.g. `https://api.example.com`) at the server. Set `API_BASE_URL` in `.env` to match.
 

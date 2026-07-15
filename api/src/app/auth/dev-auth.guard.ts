@@ -39,7 +39,7 @@ export class DevAuthGuard implements CanActivate {
       },
     });
 
-    if (!user) throw new UnauthorizedException('Dev user not found. Run seed.');
+    if (!user) throw new UnauthorizedException('Dev user not found. Run npm run add-admin-user.');
     if (!user.isActive) throw new UnauthorizedException('Account is disabled.');
 
     const role = (roleHeader || user.role) as UserRole;
