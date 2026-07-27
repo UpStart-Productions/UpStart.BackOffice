@@ -38,13 +38,10 @@
       </div>
       <div class="form-field showcase-half">
         <label for="expense-date">Date incurred</label>
-        <input
-          pInputText
-          id="expense-date"
-          type="date"
+        <app-date-input
+          inputId="expense-date"
           [ngModel]="incurredAt()"
           (ngModelChange)="incurredAt.set($event)"
-          class="w-full"
         />
       </div>
     </div>

@@ -10,6 +10,7 @@ import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 
 type Client = { id: string; name: string };
@@ -87,6 +88,7 @@ const QUARTERS = [
     SelectModule,
     TableModule,
     PageComponent,
+    DateInputComponent,
   ],
   templateUrl: './invoice-form.page.html',
   styleUrl: './invoice-form.page.scss',

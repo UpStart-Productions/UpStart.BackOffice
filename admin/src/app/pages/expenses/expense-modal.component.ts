@@ -11,6 +11,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { Expense, ExpenseProject, SUGGESTED_EXPENSE_CATEGORIES } from './expense.types';
 
 export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
@@ -27,6 +28,7 @@ export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
     TextareaModule,
     SelectModule,
     ToggleSwitchModule,
+    DateInputComponent,
   ],
   templateUrl: './expense-modal.component.html',
   styleUrl: './expense-modal.component.scss',

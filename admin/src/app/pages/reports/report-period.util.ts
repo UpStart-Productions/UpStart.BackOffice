@@ -1,3 +1,5 @@
+import { parseDateKey } from '../../core/date.util';
+
 export type ReportPeriodType = 'month' | 'quarter' | 'custom';
 
 export type ReportPeriodBounds = {
@@ -60,9 +62,11 @@ export function resolveReportPeriod(params: {
 
   if (params.periodType === 'custom') {
     if (!params.from || !params.to) return null;
-    const from = new Date(params.from);
-    const to = endOfLocalDay(new Date(params.to));
-    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) {
+    const from = parseDateKey(params.from);
+    const toDate = parseDateKey(params.to);
+    if (!from || !toDate) return null;
+    const to = endOfLocalDay(toDate);
+    if (from > to) {
       return null;
     }
     return {

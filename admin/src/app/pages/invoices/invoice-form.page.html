@@ -62,18 +62,15 @@
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="issueDate">Issue Date</label>
-              <input
-                pInputText
-                id="issueDate"
-                type="date"
+              <app-date-input
+                inputId="issueDate"
                 [(ngModel)]="form.issueDate"
-                class="w-full"
                 [disabled]="isDraftEdit"
               />
             </div>
             <div class="form-field showcase-half">
               <label for="dueDate">Due Date</label>
-              <input pInputText id="dueDate" type="date" [(ngModel)]="form.dueDate" class="w-full" />
+              <app-date-input inputId="dueDate" [(ngModel)]="form.dueDate" />
             </div>
           </div>
           <div class="form-field showcase-full">
@@ -168,22 +165,18 @@
                 } @else {
                   <span class="invoice-period-range-label" id="periodRangeLabel">Date range</span>
                   <div class="invoice-date-range" aria-labelledby="periodRangeLabel">
-                    <input
-                      pInputText
-                      id="periodFrom"
-                      type="date"
+                    <app-date-input
+                      inputId="periodFrom"
                       [(ngModel)]="generate.from"
-                      class="w-full"
-                      aria-label="From"
+                      ariaLabel="From"
+                      placeholder="From"
                     />
                     <span class="invoice-date-range-sep" aria-hidden="true">–</span>
-                    <input
-                      pInputText
-                      id="periodTo"
-                      type="date"
+                    <app-date-input
+                      inputId="periodTo"
                       [(ngModel)]="generate.to"
-                      class="w-full"
-                      aria-label="To"
+                      ariaLabel="To"
+                      placeholder="To"
                     />
                   </div>
                 }

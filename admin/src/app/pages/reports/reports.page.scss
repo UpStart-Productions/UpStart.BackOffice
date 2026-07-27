@@ -36,16 +36,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: nowrap;
-  white-space: nowrap;
+  flex-wrap: wrap;
 
-  input[type='date'] {
-    border: 1px solid var(--color-border);
-    border-radius: var(--content-border-radius);
-    padding: 0.625rem 0.75rem;
-    font: inherit;
-    font-size: 0.875rem;
-    background: #fff;
+  app-date-input {
+    flex: 1 1 10rem;
+    min-width: 10rem;
   }
 }
 

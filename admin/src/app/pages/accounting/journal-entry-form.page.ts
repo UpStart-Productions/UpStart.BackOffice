@@ -9,6 +9,7 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 
 type Account = { id: string; code: string; name: string; type: string };
 
@@ -19,6 +20,7 @@ type LineDraft = { accountId: string; debit: number | null; credit: number | nul
   standalone: true,
   imports: [
     FormsModule, RouterLink, ButtonModule, InputTextModule, MessageModule, SelectModule, TableModule, PageComponent,
+    DateInputComponent,
   ],
   templateUrl: './journal-entry-form.page.html',
 })

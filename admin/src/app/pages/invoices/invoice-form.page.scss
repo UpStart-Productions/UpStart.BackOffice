@@ -45,10 +45,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 
-  input {
-    flex: 1 1 0;
-    min-width: 0;
+  app-date-input {
+    flex: 1 1 10rem;
+    min-width: 10rem;
   }
 }
 

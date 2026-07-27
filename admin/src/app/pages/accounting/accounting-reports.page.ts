@@ -7,6 +7,7 @@ import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 
 type BalanceRow = { id: string; code: string; name: string; balance: number };
 type TrialBalanceRow = { id: string; code: string; name: string; type: string; debit: number; credit: number };
@@ -49,7 +50,7 @@ function today(): string {
 @Component({
   selector: 'app-accounting-reports-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, TableModule, TabsModule, PageComponent],
+  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, TableModule, TabsModule, PageComponent, DateInputComponent],
   templateUrl: './accounting-reports.page.html',
 })
 export class AccountingReportsPage implements OnInit {

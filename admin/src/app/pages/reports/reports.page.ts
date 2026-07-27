@@ -14,6 +14,7 @@ import { isAdminRole } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { formatDurationMin } from '../time-entry/timesheet.utils';
 import {
   REPORT_MONTHS,
@@ -96,6 +97,7 @@ type InvoiceClientRow = {
     TabsModule,
     TagModule,
     PageComponent,
+    DateInputComponent,
   ],
   templateUrl: './reports.page.html',
   styleUrl: './reports.page.scss',

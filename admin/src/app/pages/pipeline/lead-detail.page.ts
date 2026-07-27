@@ -12,6 +12,7 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { STAGES } from './pipeline-board.page';
 
 const SOURCES = [
@@ -52,7 +53,7 @@ const SERVICE_OPTIONS = [
     FormsModule, RouterLink,
     ButtonModule, InputTextModule, MessageModule, TextareaModule,
     SelectModule, DialogModule, TagModule,
-    PageComponent, ArtifactsPanelComponent,
+    PageComponent, ArtifactsPanelComponent, DateInputComponent,
   ],
   templateUrl: './lead-detail.page.html',
   styleUrl: './lead-detail.page.scss',

@@ -52,14 +52,19 @@
           } @else {
             <span class="report-range-label" id="reportRangeLabel">Date range</span>
             <div class="report-date-range" aria-labelledby="reportRangeLabel">
-              <input
-                id="reportFrom"
-                type="date"
+              <app-date-input
+                inputId="reportFrom"
                 [(ngModel)]="filters.from"
-                aria-label="From date"
+                ariaLabel="From date"
+                placeholder="From"
               />
               <span class="text-muted">to</span>
-              <input id="reportTo" type="date" [(ngModel)]="filters.to" aria-label="To date" />
+              <app-date-input
+                inputId="reportTo"
+                [(ngModel)]="filters.to"
+                ariaLabel="To date"
+                placeholder="To"
+              />
             </div>
           }
         </div>

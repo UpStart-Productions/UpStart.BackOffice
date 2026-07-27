@@ -1,10 +1,5 @@
-/** Local calendar date key (YYYY-MM-DD). */
-export function dateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
+export { dateKey, parseDateKey } from '../../core/date.util';
+import { dateKey } from '../../core/date.util';
 
 /** Monday-start week containing `anchor`. */
 export function startOfWeek(anchor: Date): Date {

@@ -101,11 +101,11 @@
         <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="lastContactDate">Last Contact</label>
-            <input pInputText id="lastContactDate" name="lastContactDate" type="date" [(ngModel)]="form.lastContactDate" class="w-full" />
+            <app-date-input inputId="lastContactDate" name="lastContactDate" [(ngModel)]="form.lastContactDate" />
           </div>
           <div class="form-field showcase-half">
             <label for="nextActionDate">Next Action Date</label>
-            <input pInputText id="nextActionDate" name="nextActionDate" type="date" [(ngModel)]="form.nextActionDate" class="w-full" />
+            <app-date-input inputId="nextActionDate" name="nextActionDate" [(ngModel)]="form.nextActionDate" />
           </div>
         </div>
 

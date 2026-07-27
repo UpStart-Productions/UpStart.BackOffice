@@ -5,6 +5,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { ApiService } from '../../core/api.service';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import {
   InvoiceMarkPaidDialogRequest,
   InvoiceMarkPaidDialogService,
@@ -13,7 +14,7 @@ import {
 @Component({
   selector: 'app-invoice-mark-paid-dialog',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, MessageModule],
+  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, MessageModule, DateInputComponent],
   template: `
     <p-dialog
       header="Mark invoice paid"
@@ -46,13 +47,7 @@ import {
           </div>
           <div class="form-field">
             <label for="markPaidDate">Date paid</label>
-            <input
-              pInputText
-              id="markPaidDate"
-              type="date"
-              [(ngModel)]="paidAt"
-              class="w-full"
-            />
+            <app-date-input inputId="markPaidDate" [(ngModel)]="paidAt" />
           </div>
         </div>
 

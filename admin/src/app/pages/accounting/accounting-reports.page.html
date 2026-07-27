@@ -10,15 +10,15 @@
     <div class="showcase-row">
       <div class="form-field">
         <label for="plFrom">P&amp;L from</label>
-        <input pInputText id="plFrom" type="date" [(ngModel)]="from" class="w-full" />
+        <app-date-input inputId="plFrom" [(ngModel)]="from" />
       </div>
       <div class="form-field">
         <label for="plTo">P&amp;L to</label>
-        <input pInputText id="plTo" type="date" [(ngModel)]="to" class="w-full" />
+        <app-date-input inputId="plTo" [(ngModel)]="to" />
       </div>
       <div class="form-field">
         <label for="asOf">Balance sheet / trial balance as of</label>
-        <input pInputText id="asOf" type="date" [(ngModel)]="asOf" class="w-full" />
+        <app-date-input inputId="asOf" [(ngModel)]="asOf" />
       </div>
       <div class="form-field" style="align-self: end">
         <p-button label="Run" icon="pi pi-refresh" [loading]="loading()" (click)="runAll()" />
