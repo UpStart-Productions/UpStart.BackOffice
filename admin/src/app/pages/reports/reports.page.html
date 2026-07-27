@@ -89,16 +89,16 @@
             />
           </div>
         }
-        <div class="report-run-wrap">
-          <button
-            type="button"
-            pButton
-            label="Run report"
-            icon="pi pi-play"
-            [loading]="loading()"
-            (click)="runReport()"
-          ></button>
-        </div>
+      </div>
+      <div class="report-run-wrap">
+        <button
+          type="button"
+          pButton
+          label="Run report"
+          icon="pi pi-play"
+          [loading]="loading()"
+          (click)="runReport()"
+        ></button>
       </div>
     </div>
 
@@ -188,6 +188,50 @@
 
             @if (timeByProject().length === 0) {
               <p class="text-muted">No completed time entries in this period.</p>
+            } @else if (showTimeEntryDetail()) {
+              <h3 class="report-section-title">Time entries</h3>
+              <p-table [value]="timeEntryRows()" styleClass="table-bordered report-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Date</th>
+                    @if (isAdmin()) {
+                      <th>User</th>
+                    }
+                    <th>Project</th>
+                    <th>Task</th>
+                    <th>Description</th>
+                    <th class="text-right">Duration</th>
+                    <th>Billable</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                  <tr>
+                    <td>{{ formatDate(row.startedAt) }}</td>
+                    @if (isAdmin()) {
+                      <td>{{ row.userName }}</td>
+                    }
+                    <td>{{ row.projectName }}</td>
+                    <td>{{ row.taskName }}</td>
+                    <td class="report-entry-notes">{{ row.description }}</td>
+                    <td class="text-right font-semibold">{{ formatMin(row.durationMin) }}</td>
+                    <td>
+                      <p-tag
+                        [value]="row.billable ? 'Yes' : 'No'"
+                        [severity]="row.billable ? 'success' : 'secondary'"
+                      />
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="footer">
+                  <tr>
+                    <td [attr.colspan]="isAdmin() ? 5 : 4" class="font-semibold">Total</td>
+                    <td class="text-right font-semibold">{{ formatMin(timeSummary().totalMin) }}</td>
+                    <td class="font-semibold">
+                      {{ formatMin(timeSummary().billableMin) }} billable
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
             } @else {
               <h3 class="report-section-title">Hours by project</h3>
               <p-table [value]="timeByProject()" styleClass="table-bordered report-table">

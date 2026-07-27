@@ -117,6 +117,8 @@ export class ReportsPage implements OnInit {
   error = signal<string | null>(null);
   periodLabel = signal<string | null>(null);
   hasRun = signal(false);
+  /** Client filter applied on the last successful run (empty = all clients). */
+  private appliedClientId = signal('');
 
   clients = signal<Client[]>([]);
   users = signal<User[]>([]);
@@ -241,6 +243,24 @@ export class ReportsPage implements OnInit {
     };
   });
 
+  /** When one client is selected, show individual entries instead of project rollup. */
+  readonly showTimeEntryDetail = computed(() => Boolean(this.appliedClientId()));
+
+  readonly timeEntryRows = computed(() =>
+    [...this.completedTimeEntries()]
+      .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
+      .map((e) => ({
+        id: e.id,
+        startedAt: e.startedAt,
+        userName: e.user ? this.userLabel(e.user) : '—',
+        projectName: e.project.name,
+        taskName: e.projectTask?.name ?? '—',
+        description: e.description?.trim() || '—',
+        durationMin: e.durationMin ?? 0,
+        billable: this.isEntryBillable(e),
+      })),
+  );
+
   readonly invoiceSummary = computed(() => {
     const list = this.filteredInvoices();
     const byStatus: Record<string, number> = {};
@@ -352,6 +372,7 @@ export class ReportsPage implements OnInit {
           return dateInPeriod(inv.issueDate, bounds.from, bounds.to);
         }),
       );
+      this.appliedClientId.set(clientId);
       this.hasRun.set(true);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to run report');
