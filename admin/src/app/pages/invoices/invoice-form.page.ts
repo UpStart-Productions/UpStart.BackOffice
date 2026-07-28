@@ -8,7 +8,9 @@ import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
+import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
+import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
@@ -87,6 +89,7 @@ const QUARTERS = [
     TextareaModule,
     SelectModule,
     TableModule,
+    QuillModule,
     PageComponent,
     DateInputComponent,
   ],
@@ -345,7 +348,7 @@ export class InvoiceFormPage implements OnInit {
           clientId: this.form.clientId,
           issueDate: this.form.issueDate,
           dueDate: this.form.dueDate || undefined,
-          notes: this.form.notes || undefined,
+          notes: richTextOrUndefined(this.form.notes),
           taxRate: this.form.taxRate || undefined,
           lineItems,
         });
@@ -357,7 +360,7 @@ export class InvoiceFormPage implements OnInit {
         await this.router.navigate(['/invoices', created.id, 'edit'], { replaceUrl: true });
       } else {
         await this.api.put(`/invoices/${this.id()}`, {
-          notes: this.form.notes,
+          notes: richTextOrUndefined(this.form.notes) ?? '',
           dueDate: this.form.dueDate || undefined,
           taxRate: this.form.taxRate ?? undefined,
           lineItems,

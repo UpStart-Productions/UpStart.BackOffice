@@ -4,14 +4,15 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
+import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import type { ClientDto } from '@upstart/back-office/shared';
@@ -48,11 +49,11 @@ type ClientForm = {
     ButtonModule,
     InputTextModule,
     MessageModule,
-    TextareaModule,
     ToggleSwitchModule,
     SelectModule,
     TableModule,
     TagModule,
+    QuillModule,
     PageComponent,
     ArtifactsPanelComponent,
   ],
@@ -133,7 +134,7 @@ export class ClientFormPage implements OnInit {
       state: emptyToUndefined(this.form.state),
       zip: emptyToUndefined(this.form.zip),
       website: emptyToUndefined(this.form.website),
-      notes: emptyToUndefined(this.form.notes),
+      notes: richTextOrUndefined(this.form.notes),
       isActive: this.form.isActive,
     };
   }

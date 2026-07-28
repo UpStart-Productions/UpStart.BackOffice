@@ -40,14 +40,13 @@
         </div>
         <div class="form-field showcase-full">
           <label for="description">Description</label>
-          <textarea
-            pTextarea
+          <quill-editor
             id="description"
             name="description"
             [(ngModel)]="form.description"
-            class="w-full"
-            rows="3"
-          ></textarea>
+            placeholder="Project description…"
+            [styles]="{ 'min-height': '140px' }"
+          ></quill-editor>
         </div>
 
         <div class="form-field project-rate-row">

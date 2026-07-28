@@ -89,7 +89,13 @@
         </div>
         <div class="form-field showcase-full">
           <label for="notes">Notes</label>
-          <textarea pTextarea id="notes" name="notes" [(ngModel)]="form.notes" class="w-full" rows="3"></textarea>
+          <quill-editor
+            id="notes"
+            name="notes"
+            [(ngModel)]="form.notes"
+            placeholder="Client notes…"
+            [styles]="{ 'min-height': '140px' }"
+          ></quill-editor>
         </div>
         <div class="flex align-items-center gap-2">
           <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />

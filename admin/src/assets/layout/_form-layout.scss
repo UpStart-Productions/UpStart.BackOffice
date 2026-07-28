@@ -96,6 +96,32 @@
   font-weight: 500;
 }
 
+.form-field quill-editor {
+  display: block;
+  width: 100%;
+
+  .ql-toolbar.ql-snow {
+    border-radius: var(--content-border-radius, 6px) var(--content-border-radius, 6px) 0 0;
+    border-color: var(--color-border, var(--surface-border));
+  }
+
+  .ql-container.ql-snow {
+    border-radius: 0 0 var(--content-border-radius, 6px) var(--content-border-radius, 6px);
+    border-color: var(--color-border, var(--surface-border));
+    font-family: inherit;
+    font-size: 0.875rem;
+  }
+
+  .ql-editor {
+    min-height: inherit;
+  }
+
+  .ql-editor.ql-blank::before {
+    font-style: normal;
+    color: var(--p-text-muted-color, #6b7280);
+  }
+}
+
 .project-rate-controls {
   display: flex;
   align-items: center;

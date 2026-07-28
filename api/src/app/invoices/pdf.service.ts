@@ -151,10 +151,20 @@ ${projectSections}
   </table>
 </div>
 
-${invoice.notes ? `<div class="notes"><label>Notes</label>${invoice.notes}</div>` : ''}
+${hasNotes(invoice.notes) ? `<div class="notes"><label>Notes</label>${invoice.notes}</div>` : ''}
 </body>
 </html>`;
   }
+}
+
+function hasNotes(notes?: string | null): boolean {
+  if (!notes?.trim()) return false;
+  const text = notes
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\u00a0/g, ' ')
+    .trim();
+  return text.length > 0;
 }
 
 function escapeHtml(text: string): string {

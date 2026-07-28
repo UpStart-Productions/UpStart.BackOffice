@@ -87,7 +87,13 @@
           </div>
           <div class="form-field showcase-full">
             <label for="notes">Notes</label>
-            <textarea pTextarea id="notes" [(ngModel)]="form.notes" class="w-full" rows="2"></textarea>
+            <quill-editor
+              id="notes"
+              name="notes"
+              [(ngModel)]="form.notes"
+              placeholder="Invoice notes…"
+              [styles]="{ 'min-height': '120px' }"
+            ></quill-editor>
           </div>
         </div>
       </div>

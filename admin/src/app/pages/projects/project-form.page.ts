@@ -6,14 +6,15 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
+import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import {
@@ -55,11 +56,11 @@ type ProjectResponse = {
     MessageModule,
     TableModule,
     TagModule,
-    TextareaModule,
     ToggleSwitchModule,
     SelectModule,
     InputNumberModule,
     AccordionModule,
+    QuillModule,
     PageComponent,
     ArtifactsPanelComponent,
   ],
@@ -414,7 +415,7 @@ export class ProjectFormPage implements OnInit {
     return {
       clientId: this.form.clientId,
       name: this.form.name,
-      description: trim(this.form.description),
+      description: richTextOrUndefined(this.form.description),
       contactFirstName: trim(this.form.contactFirstName),
       contactLastName: trim(this.form.contactLastName),
       contactPhone: trim(this.form.contactPhone),
