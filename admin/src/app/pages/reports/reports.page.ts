@@ -35,6 +35,7 @@ import {
 } from './invoice-report-export.util';
 
 type Client = { id: string; name: string };
+type Project = { id: string; name: string; clientId: string };
 type User = { id: string; firstName?: string | null; lastName?: string | null; email: string };
 
 type TimeEntry = {
@@ -119,11 +120,13 @@ export class ReportsPage implements OnInit {
   error = signal<string | null>(null);
   periodLabel = signal<string | null>(null);
   hasRun = signal(false);
-  /** Client filter applied on the last successful run (empty = all clients). */
+  /** Client/project filters applied on the last successful run (empty = all). */
   private appliedClientId = signal('');
+  private appliedProjectId = signal('');
 
   clients = signal<Client[]>([]);
-  users = signal<User[]>([]);
+  projects = signal<Project[]>([]);
+  private filteredProjects = signal<Project[]>([]);
   isAdmin = signal(false);
 
   private readonly now = new Date();
@@ -142,7 +145,7 @@ export class ReportsPage implements OnInit {
     from: '',
     to: '',
     clientId: '' as string,
-    userId: '' as string,
+    projectId: '' as string,
   };
 
   private timeEntries = signal<TimeEntry[]>([]);
@@ -159,9 +162,9 @@ export class ReportsPage implements OnInit {
     ...this.clients().map((c) => ({ label: c.name, value: c.id })),
   ]);
 
-  readonly userOptions = computed(() => [
-    { label: 'All users', value: '' },
-    ...this.users().map((u) => ({ label: this.userLabel(u), value: u.id })),
+  readonly projectOptions = computed(() => [
+    { label: 'All projects', value: '' },
+    ...this.filteredProjects().map((p) => ({ label: p.name, value: p.id })),
   ]);
 
   readonly timeExportMenuItems: MenuItem[] = [
@@ -245,8 +248,10 @@ export class ReportsPage implements OnInit {
     };
   });
 
-  /** When one client is selected, show individual entries instead of project rollup. */
-  readonly showTimeEntryDetail = computed(() => Boolean(this.appliedClientId()));
+  /** When a client or project is selected, show individual entries instead of project rollup. */
+  readonly showTimeEntryDetail = computed(
+    () => Boolean(this.appliedClientId()) || Boolean(this.appliedProjectId()),
+  );
 
   readonly timeEntryRows = computed(() =>
     [...this.completedTimeEntries()]
@@ -317,14 +322,26 @@ export class ReportsPage implements OnInit {
     const me = await this.session.getReady();
     this.isAdmin.set(isAdminRole(me?.role ?? 'MEMBER'));
 
-    const [clients, usersResult] = await Promise.all([
+    const [clients, projects] = await Promise.all([
       this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
-      this.isAdmin()
-        ? this.api.get<{ users: User[] }>('/users').catch(() => ({ users: [] as User[] }))
-        : Promise.resolve({ users: [] as User[] }),
+      this.api.get<Project[]>('/projects').catch(() => [] as Project[]),
     ]);
     this.clients.set(clients);
-    this.users.set(usersResult.users);
+    this.projects.set(projects);
+    this.onClientChange();
+  }
+
+  onClientChange() {
+    const clientId = this.filters.clientId;
+    this.filteredProjects.set(
+      clientId ? this.projects().filter((p) => p.clientId === clientId) : this.projects(),
+    );
+    if (
+      this.filters.projectId &&
+      !this.filteredProjects().some((p) => p.id === this.filters.projectId)
+    ) {
+      this.filters.projectId = '';
+    }
   }
 
   async runReport() {
@@ -355,8 +372,8 @@ export class ReportsPage implements OnInit {
         from: bounds.from.toISOString(),
         to: bounds.to.toISOString(),
       });
-      if (this.filters.userId) {
-        params.set('userId', this.filters.userId);
+      if (this.filters.projectId) {
+        params.set('projectId', this.filters.projectId);
       }
 
       const [entries, invoices] = await Promise.all([
@@ -365,8 +382,13 @@ export class ReportsPage implements OnInit {
       ]);
 
       const clientId = this.filters.clientId;
+      const projectId = this.filters.projectId;
       this.timeEntries.set(
-        entries.filter((e) => !clientId || e.project.client.id === clientId),
+        entries.filter((e) => {
+          if (clientId && e.project.client.id !== clientId) return false;
+          if (projectId && e.project.id !== projectId) return false;
+          return true;
+        }),
       );
       this.invoices.set(
         invoices.filter((inv) => {
@@ -375,6 +397,7 @@ export class ReportsPage implements OnInit {
         }),
       );
       this.appliedClientId.set(clientId);
+      this.appliedProjectId.set(projectId);
       this.hasRun.set(true);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to run report');
@@ -607,9 +630,9 @@ export class ReportsPage implements OnInit {
       const client = this.clients().find((c) => c.id === this.filters.clientId);
       if (client) parts.push(`Client: ${client.name}`);
     }
-    if (this.filters.userId) {
-      const user = this.users().find((u) => u.id === this.filters.userId);
-      if (user) parts.push(`User: ${this.userLabel(user)}`);
+    if (this.filters.projectId) {
+      const project = this.projects().find((p) => p.id === this.filters.projectId);
+      if (project) parts.push(`Project: ${project.name}`);
     }
     return parts.length ? parts.join(' · ') : undefined;
   }

@@ -76,24 +76,23 @@
             optionLabel="label"
             optionValue="value"
             [(ngModel)]="filters.clientId"
+            (ngModelChange)="onClientChange()"
             styleClass="w-full"
             appendTo="body"
           />
         </div>
-        @if (isAdmin()) {
-          <div class="form-field report-filter-field">
-            <label for="reportUser">User</label>
-            <p-select
-              inputId="reportUser"
-              [options]="userOptions()"
-              optionLabel="label"
-              optionValue="value"
-              [(ngModel)]="filters.userId"
-              styleClass="w-full"
-              appendTo="body"
-            />
-          </div>
-        }
+        <div class="form-field report-filter-field">
+          <label for="reportProject">Project</label>
+          <p-select
+            inputId="reportProject"
+            [options]="projectOptions()"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="filters.projectId"
+            styleClass="w-full"
+            appendTo="body"
+          />
+        </div>
       </div>
       <div class="report-run-wrap">
         <button
