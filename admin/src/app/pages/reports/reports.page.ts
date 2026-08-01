@@ -10,9 +10,7 @@ import { SplitButtonModule } from 'primeng/splitbutton';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { isAdminRole } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
-import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { formatDurationMin } from '../time-entry/timesheet.utils';
@@ -105,7 +103,6 @@ type InvoiceClientRow = {
 })
 export class ReportsPage implements OnInit {
   private readonly api = inject(ApiService);
-  private readonly session = inject(SessionService);
 
   @ViewChild('totalChartRef') totalChartRef?: UIChart;
   @ViewChild('billableChartRef') billableChartRef?: UIChart;
@@ -127,7 +124,6 @@ export class ReportsPage implements OnInit {
   clients = signal<Client[]>([]);
   projects = signal<Project[]>([]);
   private filteredProjects = signal<Project[]>([]);
-  isAdmin = signal(false);
 
   private readonly now = new Date();
   readonly yearOptions = [
@@ -253,13 +249,18 @@ export class ReportsPage implements OnInit {
     () => Boolean(this.appliedClientId()) || Boolean(this.appliedProjectId()),
   );
 
+  /** Hide Project column when the report is already scoped to one project. */
+  readonly showProjectColumn = computed(() => !this.appliedProjectId());
+
+  /** Date + optional Project + Task/Description ahead of Duration/Billable. */
+  readonly timeEntryDetailLeadingColspan = computed(() => (this.showProjectColumn() ? 3 : 2));
+
   readonly timeEntryRows = computed(() =>
     [...this.completedTimeEntries()]
       .sort((a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime())
       .map((e) => ({
         id: e.id,
         startedAt: e.startedAt,
-        userName: e.user ? this.userLabel(e.user) : '—',
         projectName: e.project.name,
         taskName: e.projectTask?.name ?? '—',
         description: e.description?.trim() || '—',
@@ -319,9 +320,6 @@ export class ReportsPage implements OnInit {
   );
 
   async ngOnInit() {
-    const me = await this.session.getReady();
-    this.isAdmin.set(isAdminRole(me?.role ?? 'MEMBER'));
-
     const [clients, projects] = await Promise.all([
       this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
       this.api.get<Project[]>('/projects').catch(() => [] as Project[]),
@@ -635,11 +633,6 @@ export class ReportsPage implements OnInit {
       if (project) parts.push(`Project: ${project.name}`);
     }
     return parts.length ? parts.join(' · ') : undefined;
-  }
-
-  private userLabel(u: User): string {
-    const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
-    return name || u.email;
   }
 
   private pdfFilenameSegment(value: string): string {

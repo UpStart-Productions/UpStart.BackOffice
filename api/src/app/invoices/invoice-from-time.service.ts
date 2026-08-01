@@ -47,16 +47,6 @@ type TimeEntryForInvoice = Prisma.TimeEntryGetPayload<{
   };
 }>;
 
-type LineGroup = {
-  projectId: string;
-  projectName: string;
-  taskName: string | null;
-  unitPrice: number;
-  hours: number;
-  descriptions: string[];
-  timeEntryIds: string[];
-};
-
 @Injectable()
 export class InvoiceFromTimeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -93,7 +83,7 @@ export class InvoiceFromTimeService {
     });
 
     const missingRates: InvoicePreviewMissingRate[] = [];
-    const groupMap = new Map<string, LineGroup>();
+    const byProject = new Map<string, InvoicePreviewProject>();
 
     for (const entry of entries) {
       const rate = resolveHourlyRate(entry);
@@ -110,51 +100,30 @@ export class InvoiceFromTimeService {
       const hours = (entry.durationMin ?? 0) / 60;
       if (hours <= 0) continue;
 
-      const taskKey = entry.projectTaskId ?? '';
-      const key = `${entry.projectId}|${taskKey}|${rate}`;
-      let group = groupMap.get(key);
-      if (!group) {
-        group = {
-          projectId: entry.project.id,
-          projectName: entry.project.name,
-          taskName: entry.projectTask?.name ?? null,
-          unitPrice: rate,
-          hours: 0,
-          descriptions: [],
-          timeEntryIds: [],
-        };
-        groupMap.set(key, group);
-      }
-      group.hours += hours;
-      if (entry.description?.trim()) {
-        group.descriptions.push(entry.description.trim());
-      }
-      group.timeEntryIds.push(entry.id);
-    }
-
-    const byProject = new Map<string, InvoicePreviewProject>();
-
-    for (const group of groupMap.values()) {
-      const quantity = Math.round(group.hours * 100) / 100;
-      const amount = Math.round(quantity * group.unitPrice * 100) / 100;
+      const quantity = Math.round(hours * 100) / 100;
+      const amount = Math.round(quantity * rate * 100) / 100;
+      const description = entry.description?.trim() ?? '';
       const line: InvoicePreviewLine = {
-        projectId: group.projectId,
-        description: buildLineDescription(group.taskName, group.descriptions),
+        projectId: entry.project.id,
+        description: buildLineDescription(
+          entry.projectTask?.name ?? null,
+          description ? [description] : [],
+        ),
         quantity,
-        unitPrice: group.unitPrice,
+        unitPrice: rate,
         amount,
-        timeEntryIds: group.timeEntryIds,
+        timeEntryIds: [entry.id],
       };
 
-      let projectBlock = byProject.get(group.projectId);
+      let projectBlock = byProject.get(entry.project.id);
       if (!projectBlock) {
         projectBlock = {
-          projectId: group.projectId,
-          projectName: group.projectName,
+          projectId: entry.project.id,
+          projectName: entry.project.name,
           lines: [],
           subtotal: 0,
         };
-        byProject.set(group.projectId, projectBlock);
+        byProject.set(entry.project.id, projectBlock);
       }
       projectBlock.lines.push(line);
       projectBlock.subtotal = Math.round((projectBlock.subtotal + amount) * 100) / 100;

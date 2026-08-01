@@ -106,8 +106,21 @@
   margin-bottom: 1.5rem;
 }
 
+.report-entry-task-desc {
+  min-width: 12rem;
+}
+
+.report-entry-task {
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .report-entry-notes {
+  margin-top: 0.15rem;
   white-space: pre-wrap;
+  color: var(--text-color-secondary);
+  font-size: 0.9em;
+  line-height: 1.35;
 }
 
 .report-section-title + .report-table:last-child {

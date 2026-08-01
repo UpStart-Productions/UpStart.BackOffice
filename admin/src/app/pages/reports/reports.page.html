@@ -198,12 +198,10 @@
                 <ng-template pTemplate="header">
                   <tr>
                     <th>Date</th>
-                    @if (isAdmin()) {
-                      <th>User</th>
+                    @if (showProjectColumn()) {
+                      <th>Project</th>
                     }
-                    <th>Project</th>
-                    <th>Task</th>
-                    <th>Description</th>
+                    <th>Task / Description</th>
                     <th class="text-right">Duration</th>
                     <th>Billable</th>
                   </tr>
@@ -211,12 +209,15 @@
                 <ng-template pTemplate="body" let-row>
                   <tr>
                     <td>{{ formatDate(row.startedAt) }}</td>
-                    @if (isAdmin()) {
-                      <td>{{ row.userName }}</td>
+                    @if (showProjectColumn()) {
+                      <td>{{ row.projectName }}</td>
                     }
-                    <td>{{ row.projectName }}</td>
-                    <td>{{ row.taskName }}</td>
-                    <td class="report-entry-notes">{{ row.description }}</td>
+                    <td class="report-entry-task-desc">
+                      <div class="report-entry-task">{{ row.taskName }}</div>
+                      @if (row.description !== '—') {
+                        <div class="report-entry-notes">{{ row.description }}</div>
+                      }
+                    </td>
                     <td class="text-right font-semibold">{{ formatMin(row.durationMin) }}</td>
                     <td>
                       <p-tag
@@ -228,7 +229,7 @@
                 </ng-template>
                 <ng-template pTemplate="footer">
                   <tr>
-                    <td [attr.colspan]="isAdmin() ? 5 : 4" class="font-semibold">Total</td>
+                    <td [attr.colspan]="timeEntryDetailLeadingColspan()" class="font-semibold">Total</td>
                     <td class="text-right font-semibold">{{ formatMin(timeSummary().totalMin) }}</td>
                     <td class="font-semibold">
                       {{ formatMin(timeSummary().billableMin) }} billable
