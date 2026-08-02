@@ -106,6 +106,7 @@ export class InvoiceFromTimeService {
       const line: InvoicePreviewLine = {
         projectId: entry.project.id,
         description: buildLineDescription(
+          formatEntryDate(entry.startedAt),
           entry.projectTask?.name ?? null,
           description ? [description] : [],
         ),
@@ -183,13 +184,26 @@ function resolveHourlyRate(entry: TimeEntryForInvoice): number | null {
   return null;
 }
 
-function buildLineDescription(taskName: string | null, descriptions: string[]): string {
+/** MM/DD/YY for invoice line descriptions. */
+function formatEntryDate(d: Date): string {
+  return d.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: '2-digit',
+  });
+}
+
+function buildLineDescription(
+  dateLabel: string,
+  taskName: string | null,
+  descriptions: string[],
+): string {
   const uniqueDescs = [...new Set(descriptions)];
-  const parts: string[] = [];
-  if (taskName) parts.push(taskName);
+  const heading = taskName ? `${dateLabel} — ${taskName}` : dateLabel;
+  const parts: string[] = [heading];
   if (uniqueDescs.length) {
-    if (parts.length) parts.push('');
+    parts.push('');
     parts.push(...uniqueDescs);
   }
-  return parts.join('\n').trim() || taskName || 'Time';
+  return parts.join('\n').trim() || heading || 'Time';
 }
