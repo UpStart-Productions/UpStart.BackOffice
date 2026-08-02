@@ -10,6 +10,8 @@ export type InvoicePreviewLine = {
   unitPrice: number;
   amount: number;
   timeEntryIds: string[];
+  /** ISO timestamp of the time entry; used to sort newest-first on the invoice. */
+  startedAt: string;
 };
 
 export type InvoicePreviewProject = {
@@ -79,7 +81,7 @@ export class InvoiceFromTimeService {
         projectTask: { select: { id: true, name: true } },
         user: { select: { hourlyRate: true } },
       },
-      orderBy: [{ project: { name: 'asc' } }, { startedAt: 'asc' }],
+      orderBy: { startedAt: 'desc' },
     });
 
     const missingRates: InvoicePreviewMissingRate[] = [];
@@ -114,6 +116,7 @@ export class InvoiceFromTimeService {
         unitPrice: rate,
         amount,
         timeEntryIds: [entry.id],
+        startedAt: entry.startedAt.toISOString(),
       };
 
       let projectBlock = byProject.get(entry.project.id);
@@ -130,9 +133,17 @@ export class InvoiceFromTimeService {
       projectBlock.subtotal = Math.round((projectBlock.subtotal + amount) * 100) / 100;
     }
 
-    const projects = [...byProject.values()].sort((a, b) =>
-      a.projectName.localeCompare(b.projectName),
-    );
+    // Keep project blocks, but expose lines newest-first overall for invoice ordering.
+    const projects = [...byProject.values()]
+      .map((p) => ({
+        ...p,
+        lines: [...p.lines].sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
+      }))
+      .sort((a, b) => {
+        const aLatest = a.lines[0]?.startedAt ?? '';
+        const bLatest = b.lines[0]?.startedAt ?? '';
+        return bLatest.localeCompare(aLatest) || a.projectName.localeCompare(b.projectName);
+      });
     const subtotal = Math.round(projects.reduce((s, p) => s + p.subtotal, 0) * 100) / 100;
 
     return {

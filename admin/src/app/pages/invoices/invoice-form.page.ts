@@ -42,6 +42,7 @@ type InvoicePreview = {
       unitPrice: number;
       amount: number;
       timeEntryIds: string[];
+      startedAt: string;
     }>;
   }>;
   canGenerate: boolean;
@@ -296,19 +297,17 @@ export class InvoiceFormPage implements OnInit {
         return;
       }
 
-      const flat: LineItem[] = [];
-      for (const project of preview.projects) {
-        for (const line of project.lines) {
-          flat.push({
-            projectId: line.projectId,
-            description: line.description,
-            quantity: line.quantity,
-            unitPrice: line.unitPrice,
-            amount: line.amount,
-            timeEntryIds: line.timeEntryIds,
-          });
-        }
-      }
+      const flat = preview.projects
+        .flatMap((project) => project.lines)
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+        .map((line) => ({
+          projectId: line.projectId,
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          amount: line.amount,
+          timeEntryIds: line.timeEntryIds,
+        }));
       this.lineItems.set(flat);
       this.generateMessage.set(
         `Loaded ${flat.length} line${flat.length === 1 ? '' : 's'} from time (${preview.period.label}). Review and edit before saving.`,

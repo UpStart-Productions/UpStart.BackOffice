@@ -202,9 +202,8 @@ function buildProjectSections(lineItems: LineItem[]): string {
     group.items.push(item);
   }
 
-  const groups = [...groupMap.values()].sort((a, b) =>
-    a.projectName.localeCompare(b.projectName),
-  );
+  // Preserve line-item order (newest-first) for both project section order and rows within.
+  const groups = [...groupMap.values()];
 
   return groups.map((group) => {
     const rows = group.items.map((item) => `
