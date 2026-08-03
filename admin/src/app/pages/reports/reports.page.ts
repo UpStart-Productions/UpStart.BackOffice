@@ -331,9 +331,12 @@ export class ReportsPage implements OnInit {
 
   onClientChange() {
     const clientId = this.filters.clientId;
-    this.filteredProjects.set(
-      clientId ? this.projects().filter((p) => p.clientId === clientId) : this.projects(),
-    );
+    if (!clientId) {
+      this.filteredProjects.set([]);
+      this.filters.projectId = '';
+      return;
+    }
+    this.filteredProjects.set(this.projects().filter((p) => p.clientId === clientId));
     if (
       this.filters.projectId &&
       !this.filteredProjects().some((p) => p.id === this.filters.projectId)

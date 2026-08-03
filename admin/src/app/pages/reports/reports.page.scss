@@ -106,8 +106,44 @@
   margin-bottom: 1.5rem;
 }
 
+.report-total-row > td {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: var(--surface-100, #f4f4f5);
+  border-top: 2px solid var(--surface-300, #d4d4d8);
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.report-table--time-entries {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.report-col-date {
+  width: 8.5rem;
+  white-space: nowrap;
+}
+
+.report-col-project {
+  width: 10rem;
+}
+
+.report-col-duration {
+  width: 6.5rem;
+  white-space: nowrap;
+}
+
+.report-col-billable {
+  width: 6.5rem;
+  white-space: nowrap;
+}
+
+.report-col-task-desc,
 .report-entry-task-desc {
-  min-width: 12rem;
+  width: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .report-entry-task {
@@ -118,6 +154,8 @@
 .report-entry-notes {
   margin-top: 0.15rem;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   color: var(--text-color-secondary);
   font-size: 0.9em;
   line-height: 1.35;

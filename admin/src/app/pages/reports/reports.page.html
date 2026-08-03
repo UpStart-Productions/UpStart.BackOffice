@@ -4,7 +4,10 @@
 
     <div class="report-filters">
       <div class="report-filters-row">
-        <div class="form-field report-filter-field">
+        <div
+          class="form-field report-filter-field"
+          title="Choose month, quarter, or a custom date range"
+        >
           <label for="reportPeriodType">Period</label>
           <p-select
             inputId="reportPeriodType"
@@ -16,7 +19,10 @@
             appendTo="body"
           />
         </div>
-        <div class="form-field report-filter-field">
+        <div
+          class="form-field report-filter-field"
+          title="Calendar year for the selected period"
+        >
           <label for="reportYear">Year</label>
           <p-select
             inputId="reportYear"
@@ -28,47 +34,56 @@
         </div>
         <div class="form-field report-filter-field report-filter-field--period-detail">
           @if (filters.periodType === 'month') {
-            <label for="reportMonth">Month</label>
-            <p-select
-              inputId="reportMonth"
-              [options]="months"
-              optionLabel="label"
-              optionValue="value"
-              [(ngModel)]="filters.month"
-              styleClass="w-full"
-              appendTo="body"
-            />
+            <div title="Month within the selected year">
+              <label for="reportMonth">Month</label>
+              <p-select
+                inputId="reportMonth"
+                [options]="months"
+                optionLabel="label"
+                optionValue="value"
+                [(ngModel)]="filters.month"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
           } @else if (filters.periodType === 'quarter') {
-            <label for="reportQuarter">Quarter</label>
-            <p-select
-              inputId="reportQuarter"
-              [options]="quarters"
-              optionLabel="label"
-              optionValue="value"
-              [(ngModel)]="filters.quarter"
-              styleClass="w-full"
-              appendTo="body"
-            />
+            <div title="Quarter within the selected year">
+              <label for="reportQuarter">Quarter</label>
+              <p-select
+                inputId="reportQuarter"
+                [options]="quarters"
+                optionLabel="label"
+                optionValue="value"
+                [(ngModel)]="filters.quarter"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
           } @else {
-            <span class="report-range-label" id="reportRangeLabel">Date range</span>
-            <div class="report-date-range" aria-labelledby="reportRangeLabel">
-              <app-date-input
-                inputId="reportFrom"
-                [(ngModel)]="filters.from"
-                ariaLabel="From date"
-                placeholder="From"
-              />
-              <span class="text-muted">to</span>
-              <app-date-input
-                inputId="reportTo"
-                [(ngModel)]="filters.to"
-                ariaLabel="To date"
-                placeholder="To"
-              />
+            <div title="Inclusive start and end dates for the custom range">
+              <span class="report-range-label" id="reportRangeLabel">Date range</span>
+              <div class="report-date-range" aria-labelledby="reportRangeLabel">
+                <app-date-input
+                  inputId="reportFrom"
+                  [(ngModel)]="filters.from"
+                  ariaLabel="From date"
+                  placeholder="From"
+                />
+                <span class="text-muted">to</span>
+                <app-date-input
+                  inputId="reportTo"
+                  [(ngModel)]="filters.to"
+                  ariaLabel="To date"
+                  placeholder="To"
+                />
+              </div>
             </div>
           }
         </div>
-        <div class="form-field report-filter-field">
+        <div
+          class="form-field report-filter-field"
+          title="Limit time and invoices to one client. Select a client to also filter by project."
+        >
           <label for="reportClient">Client</label>
           <p-select
             inputId="reportClient"
@@ -81,18 +96,23 @@
             appendTo="body"
           />
         </div>
-        <div class="form-field report-filter-field">
-          <label for="reportProject">Project</label>
-          <p-select
-            inputId="reportProject"
-            [options]="projectOptions()"
-            optionLabel="label"
-            optionValue="value"
-            [(ngModel)]="filters.projectId"
-            styleClass="w-full"
-            appendTo="body"
-          />
-        </div>
+        @if (filters.clientId) {
+          <div
+            class="form-field report-filter-field"
+            title="Limit time entries to one project for this client"
+          >
+            <label for="reportProject">Project</label>
+            <p-select
+              inputId="reportProject"
+              [options]="projectOptions()"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="filters.projectId"
+              styleClass="w-full"
+              appendTo="body"
+            />
+          </div>
+        }
       </div>
       <div class="report-run-wrap">
         <button
@@ -101,6 +121,7 @@
           label="Run report"
           icon="pi pi-play"
           [loading]="loading()"
+          title="Load time and invoice data for the selected filters"
           (click)="runReport()"
         ></button>
       </div>
@@ -116,8 +137,8 @@
 
     <p-tabs [(value)]="activeTab" class="report-tabs">
       <p-tablist>
-        <p-tab [value]="0">Time</p-tab>
-        <p-tab [value]="1">Invoices</p-tab>
+        <p-tab [value]="0" title="Hours worked in the selected period">Time</p-tab>
+        <p-tab [value]="1" title="Invoices issued in the selected period">Invoices</p-tab>
       </p-tablist>
       <p-tabpanels>
         <p-tabpanel [value]="0">
@@ -135,6 +156,7 @@
                   [outlined]="true"
                   [model]="timeExportMenuItems"
                   [disabled]="exporting()"
+                  title="Download this time report as PDF or Excel"
                   (onClick)="exportTimeReportPdf()"
                 />
               </div>
@@ -194,32 +216,32 @@
               <p class="text-muted">No completed time entries in this period.</p>
             } @else if (showTimeEntryDetail()) {
               <h3 class="report-section-title">Time entries</h3>
-              <p-table [value]="timeEntryRows()" styleClass="table-bordered report-table">
+              <p-table [value]="timeEntryRows()" styleClass="table-bordered report-table report-table--time-entries">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th>Date</th>
+                    <th class="report-col-date">Date</th>
                     @if (showProjectColumn()) {
-                      <th>Project</th>
+                      <th class="report-col-project">Project</th>
                     }
-                    <th>Task / Description</th>
-                    <th class="text-right">Duration</th>
-                    <th>Billable</th>
+                    <th class="report-col-task-desc">Task / Description</th>
+                    <th class="report-col-duration text-right">Duration</th>
+                    <th class="report-col-billable">Billable</th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-row>
                   <tr>
-                    <td>{{ formatDate(row.startedAt) }}</td>
+                    <td class="report-col-date">{{ formatDate(row.startedAt) }}</td>
                     @if (showProjectColumn()) {
-                      <td>{{ row.projectName }}</td>
+                      <td class="report-col-project">{{ row.projectName }}</td>
                     }
-                    <td class="report-entry-task-desc">
+                    <td class="report-entry-task-desc report-col-task-desc">
                       <div class="report-entry-task">{{ row.taskName }}</div>
                       @if (row.description !== '—') {
                         <div class="report-entry-notes">{{ row.description }}</div>
                       }
                     </td>
-                    <td class="text-right font-semibold">{{ formatMin(row.durationMin) }}</td>
-                    <td>
+                    <td class="report-col-duration text-right font-semibold">{{ formatMin(row.durationMin) }}</td>
+                    <td class="report-col-billable">
                       <p-tag
                         [value]="row.billable ? 'Yes' : 'No'"
                         [severity]="row.billable ? 'success' : 'secondary'"
@@ -228,12 +250,10 @@
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="footer">
-                  <tr>
-                    <td [attr.colspan]="timeEntryDetailLeadingColspan()" class="font-semibold">Total</td>
-                    <td class="text-right font-semibold">{{ formatMin(timeSummary().totalMin) }}</td>
-                    <td class="font-semibold">
-                      {{ formatMin(timeSummary().billableMin) }} billable
-                    </td>
+                  <tr class="report-total-row">
+                    <td [attr.colspan]="timeEntryDetailLeadingColspan()">Total</td>
+                    <td class="text-right">{{ formatMin(timeSummary().totalMin) }}</td>
+                    <td></td>
                   </tr>
                 </ng-template>
               </p-table>
@@ -261,12 +281,12 @@
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="footer">
-                  <tr>
-                    <td colspan="2" class="font-semibold">Total</td>
-                    <td class="text-right font-semibold">{{ formatMin(timeSummary().totalMin) }}</td>
-                    <td class="text-right font-semibold">{{ formatMin(timeSummary().billableMin) }}</td>
-                    <td class="text-right font-semibold">{{ formatMin(timeSummary().nonBillableMin) }}</td>
-                    <td class="text-right font-semibold">{{ timeSummary().entryCount }}</td>
+                  <tr class="report-total-row">
+                    <td colspan="2">Total</td>
+                    <td class="text-right">{{ formatMin(timeSummary().totalMin) }}</td>
+                    <td class="text-right">{{ formatMin(timeSummary().billableMin) }}</td>
+                    <td class="text-right">{{ formatMin(timeSummary().nonBillableMin) }}</td>
+                    <td class="text-right">{{ timeSummary().entryCount }}</td>
                   </tr>
                 </ng-template>
               </p-table>
@@ -289,6 +309,7 @@
                   [outlined]="true"
                   [model]="invoiceExportMenuItems"
                   [disabled]="exporting()"
+                  title="Download this invoice report as PDF or Excel"
                   (onClick)="exportInvoiceReportPdf()"
                 />
               </div>
@@ -339,10 +360,10 @@
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="footer">
-                  <tr>
-                    <td class="font-semibold">Total</td>
-                    <td class="text-right font-semibold">{{ invoiceSummary().count }}</td>
-                    <td class="text-right font-semibold">{{ formatAmount(invoiceSummary().total) }}</td>
+                  <tr class="report-total-row">
+                    <td>Total</td>
+                    <td class="text-right">{{ invoiceSummary().count }}</td>
+                    <td class="text-right">{{ formatAmount(invoiceSummary().total) }}</td>
                     <td colspan="3"></td>
                   </tr>
                 </ng-template>
