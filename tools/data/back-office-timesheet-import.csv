@@ -1,0 +1,64 @@
+date,client,project,task,description,duration_hours,billable
+2026-02-06,Love INC,Nonprofit Mobile Platform,Development,"Nx monorepo setup, Postgres/Prisma, initial schema and seed",2,yes
+2026-02-06,Love INC,Nonprofit Mobile Platform,Development,"Multi-customer and multi-affiliate (tenant) architecture with scoped queries",3,yes
+2026-02-06,Love INC,Nonprofit Mobile Platform,Development,"Dev runner, Swagger API docs, structured logging, audit logging",2,yes
+2026-02-07,Love INC,Nonprofit Mobile Platform,Development,"Admin shell (PrimeNG), routing, tenant and customer picker",2,yes
+2026-02-07,Love INC,Nonprofit Mobile Platform,Development,"Shared libs: schedule engine, upload module, shared types",2,yes
+2026-02-08,Love INC,Nonprofit Mobile Platform,Development,"User CRUD, first/last name split, avatar uploads",2,yes
+2026-02-08,Love INC,Nonprofit Mobile Platform,Development,"Role system: super admin, customer admin, affiliate admin",2,yes
+2026-02-08,Love INC,Nonprofit Mobile Platform,Development,"Mobile app config: branding upload, navigation, localization",3,yes
+2026-02-09,Love INC,Nonprofit Mobile Platform,Development,"Organization profile module (Quill, partner info, focus areas)",3,yes
+2026-02-10,Love INC,Nonprofit Mobile Platform,Development,"Affiliate create/edit and tenants-to-affiliates terminology rename",2,yes
+2026-02-10,Love INC,Nonprofit Mobile Platform,Development,"Events module: CRUD and schedule rules",2,yes
+2026-02-10,Love INC,Nonprofit Mobile Platform,Development,"Quill rich text editor integration",1,yes
+2026-02-11,Love INC,Nonprofit Mobile Platform,Development,"Classes module: CRUD, instructors, schedule",2,yes
+2026-02-11,Love INC,Nonprofit Mobile Platform,Development,"Locations module and multi-file upload",2,yes
+2026-02-12,Love INC,Nonprofit Mobile Platform,Development,"Services and provider offerings: CRUD and slugs",2,yes
+2026-02-12,Love INC,Nonprofit Mobile Platform,Development,"People list, typeahead, initial volunteer positions",2,yes
+2026-02-13,Love INC,Nonprofit Mobile Platform,Development,"CTAs module and global table improvements",2,yes
+2026-02-13,Love INC,Nonprofit Mobile Platform,Development,"Dashboard widgets including calendar widget",2,yes
+2026-02-14,Love INC,Nonprofit Mobile Platform,Development,"Public API controllers and API key authentication",2,yes
+2026-02-15,Love INC,Nonprofit Mobile Platform,Development,"Impact stories and drag-and-drop app home feed",2,yes
+2026-02-16,Love INC,Nonprofit Mobile Platform,Development,"S3 storage integration and file upload pipeline",2,yes
+2026-02-17,Love INC,Nonprofit Mobile Platform,Development,"Cognito and Google OAuth integration",3,yes
+2026-02-18,Love INC,Nonprofit Mobile Platform,Development,"Docker (API, DB, nginx), EC2 deployment plan, CI/CD pipeline",4,yes
+2026-02-18,Love INC,Nonprofit Mobile Platform,Development,"Login, logout, and CORS fixes",1,yes
+2026-02-19,Love INC,Nonprofit Mobile Platform,Development,"CLI tools for super user creation and invites",1,yes
+2026-02-20,Love INC,Nonprofit Mobile Platform,Development,"Login polish, favicon, color palette updates",1,yes
+2026-02-21,Love INC,Nonprofit Mobile Platform,Development,"User avatars to S3, Quill in org and affiliate forms",2,yes
+2026-02-22,Love INC,Nonprofit Mobile Platform,Development,"File upload fixes and S3 production configuration",2,yes
+2026-02-23,Love INC,Nonprofit Mobile Platform,Development,"Form validation, 508 color compliance, email message templates",2,yes
+2026-02-23,Love INC,Nonprofit Mobile Platform,Development,"Class attachments in API and recurring events schedule fix",1,yes
+2026-02-24,Love INC,Nonprofit Mobile Platform,Development,"Donations module: admin UI and public API endpoint",2,yes
+2026-02-25,Love INC,Nonprofit Mobile Platform,Development,"Volunteer positions on donations, events, classes, and services",2,yes
+2026-02-26,Love INC,Nonprofit Mobile Platform,Development,"In-app notifications stub and app messaging",2,yes
+2026-02-26,Love INC,Nonprofit Mobile Platform,Development,"Enhanced volunteer API and public volunteer endpoints",2,yes
+2026-02-27,Love INC,Nonprofit Mobile Platform,Development,"Notification polling and CORS resolution",2,yes
+2026-02-28,Love INC,Nonprofit Mobile Platform,Development,"Global search across admin",1,yes
+2026-03-03,Love INC,Nonprofit Mobile Platform,Development,"Push notification client integration and environment setup",2,yes
+2026-03-04,Love INC,Nonprofit Mobile Platform,Development,"Push notifications: SNS topics, deep links, production wrap-up",3,yes
+2026-03-05,Love INC,Nonprofit Mobile Platform,Development,"Client access settings and public endpoint",2,yes
+2026-03-05,Love INC,Nonprofit Mobile Platform,Development,"I need assistance intake data capture",2,yes
+2026-03-06,Love INC,Nonprofit Mobile Platform,Development,"Impersonation, vouchers initial stub, production deploy fixes",2,yes
+2026-03-09,Love INC,Nonprofit Mobile Platform,Development,"Voucher and intake POST endpoints, app user linking",2,yes
+2026-03-10,Love INC,Nonprofit Mobile Platform,Development,"Switch email provider from Resend to AWS SES",1,yes
+2026-03-10,Love INC,Nonprofit Mobile Platform,Development,"Email templates, app user context menu and delete",2,yes
+2026-03-11,Love INC,Nonprofit Mobile Platform,Development,"Voucher edits and photos, address format changes",2,yes
+2026-03-12,Love INC,Nonprofit Mobile Platform,Development,"App users UI, vouchers UI, volunteer module stub",3,yes
+2026-03-12,Love INC,Nonprofit Mobile Platform,Development,"Email messaging: recipient selection and send functionality",2,yes
+2026-03-12,Love INC,Nonprofit Mobile Platform,Development,"Dashboard improvements and voucher table bug fixes",1,yes
+2026-03-13,Love INC,Nonprofit Mobile Platform,Development,"Responsive mobile layout and volunteer affiliate attachment",2,yes
+2026-03-13,Love INC,Nonprofit Mobile Platform,Development,"Org name in external emails and notifications",1,yes
+2026-03-15,Love INC,Nonprofit Mobile Platform,Development,"CTA impact stories, provider API changes, photo upload",2,yes
+2026-03-19,Love INC,Nonprofit Mobile Platform,Development,"Provider list and detail screen photos",1,yes
+2026-03-28,Love INC,Nonprofit Mobile Platform,Development,"UI polish: end date alignment, Deny to Decline label",1,yes
+2026-04-01,Love INC,Nonprofit Mobile Platform,Development,"Quill toolbar button and modal tweaks",1,yes
+2026-04-07,Love INC,Nonprofit Mobile Platform,Development,"Class registration schema and form edits",3,yes
+2026-04-08,Love INC,Nonprofit Mobile Platform,Development,"Class roster stub, registrant table and PDF export",2,yes
+2026-04-23,Love INC,Nonprofit Mobile Platform,Development,"Team module stub-out",2,yes
+2026-04-24,Love INC,Nonprofit Mobile Platform,Development,"People module updates",1,yes
+2026-05-06,Love INC,Nonprofit Mobile Platform,Development,"Quill image upload fix",1,yes
+2026-05-08,Love INC,Nonprofit Mobile Platform,Development,"Super user dashboard and user add/edit screen",2,yes
+2026-05-08,Love INC,Nonprofit Mobile Platform,Development,"Support requests stub, CTA date display, notification dedup",2,yes
+2026-05-22,Love INC,Nonprofit Mobile Platform,Development,"Help and feedback form, Google Analytics tracking",2,yes
+2026-06-22,Love INC,Nonprofit Mobile Platform,Development,"Help drawer content stub",1,yes

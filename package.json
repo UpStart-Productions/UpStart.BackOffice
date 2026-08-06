@@ -12,6 +12,7 @@
     "invite-user": "tsx tools/invite-user.ts",
     "test-ses": "tsx tools/test-ses.ts",
     "backfill-storage-folders": "tsx tools/backfill-storage-folders.ts",
+    "import-timesheet": "tsx tools/import-timesheet.ts",
     "dev:api": "node scripts/kill-dev-ports.js && npx nx serve api",
     "dev:admin": "npx nx serve admin",
     "dev:reset": "npx prisma migrate deploy && npx prisma generate && npx prisma db seed"

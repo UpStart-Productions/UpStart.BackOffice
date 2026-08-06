@@ -53,7 +53,26 @@
           ></button>
         }
       </div>
-      <button type="button" pButton label="+ Track time" (click)="openTrackTimeModal()"></button>
+      <div class="timesheet-actions">
+        <button
+          type="button"
+          pButton
+          label="Import CSV"
+          icon="pi pi-upload"
+          severity="secondary"
+          [outlined]="true"
+          [loading]="importing()"
+          (click)="triggerCsvPicker()"
+        ></button>
+        <input
+          #csvFileInput
+          type="file"
+          accept=".csv"
+          hidden
+          (change)="onCsvSelected($event)"
+        />
+        <button type="button" pButton label="+ Track time" (click)="openTrackTimeModal()"></button>
+      </div>
     </div>
 
     <div class="week-bar">

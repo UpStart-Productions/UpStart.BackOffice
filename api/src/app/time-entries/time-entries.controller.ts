@@ -20,7 +20,13 @@ import { UserContext } from '../common/app.types';
 import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
+import { ImportTimesheetDto } from './dto/import-timesheet.dto';
 import { UpdateTimeEntryDto } from './dto/update-time-entry.dto';
+import {
+  compareNames,
+  parseTimesheetCsv,
+  startedStoppedAt,
+} from './timesheet-csv.util';
 
 function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
   return Math.round((stoppedAt.getTime() - startedAt.getTime()) / 60000);
@@ -83,6 +89,87 @@ export class TimeEntriesController {
       include: entryInclude,
       orderBy: { startedAt: 'desc' },
     });
+  }
+
+  @Post('import')
+  async importCsv(@Req() req: Request, @Body() dto: ImportTimesheetDto) {
+    const user = req.user as UserContext;
+    let csvText: string;
+    try {
+      csvText = Buffer.from(dto.fileBase64, 'base64').toString('utf-8');
+    } catch {
+      throw new BadRequestException('Invalid file data');
+    }
+
+    let rows;
+    try {
+      rows = parseTimesheetCsv(csvText);
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'Invalid CSV');
+    }
+
+    const projects = await this.prisma.project.findMany({
+      where: { isActive: true },
+      include: {
+        client: { select: { id: true, name: true } },
+        tasks: { where: { isActive: true } },
+      },
+    });
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      let count = 0;
+      for (const row of rows) {
+        const project = projects.find(
+          (p) => compareNames(p.name, row.project) && compareNames(p.client.name, row.client),
+        );
+        if (!project) {
+          throw new BadRequestException(
+            `No project "${row.project}" under client "${row.client}" (${row.date}). Create it in Back Office first.`,
+          );
+        }
+
+        let projectTaskId: string | undefined;
+        if (row.task) {
+          const task = project.tasks.find((t) => compareNames(t.name, row.task));
+          if (!task) {
+            throw new BadRequestException(
+              `No task "${row.task}" on project "${row.project}" (${row.date}). Add it under Project → Tasks.`,
+            );
+          }
+          projectTaskId = task.id;
+        } else if (project.tasks.length > 0) {
+          throw new BadRequestException(
+            `Task is required for project "${row.project}" (${row.date})`,
+          );
+        }
+
+        const isBillable = await resolveTimeEntryBillable(
+          this.prisma,
+          project.id,
+          projectTaskId,
+          row.isBillable,
+        );
+        const { startedAt, stoppedAt } = startedStoppedAt(row.date, row.durationHours);
+        const durationMin = Math.round(row.durationHours * 60);
+
+        await tx.timeEntry.create({
+          data: {
+            userId: user.id,
+            projectId: project.id,
+            projectTaskId,
+            description: row.description || undefined,
+            startedAt,
+            stoppedAt,
+            durationMin,
+            isBillable,
+          },
+        });
+        count++;
+      }
+      return count;
+    });
+
+    return { imported: created, total: rows.length };
   }
 
   @Post()

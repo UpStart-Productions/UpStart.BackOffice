@@ -1,13 +1,16 @@
 import {
   Component,
   computed,
+  ElementRef,
   inject,
   OnDestroy,
   OnInit,
   signal,
   viewChild,
+  ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -45,7 +48,10 @@ import {
 })
 export class TimeEntryListPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly toast = inject(MessageService);
   private readonly modal = viewChild.required(TimeEntryModalComponent);
+
+  @ViewChild('csvFileInput') csvFileInput?: ElementRef<HTMLInputElement>;
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private readonly tick = signal(0);
@@ -54,6 +60,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   projects = signal<Project[]>([]);
   asanaConnected = signal(false);
   loading = signal(true);
+  importing = signal(false);
   error = signal<string | null>(null);
   saving = signal(false);
 
@@ -274,6 +281,50 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       asanaConnected: this.asanaConnected(),
     });
     if (result !== 'cancelled') await this.loadWeek();
+  }
+
+  triggerCsvPicker() {
+    this.csvFileInput?.nativeElement.click();
+  }
+
+  async onCsvSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.importing.set(true);
+    this.error.set(null);
+    try {
+      const fileBase64 = await this.fileToBase64(file);
+      const result = await this.api.post<{ imported: number; total: number }>(
+        '/time-entries/import',
+        { fileBase64 },
+      );
+      this.toast.add({
+        severity: 'success',
+        summary: 'Import complete',
+        detail: `Imported ${result.imported} time entr${result.imported === 1 ? 'y' : 'ies'}.`,
+        life: 6000,
+      });
+      await this.loadWeek();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Import failed');
+    } finally {
+      this.importing.set(false);
+      input.value = '';
+    }
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.includes(',') ? result.split(',')[1]! : result);
+      };
+      reader.onerror = () => reject(reader.error ?? new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
   }
 
   async openEditModal(entry: TimeEntry) {
