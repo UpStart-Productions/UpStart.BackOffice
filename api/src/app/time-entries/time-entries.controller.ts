@@ -143,12 +143,14 @@ export class TimeEntriesController {
           );
         }
 
-        const isBillable = await resolveTimeEntryBillable(
-          this.prisma,
-          project.id,
-          projectTaskId,
-          row.isBillable,
-        );
+        const isBillable = row.isBillable
+          ? await resolveTimeEntryBillable(
+              this.prisma,
+              project.id,
+              projectTaskId,
+              true,
+            )
+          : false;
         const { startedAt, stoppedAt } = startedStoppedAt(row.date, row.durationHours);
         const durationMin = Math.round(row.durationHours * 60);
 

@@ -14,7 +14,7 @@
  * - billable: yes/no, true/false, or 1/0
  *
  * Usage:
- *   npm run import-timesheet -- --csv data/back-office-timesheet-import.csv --user you@example.com
+ *   npm run import-timesheet -- --csv tools/data/timesheet-import.csv --user you@example.com
  *   npm run import-timesheet -- --all --user you@example.com
  *   npm run import-timesheet -- --all --user you@example.com --dry-run
  */
@@ -216,7 +216,7 @@ function compareNames(a: string, b: string): boolean {
 
 function resolveCsvPaths(args: ReturnType<typeof parseArgs>): string[] {
   if (args.all) {
-    const dataDir = path.resolve(__dirname, '../data');
+    const dataDir = path.resolve(__dirname, 'data');
     if (!fs.existsSync(dataDir)) {
       throw new Error(`Data directory not found: ${dataDir}`);
     }
