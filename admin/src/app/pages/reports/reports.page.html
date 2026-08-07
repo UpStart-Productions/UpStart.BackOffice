@@ -19,19 +19,21 @@
             appendTo="body"
           />
         </div>
-        <div
-          class="form-field report-filter-field"
-          title="Calendar year for the selected period"
-        >
-          <label for="reportYear">Year</label>
-          <p-select
-            inputId="reportYear"
-            [options]="yearOptions"
-            [(ngModel)]="filters.year"
-            styleClass="w-full"
-            appendTo="body"
-          />
-        </div>
+        @if (filters.periodType !== 'custom') {
+          <div
+            class="form-field report-filter-field"
+            title="Calendar year for the selected period"
+          >
+            <label for="reportYear">Year</label>
+            <p-select
+              inputId="reportYear"
+              [options]="yearOptions"
+              [(ngModel)]="filters.year"
+              styleClass="w-full"
+              appendTo="body"
+            />
+          </div>
+        }
         <div class="form-field report-filter-field report-filter-field--period-detail">
           @if (filters.periodType === 'month') {
             <div title="Month within the selected year">

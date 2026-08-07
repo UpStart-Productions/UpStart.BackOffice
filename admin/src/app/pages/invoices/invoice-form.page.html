@@ -135,16 +135,18 @@
                   appendTo="body"
                 />
               </div>
-              <div class="form-field invoice-period-field">
-                <label for="periodYear">Year</label>
-                <p-select
-                  inputId="periodYear"
-                  [options]="yearOptions"
-                  [(ngModel)]="generate.year"
-                  styleClass="w-full"
-                  appendTo="body"
-                />
-              </div>
+              @if (generate.periodType !== 'custom') {
+                <div class="form-field invoice-period-field">
+                  <label for="periodYear">Year</label>
+                  <p-select
+                    inputId="periodYear"
+                    [options]="yearOptions"
+                    [(ngModel)]="generate.year"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+              }
               <div class="form-field invoice-period-field">
                 @if (generate.periodType === 'month') {
                   <label for="periodMonth">Month</label>
