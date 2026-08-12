@@ -7,6 +7,8 @@ services:
       POSTGRES_USER: ubo
       POSTGRES_PASSWORD: ubo
       POSTGRES_DB: ubo
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - ubo_pgdata_prod:/var/lib/postgresql/data
     healthcheck:
