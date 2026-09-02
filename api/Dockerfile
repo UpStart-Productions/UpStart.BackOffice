@@ -46,8 +46,12 @@ COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/dist/api/package.json ./package.json
 COPY --from=builder /app/dist/api/package-lock.json ./package-lock.json
 
-# Install runtime deps + prisma CLI (migrations) + tsx (seed) + SES client (pruner may miss it)
-RUN npm ci --omit=dev && npm install prisma tsx @aws-sdk/client-ses --no-save
+# Install runtime deps + prisma CLI (migrations) + tsx (seed) + SES client (pruner may miss it).
+# Pin prisma to the same version as @prisma/client. An unpinned `npm install prisma`
+# pulled Prisma 8 RC and broke `migrate deploy` (2026-09-02 prod outage).
+RUN npm ci --omit=dev \
+  && PRISMA_VERSION="$(node -p "require('./package.json').dependencies['@prisma/client']")" \
+  && npm install "prisma@${PRISMA_VERSION}" tsx @aws-sdk/client-ses --no-save
 
 # Copy generated Prisma client from builder (avoids needing DATABASE_URL in runner)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

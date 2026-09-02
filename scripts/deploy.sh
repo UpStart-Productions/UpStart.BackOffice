@@ -40,4 +40,21 @@ fi
 echo "Starting containers..."
 docker compose -f docker-compose.prod.yml up -d
 
+echo "Waiting for API health..."
+HEALTHY=false
+for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  if curl -sf http://127.0.0.1/api/health >/dev/null; then
+    HEALTHY=true
+    break
+  fi
+  echo "  attempt $i/12..."
+  sleep 5
+done
+if [ "$HEALTHY" != "true" ]; then
+  echo "ERROR: API did not become healthy"
+  docker compose -f docker-compose.prod.yml ps -a
+  docker compose -f docker-compose.prod.yml logs --tail=80 api
+  exit 1
+fi
+
 echo "Deploy complete."
