@@ -199,12 +199,13 @@ type SendRecipients = {
                 <p-select
                   inputId="invoiceSendProjectContact"
                   [options]="projectContactOptions()"
-                  optionValue="projectId"
-                  [(ngModel)]="selectedProjectId"
+                  optionValue="email"
+                  [(ngModel)]="selectedContactEmail"
                   [disabled]="recipientType !== 'project'"
                   placeholder="Select project contact"
                   styleClass="w-full invoice-send-project-select"
                   panelStyleClass="invoice-send-project-select-panel"
+                  appendTo="body"
                 >
                   <ng-template #selectedItem let-option>
                     @if (option) {
@@ -299,7 +300,7 @@ export class InvoiceSendDialogComponent {
   activeRequest = signal<InvoiceSendDialogRequest | null>(null);
 
   recipientType: RecipientType = 'custom';
-  selectedProjectId = '';
+  selectedContactEmail = '';
   customEmail = '';
 
   readonly projectContactOptions = signal<ProjectContact[]>([]);
@@ -333,7 +334,7 @@ export class InvoiceSendDialogComponent {
     this.sendError.set(null);
     this.recipients.set(null);
     this.recipientType = 'custom';
-    this.selectedProjectId = '';
+    this.selectedContactEmail = '';
     this.customEmail = '';
 
     try {
@@ -395,7 +396,7 @@ export class InvoiceSendDialogComponent {
     }
     if (data.projectContacts.length >= 1) {
       this.recipientType = 'project';
-      this.selectedProjectId = data.projectContacts[0].projectId;
+      this.selectedContactEmail = data.projectContacts[0].email;
       return;
     }
     this.recipientType = 'custom';
@@ -412,7 +413,9 @@ export class InvoiceSendDialogComponent {
     }
 
     if (this.recipientType === 'project') {
-      const contact = data.projectContacts.find((c) => c.projectId === this.selectedProjectId);
+      const contact = data.projectContacts.find(
+        (c) => c.email === this.selectedContactEmail,
+      );
       if (!contact || !this.isValidEmail(contact.email)) return null;
       return {
         to: contact.email.trim(),

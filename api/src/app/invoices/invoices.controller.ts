@@ -22,9 +22,14 @@ import { PdfService } from './pdf.service';
 const projectContactSelect = {
   id: true,
   name: true,
-  contactEmail: true,
-  contactFirstName: true,
-  contactLastName: true,
+  contacts: {
+    select: {
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+    orderBy: { sortOrder: 'asc' as const },
+  },
 } as const;
 
 const sendRecipientsInclude = {

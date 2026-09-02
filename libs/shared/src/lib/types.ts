@@ -32,15 +32,21 @@ export type ProjectTaskDto = {
   isActive: boolean;
 };
 
+export type ProjectContactDto = {
+  id: string;
+  projectId: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  sortOrder: number;
+};
+
 export type ProjectDto = {
   id: string;
   clientId: string;
   name: string;
   description?: string | null;
-  contactFirstName?: string | null;
-  contactLastName?: string | null;
-  contactPhone?: string | null;
-  contactEmail?: string | null;
   hourlyRate?: number | null;
   isBillable: boolean;
   isActive: boolean;
@@ -49,6 +55,7 @@ export type ProjectDto = {
   asanaSectionGid?: string | null;
   asanaSectionName?: string | null;
   client: { id: string; name: string; code: string };
+  contacts?: ProjectContactDto[];
   tasks?: ProjectTaskDto[];
 };
 

@@ -9,8 +9,10 @@ import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { SyncProjectContactsDto } from './dto/project-contact.dto';
 import { SyncProjectTasksDto } from './dto/project-task.dto';
 import { UpdateAsanaTaskBillablesDto, UpdateProjectDto } from './dto/update-project.dto';
+import { syncProjectContacts } from './project-contacts.util';
 import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-tasks.util';
 
 @ApiTags('projects')
@@ -44,10 +46,6 @@ export class ProjectsController {
         clientId: dto.clientId,
         name: dto.name,
         description: dto.description,
-        contactFirstName: dto.contactFirstName?.trim() || null,
-        contactLastName: dto.contactLastName?.trim() || null,
-        contactPhone: dto.contactPhone?.trim() || null,
-        contactEmail: dto.contactEmail?.trim() || null,
         hourlyRate: dto.hourlyRate,
         isBillable: dto.isBillable ?? true,
         isActive: dto.isActive ?? true,
@@ -83,18 +81,6 @@ export class ProjectsController {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.clientId !== undefined && { clientId: dto.clientId }),
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.contactFirstName !== undefined && {
-          contactFirstName: dto.contactFirstName?.trim() || null,
-        }),
-        ...(dto.contactLastName !== undefined && {
-          contactLastName: dto.contactLastName?.trim() || null,
-        }),
-        ...(dto.contactPhone !== undefined && {
-          contactPhone: dto.contactPhone?.trim() || null,
-        }),
-        ...(dto.contactEmail !== undefined && {
-          contactEmail: dto.contactEmail?.trim() || null,
-        }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
@@ -163,6 +149,17 @@ export class ProjectsController {
     const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Project not found');
     await syncProjectTasks(this.prisma, id, dto.tasks);
+    return this.prisma.project.findUnique({
+      where: { id },
+      include: projectInclude,
+    });
+  }
+
+  @Put(':id/contacts')
+  async syncContacts(@Param('id') id: string, @Body() dto: SyncProjectContactsDto) {
+    const existing = await this.prisma.project.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Project not found');
+    await syncProjectContacts(this.prisma, id, dto.contacts);
     return this.prisma.project.findUnique({
       where: { id },
       include: projectInclude,

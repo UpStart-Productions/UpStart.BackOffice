@@ -98,56 +98,93 @@
           <p-accordion-panel value="contact">
             <p-accordion-header>
               <span class="project-accordion-header">
-                <span class="project-accordion-title">Contact person</span>
-                @if (contactDisplayName()) {
-                  <span class="project-accordion-meta">{{ contactDisplayName() }}</span>
+                <span class="project-accordion-title">Contact people</span>
+                @if (contactSummary()) {
+                  <span class="project-accordion-meta">{{ contactSummary() }}</span>
+                } @else {
+                  <span class="project-accordion-meta">({{ contactCount() }})</span>
                 }
               </span>
             </p-accordion-header>
             <p-accordion-content>
-              <div class="contact-fields">
-                <div class="form-field">
-                  <label for="contactFirstName">First name</label>
-                  <input
-                    pInputText
-                    id="contactFirstName"
-                    name="contactFirstName"
-                    [(ngModel)]="form.contactFirstName"
-                    class="w-full"
-                  />
-                </div>
-                <div class="form-field">
-                  <label for="contactLastName">Last name</label>
-                  <input
-                    pInputText
-                    id="contactLastName"
-                    name="contactLastName"
-                    [(ngModel)]="form.contactLastName"
-                    class="w-full"
-                  />
-                </div>
-                <div class="form-field">
-                  <label for="contactPhone">Phone</label>
-                  <input
-                    pInputText
-                    id="contactPhone"
-                    name="contactPhone"
-                    [(ngModel)]="form.contactPhone"
-                    class="w-full"
-                  />
-                </div>
-                <div class="form-field">
-                  <label for="contactEmail">Email</label>
-                  <input
-                    pInputText
-                    id="contactEmail"
-                    name="contactEmail"
-                    type="email"
-                    [(ngModel)]="form.contactEmail"
-                    class="w-full"
-                  />
-                </div>
-              </div>
+              <p class="text-color-secondary mt-0 mb-3 text-sm">
+                Client-side contacts for this project (e.g. for invoicing and communication).
+              </p>
+
+              @if (contactRows().length > 0) {
+                <p-table [value]="contactRows()" styleClass="table-bordered">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>First name</th>
+                      <th>Last name</th>
+                      <th>Phone</th>
+                      <th>Email</th>
+                      <th style="width: 3rem"></th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-contact let-rowIndex="rowIndex">
+                    <tr>
+                      <td>
+                        <input
+                          pInputText
+                          [(ngModel)]="contact.firstName"
+                          [name]="'contact-first-' + rowIndex"
+                          class="w-full"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          pInputText
+                          [(ngModel)]="contact.lastName"
+                          [name]="'contact-last-' + rowIndex"
+                          class="w-full"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          pInputText
+                          [(ngModel)]="contact.phone"
+                          [name]="'contact-phone-' + rowIndex"
+                          class="w-full"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          pInputText
+                          [(ngModel)]="contact.email"
+                          [name]="'contact-email-' + rowIndex"
+                          type="email"
+                          class="w-full"
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          pButton
+                          icon="pi pi-trash"
+                          severity="danger"
+                          [text]="true"
+                          size="small"
+                          (click)="confirmRemoveContact(rowIndex)"
+                          aria-label="Remove contact"
+                        ></button>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              } @else {
+                <p class="text-color-secondary mt-0 mb-3">No contacts yet.</p>
+              }
+
+              <button
+                type="button"
+                pButton
+                label="+ Add contact"
+                [text]="true"
+                severity="secondary"
+                class="mt-2 p-0"
+                (click)="addContact()"
+              ></button>
             </p-accordion-content>
           </p-accordion-panel>
 

@@ -26,15 +26,20 @@ type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
 type AsanaStatus = { configured: boolean; connected: boolean };
 
+type ProjectContactDraft = {
+  id?: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  sortOrder: number;
+};
+
 type ProjectResponse = {
   id: string;
   clientId: string;
   name: string;
   description?: string | null;
-  contactFirstName?: string | null;
-  contactLastName?: string | null;
-  contactPhone?: string | null;
-  contactEmail?: string | null;
   hourlyRate?: number | null;
   isBillable: boolean;
   isActive: boolean;
@@ -42,6 +47,7 @@ type ProjectResponse = {
   asanaProjectName?: string | null;
   asanaSectionGid?: string | null;
   asanaSectionName?: string | null;
+  contacts?: ProjectContactDraft[];
   tasks?: ProjectTaskDraft[];
 };
 
@@ -80,6 +86,7 @@ export class ProjectFormPage implements OnInit {
   syncingAsana = signal(false);
   error = signal<string | null>(null);
   clients = signal<Client[]>([]);
+  contactRows = signal<ProjectContactDraft[]>([]);
   manualTasks = signal<ProjectTaskDraft[]>([]);
   asanaTasks = signal<ProjectTaskDraft[]>([]);
 
@@ -102,16 +109,13 @@ export class ProjectFormPage implements OnInit {
     () => !!(this.asanaLink.projectGid && this.asanaLink.sectionGid),
   );
   readonly manualTaskCount = computed(() => this.manualTasks().length);
+  readonly contactCount = computed(() => this.contactRows().length);
   readonly asanaTaskCount = computed(() => this.asanaTasks().length);
 
   form = {
     clientId: '',
     name: '',
     description: '',
-    contactFirstName: '',
-    contactLastName: '',
-    contactPhone: '',
-    contactEmail: '',
     hourlyRate: null as number | null,
     isBillable: true,
     isActive: true,
@@ -121,11 +125,13 @@ export class ProjectFormPage implements OnInit {
     return !this.id();
   }
 
-  contactDisplayName(): string {
-    return [this.form.contactFirstName, this.form.contactLastName]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join(' ');
+  contactSummary(): string {
+    const names = this.contactRows()
+      .map((contact) => [contact.firstName, contact.lastName].map((part) => part.trim()).filter(Boolean).join(' '))
+      .filter(Boolean);
+    if (names.length === 0) return '';
+    if (names.length === 1) return names[0];
+    return `${names[0]} +${names.length - 1}`;
   }
 
   async ngOnInit() {
@@ -161,14 +167,11 @@ export class ProjectFormPage implements OnInit {
       clientId: project.clientId,
       name: project.name,
       description: project.description ?? '',
-      contactFirstName: project.contactFirstName ?? '',
-      contactLastName: project.contactLastName ?? '',
-      contactPhone: project.contactPhone ?? '',
-      contactEmail: project.contactEmail ?? '',
       hourlyRate: project.hourlyRate ?? null,
       isBillable: project.isBillable,
       isActive: project.isActive,
     };
+    this.contactRows.set(this.mapContacts(project.contacts ?? []));
     this.asanaLink = {
       projectGid: project.asanaProjectGid ?? null,
       sectionGid: project.asanaSectionGid ?? null,
@@ -312,6 +315,65 @@ export class ProjectFormPage implements OnInit {
     }
   }
 
+  private mapContacts(contacts: ProjectContactDraft[]): ProjectContactDraft[] {
+    return contacts.map((contact, index) => ({
+      id: contact.id,
+      firstName: contact.firstName ?? '',
+      lastName: contact.lastName ?? '',
+      phone: contact.phone ?? '',
+      email: contact.email ?? '',
+      sortOrder: contact.sortOrder ?? index,
+    }));
+  }
+
+  addContact() {
+    this.contactRows.update((rows) => [
+      ...rows,
+      {
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: '',
+        sortOrder: rows.length,
+      },
+    ]);
+  }
+
+  contactDisplayName(contact: Pick<ProjectContactDraft, 'firstName' | 'lastName'>): string {
+    return [contact.firstName, contact.lastName]
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  confirmRemoveContact(index: number) {
+    const contact = this.contactRows()[index];
+    const label = this.contactDisplayName(contact) || 'this contact';
+    this.deleteConfirm.confirm({
+      message: `Remove contact "${label}"?`,
+      accept: () => {
+        this.contactRows.update((rows) => rows.filter((_, i) => i !== index));
+      },
+    });
+  }
+
+  private contactPayload() {
+    const trim = (value: string) => value.trim() || undefined;
+    return this.contactRows()
+      .map((contact, index) => ({
+        id: contact.id,
+        firstName: trim(contact.firstName),
+        lastName: trim(contact.lastName),
+        phone: trim(contact.phone),
+        email: trim(contact.email),
+        sortOrder: index,
+      }))
+      .filter(
+        (contact) =>
+          contact.firstName || contact.lastName || contact.phone || contact.email,
+      );
+  }
+
   addTask() {
     this.manualTasks.update((list) => [
       ...list,
@@ -411,15 +473,10 @@ export class ProjectFormPage implements OnInit {
   }
 
   private projectPayload() {
-    const trim = (v: string) => v.trim() || undefined;
     return {
       clientId: this.form.clientId,
       name: this.form.name,
       description: richTextOrUndefined(this.form.description),
-      contactFirstName: trim(this.form.contactFirstName),
-      contactLastName: trim(this.form.contactLastName),
-      contactPhone: trim(this.form.contactPhone),
-      contactEmail: trim(this.form.contactEmail),
       hourlyRate: this.form.hourlyRate,
       isBillable: this.form.isBillable,
       isActive: this.form.isActive,
@@ -455,6 +512,19 @@ export class ProjectFormPage implements OnInit {
       return;
     }
 
+    const duplicateEmails = this.contactPayload().some(
+      (contact, index, arr) =>
+        contact.email &&
+        arr.findIndex(
+          (other) => other.email?.toLowerCase() === contact.email?.toLowerCase(),
+        ) !== index,
+    );
+    if (duplicateEmails) {
+      this.error.set('Contact emails must be unique');
+      this.openAccordionPanel('contact');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     try {
@@ -487,6 +557,10 @@ export class ProjectFormPage implements OnInit {
         })),
       });
 
+      await this.api.put(`/projects/${projectId}/contacts`, {
+        contacts: this.contactPayload(),
+      });
+
       if (this.asanaTasks().length > 0) {
         await this.api.patch(`/projects/${projectId}/asana-tasks`, {
           tasks: this.asanaTasks().map((t) => ({
@@ -498,6 +572,7 @@ export class ProjectFormPage implements OnInit {
 
       const refreshed = await this.api.get<ProjectResponse>(`/projects/${projectId}`);
       this.splitTasks(refreshed.tasks ?? []);
+      this.contactRows.set(this.mapContacts(refreshed.contacts ?? []));
 
       if (this.isNew) {
         this.id.set(projectId);

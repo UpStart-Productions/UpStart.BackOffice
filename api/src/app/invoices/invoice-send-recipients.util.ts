@@ -1,9 +1,13 @@
+type ProjectContactRow = {
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+};
+
 type ProjectRow = {
   id: string;
   name: string;
-  contactEmail: string | null;
-  contactFirstName: string | null;
-  contactLastName: string | null;
+  contacts: ProjectContactRow[];
 };
 
 type LineItemWithProject = {
@@ -21,19 +25,23 @@ export function buildProjectContacts(lineItems: LineItemWithProject[]): InvoiceP
   const seen = new Map<string, InvoiceProjectContact>();
   for (const li of lineItems) {
     const project = li.project;
-    const rawEmail = project?.contactEmail?.trim();
-    if (!project || !rawEmail) continue;
+    if (!project) continue;
 
-    const key = rawEmail.toLowerCase();
-    if (seen.has(key)) continue;
+    for (const contact of project.contacts) {
+      const rawEmail = contact.email?.trim();
+      if (!rawEmail) continue;
 
-    const nameParts = [project.contactFirstName, project.contactLastName].filter(Boolean);
-    seen.set(key, {
-      projectId: project.id,
-      projectName: project.name,
-      email: rawEmail,
-      contactName: nameParts.length ? nameParts.join(' ') : null,
-    });
+      const key = rawEmail.toLowerCase();
+      if (seen.has(key)) continue;
+
+      const nameParts = [contact.firstName, contact.lastName].filter(Boolean);
+      seen.set(key, {
+        projectId: project.id,
+        projectName: project.name,
+        email: rawEmail,
+        contactName: nameParts.length ? nameParts.join(' ') : null,
+      });
+    }
   }
   return Array.from(seen.values());
 }

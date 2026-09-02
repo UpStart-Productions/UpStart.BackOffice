@@ -81,10 +81,18 @@ export class SearchService {
         where: {
           OR: [
             { name: contains(q) },
-            { contactEmail: contains(q) },
-            { contactFirstName: contains(q) },
-            { contactLastName: contains(q) },
             { client: { name: contains(q) } },
+            {
+              contacts: {
+                some: {
+                  OR: [
+                    { email: contains(q) },
+                    { firstName: contains(q) },
+                    { lastName: contains(q) },
+                  ],
+                },
+              },
+            },
           ],
         },
         select: {

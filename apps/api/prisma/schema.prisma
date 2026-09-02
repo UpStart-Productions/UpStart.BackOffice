@@ -250,10 +250,6 @@ model Project {
   clientId         String
   name             String
   description      String?  @db.Text
-  contactFirstName String?
-  contactLastName  String?
-  contactPhone     String?
-  contactEmail     String?
   hourlyRate       Decimal? @db.Decimal(10, 2)
   isBillable       Boolean  @default(true)
   isActive         Boolean  @default(true)
@@ -265,6 +261,7 @@ model Project {
   updatedAt        DateTime @updatedAt
 
   client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contacts         ProjectContact[]
   tasks            ProjectTask[]
   timeEntries      TimeEntry[]
   expenses         Expense[]
@@ -272,6 +269,22 @@ model Project {
   artifacts        Artifact[]
 
   @@index([clientId])
+}
+
+model ProjectContact {
+  id        String   @id @default(cuid())
+  projectId String
+  firstName String?
+  lastName  String?
+  phone     String?
+  email     String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 model ProjectTask {

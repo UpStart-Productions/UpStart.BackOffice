@@ -5,11 +5,13 @@ import { ProjectTaskInputDto } from '../projects/dto/project-task.dto';
 
 const projectInclude = {
   client: { select: { id: true, name: true, code: true } },
+  contacts: { orderBy: { sortOrder: 'asc' as const } },
   tasks: { orderBy: { sortOrder: 'asc' as const } },
 };
 
 const activeTasksInclude = {
   client: { select: { id: true, name: true, code: true } },
+  contacts: { orderBy: { sortOrder: 'asc' as const } },
   tasks: {
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' as const },
