@@ -11,6 +11,98 @@
       [multiple]="true"
       [(value)]="accordionOpenPanels"
     >
+      <p-accordion-panel value="business">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            @let businessStatusIcon = sectionStatusIcon(businessStatus());
+            <i
+              [class]="businessStatusIcon.icon + ' settings-accordion-status ' + businessStatusIcon.className"
+              [attr.aria-label]="businessStatusIcon.label"
+            ></i>
+            <span class="settings-accordion-title">Business</span>
+            <span class="settings-accordion-meta">{{ businessSummary() }}</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <p class="text-color-secondary mt-0 mb-3">
+            Address and phone appear on invoices under your logo.
+          </p>
+
+          <div class="showcase-flex-col mb-3">
+            <div class="form-field showcase-full">
+              <label for="businessAddress">Address</label>
+              <input
+                pInputText
+                id="businessAddress"
+                name="businessAddress"
+                class="w-full"
+                [(ngModel)]="businessForm.address"
+              />
+            </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="businessCity">City</label>
+                <input
+                  pInputText
+                  id="businessCity"
+                  name="businessCity"
+                  class="w-full"
+                  [(ngModel)]="businessForm.city"
+                />
+              </div>
+              <div class="form-field showcase-half">
+                <div class="showcase-row">
+                  <div class="form-field flex-1">
+                    <label for="businessState">State</label>
+                    <p-select
+                      inputId="businessState"
+                      name="businessState"
+                      [options]="usStates"
+                      optionLabel="name"
+                      optionValue="code"
+                      [(ngModel)]="businessForm.state"
+                      placeholder="Select state"
+                      [showClear]="true"
+                      styleClass="w-full"
+                    />
+                  </div>
+                  <div class="form-field flex-1">
+                    <label for="businessZip">Zip</label>
+                    <input
+                      pInputText
+                      id="businessZip"
+                      name="businessZip"
+                      class="w-full"
+                      [(ngModel)]="businessForm.zip"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-field showcase-half">
+              <label for="businessPhone">Phone</label>
+              <input
+                pInputText
+                id="businessPhone"
+                name="businessPhone"
+                type="tel"
+                class="w-full"
+                [(ngModel)]="businessForm.phone"
+              />
+            </div>
+            <div>
+              <button
+                type="button"
+                pButton
+                label="Save"
+                [loading]="businessSaving()"
+                (click)="saveBusinessProfile()"
+              ></button>
+            </div>
+          </div>
+        </p-accordion-content>
+      </p-accordion-panel>
+
       <p-accordion-panel value="api-keys">
         <p-accordion-header>
           <span class="settings-accordion-header">

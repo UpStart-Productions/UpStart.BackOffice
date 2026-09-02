@@ -341,6 +341,16 @@ model GoogleCalendarIntegration {
   updatedAt                  DateTime  @updatedAt
 }
 
+model OrganizationProfile {
+  id        String   @id @default("default")
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  phone     String?
+  updatedAt DateTime @updatedAt
+}
+
 model TimeEntry {
   id                String    @id @default(cuid())
   userId            String

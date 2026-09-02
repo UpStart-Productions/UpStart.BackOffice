@@ -312,6 +312,7 @@ export class InvoicesController {
       clientName: invoice.client.name,
       pdfBuffer,
       notes: invoice.notes ?? undefined,
+      message: dto.message?.trim() || undefined,
     });
 
     if (result.sent) {

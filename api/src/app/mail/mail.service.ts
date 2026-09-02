@@ -37,6 +37,7 @@ export class MailService {
     clientName: string;
     pdfBuffer: Buffer;
     notes?: string;
+    message?: string;
   }): Promise<{ sent: boolean; error?: string }> {
     const subject = `Invoice ${params.invoiceNumber} from ${this.fromName}`;
     const html = this.buildInvoiceEmailHtml(params);
@@ -123,8 +124,12 @@ export class MailService {
     invoiceNumber: string;
     clientName: string;
     notes?: string;
+    message?: string;
   }): string {
     const greeting = params.toName ? `Hi ${params.toName},` : `Hi,`;
+    const closing = params.message?.trim()
+      ? `<p style="color:#2d2d2d;margin-top:28px;">${escapeHtml(params.message.trim()).replace(/\r\n/g, '\n').replace(/\n/g, '<br>')}</p>`
+      : `<p style="color:#2d2d2d;margin-top:28px;">Thank you for your business.</p>`;
     return `
 <!DOCTYPE html>
 <html>
@@ -139,7 +144,7 @@ export class MailService {
     <p style="color:#2d2d2d;">${greeting}</p>
     <p style="color:#2d2d2d;">Please find invoice <strong>${params.invoiceNumber}</strong> attached to this email.</p>
     ${params.notes ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${params.notes}</p>` : ''}
-    <p style="color:#2d2d2d;margin-top:28px;">Thank you for your business.</p>
+    ${closing}
     <p style="color:#2d2d2d;margin-top:16px;line-height:1.5;">${process.env.MAIL_FROM_NAME?.trim() || 'Back Office'}</p>
     <p style="color:#6b6b6b;font-size:14px;margin-top:28px;">Questions? Reply to this email.</p>
     </div>
@@ -147,4 +152,8 @@ export class MailService {
 </body>
 </html>`;
   }
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

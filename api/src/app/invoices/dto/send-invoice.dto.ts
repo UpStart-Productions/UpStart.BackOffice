@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class SendInvoiceDto {
   @ApiProperty({ example: 'billing@example.com' })
@@ -10,4 +10,10 @@ export class SendInvoiceDto {
   @IsString()
   @IsOptional()
   toName?: string;
+
+  @ApiPropertyOptional({ example: 'Thanks again for the rush turnaround.' })
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  message?: string;
 }

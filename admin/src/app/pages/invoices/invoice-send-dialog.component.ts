@@ -5,6 +5,7 @@ import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
+import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import {
@@ -37,33 +38,17 @@ type SendRecipients = {
     InputTextModule,
     MessageModule,
     SelectModule,
+    TextareaModule,
     CopyEmailComponent,
   ],
   styles: `
+    .invoice-send-client-name {
+      margin: 0 0 0.25rem;
+      font-weight: 600;
+    }
     .invoice-send-intro {
       margin: 0 0 1rem;
       color: var(--text-color-secondary);
-    }
-    .invoice-send-client {
-      margin: 0 0 1.25rem;
-      padding: 0.75rem 1rem;
-      border-radius: var(--border-radius);
-      background: var(--surface-50);
-      border: 1px solid var(--surface-200);
-    }
-    .invoice-send-client-body {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-    }
-    .invoice-send-client-label {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--text-color-secondary);
-      margin-bottom: 0.25rem;
     }
     .invoice-send-options {
       display: flex;
@@ -77,25 +62,20 @@ type SendRecipients = {
     }
     .invoice-send-option-header {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
+      flex-wrap: wrap;
       gap: 0.5rem;
       cursor: pointer;
-    }
-    .invoice-send-option-header input {
-      margin-top: 0.2rem;
     }
     .invoice-send-option-title {
       font-weight: 500;
     }
-    .invoice-send-option-detail {
-      margin: 0;
-      padding-left: 1.5rem;
-      color: var(--text-color-secondary);
-      font-size: 0.875rem;
-    }
     .invoice-send-option-control {
       padding-left: 1.5rem;
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
     .invoice-send-contact-option {
       display: flex;
@@ -112,11 +92,19 @@ type SendRecipients = {
     .invoice-send-contact-option-name {
       font-weight: 500;
     }
-    .invoice-send-contact-option-email,
-    .invoice-send-contact-option-meta,
-    .invoice-send-contact-option-project {
-      font-size: 0.8125rem;
-      color: var(--text-color-secondary);
+    .invoice-send-link {
+      align-self: flex-start;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      text-decoration: underline;
+      color: var(--p-primary-600);
+      font: inherit;
+      font-size: 0.875rem;
+    }
+    .invoice-send-link:hover {
+      text-decoration: none;
     }
     :host ::ng-deep .invoice-send-dialog .p-dialog-content {
       overflow-x: hidden;
@@ -148,21 +136,10 @@ type SendRecipients = {
       } @else if (loadError()) {
         <p-message severity="error" [text]="loadError()!" />
       } @else if (recipients()) {
+        <p class="invoice-send-client-name">{{ recipients()!.client.name }}</p>
         <p class="invoice-send-intro text-sm">
           Choose where to email invoice <strong>{{ recipients()!.displayNumber }}</strong>.
         </p>
-
-        <div class="invoice-send-client">
-          <span class="invoice-send-client-label">Client</span>
-          <div class="invoice-send-client-body">
-            <span>{{ recipients()!.client.name }}</span>
-            @if (recipients()!.client.email) {
-              <app-copy-email [email]="recipients()!.client.email" [muted]="true" />
-            } @else {
-              <span class="text-color-secondary text-sm">No client email on file</span>
-            }
-          </div>
-        </div>
 
         <div class="invoice-send-options">
           @if (recipients()!.client.email) {
@@ -174,12 +151,8 @@ type SendRecipients = {
                   value="client"
                   [(ngModel)]="recipientType"
                 />
-                <span>
-                  <span class="invoice-send-option-title">Client email</span>
-                  <p class="invoice-send-option-detail">
-                    <app-copy-email [email]="recipients()!.client.email" [muted]="true" />
-                  </p>
-                </span>
+                <span class="invoice-send-option-title">Client email</span>
+                <app-copy-email [email]="recipients()!.client.email" [muted]="true" />
               </span>
             </label>
           }
@@ -218,7 +191,6 @@ type SendRecipients = {
                           [muted]="true"
                           [block]="true"
                         />
-                        <span class="invoice-send-contact-option-project">{{ option.projectName }}</span>
                       </div>
                     }
                   </ng-template>
@@ -232,7 +204,6 @@ type SendRecipients = {
                         [muted]="true"
                         [block]="true"
                       />
-                      <span class="invoice-send-contact-option-project">{{ option.projectName }}</span>
                     </div>
                   </ng-template>
                 </p-select>
@@ -260,6 +231,24 @@ type SendRecipients = {
                 class="w-full"
                 placeholder="name@example.com"
               />
+              @if (!showMessage()) {
+                <button type="button" class="invoice-send-link" (click)="showMessage.set(true)">
+                  Add Message
+                </button>
+              } @else {
+                <textarea
+                  pTextarea
+                  id="invoiceSendMessage"
+                  [(ngModel)]="personalMessage"
+                  rows="4"
+                  class="w-full"
+                  maxlength="2000"
+                  placeholder="This replaces “Thank you for your business.”"
+                ></textarea>
+                <button type="button" class="invoice-send-link" (click)="hideMessage()">
+                  Remove message
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -302,6 +291,8 @@ export class InvoiceSendDialogComponent {
   recipientType: RecipientType = 'custom';
   selectedContactEmail = '';
   customEmail = '';
+  personalMessage = '';
+  showMessage = signal(false);
 
   readonly projectContactOptions = signal<ProjectContact[]>([]);
 
@@ -326,6 +317,11 @@ export class InvoiceSendDialogComponent {
     return this.resolveRecipient() !== null;
   }
 
+  hideMessage(): void {
+    this.showMessage.set(false);
+    this.personalMessage = '';
+  }
+
   async open(req: InvoiceSendDialogRequest): Promise<void> {
     this.activeRequest.set(req);
     this.visible = true;
@@ -336,6 +332,8 @@ export class InvoiceSendDialogComponent {
     this.recipientType = 'custom';
     this.selectedContactEmail = '';
     this.customEmail = '';
+    this.personalMessage = '';
+    this.showMessage.set(false);
 
     try {
       const data = await this.api.get<SendRecipients>(
@@ -371,9 +369,10 @@ export class InvoiceSendDialogComponent {
     this.sending.set(true);
     this.sendError.set(null);
     try {
+      const message = this.personalMessage.trim();
       const result = await this.api.post<{ sent: boolean; error?: string }>(
         `/invoices/${req.invoiceId}/send`,
-        recipient,
+        message ? { ...recipient, message } : recipient,
       );
       if (result.sent) {
         this.visible = false;

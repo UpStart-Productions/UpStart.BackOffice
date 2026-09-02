@@ -11,6 +11,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { AccordionModule } from 'primeng/accordion';
+import { US_STATES } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -60,6 +61,14 @@ interface GoogleCalendarOption {
   id: string;
   summary: string;
   primary?: boolean;
+}
+
+interface OrganizationProfile {
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
 }
 
 type SettingsSectionStatus = 'connected' | 'disconnected' | 'error' | 'neutral';
@@ -225,6 +234,17 @@ export class SettingsPage implements OnInit {
   asanaHasClientSecret = signal(false);
   asanaSuggestedRedirectUri = signal('');
 
+  readonly usStates = US_STATES;
+  businessForm: OrganizationProfile = {
+    address: '',
+    city: '',
+    state: '',
+    zip: '',
+    phone: '',
+  };
+  businessSaving = signal(false);
+  businessLoaded = signal(false);
+
   showGenerateDialog = false;
   keyName   = '';
   newKey    = signal<string | null>(null);
@@ -299,18 +319,20 @@ export class SettingsPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [keys, asanaStatus, asanaConfig, googleCalendarStatus, googleCalendarConfig] = await Promise.all([
+      const [keys, asanaStatus, asanaConfig, googleCalendarStatus, googleCalendarConfig, business] = await Promise.all([
         this.api.get<ServiceKey[]>('/service-keys'),
         this.api.get<AsanaStatus>('/asana/status').catch(() => null),
         this.api.get<AsanaConfig>('/asana/config').catch(() => null),
         this.api.get<GoogleCalendarStatus>('/google-calendar/status').catch(() => null),
         this.api.get<GoogleCalendarConfig>('/google-calendar/config').catch(() => null),
+        this.api.get<OrganizationProfile>('/organization-profile').catch(() => null),
       ]);
       this.keys.set(keys);
       this.asana.set(asanaStatus);
       this.applyAsanaConfig(asanaConfig);
       this.googleCalendar.set(googleCalendarStatus);
       this.applyGoogleCalendarConfig(googleCalendarConfig);
+      this.applyBusinessProfile(business);
       if (googleCalendarStatus?.connected) {
         await this.loadGoogleCalendarOptions();
       }
@@ -319,6 +341,55 @@ export class SettingsPage implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  private applyBusinessProfile(profile: OrganizationProfile | null) {
+    this.businessLoaded.set(!!profile);
+    if (!profile) return;
+    this.businessForm = {
+      address: profile.address ?? '',
+      city: profile.city ?? '',
+      state: profile.state ?? '',
+      zip: profile.zip ?? '',
+      phone: profile.phone ?? '',
+    };
+  }
+
+  async saveBusinessProfile() {
+    this.businessSaving.set(true);
+    this.error.set(null);
+    try {
+      const saved = await this.api.put<OrganizationProfile>('/organization-profile', {
+        address: this.businessForm.address.trim(),
+        city: this.businessForm.city.trim(),
+        state: (this.businessForm.state ?? '').trim(),
+        zip: this.businessForm.zip.trim(),
+        phone: this.businessForm.phone.trim(),
+      });
+      this.applyBusinessProfile(saved);
+      this.toast.add({
+        severity: 'success',
+        summary: 'Saved',
+        detail: 'Business details will appear on new invoices.',
+        life: 3000,
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to save business details');
+    } finally {
+      this.businessSaving.set(false);
+    }
+  }
+
+  businessSummary(): string {
+    const cityState = [this.businessForm.city, this.businessForm.state].filter(Boolean).join(', ');
+    return cityState || this.businessForm.phone || 'Not set';
+  }
+
+  businessStatus(): SettingsSectionStatus {
+    if (this.loading()) return 'neutral';
+    if (!this.businessLoaded()) return 'error';
+    const hasAny = Object.values(this.businessForm).some((value) => (value ?? '').trim());
+    return hasAny ? 'connected' : 'neutral';
   }
 
   private applyAsanaConfig(config: AsanaConfig | null) {

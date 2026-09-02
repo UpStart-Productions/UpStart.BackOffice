@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import puppeteer from 'puppeteer';
+import { PrismaService } from '../prisma/prisma.service';
 import { getUpstartLogoDataUri } from './brand-logo';
 
 type Numeric = { toString(): string } | number;
@@ -39,8 +40,13 @@ function fmtDate(d: Date): string {
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
 
+  constructor(private readonly prisma: PrismaService) {}
+
   async generateInvoicePdf(invoice: InvoiceData, fromName: string): Promise<Buffer> {
-    const html = this.buildInvoiceHtml(invoice, fromName);
+    const profile = await this.prisma.organizationProfile.findUnique({
+      where: { id: 'default' },
+    });
+    const html = this.buildInvoiceHtml(invoice, fromName, profile);
 
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
     const browser = await puppeteer.launch({
@@ -68,11 +74,22 @@ export class PdfService {
     }
   }
 
-  private buildInvoiceHtml(invoice: InvoiceData, fromName: string): string {
+  private buildInvoiceHtml(
+    invoice: InvoiceData,
+    fromName: string,
+    profile?: {
+      address?: string | null;
+      city?: string | null;
+      state?: string | null;
+      zip?: string | null;
+      phone?: string | null;
+    } | null,
+  ): string {
     const logoUri = getUpstartLogoDataUri();
     const logoHtml = logoUri
       ? `<img src="${logoUri}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
       : `<div class="company">${fromName}</div>`;
+    const fromDetails = formatFromDetails(profile);
 
     const projectSections = buildProjectSections(invoice.lineItems);
 
@@ -93,6 +110,7 @@ export class PdfService {
   body { font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #2d2d2d; background: #ffffff; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
   .company { font-size: 22px; font-weight: 600; color: #2d2d2d; }
+  .from-details { font-size: 12px; color: #6b6b6b; line-height: 1.45; margin-top: 4px; }
   .invoice-label { font-size: 28px; font-weight: 500; color: #6b6b6b; }
   .invoice-number { font-size: 18px; font-weight: 600; color: #7c3aed; }
   .meta { display: flex; gap: 48px; margin-bottom: 40px; }
@@ -122,6 +140,7 @@ export class PdfService {
 <div class="header">
   <div>
     ${logoHtml}
+    ${fromDetails ? `<div class="from-details">${fromDetails}</div>` : ''}
   </div>
   <div style="text-align:right">
     <div class="invoice-label">Invoice</div>
@@ -165,6 +184,24 @@ function hasNotes(notes?: string | null): boolean {
     .replace(/\u00a0/g, ' ')
     .trim();
   return text.length > 0;
+}
+
+function formatFromDetails(profile?: {
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  phone?: string | null;
+} | null): string {
+  if (!profile) return '';
+  const cityLine = profile.city && profile.state
+    ? `${profile.city}, ${profile.state} ${profile.zip ?? ''}`.trim()
+    : (profile.city || profile.state || profile.zip || '');
+  return [profile.address, cityLine, profile.phone]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .map((part) => escapeHtml(part!))
+    .join('<br>');
 }
 
 function escapeHtml(text: string): string {

@@ -22,6 +22,7 @@ import { BookingModule } from './booking/booking.module';
 import { GoogleCalendarModule } from './google-calendar/google-calendar.module';
 import { SearchModule } from './search/search.module';
 import { NetworkModule } from './network/network.module';
+import { OrganizationProfileModule } from './organization-profile/organization-profile.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -50,6 +51,7 @@ import { HealthController } from './health.controller';
     GoogleCalendarModule,
     SearchModule,
     NetworkModule,
+    OrganizationProfileModule,
     AccountingModule,
   ],
 })
