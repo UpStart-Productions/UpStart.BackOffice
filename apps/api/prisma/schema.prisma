@@ -19,6 +19,16 @@ enum InvoiceStatus {
   VOID
 }
 
+enum PayableKind {
+  INVOICE
+}
+
+enum PayableStatus {
+  OPEN
+  PAID
+  CANCELED
+}
+
 enum LeadStage {
   NEW_LEAD
   DISCOVERY
@@ -429,9 +439,30 @@ model Invoice {
   client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   lineItems      InvoiceLineItem[]
   journalEntries JournalEntry[]
+  payable        Payable?
 
   @@index([clientId])
   @@index([status])
+}
+
+model Payable {
+  id                      String        @id @default(cuid())
+  token                   String        @unique
+  kind                    PayableKind
+  status                  PayableStatus @default(OPEN)
+  title                   String
+  amount                  Decimal       @db.Decimal(10, 2)
+  currency                String        @default("usd")
+  invoiceId               String?       @unique
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  paidAt                  DateTime?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([kind, status])
 }
 
 model ServiceKey {

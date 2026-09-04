@@ -38,6 +38,7 @@ export class MailService {
     pdfBuffer: Buffer;
     notes?: string;
     message?: string;
+    payUrl?: string;
   }): Promise<{ sent: boolean; error?: string }> {
     const subject = `Invoice ${params.invoiceNumber} from ${this.fromName}`;
     const html = this.buildInvoiceEmailHtml(params);
@@ -125,6 +126,7 @@ export class MailService {
     clientName: string;
     notes?: string;
     message?: string;
+    payUrl?: string;
   }): string {
     const greeting = params.toName ? `Hi ${params.toName},` : `Hi,`;
     const closing = params.message?.trim()
@@ -146,7 +148,12 @@ export class MailService {
     ${params.notes ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${params.notes}</p>` : ''}
     ${closing}
     <p style="color:#2d2d2d;margin-top:16px;line-height:1.5;">${process.env.MAIL_FROM_NAME?.trim() || 'Back Office'}</p>
-    <p style="color:#6b6b6b;font-size:14px;margin-top:28px;">Questions? Reply to this email.</p>
+    ${params.payUrl ? `
+    <p style="margin:28px 0 8px;">
+      <a href="${escapeHtml(params.payUrl)}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 24px;border-radius:6px;">Securely Pay Invoice</a>
+    </p>
+    <p style="color:#6b6b6b;font-size:13px;line-height:1.5;margin:0 0 8px;">This will open a secure payment page on our website. Stripe securely handles your transaction. UpStart Productions does not see or store your card or bank information.</p>` : ''}
+    <p style="color:#6b6b6b;font-size:14px;margin-top:${params.payUrl ? '16px' : '28px'};">Questions? Reply to this email.</p>
     </div>
   </div>
 </body>

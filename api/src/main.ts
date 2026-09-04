@@ -58,7 +58,12 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
-  app.use(express.json({ limit: JSON_BODY_LIMIT }));
+  app.use((req, res, next) => {
+    if (req.originalUrl === '/api/pay/webhook') {
+      return express.raw({ type: 'application/json' })(req, res, next);
+    }
+    return express.json({ limit: JSON_BODY_LIMIT })(req, res, next);
+  });
   app.use(express.urlencoded({ extended: true, limit: JSON_BODY_LIMIT }));
   app.enableShutdownHooks();
   app.useGlobalPipes(

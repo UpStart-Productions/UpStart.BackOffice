@@ -160,6 +160,7 @@ export type PortalInvoiceDto = {
   dueDate?: string | null;
   total: number;
   paidAt?: string | null;
+  payUrl?: string | null;
   lineItems: {
     id: string;
     description: string;
@@ -188,4 +189,23 @@ export type PortalProjectDto = {
   isBillable: boolean;
   artifacts: PortalArtifactDto[];
   invoices: PortalInvoiceDto[];
+};
+
+export type PublicPayProjectDto = {
+  name: string;
+  description?: string | null;
+};
+
+export type PublicPayViewDto = {
+  token: string;
+  kind: string;
+  title: string;
+  amount: number;
+  currency: string;
+  status: 'OPEN' | 'PAID' | 'UNAVAILABLE';
+  publishableKey?: string | null;
+  paymentsEnabled: boolean;
+  projects: PublicPayProjectDto[];
+  invoiceNumber?: string | null;
+  dueDate?: string | null;
 };

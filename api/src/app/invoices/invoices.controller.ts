@@ -15,6 +15,7 @@ import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
+import { PayService } from '../pay/pay.service';
 import { InvoiceFromTimeService } from './invoice-from-time.service';
 import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
@@ -63,6 +64,7 @@ export class InvoicesController {
     private readonly storageFolders: StorageFoldersService,
     private readonly invoiceFromTime: InvoiceFromTimeService,
     private readonly journalPosting: JournalPostingService,
+    private readonly pay: PayService,
   ) {}
 
   @Get('preview')
@@ -204,6 +206,7 @@ export class InvoicesController {
     }
     if (dto.status === 'VOID') {
       await this.journalPosting.reverseInvoiceIssued(invoice.id);
+      await this.pay.cancelForInvoice(invoice.id);
     }
 
     await this.generateAndStorePdf(invoice);
@@ -277,6 +280,7 @@ export class InvoicesController {
     });
 
     await this.journalPosting.postInvoicePayment(invoice.id, dto.amountPaid, new Date(dto.paidAt));
+    await this.pay.markPaidFromManual(invoice.id, new Date(dto.paidAt));
 
     return invoice;
   }
@@ -305,6 +309,7 @@ export class InvoicesController {
       };
     }
 
+    const payUrl = await this.pay.payUrlForInvoice(invoice);
     const result = await this.mail.sendInvoice({
       to,
       toName: dto.toName?.trim() || undefined,
@@ -313,6 +318,7 @@ export class InvoicesController {
       pdfBuffer,
       notes: invoice.notes ?? undefined,
       message: dto.message?.trim() || undefined,
+      payUrl: payUrl ?? undefined,
     });
 
     if (result.sent) {
@@ -367,7 +373,8 @@ export class InvoicesController {
 
   private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
     const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
-    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName);
+    const payUrl = await this.pay.payUrlForInvoice(invoice);
+    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
     await this.storageFolders.saveInvoicePdf(
       invoice.clientId,
       invoice.displayNumber,

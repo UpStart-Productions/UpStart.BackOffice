@@ -14,6 +14,7 @@ import { definePreset } from '@primeuix/themes';
 import { appRoutes } from './app.routes';
 import { AuthStoreService } from './core/auth-store.service';
 import { CognitoAuthService } from './core/cognito-auth.service';
+import { QuillBootstrapService } from './core/quill-bootstrap.service';
 
 const UpStartPreset = definePreset(Aura, {
   semantic: {
@@ -46,6 +47,14 @@ export const appConfig: ApplicationConfig = {
       },
       deps: [CognitoAuthService, AuthStoreService],
       multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
+      useFactory: (quillBootstrap: QuillBootstrapService) => () => {
+        quillBootstrap.installLazyHook();
+      },
+      deps: [QuillBootstrapService],
     },
     provideQuillConfig({
       theme: 'snow',

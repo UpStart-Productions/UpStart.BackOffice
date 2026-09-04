@@ -23,6 +23,7 @@ import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreatePortalSessionDto } from './dto/create-portal-session.dto';
 import { toPortalArtifact } from './portal-artifact.util';
 import { toPortalClientView } from './portal-client.util';
+import { PayService } from '../pay/pay.service';
 import { invoicesForProject, toPortalInvoice } from './portal-invoice.util';
 import {
   clearPortalSessionCookie,
@@ -64,6 +65,7 @@ export class PortalController {
     private readonly prisma: PrismaService,
     private readonly portalSession: PortalSessionService,
     private readonly pdf: PdfService,
+    private readonly pay: PayService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -154,7 +156,12 @@ export class PortalController {
       }),
     ]);
 
-    const invoices = invoiceRows.map((inv) => toPortalInvoice(inv));
+    const invoices = await Promise.all(
+      invoiceRows.map(async (inv) => {
+        const payUrl = inv.status === 'SENT' ? await this.pay.payUrlForInvoice(inv) : null;
+        return toPortalInvoice(inv, payUrl);
+      }),
+    );
 
     return {
       projects: projects.map((project) => ({
@@ -245,7 +252,8 @@ export class PortalController {
     }
 
     const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
-    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName);
+    const payUrl = await this.pay.payUrlForInvoice(invoice);
+    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
     await this.storage.upload({
       buffer: pdfBuffer,
       key,

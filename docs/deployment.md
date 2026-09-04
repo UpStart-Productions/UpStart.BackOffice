@@ -72,6 +72,7 @@ Optional integrations configured in admin **Settings**:
 - **Asana** — OAuth redirect: `{API_BASE_URL}/asana/callback`
 - **Google Calendar** — OAuth redirect: `{API_BASE_URL}/google-calendar/callback`
 - **Client portal** — set `PORTAL_BASE_URL`, `PORTAL_SESSION_SECRET`, and optionally `PORTAL_COOKIE_DOMAIN`
+- **Stripe payments** — set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, and `PAY_BASE_URL` (public pay page, e.g. `https://heyupstart.com/pay`). Webhook URL: `{API_BASE_URL}/pay/webhook`
 - **Lead ingest** — create service API keys in Settings; callers send `x-api-key`
 
 ## 5. CI/CD (optional)

@@ -11,7 +11,7 @@ type PortalInvoiceRow = Pick<
   >;
 };
 
-export function toPortalInvoice(inv: PortalInvoiceRow) {
+export function toPortalInvoice(inv: PortalInvoiceRow, payUrl: string | null = null) {
   return {
     id: inv.id,
     displayNumber: inv.displayNumber,
@@ -20,6 +20,7 @@ export function toPortalInvoice(inv: PortalInvoiceRow) {
     dueDate: inv.dueDate?.toISOString() ?? null,
     total: Number(inv.total),
     paidAt: inv.paidAt?.toISOString() ?? null,
+    payUrl: inv.status === 'SENT' && payUrl ? payUrl : null,
     lineItems: inv.lineItems.map((li) => ({
       id: li.id,
       description: li.description,

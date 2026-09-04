@@ -42,11 +42,15 @@ export class PdfService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async generateInvoicePdf(invoice: InvoiceData, fromName: string): Promise<Buffer> {
+  async generateInvoicePdf(
+    invoice: InvoiceData,
+    fromName: string,
+    payUrl?: string | null,
+  ): Promise<Buffer> {
     const profile = await this.prisma.organizationProfile.findUnique({
       where: { id: 'default' },
     });
-    const html = this.buildInvoiceHtml(invoice, fromName, profile);
+    const html = this.buildInvoiceHtml(invoice, fromName, profile, payUrl);
 
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
     const browser = await puppeteer.launch({
@@ -84,6 +88,7 @@ export class PdfService {
       zip?: string | null;
       phone?: string | null;
     } | null,
+    payUrl?: string | null,
   ): string {
     const logoUri = getUpstartLogoDataUri();
     const logoHtml = logoUri
@@ -134,6 +139,9 @@ export class PdfService {
   .totals-table .total-row td { font-weight: 700; font-size: 15px; border-top: 2px solid #7c3aed; padding-top: 10px; margin-top: 6px; color: #2d2d2d; }
   .notes { margin-top: 32px; padding: 16px; background: #ffffff; border-radius: 6px; font-size: 13px; color: #6b6b6b; border: 1px solid #eaeaea; }
   .notes label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6b6b; display: block; margin-bottom: 6px; }
+  .pay { margin-top: 32px; text-align: center; }
+  .pay a { display: inline-block; background: #7c3aed; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: 6px; }
+  .pay p { margin: 10px auto 0; max-width: 420px; font-size: 12px; line-height: 1.5; color: #6b6b6b; }
 </style>
 </head>
 <body>
@@ -171,6 +179,7 @@ ${projectSections}
 </div>
 
 ${hasNotes(invoice.notes) ? `<div class="notes"><label>Notes</label>${invoice.notes}</div>` : ''}
+${payUrl ? `<div class="pay"><a href="${escapeHtml(payUrl)}">Securely Pay Invoice</a><p>This will open a secure payment page on our website. Stripe securely handles your transaction. UpStart Productions does not see or store your card or bank information.</p></div>` : ''}
 </body>
 </html>`;
   }
