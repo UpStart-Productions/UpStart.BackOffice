@@ -15,6 +15,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { addDays, parseISO } from 'date-fns';
+import { buildBookingEmailHtml, escapeHtml } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
@@ -536,24 +537,28 @@ export class BookingService {
     const when = formatSlotLabel(booking.startAt, displayTz);
     const cancelUrl = `${normalizePublicPageUrl(type.publicPageUrl)}?cancel=${booking.cancelToken}`;
     const hostName = type.host.name ?? type.host.firstName ?? 'Host';
-    const brandLabel = type.brand ?? 'Back Office';
-    const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'noreply@example.com';
+    const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@heyupstart.com';
 
     const guestHtml = buildBookingEmailHtml({
-      brandLabel,
+      title: 'Booking confirmed',
       greeting: `Hi ${booking.guestName},`,
-      body: `Your <strong>${escapeHtml(type.name)}</strong> is confirmed for <strong>${when}</strong>.`,
-      footer: `Need to cancel? <a href="${cancelUrl}">Cancel this booking</a>.`,
+      intro: `Your ${type.name} is confirmed.`,
+      facts: [
+        { label: 'When', value: when },
+        { label: 'Meeting', value: type.name },
+      ],
+      extraHtml: `<p style="margin:20px 0 0;font-size:14px;color:#6b6b6b;"><a href="${escapeHtml(cancelUrl)}" style="color:#5469d4;font-weight:600;text-decoration:none;">Cancel or rebook this meeting.</a></p>`,
     });
 
     const hostHtml = buildBookingEmailHtml({
-      brandLabel,
+      title: 'New booking',
       greeting: `Hi ${hostName},`,
-      body: `<strong>${booking.guestName}</strong>${booking.guestOrg ? ` (${booking.guestOrg})` : ''} booked <strong>${escapeHtml(type.name)}</strong> for <strong>${when}</strong>.`,
-      extra: booking.guestMessage
-        ? `<p style="color:#6b6b6b;border-left:3px solid #7c3aed;padding-left:12px;">${escapeHtml(booking.guestMessage)}</p>`
-        : undefined,
-      footer: `Guest email: <a href="mailto:${booking.guestEmail}">${booking.guestEmail}</a>`,
+      intro: `${booking.guestName}${booking.guestOrg ? ` (${booking.guestOrg})` : ''} booked ${type.name}.`,
+      facts: [
+        { label: 'When', value: when },
+        { label: 'Guest', value: booking.guestName },
+      ],
+      extraHtml: `${booking.guestMessage ? `<p style="margin:20px 0 0;padding-left:12px;border-left:3px solid #7c3aed;color:#6b6b6b;font-size:14px;line-height:1.5;">${escapeHtml(booking.guestMessage)}</p>` : ''}<p style="margin:20px 0 0;font-size:14px;color:#6b6b6b;">Guest email: <a href="mailto:${escapeHtml(booking.guestEmail)}" style="color:#5469d4;font-weight:600;text-decoration:none;">${escapeHtml(booking.guestEmail)}</a></p>`,
     });
 
     const ics = buildBookingIcs({
@@ -646,35 +651,4 @@ export class BookingService {
       })),
     };
   }
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-function buildBookingEmailHtml(params: {
-  brandLabel: string;
-  greeting: string;
-  body: string;
-  extra?: string;
-  footer: string;
-}): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:'Satoshi',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fcfcfb;margin:0;padding:20px;">
-  <div style="max-width:600px;margin:0 auto;background:#fefefd;border:1px solid #eaeaea;border-radius:8px;overflow:hidden;">
-    <div style="background:#7c3aed;padding:16px 32px;">
-      <p style="margin:0;font-size:14px;font-weight:600;color:#fff;letter-spacing:0.02em;">${params.brandLabel}</p>
-    </div>
-    <div style="padding:32px;">
-      <p style="color:#2d2d2d;">${params.greeting}</p>
-      <p style="color:#2d2d2d;">${params.body}</p>
-      ${params.extra ?? ''}
-      <p style="color:#6b6b6b;font-size:14px;margin-top:28px;">${params.footer}</p>
-    </div>
-  </div>
-</body>
-</html>`;
 }

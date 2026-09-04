@@ -67,6 +67,42 @@ export class StripeService {
     return this.getClient().checkout.sessions.retrieve(sessionId);
   }
 
+  async getReceiptDetails(sessionId: string): Promise<{
+    payerEmail: string | null;
+    payerName: string | null;
+    receiptNumber: string | null;
+    receiptUrl: string | null;
+  }> {
+    const stripe = this.getClient();
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent.latest_charge'],
+    });
+    let charge = this.chargeFromExpandedSession(session);
+    if (!charge) {
+      const intentId =
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : session.payment_intent?.id;
+      if (intentId) {
+        const charges = await stripe.charges.list({ payment_intent: intentId, limit: 1 });
+        charge = charges.data[0] ?? null;
+      }
+    }
+    return {
+      payerEmail: session.customer_details?.email?.trim() || session.customer_email?.trim() || null,
+      payerName: session.customer_details?.name?.trim() || null,
+      receiptNumber: charge?.receipt_number?.trim() || null,
+      receiptUrl: charge?.receipt_url || null,
+    };
+  }
+
+  private chargeFromExpandedSession(session: Stripe.Checkout.Session): Stripe.Charge | null {
+    const intent = session.payment_intent;
+    if (!intent || typeof intent === 'string') return null;
+    const charge = intent.latest_charge;
+    return charge && typeof charge !== 'string' ? charge : null;
+  }
+
   async refundPaymentIntent(paymentIntentId: string): Promise<void> {
     try {
       await this.getClient().refunds.create({ payment_intent: paymentIntentId });

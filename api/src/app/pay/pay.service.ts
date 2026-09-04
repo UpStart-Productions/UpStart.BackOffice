@@ -10,6 +10,8 @@ import type { Invoice, Payable } from '@prisma/client';
 import Stripe from 'stripe';
 import { JournalPostingService } from '../accounting/journal-posting.service';
 import { PdfService } from '../invoices/pdf.service';
+import { publicFromName } from '../mail/email-layout';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { invoicePdfKey } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
@@ -23,6 +25,7 @@ import {
   isStripeConfigured,
   uniqueProjectsFromLineItems,
 } from './pay.util';
+import { formatReceiptDate, resolveReceiptPayer } from './pay-receipt.util';
 import { StripeService } from './stripe.service';
 
 type InvoiceForPay = Pick<Invoice, 'id' | 'displayNumber' | 'status' | 'total'> & {
@@ -47,6 +50,7 @@ export class PayService {
     private readonly stripe: StripeService,
     private readonly journalPosting: JournalPostingService,
     private readonly pdf: PdfService,
+    private readonly mail: MailService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -90,7 +94,7 @@ export class PayService {
       return { buffer: await this.storage.read(key), filename };
     }
 
-    const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
+    const fromName = publicFromName(process.env.MAIL_FROM_NAME);
     const payUrl = await this.payUrlForInvoice(invoice);
     const buffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
     await this.storage.upload({
@@ -326,7 +330,9 @@ export class PayService {
       if (!isSameIntent && paymentIntentId) {
         this.logger.warn(`Duplicate payment for payable ${payable.id}; refunding ${paymentIntentId}`);
         await this.stripe.refundPaymentIntent(paymentIntentId);
+        return;
       }
+      await this.sendPaymentReceiptIfNeeded(payable.id, session.id);
       return;
     }
 
@@ -359,6 +365,89 @@ export class PayService {
         await this.journalPosting.postInvoiceIssued(payable.invoiceId);
       }
       await this.journalPosting.postInvoicePayment(payable.invoiceId, amountPaid, paidAt);
+    }
+
+    await this.sendPaymentReceiptIfNeeded(payable.id, session.id);
+  }
+
+  private async sendPaymentReceiptIfNeeded(payableId: string, sessionId: string): Promise<void> {
+    const payable = await this.prisma.payable.findUnique({
+      where: { id: payableId },
+      include: {
+        invoice: { include: { client: { select: { email: true, name: true } } } },
+      },
+    });
+    if (!payable || payable.receiptEmailedAt || !payable.invoice) {
+      return;
+    }
+
+    let receiptNumber: string | null = payable.stripeReceiptNumber;
+    let receiptUrl: string | null = payable.stripeReceiptUrl;
+    let payerEmail = payable.invoice.client?.email?.trim() || '';
+    let payerName = payable.invoice.client?.name?.trim() || '';
+
+    try {
+      const details = await this.stripe.getReceiptDetails(sessionId);
+      receiptNumber = details.receiptNumber || receiptNumber;
+      receiptUrl = details.receiptUrl || receiptUrl;
+      payerEmail = details.payerEmail || payerEmail;
+      payerName = details.payerName || payerName;
+    } catch (err) {
+      this.logger.warn(`Could not load Stripe receipt details for ${payable.id}: ${String(err)}`);
+    }
+
+    const payer = resolveReceiptPayer(
+      { customer_details: { email: payerEmail, name: payerName } },
+      payable.invoice.client,
+    );
+    if (!payer) {
+      this.logger.warn(`No recipient for payment receipt ${payable.id}`);
+      return;
+    }
+
+    let pdfBuffer: Buffer;
+    try {
+      const pdf = await this.getInvoicePdf(payable.token);
+      pdfBuffer = pdf.buffer;
+    } catch (err) {
+      this.logger.error(`Receipt PDF failed for ${payable.id}: ${String(err)}`);
+      return;
+    }
+
+    const paidAt = payable.paidAt ?? new Date();
+    const result = await this.mail.sendPaymentReceipt({
+      to: payer.email,
+      toName: payer.name || undefined,
+      invoiceNumber: payable.invoice.displayNumber,
+      amountLabel: this.formatReceiptAmount(Number(payable.amount), payable.currency),
+      paidOn: formatReceiptDate(paidAt),
+      receiptNumber,
+      pdfBuffer,
+    });
+
+    if (!result.sent) {
+      this.logger.error(`Payment receipt email failed for ${payable.id}: ${result.error}`);
+      return;
+    }
+
+    await this.prisma.payable.update({
+      where: { id: payable.id },
+      data: {
+        stripeReceiptNumber: receiptNumber,
+        stripeReceiptUrl: receiptUrl,
+        receiptEmailedAt: new Date(),
+      },
+    });
+  }
+
+  private formatReceiptAmount(amount: number, currency: string): string {
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: (currency || 'usd').toUpperCase(),
+      }).format(amount);
+    } catch {
+      return `$${amount.toFixed(2)}`;
     }
   }
 }

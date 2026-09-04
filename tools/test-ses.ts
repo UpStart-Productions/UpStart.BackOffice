@@ -34,7 +34,7 @@ if (!to) {
 
 const region = process.env.AWS_REGION?.trim() || 'us-west-2';
 const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@example.com';
-const fromName = process.env.MAIL_FROM_NAME?.trim() || 'UpStart Back Office';
+const fromName = process.env.MAIL_FROM_NAME?.trim() || 'UpStart Productions';
 
 function explicitCreds(): { accessKeyId: string; secretAccessKey: string } | undefined {
   const accessKeyId =
@@ -69,7 +69,7 @@ async function main() {
       Source: source,
       Destination: { ToAddresses: [to] },
       Message: {
-        Subject: { Data: 'UpStart Back Office — SES test', Charset: 'UTF-8' },
+        Subject: { Data: 'UpStart Productions — SES test', Charset: 'UTF-8' },
         Body: {
           Html: {
             Data: '<p>If you received this, SES is configured correctly for invoice email.</p>',

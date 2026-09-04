@@ -17,6 +17,7 @@ import type { Prisma } from '@prisma/client';
 import { InvoiceStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import { PdfService } from '../invoices/pdf.service';
+import { publicFromName } from '../mail/email-layout';
 import { PrismaService } from '../prisma/prisma.service';
 import { invoicePdfKey } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
@@ -251,7 +252,7 @@ export class PortalController {
       return this.storage.read(key);
     }
 
-    const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
+    const fromName = publicFromName(process.env.MAIL_FROM_NAME);
     const payUrl = await this.pay.payUrlForInvoice(invoice);
     const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
     await this.storage.upload({

@@ -1,43 +1,80 @@
-/** Build a multipart/mixed MIME message for SES SendRawEmail (HTML + attachment). */
+import { LOGO_CID } from './email-layout';
+
+/** Build a MIME message for SES SendRawEmail (HTML + optional CID logo + optional attachment). */
 export function buildMultipartEmail(params: {
   from: string;
   to: string;
   subject: string;
   html: string;
-  attachment: { filename: string; content: Buffer; contentType: string };
+  logo?: { content: Buffer; contentType?: string };
+  attachment?: { filename: string; content: Buffer; contentType: string };
 }): Buffer {
-  const boundary = `----=_Part_${Date.now().toString(36)}`;
   const crlf = '\r\n';
-  const base64Body = params.attachment.content
-    .toString('base64')
-    .replace(/(.{76})/g, `$1${crlf}`)
-    .trim();
+  const mixed = `----=_Mixed_${Date.now().toString(36)}`;
+  const related = `----=_Related_${Date.now().toString(36)}`;
+
+  const htmlPart = [
+    `--${related}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    params.html,
+    '',
+  ];
+
+  const logoPart = params.logo
+    ? [
+        `--${related}`,
+        `Content-Type: ${params.logo.contentType || 'image/png'}; name="upstart-logo.png"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-ID: <${LOGO_CID}>`,
+        'Content-Disposition: inline; filename="upstart-logo.png"',
+        '',
+        foldBase64(params.logo.content),
+        '',
+      ]
+    : [];
+
+  const relatedBlock = [
+    `Content-Type: multipart/related; boundary="${related}"`,
+    '',
+    ...htmlPart,
+    ...logoPart,
+    `--${related}--`,
+    '',
+  ];
+
+  const attachmentPart = params.attachment
+    ? [
+        `--${mixed}`,
+        `Content-Type: ${params.attachment.contentType}; name="${escapeQuotes(params.attachment.filename)}"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${escapeQuotes(params.attachment.filename)}"`,
+        '',
+        foldBase64(params.attachment.content),
+        '',
+      ]
+    : [];
 
   const parts = [
     `From: ${params.from}`,
     `To: ${params.to}`,
     `Subject: ${encodeSubject(params.subject)}`,
     'MIME-Version: 1.0',
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    `Content-Type: multipart/mixed; boundary="${mixed}"`,
     '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    params.html,
-    '',
-    `--${boundary}`,
-    `Content-Type: ${params.attachment.contentType}; name="${escapeQuotes(params.attachment.filename)}"`,
-    'Content-Transfer-Encoding: base64',
-    `Content-Disposition: attachment; filename="${escapeQuotes(params.attachment.filename)}"`,
-    '',
-    base64Body,
-    '',
-    `--${boundary}--`,
+    `--${mixed}`,
+    ...relatedBlock,
+    ...attachmentPart,
+    `--${mixed}--`,
     '',
   ];
 
   return Buffer.from(parts.join(crlf), 'utf8');
+}
+
+function foldBase64(content: Buffer): string {
+  return content.toString('base64').replace(/(.{76})/g, `$1\r\n`).trim();
 }
 
 function encodeSubject(subject: string): string {

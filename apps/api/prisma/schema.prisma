@@ -456,6 +456,9 @@ model Payable {
   invoiceId               String?       @unique
   stripeCheckoutSessionId String?
   stripePaymentIntentId   String?
+  stripeReceiptNumber     String?
+  stripeReceiptUrl        String?
+  receiptEmailedAt        DateTime?
   paidAt                  DateTime?
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt

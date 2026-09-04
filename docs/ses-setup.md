@@ -32,7 +32,7 @@ AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
 MAIL_FROM_EMAIL=hello@example.com
-MAIL_FROM_NAME=Back Office
+MAIL_FROM_NAME=UpStart Productions
 ```
 
 Or omit keys from `.env` and use `aws configure` / `AWS_PROFILE`.

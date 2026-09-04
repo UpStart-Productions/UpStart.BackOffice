@@ -7,6 +7,7 @@ import type { Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { JournalPostingService } from '../accounting/journal-posting.service';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
+import { publicFromName } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
@@ -319,6 +320,10 @@ export class InvoicesController {
       notes: invoice.notes ?? undefined,
       message: dto.message?.trim() || undefined,
       payUrl: payUrl ?? undefined,
+      amountLabel: formatMoney(invoice.total),
+      dueDate: invoice.dueDate
+        ? invoice.dueDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : undefined,
     });
 
     if (result.sent) {
@@ -372,7 +377,7 @@ export class InvoicesController {
   }
 
   private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
-    const fromName = process.env.MAIL_FROM_NAME || 'UpStart Back Office';
+    const fromName = publicFromName(process.env.MAIL_FROM_NAME);
     const payUrl = await this.pay.payUrlForInvoice(invoice);
     const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
     await this.storageFolders.saveInvoicePdf(
@@ -382,4 +387,8 @@ export class InvoicesController {
     );
     return pdfBuffer;
   }
+}
+
+function formatMoney(amount: { toString(): string } | number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount));
 }

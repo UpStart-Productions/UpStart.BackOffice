@@ -25,7 +25,7 @@ export function buildBookingIcs(params: {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Back Office//Booking//EN',
+    'PRODID:-//UpStart Productions//Booking//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:REQUEST',
     'BEGIN:VEVENT',
