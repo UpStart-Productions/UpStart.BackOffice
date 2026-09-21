@@ -1,4 +1,10 @@
 // Overlay panels append to body — global styles required.
+
+.timesheet-date-popover .cal-day.has-time {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 // Keep PrimeNG's capped list height; hide scrollbars while scroll still works.
 .p-select-overlay,
 .p-multiselect-overlay,

@@ -261,6 +261,7 @@ export class ReportsPage implements OnInit {
       .map((e) => ({
         id: e.id,
         startedAt: e.startedAt,
+        clientName: e.project.client.name,
         projectName: e.project.name,
         taskName: e.projectTask?.name ?? '—',
         description: e.description?.trim() || '—',
@@ -600,6 +601,15 @@ export class ReportsPage implements OnInit {
       filterSummary: this.exportFilterSummary(),
       summary,
       rows: this.timeByProject(),
+      entries: this.timeEntryRows().map((row) => ({
+        date: this.formatDate(row.startedAt),
+        clientName: row.clientName,
+        projectName: row.projectName,
+        taskName: row.taskName,
+        description: row.description,
+        durationMin: row.durationMin,
+        billable: row.billable,
+      })),
       charts: {
         total: this.chartImageForExport(
           this.totalChartRef,

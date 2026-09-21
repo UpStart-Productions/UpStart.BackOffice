@@ -7,7 +7,7 @@ import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { formatDurationMin, parseDurationInput } from './timesheet.utils';
+import { formatDurationMin, parseDurationInput, sanitizeDurationInput } from './timesheet.utils';
 import type { Project, TimeEntry } from './time-entry.types';
 
 export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled';
@@ -135,8 +135,11 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
             type="text"
             class="duration-input"
             placeholder="0:00"
-            [ngModel]="durationInput()"
-            (ngModelChange)="durationInput.set($event)"
+            autocomplete="off"
+            [value]="durationInput()"
+            (keydown)="onDurationKeydown($event)"
+            (input)="onDurationInput($event)"
+            (paste)="onDurationPaste($event)"
           />
         </div>
 
@@ -618,6 +621,35 @@ export class TimeEntryModalComponent {
     }
   }
 
+  onDurationKeydown(event: KeyboardEvent) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key.length === 1 && /[^0-9:]/.test(event.key)) {
+      event.preventDefault();
+    }
+  }
+
+  onDurationPaste(event: ClipboardEvent) {
+    event.preventDefault();
+    const input = event.target as HTMLInputElement;
+    const pasted = sanitizeDurationInput(event.clipboardData?.getData('text') ?? '');
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const next = sanitizeDurationInput(
+      `${input.value.slice(0, start)}${pasted}${input.value.slice(end)}`,
+    );
+    this.applyDurationValue(input, next);
+  }
+
+  onDurationInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.applyDurationValue(input, sanitizeDurationInput(input.value));
+  }
+
+  private applyDurationValue(input: HTMLInputElement, next: string) {
+    this.durationInput.set(next);
+    if (input.value !== next) input.value = next;
+  }
+
   onEntryDayChange(value: Date | Date[] | null) {
     const next = Array.isArray(value) ? value[0] : value;
     if (!(next instanceof Date) || Number.isNaN(next.getTime())) return;
@@ -680,7 +712,7 @@ export class TimeEntryModalComponent {
     } else {
       const parsed = parseDurationInput(this.durationInput());
       if (parsed === null) {
-        this.error.set('Invalid duration. Use H:MM (2:30) or decimal hours (2.5).');
+        this.error.set('Invalid duration. Use H:MM (for example 2:30).');
         return;
       }
       durationMin = parsed;

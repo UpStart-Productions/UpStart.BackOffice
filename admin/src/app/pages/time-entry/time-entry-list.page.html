@@ -40,7 +40,11 @@
               [ngModel]="selectedDay()"
               [defaultDate]="selectedDay()"
               (onSelect)="jumpToDay($event, datePopover)"
-            />
+            >
+              <ng-template #date let-date>
+                <span class="cal-day" [class.has-time]="hasTimeOnDate(date)">{{ date.day }}</span>
+              </ng-template>
+            </p-datepicker>
           </p-popover>
         </div>
         @if (!isSelectedToday()) {

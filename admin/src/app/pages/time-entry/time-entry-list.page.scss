@@ -146,7 +146,7 @@ button.calendar-btn {
 
 .week-day {
   flex: 1;
-  min-width: 4.5rem;
+  min-width: 5.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -164,6 +164,7 @@ button.calendar-btn {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    white-space: nowrap;
   }
 
   .day-hours {

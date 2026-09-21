@@ -2,6 +2,7 @@ import {
   Component,
   computed,
   ElementRef,
+  HostListener,
   inject,
   OnDestroy,
   OnInit,
@@ -66,6 +67,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   selectedDay = signal(new Date());
   private loadedWeekKey = signal(dateKey(startOfWeek(new Date())));
+  private readonly daysWithTime = signal<ReadonlySet<string>>(new Set());
 
   readonly weekStart = computed(() => startOfWeek(this.selectedDay()));
   readonly days = computed(() => weekDays(this.weekStart()));
@@ -142,8 +144,19 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   }
 
   private async init() {
-    await Promise.all([this.loadProjects(), this.loadAsanaStatus()]);
+    await Promise.all([this.loadProjects(), this.loadAsanaStatus(), this.loadDaysWithTime()]);
     await this.loadWeek();
+  }
+
+  async loadDaysWithTime() {
+    try {
+      const startedAt = await this.api.get<string[]>('/time-entries/days');
+      this.daysWithTime.set(new Set(startedAt.map((iso) => dateKey(new Date(iso)))));
+    } catch {
+      this.daysWithTime.set(
+        new Set(this.entries().map((e) => dateKey(new Date(e.startedAt)))),
+      );
+    }
   }
 
   async loadAsanaStatus() {
@@ -182,6 +195,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       }
       this.entries.set(data);
       this.loadedWeekKey.set(dateKey(startOfWeek(this.selectedDay())));
+      void this.loadDaysWithTime();
     } catch (err) {
       this.error.set(
         err instanceof Error ? err.message : 'Failed to load timesheet',
@@ -189,6 +203,30 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (this.modal().visible) return;
+    if (this.isTextEntryTarget(event.target)) return;
+    if (this.isBlockingOverlayOpen()) return;
+
+    event.preventDefault();
+    if (event.key === 'ArrowLeft') this.prevDay();
+    else this.nextDay();
+  }
+
+  private isTextEntryTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+    return target.isContentEditable;
+  }
+
+  private isBlockingOverlayOpen(): boolean {
+    return !!document.querySelector('.p-dialog-mask, .p-datepicker-panel');
   }
 
   prevDay() {
@@ -242,8 +280,13 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     return dateKey(d);
   }
 
+  hasTimeOnDate(date: { day: number; month: number; year: number }): boolean {
+    return this.daysWithTime().has(dateKey(new Date(date.year, date.month, date.day)));
+  }
+
   dayShortLabel(d: Date): string {
-    return dayLabel(d).short;
+    const label = dayLabel(d);
+    return `${label.short} ${label.md}`;
   }
 
   dayTotalFor(d: Date): number {

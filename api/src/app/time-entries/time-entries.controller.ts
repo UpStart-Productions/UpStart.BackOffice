@@ -91,6 +91,14 @@ export class TimeEntriesController {
     });
   }
 
+  @Get('days')
+  async listDays() {
+    const entries = await this.prisma.timeEntry.findMany({
+      select: { startedAt: true },
+    });
+    return entries.map((e) => e.startedAt.toISOString());
+  }
+
   @Post('import')
   async importCsv(@Req() req: Request, @Body() dto: ImportTimesheetDto) {
     const user = req.user as UserContext;

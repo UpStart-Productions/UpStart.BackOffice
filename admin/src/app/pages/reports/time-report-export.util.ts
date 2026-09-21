@@ -12,6 +12,16 @@ export type TimeReportRow = {
   entryCount: number;
 };
 
+export type TimeReportEntryRow = {
+  date: string;
+  clientName: string;
+  projectName: string;
+  taskName: string;
+  description: string;
+  durationMin: number;
+  billable: boolean;
+};
+
 export type TimeReportChartImage = {
   title: string;
   imageDataUrl: string;
@@ -27,6 +37,7 @@ export type TimeReportExportData = {
     entryCount: number;
   };
   rows: TimeReportRow[];
+  entries: TimeReportEntryRow[];
   charts: {
     total?: TimeReportChartImage;
     billable?: TimeReportChartImage;
@@ -119,6 +130,44 @@ export async function exportTimeReportPdf(data: TimeReportExportData): Promise<v
     footStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
   });
 
+  const afterSummary = getAutoTableFinalY(pdf) + 24;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(12);
+  pdf.text('Time entries', margin, afterSummary - 10);
+
+  autoTable(pdf, {
+    startY: afterSummary,
+    head: [['Date', 'Client', 'Project', 'Task', 'Description', 'Duration', 'Billable']],
+    body: data.entries.map((entry) => [
+      entry.date,
+      entry.clientName,
+      entry.projectName,
+      entry.taskName,
+      entry.description,
+      formatDurationMin(entry.durationMin),
+      entry.billable ? 'Yes' : 'No',
+    ]),
+    foot: [
+      [
+        'Total',
+        '',
+        '',
+        '',
+        '',
+        formatDurationMin(data.summary.totalMin),
+        '',
+      ],
+    ],
+    theme: 'grid',
+    styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+    columnStyles: {
+      3: { cellWidth: 90 },
+      4: { cellWidth: 150 },
+    },
+    headStyles: { fillColor: [124, 58, 237], textColor: 255 },
+    footStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+  });
+
   pdf.save(`${data.filenameBase}.pdf`);
 }
 
@@ -160,11 +209,41 @@ export function exportTimeReportExcel(data: TimeReportExportData): void {
     data.summary.entryCount,
   ];
 
-  const sheetData = [...summaryLines, ...tableRows, footerRow];
+  const entrySection = [
+    [],
+    ['Time entries'],
+    ['Date', 'Client', 'Project', 'Task', 'Description', 'Duration', 'Billable'],
+  ];
+
+  const entryRows = data.entries.map((entry) => [
+    entry.date,
+    entry.clientName,
+    entry.projectName,
+    entry.taskName,
+    entry.description === '—' ? '' : entry.description,
+    formatDurationMin(entry.durationMin),
+    entry.billable ? 'Yes' : 'No',
+  ]);
+
+  const entryFooter = [
+    'Total',
+    '',
+    '',
+    '',
+    '',
+    formatDurationMin(data.summary.totalMin),
+    '',
+  ];
+
+  const sheetData = [...summaryLines, ...tableRows, footerRow, ...entrySection, ...entryRows, entryFooter];
   const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Time report');
   XLSX.writeFile(workbook, `${data.filenameBase}.xlsx`);
+}
+
+function getAutoTableFinalY(pdf: jsPDF): number {
+  return (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 0;
 }
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {

@@ -108,9 +108,22 @@ export function formatElapsed(ms: number): string {
   return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function dayLabel(d: Date): { short: string; dom: string } {
+/** Week-bar date, e.g. "9/11" or "10/02". */
+export function formatMonthDay(d: Date): string {
+  const month = d.getMonth() + 1;
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${month}/${day}`;
+}
+
+export function dayLabel(d: Date): { short: string; dom: string; md: string } {
   return {
     short: d.toLocaleDateString('en-US', { weekday: 'short' }),
     dom: String(d.getDate()),
+    md: formatMonthDay(d),
   };
+}
+
+/** Keep only digits and colons so duration entry stays H:MM. */
+export function sanitizeDurationInput(raw: string): string {
+  return raw.replace(/[^0-9:]/g, '');
 }
