@@ -15,6 +15,7 @@ export type InvoiceExportRow = {
   displayNumber: string;
   clientName: string;
   issueDate: string;
+  issueDateIso: string;
   total: number;
   status: string;
 };
@@ -34,11 +35,21 @@ export type InvoiceReportExportData = {
   filenameBase: string;
 };
 
-const tableHeadStyles = { fillColor: [124, 58, 237] as [number, number, number], textColor: 255 };
+const tableLineColor: [number, number, number] = [243, 243, 243];
+const tableHeadStyles = {
+  fillColor: [124, 58, 237] as [number, number, number],
+  textColor: 255,
+  lineColor: tableLineColor,
+};
 const tableFootStyles = {
   fillColor: [245, 245, 245] as [number, number, number],
   textColor: 0,
   fontStyle: 'bold' as const,
+  lineColor: tableLineColor,
+};
+const tableCellStyles = {
+  lineColor: tableLineColor,
+  lineWidth: 0.4,
 };
 
 export async function exportInvoiceReportPdf(data: InvoiceReportExportData): Promise<void> {
@@ -95,7 +106,7 @@ export async function exportInvoiceReportPdf(data: InvoiceReportExportData): Pro
       ],
     ],
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4 },
+    styles: { fontSize: 9, cellPadding: 4, ...tableCellStyles },
     headStyles: tableHeadStyles,
     footStyles: tableFootStyles,
   });
@@ -116,7 +127,7 @@ export async function exportInvoiceReportPdf(data: InvoiceReportExportData): Pro
       inv.status,
     ]),
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4 },
+    styles: { fontSize: 9, cellPadding: 4, ...tableCellStyles },
     headStyles: tableHeadStyles,
   });
 
@@ -124,7 +135,7 @@ export async function exportInvoiceReportPdf(data: InvoiceReportExportData): Pro
 }
 
 export function exportInvoiceReportExcel(data: InvoiceReportExportData): void {
-  const summaryLines: string[][] = [
+  const summaryLines: (string | number)[][] = [
     ['Invoice Report'],
     ['Period', data.periodLabel],
   ];
@@ -135,51 +146,48 @@ export function exportInvoiceReportExcel(data: InvoiceReportExportData): void {
 
   summaryLines.push(
     ['Total invoiced', formatAmount(data.summary.total)],
-    ['Invoices', String(data.summary.count)],
-    ['Paid (count)', String(data.summary.paidCount)],
-    ['Draft (count)', String(data.summary.draftCount)],
-    ['Sent (count)', String(data.summary.sentCount)],
+    ['Invoices', data.summary.count],
+    ['Paid (count)', data.summary.paidCount],
+    ['Draft (count)', data.summary.draftCount],
+    ['Sent (count)', data.summary.sentCount],
     [],
     ['Totals by client'],
     ['Client', 'Invoices', 'Total', 'Paid', 'Sent', 'Draft'],
+    ...data.byClient.map((row) => [
+      row.clientName,
+      row.invoiceCount,
+      row.total,
+      row.paid,
+      row.sent,
+      row.draft,
+    ]),
+    ['Total', data.summary.count, data.summary.total, '', '', ''],
   );
 
-  const clientRows = data.byClient.map((row) => [
-    row.clientName,
-    row.invoiceCount,
-    row.total,
-    row.paid,
-    row.sent,
-    row.draft,
-  ]);
-
-  const clientFooter = ['Total', data.summary.count, data.summary.total, '', '', ''];
-
-  const invoiceSection: string[][] = [
-    [],
-    ['Invoices in period'],
+  const entryRows: (string | number)[][] = [
     ['Number', 'Client', 'Issue date', 'Total', 'Status'],
+    ...data.invoices.map((inv) => [
+      inv.displayNumber,
+      inv.clientName,
+      inv.issueDateIso,
+      inv.total,
+      inv.status,
+    ]),
   ];
 
-  const invoiceRows = data.invoices.map((inv) => [
-    inv.displayNumber,
-    inv.clientName,
-    inv.issueDate,
-    inv.total,
-    inv.status,
-  ]);
-
-  const sheetData = [
-    ...summaryLines,
-    ...clientRows,
-    clientFooter,
-    ...invoiceSection,
-    ...invoiceRows,
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryLines);
+  const entriesSheet = XLSX.utils.aoa_to_sheet(entryRows);
+  entriesSheet['!cols'] = [
+    { wch: 16 },
+    { wch: 28 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
   ];
 
-  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Invoice report');
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+  XLSX.utils.book_append_sheet(workbook, entriesSheet, 'Entries');
   XLSX.writeFile(workbook, `${data.filenameBase}.xlsx`);
 }
 

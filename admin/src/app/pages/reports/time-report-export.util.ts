@@ -14,6 +14,7 @@ export type TimeReportRow = {
 
 export type TimeReportEntryRow = {
   date: string;
+  dateIso: string;
   clientName: string;
   projectName: string;
   taskName: string;
@@ -44,6 +45,23 @@ export type TimeReportExportData = {
     nonBillable?: TimeReportChartImage;
   };
   filenameBase: string;
+};
+
+const tableLineColor: [number, number, number] = [243, 243, 243];
+const tableHeadStyles = {
+  fillColor: [124, 58, 237] as [number, number, number],
+  textColor: 255,
+  lineColor: tableLineColor,
+};
+const tableFootStyles = {
+  fillColor: [245, 245, 245] as [number, number, number],
+  textColor: 0,
+  fontStyle: 'bold' as const,
+  lineColor: tableLineColor,
+};
+const tableCellStyles = {
+  lineColor: tableLineColor,
+  lineWidth: 0.4,
 };
 
 export async function exportTimeReportPdf(data: TimeReportExportData): Promise<void> {
@@ -125,9 +143,9 @@ export async function exportTimeReportPdf(data: TimeReportExportData): Promise<v
       ],
     ],
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4 },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255 },
-    footStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+    styles: { fontSize: 9, cellPadding: 4, ...tableCellStyles },
+    headStyles: tableHeadStyles,
+    footStyles: tableFootStyles,
   });
 
   const afterSummary = getAutoTableFinalY(pdf) + 24;
@@ -159,20 +177,20 @@ export async function exportTimeReportPdf(data: TimeReportExportData): Promise<v
       ],
     ],
     theme: 'grid',
-    styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+    styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', ...tableCellStyles },
     columnStyles: {
       3: { cellWidth: 90 },
       4: { cellWidth: 150 },
     },
-    headStyles: { fillColor: [124, 58, 237], textColor: 255 },
-    footStyles: { fillColor: [245, 245, 245], textColor: 0, fontStyle: 'bold' },
+    headStyles: tableHeadStyles,
+    footStyles: tableFootStyles,
   });
 
   pdf.save(`${data.filenameBase}.pdf`);
 }
 
 export function exportTimeReportExcel(data: TimeReportExportData): void {
-  const summaryLines: string[][] = [
+  const summaryLines: (string | number)[][] = [
     ['Time Report'],
     ['Period', data.periodLabel],
   ];
@@ -185,60 +203,56 @@ export function exportTimeReportExcel(data: TimeReportExportData): void {
     ['Total hours', formatDurationMin(data.summary.totalMin)],
     ['Billable hours', formatDurationMin(data.summary.billableMin)],
     ['Non-billable hours', formatDurationMin(data.summary.nonBillableMin)],
-    ['Entries', String(data.summary.entryCount)],
+    ['Entries', data.summary.entryCount],
     [],
     ['Hours by project'],
     ['Client', 'Project', 'Total', 'Billable', 'Non-billable', 'Entries'],
+    ...data.rows.map((row) => [
+      row.clientName,
+      row.projectName,
+      formatDurationMin(row.totalMin),
+      formatDurationMin(row.billableMin),
+      formatDurationMin(row.nonBillableMin),
+      row.entryCount,
+    ]),
+    [
+      'Total',
+      '',
+      formatDurationMin(data.summary.totalMin),
+      formatDurationMin(data.summary.billableMin),
+      formatDurationMin(data.summary.nonBillableMin),
+      data.summary.entryCount,
+    ],
   );
 
-  const tableRows = data.rows.map((row) => [
-    row.clientName,
-    row.projectName,
-    formatDurationMin(row.totalMin),
-    formatDurationMin(row.billableMin),
-    formatDurationMin(row.nonBillableMin),
-    row.entryCount,
-  ]);
-
-  const footerRow = [
-    'Total',
-    '',
-    formatDurationMin(data.summary.totalMin),
-    formatDurationMin(data.summary.billableMin),
-    formatDurationMin(data.summary.nonBillableMin),
-    data.summary.entryCount,
-  ];
-
-  const entrySection = [
-    [],
-    ['Time entries'],
+  const entryRows: (string | number)[][] = [
     ['Date', 'Client', 'Project', 'Task', 'Description', 'Duration', 'Billable'],
+    ...data.entries.map((entry) => [
+      entry.dateIso,
+      entry.clientName,
+      entry.projectName,
+      entry.taskName === '—' ? '' : entry.taskName,
+      entry.description === '—' ? '' : entry.description,
+      formatDurationMin(entry.durationMin),
+      entry.billable ? 'Yes' : 'No',
+    ]),
   ];
 
-  const entryRows = data.entries.map((entry) => [
-    entry.date,
-    entry.clientName,
-    entry.projectName,
-    entry.taskName,
-    entry.description === '—' ? '' : entry.description,
-    formatDurationMin(entry.durationMin),
-    entry.billable ? 'Yes' : 'No',
-  ]);
-
-  const entryFooter = [
-    'Total',
-    '',
-    '',
-    '',
-    '',
-    formatDurationMin(data.summary.totalMin),
-    '',
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryLines);
+  const entriesSheet = XLSX.utils.aoa_to_sheet(entryRows);
+  entriesSheet['!cols'] = [
+    { wch: 12 },
+    { wch: 24 },
+    { wch: 28 },
+    { wch: 24 },
+    { wch: 40 },
+    { wch: 10 },
+    { wch: 10 },
   ];
 
-  const sheetData = [...summaryLines, ...tableRows, footerRow, ...entrySection, ...entryRows, entryFooter];
-  const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Time report');
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+  XLSX.utils.book_append_sheet(workbook, entriesSheet, 'Entries');
   XLSX.writeFile(workbook, `${data.filenameBase}.xlsx`);
 }
 

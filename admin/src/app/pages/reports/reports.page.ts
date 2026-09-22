@@ -13,7 +13,7 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
-import { formatDurationMin } from '../time-entry/timesheet.utils';
+import { dateKey, formatDurationMin, parseDateKey } from '../time-entry/timesheet.utils';
 import {
   REPORT_MONTHS,
   REPORT_QUARTERS,
@@ -557,6 +557,7 @@ export class ReportsPage implements OnInit {
         displayNumber: inv.displayNumber,
         clientName: inv.client.name,
         issueDate: this.formatDate(inv.issueDate),
+        issueDateIso: this.exportDateKey(inv.issueDate),
         total: Number(inv.total),
         status: inv.status,
       })),
@@ -603,6 +604,7 @@ export class ReportsPage implements OnInit {
       rows: this.timeByProject(),
       entries: this.timeEntryRows().map((row) => ({
         date: this.formatDate(row.startedAt),
+        dateIso: this.exportDateKey(row.startedAt),
         clientName: row.clientName,
         projectName: row.projectName,
         taskName: row.taskName,
@@ -646,6 +648,10 @@ export class ReportsPage implements OnInit {
       if (project) parts.push(`Project: ${project.name}`);
     }
     return parts.length ? parts.join(' · ') : undefined;
+  }
+
+  private exportDateKey(iso: string): string {
+    return dateKey(parseDateKey(iso) ?? new Date(iso));
   }
 
   private pdfFilenameSegment(value: string): string {
