@@ -116,6 +116,7 @@ export class ReportsPage implements OnInit {
   exporting = signal(false);
   error = signal<string | null>(null);
   periodLabel = signal<string | null>(null);
+  private periodFilename = signal('');
   hasRun = signal(false);
   /** Client/project filters applied on the last successful run (empty = all). */
   private appliedClientId = signal('');
@@ -368,6 +369,7 @@ export class ReportsPage implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     this.periodLabel.set(bounds.label);
+    this.periodFilename.set(bounds.filenameSegment);
 
     try {
       const params = new URLSearchParams({
@@ -561,7 +563,7 @@ export class ReportsPage implements OnInit {
         total: Number(inv.total),
         status: inv.status,
       })),
-      filenameBase: `invoice-report-${this.pdfFilenameSegment(period)}`,
+      filenameBase: this.exportFilenameBase('Invoices'),
     };
   }
 
@@ -626,7 +628,7 @@ export class ReportsPage implements OnInit {
           `Non-billable hrs (${this.formatMin(summary.nonBillableMin)})`,
         ),
       },
-      filenameBase: `time-report-${this.pdfFilenameSegment(period)}`,
+      filenameBase: this.exportFilenameBase('Time'),
     };
   }
 
@@ -654,10 +656,23 @@ export class ReportsPage implements OnInit {
     return dateKey(parseDateKey(iso) ?? new Date(iso));
   }
 
-  private pdfFilenameSegment(value: string): string {
+  private exportFilenameBase(kind: 'Time' | 'Invoices'): string {
+    const clientId = this.appliedClientId();
+    const projectId = this.appliedProjectId();
+    const client = clientId
+      ? (this.clients().find((c) => c.id === clientId)?.name ?? 'All Clients')
+      : 'All Clients';
+    const project = projectId
+      ? (this.projects().find((p) => p.id === projectId)?.name ?? 'All Projects')
+      : 'All Projects';
+    const period = this.periodFilename() || 'report';
+    return [kind, client, project, period].map((part) => this.sanitizeFilenamePart(part)).join('-');
+  }
+
+  private sanitizeFilenamePart(value: string): string {
     return value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/[/\\:*?"<>|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

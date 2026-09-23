@@ -1,4 +1,4 @@
-import { parseDateKey } from '../../core/date.util';
+import { dateKey, parseDateKey } from '../../core/date.util';
 
 export type ReportPeriodType = 'month' | 'quarter' | 'custom';
 
@@ -7,6 +7,7 @@ export type ReportPeriodBounds = {
   from: Date;
   to: Date;
   label: string;
+  filenameSegment: string;
 };
 
 export const REPORT_MONTHS = [
@@ -74,6 +75,7 @@ export function resolveReportPeriod(params: {
       from,
       to,
       label: `${formatShortDate(from)} – ${formatShortDate(to)}`,
+      filenameSegment: `${dateKey(from)}-${dateKey(toDate)}`,
     };
   }
 
@@ -87,6 +89,7 @@ export function resolveReportPeriod(params: {
       from,
       to,
       label: from.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      filenameSegment: `${from.toLocaleDateString('en-US', { month: 'short' }).replace('.', '')}${year}`,
     };
   }
 
@@ -100,6 +103,7 @@ export function resolveReportPeriod(params: {
     from,
     to,
     label: `Q${quarter} ${year}`,
+    filenameSegment: `Q${quarter}${year}`,
   };
 }
 
