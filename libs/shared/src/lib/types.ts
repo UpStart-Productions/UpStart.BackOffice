@@ -54,6 +54,7 @@ export type ProjectDto = {
   asanaProjectGids?: string[] | null;
   asanaProjectName?: string | null;
   asanaSectionGid?: string | null;
+  asanaSectionGids?: string[] | null;
   asanaSectionName?: string | null;
   client: { id: string; name: string; code: string };
   contacts?: ProjectContactDto[];

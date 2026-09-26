@@ -1,8 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ProjectTaskSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { AsanaApiClient } from './asana-api.client';
-import { asanaBoardGids } from './asana-link.util';
+import { asanaSectionGids } from './asana-link.util';
 import { AsanaService } from './asana.service';
 
 @Injectable()
@@ -17,12 +16,12 @@ export class AsanaSyncService {
     if (!project) {
       throw new BadRequestException('Project not found');
     }
-    if (!project.asanaSectionGid) {
+    const sectionGids = asanaSectionGids(project);
+    if (sectionGids.length === 0) {
       throw new BadRequestException('Link an Asana board and section before syncing');
     }
 
     const client = await this.asana.getApiClient();
-    const sectionGids = await this.resolveSectionGids(client, project);
     const asanaTasks = [];
     const incomingGids = new Set<string>();
     for (const sectionGid of sectionGids) {
@@ -88,24 +87,4 @@ export class AsanaSyncService {
     });
   }
 
-  private async resolveSectionGids(
-    client: AsanaApiClient,
-    project: { asanaProjectGid?: string | null; asanaProjectGids?: unknown; asanaSectionGid: string | null; asanaSectionName: string | null },
-  ): Promise<string[]> {
-    const gids = new Set<string>();
-    if (project.asanaSectionGid) gids.add(project.asanaSectionGid);
-
-    const boardGids = asanaBoardGids(project);
-    const sectionName = project.asanaSectionName?.trim();
-    if (boardGids.length > 1 && sectionName) {
-      for (const boardGid of boardGids) {
-        const sections = await client.listSections(boardGid);
-        for (const section of sections) {
-          if (section.name === sectionName) gids.add(section.gid);
-        }
-      }
-    }
-
-    return [...gids];
-  }
 }

@@ -12,6 +12,11 @@ export class UpdateProjectDto extends PartialType(CreateProjectDto) {
   asanaProjectGids?: string[] | null;
   @ApiPropertyOptional() @IsString() @IsOptional() asanaProjectName?: string | null;
   @ApiPropertyOptional() @IsString() @IsOptional() asanaSectionGid?: string | null;
+  @ApiPropertyOptional({ type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  asanaSectionGids?: string[] | null;
   @ApiPropertyOptional() @IsString() @IsOptional() asanaSectionName?: string | null;
 }
 

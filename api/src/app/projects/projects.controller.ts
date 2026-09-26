@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ProjectTaskSource } from '@prisma/client';
-import { asanaBoardGids, sameGidList } from '../asana/asana-link.util';
+import { asanaBoardGids, asanaSectionGids, sameGidList } from '../asana/asana-link.util';
 import { AsanaSyncService } from '../asana/asana-sync.service';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -75,11 +75,22 @@ export class ProjectsController {
     const nextBoardGids =
       dto.asanaProjectGids !== undefined
         ? dto.asanaProjectGids ?? []
-        : asanaBoardGids(existing);
+        : dto.asanaProjectGid !== undefined
+          ? dto.asanaProjectGid
+            ? [dto.asanaProjectGid]
+            : []
+          : asanaBoardGids(existing);
+    const nextSectionGids =
+      dto.asanaSectionGids !== undefined
+        ? dto.asanaSectionGids ?? []
+        : dto.asanaSectionGid !== undefined
+          ? dto.asanaSectionGid
+            ? [dto.asanaSectionGid]
+            : []
+          : asanaSectionGids(existing);
     const asanaLinkChanged =
-      (dto.asanaProjectGids !== undefined && !sameGidList(nextBoardGids, asanaBoardGids(existing))) ||
-      (dto.asanaProjectGid !== undefined && dto.asanaProjectGid !== existing.asanaProjectGid) ||
-      (dto.asanaSectionGid !== undefined && dto.asanaSectionGid !== existing.asanaSectionGid);
+      !sameGidList(nextBoardGids, asanaBoardGids(existing)) ||
+      !sameGidList(nextSectionGids, asanaSectionGids(existing));
 
     const project = await this.prisma.project.update({
       where: { id },
@@ -90,14 +101,15 @@ export class ProjectsController {
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-        ...(dto.asanaProjectGids !== undefined && {
+        ...(dto.asanaProjectGid !== undefined && { asanaProjectGid: dto.asanaProjectGid }),
+        ...((dto.asanaProjectGids !== undefined || dto.asanaProjectGid !== undefined) && {
           asanaProjectGids: nextBoardGids,
-          asanaProjectGid: nextBoardGids[0] ?? null,
         }),
-        ...(dto.asanaProjectGid !== undefined &&
-          dto.asanaProjectGids === undefined && { asanaProjectGid: dto.asanaProjectGid }),
         ...(dto.asanaProjectName !== undefined && { asanaProjectName: dto.asanaProjectName }),
         ...(dto.asanaSectionGid !== undefined && { asanaSectionGid: dto.asanaSectionGid }),
+        ...((dto.asanaSectionGids !== undefined || dto.asanaSectionGid !== undefined) && {
+          asanaSectionGids: nextSectionGids,
+        }),
         ...(dto.asanaSectionName !== undefined && { asanaSectionName: dto.asanaSectionName }),
       },
       include: projectInclude,
@@ -110,15 +122,16 @@ export class ProjectsController {
       });
     }
 
-    if (asanaLinkChanged && project.asanaSectionGid) {
+    if (asanaLinkChanged && nextSectionGids.length > 0) {
       return this.asanaSync.syncProjectTasks(id);
     }
 
-    if (
-      (dto.asanaProjectGids !== undefined && nextBoardGids.length === 0) ||
-      dto.asanaProjectGid === null ||
-      dto.asanaSectionGid === null
-    ) {
+    const asanaFieldsSent =
+      dto.asanaProjectGid !== undefined ||
+      dto.asanaProjectGids !== undefined ||
+      dto.asanaSectionGid !== undefined ||
+      dto.asanaSectionGids !== undefined;
+    if (asanaFieldsSent && (nextBoardGids.length === 0 || nextSectionGids.length === 0)) {
       await this.prisma.projectTask.updateMany({
         where: { projectId: id, source: ProjectTaskSource.ASANA },
         data: { isActive: false },

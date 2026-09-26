@@ -203,47 +203,48 @@
               </p-accordion-header>
               <p-accordion-content>
                 <p class="text-color-secondary mt-0 mb-3 text-sm">
-                  Link one or more Asana boards and a section. Incomplete tasks from that section on the selected boards appear on timesheets.
+                  Link an Asana board and one or more sections. Incomplete tasks from those sections appear on timesheets.
                 </p>
 
                 <div class="showcase-flex-col">
                   <div class="asana-link-row">
                     <div class="form-field">
                       <label for="asanaProject">Board</label>
-                      <p-multiselect
+                      <p-select
                         inputId="asanaProject"
                         [options]="asanaProjects()"
                         optionLabel="name"
                         optionValue="gid"
-                        [ngModel]="asanaLink.projectGids"
-                        (ngModelChange)="onAsanaProjectsChange($event)"
-                        (onPanelShow)="onAsanaProjectSelectOpen()"
+                        [ngModel]="asanaLink.projectGid"
+                        (ngModelChange)="onAsanaProjectChange($event)"
+                        (onShow)="onAsanaProjectSelectOpen()"
                         name="asanaProject"
-                        placeholder="Select Asana boards"
+                        placeholder="Select Asana board"
                         [loading]="loadingAsanaProjects()"
                         [showClear]="true"
-                        [filter]="true"
-                        display="chip"
                         styleClass="w-full"
-                        appendTo="body"
                       />
                     </div>
 
                     <div class="form-field">
                       <label for="asanaSection">Section <span class="required-dot" aria-hidden="true"></span></label>
-                      <p-select
+                      <p-multiselect
                         inputId="asanaSection"
                         [options]="asanaSections()"
                         optionLabel="name"
                         optionValue="gid"
-                        [ngModel]="asanaLink.sectionGid"
-                        (ngModelChange)="onAsanaSectionChange($event)"
-                        (onShow)="onAsanaSectionSelectOpen()"
+                        [ngModel]="asanaLink.sectionGids"
+                        (ngModelChange)="onAsanaSectionsChange($event)"
+                        (onPanelShow)="onAsanaSectionSelectOpen()"
                         name="asanaSection"
-                        placeholder="Select section"
+                        placeholder="Select sections"
                         [loading]="loadingAsanaSections()"
-                        [disabled]="asanaLink.projectGids.length === 0"
+                        [disabled]="!asanaLink.projectGid"
+                        [showClear]="true"
+                        [filter]="true"
+                        display="chip"
                         styleClass="w-full"
+                        appendTo="body"
                       />
                       @if (asanaSectionValidationError()) {
                         <p-message
