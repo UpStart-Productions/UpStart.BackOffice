@@ -203,30 +203,33 @@
               </p-accordion-header>
               <p-accordion-content>
                 <p class="text-color-secondary mt-0 mb-3 text-sm">
-                  Link an Asana board and section. Only incomplete tasks from that section appear on timesheets.
+                  Link one or more Asana boards and a section. Incomplete tasks from that section on the selected boards appear on timesheets.
                 </p>
 
                 <div class="showcase-flex-col">
-                  <div class="form-field showcase-full">
-                    <label for="asanaProject">Board</label>
-                    <p-select
-                      inputId="asanaProject"
-                      [options]="asanaProjects()"
-                      optionLabel="name"
-                      optionValue="gid"
-                      [ngModel]="asanaLink.projectGid"
-                      (ngModelChange)="onAsanaProjectChange($event)"
-                      (onShow)="onAsanaProjectSelectOpen()"
-                      name="asanaProject"
-                      placeholder="Select Asana board"
-                      [loading]="loadingAsanaProjects()"
-                      [showClear]="true"
-                      styleClass="w-full"
-                    />
-                  </div>
+                  <div class="asana-link-row">
+                    <div class="form-field">
+                      <label for="asanaProject">Board</label>
+                      <p-multiselect
+                        inputId="asanaProject"
+                        [options]="asanaProjects()"
+                        optionLabel="name"
+                        optionValue="gid"
+                        [ngModel]="asanaLink.projectGids"
+                        (ngModelChange)="onAsanaProjectsChange($event)"
+                        (onPanelShow)="onAsanaProjectSelectOpen()"
+                        name="asanaProject"
+                        placeholder="Select Asana boards"
+                        [loading]="loadingAsanaProjects()"
+                        [showClear]="true"
+                        [filter]="true"
+                        display="chip"
+                        styleClass="w-full"
+                        appendTo="body"
+                      />
+                    </div>
 
-                  @if (asanaLink.projectGid) {
-                    <div class="form-field showcase-full">
+                    <div class="form-field">
                       <label for="asanaSection">Section <span class="required-dot" aria-hidden="true"></span></label>
                       <p-select
                         inputId="asanaSection"
@@ -239,6 +242,7 @@
                         name="asanaSection"
                         placeholder="Select section"
                         [loading]="loadingAsanaSections()"
+                        [disabled]="asanaLink.projectGids.length === 0"
                         styleClass="w-full"
                       />
                       @if (asanaSectionValidationError()) {
@@ -252,7 +256,7 @@
                         <p class="text-color-secondary text-sm mt-2 mb-0">{{ asanaSectionsError() }}</p>
                       }
                     </div>
-                  }
+                  </div>
 
                   @if (!isNew && asanaLinked()) {
                     <div class="flex flex-wrap gap-2 align-items-center">

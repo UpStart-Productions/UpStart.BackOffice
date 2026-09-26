@@ -623,7 +623,7 @@ export class TimeEntryModalComponent {
 
   onDurationKeydown(event: KeyboardEvent) {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key.length === 1 && /[^0-9:]/.test(event.key)) {
+    if (event.key.length === 1 && /[^0-9:.]/.test(event.key)) {
       event.preventDefault();
     }
   }
@@ -712,7 +712,7 @@ export class TimeEntryModalComponent {
     } else {
       const parsed = parseDurationInput(this.durationInput());
       if (parsed === null) {
-        this.error.set('Invalid duration. Use H:MM (for example 2:30).');
+        this.error.set('Invalid duration. Use H:MM (2:30) or decimal hours (2.5).');
         return;
       }
       durationMin = parsed;

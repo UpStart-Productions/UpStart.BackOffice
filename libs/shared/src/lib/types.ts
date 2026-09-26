@@ -51,6 +51,7 @@ export type ProjectDto = {
   isBillable: boolean;
   isActive: boolean;
   asanaProjectGid?: string | null;
+  asanaProjectGids?: string[] | null;
   asanaProjectName?: string | null;
   asanaSectionGid?: string | null;
   asanaSectionName?: string | null;

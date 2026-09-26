@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ProjectTaskSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AsanaApiClient } from './asana-api.client';
+import { asanaBoardGids } from './asana-link.util';
 import { AsanaService } from './asana.service';
 
 @Injectable()
@@ -21,8 +22,17 @@ export class AsanaSyncService {
     }
 
     const client = await this.asana.getApiClient();
-    const asanaTasks = await client.listSectionTasks(project.asanaSectionGid);
-    const incomingGids = new Set(asanaTasks.map((t) => t.gid));
+    const sectionGids = await this.resolveSectionGids(client, project);
+    const asanaTasks = [];
+    const incomingGids = new Set<string>();
+    for (const sectionGid of sectionGids) {
+      const tasks = await client.listSectionTasks(sectionGid);
+      for (const task of tasks) {
+        if (incomingGids.has(task.gid)) continue;
+        incomingGids.add(task.gid);
+        asanaTasks.push(task);
+      }
+    }
 
     const existingAsanaTasks = await this.prisma.projectTask.findMany({
       where: { projectId, source: ProjectTaskSource.ASANA },
@@ -76,5 +86,26 @@ export class AsanaSyncService {
         tasks: { orderBy: { sortOrder: 'asc' } },
       },
     });
+  }
+
+  private async resolveSectionGids(
+    client: AsanaApiClient,
+    project: { asanaProjectGid?: string | null; asanaProjectGids?: unknown; asanaSectionGid: string | null; asanaSectionName: string | null },
+  ): Promise<string[]> {
+    const gids = new Set<string>();
+    if (project.asanaSectionGid) gids.add(project.asanaSectionGid);
+
+    const boardGids = asanaBoardGids(project);
+    const sectionName = project.asanaSectionName?.trim();
+    if (boardGids.length > 1 && sectionName) {
+      for (const boardGid of boardGids) {
+        const sections = await client.listSections(boardGid);
+        for (const section of sections) {
+          if (section.name === sectionName) gids.add(section.gid);
+        }
+      }
+    }
+
+    return [...gids];
   }
 }

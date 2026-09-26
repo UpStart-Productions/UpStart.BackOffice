@@ -123,7 +123,7 @@ export function dayLabel(d: Date): { short: string; dom: string; md: string } {
   };
 }
 
-/** Keep only digits and colons so duration entry stays H:MM. */
+/** Keep digits, colons, and decimals so duration accepts `2:30` or `2.5`. */
 export function sanitizeDurationInput(raw: string): string {
-  return raw.replace(/[^0-9:]/g, '');
+  return raw.replace(/[^0-9:.]/g, '');
 }

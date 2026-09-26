@@ -7,6 +7,7 @@ import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AccordionModule } from 'primeng/accordion';
@@ -24,6 +25,7 @@ import {
 
 type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
+type AsanaSectionOption = AsanaResource & { rawName: string };
 type AsanaStatus = { configured: boolean; connected: boolean };
 
 type ProjectContactDraft = {
@@ -44,6 +46,7 @@ type ProjectResponse = {
   isBillable: boolean;
   isActive: boolean;
   asanaProjectGid?: string | null;
+  asanaProjectGids?: string[] | null;
   asanaProjectName?: string | null;
   asanaSectionGid?: string | null;
   asanaSectionName?: string | null;
@@ -64,6 +67,7 @@ type ProjectResponse = {
     TagModule,
     ToggleSwitchModule,
     SelectModule,
+    MultiSelectModule,
     InputNumberModule,
     AccordionModule,
     QuillModule,
@@ -92,7 +96,7 @@ export class ProjectFormPage implements OnInit {
 
   asanaStatus = signal<AsanaStatus | null>(null);
   asanaProjects = signal<AsanaResource[]>([]);
-  asanaSections = signal<AsanaResource[]>([]);
+  asanaSections = signal<AsanaSectionOption[]>([]);
   loadingAsanaProjects = signal(false);
   loadingAsanaSections = signal(false);
   asanaSectionsError = signal<string | null>(null);
@@ -100,13 +104,13 @@ export class ProjectFormPage implements OnInit {
   accordionOpenPanels: string[] = [];
 
   asanaLink = {
-    projectGid: null as string | null,
+    projectGids: [] as string[],
     sectionGid: null as string | null,
   };
 
   readonly asanaConnected = computed(() => this.asanaStatus()?.connected === true);
   readonly asanaLinked = computed(
-    () => !!(this.asanaLink.projectGid && this.asanaLink.sectionGid),
+    () => this.asanaLink.projectGids.length > 0 && !!this.asanaLink.sectionGid,
   );
   readonly manualTaskCount = computed(() => this.manualTasks().length);
   readonly contactCount = computed(() => this.contactRows().length);
@@ -172,13 +176,14 @@ export class ProjectFormPage implements OnInit {
       isActive: project.isActive,
     };
     this.contactRows.set(this.mapContacts(project.contacts ?? []));
+    const projectGids = this.parseStoredBoardGids(project);
     this.asanaLink = {
-      projectGid: project.asanaProjectGid ?? null,
+      projectGids,
       sectionGid: project.asanaSectionGid ?? null,
     };
-    if (project.asanaProjectGid) {
-      this.ensureAsanaProjectOption(project.asanaProjectGid, project.asanaProjectName);
-      await this.loadAsanaSections(project.asanaProjectGid);
+    if (projectGids.length > 0) {
+      this.ensureAsanaProjectOptions(projectGids, project.asanaProjectName);
+      await this.loadAsanaSections(projectGids);
       if (project.asanaSectionGid) {
         this.ensureAsanaSectionOption(project.asanaSectionGid, project.asanaSectionName);
       }
@@ -253,22 +258,34 @@ export class ProjectFormPage implements OnInit {
   }
 
   async onAsanaSectionSelectOpen() {
-    const projectGid = this.asanaLink.projectGid;
-    if (!projectGid || !this.asanaConnected()) return;
-    await this.loadAsanaSections(projectGid);
+    if (this.asanaLink.projectGids.length === 0 || !this.asanaConnected()) return;
+    await this.loadAsanaSections(this.asanaLink.projectGids);
   }
 
-  async loadAsanaSections(projectGid: string) {
+  async loadAsanaSections(projectGids: string[]) {
     this.loadingAsanaSections.set(true);
     this.asanaSectionsError.set(null);
     try {
-      const sections = await this.api.get<AsanaResource[]>(
-        `/asana/projects/${projectGid}/sections`,
+      const prefixBoard = projectGids.length > 1;
+      const groups = await Promise.all(
+        projectGids.map(async (projectGid) => {
+          const sections = await this.api.get<AsanaResource[]>(
+            `/asana/projects/${projectGid}/sections`,
+          );
+          const boardName =
+            this.asanaProjects().find((p) => p.gid === projectGid)?.name ?? 'Board';
+          return sections.map((section) => ({
+            gid: section.gid,
+            rawName: section.name,
+            name: prefixBoard ? `${boardName} — ${section.name}` : section.name,
+          }));
+        }),
       );
+      const sections = groups.flat();
       this.asanaSections.set(sections);
       if (sections.length === 0) {
         this.asanaSectionsError.set(
-          'No sections found for this board. Board columns appear as sections — add at least one task to a column if the list is empty.',
+          'No sections found for the selected boards. Board columns appear as sections — add at least one task to a column if the list is empty.',
         );
       }
     } catch (err) {
@@ -281,24 +298,43 @@ export class ProjectFormPage implements OnInit {
     }
   }
 
-  private ensureAsanaProjectOption(gid: string, name?: string | null) {
-    if (this.asanaProjects().some((p) => p.gid === gid)) return;
-    this.asanaProjects.update((list) => [...list, { gid, name: name ?? 'Linked board' }]);
+  private parseStoredBoardGids(project: ProjectResponse): string[] {
+    if (Array.isArray(project.asanaProjectGids) && project.asanaProjectGids.length > 0) {
+      return project.asanaProjectGids.filter(Boolean);
+    }
+    return project.asanaProjectGid ? [project.asanaProjectGid] : [];
+  }
+
+  private ensureAsanaProjectOptions(gids: string[], name?: string | null) {
+    const names = (name ?? '')
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    gids.forEach((gid, index) => {
+      if (this.asanaProjects().some((p) => p.gid === gid)) return;
+      this.asanaProjects.update((list) => [
+        ...list,
+        { gid, name: names[index] ?? names[0] ?? 'Linked board' },
+      ]);
+    });
   }
 
   private ensureAsanaSectionOption(gid: string, name?: string | null) {
     if (this.asanaSections().some((s) => s.gid === gid)) return;
-    this.asanaSections.update((list) => [...list, { gid, name: name ?? 'Linked section' }]);
+    this.asanaSections.update((list) => [
+      ...list,
+      { gid, name: name ?? 'Linked section', rawName: name ?? 'Linked section' },
+    ]);
   }
 
-  async onAsanaProjectChange(projectGid: string | null) {
-    this.asanaLink.projectGid = projectGid;
+  async onAsanaProjectsChange(projectGids: string[] | null) {
+    this.asanaLink.projectGids = projectGids ?? [];
     this.asanaLink.sectionGid = null;
     this.asanaSections.set([]);
     this.asanaSectionsError.set(null);
     this.asanaSectionValidationError.set(null);
-    if (projectGid) {
-      await this.loadAsanaSections(projectGid);
+    if (this.asanaLink.projectGids.length > 0) {
+      await this.loadAsanaSections(this.asanaLink.projectGids);
     }
   }
 
@@ -396,7 +432,7 @@ export class ProjectFormPage implements OnInit {
       header: 'Unlink Asana',
       message: 'Remove the Asana board link from this project? Synced Asana tasks will be hidden from timesheets.',
       accept: () => {
-        this.asanaLink.projectGid = null;
+        this.asanaLink.projectGids = [];
         this.asanaLink.sectionGid = null;
         this.asanaSections.set([]);
         this.asanaTasks.set([]);
@@ -405,9 +441,10 @@ export class ProjectFormPage implements OnInit {
   }
 
   asanaProjectLabel(): string {
-    const gid = this.asanaLink.projectGid;
-    if (!gid) return '';
-    return this.asanaProjects().find((p) => p.gid === gid)?.name ?? this.form.name;
+    const names = this.asanaLink.projectGids
+      .map((gid) => this.asanaProjects().find((p) => p.gid === gid)?.name)
+      .filter((name): name is string => !!name);
+    return names.join(', ') || this.form.name;
   }
 
   asanaSectionLabel(): string {
@@ -417,30 +454,34 @@ export class ProjectFormPage implements OnInit {
   }
 
   private asanaLinkPayload() {
-    const projectGid = this.asanaLink.projectGid;
+    const projectGids = this.asanaLink.projectGids;
     const sectionGid = this.asanaLink.sectionGid;
-    if (!projectGid && !sectionGid) {
+    if (projectGids.length === 0 && !sectionGid) {
       return {
         asanaProjectGid: null,
+        asanaProjectGids: [],
         asanaProjectName: null,
         asanaSectionGid: null,
         asanaSectionName: null,
       };
     }
-    const project = this.asanaProjects().find((p) => p.gid === projectGid);
+    const names = projectGids
+      .map((gid) => this.asanaProjects().find((p) => p.gid === gid)?.name)
+      .filter((name): name is string => !!name);
     const section = this.asanaSections().find((s) => s.gid === sectionGid);
     return {
-      asanaProjectGid: projectGid,
-      asanaProjectName: project?.name ?? null,
+      asanaProjectGid: projectGids[0] ?? null,
+      asanaProjectGids: projectGids,
+      asanaProjectName: names.join(', ') || null,
       asanaSectionGid: sectionGid,
-      asanaSectionName: section?.name ?? null,
+      asanaSectionName: section?.rawName ?? section?.name ?? null,
     };
   }
 
   async refreshFromAsana() {
     const projectId = this.id();
     if (!projectId) return;
-    if (!this.asanaLink.projectGid || !this.asanaLink.sectionGid) {
+    if (this.asanaLink.projectGids.length === 0 || !this.asanaLink.sectionGid) {
       this.error.set('Select an Asana board and section first');
       return;
     }
@@ -489,7 +530,7 @@ export class ProjectFormPage implements OnInit {
       return;
     }
 
-    if (this.asanaLink.projectGid && !this.asanaLink.sectionGid) {
+    if (this.asanaLink.projectGids.length > 0 && !this.asanaLink.sectionGid) {
       this.asanaSectionValidationError.set('Select an Asana section when a board is linked');
       this.openAccordionPanel('asana');
       return;

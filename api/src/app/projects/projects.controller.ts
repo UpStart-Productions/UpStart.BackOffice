@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ProjectTaskSource } from '@prisma/client';
+import { asanaBoardGids, sameGidList } from '../asana/asana-link.util';
 import { AsanaSyncService } from '../asana/asana-sync.service';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
@@ -71,7 +72,12 @@ export class ProjectsController {
     const existing = await this.prisma.project.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Project not found');
 
+    const nextBoardGids =
+      dto.asanaProjectGids !== undefined
+        ? dto.asanaProjectGids ?? []
+        : asanaBoardGids(existing);
     const asanaLinkChanged =
+      (dto.asanaProjectGids !== undefined && !sameGidList(nextBoardGids, asanaBoardGids(existing))) ||
       (dto.asanaProjectGid !== undefined && dto.asanaProjectGid !== existing.asanaProjectGid) ||
       (dto.asanaSectionGid !== undefined && dto.asanaSectionGid !== existing.asanaSectionGid);
 
@@ -84,7 +90,12 @@ export class ProjectsController {
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-        ...(dto.asanaProjectGid !== undefined && { asanaProjectGid: dto.asanaProjectGid }),
+        ...(dto.asanaProjectGids !== undefined && {
+          asanaProjectGids: nextBoardGids,
+          asanaProjectGid: nextBoardGids[0] ?? null,
+        }),
+        ...(dto.asanaProjectGid !== undefined &&
+          dto.asanaProjectGids === undefined && { asanaProjectGid: dto.asanaProjectGid }),
         ...(dto.asanaProjectName !== undefined && { asanaProjectName: dto.asanaProjectName }),
         ...(dto.asanaSectionGid !== undefined && { asanaSectionGid: dto.asanaSectionGid }),
         ...(dto.asanaSectionName !== undefined && { asanaSectionName: dto.asanaSectionName }),
@@ -104,6 +115,7 @@ export class ProjectsController {
     }
 
     if (
+      (dto.asanaProjectGids !== undefined && nextBoardGids.length === 0) ||
       dto.asanaProjectGid === null ||
       dto.asanaSectionGid === null
     ) {

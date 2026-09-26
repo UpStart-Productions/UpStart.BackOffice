@@ -30,3 +30,20 @@
   color: var(--p-green-500);
   font-size: 1rem;
 }
+
+.asana-link-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+
+  > .form-field {
+    flex: 1 1 50%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .asana-link-row {
+    flex-direction: column;
+  }
+}

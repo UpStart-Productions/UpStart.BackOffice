@@ -264,6 +264,7 @@ model Project {
   isBillable       Boolean  @default(true)
   isActive         Boolean  @default(true)
   asanaProjectGid  String?
+  asanaProjectGids Json?
   asanaProjectName String?
   asanaSectionGid  String?
   asanaSectionName String?
