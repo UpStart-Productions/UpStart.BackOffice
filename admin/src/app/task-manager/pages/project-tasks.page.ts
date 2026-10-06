@@ -5,6 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
@@ -34,6 +37,9 @@ const NO_SECTION = '__none__';
     FormsModule,
     RouterLink,
     ButtonModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
     PopoverModule,
     SelectButtonModule,
     TooltipModule,

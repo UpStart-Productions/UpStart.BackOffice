@@ -4,13 +4,13 @@
 
 $tm-rail-width: 4.5rem;
 $tm-sidebar-width: 16rem;
-$tm-gap: 0.75rem;
+$tm-content-gap: 1.5rem;
 $tm-detail-width: min(42rem, 48vw);
 
 :root {
   --tm-row-height: 2.5rem;
   --tm-border: var(--surface-border);
-  --tm-hover: color-mix(in srgb, var(--brand-primary) 4%, transparent);
+  --tm-hover: var(--p-datatable-row-hover-background, color-mix(in srgb, var(--brand-primary) 4%, transparent));
   --tm-selected: color-mix(in srgb, var(--brand-primary) 9%, transparent);
   --tm-muted: var(--text-color-secondary);
   --tm-overdue: #dc2626;
@@ -43,7 +43,8 @@ $tm-detail-width: min(42rem, 48vw);
 .layout-tm-sidebar {
   position: fixed;
   top: 6.5rem;
-  left: calc(2rem + #{$tm-rail-width} + #{$tm-gap});
+  // Flush against the icon rail so the two read as one navigation block.
+  left: calc(2rem + #{$tm-rail-width});
   width: $tm-sidebar-width;
   height: calc(100vh - 8rem);
   z-index: 998;
@@ -51,8 +52,22 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 @media (min-width: 992px) {
-  .layout-wrapper.layout-static.layout-task-mode .layout-main-container {
-    margin-left: calc(#{$tm-rail-width} + #{$tm-gap} + #{$tm-sidebar-width});
+  .layout-wrapper.layout-static.layout-task-mode {
+    .layout-main-container {
+      // Rail + sidebar start 2rem from the edge; leave a clear gap before the content.
+      margin-left: calc(2rem + #{$tm-rail-width} + #{$tm-sidebar-width} + #{$tm-content-gap} - 2rem);
+    }
+
+    .layout-sidebar--compact {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .layout-tm-sidebar .tm-sidebar {
+      border-left: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
   }
 
   .layout-wrapper.layout-static.layout-task-mode.layout-static-inactive {
@@ -137,7 +152,6 @@ $tm-detail-width: min(42rem, 48vw);
   border-radius: 6px;
   color: var(--text-color);
   text-decoration: none;
-  font-size: 0.9rem;
   white-space: nowrap;
 
   > .pi {
@@ -593,6 +607,7 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-project-title {
   font-size: 1.5rem;
   font-weight: 600;
+  line-height: 1.3;
   margin: 0;
   padding: 0.1rem 0.35rem;
   border-radius: 6px;
@@ -685,23 +700,7 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 .tm-toolbar-search {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--tm-border);
-  border-radius: 6px;
-  padding: 0.3rem 0.6rem;
-  background: var(--surface-card);
-  color: var(--tm-muted);
-
-  input {
-    border: none;
-    outline: none;
-    background: transparent;
-    font: inherit;
-    width: 13rem;
-    color: var(--text-color);
-  }
+  width: 16rem;
 }
 
 .tm-toggle-label {
@@ -716,7 +715,6 @@ $tm-detail-width: min(42rem, 48vw);
 
 .tm-grid {
   background: var(--surface-card);
-  border: 1px solid var(--tm-border);
   border-radius: var(--content-border-radius);
   overflow-x: auto;
   padding-bottom: 0.5rem;
@@ -730,17 +728,17 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 .tm-grid-head {
+  // Matches PrimeNG p-table header cells used across the app.
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--surface-card);
-  border-bottom: 1px solid var(--tm-border);
-  font-size: 0.75rem;
-  color: var(--tm-muted);
-  font-weight: 600;
+  background: var(--p-datatable-header-cell-background, var(--surface-card));
+  border-bottom: 1px solid var(--p-datatable-header-cell-border-color, var(--tm-border));
+  color: var(--p-datatable-header-cell-color, var(--text-color));
+  font-weight: var(--p-datatable-column-title-font-weight, 600);
 
   .tm-grid-cell {
-    padding: 0.5rem 0.6rem;
+    padding: var(--p-datatable-header-cell-padding, 0.75rem 1rem);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -861,7 +859,6 @@ $tm-detail-width: min(42rem, 48vw);
   border-radius: 4px;
   padding: 0.2rem 0.3rem;
   font: inherit;
-  font-size: 0.9rem;
   color: var(--text-color);
   text-overflow: ellipsis;
 
@@ -879,7 +876,6 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-row-title {
   flex: 1;
   min-width: 0;
-  font-size: 0.9rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -946,7 +942,6 @@ $tm-detail-width: min(42rem, 48vw);
   width: 100%;
   min-height: 1.9rem;
   font: inherit;
-  font-size: 0.85rem;
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -987,7 +982,6 @@ $tm-detail-width: min(42rem, 48vw);
   border-radius: 4px;
   padding: 0.2rem 0.35rem;
   font: inherit;
-  font-size: 0.85rem;
 }
 
 .tm-add-task-row {
@@ -999,7 +993,6 @@ $tm-detail-width: min(42rem, 48vw);
   color: var(--tm-muted);
   padding: 0.5rem 0.5rem 0.5rem 3.1rem;
   font: inherit;
-  font-size: 0.85rem;
   cursor: pointer;
 
   &:hover {
@@ -1589,7 +1582,6 @@ a.tm-project-pill:hover {
   margin: 0;
   padding: 0;
   background: var(--surface-card);
-  border: 1px solid var(--tm-border);
   border-radius: var(--content-border-radius);
   overflow: hidden;
 }
@@ -1797,4 +1789,26 @@ a.tm-project-pill:hover {
   display: block;
   margin-top: 0.35rem;
   line-height: 1.4;
+}
+
+.tm-add-subtask-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--tm-border);
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  color: var(--text-color);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tm-hover);
+  }
+}
+
+.tm-subtask-new .tm-subtask-name {
+  border-color: var(--brand-primary);
 }

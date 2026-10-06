@@ -3,6 +3,9 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { isStaffRole } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SessionService } from '../../core/session.service';
@@ -15,7 +18,7 @@ import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component'
 @Component({
   selector: 'app-tm-projects-browser-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, TmAddProjectDialogComponent],
+  imports: [FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, IconFieldModule, InputIconModule, InputTextModule, TmAddProjectDialogComponent],
   template: `
     <div class="tm-page">
       <header class="tm-project-header">
@@ -23,23 +26,23 @@ import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component'
           <span class="tm-page-icon"><i class="pi pi-th-large"></i></span>
           <h1 class="tm-project-title">Projects</h1>
           <div class="tm-project-header-actions">
-            <span class="tm-toolbar-search">
-              <i class="pi pi-search"></i>
-              <input type="search" placeholder="Search projects or clients" [ngModel]="query()" (ngModelChange)="query.set($event)" aria-label="Search projects" />
-            </span>
+            <p-iconfield iconPosition="left" class="tm-toolbar-search">
+              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+              <input pInputText type="text" class="w-full" placeholder="Search projects or clients" [ngModel]="query()" (ngModelChange)="query.set($event)" aria-label="Search projects" />
+            </p-iconfield>
             <label class="tm-toggle-label">
               <p-toggleswitch [ngModel]="showArchived()" (ngModelChange)="setArchived($event)" />
               Inactive
             </label>
             @if (isStaff()) {
-              <p-button label="Add project" icon="pi pi-plus" size="small" (onClick)="newOpen.set(true)" />
+              <p-button label="Add project" icon="pi pi-plus" (onClick)="newOpen.set(true)" />
             }
           </div>
         </div>
       </header>
 
       <div class="card tm-card-flush">
-        <p-table [value]="filtered()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="tm-browser-table" [rowHover]="true">
+        <p-table [value]="filtered()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="table-bordered" [rowHover]="true">
           <ng-template #header>
             <tr>
               <th style="width: 2.5rem"></th>

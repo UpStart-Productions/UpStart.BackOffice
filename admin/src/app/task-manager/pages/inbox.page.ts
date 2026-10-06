@@ -31,9 +31,9 @@ const TYPE_ICON: Record<string, string> = {
           <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
           <h1 class="tm-project-title">Inbox</h1>
           <div class="tm-project-header-actions">
-            <p-selectButton [options]="tabs" optionLabel="label" optionValue="value" [ngModel]="tab()" (ngModelChange)="setTab($event)" [allowEmpty]="false" size="small" />
+            <p-selectButton [options]="tabs" optionLabel="label" optionValue="value" [ngModel]="tab()" (ngModelChange)="setTab($event)" [allowEmpty]="false" />
             @if (tab() === 'activity' && unread() > 0) {
-              <p-button label="Mark all read" icon="pi pi-check" size="small" severity="secondary" [outlined]="true" (onClick)="markAllRead()" />
+              <p-button label="Mark all read" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="markAllRead()" />
             }
             <button type="button" class="tm-icon-btn" (click)="openPrefs()" aria-label="Notification settings"><i class="pi pi-cog"></i></button>
           </div>

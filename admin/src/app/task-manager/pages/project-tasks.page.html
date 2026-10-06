@@ -30,10 +30,10 @@
             @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
           </button>
           @if (p.permissions.canManage) {
-            <p-button label="Share" icon="pi pi-user-plus" size="small" severity="secondary" [outlined]="true" (onClick)="membersOpen.set(true)" />
+            <p-button label="Share" icon="pi pi-user-plus" severity="secondary" [outlined]="true" (onClick)="membersOpen.set(true)" />
           }
           @if (canEdit()) {
-            <p-button label="Customize" icon="pi pi-sliders-h" size="small" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
+            <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
           }
           <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions"><i class="pi pi-ellipsis-h"></i></button>
         </div>
@@ -42,7 +42,7 @@
 
     <div class="tm-toolbar">
       @if (canEdit()) {
-        <p-button label="Add task" icon="pi pi-plus" size="small" (onClick)="addTaskTop()" />
+        <p-button label="Add task" icon="pi pi-plus" (onClick)="addTaskTop()" />
       }
       <p-selectButton
         [options]="filterOptions"
@@ -51,13 +51,13 @@
         [ngModel]="completedFilter()"
         (ngModelChange)="setFilter($event)"
         [allowEmpty]="false"
-        size="small"
+       
         aria-label="Filter tasks"
       />
-      <span class="tm-toolbar-search">
-        <i class="pi pi-search"></i>
-        <input type="search" placeholder="Filter tasks" [ngModel]="search()" (ngModelChange)="search.set($event)" aria-label="Filter tasks by name" />
-      </span>
+      <p-iconfield iconPosition="left" class="tm-toolbar-search">
+        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+        <input pInputText type="text" class="w-full" placeholder="Filter tasks" [ngModel]="search()" (ngModelChange)="search.set($event)" aria-label="Filter tasks by name" />
+      </p-iconfield>
     </div>
 
     <div class="tm-grid" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>

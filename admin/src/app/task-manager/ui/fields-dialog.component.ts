@@ -35,9 +35,9 @@ const TYPE_LABELS: Record<FieldType, string> = {
                 @if (isSelect(f.type)) {
                   <ng-container *ngTemplateOutlet="optionsEditor"></ng-container>
                 }
-                <div class="flex gap-2 justify-content-end">
-                  <p-button label="Cancel" size="small" [text]="true" severity="secondary" (onClick)="editingId.set(null)" />
-                  <p-button label="Save" size="small" (onClick)="saveEdit(f)" />
+                <div class="form-actions">
+                  <button type="button" pButton label="Cancel" severity="secondary" (click)="editingId.set(null)"></button>
+                  <button type="button" pButton label="Save" (click)="saveEdit(f)"></button>
                 </div>
               </div>
             } @else {
@@ -71,8 +71,9 @@ const TYPE_LABELS: Record<FieldType, string> = {
           @if (isSelect(draftType)) {
             <ng-container *ngTemplateOutlet="optionsEditor"></ng-container>
           }
-          <div class="flex justify-content-end mt-2">
-            <p-button label="Add field" icon="pi pi-plus" size="small" (onClick)="create()" [disabled]="!draftName.trim()" [loading]="busy()" />
+          <div class="form-actions">
+            <button type="button" pButton label="Done" severity="secondary" (click)="visible.set(false)"></button>
+            <button type="button" pButton label="Add field" icon="pi pi-plus" (click)="create()" [disabled]="!draftName.trim()" [loading]="busy()"></button>
           </div>
         </div>
       }

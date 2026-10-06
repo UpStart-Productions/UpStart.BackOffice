@@ -320,11 +320,28 @@ export class TmTaskDetailComponent implements OnDestroy {
 
   // ── Subtasks ────────────────────────────────────────────────────────────
 
+  startSubtask() {
+    this.addingSubtask.set(true);
+    this.newSubtask = '';
+    setTimeout(() => {
+      const input = document.querySelector('.tm-subtask-new-input') as HTMLInputElement | null;
+      input?.focus();
+      input?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }, 0);
+  }
+
+  cancelSubtask() {
+    this.addingSubtask.set(false);
+    this.newSubtask = '';
+  }
+
   async addSubtask() {
     const t = this.task();
     const name = this.newSubtask.trim();
     if (!t || !name) return;
     this.newSubtask = '';
+    // Keep the input open for the next subtask (Asana behavior).
+    setTimeout(() => (document.querySelector('.tm-subtask-new-input') as HTMLInputElement | null)?.focus(), 0);
     try {
       const created = await this.api.createTask({ projectId: t.projectId, parentTaskId: t.id, name });
       this.task.set({ ...t, subtasks: [...t.subtasks, created], subtaskCount: t.subtaskCount + 1 });
