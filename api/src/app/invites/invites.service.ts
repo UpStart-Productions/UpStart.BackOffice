@@ -44,15 +44,22 @@ export class InvitesService {
     return pending > 0 && accepted === 0;
   }
 
-  /** userIds (of those given) who were invited but have not accepted yet. */
+  /**
+   * userIds (of those given) who haven't accepted an invite yet: invited guests, plus guests
+   * created without an invite (e.g. by the Asana import) so Share offers "Resend invite".
+   */
   async pendingUserIds(userIds: string[]): Promise<Set<string>> {
     if (!userIds.length) return new Set();
-    const rows = await this.prisma.userInvite.groupBy({
-      by: ['userId'],
-      where: { userId: { in: userIds } },
-      _count: { acceptedAt: true },
-    });
-    return new Set(rows.filter((r) => r._count.acceptedAt === 0).map((r) => r.userId));
+    const [guests, accepted] = await Promise.all([
+      this.prisma.user.findMany({ where: { id: { in: userIds }, role: 'GUEST' }, select: { id: true } }),
+      this.prisma.userInvite.findMany({
+        where: { userId: { in: userIds }, acceptedAt: { not: null } },
+        select: { userId: true },
+        distinct: ['userId'],
+      }),
+    ]);
+    const acceptedIds = new Set(accepted.map((r) => r.userId));
+    return new Set(guests.map((g) => g.id).filter((id) => !acceptedIds.has(id)));
   }
 
   /** Create the Cognito user (silently), a fresh token, and email the branded invite. */
