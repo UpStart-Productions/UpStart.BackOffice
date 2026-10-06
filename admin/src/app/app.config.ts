@@ -2,6 +2,7 @@ import { defer } from 'rxjs';
 import {
   APP_INITIALIZER,
   ApplicationConfig,
+  Injector,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideQuillConfig } from 'ngx-quill/config';
@@ -16,6 +17,7 @@ import { appRoutes } from './app.routes';
 import { AuthStoreService } from './core/auth-store.service';
 import { CognitoAuthService } from './core/cognito-auth.service';
 import { QuillBootstrapService } from './core/quill-bootstrap.service';
+import { rememberQuillIconInjector } from './core/quill-icon-injector';
 
 const UpStartPreset = definePreset(Aura, {
   semantic: {
@@ -52,6 +54,12 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       multi: true,
+      useFactory: (injector: Injector) => () => rememberQuillIconInjector(injector),
+      deps: [Injector],
+    },
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
       useFactory: (quillBootstrap: QuillBootstrapService) => () => {
         quillBootstrap.installLazyHook();
       },
@@ -63,12 +71,14 @@ export const appConfig: ApplicationConfig = {
       customModules: [
         { path: 'blots/mention', implementation: defer(() => import('quill-mention').then((m) => m.MentionBlot)) },
         { path: 'modules/mention', implementation: defer(() => import('quill-mention').then((m) => m.Mention)) },
+        // Lucide "insert icon" embed + toolbar button (ported from GrovLink).
+        { path: 'formats/lucideIcon', implementation: defer(() => import('./core/quill-lucide-icons').then((m) => m.loadLucideIconBlot())) },
       ],
       modules: {
         toolbar: [
           ['bold', 'italic', 'underline'],
           [{ list: 'ordered' }, { list: 'bullet' }],
-          ['link'],
+          ['link', 'lucideIcon'],
           ['clean'],
         ],
       },

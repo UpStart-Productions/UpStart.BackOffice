@@ -22,11 +22,13 @@ const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? val
 
 export class AddToTasksDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) icon?: string | null;
 }
 
 /** Tasks-only project settings. Name, client, billing and active status are edited on the Projects page. */
 export class UpdateTmProjectDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) icon?: string | null;
 }
 
 export class AddMemberDto {

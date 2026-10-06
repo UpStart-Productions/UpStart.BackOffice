@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@upstart/back-office/shared": ["libs/shared/src/index.ts"]
+      "@upstart/back-office/shared": ["libs/shared/src/index.ts"],
+      "@upstart/back-office/lucide-icons": ["libs/lucide-icons/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp", "dist"]

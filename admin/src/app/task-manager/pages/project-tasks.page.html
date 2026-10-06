@@ -9,7 +9,9 @@
   } @else if (project(); as p) {
     <header class="tm-project-header">
       <div class="tm-project-title-row">
-        <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color"></button>
+        <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color and icon" [pTooltip]="canEdit() ? 'Color & icon' : undefined" tooltipPosition="bottom">
+          @if (p.icon) { <nmp-lucide-icon [name]="p.icon" size="1.05rem" /> }
+        </button>
         <h1 class="tm-project-title">{{ p.name }}</h1>
         <button type="button" class="tm-icon-btn tm-star" [class.starred]="p.isStarred" (click)="toggleStar()" [attr.aria-label]="p.isStarred ? 'Unstar project' : 'Star project'" [pTooltip]="p.isStarred ? 'Remove from starred' : 'Add to starred'" tooltipPosition="bottom">
           <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
@@ -249,10 +251,20 @@
 </p-popover>
 
 <p-popover #colorMenu appendTo="body" styleClass="tm-popover">
-  <div class="tm-color-swatches">
-    @for (c of colors; track c) {
-      <button type="button" class="tm-color-swatch" [class.selected]="project()?.color === c" [style.background]="c" (click)="setColor(c)" [attr.aria-label]="'Color ' + c"></button>
-    }
+  <div class="tm-appearance">
+    <div class="tm-appearance-label">Color</div>
+    <div class="tm-color-swatches tm-color-swatches--row">
+      @for (c of colors; track c) {
+        <button type="button" class="tm-color-swatch" [class.selected]="project()?.color === c" [style.background]="c" (click)="setColor(c)" [attr.aria-label]="'Color ' + c"></button>
+      }
+    </div>
+    <div class="tm-appearance-label">
+      Icon
+      @if (project()?.icon) {
+        <button type="button" class="tm-link-btn" (click)="setIcon(null)">Remove icon</button>
+      }
+    </div>
+    <nmp-lucide-icon-picker-panel (iconSelected)="setIcon($event)" />
   </div>
 </p-popover>
 

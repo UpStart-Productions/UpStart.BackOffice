@@ -1,0 +1,14 @@
+<div class="nmp-licon-dialog">
+  <div class="nmp-licon-dialog-header">
+    <h3 class="nmp-licon-dialog-title">Insert icon</h3>
+    <button
+      type="button"
+      class="nmp-licon-dialog-close"
+      (click)="cancel()"
+      aria-label="Cancel"
+    >
+      ×
+    </button>
+  </div>
+  <nmp-lucide-icon-picker-panel (iconSelected)="onSelect($event)" />
+</div>

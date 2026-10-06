@@ -1,0 +1,35 @@
+<button
+  cdkOverlayOrigin
+  #triggerOrigin="cdkOverlayOrigin"
+  type="button"
+  class="nmp-licon-trigger"
+  [class.nmp-licon-trigger-disabled]="disabled()"
+  [disabled]="disabled()"
+  (click)="toggle()"
+>
+  <nmp-lucide-icon [name]="previewName()" size="18px" />
+  <span class="nmp-licon-trigger-label">{{ previewLabel() }}</span>
+</button>
+@if (previewName() && !disabled()) {
+  <button
+    type="button"
+    class="nmp-licon-clear"
+    aria-label="Clear icon"
+    (click)="clear()"
+  >
+    ×
+  </button>
+}
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="triggerOrigin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="nmp-licon-backdrop"
+  (backdropClick)="close()"
+  (detach)="close()"
+>
+  <nmp-lucide-icon-picker-panel (iconSelected)="onSelect($event)" />
+</ng-template>

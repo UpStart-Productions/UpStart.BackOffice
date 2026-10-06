@@ -307,6 +307,8 @@ model Project {
   asanaSectionName String?
   /// Task Manager display color (hex) and source Asana project for imports.
   color            String?
+  /// Task Manager icon: a Lucide icon name (kebab-case), e.g. "house".
+  icon             String?
   /// Added to the Task Manager (Tasks). Projects are created/edited on the Projects page.
   inTaskManager    Boolean  @default(false)
   importedAsanaGid String?  @unique

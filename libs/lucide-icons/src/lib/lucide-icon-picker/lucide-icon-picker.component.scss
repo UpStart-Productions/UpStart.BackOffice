@@ -1,0 +1,63 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nmp-licon-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  min-width: 10rem;
+  border: 1px solid var(--p-inputtext-border-color, #ced4da);
+  border-radius: var(--p-inputtext-border-radius, 4px);
+  background: var(--p-content-background, #fff);
+  color: var(--p-text-color, #1f2937);
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  &:hover {
+    border-color: var(--p-primary-color, #52822a);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color, #52822a);
+    outline-offset: 1px;
+  }
+}
+
+.nmp-licon-trigger-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nmp-licon-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nmp-licon-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--p-inputtext-border-color, #ced4da);
+  border-radius: var(--p-inputtext-border-radius, 4px);
+  background: var(--p-content-background, #fff);
+  color: var(--p-text-muted-color, #6b7280);
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover {
+    color: var(--p-text-color, #1f2937);
+    border-color: var(--p-primary-color, #52822a);
+  }
+}
+
+::ng-deep .nmp-licon-backdrop {
+  background: transparent;
+}

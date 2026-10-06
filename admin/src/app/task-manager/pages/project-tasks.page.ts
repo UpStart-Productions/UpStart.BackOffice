@@ -23,6 +23,7 @@ import { TmMembersDialogComponent } from '../ui/members-dialog.component';
 import { TmPersonPickerComponent } from '../ui/person-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
 import { TmAvatarComponent } from '../ui/tm-avatar.component';
+import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
 
 type CompletedFilter = 'incomplete' | 'all' | 'completed';
 type Group = { section: TmSection | null; tasks: TaskSummary[] };
@@ -33,7 +34,7 @@ const NO_SECTION = '__none__';
 @Component({
   selector: 'app-tm-project-tasks-page',
   standalone: true,
-  imports: [
+  imports: [LucideIconComponent, LucideIconPickerPanelComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -538,9 +539,21 @@ export class ProjectTasksPage implements OnDestroy {
     if (this.canEdit()) this.colorMenu().toggle(event);
   }
 
-  async setColor(color: string) {
+  async setIcon(icon: string | null) {
     const p = this.project();
     this.colorMenu().hide();
+    if (!p) return;
+    this.project.set({ ...p, icon });
+    this.store.patchProject(p.id, { icon });
+    try {
+      await this.api.updateProject(p.id, { icon });
+    } catch (err) {
+      this.fail(err);
+    }
+  }
+
+  async setColor(color: string) {
+    const p = this.project();
     if (!p) return;
     this.project.set({ ...p, color });
     this.store.patchProject(p.id, { color });

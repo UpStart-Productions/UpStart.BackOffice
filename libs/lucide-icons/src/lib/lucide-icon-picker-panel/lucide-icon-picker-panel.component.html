@@ -1,0 +1,37 @@
+<div class="nmp-licon-panel">
+  <div class="nmp-licon-search">
+    <input
+      #searchInput
+      type="text"
+      class="nmp-licon-search-input"
+      placeholder="Search icons…"
+      [value]="query()"
+      (input)="onQueryChange($any($event.target).value)"
+      autocomplete="off"
+      spellcheck="false"
+    />
+  </div>
+
+  @if (loading()) {
+    <div class="nmp-licon-status">Loading icons…</div>
+  } @else if (results().length === 0) {
+    <div class="nmp-licon-status">No icons match "{{ query() }}".</div>
+  } @else {
+    <cdk-virtual-scroll-viewport [itemSize]="rowHeight" class="nmp-licon-viewport">
+      <div *cdkVirtualFor="let row of rows()" class="nmp-licon-row">
+        @for (entry of row; track entry.name) {
+          <button
+            type="button"
+            class="nmp-licon-cell"
+            [title]="entry.name"
+            [attr.aria-label]="'Select icon ' + entry.name"
+            (click)="select(entry.name)"
+          >
+            <nmp-lucide-icon [name]="entry.name" size="20px" />
+          </button>
+        }
+      </div>
+    </cdk-virtual-scroll-viewport>
+    <div class="nmp-licon-count">{{ results().length }} icon{{ results().length === 1 ? '' : 's' }}</div>
+  }
+</div>

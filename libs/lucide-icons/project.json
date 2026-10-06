@@ -1,0 +1,8 @@
+{
+  "name": "lucide-icons",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/lucide-icons/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

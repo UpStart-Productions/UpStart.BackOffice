@@ -15,6 +15,7 @@ export type TmProjectListItem = {
   id: string;
   name: string;
   color: string | null;
+  icon: string | null;
   isActive: boolean;
   isBillable: boolean;
   client: { id: string; name: string } | null;
@@ -36,6 +37,7 @@ export type TmProject = {
   name: string;
   description: string | null;
   color: string | null;
+  icon: string | null;
   isActive: boolean;
   isBillable: boolean;
   client: { id: string; name: string } | null;
@@ -77,7 +79,7 @@ export type TaskSummary = {
 };
 
 export type MyTask = TaskSummary & {
-  project: { id: string; name: string; color: string | null };
+  project: { id: string; name: string; color: string | null; icon: string | null };
   parent: { id: string; name: string } | null;
 };
 
@@ -106,7 +108,7 @@ export type TaskAttachment = {
 
 export type TaskDetail = TaskSummary & {
   description: string | null;
-  project: { id: string; name: string; color: string | null };
+  project: { id: string; name: string; color: string | null; icon: string | null };
   customFields: TmField[];
   section: { id: string; name: string } | null;
   parent: { id: string; name: string; parentTaskId: string | null } | null;

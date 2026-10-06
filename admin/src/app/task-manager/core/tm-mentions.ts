@@ -56,7 +56,7 @@ export function mentionQuillModules(people: () => Promise<Person[]>, options: { 
   return {
     toolbar: options.toolbar === false
       ? false
-      : [['bold', 'italic', 'underline', 'strike'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'code-block'], ['clean']],
+      : [['bold', 'italic', 'underline', 'strike'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'code-block', 'lucideIcon'], ['clean']],
     mention: {
       positioningStrategy: 'fixed',
       allowedChars: /^[A-Za-z\sÀ-ÿ.'-]*$/,

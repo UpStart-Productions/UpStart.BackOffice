@@ -19,12 +19,14 @@ import { TmFieldCellComponent } from './field-cell.component';
 import { TmPersonPickerComponent } from './person-picker.component';
 import { TmRecurrenceEditorComponent } from './recurrence-editor.component';
 import { TmAvatarComponent } from './tm-avatar.component';
+import { TmProjectIconComponent } from './tm-project-icon.component';
 
 /** Right-hand task detail pane (Asana-style). Driven by `taskId`; emits changes so lists stay in sync. */
 @Component({
   selector: 'app-tm-task-detail',
   standalone: true,
   imports: [
+    TmProjectIconComponent,
     FormsModule,
     QuillModule,
     ButtonModule,

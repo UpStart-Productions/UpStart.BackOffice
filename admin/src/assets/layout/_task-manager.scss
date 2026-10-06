@@ -598,6 +598,11 @@ $tm-detail-width: min(42rem, 48vw);
   border-radius: 6px;
   border: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 0;
 
   &:disabled {
     cursor: default;
@@ -1819,4 +1824,58 @@ a.tm-project-pill:hover {
   color: #b45309;
   font-size: 0.7rem;
   vertical-align: middle;
+}
+
+// ── Project icons (Lucide) ─────────────────────────────────────────────────
+
+.tm-project-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  color: #fff;
+  flex-shrink: 0;
+
+  &--lg {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 6px;
+  }
+}
+
+.tm-project-dot--lg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.tm-appearance {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 320px;
+
+  .tm-color-swatches {
+    max-width: none;
+  }
+}
+
+.tm-appearance-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-color-secondary);
+  margin-top: 0.25rem;
+}
+
+.tm-appearance-label .tm-link-btn {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
 }

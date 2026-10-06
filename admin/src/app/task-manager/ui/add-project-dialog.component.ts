@@ -8,6 +8,7 @@ import { SelectModule } from 'primeng/select';
 import { TmApiService } from '../core/tm-api.service';
 import { PROJECT_COLORS } from '../core/tm-format.util';
 import { TmProject } from '../core/tm.types';
+import { LucideIconPickerComponent } from '@upstart/back-office/lucide-icons';
 
 type Available = { id: string; name: string; client: { id: string; name: string } | null; label: string };
 
@@ -15,7 +16,7 @@ type Available = { id: string; name: string; client: { id: string; name: string 
 @Component({
   selector: 'app-tm-add-project-dialog',
   standalone: true,
-  imports: [FormsModule, RouterLink, DialogModule, ButtonModule, SelectModule, MessageModule],
+  imports: [LucideIconPickerComponent, FormsModule, RouterLink, DialogModule, ButtonModule, SelectModule, MessageModule],
   template: `
     <p-dialog header="Add project to Tasks" [(visible)]="visible" [modal]="true" [style]="{ width: '30rem' }" (onShow)="onShow()" [draggable]="false">
       <form (ngSubmit)="add()">
@@ -49,6 +50,10 @@ type Available = { id: string; name: string; client: { id: string; name: string 
             }
           </div>
         </div>
+        <div class="form-field mb-3">
+          <label>Icon <span class="tm-muted">(optional)</span></label>
+          <nmp-lucide-icon-picker name="icon" [(ngModel)]="icon" />
+        </div>
         @if (error()) {
           <p-message severity="error" [text]="error()!" class="mb-3" />
         }
@@ -71,11 +76,13 @@ export class TmAddProjectDialogComponent {
   loading = signal(false);
   projectId: string | null = null;
   color = PROJECT_COLORS[0];
+  icon: string | null = null;
   saving = signal(false);
   error = signal<string | null>(null);
 
   async onShow() {
     this.projectId = null;
+    this.icon = null;
     this.color = PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)];
     this.error.set(null);
     this.loading.set(true);
@@ -94,7 +101,7 @@ export class TmAddProjectDialogComponent {
     this.saving.set(true);
     this.error.set(null);
     try {
-      const project = await this.tm.addProject(this.projectId, this.color);
+      const project = await this.tm.addProject(this.projectId, this.color, this.icon);
       this.visible.set(false);
       this.added.emit(project);
     } catch (err) {

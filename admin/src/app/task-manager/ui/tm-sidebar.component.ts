@@ -5,12 +5,13 @@ import { SessionService } from '../../core/session.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmProject, TmProjectListItem } from '../core/tm.types';
 import { TmAddProjectDialogComponent } from './add-project-dialog.component';
+import { TmProjectIconComponent } from './tm-project-icon.component';
 
 /** Asana-style Task Manager navigation: My tasks, Inbox, Projects, Starred and the project list. */
 @Component({
   selector: 'app-tm-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, TmAddProjectDialogComponent],
+  imports: [TmProjectIconComponent, RouterLink, RouterLinkActive, TmAddProjectDialogComponent],
   template: `
     <nav class="tm-sidebar" aria-label="Task Manager">
       <ul class="tm-nav">
@@ -45,7 +46,7 @@ import { TmAddProjectDialogComponent } from './add-project-dialog.component';
               @for (p of store.starred(); track p.id) {
                 <li>
                   <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
-                    <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>
+                    <app-tm-project-icon [color]="p.color" [icon]="p.icon" />
                     <span class="tm-nav-label">{{ p.name }}</span>
                   </a>
                 </li>
@@ -72,7 +73,7 @@ import { TmAddProjectDialogComponent } from './add-project-dialog.component';
             @for (p of sortedProjects(); track p.id) {
               <li>
                 <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
-                  <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>
+                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" />
                   <span class="tm-nav-label">{{ p.name }}</span>
                 </a>
               </li>

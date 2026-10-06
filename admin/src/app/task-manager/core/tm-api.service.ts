@@ -44,13 +44,13 @@ export class TmApiService {
   availableProjects() {
     return this.api.get<{ id: string; name: string; client: { id: string; name: string } | null }[]>('/tm/available-projects');
   }
-  addProject(id: string, color?: string | null) {
-    return this.api.put<TmProject>(`/tm/projects/${id}/tasks-enabled`, { color: color ?? null });
+  addProject(id: string, color?: string | null, icon?: string | null) {
+    return this.api.put<TmProject>(`/tm/projects/${id}/tasks-enabled`, { color: color ?? null, icon: icon ?? null });
   }
   removeProject(id: string) {
     return this.api.delete(`/tm/projects/${id}/tasks-enabled`);
   }
-  updateProject(id: string, body: { color: string | null }) {
+  updateProject(id: string, body: { color?: string | null; icon?: string | null }) {
     return this.api.patch<TmProject>(`/tm/projects/${id}`, body);
   }
   star(id: string, starred: boolean) {

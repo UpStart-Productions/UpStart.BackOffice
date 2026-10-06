@@ -101,7 +101,7 @@
         <dt>Project</dt>
         <dd>
           <span class="tm-project-pill">
-            <span class="tm-project-dot" [style.background]="t.project.color || '#94a3b8'"></span>
+            <app-tm-project-icon [color]="t.project.color" [icon]="t.project.icon" />
             {{ t.project.name }}
             @if (t.section) { <span class="tm-muted">· {{ t.section.name }}</span> }
           </span>
@@ -310,7 +310,7 @@
           @if (p.id !== task()?.projectId) {
             <li>
               <button type="button" class="tm-picker-item" (click)="moveToProject(p.id)">
-                <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>
+                <app-tm-project-icon [color]="p.color" [icon]="p.icon" />
                 <span>{{ p.name }}</span>
               </button>
             </li>

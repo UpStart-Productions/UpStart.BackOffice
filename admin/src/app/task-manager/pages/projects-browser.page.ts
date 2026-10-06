@@ -13,12 +13,13 @@ import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmProject, TmProjectListItem } from '../core/tm.types';
 import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component';
+import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
 
 /** Projects that have been added to Tasks: browse, star, add existing projects; archived toggle. */
 @Component({
   selector: 'app-tm-projects-browser-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, IconFieldModule, InputIconModule, InputTextModule, TmAddProjectDialogComponent],
+  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, IconFieldModule, InputIconModule, InputTextModule, TmAddProjectDialogComponent],
   template: `
     <div class="tm-page">
       <header class="tm-project-header">
@@ -62,7 +63,7 @@ import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component'
               </td>
               <td>
                 <a [routerLink]="['/tasks/projects', p.id]" class="tm-browser-name" (click)="$event.stopPropagation()">
-                  <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>{{ p.name }}
+                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" />{{ p.name }}
                 </a>
                 @if (!p.isActive) { <span class="tm-client-chip tm-client-chip--archived">Inactive</span> }
               </td>

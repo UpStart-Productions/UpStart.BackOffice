@@ -12,6 +12,7 @@ import { addDaysKey, dueLabel, dueTone, todayKey } from '../core/tm-format.util'
 import { MyTask, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
+import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
 
 type Bucket = { key: string; label: string; tasks: MyTask[] };
 
@@ -19,7 +20,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
 @Component({
   selector: 'app-tm-my-tasks-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, TmTaskDetailComponent, TmDueDatePickerComponent],
+  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, TmTaskDetailComponent, TmDueDatePickerComponent],
   template: `
     <div class="tm-page" [class.tm-with-detail]="!!taskId()">
       <header class="tm-project-header">
@@ -66,7 +67,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                       </div>
                       <div class="tm-grid-cell">
                         <a class="tm-project-pill" [routerLink]="['/tasks/projects', t.project.id]" (click)="$event.stopPropagation()">
-                          <span class="tm-project-dot" [style.background]="t.project.color || '#94a3b8'"></span>{{ t.project.name }}
+                          <app-tm-project-icon [color]="t.project.color" [icon]="t.project.icon" />{{ t.project.name }}
                         </a>
                       </div>
                       <div class="tm-grid-cell">

@@ -48,6 +48,7 @@ export class TaskProjectsService {
         id: true,
         name: true,
         color: true,
+        icon: true,
         isActive: true,
         isBillable: true,
         client: { select: { id: true, name: true } },
@@ -61,6 +62,7 @@ export class TaskProjectsService {
       id: p.id,
       name: p.name,
       color: p.color,
+      icon: p.icon,
       isActive: p.isActive,
       isBillable: p.isBillable,
       client: p.client,
@@ -95,6 +97,7 @@ export class TaskProjectsService {
       name: project.name,
       description: project.description,
       color: project.color,
+      icon: project.icon,
       isActive: project.isActive,
       isBillable: project.isBillable,
       client: project.client,
@@ -125,7 +128,7 @@ export class TaskProjectsService {
    * Add an existing project to Tasks. Projects are created on the Projects page;
    * Tasks never creates them. First add seeds default sections and makes the adder owner.
    */
-  async addToTaskManager(user: UserContext, projectId: string, color?: string | null) {
+  async addToTaskManager(user: UserContext, projectId: string, color?: string | null, icon?: string | null) {
     if (!isStaffRole(user.role)) throw new BadRequestException('Only staff can add projects to Tasks');
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -139,6 +142,7 @@ export class TaskProjectsService {
         data: {
           inTaskManager: true,
           color: color || project.color || PROJECT_COLORS[enabledCount % PROJECT_COLORS.length],
+          ...(icon !== undefined && { icon: icon || null }),
         },
       });
       if (project._count.sections === 0) {
@@ -166,6 +170,7 @@ export class TaskProjectsService {
       where: { id: projectId },
       data: {
         ...(dto.color !== undefined && { color: dto.color }),
+        ...(dto.icon !== undefined && { icon: dto.icon || null }),
       },
     });
     return this.get(user, projectId);

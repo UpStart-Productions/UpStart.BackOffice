@@ -79,7 +79,7 @@ export class TasksService {
       },
       include: {
         ...taskSummaryInclude,
-        project: { select: { id: true, name: true, color: true } },
+        project: { select: { id: true, name: true, color: true, icon: true } },
         parent: { select: { id: true, name: true } },
       },
       orderBy: [{ dueOn: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
@@ -99,6 +99,7 @@ export class TasksService {
             id: true,
             name: true,
             color: true,
+            icon: true,
             customFields: { orderBy: { sortOrder: 'asc' } },
           },
         },
@@ -124,7 +125,7 @@ export class TasksService {
     return {
       ...toTaskSummary(task),
       description: task.description,
-      project: { id: task.project.id, name: task.project.name, color: task.project.color },
+      project: { id: task.project.id, name: task.project.name, color: task.project.color, icon: task.project.icon },
       customFields: task.project.customFields.map(toField),
       section: task.section,
       parent: task.parent,
