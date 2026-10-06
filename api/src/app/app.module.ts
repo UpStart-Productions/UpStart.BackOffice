@@ -24,6 +24,8 @@ import { SearchModule } from './search/search.module';
 import { NetworkModule } from './network/network.module';
 import { OrganizationProfileModule } from './organization-profile/organization-profile.module';
 import { PayModule } from './pay/pay.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { TaskManagerModule } from './task-manager/task-manager.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -55,6 +57,8 @@ import { HealthController } from './health.controller';
     OrganizationProfileModule,
     PayModule,
     AccountingModule,
+    NotificationsModule,
+    TaskManagerModule,
   ],
 })
 export class AppModule implements NestModule {

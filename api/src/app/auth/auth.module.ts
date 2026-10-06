@@ -4,6 +4,7 @@ import { DevAuthGuard } from './dev-auth.guard';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RequireAdminGuard } from './require-admin.guard';
 import { StaffAuthGuard } from './staff-auth.guard';
+import { TaskManagerAuthGuard } from './task-manager-auth.guard';
 
 @Global()
 @Module({
@@ -13,6 +14,7 @@ import { StaffAuthGuard } from './staff-auth.guard';
     AppAuthGuard,
     StaffAuthGuard,
     RequireAdminGuard,
+    TaskManagerAuthGuard,
   ],
   exports: [
     DevAuthGuard,
@@ -20,6 +22,7 @@ import { StaffAuthGuard } from './staff-auth.guard';
     AppAuthGuard,
     StaffAuthGuard,
     RequireAdminGuard,
+    TaskManagerAuthGuard,
   ],
 })
 export class AuthModule {}

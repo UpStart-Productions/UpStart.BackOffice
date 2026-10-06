@@ -1,0 +1,243 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
+import { memoryStorage } from 'multer';
+import { TaskManagerAuthGuard } from '../auth/task-manager-auth.guard';
+import { UserContext } from '../common/app.types';
+import {
+  AddMemberDto,
+  CreateCommentDto,
+  CreateFieldDto,
+  CreateSectionDto,
+  CreateTaskDto,
+  CreateTmProjectDto,
+  MoveSectionDto,
+  MoveTaskDto,
+  SetFieldValueDto,
+  TaskListQueryDto,
+  UpdateCommentDto,
+  UpdateFieldDto,
+  UpdateMemberDto,
+  UpdateSectionDto,
+  UpdateTaskDto,
+  UpdateTmProjectDto,
+} from './dto/task-manager.dto';
+import { TaskProjectsService } from './task-projects.service';
+import { MAX_ATTACHMENT_BYTES, TasksService } from './tasks.service';
+
+const me = (req: Request) => req.user as UserContext;
+
+/** Task Manager API. All routes under /tm. Staff see everything; guests only member projects. */
+@ApiTags('task-manager')
+@ApiBearerAuth()
+@UseGuards(TaskManagerAuthGuard)
+@Controller('tm')
+export class TaskManagerController {
+  constructor(
+    private readonly projects: TaskProjectsService,
+    private readonly tasks: TasksService,
+  ) {}
+
+  // ── Projects ──────────────────────────────────────────────────────────────
+
+  @Get('projects')
+  @ApiQuery({ name: 'archived', required: false })
+  listProjects(@Req() req: Request, @Query('archived') archived?: string) {
+    return this.projects.list(me(req), archived === 'true');
+  }
+
+  @Post('projects')
+  createProject(@Req() req: Request, @Body() dto: CreateTmProjectDto) {
+    return this.projects.create(me(req), dto);
+  }
+
+  @Get('projects/:id')
+  getProject(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.get(me(req), id);
+  }
+
+  @Patch('projects/:id')
+  updateProject(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateTmProjectDto) {
+    return this.projects.update(me(req), id, dto);
+  }
+
+  @Put('projects/:id/star')
+  star(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.setStar(me(req), id, true);
+  }
+
+  @Delete('projects/:id/star')
+  unstar(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.setStar(me(req), id, false);
+  }
+
+  @Get('projects/:id/tasks')
+  listTasks(@Req() req: Request, @Param('id') id: string, @Query() query: TaskListQueryDto) {
+    return this.tasks.listForProject(me(req), id, query.completed ?? 'all');
+  }
+
+  @Get('projects/:id/people')
+  projectPeople(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.people(me(req), id);
+  }
+
+  @Get('people')
+  people(@Req() req: Request) {
+    return this.projects.people(me(req));
+  }
+
+  // ── Members ───────────────────────────────────────────────────────────────
+
+  @Post('projects/:id/members')
+  addMember(@Req() req: Request, @Param('id') id: string, @Body() dto: AddMemberDto) {
+    return this.projects.addMember(me(req), id, dto);
+  }
+
+  @Patch('projects/:id/members/:userId')
+  updateMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string, @Body() dto: UpdateMemberDto) {
+    return this.projects.updateMember(me(req), id, userId, dto.role);
+  }
+
+  @Delete('projects/:id/members/:userId')
+  removeMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    return this.projects.removeMember(me(req), id, userId);
+  }
+
+  // ── Sections ──────────────────────────────────────────────────────────────
+
+  @Post('projects/:id/sections')
+  createSection(@Req() req: Request, @Param('id') id: string, @Body() dto: CreateSectionDto) {
+    return this.projects.createSection(me(req), id, dto);
+  }
+
+  @Patch('sections/:id')
+  updateSection(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateSectionDto) {
+    return this.projects.updateSection(me(req), id, dto);
+  }
+
+  @Post('sections/:id/move')
+  moveSection(@Req() req: Request, @Param('id') id: string, @Body() dto: MoveSectionDto) {
+    return this.projects.moveSection(me(req), id, dto.afterSectionId);
+  }
+
+  @Delete('sections/:id')
+  deleteSection(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.deleteSection(me(req), id);
+  }
+
+  // ── Custom fields ─────────────────────────────────────────────────────────
+
+  @Post('projects/:id/fields')
+  createField(@Req() req: Request, @Param('id') id: string, @Body() dto: CreateFieldDto) {
+    return this.projects.createField(me(req), id, dto);
+  }
+
+  @Patch('fields/:id')
+  updateField(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateFieldDto) {
+    return this.projects.updateField(me(req), id, dto);
+  }
+
+  @Delete('fields/:id')
+  deleteField(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.deleteField(me(req), id);
+  }
+
+  // ── Tasks ─────────────────────────────────────────────────────────────────
+
+  @Get('my-tasks')
+  @ApiQuery({ name: 'completedDays', required: false })
+  myTasks(@Req() req: Request, @Query('completedDays') completedDays?: string) {
+    const days = Math.min(Math.max(Number(completedDays) || 0, 0), 90);
+    return this.tasks.myTasks(me(req), days);
+  }
+
+  @Post('tasks')
+  createTask(@Req() req: Request, @Body() dto: CreateTaskDto) {
+    return this.tasks.create(me(req), dto);
+  }
+
+  @Get('tasks/:id')
+  getTask(@Req() req: Request, @Param('id') id: string) {
+    return this.tasks.get(me(req), id);
+  }
+
+  @Patch('tasks/:id')
+  updateTask(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateTaskDto) {
+    return this.tasks.update(me(req), id, dto);
+  }
+
+  @Post('tasks/:id/move')
+  moveTask(@Req() req: Request, @Param('id') id: string, @Body() dto: MoveTaskDto) {
+    return this.tasks.move(me(req), id, dto);
+  }
+
+  @Delete('tasks/:id')
+  deleteTask(@Req() req: Request, @Param('id') id: string) {
+    return this.tasks.remove(me(req), id);
+  }
+
+  @Put('tasks/:id/fields/:fieldId')
+  setField(@Req() req: Request, @Param('id') id: string, @Param('fieldId') fieldId: string, @Body() dto: SetFieldValueDto) {
+    return this.tasks.setFieldValue(me(req), id, fieldId, dto.value);
+  }
+
+  @Put('tasks/:id/followers/:userId')
+  follow(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    return this.tasks.setFollowing(me(req), id, userId === 'me' ? me(req).id : userId, true);
+  }
+
+  @Delete('tasks/:id/followers/:userId')
+  unfollow(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    return this.tasks.setFollowing(me(req), id, userId === 'me' ? me(req).id : userId, false);
+  }
+
+  // ── Comments ──────────────────────────────────────────────────────────────
+
+  @Post('tasks/:id/comments')
+  addComment(@Req() req: Request, @Param('id') id: string, @Body() dto: CreateCommentDto) {
+    return this.tasks.addComment(me(req), id, dto.body);
+  }
+
+  @Patch('comments/:id')
+  updateComment(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateCommentDto) {
+    return this.tasks.updateComment(me(req), id, dto.body);
+  }
+
+  @Delete('comments/:id')
+  deleteComment(@Req() req: Request, @Param('id') id: string) {
+    return this.tasks.deleteComment(me(req), id);
+  }
+
+  // ── Attachments ───────────────────────────────────────────────────────────
+
+  @Post('tasks/:id/attachments')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_ATTACHMENT_BYTES } }))
+  upload(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string; size: number },
+  ) {
+    return this.tasks.uploadAttachment(me(req), id, file);
+  }
+
+  @Delete('attachments/:id')
+  deleteAttachment(@Req() req: Request, @Param('id') id: string) {
+    return this.tasks.deleteAttachment(me(req), id);
+  }
+}
