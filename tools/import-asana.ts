@@ -18,6 +18,7 @@
  *   --user <email>          Back Office user running the import (becomes project owner if none)
  *   --completed all|none|<N>d   Completed tasks to include (default: all)
  *   --no-attachments        Skip copying attachments
+ *   --map asana@x=bo@y      Treat an Asana email as a different Back Office user (repeatable)
  *   --dry-run               Report only; writes nothing
  *
  * Safe to re-run: every section/task/comment/attachment/field is matched on its Asana gid.
@@ -53,6 +54,13 @@ const COMPLETED = arg('completed') ?? 'all';
 const DRY_RUN = flag('dry-run');
 const WITH_ATTACHMENTS = !flag('no-attachments');
 const PAT = process.env.ASANA_PAT?.trim();
+/** --map asana@email=backoffice@email (repeatable): same person, different email in each system. */
+const EMAIL_MAP = new Map<string, string>();
+process.argv.forEach((a, i) => {
+  if (a !== '--map') return;
+  const [from, to] = (process.argv[i + 1] ?? '').split('=');
+  if (from && to) EMAIL_MAP.set(from.trim().toLowerCase(), to.trim().toLowerCase());
+});
 
 if (!ASANA_REF || !PROJECT_REF || !USER_EMAIL || !PAT) {
   console.error('Usage: ASANA_PAT=... npx tsx tools/import-asana.ts --asana <gid|name> --project <id|name> --user <email> [--completed all|none|90d] [--no-attachments] [--dry-run]');
@@ -159,7 +167,10 @@ let TASK_FIELDS = [...BASE_TASK_FIELDS, ...CUSTOM_FIELD_FIELDS].join(',');
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const ORDER_STEP = 1024;
-const norm = (e?: string | null) => (e ?? '').trim().toLowerCase();
+const norm = (e?: string | null) => {
+  const email = (e ?? '').trim().toLowerCase();
+  return EMAIL_MAP.get(email) ?? email;
+};
 
 /** Asana rich text (<body>…</body> with \n line breaks) → Quill-friendly HTML. */
 export function asanaHtmlToQuill(html?: string | null, plain?: string | null): string | null {
@@ -286,7 +297,7 @@ async function main() {
   console.log(`Asana "${asanaProject.name}" (${asanaProject.gid})  →  Back Office "${project.name}" (${project.id})`);
 
   // Sections
-  const sections = await asanaAll<{ gid: string; name: string }>(`/projects/${asanaProject.gid}/sections?opt_fields=name`);
+  const allSections = await asanaAll<{ gid: string; name: string }>(`/projects/${asanaProject.gid}/sections?opt_fields=name`);
 
   // Custom fields
   type ASetting = { custom_field: { gid: string; name: string; resource_subtype: string; enum_options?: { gid: string; name: string; color?: string; enabled?: boolean }[] } };
@@ -327,16 +338,23 @@ async function main() {
     }
   }
 
-  for (const section of sections) {
+  const sectionHasTasks = new Set<string>();
+  for (const section of allSections) {
     const tasks = await asanaAll<ATask>(`/tasks?section=${section.gid}&opt_fields=${TASK_FIELDS}${completedParam}`);
     process.stdout.write(`  Reading “${section.name}”: ${tasks.length} tasks…`);
     let i = 0;
     for (const t of tasks) {
       if (t.resource_subtype === 'section') continue;
       await collectTask(t, null, section.gid, ++i);
+      sectionHasTasks.add(section.gid);
     }
     process.stdout.write(' done\n');
   }
+
+  // Asana's built-in default section is skipped when empty.
+  const sections = allSections.filter(
+    (s) => sectionHasTasks.has(s.gid) || !/^\(no section\)$|^untitled section$/i.test(s.name.trim()),
+  );
 
   // People
   type PersonRef = { email: string; name?: string; roles: Set<string> };
