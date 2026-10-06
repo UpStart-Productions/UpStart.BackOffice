@@ -62,7 +62,7 @@ export class ShellComponent implements OnInit {
   navItems = computed<NavItem[]>(() => {
     if (this.isGuest()) {
       return [
-        { label: 'My tasks', icon: 'pi-check-circle', route: '/my-tasks' },
+        { label: 'Tasks', icon: 'pi-check-square', route: '/my-tasks' },
         { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       ];
     }
@@ -70,6 +70,7 @@ export class ShellComponent implements OnInit {
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
       { sectionLabel: 'Office' },
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
+      { label: 'Tasks', icon: 'pi-check-square', route: '/my-tasks' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
       { label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
