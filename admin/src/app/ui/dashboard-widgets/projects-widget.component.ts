@@ -6,7 +6,7 @@ import { DashboardWidgetContentComponent } from '../dashboard-widget/dashboard-w
 type Project = {
   id: string;
   name: string;
-  client: { id: string; name: string };
+  client: { id: string; name: string } | null;
   isActive?: boolean;
 };
 
@@ -30,7 +30,7 @@ type Project = {
           <li class="dashboard-list-item">
             <a [routerLink]="['/projects', project.id]" class="dashboard-list-link">
               <span class="dashboard-list-title">{{ project.name }}</span>
-              <span class="text-muted">{{ project.client.name }}</span>
+              <span class="text-muted">{{ (project.client?.name ?? 'Personal') }}</span>
             </a>
           </li>
         }

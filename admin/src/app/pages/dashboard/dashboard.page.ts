@@ -87,7 +87,7 @@ type Project = {
   id: string;
   name: string;
   isActive?: boolean;
-  client: { id: string; name: string };
+  client: { id: string; name: string } | null;
 };
 
 @Component({

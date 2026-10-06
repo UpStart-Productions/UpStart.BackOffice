@@ -1,6 +1,6 @@
 // Shared types between API and Angular frontend
 
-export type UserRole = 'ADMIN' | 'MEMBER' | 'CLIENT';
+export type UserRole = 'ADMIN' | 'MEMBER' | 'CLIENT' | 'GUEST';
 
 export type ClientDto = {
   id: string;

@@ -60,7 +60,7 @@ export class ExpenseModalComponent {
   readonly categoryOptions = SUGGESTED_EXPENSE_CATEGORIES;
 
   readonly projectOptions = computed(() =>
-    this.projects().map((p) => ({ id: p.id, projectName: p.name, clientName: p.client.name })),
+    this.projects().map((p) => ({ id: p.id, projectName: p.name, clientName: (p.client?.name ?? 'Personal') })),
   );
 
   readonly dialogTitle = computed(() => (this.isEdit() ? 'Edit expense' : 'New expense'));

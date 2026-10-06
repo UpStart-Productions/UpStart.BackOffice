@@ -25,7 +25,7 @@ import {
           </div>
           <div class="time-running-project">
             {{ running.project.name }}
-            <span class="text-muted">({{ running.project.client.name }})</span>
+            <span class="text-muted">({{ (running.project.client?.name ?? 'Personal') }})</span>
           </div>
           <div class="time-running-elapsed">{{ elapsedLabel() }}</div>
         </div>
@@ -48,7 +48,7 @@ import {
             <li class="dashboard-list-item">
               <div class="dashboard-list-main">
                 <span class="dashboard-list-title">{{ entry.project.name }}</span>
-                <span class="text-muted">{{ entry.project.client.name }}</span>
+                <span class="text-muted">{{ (entry.project.client?.name ?? 'Personal') }}</span>
               </div>
               <span class="dashboard-list-meta">{{ entryDuration(entry) }}</span>
             </li>

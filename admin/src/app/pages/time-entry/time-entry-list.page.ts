@@ -314,7 +314,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   }
 
   projectTitle(entry: TimeEntry): string {
-    return `${entry.project.name} (${entry.project.client.name})`;
+    return `${entry.project.name} (${(entry.project.client?.name ?? 'Personal')})`;
   }
 
   async openTrackTimeModal() {

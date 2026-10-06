@@ -1,4 +1,4 @@
-export type ExpenseProject = { id: string; name: string; client: { id: string; name: string } };
+export type ExpenseProject = { id: string; name: string; client: { id: string; name: string } | null };
 
 export type ExpenseUser = { id: string; firstName?: string | null; lastName?: string | null; email: string };
 

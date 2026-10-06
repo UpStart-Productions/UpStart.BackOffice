@@ -10,6 +10,28 @@ enum UserRole {
   ADMIN
   MEMBER
   CLIENT
+  /// External collaborator: sees only Task Manager projects they are a member of.
+  GUEST
+}
+
+enum ProjectMemberRole {
+  OWNER
+  EDITOR
+  COMMENTER
+}
+
+enum TaskCustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SINGLE_SELECT
+  MULTI_SELECT
+  CHECKBOX
+}
+
+enum TaskCommentKind {
+  COMMENT
+  SYSTEM
 }
 
 enum InvoiceStatus {
@@ -113,6 +135,17 @@ model User {
   timeEntries      TimeEntry[]
   expenses         Expense[]
   bookingTypesHost BookingType[] @relation("BookingTypeHost")
+
+  projectMemberships  ProjectMember[]
+  projectStars        ProjectStar[]
+  tasksAssigned       Task[]                     @relation("TaskAssignee")
+  tasksCreated        Task[]                     @relation("TaskCreatedBy")
+  tasksCompleted      Task[]                     @relation("TaskCompletedBy")
+  taskFollows         TaskFollower[]
+  taskComments        TaskComment[]
+  taskAttachments     TaskAttachment[]
+  notifications       UserNotification[]
+  notificationPref    UserNotificationPreference?
 }
 
 model Client {
@@ -257,7 +290,8 @@ model Artifact {
 
 model Project {
   id               String   @id @default(cuid())
-  clientId         String
+  /// Optional: personal / internal projects have no client.
+  clientId         String?
   name             String
   description      String?  @db.Text
   hourlyRate       Decimal? @db.Decimal(10, 2)
@@ -269,16 +303,25 @@ model Project {
   asanaSectionGid  String?
   asanaSectionGids Json?
   asanaSectionName String?
+  /// Task Manager display color (hex) and source Asana project for imports.
+  color            String?
+  importedAsanaGid String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client           Client?           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contacts         ProjectContact[]
   tasks            ProjectTask[]
   timeEntries      TimeEntry[]
   expenses         Expense[]
   invoiceLineItems InvoiceLineItem[]
   artifacts        Artifact[]
+
+  members          ProjectMember[]
+  stars            ProjectStar[]
+  sections         TaskSection[]
+  workTasks        Task[]
+  customFields     TaskCustomField[]
 
   @@index([clientId])
 }
@@ -368,6 +411,8 @@ model TimeEntry {
   userId            String
   projectId         String
   projectTaskId     String?
+  /// Optional link to a Task Manager task.
+  taskId            String?
   description       String?   @db.Text
   startedAt         DateTime
   stoppedAt         DateTime?
@@ -381,11 +426,13 @@ model TimeEntry {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectTask     ProjectTask?     @relation(fields: [projectTaskId], references: [id], onDelete: SetNull)
+  task            Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
   invoiceLineItem InvoiceLineItem? @relation(fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([projectId])
   @@index([projectTaskId])
+  @@index([taskId])
   @@index([invoiceLineItemId])
   @@index([startedAt])
 }
@@ -658,4 +705,216 @@ model CategorizationRule {
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Task Manager
+// ProjectTask (above) remains the billing/timesheet category list. Task is the
+// full Asana-style work item. TimeEntry can reference either.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ProjectMember {
+  id        String            @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectMemberRole @default(EDITOR)
+  createdAt DateTime          @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model ProjectStar {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  sortOrder Float    @default(0)
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model TaskSection {
+  id               String   @id @default(cuid())
+  projectId        String
+  name             String
+  sortOrder        Float    @default(0)
+  isCollapsed      Boolean  @default(false)
+  importedAsanaGid String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@index([projectId, sortOrder])
+}
+
+/// Recurrence rule stored on Task.recurrence:
+/// { freq: 'DAILY'|'WEEKLY'|'MONTHLY'|'YEARLY', interval: number, weekdays?: number[] (0=Sun),
+///   mode: 'ON_COMPLETE'|'ON_SCHEDULE' }
+/// When a recurring task is completed, the API creates the next instance.
+model Task {
+  id               String    @id @default(cuid())
+  projectId        String
+  sectionId        String?
+  parentTaskId     String?
+  name             String
+  description      String?   @db.Text
+  assigneeId       String?
+  createdById      String?
+  dueOn            DateTime? @db.Date
+  dueAt            DateTime?
+  isCompleted      Boolean   @default(false)
+  completedAt      DateTime?
+  completedById    String?
+  sortOrder        Float     @default(0)
+  recurrence       Json?
+  /// The task this one was generated from when a recurring task completed.
+  recurredFromId   String?
+  importedAsanaGid String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  project      Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section      TaskSection?           @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  parent       Task?                  @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks     Task[]                 @relation("TaskSubtasks")
+  assignee     User?                  @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy    User?                  @relation("TaskCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  completedBy  User?                  @relation("TaskCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  followers    TaskFollower[]
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
+  fieldValues  TaskCustomFieldValue[]
+  timeEntries  TimeEntry[]
+
+  @@index([projectId, sectionId, sortOrder])
+  @@index([parentTaskId, sortOrder])
+  @@index([assigneeId, isCompleted, dueOn])
+}
+
+model TaskFollower {
+  taskId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId])
+}
+
+/// Task comments (Quill HTML with mention spans) and system activity lines.
+model TaskComment {
+  id               String          @id @default(cuid())
+  taskId           String
+  authorId         String?
+  /// Display name snapshot; used for imported Asana stories whose author isn't a user here.
+  authorLabel      String?
+  kind             TaskCommentKind @default(COMMENT)
+  body             String          @db.Text
+  editedAt         DateTime?
+  importedAsanaGid String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  task   Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([taskId, createdAt])
+}
+
+model TaskAttachment {
+  id               String   @id @default(cuid())
+  taskId           String
+  uploadedById     String?
+  fileName         String
+  /// Storage key (FILE) — null for external links.
+  fileUrl          String?
+  /// External URL (LINK, e.g. imported Asana attachments hosted elsewhere).
+  url              String?
+  fileSize         Int?
+  mimeType         String?
+  importedAsanaGid String?  @unique
+  createdAt        DateTime @default(now())
+
+  task       Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+}
+
+/// Per-project custom field. options (select types): [{ id, label, color }]
+model TaskCustomField {
+  id               String              @id @default(cuid())
+  projectId        String
+  name             String
+  type             TaskCustomFieldType
+  options          Json?
+  sortOrder        Float               @default(0)
+  importedAsanaGid String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  project Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values  TaskCustomFieldValue[]
+
+  @@unique([projectId, importedAsanaGid])
+  @@index([projectId, sortOrder])
+}
+
+/// value: string | number | boolean | ISO date | optionId | optionId[]
+model TaskCustomFieldValue {
+  taskId    String
+  fieldId   String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  task  Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  field TaskCustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, fieldId])
+  @@index([fieldId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// In-app notifications (ported from KC.SPP.WebApp, minus organizations)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model UserNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  /// e.g. task_assigned, task_mention, task_comment, task_completed
+  type      String
+  title     String
+  body      String?
+  /// { entityType, entityId, route: string[], actorUserId, actorLabel, projectId }
+  meta      Json?
+  readAt    DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deletedAt, createdAt])
+  @@index([userId, deletedAt, readAt])
+}
+
+model UserNotificationPreference {
+  userId           String   @id
+  /// { task_assigned: bool, task_mention: bool, task_comment: bool, ... } — missing keys default on.
+  emailPreferences Json     @default("{}")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -23,7 +23,7 @@ export class StorageFoldersService {
   }
 
   /** Create `clients/{clientId}/projects/{projectId}/` placeholder. */
-  async ensureProjectFolder(clientId: string, projectId: string): Promise<void> {
+  async ensureProjectFolder(clientId: string | null, projectId: string): Promise<void> {
     await this.ensurePlaceholder(`${projectRootPrefix(clientId, projectId)}/${FOLDER_PLACEHOLDER}`);
   }
 
@@ -31,7 +31,7 @@ export class StorageFoldersService {
     await this.removePrefixSafe(clientRootPrefix(clientId));
   }
 
-  async removeProjectTree(clientId: string, projectId: string): Promise<void> {
+  async removeProjectTree(clientId: string | null, projectId: string): Promise<void> {
     await this.removePrefixSafe(projectRootPrefix(clientId, projectId));
   }
 

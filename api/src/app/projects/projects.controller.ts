@@ -39,17 +39,22 @@ export class ProjectsController {
 
   @Post()
   async create(@Body() dto: CreateProjectDto) {
-    const client = await this.prisma.client.findUnique({ where: { id: dto.clientId } });
-    if (!client) throw new NotFoundException('Client not found');
+    const clientId = dto.clientId || null;
+    if (clientId) {
+      const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+      if (!client) throw new NotFoundException('Client not found');
+    }
 
     const project = await this.prisma.project.create({
       data: {
-        clientId: dto.clientId,
+        clientId,
         name: dto.name,
         description: dto.description,
         hourlyRate: dto.hourlyRate,
-        isBillable: dto.isBillable ?? true,
+        // Personal projects (no client) default to non-billable.
+        isBillable: dto.isBillable ?? !!clientId,
         isActive: dto.isActive ?? true,
+        color: dto.color ?? null,
       },
       include: projectInclude,
     });
@@ -96,7 +101,8 @@ export class ProjectsController {
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.clientId !== undefined && { clientId: dto.clientId }),
+        ...(dto.clientId !== undefined && { clientId: dto.clientId || null }),
+        ...(dto.color !== undefined && { color: dto.color }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),

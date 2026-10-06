@@ -47,7 +47,7 @@
           <td>{{ expense.category || '—' }}</td>
           <td>
             @if (expense.project) {
-              {{ expense.project.name }} <span class="text-color-secondary">({{ expense.project.client.name }})</span>
+              {{ expense.project.name }} <span class="text-color-secondary">({{ (expense.project.client?.name ?? 'Personal') }})</span>
             } @else {
               <span class="text-color-secondary">—</span>
             }

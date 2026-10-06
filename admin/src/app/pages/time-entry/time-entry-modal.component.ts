@@ -395,7 +395,7 @@ export class TimeEntryModalComponent {
     this.selectableProjects().map((p) => ({
       id: p.id,
       projectName: p.name,
-      clientName: p.client.name,
+      clientName: (p.client?.name ?? 'Personal'),
     })),
   );
 
@@ -790,7 +790,7 @@ export class TimeEntryModalComponent {
     const existing = this.editingEntry();
     if (!existing) return;
 
-    const label = `${existing.project.name} (${existing.project.client.name})`;
+    const label = `${existing.project.name} (${(existing.project.client?.name ?? 'Personal')})`;
     this.deleteConfirm.confirm({
       message: `Delete this time entry for "${label}"? This cannot be undone.`,
       accept: () => this.performDelete(existing.id),

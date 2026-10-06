@@ -166,7 +166,7 @@ export class SearchService {
           type: 'project' as const,
           id: project.id,
           label: project.name,
-          detail: project.client.name,
+          detail: project.client?.name ?? 'Personal',
           meta: activeLabel(project.isActive),
         })),
       });

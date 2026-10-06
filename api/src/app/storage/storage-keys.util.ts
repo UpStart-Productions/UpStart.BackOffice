@@ -13,8 +13,9 @@ export function clientInvoicesPrefix(clientId: string): string {
   return `clients/${clientId}/invoices`;
 }
 
-export function projectRootPrefix(clientId: string, projectId: string): string {
-  return `clients/${clientId}/projects/${projectId}`;
+/** Client projects live under the client; personal/internal projects (no client) under `projects/`. */
+export function projectRootPrefix(clientId: string | null | undefined, projectId: string): string {
+  return clientId ? `clients/${clientId}/projects/${projectId}` : `projects/${projectId}`;
 }
 
 export function invoicePdfKey(clientId: string, displayNumber: string): string {

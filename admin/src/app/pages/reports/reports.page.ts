@@ -48,7 +48,7 @@ type TimeEntry = {
     id: string;
     name: string;
     isBillable: boolean;
-    client: { id: string; name: string };
+    client: { id: string; name: string } | null;
   };
   projectTask?: { id: string; name: string; isBillable: boolean } | null;
 };
@@ -198,7 +198,7 @@ export class ReportsPage implements OnInit {
       const row =
         map.get(key) ??
         ({
-          clientName: e.project.client.name,
+          clientName: (e.project.client?.name ?? 'Personal'),
           projectName: e.project.name,
           totalMin: 0,
           billableMin: 0,
@@ -262,7 +262,7 @@ export class ReportsPage implements OnInit {
       .map((e) => ({
         id: e.id,
         startedAt: e.startedAt,
-        clientName: e.project.client.name,
+        clientName: (e.project.client?.name ?? 'Personal'),
         projectName: e.project.name,
         taskName: e.projectTask?.name ?? '—',
         description: e.description?.trim() || '—',
@@ -389,7 +389,7 @@ export class ReportsPage implements OnInit {
       const projectId = this.filters.projectId;
       this.timeEntries.set(
         entries.filter((e) => {
-          if (clientId && e.project.client.id !== clientId) return false;
+          if (clientId && e.project.client?.id !== clientId) return false;
           if (projectId && e.project.id !== projectId) return false;
           return true;
         }),

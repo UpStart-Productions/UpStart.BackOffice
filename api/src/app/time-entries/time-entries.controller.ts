@@ -128,7 +128,7 @@ export class TimeEntriesController {
       let count = 0;
       for (const row of rows) {
         const project = projects.find(
-          (p) => compareNames(p.name, row.project) && compareNames(p.client.name, row.client),
+          (p) => compareNames(p.name, row.project) && !!p.client && compareNames(p.client.name, row.client),
         );
         if (!project) {
           throw new BadRequestException(

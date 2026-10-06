@@ -16,7 +16,7 @@ import {
   RowActionItem,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
 
-type Project = { id: string; name: string; isBillable: boolean; isActive: boolean; hourlyRate?: number; client: { id: string; name: string } };
+type Project = { id: string; name: string; isBillable: boolean; isActive: boolean; hourlyRate?: number; client: { id: string; name: string } | null };
 
 @Component({
   selector: 'app-projects-list-page',
@@ -86,7 +86,7 @@ export class ProjectsListPage implements OnInit {
   private projectMatchesSearch(project: Project, q: string): boolean {
     const haystack = [
       project.name,
-      project.client.name,
+      (project.client?.name ?? 'Personal'),
       project.hourlyRate != null ? String(project.hourlyRate) : '',
       project.isBillable ? 'billable' : 'non-billable',
       project.isActive ? 'active' : 'inactive',

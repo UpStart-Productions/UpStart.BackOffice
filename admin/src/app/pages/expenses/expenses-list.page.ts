@@ -13,7 +13,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ExpenseModalComponent } from './expense-modal.component';
 import { Expense, ExpenseProject } from './expense.types';
 
-type ProjectListItem = { id: string; name: string; isActive?: boolean; client: { id: string; name: string } };
+type ProjectListItem = { id: string; name: string; isActive?: boolean; client: { id: string; name: string } | null };
 
 @Component({
   selector: 'app-expenses-list-page',
@@ -84,7 +84,7 @@ export class ExpensesListPage implements OnInit {
       e.description,
       e.category ?? '',
       e.project?.name ?? '',
-      e.project?.client.name ?? '',
+      (e.project?.client?.name ?? 'Personal') ?? '',
       e.paymentMethod ?? '',
       [e.user.firstName, e.user.lastName].filter(Boolean).join(' '),
     ]
