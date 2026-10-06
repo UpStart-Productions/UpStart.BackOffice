@@ -3,68 +3,86 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
-import { MemberRole, Person, ProjectMember, TmProject } from '../core/tm.types';
+import { MemberRole, ProjectMember, TmProject } from '../core/tm.types';
 import { TmAvatarComponent } from './tm-avatar.component';
 
-/** Share dialog: list members, change roles, add staff or guests. Guest invitations (new accounts) come in Stage 6. */
+/**
+ * Share dialog: type an email, pick a role, Invite. New emails become guests and get an
+ * invite link to set their password; existing people are added right away.
+ */
 @Component({
   selector: 'app-tm-members-dialog',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, SelectModule, TmAvatarComponent],
+  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, SelectModule, MessageModule, TmAvatarComponent],
   template: `
-    <p-dialog [header]="'Share ' + project().name" [(visible)]="visible" [modal]="true" [style]="{ width: '34rem' }" (onShow)="onShow()" [draggable]="false">
+    <p-dialog [header]="'Share ' + project().name" [(visible)]="visible" [modal]="true" [style]="{ width: '36rem' }" (onShow)="onShow()" [draggable]="false">
       @if (project().permissions.canManage) {
-        <div class="tm-share-add">
-          <p-select
-            [options]="candidates()"
-            optionLabel="name"
-            optionValue="id"
-            [(ngModel)]="addUserId"
-            [filter]="true"
-            filterBy="name,email"
-            placeholder="Add a person by name or email"
-            appendTo="body"
-            styleClass="flex-1"
-          >
-            <ng-template let-p #item>
-              <div class="flex align-items-center gap-2">
-                <app-tm-avatar [person]="p" [size]="22" [showTitle]="false" />
-                <span>{{ p.name }}</span>
-                <span class="tm-muted">{{ p.role === 'GUEST' ? 'Guest' : p.email }}</span>
-              </div>
-            </ng-template>
-          </p-select>
-          <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [(ngModel)]="addRole" appendTo="body" />
-          <p-button label="Add" (onClick)="add()" [disabled]="!addUserId" [loading]="busy()" />
-        </div>
-        <p class="tm-share-hint">Staff can always see every project. Guests only see projects they're added to.</p>
+        <form class="tm-share-add" (ngSubmit)="invite()">
+          <input
+            pInputText
+            id="tm-share-email"
+            name="email"
+            type="email"
+            [(ngModel)]="email"
+            placeholder="Email address"
+            autocomplete="off"
+            class="flex-1"
+            aria-label="Email address to share with"
+          />
+          <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [(ngModel)]="role" name="role" appendTo="body" aria-label="Role" />
+          <button type="submit" pButton label="Invite" [loading]="busy()" [disabled]="!email.trim() || busy()"></button>
+        </form>
+        @if (error()) {
+          <p-message severity="error" [text]="error()!" styleClass="mt-2" />
+        }
+        <p class="tm-share-hint">
+          New people get an email to set a password and only see projects shared with them. Staff can always see every project.
+        </p>
       }
+
       <ul class="tm-member-list">
         @for (m of project().members; track m.id) {
           <li class="tm-member">
             <app-tm-avatar [person]="m" [size]="32" />
             <div class="tm-member-main">
-              <strong>{{ m.name }}</strong>
-              <span class="tm-muted">{{ m.email }}@if (m.role === 'GUEST') { · Guest }</span>
+              <strong>
+                {{ m.firstName || m.lastName ? m.name : m.email }}
+                @if (m.invitePending) { <span class="tm-chip tm-chip-invited">Invited</span> }
+              </strong>
+              <span class="tm-muted">
+                @if (m.firstName || m.lastName) { {{ m.email }} }
+                @if (m.role === 'GUEST') { {{ m.firstName || m.lastName ? '·' : '' }} Guest }
+                @if (m.invitePending && project().permissions.canManage) {
+                  · <button type="button" class="tm-link-btn" (click)="resend(m)" [disabled]="resending() === m.id">
+                    {{ resending() === m.id ? 'Sending…' : 'Resend invite' }}
+                  </button>
+                }
+              </span>
             </div>
             @if (project().permissions.canManage) {
-              <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [ngModel]="m.memberRole" (ngModelChange)="setRole(m, $event)" appendTo="body" />
-              <button type="button" class="tm-icon-btn" (click)="remove(m)" [attr.aria-label]="'Remove ' + m.name"><i class="pi pi-times"></i></button>
+              <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [ngModel]="m.memberRole" (ngModelChange)="setRole(m, $event)" appendTo="body" [attr.aria-label]="'Role for ' + m.email" />
+              <button type="button" class="tm-icon-btn" (click)="remove(m)" [attr.aria-label]="'Remove ' + m.email" title="Remove from project"><i class="pi pi-times"></i></button>
             } @else {
               <span class="tm-muted">{{ roleLabel(m.memberRole) }}</span>
               @if (m.id === meId()) {
-                <p-button label="Leave" size="small" [text]="true" severity="danger" (onClick)="remove(m)" />
+                <button type="button" pButton label="Leave" severity="danger" [text]="true" (click)="remove(m)"></button>
               }
             }
           </li>
         } @empty {
-          <li class="tm-muted">No explicit members — staff can still see this project.</li>
+          <li class="tm-muted">Nobody has been added yet — staff can still see this project.</li>
         }
       </ul>
+
+      <div class="form-actions">
+        <button type="button" pButton label="Done" severity="secondary" (click)="visible.set(false)"></button>
+      </div>
     </p-dialog>
   `,
 })
@@ -78,48 +96,74 @@ export class TmMembersDialogComponent {
   project = input.required<TmProject>();
   updated = output<TmProject>();
 
-  everyone = signal<Person[]>([]);
   busy = signal(false);
-  addUserId: string | null = null;
-  addRole: MemberRole = 'EDITOR';
+  resending = signal<string | null>(null);
+  error = signal<string | null>(null);
+  email = '';
+  role: MemberRole = 'EDITOR';
   readonly roleOptions = [
     { label: 'Owner', value: 'OWNER' },
     { label: 'Editor', value: 'EDITOR' },
     { label: 'Commenter', value: 'COMMENTER' },
   ];
   readonly meId = computed(() => this.session.me()?.id);
-  readonly candidates = computed(() => {
-    const ids = new Set(this.project().members.map((m) => m.id));
-    return this.everyone().filter((p) => !ids.has(p.id));
-  });
 
-  async onShow() {
-    this.addUserId = null;
-    if (this.project().permissions.canManage) {
-      try {
-        this.everyone.set(await this.api.people());
-      } catch {
-        /* ignore */
-      }
-    }
+  onShow() {
+    this.email = '';
+    this.role = 'EDITOR';
+    this.error.set(null);
+    setTimeout(() => document.getElementById('tm-share-email')?.focus(), 50);
   }
 
   roleLabel(role: MemberRole) {
     return this.roleOptions.find((r) => r.value === role)?.label ?? role;
   }
 
-  async add() {
-    if (!this.addUserId) return;
+  private message(err: unknown) {
+    return (err instanceof Error ? err.message : String(err)).replace(/^API error \d+: /, '');
+  }
+
+  async invite() {
+    const email = this.email.trim();
+    if (!email) return;
     this.busy.set(true);
+    this.error.set(null);
     try {
-      const project = await this.api.addMember(this.project().id, this.addUserId, this.addRole);
-      this.addUserId = null;
-      this.store.invalidatePeople(project.id);
-      this.updated.emit(project);
+      const res = await this.api.invite(this.project().id, email, this.role);
+      this.email = '';
+      this.store.invalidatePeople(res.project.id);
+      this.updated.emit(res.project);
+      this.toast.add({
+        severity: 'success',
+        summary: res.invited ? 'Invitation sent' : 'Added to project',
+        detail: res.invited
+          ? res.emailed
+            ? `${email} will get an email to set a password.`
+            : `${email} was added, but the email could not be sent. Try Resend invite.`
+          : `${email} now has access.`,
+        life: 4000,
+      });
     } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not add member', detail: err instanceof Error ? err.message : String(err) });
+      this.error.set(this.message(err));
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  async resend(m: ProjectMember) {
+    this.resending.set(m.id);
+    try {
+      const res = await this.api.resendInvite(this.project().id, m.id);
+      this.toast.add({
+        severity: res.emailed ? 'success' : 'warn',
+        summary: res.emailed ? 'Invite re-sent' : 'Email not sent',
+        detail: res.emailed ? `A new link was emailed to ${m.email}.` : 'Check the mail settings and try again.',
+        life: 4000,
+      });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not resend', detail: this.message(err) });
+    } finally {
+      this.resending.set(null);
     }
   }
 
@@ -127,7 +171,7 @@ export class TmMembersDialogComponent {
     try {
       this.updated.emit(await this.api.updateMember(this.project().id, m.id, role));
     } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not change role', detail: err instanceof Error ? err.message : String(err) });
+      this.toast.add({ severity: 'error', summary: 'Could not change role', detail: this.message(err) });
     }
   }
 
@@ -142,7 +186,7 @@ export class TmMembersDialogComponent {
       }
       this.updated.emit(await this.api.getProject(this.project().id));
     } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not remove member', detail: err instanceof Error ? err.message : String(err) });
+      this.toast.add({ severity: 'error', summary: 'Could not remove member', detail: this.message(err) });
     }
   }
 }

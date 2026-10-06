@@ -26,6 +26,7 @@ import { OrganizationProfileModule } from './organization-profile/organization-p
 import { PayModule } from './pay/pay.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TaskManagerModule } from './task-manager/task-manager.module';
+import { InvitesModule } from './invites/invites.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -59,6 +60,7 @@ import { HealthController } from './health.controller';
     AccountingModule,
     NotificationsModule,
     TaskManagerModule,
+    InvitesModule,
   ],
 })
 export class AppModule implements NestModule {

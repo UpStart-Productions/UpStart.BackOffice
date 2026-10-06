@@ -146,6 +146,8 @@ model User {
   taskAttachments     TaskAttachment[]
   notifications       UserNotification[]
   notificationPref    UserNotificationPreference?
+  invites             UserInvite[]               @relation("InviteFor")
+  invitesSent         UserInvite[]               @relation("InviteSentBy")
 }
 
 model Client {
@@ -919,4 +921,22 @@ model UserNotificationPreference {
   updatedAt        DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Email invitation for someone shared on a Task Manager project. The link lets them set a
+/// password (Cognito) and sign in. Only the SHA-256 of the token is stored.
+model UserInvite {
+  id          String    @id @default(cuid())
+  userId      String
+  invitedById String?
+  projectId   String?
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  user      User  @relation("InviteFor", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User? @relation("InviteSentBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }

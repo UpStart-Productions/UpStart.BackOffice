@@ -1,4 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InvitesService } from '../invites/invites.service';
+import { isValidEmail, normalizeEmail } from '../invites/invite-token.util';
 import { Prisma, ProjectMemberRole } from '@prisma/client';
 import { isStaffRole } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
@@ -7,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   AddMemberDto,
   CreateFieldDto,
+  InviteMemberDto,
   CreateSectionDto,
   UpdateFieldDto,
   UpdateSectionDto,
@@ -28,6 +31,7 @@ export class TaskProjectsService {
     private readonly prisma: PrismaService,
     private readonly access: TaskAccessService,
     private readonly delivery: NotificationDeliveryService,
+    private readonly invites: InvitesService,
   ) {}
 
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -80,6 +84,7 @@ export class TaskProjectsService {
         stars: { where: { userId: user.id }, select: { id: true } },
       },
     });
+    const pending = await this.invites.pendingUserIds(project.members.map((m) => m.userId));
     const [canEdit, canComment, canManage] = await Promise.all([
       this.access.can(user, projectId, 'edit'),
       this.access.can(user, projectId, 'comment'),
@@ -101,7 +106,7 @@ export class TaskProjectsService {
         isCollapsed: s.isCollapsed,
       })),
       customFields: project.customFields.map(toField),
-      members: project.members.map((m) => ({ ...person(m.user), memberRole: m.role })),
+      members: project.members.map((m) => ({ ...person(m.user), memberRole: m.role, invitePending: pending.has(m.userId) })),
       permissions: { canEdit, canComment, canManage, isStaff: isStaffRole(user.role) },
     };
   }
@@ -217,6 +222,82 @@ export class TaskProjectsService {
       });
     }
     return this.get(user, projectId);
+  }
+
+  /**
+   * Share by email. Existing staff/guests are added directly; unknown emails become GUEST users
+   * and get a branded invite email with a set-password link.
+   */
+  async invite(user: UserContext, projectId: string, dto: InviteMemberDto) {
+    await this.access.assertProject(user, projectId, 'manage');
+    const email = normalizeEmail(dto.email);
+    if (!isValidEmail(email)) throw new BadRequestException('Enter a valid email address');
+    const role = dto.role ?? ProjectMemberRole.EDITOR;
+    const project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { id: true, name: true } });
+
+    let target = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true, email: true, firstName: true, role: true, isActive: true },
+    });
+    if (target?.role === 'CLIENT') throw new BadRequestException('That email belongs to a client portal user and cannot be shared on Tasks');
+    if (target && !target.isActive) throw new BadRequestException('That account is deactivated. Reactivate it on the Users page first.');
+
+    if (target) {
+      const existing = await this.prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId, userId: target.id } },
+      });
+      if (existing) throw new ConflictException(`${target.email} is already on this project`);
+    } else {
+      target = await this.prisma.user.create({
+        data: { email, role: 'GUEST' },
+        select: { id: true, email: true, firstName: true, role: true, isActive: true },
+      });
+    }
+
+    await this.prisma.projectMember.create({ data: { projectId, userId: target.id, role } });
+
+    const neverSignedIn = target.role === 'GUEST' && (await this.needsInvite(target.id));
+    let invited = false;
+    let emailed = false;
+    if (neverSignedIn) {
+      invited = true;
+      emailed = (await this.invites.sendInvite({ user: target, invitedBy: user, project, role })).emailed;
+    } else if (target.id !== user.id) {
+      await this.delivery.deliver({
+        userId: target.id,
+        type: 'project_added',
+        title: `${personName(user)} added you to ${project.name}`,
+        meta: {
+          entityType: 'project',
+          entityId: projectId,
+          route: projectRoute(projectId),
+          actorUserId: user.id,
+          actorLabel: personName(user),
+          projectId,
+          projectName: project.name,
+        },
+      });
+    }
+    return { project: await this.get(user, projectId), invited, emailed };
+  }
+
+  /** Re-send the invite email (new link) to a member who hasn't accepted yet. */
+  async resendInvite(user: UserContext, projectId: string, userId: string) {
+    await this.access.assertProject(user, projectId, 'manage');
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      include: { user: { select: { id: true, email: true, firstName: true } }, project: { select: { id: true, name: true } } },
+    });
+    if (!member) throw new NotFoundException('Member not found');
+    if (!(await this.needsInvite(userId))) throw new BadRequestException('This person has already accepted their invite');
+    const result = await this.invites.sendInvite({ user: member.user, invitedBy: user, project: member.project, role: member.role });
+    return { resent: true, emailed: result.emailed };
+  }
+
+  /** A guest who has never accepted an invite (brand new, or invited before but not accepted). */
+  private async needsInvite(userId: string): Promise<boolean> {
+    const accepted = await this.prisma.userInvite.count({ where: { userId, acceptedAt: { not: null } } });
+    return accepted === 0;
   }
 
   async updateMember(user: UserContext, projectId: string, userId: string, role: ProjectMemberRole) {

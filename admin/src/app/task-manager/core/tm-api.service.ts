@@ -62,6 +62,13 @@ export class TmApiService {
   addMember(projectId: string, userId: string, role: MemberRole) {
     return this.api.post<TmProject>(`/tm/projects/${projectId}/members`, { userId, role });
   }
+  /** Share by email — adds existing people, or creates a guest and emails an invite. */
+  invite(projectId: string, email: string, role: MemberRole) {
+    return this.api.post<{ project: TmProject; invited: boolean; emailed: boolean }>(`/tm/projects/${projectId}/invite`, { email, role });
+  }
+  resendInvite(projectId: string, userId: string) {
+    return this.api.post<{ resent: boolean; emailed: boolean }>(`/tm/projects/${projectId}/members/${userId}/resend-invite`);
+  }
   updateMember(projectId: string, userId: string, role: MemberRole) {
     return this.api.patch<TmProject>(`/tm/projects/${projectId}/members/${userId}`, { role });
   }

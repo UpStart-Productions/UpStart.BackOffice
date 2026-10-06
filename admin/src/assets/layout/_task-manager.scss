@@ -1812,3 +1812,11 @@ a.tm-project-pill:hover {
 .tm-subtask-new .tm-subtask-name {
   border-color: var(--brand-primary);
 }
+
+.tm-chip-invited {
+  margin-left: 0.4rem;
+  background: color-mix(in srgb, #d97706 14%, transparent);
+  color: #b45309;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}

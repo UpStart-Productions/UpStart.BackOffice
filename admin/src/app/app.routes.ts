@@ -10,6 +10,11 @@ export const appRoutes: Route[] = [
     canActivate: [loginGuard],
   },
   {
+    // Public: emailed Task Manager invitations (set password, then sign in).
+    path: 'accept-invite',
+    loadComponent: () => import('./pages/accept-invite/accept-invite.page').then((m) => m.AcceptInvitePage),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],

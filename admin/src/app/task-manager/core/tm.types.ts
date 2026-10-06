@@ -9,7 +9,7 @@ export type Person = {
 };
 
 export type MemberRole = 'OWNER' | 'EDITOR' | 'COMMENTER';
-export type ProjectMember = Person & { memberRole: MemberRole };
+export type ProjectMember = Person & { memberRole: MemberRole; invitePending: boolean };
 
 export type TmProjectListItem = {
   id: string;

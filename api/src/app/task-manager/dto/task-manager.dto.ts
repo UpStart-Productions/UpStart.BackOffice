@@ -34,6 +34,11 @@ export class AddMemberDto {
   @ApiPropertyOptional({ enum: ProjectMemberRole }) @IsOptional() @IsEnum(ProjectMemberRole) role?: ProjectMemberRole;
 }
 
+export class InviteMemberDto {
+  @ApiProperty() @Transform(trim) @IsString() @MaxLength(254) email!: string;
+  @ApiPropertyOptional({ enum: ProjectMemberRole }) @IsOptional() @IsEnum(ProjectMemberRole) role?: ProjectMemberRole;
+}
+
 export class UpdateMemberDto {
   @ApiProperty({ enum: ProjectMemberRole }) @IsEnum(ProjectMemberRole) role!: ProjectMemberRole;
 }

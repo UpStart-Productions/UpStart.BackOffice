@@ -26,6 +26,7 @@ import {
   CreateSectionDto,
   CreateTaskDto,
   AddToTasksDto,
+  InviteMemberDto,
   MoveSectionDto,
   MoveTaskDto,
   SetFieldValueDto,
@@ -119,6 +120,17 @@ export class TaskManagerController {
   @Post('projects/:id/members')
   addMember(@Req() req: Request, @Param('id') id: string, @Body() dto: AddMemberDto) {
     return this.projects.addMember(me(req), id, dto);
+  }
+
+  /** Share by email (creates a guest + emails an invite when the address is new). */
+  @Post('projects/:id/invite')
+  invite(@Req() req: Request, @Param('id') id: string, @Body() dto: InviteMemberDto) {
+    return this.projects.invite(me(req), id, dto);
+  }
+
+  @Post('projects/:id/members/:userId/resend-invite')
+  resendInvite(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    return this.projects.resendInvite(me(req), id, userId);
   }
 
   @Patch('projects/:id/members/:userId')
