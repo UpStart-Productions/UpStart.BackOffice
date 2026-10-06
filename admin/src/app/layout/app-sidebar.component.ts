@@ -12,14 +12,16 @@ export type NavItem =
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <div class="layout-sidebar">
+    <div class="layout-sidebar" [class.layout-sidebar--compact]="compact()">
       <ul class="layout-menu">
         <li class="layout-root-menuitem">
           <ul>
             @for (item of navItems(); track trackItem($index, item)) {
               @if ('sectionLabel' in item) {
                 <li class="layout-menu-section" role="presentation">
-                  <span class="layout-menu-section-label">{{ item.sectionLabel }}</span>
+                  @if (!compact()) {
+                    <span class="layout-menu-section-label">{{ item.sectionLabel }}</span>
+                  }
                 </li>
               } @else {
                 <li>
@@ -28,9 +30,13 @@ export type NavItem =
                     routerLinkActive="active-route"
                     [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' || item.route === '/time-entry' }"
                     class="layout-menuitem-link"
+                    [attr.title]="compact() ? item.label : null"
+                    [attr.aria-label]="compact() ? item.label : null"
                   >
                     <i class="pi layout-menuitem-icon {{ item.icon }}"></i>
-                    <span>{{ item.label }}</span>
+                    @if (!compact()) {
+                      <span>{{ item.label }}</span>
+                    }
                   </a>
                 </li>
               }
@@ -46,6 +52,8 @@ export class AppSidebarComponent {
   private readonly layout = inject(LayoutService);
 
   navItems = input<NavItem[]>([]);
+  /** Icon-only rail (Task Manager mode). */
+  compact = input(false);
 
   trackItem(index: number, item: NavItem): string {
     return 'sectionLabel' in item ? `section-${item.sectionLabel}-${index}` : item.route;

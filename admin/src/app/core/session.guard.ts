@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-import { isAdminRole, isStaffRole } from '@upstart/back-office/shared';
+import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
+import { isAdminRole, isGuestRole, isStaffRole } from '@upstart/back-office/shared';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { SessionService } from './session.service';
@@ -14,7 +14,7 @@ export const sessionGuard: CanActivateFn = async () => {
 
   let me = await session.getReady();
   if (me) {
-    if (!isStaffRole(me.role)) {
+    if (!isStaffRole(me.role) && !isGuestRole(me.role)) {
       router.navigate(['/login']);
       return false;
     }
@@ -26,7 +26,7 @@ export const sessionGuard: CanActivateFn = async () => {
     session.reset();
     me = await session.getReady();
     if (me) {
-      if (!isStaffRole(me.role)) {
+      if (!isStaffRole(me.role) && !isGuestRole(me.role)) {
         router.navigate(['/login']);
         return false;
       }
@@ -55,6 +55,21 @@ export const adminGuard: CanActivateFn = async () => {
 
   router.navigate(['/dashboard']);
   return false;
+};
+
+/** Back-office (non Task Manager) pages: staff only. Guests land on My tasks. */
+export const staffGuard: CanActivateChildFn = async (_route, state) => {
+  const session = inject(SessionService);
+  const router = inject(Router);
+
+  const me = await session.getReady();
+  if (!me || isStaffRole(me.role)) return true;
+  const path = state.url.split(/[?#]/)[0];
+  const isTaskRoute =
+    /^\/(my-tasks|inbox)(\/|$)/.test(path) ||
+    (/^\/projects(\/|$)/.test(path) && !/^\/projects\/(new|[^/]+\/settings)(\/|$)/.test(path));
+  if (isTaskRoute) return true;
+  return router.createUrlTree(['/my-tasks']);
 };
 
 /** @deprecated Use adminGuard */

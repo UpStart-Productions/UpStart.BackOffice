@@ -168,7 +168,7 @@ export class ProjectFormPage implements OnInit {
 
   private async applyProject(project: ProjectResponse) {
     this.form = {
-      clientId: project.clientId,
+      clientId: project.clientId ?? '',
       name: project.name,
       description: project.description ?? '',
       hourlyRate: project.hourlyRate ?? null,
@@ -500,7 +500,7 @@ export class ProjectFormPage implements OnInit {
 
   private projectPayload() {
     return {
-      clientId: this.form.clientId,
+      clientId: this.form.clientId || null,
       name: this.form.name,
       description: richTextOrUndefined(this.form.description),
       hourlyRate: this.form.hourlyRate,
@@ -510,8 +510,8 @@ export class ProjectFormPage implements OnInit {
   }
 
   async save() {
-    if (!this.form.clientId || !this.form.name) {
-      this.error.set('Client and Name are required');
+    if (!this.form.name) {
+      this.error.set('Name is required');
       return;
     }
 

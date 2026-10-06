@@ -12,8 +12,8 @@
           [text]="true"
           severity="secondary"
           type="button"
-          routerLink="/projects"
-          aria-label="Back to Projects"
+          [routerLink]="id() ? ['/projects', id()] : ['/projects']"
+          aria-label="Back to project"
         />
         <h2 class="page-title page-title-in-card mb-0">
           {{ isNew ? 'New Project' : 'Edit Project' }}
@@ -22,7 +22,7 @@
 
       <div class="showcase-flex-col">
         <div class="form-field showcase-full">
-          <label for="clientId">Client <span class="required-dot" aria-hidden="true"></span></label>
+          <label for="clientId">Client</label>
           <p-select
             inputId="clientId"
             [options]="clients()"
@@ -30,7 +30,8 @@
             optionValue="id"
             [(ngModel)]="form.clientId"
             name="clientId"
-            placeholder="Select client"
+            placeholder="None (personal / internal project)"
+            [showClear]="true"
             styleClass="w-full"
           />
         </div>

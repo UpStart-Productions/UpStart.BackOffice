@@ -1,0 +1,285 @@
+<div class="tm-page tm-project-page" [class.tm-with-detail]="!!taskId()">
+  @if (loading() && !project()) {
+    <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
+  } @else if (error()) {
+    <div class="card">
+      <p class="text-color-secondary">{{ error() }}</p>
+      <a pButton routerLink="/projects" label="Back to projects" [text]="true"></a>
+    </div>
+  } @else if (project(); as p) {
+    <header class="tm-project-header">
+      <div class="tm-project-title-row">
+        <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color"></button>
+        @if (editingTitle()) {
+          <input
+            class="tm-project-title-input"
+            [(ngModel)]="titleDraft"
+            (blur)="saveTitle()"
+            (keydown.enter)="saveTitle()"
+            (keydown.escape)="editingTitle.set(false)"
+            aria-label="Project name"
+          />
+        } @else {
+          <h1 class="tm-project-title" (click)="startEditTitle()" [class.editable]="canEdit()">{{ p.name }}</h1>
+        }
+        <button type="button" class="tm-icon-btn tm-star" [class.starred]="p.isStarred" (click)="toggleStar()" [attr.aria-label]="p.isStarred ? 'Unstar project' : 'Star project'" [pTooltip]="p.isStarred ? 'Remove from starred' : 'Add to starred'" tooltipPosition="bottom">
+          <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
+        </button>
+        @if (p.client) {
+          <span class="tm-client-chip"><i class="pi pi-building"></i> {{ p.client.name }}</span>
+        } @else {
+          <span class="tm-client-chip tm-client-chip--personal">Personal</span>
+        }
+        @if (!p.isActive) {
+          <span class="tm-client-chip tm-client-chip--archived">Archived</span>
+        }
+        <div class="tm-project-header-actions">
+          <button type="button" class="tm-member-stack" (click)="membersOpen.set(true)" aria-label="Project members">
+            @for (m of p.members.slice(0, 4); track m.id) {
+              <app-tm-avatar [person]="m" [size]="26" />
+            }
+            @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
+          </button>
+          @if (p.permissions.canManage) {
+            <p-button label="Share" icon="pi pi-user-plus" size="small" severity="secondary" [outlined]="true" (onClick)="membersOpen.set(true)" />
+          }
+          @if (canEdit()) {
+            <p-button label="Customize" icon="pi pi-sliders-h" size="small" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
+          }
+          <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions"><i class="pi pi-ellipsis-h"></i></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="tm-toolbar">
+      @if (canEdit()) {
+        <p-button label="Add task" icon="pi pi-plus" size="small" (onClick)="addTaskTop()" />
+      }
+      <p-selectButton
+        [options]="filterOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="completedFilter()"
+        (ngModelChange)="setFilter($event)"
+        [allowEmpty]="false"
+        size="small"
+        aria-label="Filter tasks"
+      />
+      <span class="tm-toolbar-search">
+        <i class="pi pi-search"></i>
+        <input type="search" placeholder="Filter tasks" [ngModel]="search()" (ngModelChange)="search.set($event)" aria-label="Filter tasks by name" />
+      </span>
+    </div>
+
+    <div class="tm-grid" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>
+      <div class="tm-grid-head" [style.grid-template-columns]="gridTemplate()" role="row">
+        <div class="tm-grid-cell" role="columnheader">Task name</div>
+        <div class="tm-grid-cell" role="columnheader">Assignee</div>
+        <div class="tm-grid-cell" role="columnheader">Due date</div>
+        @for (f of fields(); track f.id) {
+          <div class="tm-grid-cell" role="columnheader" [title]="f.name">{{ f.name }}</div>
+        }
+        @if (canEdit()) {
+          <div class="tm-grid-cell tm-grid-add-col" role="columnheader">
+            <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="fieldsOpen.set(true)" pTooltip="Add field" aria-label="Add custom field"><i class="pi pi-plus"></i></button>
+          </div>
+        }
+      </div>
+
+      @for (g of groups(); track g.section?.id ?? NO_SECTION) {
+        <div class="tm-section" role="rowgroup">
+          <div class="tm-section-header" role="row">
+            @if (g.section; as s) {
+              <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="toggleCollapse(s)" [attr.aria-expanded]="!s.isCollapsed" [attr.aria-label]="(s.isCollapsed ? 'Expand ' : 'Collapse ') + s.name">
+                <i class="pi" [class.pi-chevron-down]="!s.isCollapsed" [class.pi-chevron-right]="s.isCollapsed"></i>
+              </button>
+              @if (editingSectionId() === s.id) {
+                <input
+                  class="tm-section-rename"
+                  [(ngModel)]="sectionDraft"
+                  (blur)="saveSectionName(s)"
+                  (keydown.enter)="saveSectionName(s)"
+                  (keydown.escape)="editingSectionId.set(null)"
+                  aria-label="Section name"
+                />
+              } @else {
+                <h2 class="tm-section-name" (dblclick)="startRenameSection(s)">{{ s.name }}</h2>
+              }
+              <span class="tm-section-count">{{ g.tasks.length }}</span>
+              @if (canEdit()) {
+                <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-section-add" (click)="startAdd(g)" pTooltip="Add task" aria-label="Add task to section"><i class="pi pi-plus"></i></button>
+                <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="openSectionMenu($event, s)" aria-label="Section actions"><i class="pi pi-ellipsis-h"></i></button>
+              }
+            } @else {
+              <span class="tm-icon-spacer"></span>
+              <h2 class="tm-section-name tm-muted">Untitled section</h2>
+              <span class="tm-section-count">{{ g.tasks.length }}</span>
+            }
+          </div>
+
+          @if (!g.section?.isCollapsed) {
+            <div
+              class="tm-section-rows"
+              cdkDropList
+              [id]="dropId(g)"
+              [cdkDropListData]="g"
+              [cdkDropListDisabled]="!canEdit()"
+              (cdkDropListDropped)="onDrop($event)"
+            >
+              @for (t of g.tasks; track t.id) {
+                <div
+                  class="tm-row"
+                  role="row"
+                  cdkDrag
+                  [cdkDragData]="t"
+                  [attr.data-task-id]="t.id"
+                  [class.selected]="taskId() === t.id"
+                  [class.completed]="t.isCompleted"
+                  [style.grid-template-columns]="gridTemplate()"
+                  (click)="openTask(t)"
+                >
+                  <div class="tm-grid-cell tm-row-main" role="gridcell">
+                    @if (canEdit()) {
+                      <span class="tm-drag-handle" cdkDragHandle (click)="$event.stopPropagation()" aria-hidden="true"><i class="pi pi-bars"></i></span>
+                    }
+                    <button type="button" class="tm-check" [class.done]="t.isCompleted" (click)="toggleComplete(t, $event)" [disabled]="!canEdit()" [attr.aria-label]="t.isCompleted ? 'Mark incomplete' : 'Mark complete'">
+                      <i class="pi pi-check"></i>
+                    </button>
+                    <input
+                      class="tm-row-name"
+                      [value]="t.name"
+                      #nameInput
+                      (click)="$event.stopPropagation()"
+                      (blur)="renameTask(t, nameInput.value)"
+                      (keydown)="onNameKey($event, t, g)"
+                      [readonly]="!canEdit()"
+                      aria-label="Task name"
+                    />
+                    <span class="tm-row-badges">
+                      @if (t.recurrence) { <i class="pi pi-sync" title="Repeats"></i> }
+                      @if (t.subtaskCount) { <span title="Subtasks"><i class="pi pi-sitemap"></i> {{ t.completedSubtaskCount }}/{{ t.subtaskCount }}</span> }
+                      @if (t.commentCount) { <span title="Comments"><i class="pi pi-comment"></i> {{ t.commentCount }}</span> }
+                      @if (t.attachmentCount) { <span title="Attachments"><i class="pi pi-paperclip"></i> {{ t.attachmentCount }}</span> }
+                    </span>
+                    <button type="button" class="tm-row-open" (click)="openTask(t); $event.stopPropagation()" aria-label="Open task details">Details <i class="pi pi-angle-right"></i></button>
+                  </div>
+                  <div class="tm-grid-cell" role="gridcell">
+                    <button type="button" class="tm-cell-btn" (click)="openAssignee($event, t)" [disabled]="!canEdit()">
+                      <app-tm-avatar [person]="t.assignee" [size]="22" />
+                      @if (t.assignee) { <span class="tm-cell-text">{{ t.assignee.firstName || t.assignee.name }}</span> }
+                    </button>
+                  </div>
+                  <div class="tm-grid-cell" role="gridcell">
+                    <button type="button" class="tm-cell-btn tm-due" [attr.data-tone]="dueTone(t.dueOn, t.isCompleted)" (click)="openDue($event, t)" [disabled]="!canEdit()">
+                      @if (t.dueOn) { {{ dueLabel(t.dueOn) }} } @else { <span class="tm-cell-placeholder"><i class="pi pi-calendar"></i></span> }
+                    </button>
+                  </div>
+                  @for (f of fields(); track f.id) {
+                    <div class="tm-grid-cell" role="gridcell" (click)="$event.stopPropagation()">
+                      <app-tm-field-cell [field]="f" [value]="t.fields[f.id] ?? null" [editable]="canEdit()" (changed)="setField(t, f.id, $event)" />
+                    </div>
+                  }
+                  @if (canEdit()) { <div class="tm-grid-cell" role="gridcell"></div> }
+                  <div class="tm-row-placeholder" *cdkDragPlaceholder></div>
+                </div>
+              }
+
+              @if (canEdit()) {
+                @if (addingIn() === (g.section?.id ?? NO_SECTION)) {
+                  <div class="tm-row tm-row-new" [style.grid-template-columns]="gridTemplate()">
+                    <div class="tm-grid-cell tm-row-main">
+                      <span class="tm-check"><i class="pi pi-check"></i></span>
+                      <input
+                        class="tm-row-name"
+                        [(ngModel)]="newTaskName"
+                        (keydown.enter)="submitNew(g)"
+                        (keydown.escape)="addingIn.set(null)"
+                        (blur)="submitNew(g)"
+                        placeholder="Write a task name"
+                        aria-label="New task name"
+                      />
+                    </div>
+                  </div>
+                } @else {
+                  <button type="button" class="tm-add-task-row" (click)="startAdd(g)">Add task…</button>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+
+      @if (canEdit()) {
+        @if (addingSection()) {
+          <div class="tm-section-header tm-section-new">
+            <input
+              class="tm-section-rename"
+              [(ngModel)]="newSectionName"
+              (keydown.enter)="addSection()"
+              (keydown.escape)="addingSection.set(false)"
+              (blur)="newSectionName.trim() ? addSection() : addingSection.set(false)"
+              placeholder="Section name"
+              aria-label="New section name"
+              autofocus
+            />
+          </div>
+        } @else {
+          <button type="button" class="tm-add-section" (click)="addingSection.set(true)"><i class="pi pi-plus"></i> Add section</button>
+        }
+      }
+    </div>
+
+    @if (taskId(); as tid) {
+      <app-tm-task-detail
+        class="tm-detail-host"
+        [taskId]="tid"
+        (closed)="closeTask()"
+        (changed)="onDetailChanged($event)"
+        (deleted)="onDetailDeleted($event)"
+        (openTask)="openTask({ id: $event })"
+      />
+    }
+
+    <app-tm-members-dialog [(visible)]="membersOpen" [project]="p" (updated)="onProjectUpdated($event)" />
+    <app-tm-fields-dialog [(visible)]="fieldsOpen" [project]="p" (changed)="onFieldsChanged()" />
+  }
+</div>
+
+<app-tm-person-picker #assigneePicker (picked)="setAssignee($event)" />
+<app-tm-due-date-picker #duePicker (picked)="setDue($event)" />
+
+<p-popover #sectionMenu appendTo="body" styleClass="tm-popover">
+  <div class="tm-menu">
+    <button type="button" class="tm-picker-item" (click)="startRenameSection()"><i class="pi pi-pencil"></i> Rename section</button>
+    <button type="button" class="tm-picker-item" (click)="addSectionBelow()"><i class="pi pi-plus"></i> Add section below</button>
+    <button type="button" class="tm-picker-item" (click)="moveSection(-1)"><i class="pi pi-arrow-up"></i> Move up</button>
+    <button type="button" class="tm-picker-item" (click)="moveSection(1)"><i class="pi pi-arrow-down"></i> Move down</button>
+    <hr />
+    <button type="button" class="tm-picker-item tm-danger" (click)="deleteSection()"><i class="pi pi-trash"></i> Delete section</button>
+  </div>
+</p-popover>
+
+<p-popover #colorMenu appendTo="body" styleClass="tm-popover">
+  <div class="tm-color-swatches">
+    @for (c of colors; track c) {
+      <button type="button" class="tm-color-swatch" [class.selected]="project()?.color === c" [style.background]="c" (click)="setColor(c)" [attr.aria-label]="'Color ' + c"></button>
+    }
+  </div>
+</p-popover>
+
+<p-popover #projectMenu appendTo="body" styleClass="tm-popover">
+  <div class="tm-menu">
+    @if (project()?.permissions?.isStaff) {
+      <a class="tm-picker-item" [routerLink]="['/projects', projectId(), 'settings']"><i class="pi pi-cog"></i> Billing &amp; settings</a>
+    }
+    <button type="button" class="tm-picker-item" (click)="membersOpen.set(true); projectMenu.hide()"><i class="pi pi-users"></i> Members</button>
+    @if (canEdit()) {
+      <button type="button" class="tm-picker-item" (click)="fieldsOpen.set(true); projectMenu.hide()"><i class="pi pi-sliders-h"></i> Custom fields</button>
+      <hr />
+      <button type="button" class="tm-picker-item" (click)="toggleArchive()">
+        <i class="pi" [class.pi-box]="project()?.isActive" [class.pi-replay]="!project()?.isActive"></i>
+        {{ project()?.isActive ? 'Archive project' : 'Restore project' }}
+      </button>
+    }
+  </div>
+</p-popover>

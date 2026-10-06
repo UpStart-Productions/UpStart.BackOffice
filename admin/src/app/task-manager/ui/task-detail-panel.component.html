@@ -1,0 +1,310 @@
+<div class="tm-detail" role="complementary" aria-label="Task details">
+  <header class="tm-detail-toolbar">
+    @if (task(); as t) {
+      <button
+        type="button"
+        class="tm-complete-btn"
+        [class.done]="t.isCompleted"
+        [disabled]="!canEdit()"
+        (click)="toggleComplete()"
+      >
+        <i class="pi pi-check"></i>
+        <span>{{ t.isCompleted ? 'Completed' : 'Mark complete' }}</span>
+      </button>
+      <div class="tm-detail-toolbar-actions">
+        @if (canComment()) {
+          <button type="button" class="tm-icon-btn" (click)="pickFile()" pTooltip="Attach a file" tooltipPosition="bottom" aria-label="Attach a file">
+            <i class="pi" [class.pi-paperclip]="!uploading()" [class.pi-spin]="uploading()" [class.pi-spinner]="uploading()"></i>
+          </button>
+          <input #fileInput type="file" multiple hidden (change)="onFiles($event)" />
+        }
+        <button type="button" class="tm-icon-btn" (click)="toggleFollow()" [pTooltip]="t.isFollowing ? 'Stop following' : 'Follow task'" tooltipPosition="bottom" [attr.aria-label]="t.isFollowing ? 'Stop following' : 'Follow task'">
+          <i class="pi" [class.pi-bell]="t.isFollowing" [class.pi-bell-slash]="!t.isFollowing"></i>
+        </button>
+        <button type="button" class="tm-icon-btn" (click)="copyLink()" pTooltip="Copy task link" tooltipPosition="bottom" aria-label="Copy task link">
+          <i class="pi pi-link"></i>
+        </button>
+        @if (canEdit()) {
+          <button type="button" class="tm-icon-btn" (click)="openMore($event)" aria-label="More actions">
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
+        }
+        <button type="button" class="tm-icon-btn" (click)="closed.emit()" pTooltip="Close" tooltipPosition="bottom" aria-label="Close details">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    } @else {
+      <span></span>
+      <button type="button" class="tm-icon-btn" (click)="closed.emit()" aria-label="Close details"><i class="pi pi-times"></i></button>
+    }
+  </header>
+
+  <div class="tm-detail-body">
+    @if (loading() && !task()) {
+      <div class="tm-detail-loading"><i class="pi pi-spin pi-spinner"></i></div>
+    } @else if (error()) {
+      <div class="tm-detail-error">
+        <p>{{ error() }}</p>
+        <p-button label="Close" [text]="true" (onClick)="closed.emit()" />
+      </div>
+    } @else if (task(); as t) {
+      @if (t.parent) {
+        <button type="button" class="tm-detail-parent" (click)="openTask.emit(t.parent.id)">
+          <i class="pi pi-arrow-up"></i> {{ t.parent.name }}
+        </button>
+      }
+
+      <textarea
+        class="tm-detail-title"
+        rows="1"
+        [(ngModel)]="nameDraft"
+        (blur)="saveName()"
+        (keydown)="onNameKey($event)"
+        [readonly]="!canEdit()"
+        aria-label="Task name"
+        [class.completed]="t.isCompleted"
+      ></textarea>
+
+      <dl class="tm-detail-fields">
+        <dt>Assignee</dt>
+        <dd>
+          <button type="button" class="tm-field-btn" (click)="openAssignee($event)" [disabled]="!canEdit()">
+            <app-tm-avatar [person]="t.assignee" [size]="24" />
+            <span>{{ t.assignee?.name ?? 'No assignee' }}</span>
+          </button>
+        </dd>
+
+        <dt>Due date</dt>
+        <dd>
+          <button type="button" class="tm-field-btn" (click)="openDue($event)" [disabled]="!canEdit()">
+            <i class="pi pi-calendar"></i>
+            <span class="tm-due" [attr.data-tone]="dueTone(t.dueOn, t.isCompleted)">{{ t.dueOn ? dueLabel(t.dueOn) : 'No due date' }}</span>
+          </button>
+          @if (t.dueOn && canEdit()) {
+            <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="setDue(null)" aria-label="Clear due date"><i class="pi pi-times"></i></button>
+          }
+        </dd>
+
+        <dt>Repeats</dt>
+        <dd>
+          <button type="button" class="tm-field-btn" (click)="openRecurrence($event)" [disabled]="!canEdit()">
+            <i class="pi pi-sync"></i>
+            <span [class.tm-muted]="!t.recurrence">{{ recurrenceLabel(t.recurrence) }}</span>
+          </button>
+        </dd>
+
+        <dt>Project</dt>
+        <dd>
+          <span class="tm-project-pill">
+            <span class="tm-project-dot" [style.background]="t.project.color || '#94a3b8'"></span>
+            {{ t.project.name }}
+            @if (t.section) { <span class="tm-muted">· {{ t.section.name }}</span> }
+          </span>
+        </dd>
+
+        @for (f of t.customFields; track f.id) {
+          <dt>{{ f.name }}</dt>
+          <dd>
+            <app-tm-field-cell [field]="f" [value]="t.fields[f.id] ?? null" [editable]="canEdit()" (changed)="setField(f.id, $event)" />
+          </dd>
+        }
+      </dl>
+
+      <section class="tm-detail-section">
+        <h3 class="tm-detail-heading">Description</h3>
+        @if (canEdit()) {
+          <quill-editor
+            class="tm-description-editor"
+            [modules]="mentionModules()"
+            [ngModel]="descriptionDraft"
+            (ngModelChange)="onDescriptionChange($event)"
+            (onBlur)="saveDescription()"
+            placeholder="What is this task about?"
+            [styles]="{ 'min-height': '90px' }"
+          ></quill-editor>
+        } @else if (t.description) {
+          <div class="ql-editor tm-rich" [innerHTML]="t.description"></div>
+        } @else {
+          <p class="tm-muted">No description</p>
+        }
+      </section>
+
+      <section class="tm-detail-section">
+        <h3 class="tm-detail-heading">
+          Subtasks
+          @if (t.subtaskCount) { <span class="tm-muted">{{ t.completedSubtaskCount }}/{{ t.subtaskCount }}</span> }
+        </h3>
+        <ul class="tm-subtasks">
+          @for (s of t.subtasks; track s.id) {
+            <li class="tm-subtask" [class.completed]="s.isCompleted">
+              <button type="button" class="tm-check" [class.done]="s.isCompleted" (click)="toggleSubtask(s)" [disabled]="!canEdit()" [attr.aria-label]="s.isCompleted ? 'Mark incomplete' : 'Mark complete'">
+                <i class="pi pi-check"></i>
+              </button>
+              <input
+                class="tm-subtask-name"
+                [ngModel]="s.name"
+                #subName
+                (blur)="renameSubtask(s, subName.value)"
+                (keydown.enter)="subName.blur()"
+                [readonly]="!canEdit()"
+                aria-label="Subtask name"
+              />
+              <button type="button" class="tm-cell-btn tm-due" [attr.data-tone]="dueTone(s.dueOn, s.isCompleted)" (click)="openSubtaskDue($event, s)" [disabled]="!canEdit()">
+                @if (s.dueOn) { {{ dueLabel(s.dueOn) }} } @else { <i class="pi pi-calendar tm-muted"></i> }
+              </button>
+              <button type="button" class="tm-cell-btn" (click)="openSubtaskAssignee($event, s)" [disabled]="!canEdit()" aria-label="Assign subtask">
+                <app-tm-avatar [person]="s.assignee" [size]="22" />
+              </button>
+              <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="openTask.emit(s.id)" aria-label="Open subtask">
+                <i class="pi pi-angle-right"></i>
+              </button>
+            </li>
+          }
+        </ul>
+        @if (canEdit()) {
+          <div class="tm-subtask-add">
+            <i class="pi pi-plus"></i>
+            <input
+              [(ngModel)]="newSubtask"
+              (keydown.enter)="addSubtask()"
+              placeholder="Add subtask"
+              aria-label="New subtask name"
+            />
+          </div>
+        }
+      </section>
+
+      @if (t.attachments.length) {
+        <section class="tm-detail-section">
+          <h3 class="tm-detail-heading">Attachments</h3>
+          <ul class="tm-attachments">
+            @for (a of t.attachments; track a.id) {
+              <li class="tm-attachment">
+                @if (a.mimeType?.startsWith('image/') && a.url) {
+                  <img class="tm-attachment-thumb" [src]="resolveAssetUrl(a.url)" alt="" />
+                } @else {
+                  <i class="pi" [class.pi-link]="a.isLink" [class.pi-file]="!a.isLink"></i>
+                }
+                <a [href]="resolveAssetUrl(a.url)" target="_blank" rel="noopener">{{ a.fileName }}</a>
+                <span class="tm-muted">{{ fileSizeLabel(a.fileSize) }}</span>
+                @if (canEdit()) {
+                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="removeAttachment(a.id)" aria-label="Remove attachment"><i class="pi pi-trash"></i></button>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <section class="tm-detail-section tm-activity">
+        <div class="tm-activity-header">
+          <h3 class="tm-detail-heading">Comments</h3>
+          @if (activityCount()) {
+            <button type="button" class="tm-link-btn" (click)="showActivity.set(!showActivity())">
+              {{ showActivity() ? 'Hide activity' : 'Show all activity (' + activityCount() + ')' }}
+            </button>
+          }
+        </div>
+        <ul class="tm-comments">
+          @for (c of visibleComments(); track c.id) {
+            @if (c.kind === 'SYSTEM') {
+              <li class="tm-activity-line">
+                <span class="tm-activity-dot"></span>
+                <span><strong>{{ authorName(c) }}</strong> {{ c.body }}</span>
+                <span class="tm-muted">· {{ relativeTime(c.createdAt) }}</span>
+              </li>
+            } @else {
+              <li class="tm-comment">
+                <app-tm-avatar [person]="c.author" [size]="28" />
+                <div class="tm-comment-main">
+                  <div class="tm-comment-meta">
+                    <strong>{{ authorName(c) }}</strong>
+                    <span class="tm-muted">{{ relativeTime(c.createdAt) }}@if (c.editedAt) { · edited }</span>
+                    @if (isMine(c) && editingCommentId() !== c.id) {
+                      <button type="button" class="tm-link-btn" (click)="startEditComment(c)">Edit</button>
+                    }
+                    @if (isMine(c) || session.me()?.role === 'ADMIN') {
+                      <button type="button" class="tm-link-btn" (click)="deleteComment(c)">Delete</button>
+                    }
+                  </div>
+                  @if (editingCommentId() === c.id) {
+                    <quill-editor class="tm-comment-editor" [modules]="commentModules()" [(ngModel)]="editCommentDraft" [styles]="{ 'min-height': '60px' }"></quill-editor>
+                    <div class="flex gap-2 mt-2">
+                      <p-button label="Save" size="small" (onClick)="saveEditComment(c)" />
+                      <p-button label="Cancel" size="small" [text]="true" severity="secondary" (onClick)="editingCommentId.set(null)" />
+                    </div>
+                  } @else {
+                    <div class="ql-editor tm-rich" [innerHTML]="c.body"></div>
+                  }
+                </div>
+              </li>
+            }
+          } @empty {
+            <li class="tm-muted tm-comments-empty">No comments yet</li>
+          }
+        </ul>
+      </section>
+
+      <section class="tm-detail-meta">
+        @if (t.createdBy) {
+          <span>Created by {{ t.createdBy.name }} · {{ relativeTime(t.createdAt) }}</span>
+        }
+        @if (t.isCompleted && t.completedBy) {
+          <span>Completed by {{ t.completedBy.name }}</span>
+        }
+      </section>
+    }
+  </div>
+
+  @if (task(); as t) {
+    @if (canComment()) {
+      <footer class="tm-detail-composer" (keydown)="onCommentKey($event)">
+        <quill-editor
+          class="tm-comment-editor"
+          [modules]="commentModules()"
+          [(ngModel)]="commentDraft"
+          placeholder="Add a comment — type @ to mention someone"
+          [styles]="{ 'min-height': '44px', 'max-height': '200px' }"
+        ></quill-editor>
+        <div class="tm-composer-row">
+          <div class="tm-followers">
+            <span class="tm-muted">Followers</span>
+            @for (f of t.followers.slice(0, 6); track f.id) {
+              <app-tm-avatar [person]="f" [size]="22" />
+            }
+            @if (t.followers.length > 6) { <span class="tm-muted">+{{ t.followers.length - 6 }}</span> }
+          </div>
+          <p-button label="Comment" size="small" [loading]="posting()" (onClick)="postComment()" [disabled]="posting()" />
+        </div>
+      </footer>
+    }
+  }
+</div>
+
+<app-tm-person-picker #assigneePicker (picked)="setAssignee($event)" />
+<app-tm-due-date-picker #duePicker (picked)="setDue($event)" />
+<app-tm-recurrence-editor #recurrenceEditor (saved)="setRecurrence($event)" />
+<app-tm-person-picker #subtaskAssigneePicker (picked)="setSubtaskAssignee($event)" />
+<app-tm-due-date-picker #subtaskDuePicker (picked)="setSubtaskDue($event)" />
+
+<p-popover #moreMenu appendTo="body" styleClass="tm-popover">
+  <div class="tm-menu">
+    @if (!task()?.parentTaskId) {
+      <div class="tm-menu-label">Move to project</div>
+      <ul class="tm-picker-list tm-menu-scroll">
+        @for (p of moveProjects(); track p.id) {
+          @if (p.id !== task()?.projectId) {
+            <li>
+              <button type="button" class="tm-picker-item" (click)="moveToProject(p.id)">
+                <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>
+                <span>{{ p.name }}</span>
+              </button>
+            </li>
+          }
+        }
+      </ul>
+      <hr />
+    }
+    <button type="button" class="tm-picker-item tm-danger" (click)="deleteTask()"><i class="pi pi-trash"></i> Delete task</button>
+  </div>
+</p-popover>

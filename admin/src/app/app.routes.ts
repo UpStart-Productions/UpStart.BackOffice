@@ -1,6 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
-import { sessionGuard, adminGuard } from './core/session.guard';
+import { sessionGuard, adminGuard, staffGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -13,6 +13,7 @@ export const appRoutes: Route[] = [
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],
+    canActivateChild: [staffGuard],
     children: [
       {
         path: 'dashboard',
@@ -115,17 +116,12 @@ export const appRoutes: Route[] = [
           import('./pages/network/company-form.page').then((m) => m.NetworkCompanyFormPage),
       },
       {
-        path: 'projects',
-        loadComponent: () =>
-          import('./pages/projects/projects-list.page').then((m) => m.ProjectsListPage),
-      },
-      {
         path: 'projects/new',
         loadComponent: () =>
           import('./pages/projects/project-form.page').then((m) => m.ProjectFormPage),
       },
       {
-        path: 'projects/:id',
+        path: 'projects/:id/settings',
         loadComponent: () =>
           import('./pages/projects/project-form.page').then((m) => m.ProjectFormPage),
       },
@@ -182,6 +178,27 @@ export const appRoutes: Route[] = [
       { path: 'booking-types', redirectTo: 'bookings/types', pathMatch: 'full' },
       { path: 'booking-types/new', redirectTo: 'bookings/types/new', pathMatch: 'full' },
       { path: 'booking-types/:id', redirectTo: 'bookings/types/:id', pathMatch: 'full' },
+      // ── Task Manager (staff + guests) ─────────────────────────────────────
+      {
+        path: 'my-tasks',
+        loadComponent: () => import('./task-manager/pages/my-tasks.page').then((m) => m.MyTasksPage),
+      },
+      {
+        path: 'inbox',
+        loadComponent: () => import('./task-manager/pages/inbox.page').then((m) => m.InboxPage),
+      },
+      {
+        path: 'projects',
+        loadComponent: () =>
+          import('./task-manager/pages/projects-browser.page').then((m) => m.ProjectsBrowserPage),
+      },
+      {
+        path: 'projects/:projectId',
+        loadComponent: () =>
+          import('./task-manager/pages/project-tasks.page').then((m) => m.ProjectTasksPage),
+        // Componentless child so the list stays mounted while the detail pane opens/closes.
+        children: [{ path: 'tasks/:taskId', children: [] }],
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

@@ -1,3 +1,4 @@
+import { defer } from 'rxjs';
 import {
   APP_INITIALIZER,
   ApplicationConfig,
@@ -58,6 +59,11 @@ export const appConfig: ApplicationConfig = {
     },
     provideQuillConfig({
       theme: 'snow',
+      // @mentions (Task Manager). Observables are awaited before any editor renders, keeping Quill lazy.
+      customModules: [
+        { path: 'blots/mention', implementation: defer(() => import('quill-mention').then((m) => m.MentionBlot)) },
+        { path: 'modules/mention', implementation: defer(() => import('quill-mention').then((m) => m.Mention)) },
+      ],
       modules: {
         toolbar: [
           ['bold', 'italic', 'underline'],

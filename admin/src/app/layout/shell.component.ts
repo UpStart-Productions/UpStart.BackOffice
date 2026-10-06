@@ -1,6 +1,8 @@
 import { NgClass } from '@angular/common';
 import { Component, computed, inject, OnInit } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { AuthStoreService } from '../core/auth-store.service';
@@ -12,7 +14,14 @@ import { AppTopbarComponent } from './app-topbar.component';
 import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialog.component';
 import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-paid-dialog.component';
 import { LayoutService } from './layout.service';
-import { isAdminRole } from '@upstart/back-office/shared';
+import { isAdminRole, isGuestRole } from '@upstart/back-office/shared';
+import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
+
+/** Routes rendered in Task Manager mode (icon rail + task sidebar). */
+export function isTaskManagerUrl(url: string): boolean {
+  const path = url.split(/[?#]/)[0];
+  return /^\/(projects|my-tasks|inbox)(\/|$)/.test(path);
+}
 
 @Component({
   selector: 'app-shell',
@@ -25,6 +34,7 @@ import { isAdminRole } from '@upstart/back-office/shared';
     AppTopbarComponent,
     AppSidebarComponent,
     AppFooterComponent,
+    TmSidebarComponent,
     InvoiceSendDialogComponent,
     InvoiceMarkPaidDialogComponent,
   ],
@@ -37,7 +47,25 @@ export class ShellComponent implements OnInit {
   private readonly router = inject(Router);
   readonly layout = inject(LayoutService);
 
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /** Task Manager mode: main menu shrinks to an icon rail and the task sidebar takes over. */
+  readonly taskMode = computed(() => isTaskManagerUrl(this.currentUrl()));
+  readonly isGuest = computed(() => isGuestRole(this.session.me()?.role ?? 'MEMBER'));
+
   navItems = computed<NavItem[]>(() => {
+    if (this.isGuest()) {
+      return [
+        { label: 'My tasks', icon: 'pi-check-circle', route: '/my-tasks' },
+        { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
+      ];
+    }
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
       { sectionLabel: 'Office' },
@@ -72,6 +100,7 @@ export class ShellComponent implements OnInit {
       'layout-static': true,
       'layout-static-inactive': state.staticMenuDesktopInactive,
       'layout-mobile-active': state.mobileMenuActive,
+      'layout-task-mode': this.taskMode(),
     };
   });
 

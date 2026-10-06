@@ -8,7 +8,10 @@
     [avatarUrl]="session.me()?.avatarUrl"
     (signOut)="signOut()"
   />
-  <app-sidebar [navItems]="navItems()" />
+  <app-sidebar [navItems]="navItems()" [compact]="taskMode()" />
+  @if (taskMode()) {
+    <app-tm-sidebar class="layout-tm-sidebar" />
+  }
   <div class="layout-main-container">
     <div class="layout-main">
       <router-outlet />
