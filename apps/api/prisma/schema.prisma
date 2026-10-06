@@ -136,18 +136,18 @@ model User {
   expenses         Expense[]
   bookingTypesHost BookingType[] @relation("BookingTypeHost")
 
-  projectMemberships  ProjectMember[]
-  projectStars        ProjectStar[]
-  tasksAssigned       Task[]                     @relation("TaskAssignee")
-  tasksCreated        Task[]                     @relation("TaskCreatedBy")
-  tasksCompleted      Task[]                     @relation("TaskCompletedBy")
-  taskFollows         TaskFollower[]
-  taskComments        TaskComment[]
-  taskAttachments     TaskAttachment[]
-  notifications       UserNotification[]
-  notificationPref    UserNotificationPreference?
-  invites             UserInvite[]               @relation("InviteFor")
-  invitesSent         UserInvite[]               @relation("InviteSentBy")
+  projectMemberships ProjectMember[]
+  projectStars       ProjectStar[]
+  tasksAssigned      Task[]                      @relation("TaskAssignee")
+  tasksCreated       Task[]                      @relation("TaskCreatedBy")
+  tasksCompleted     Task[]                      @relation("TaskCompletedBy")
+  taskFollows        TaskFollower[]
+  taskComments       TaskComment[]
+  taskAttachments    TaskAttachment[]
+  notifications      UserNotification[]
+  notificationPref   UserNotificationPreference?
+  invites            UserInvite[]                @relation("InviteFor")
+  invitesSent        UserInvite[]                @relation("InviteSentBy")
 }
 
 model Client {
@@ -323,11 +323,12 @@ model Project {
   invoiceLineItems InvoiceLineItem[]
   artifacts        Artifact[]
 
-  members          ProjectMember[]
-  stars            ProjectStar[]
-  sections         TaskSection[]
-  workTasks        Task[]
-  customFields     TaskCustomField[]
+  members      ProjectMember[]
+  stars        ProjectStar[]
+  sections     TaskSection[]
+  workTasks    Task[]
+  taskLinks    TaskProjectLink[]
+  customFields TaskCustomField[]
 
   @@index([clientId])
 }
@@ -757,10 +758,54 @@ model TaskSection {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks   Task[]
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  taskLinks TaskProjectLink[]
 
   @@index([projectId, sortOrder])
+}
+
+/// A top-level task listed in an additional project, with its own section and position there.
+model TaskProjectLink {
+  id        String   @id @default(cuid())
+  taskId    String
+  projectId String
+  sectionId String?
+  sortOrder Float    @default(0)
+  createdAt DateTime @default(now())
+
+  task    Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section TaskSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, projectId])
+  @@index([projectId, sectionId, sortOrder])
+}
+
+/// Task tags, shared across all projects.
+model Tag {
+  id               String   @id @default(cuid())
+  name             String
+  /// Lowercased name for case-insensitive uniqueness.
+  nameKey          String   @unique
+  color            String?
+  importedAsanaGid String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  tasks TaskTag[]
+}
+
+model TaskTag {
+  taskId    String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([tagId])
 }
 
 /// Recurrence rule stored on Task.recurrence:
@@ -801,6 +846,9 @@ model Task {
   attachments  TaskAttachment[]
   fieldValues  TaskCustomFieldValue[]
   timeEntries  TimeEntry[]
+  /// Extra projects this task also appears in (Asana multi-homing). projectId stays the home project.
+  projectLinks TaskProjectLink[]
+  tags         TaskTag[]
 
   @@index([projectId, sectionId, sortOrder])
   @@index([parentTaskId, sortOrder])

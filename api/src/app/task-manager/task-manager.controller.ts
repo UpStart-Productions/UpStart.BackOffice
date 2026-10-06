@@ -21,6 +21,10 @@ import { TaskManagerAuthGuard } from '../auth/task-manager-auth.guard';
 import { UserContext } from '../common/app.types';
 import {
   AddMemberDto,
+  AddTaskProjectDto,
+  AddTaskTagDto,
+  CreateTagDto,
+  UpdateTagDto,
   CreateCommentDto,
   CreateFieldDto,
   CreateSectionDto,
@@ -39,6 +43,7 @@ import {
   UpdateTmProjectDto,
 } from './dto/task-manager.dto';
 import { TaskProjectsService } from './task-projects.service';
+import { TaskTagsService } from './task-tags.service';
 import { MAX_ATTACHMENT_BYTES, TasksService } from './tasks.service';
 
 const me = (req: Request) => req.user as UserContext;
@@ -52,6 +57,7 @@ export class TaskManagerController {
   constructor(
     private readonly projects: TaskProjectsService,
     private readonly tasks: TasksService,
+    private readonly tags: TaskTagsService,
   ) {}
 
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -209,6 +215,49 @@ export class TaskManagerController {
   @Post('tasks/:id/move')
   moveTask(@Req() req: Request, @Param('id') id: string, @Body() dto: MoveTaskDto) {
     return this.tasks.move(me(req), id, dto);
+  }
+
+  /** Also list a task in another project. */
+  @Post('tasks/:id/projects')
+  addTaskProject(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTaskProjectDto) {
+    return this.tasks.addProject(me(req), id, dto);
+  }
+
+  @Delete('tasks/:id/projects/:projectId')
+  removeTaskProject(@Req() req: Request, @Param('id') id: string, @Param('projectId') projectId: string) {
+    return this.tasks.removeProject(me(req), id, projectId);
+  }
+
+  // ── Tags ──────────────────────────────────────────────────────────────────
+
+  @Get('tags')
+  listTags() {
+    return this.tags.list();
+  }
+
+  @Post('tags')
+  createTag(@Body() dto: CreateTagDto) {
+    return this.tags.create(dto);
+  }
+
+  @Patch('tags/:tagId')
+  updateTag(@Req() req: Request, @Param('tagId') tagId: string, @Body() dto: UpdateTagDto) {
+    return this.tags.update(me(req), tagId, dto);
+  }
+
+  @Delete('tags/:tagId')
+  deleteTag(@Req() req: Request, @Param('tagId') tagId: string) {
+    return this.tags.remove(me(req), tagId);
+  }
+
+  @Post('tasks/:id/tags')
+  addTaskTag(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTaskTagDto) {
+    return this.tags.addToTask(me(req), id, dto);
+  }
+
+  @Delete('tasks/:id/tags/:tagId')
+  removeTaskTag(@Req() req: Request, @Param('id') id: string, @Param('tagId') tagId: string) {
+    return this.tags.removeFromTask(me(req), id, tagId);
   }
 
   @Delete('tasks/:id')

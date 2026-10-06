@@ -12,6 +12,7 @@ export const taskSummaryInclude = {
   fieldValues: { select: { fieldId: true, value: true } },
   _count: { select: { subtasks: true, comments: { where: { kind: 'COMMENT' } }, attachments: true } },
   subtasks: { where: { isCompleted: true }, select: { id: true } },
+  tags: { select: { tag: { select: { id: true, name: true, color: true } } } },
 } satisfies Prisma.TaskInclude;
 
 export type TaskSummaryRow = Prisma.TaskGetPayload<{ include: typeof taskSummaryInclude }>;
@@ -34,6 +35,7 @@ export type TaskSummaryDto = {
   commentCount: number;
   attachmentCount: number;
   fields: Record<string, unknown>;
+  tags: { id: string; name: string; color: string | null }[];
   createdAt: string;
   updatedAt: string;
 };
@@ -61,6 +63,7 @@ export function toTaskSummary(row: TaskSummaryRow): TaskSummaryDto {
     commentCount: row._count.comments,
     attachmentCount: row._count.attachments,
     fields: Object.fromEntries(row.fieldValues.map((v) => [v.fieldId, v.value])),
+    tags: row.tags.map((t) => t.tag).sort((a, b) => a.name.localeCompare(b.name)),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

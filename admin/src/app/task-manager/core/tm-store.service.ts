@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { TmApiService } from './tm-api.service';
-import { Person, TmProjectListItem } from './tm.types';
+import { Person, TmProjectListItem, TmTag } from './tm.types';
 
 /** Shared Task Manager state: sidebar project list, inbox badge, people cache. */
 @Injectable({ providedIn: 'root' })
@@ -10,6 +10,9 @@ export class TmStoreService {
   readonly projects = signal<TmProjectListItem[]>([]);
   readonly projectsLoaded = signal(false);
   readonly unreadCount = signal(0);
+  /** Shared tag list (all projects). */
+  readonly tags = signal<(TmTag & { taskCount?: number })[]>([]);
+  private tagsLoad: Promise<void> | null = null;
   private peopleCache = new Map<string, Promise<Person[]>>();
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -18,6 +21,25 @@ export class TmStoreService {
       .filter((p) => p.isStarred)
       .sort((a, b) => (a.starOrder ?? 0) - (b.starOrder ?? 0)),
   );
+
+  loadTags(force = false): Promise<void> {
+    if (!this.tagsLoad || force) {
+      this.tagsLoad = this.api.listTags().then(
+        (list) => this.tags.set(list),
+        () => {
+          this.tagsLoad = null;
+        },
+      );
+    }
+    return this.tagsLoad;
+  }
+
+  /** Merge tags we just saw (e.g. a newly created one) into the shared list. */
+  rememberTags(tags: TmTag[]): void {
+    const known = new Set(this.tags().map((t) => t.id));
+    const fresh = tags.filter((t) => !known.has(t.id));
+    if (fresh.length) this.tags.update((list) => [...list, ...fresh].sort((a, b) => a.name.localeCompare(b.name)));
+  }
 
   async loadProjects(): Promise<void> {
     try {

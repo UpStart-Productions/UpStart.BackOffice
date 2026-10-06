@@ -10,23 +10,25 @@ import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
-import { dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
+import { chipColors, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
 import { isBlankHtml, mentionQuillModules } from '../core/tm-mentions';
 import { TmStoreService } from '../core/tm-store.service';
-import { Person, TaskComment, TaskDetail, TaskSummary, TmProjectListItem } from '../core/tm.types';
+import { Person, TaskComment, TaskDetail, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from './due-date-picker.component';
 import { TmFieldCellComponent } from './field-cell.component';
 import { TmPersonPickerComponent } from './person-picker.component';
 import { TmRecurrenceEditorComponent } from './recurrence-editor.component';
 import { TmAvatarComponent } from './tm-avatar.component';
-import { TmProjectIconComponent } from './tm-project-icon.component';
+import { TagPick, TmTagPickerComponent } from './tag-picker.component';
+import { TmTaskProjectsComponent } from './task-projects.component';
 
 /** Right-hand task detail pane (Asana-style). Driven by `taskId`; emits changes so lists stay in sync. */
 @Component({
   selector: 'app-tm-task-detail',
   standalone: true,
   imports: [
-    TmProjectIconComponent,
+    TmTagPickerComponent,
+    TmTaskProjectsComponent,
     FormsModule,
     QuillModule,
     ButtonModule,
@@ -54,6 +56,8 @@ export class TmTaskDetailComponent implements OnDestroy {
   /** A task (this one or a subtask) changed — parent lists should patch/reload. */
   changed = output<TaskSummary>();
   deleted = output<string>();
+  /** The task was moved between / added to / removed from projects — lists should reload. */
+  projectsChanged = output<string>();
   /** Navigate the pane to another task (subtask / parent). */
   openTask = output<string>();
 
@@ -72,7 +76,6 @@ export class TmTaskDetailComponent implements OnDestroy {
   editingCommentId = signal<string | null>(null);
   editCommentDraft = '';
   uploading = signal(false);
-  moveProjects = signal<TmProjectListItem[]>([]);
 
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
   private readonly duePicker = viewChild.required<TmDueDatePickerComponent>('duePicker');
@@ -108,6 +111,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   readonly relativeTime = relativeTime;
   readonly fileSizeLabel = fileSizeLabel;
   readonly resolveAssetUrl = resolveAssetUrl;
+  readonly chipColors = chipColors;
 
   constructor() {
     effect(() => {
@@ -195,25 +199,49 @@ export class TmTaskDetailComponent implements OnDestroy {
     }
   }
 
-  async openMore(event: Event) {
+  openMore(event: Event) {
     this.moreMenu().toggle(event);
-    if (!this.moveProjects().length) {
-      if (!this.store.projectsLoaded()) await this.store.loadProjects();
-      this.moveProjects.set(this.store.projects());
-    }
   }
 
-  async moveToProject(projectId: string) {
+  async onProjectsChanged() {
     const t = this.task();
-    if (!t || projectId === t.projectId) return;
-    this.moreMenu().hide();
+    if (!t) return;
+    await this.load(t.id, true);
+    this.projectsChanged.emit(t.id);
+  }
+
+  // ── Tags ────────────────────────────────────────────────────────────────
+
+  async addTag(pick: TagPick) {
+    const t = this.task();
+    if (!t) return;
     try {
-      await this.api.moveTask(t.id, { projectId });
-      this.deleted.emit(t.id); // leaves the current project's list
-      await this.router.navigate(['/tasks/projects', projectId, 'tasks', t.id]);
+      const tags = await this.api.addTaskTag(t.id, pick);
+      this.store.rememberTags(tags);
+      this.applyTags(tags);
     } catch (err) {
       this.fail(err);
     }
+  }
+
+  async removeTag(tagId: string) {
+    const t = this.task();
+    if (!t) return;
+    this.applyTags(t.tags.filter((x) => x.id !== tagId));
+    try {
+      this.applyTags(await this.api.removeTaskTag(t.id, tagId));
+    } catch (err) {
+      this.fail(err);
+      await this.load(t.id, true);
+    }
+  }
+
+  private applyTags(tags: TaskDetail['tags']) {
+    const t = this.task();
+    if (!t) return;
+    const next = { ...t, tags };
+    this.task.set(next);
+    this.changed.emit(next);
   }
 
   deleteTask() {

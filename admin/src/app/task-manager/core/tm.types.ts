@@ -74,8 +74,21 @@ export type TaskSummary = {
   commentCount: number;
   attachmentCount: number;
   fields: Record<string, unknown>;
+  tags: TmTag[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type TmTag = { id: string; name: string; color: string | null };
+
+/** A project a task is listed in (home project first, then projects it was added to). */
+export type TaskMembership = {
+  id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
+  section: { id: string; name: string } | null;
+  isHome: boolean;
 };
 
 export type MyTask = TaskSummary & {
@@ -111,6 +124,7 @@ export type TaskDetail = TaskSummary & {
   project: { id: string; name: string; color: string | null; icon: string | null };
   customFields: TmField[];
   section: { id: string; name: string } | null;
+  projects: TaskMembership[];
   parent: { id: string; name: string; parentTaskId: string | null } | null;
   createdBy: Person | null;
   completedBy: Person | null;

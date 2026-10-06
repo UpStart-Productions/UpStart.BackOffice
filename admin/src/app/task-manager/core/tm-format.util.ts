@@ -15,6 +15,11 @@ export const OPTION_COLOR_HEX: Record<string, { bg: string; fg: string }> = {
   gray: { bg: '#f1f5f9', fg: '#475569' },
 };
 
+/** Chip colors for a tag / select option color name. */
+export function chipColors(color: string | null | undefined): { bg: string; fg: string } {
+  return OPTION_COLOR_HEX[color ?? 'gray'] ?? OPTION_COLOR_HEX['gray'];
+}
+
 export function todayKey(): string {
   return dateKey(new Date());
 }

@@ -7,7 +7,7 @@ import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { projectRootPrefix } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
-import { CreateTaskDto, MoveTaskDto, UpdateTaskDto } from './dto/task-manager.dto';
+import { AddTaskProjectDto, CreateTaskDto, MoveTaskDto, UpdateTaskDto } from './dto/task-manager.dto';
 import { TaskAccessService } from './task-access.service';
 import { TaskEventsService } from './task-events.service';
 import { coerceFieldValue, FieldOption, FieldType } from './task-fields.util';
@@ -53,17 +53,26 @@ export class TasksService {
 
   async listForProject(user: UserContext, projectId: string, completed: 'incomplete' | 'completed' | 'all' = 'all') {
     await this.access.assertProject(user, projectId, 'view');
-    const rows = await this.prisma.task.findMany({
-      where: {
-        projectId,
-        parentTaskId: null,
-        ...(completed === 'incomplete' ? { isCompleted: false } : {}),
-        ...(completed === 'completed' ? { isCompleted: true } : {}),
-      },
-      include: taskSummaryInclude,
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    });
-    return rows.map(toTaskSummary);
+    const done = {
+      ...(completed === 'incomplete' ? { isCompleted: false } : {}),
+      ...(completed === 'completed' ? { isCompleted: true } : {}),
+    };
+    const [rows, links] = await Promise.all([
+      this.prisma.task.findMany({
+        where: { projectId, parentTaskId: null, ...done },
+        include: taskSummaryInclude,
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
+      // Tasks from other projects that are also listed here (own section + position in this project).
+      this.prisma.taskProjectLink.findMany({
+        where: { projectId, task: { parentTaskId: null, ...done } },
+        include: { task: { include: taskSummaryInclude } },
+      }),
+    ]);
+    return [
+      ...rows.map(toTaskSummary),
+      ...links.map((l) => ({ ...toTaskSummary(l.task), sectionId: l.sectionId, sortOrder: l.sortOrder })),
+    ].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt));
   }
 
   /** Tasks (and subtasks) assigned to the current user across visible projects. */
@@ -74,7 +83,9 @@ export class TasksService {
       where: {
         assigneeId: user.id,
         project: { inTaskManager: true },
-        ...(visible ? { projectId: { in: visible } } : {}),
+        ...(visible
+          ? { AND: [{ OR: [{ projectId: { in: visible } }, { projectLinks: { some: { projectId: { in: visible } } } }] }] }
+          : {}),
         OR: [{ isCompleted: false }, ...(since ? [{ isCompleted: true, completedAt: { gte: since } }] : [])],
       },
       include: {
@@ -117,17 +128,24 @@ export class TasksService {
       include: taskSummaryInclude,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     });
-    const projectId = task.projectId;
-    const [canEdit, canComment] = await Promise.all([
-      this.access.can(user, projectId, 'edit'),
-      this.access.can(user, projectId, 'comment'),
+    const [canEdit, canComment, projects] = await Promise.all([
+      this.access.canTask(user, taskId, 'edit'),
+      this.access.canTask(user, taskId, 'comment'),
+      this.memberships(taskId),
     ]);
+    const otherFields = projects.length > 1
+      ? await this.prisma.taskCustomField.findMany({
+          where: { projectId: { in: projects.filter((m) => !m.isHome).map((m) => m.id) } },
+          orderBy: [{ projectId: 'asc' }, { sortOrder: 'asc' }],
+        })
+      : [];
     return {
       ...toTaskSummary(task),
       description: task.description,
       project: { id: task.project.id, name: task.project.name, color: task.project.color, icon: task.project.icon },
-      customFields: task.project.customFields.map(toField),
+      customFields: [...task.project.customFields, ...otherFields].map(toField),
       section: task.section,
+      projects,
       parent: task.parent,
       createdBy: task.createdBy ? person(task.createdBy) : null,
       completedBy: task.completedBy ? person(task.completedBy) : null,
@@ -152,16 +170,18 @@ export class TasksService {
       projectId = parent.projectId;
       sectionId = null;
     }
-    await this.access.assertProject(user, projectId, 'edit');
+    if (parentTaskId) await this.access.assertTask(user, parentTaskId, 'edit');
+    else await this.access.assertProject(user, projectId, 'edit');
     if (sectionId) await this.assertSectionInProject(sectionId, projectId);
     if (!parentTaskId && dto.sectionId === undefined) {
       const first = await this.prisma.taskSection.findFirst({ where: { projectId }, orderBy: { sortOrder: 'asc' } });
       sectionId = first?.id ?? null;
     }
-    if (dto.assigneeId) await this.assertAssignable(dto.assigneeId, projectId);
+    if (dto.assigneeId) await this.assertAssignable(dto.assigneeId, [projectId]);
 
-    const scope = parentTaskId ? { parentTaskId } : { projectId, parentTaskId: null, sectionId };
-    const sortOrder = await this.orderAfter(scope, dto.afterTaskId);
+    const sortOrder = parentTaskId
+      ? await this.orderAfter({ parentTaskId }, dto.afterTaskId)
+      : await this.placeInSection(projectId, sectionId, dto.afterTaskId);
     const name = dto.name.trim() || 'Untitled task';
 
     const task = await this.prisma.task.create({
@@ -193,7 +213,7 @@ export class TasksService {
       include: { project: { select: { name: true } }, assignee: { select: personSelect } },
     });
     if (!existing) throw new NotFoundException('Task not found');
-    await this.access.assertProject(user, existing.projectId, 'edit');
+    await this.access.assertTask(user, taskId, 'edit');
 
     const data: Prisma.TaskUncheckedUpdateInput = {};
     const activity: string[] = [];
@@ -205,7 +225,7 @@ export class TasksService {
       data.description = dto.description;
     }
     if (dto.assigneeId !== undefined && dto.assigneeId !== existing.assigneeId) {
-      if (dto.assigneeId) await this.assertAssignable(dto.assigneeId, existing.projectId);
+      if (dto.assigneeId) await this.assertAssignable(dto.assigneeId, (await this.access.taskProjectIds(taskId)).all);
       data.assigneeId = dto.assigneeId;
       if (dto.assigneeId) {
         const assignee = await this.prisma.user.findUniqueOrThrow({ where: { id: dto.assigneeId }, select: personSelect });
@@ -270,47 +290,137 @@ export class TasksService {
     return this.summary(taskId);
   }
 
-  /** Reorder within / across sections, re-parent subtasks, or move to another project. */
+  /**
+   * Reorder within / across sections, or move the task (or one of its project memberships) to another
+   * project + section. `fromProjectId` says which membership: the home project (default) or a linked one.
+   */
   async move(user: UserContext, taskId: string, dto: MoveTaskDto) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Task not found');
-    await this.access.assertProject(user, task.projectId, 'edit');
+    const fromProjectId = dto.fromProjectId ?? task.projectId;
+    const fromHome = fromProjectId === task.projectId;
+    const link = fromHome
+      ? null
+      : await this.prisma.taskProjectLink.findUnique({ where: { taskId_projectId: { taskId, projectId: fromProjectId } } });
+    if (!fromHome && !link) throw new BadRequestException('Task is not in that project');
+    await this.access.assertProject(user, fromProjectId, 'edit');
 
-    if (dto.projectId && dto.projectId !== task.projectId) {
-      if (task.parentTaskId) throw new BadRequestException('Move the parent task to change projects');
-      await this.access.assertProject(user, dto.projectId, 'edit');
-      const target = await this.prisma.project.findUniqueOrThrow({ where: { id: dto.projectId }, select: { name: true } });
-      const firstSection = await this.prisma.taskSection.findFirst({ where: { projectId: dto.projectId }, orderBy: { sortOrder: 'asc' } });
-      const sortOrder = await this.orderAfter({ projectId: dto.projectId, parentTaskId: null, sectionId: firstSection?.id ?? null }, undefined);
-      const subtreeIds = await this.subtreeIds(taskId);
-      await this.prisma.$transaction([
-        this.prisma.task.update({ where: { id: taskId }, data: { projectId: dto.projectId, sectionId: firstSection?.id ?? null, sortOrder } }),
-        this.prisma.task.updateMany({ where: { id: { in: subtreeIds } }, data: { projectId: dto.projectId } }),
-        // Custom fields are per-project; values don't carry over.
-        this.prisma.taskCustomFieldValue.deleteMany({ where: { taskId: { in: [taskId, ...subtreeIds] } } }),
-      ]);
-      await this.events.activity(taskId, user, `moved this task to ${target.name}`);
+    // Subtasks: reorder under their parent only.
+    if (task.parentTaskId) {
+      if (dto.projectId && dto.projectId !== task.projectId) throw new BadRequestException('Move the parent task to change projects');
+      const sortOrder = await this.orderAfter({ parentTaskId: task.parentTaskId }, dto.afterTaskId ?? null, taskId);
+      await this.prisma.task.update({ where: { id: taskId }, data: { sortOrder } });
       return this.summary(taskId);
     }
 
-    const sectionId = task.parentTaskId ? null : dto.sectionId !== undefined ? dto.sectionId : task.sectionId;
-    if (sectionId) await this.assertSectionInProject(sectionId, task.projectId);
-    const scope = task.parentTaskId
-      ? { parentTaskId: task.parentTaskId }
-      : { projectId: task.projectId, parentTaskId: null, sectionId };
-    const sortOrder = await this.orderAfter(scope, dto.afterTaskId ?? null, taskId);
-    await this.prisma.task.update({ where: { id: taskId }, data: { sectionId, sortOrder } });
-    if (sectionId !== task.sectionId && sectionId) {
+    const toProjectId = dto.projectId ?? fromProjectId;
+    if (toProjectId !== fromProjectId) {
+      await this.access.assertProject(user, toProjectId, 'edit');
+      const already = toProjectId === task.projectId
+        || (await this.prisma.taskProjectLink.count({ where: { taskId, projectId: toProjectId } })) > 0;
+      if (already) throw new BadRequestException('Task is already in that project');
+      const [from, to] = await Promise.all([
+        this.prisma.project.findUniqueOrThrow({ where: { id: fromProjectId }, select: { name: true } }),
+        this.prisma.project.findUniqueOrThrow({ where: { id: toProjectId }, select: { name: true } }),
+      ]);
+      let sectionId = dto.sectionId ?? null;
+      if (sectionId) await this.assertSectionInProject(sectionId, toProjectId);
+      else sectionId = (await this.firstSectionId(toProjectId)) ?? null;
+      const sortOrder = await this.placeInSection(toProjectId, sectionId, dto.afterTaskId);
+      const subtreeIds = fromHome ? await this.subtreeIds(taskId) : [];
+      await this.prisma.$transaction([
+        fromHome
+          ? this.prisma.task.update({ where: { id: taskId }, data: { projectId: toProjectId, sectionId, sortOrder } })
+          : this.prisma.taskProjectLink.update({ where: { id: link!.id }, data: { projectId: toProjectId, sectionId, sortOrder } }),
+        this.prisma.task.updateMany({ where: { id: { in: subtreeIds } }, data: { projectId: toProjectId } }),
+        // Custom fields belong to a project; values for the project being left don't carry over.
+        this.prisma.taskCustomFieldValue.deleteMany({
+          where: { taskId: { in: [taskId, ...subtreeIds] }, field: { projectId: fromProjectId } },
+        }),
+      ]);
+      await this.events.activity(taskId, user, `moved this task from ${from.name} to ${to.name}`);
+      return this.summary(taskId);
+    }
+
+    const currentSection = fromHome ? task.sectionId : link!.sectionId;
+    const sectionId = dto.sectionId !== undefined ? dto.sectionId : currentSection;
+    if (sectionId) await this.assertSectionInProject(sectionId, fromProjectId);
+    const sortOrder = await this.placeInSection(fromProjectId, sectionId, dto.afterTaskId ?? null, taskId);
+    if (fromHome) await this.prisma.task.update({ where: { id: taskId }, data: { sectionId, sortOrder } });
+    else await this.prisma.taskProjectLink.update({ where: { id: link!.id }, data: { sectionId, sortOrder } });
+    if (sectionId !== currentSection && sectionId) {
       const section = await this.prisma.taskSection.findUnique({ where: { id: sectionId }, select: { name: true } });
       await this.events.activity(taskId, user, `moved this task to “${section?.name}”`);
     }
     return this.summary(taskId);
   }
 
-  async remove(user: UserContext, taskId: string) {
+  /** Also list this task in another project (Asana multi-homing). */
+  async addProject(user: UserContext, taskId: string, dto: AddTaskProjectDto) {
+    const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, parentTaskId: true } });
+    if (!task) throw new NotFoundException('Task not found');
+    if (task.parentTaskId) throw new BadRequestException('Subtasks follow their parent task’s projects');
+    await this.access.assertTask(user, taskId, 'edit');
+    await this.access.assertProject(user, dto.projectId, 'edit');
+    const already = dto.projectId === task.projectId
+      || (await this.prisma.taskProjectLink.count({ where: { taskId, projectId: dto.projectId } })) > 0;
+    if (already) throw new BadRequestException('Task is already in that project');
+    let sectionId = dto.sectionId ?? null;
+    if (sectionId) await this.assertSectionInProject(sectionId, dto.projectId);
+    else sectionId = (await this.firstSectionId(dto.projectId)) ?? null;
+    const sortOrder = await this.placeInSection(dto.projectId, sectionId, undefined);
+    await this.prisma.taskProjectLink.create({ data: { taskId, projectId: dto.projectId, sectionId, sortOrder } });
+    const project = await this.prisma.project.findUniqueOrThrow({ where: { id: dto.projectId }, select: { name: true } });
+    await this.events.activity(taskId, user, `added this task to ${project.name}`);
+    return this.memberships(taskId);
+  }
+
+  /** Take the task out of one project. Removing the home project promotes the oldest linked project. */
+  async removeProject(user: UserContext, taskId: string, projectId: string) {
     const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } });
     if (!task) throw new NotFoundException('Task not found');
-    await this.access.assertProject(user, task.projectId, 'edit');
+    await this.access.assertProject(user, projectId, 'edit');
+    const project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { name: true } });
+    if (projectId === task.projectId) {
+      const next = await this.prisma.taskProjectLink.findFirst({ where: { taskId }, orderBy: { createdAt: 'asc' } });
+      if (!next) throw new BadRequestException('A task needs at least one project. Move it to another project or delete it instead.');
+      const subtreeIds = await this.subtreeIds(taskId);
+      await this.prisma.$transaction([
+        this.prisma.task.update({ where: { id: taskId }, data: { projectId: next.projectId, sectionId: next.sectionId, sortOrder: next.sortOrder } }),
+        this.prisma.task.updateMany({ where: { id: { in: subtreeIds } }, data: { projectId: next.projectId } }),
+        this.prisma.taskProjectLink.delete({ where: { id: next.id } }),
+        this.prisma.taskCustomFieldValue.deleteMany({ where: { taskId: { in: [taskId, ...subtreeIds] }, field: { projectId } } }),
+      ]);
+    } else {
+      const deleted = await this.prisma.taskProjectLink.deleteMany({ where: { taskId, projectId } });
+      if (!deleted.count) throw new BadRequestException('Task is not in that project');
+      await this.prisma.taskCustomFieldValue.deleteMany({ where: { taskId, field: { projectId } } });
+    }
+    await this.events.activity(taskId, user, `removed this task from ${project.name}`);
+    return this.memberships(taskId);
+  }
+
+  /** Projects a task is listed in (home first), with its section in each. */
+  async memberships(taskId: string) {
+    const task = await this.prisma.task.findUniqueOrThrow({
+      where: { id: taskId },
+      select: {
+        project: { select: { id: true, name: true, color: true, icon: true } },
+        section: { select: { id: true, name: true } },
+        projectLinks: {
+          orderBy: { createdAt: 'asc' },
+          select: { project: { select: { id: true, name: true, color: true, icon: true } }, section: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    return [
+      { ...task.project, section: task.section, isHome: true },
+      ...task.projectLinks.map((l) => ({ ...l.project, section: l.section, isHome: false })),
+    ];
+  }
+
+  async remove(user: UserContext, taskId: string) {
+    await this.access.assertTask(user, taskId, 'edit');
     const ids = [taskId, ...(await this.subtreeIds(taskId))];
     const files = await this.prisma.taskAttachment.findMany({ where: { taskId: { in: ids }, fileUrl: { not: null } }, select: { fileUrl: true } });
     await this.prisma.task.delete({ where: { id: taskId } });
@@ -319,9 +429,10 @@ export class TasksService {
   }
 
   async setFieldValue(user: UserContext, taskId: string, fieldId: string, value: unknown) {
-    const projectId = await this.access.assertTask(user, taskId, 'edit');
+    await this.access.assertTask(user, taskId, 'edit');
+    const { all } = await this.access.taskProjectIds(taskId);
     const field = await this.prisma.taskCustomField.findUnique({ where: { id: fieldId } });
-    if (!field || field.projectId !== projectId) throw new NotFoundException('Field not found on this project');
+    if (!field || !all.includes(field.projectId)) throw new NotFoundException('Field not found on this project');
     let coerced: unknown;
     try {
       coerced = coerceFieldValue(field.type as FieldType, (field.options as FieldOption[] | null) ?? [], value);
@@ -341,9 +452,9 @@ export class TasksService {
   }
 
   async setFollowing(user: UserContext, taskId: string, userId: string, following: boolean) {
-    const projectId = await this.access.assertTask(user, taskId, userId === user.id ? 'view' : 'edit');
+    await this.access.assertTask(user, taskId, userId === user.id ? 'view' : 'edit');
     if (following) {
-      if (userId !== user.id) await this.assertAssignable(userId, projectId);
+      if (userId !== user.id) await this.assertAssignable(userId, (await this.access.taskProjectIds(taskId)).all);
       await this.events.follow(taskId, [userId]);
     } else {
       await this.prisma.taskFollower.deleteMany({ where: { taskId, userId } });
@@ -459,9 +570,10 @@ export class TasksService {
       include: { fieldValues: true, followers: true },
     });
     const due = nextDueDate(rule, done.dueOn, new Date());
-    const scope = done.parentTaskId
-      ? { parentTaskId: done.parentTaskId }
-      : { projectId: done.projectId, parentTaskId: null, sectionId: done.sectionId };
+    const sortOrder = done.parentTaskId
+      ? await this.orderAfter({ parentTaskId: done.parentTaskId }, done.id)
+      : await this.placeInSection(done.projectId, done.sectionId, done.id);
+    const links = done.parentTaskId ? [] : await this.prisma.taskProjectLink.findMany({ where: { taskId: done.id } });
     const next = await this.prisma.task.create({
       data: {
         projectId: done.projectId,
@@ -474,11 +586,21 @@ export class TasksService {
         dueOn: due,
         recurrence: rule as unknown as Prisma.InputJsonValue,
         recurredFromId: done.id,
-        sortOrder: await this.orderAfter(scope, done.id),
+        sortOrder,
         fieldValues: {
           create: done.fieldValues.map((v) => ({ fieldId: v.fieldId, value: v.value as Prisma.InputJsonValue })),
         },
       },
+    });
+    // The next occurrence shows up in the same extra projects, right after the completed one.
+    for (const l of links) {
+      await this.prisma.taskProjectLink.create({
+        data: { taskId: next.id, projectId: l.projectId, sectionId: l.sectionId, sortOrder: await this.placeInSection(l.projectId, l.sectionId, done.id) },
+      });
+    }
+    await this.prisma.taskTag.createMany({
+      data: (await this.prisma.taskTag.findMany({ where: { taskId: done.id } })).map((t) => ({ taskId: next.id, tagId: t.tagId })),
+      skipDuplicates: true,
     });
     await this.events.follow(next.id, done.followers.map((f) => f.userId));
     await this.events.activity(next.id, user, `created this repeating task (next due ${fmtDate(due)})`);
@@ -501,16 +623,60 @@ export class TasksService {
     if (!section || section.projectId !== projectId) throw new BadRequestException('Section is not in this project');
   }
 
-  /** Assignee must be active staff or a member of the project. */
-  private async assertAssignable(userId: string, projectId: string) {
+  /** Assignee must be active staff or a member of one of the task's projects. */
+  private async assertAssignable(userId: string, projectIds: string[]) {
     const ok = await this.prisma.user.count({
       where: {
         id: userId,
         isActive: true,
-        OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { projectMemberships: { some: { projectId } } }],
+        OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { projectMemberships: { some: { projectId: { in: projectIds } } } }],
       },
     });
     if (!ok) throw new BadRequestException('That person is not on this project');
+  }
+
+  private async firstSectionId(projectId: string): Promise<string | undefined> {
+    const first = await this.prisma.taskSection.findFirst({ where: { projectId }, orderBy: { sortOrder: 'asc' }, select: { id: true } });
+    return first?.id;
+  }
+
+  /**
+   * Sort order for a top-level row in one section of a project, where rows are the project's own tasks
+   * plus tasks linked in from other projects. undefined = bottom, null = top. Renumbers when gaps run out.
+   */
+  private async placeInSection(
+    projectId: string,
+    sectionId: string | null,
+    afterTaskId: string | null | undefined,
+    excludeTaskId?: string,
+  ): Promise<number> {
+    const [own, linked] = await Promise.all([
+      this.prisma.task.findMany({
+        where: { projectId, parentTaskId: null, sectionId, ...(excludeTaskId ? { id: { not: excludeTaskId } } : {}) },
+        select: { id: true, sortOrder: true, createdAt: true },
+      }),
+      this.prisma.taskProjectLink.findMany({
+        where: { projectId, sectionId, ...(excludeTaskId ? { taskId: { not: excludeTaskId } } : {}) },
+        select: { id: true, taskId: true, sortOrder: true, createdAt: true },
+      }),
+    ]);
+    const rows = [
+      ...own.map((t) => ({ taskId: t.id, linkId: null as string | null, sortOrder: t.sortOrder, createdAt: t.createdAt })),
+      ...linked.map((l) => ({ taskId: l.taskId, linkId: l.id as string | null, sortOrder: l.sortOrder, createdAt: l.createdAt })),
+    ].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime());
+    if (afterTaskId === undefined) return (rows.at(-1)?.sortOrder ?? 0) + ORDER_STEP;
+    const index = afterTaskId === null ? -1 : rows.findIndex((r) => r.taskId === afterTaskId);
+    if (afterTaskId !== null && index < 0) return (rows.at(-1)?.sortOrder ?? 0) + ORDER_STEP;
+    const order = orderBetween(index >= 0 ? rows[index].sortOrder : null, rows[index + 1]?.sortOrder ?? null);
+    if (order !== null) return order;
+    await this.prisma.$transaction(
+      rows.map((r, i) =>
+        r.linkId
+          ? this.prisma.taskProjectLink.update({ where: { id: r.linkId }, data: { sortOrder: (i + 1) * ORDER_STEP } })
+          : this.prisma.task.update({ where: { id: r.taskId }, data: { sortOrder: (i + 1) * ORDER_STEP } }),
+      ),
+    );
+    return (index + 1) * ORDER_STEP + ORDER_STEP / 2;
   }
 
   /**

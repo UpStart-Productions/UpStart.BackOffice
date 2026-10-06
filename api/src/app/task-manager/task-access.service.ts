@@ -61,11 +61,51 @@ export class TaskAccessService {
     }
   }
 
-  /** Loads the task's projectId and asserts access. Returns projectId. */
-  async assertTask(user: UserContext, taskId: string, need: ProjectPermission = 'view'): Promise<string> {
-    const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } });
+  /** Every project a task appears in: home project first, then linked projects (from the top-level ancestor). */
+  async taskProjectIds(taskId: string): Promise<{ home: string; all: string[] }> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { projectId: true, parentTaskId: true, projectLinks: { select: { projectId: true }, orderBy: { createdAt: 'asc' } } },
+    });
     if (!task) throw new NotFoundException('Task not found');
-    await this.assertProject(user, task.projectId, need);
-    return task.projectId;
+    let links = task.projectLinks.map((l) => l.projectId);
+    let parentId = task.parentTaskId;
+    for (let depth = 0; parentId && depth < 10; depth++) {
+      const parent = await this.prisma.task.findUnique({
+        where: { id: parentId },
+        select: { parentTaskId: true, projectLinks: { select: { projectId: true }, orderBy: { createdAt: 'asc' } } },
+      });
+      if (!parent) break;
+      links = parent.projectLinks.map((l) => l.projectId);
+      parentId = parent.parentTaskId;
+    }
+    return { home: task.projectId, all: [task.projectId, ...links.filter((id) => id !== task.projectId)] };
+  }
+
+  /**
+   * Asserts access to a task through any project it appears in (home or linked).
+   * Returns the task's home projectId.
+   */
+  async assertTask(user: UserContext, taskId: string, need: ProjectPermission = 'view'): Promise<string> {
+    const { home, all } = await this.taskProjectIds(taskId);
+    let firstError: unknown = null;
+    for (const projectId of all) {
+      try {
+        await this.assertProject(user, projectId, need);
+        return home;
+      } catch (err) {
+        firstError ??= err;
+      }
+    }
+    throw firstError ?? new NotFoundException('Task not found');
+  }
+
+  async canTask(user: UserContext, taskId: string, need: ProjectPermission): Promise<boolean> {
+    try {
+      await this.assertTask(user, taskId, need);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

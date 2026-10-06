@@ -98,13 +98,32 @@
           </button>
         </dd>
 
-        <dt>Project</dt>
+        <dt>Tags</dt>
+        <dd class="tm-tags-dd">
+          @for (tag of t.tags; track tag.id) {
+            <span class="tm-chip tm-tag" [style.background]="chipColors(tag.color).bg" [style.color]="chipColors(tag.color).fg">
+              {{ tag.name }}
+              @if (canEdit()) {
+                <button type="button" class="tm-tag-remove" (click)="removeTag(tag.id)" [attr.aria-label]="'Remove tag ' + tag.name"><i class="pi pi-times"></i></button>
+              }
+            </span>
+          }
+          @if (canEdit()) {
+            <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="tagPicker.open($event, t.tags)" pTooltip="Add tag" aria-label="Add tag"><i class="pi pi-plus"></i></button>
+          } @else if (!t.tags.length) {
+            <span class="tm-muted">None</span>
+          }
+        </dd>
+
+        <dt class="tm-dt-top">{{ t.projects.length > 1 ? 'Projects' : 'Project' }}</dt>
         <dd>
-          <span class="tm-project-pill">
-            <app-tm-project-icon [color]="t.project.color" [icon]="t.project.icon" />
-            {{ t.project.name }}
-            @if (t.section) { <span class="tm-muted">· {{ t.section.name }}</span> }
-          </span>
+          <app-tm-task-projects
+            [taskId]="t.id"
+            [projects]="t.projects"
+            [canEdit]="canEdit()"
+            [isSubtask]="!!t.parentTaskId"
+            (changed)="onProjectsChanged()"
+          />
         </dd>
 
         @for (f of t.customFields; track f.id) {
@@ -301,24 +320,10 @@
 <app-tm-person-picker #subtaskAssigneePicker (picked)="setSubtaskAssignee($event)" />
 <app-tm-due-date-picker #subtaskDuePicker (picked)="setSubtaskDue($event)" />
 
+<app-tm-tag-picker #tagPicker (picked)="addTag($event)" />
+
 <p-popover #moreMenu appendTo="body" styleClass="tm-popover">
   <div class="tm-menu">
-    @if (!task()?.parentTaskId) {
-      <div class="tm-menu-label">Move to project</div>
-      <ul class="tm-picker-list tm-menu-scroll">
-        @for (p of moveProjects(); track p.id) {
-          @if (p.id !== task()?.projectId) {
-            <li>
-              <button type="button" class="tm-picker-item" (click)="moveToProject(p.id)">
-                <app-tm-project-icon [color]="p.color" [icon]="p.icon" />
-                <span>{{ p.name }}</span>
-              </button>
-            </li>
-          }
-        }
-      </ul>
-      <hr />
-    }
     <button type="button" class="tm-picker-item tm-danger" (click)="deleteTask()"><i class="pi pi-trash"></i> Delete task</button>
   </div>
 </p-popover>

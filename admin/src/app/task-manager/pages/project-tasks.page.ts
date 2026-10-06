@@ -9,11 +9,12 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { Popover, PopoverModule } from 'primeng/popover';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, map } from 'rxjs';
 import { TmApiService } from '../core/tm-api.service';
-import { dueLabel, dueTone, PROJECT_COLORS } from '../core/tm-format.util';
+import { chipColors, dueLabel, dueTone, PROJECT_COLORS } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { Person, TaskSummary, TmProject, TmSection } from '../core/tm.types';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
@@ -23,6 +24,7 @@ import { TmMembersDialogComponent } from '../ui/members-dialog.component';
 import { TmPersonPickerComponent } from '../ui/person-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
 import { TmAvatarComponent } from '../ui/tm-avatar.component';
+import { TagPick, TmTagPickerComponent } from '../ui/tag-picker.component';
 import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
 
 type CompletedFilter = 'incomplete' | 'all' | 'completed';
@@ -43,6 +45,8 @@ const NO_SECTION = '__none__';
     InputTextModule,
     PopoverModule,
     SelectButtonModule,
+    MultiSelectModule,
+    TmTagPickerComponent,
     TooltipModule,
     CdkDropListGroup,
     CdkDropList,
@@ -85,6 +89,7 @@ export class ProjectTasksPage implements OnDestroy {
   people = signal<Person[]>([]);
   completedFilter = signal<CompletedFilter>('incomplete');
   search = signal('');
+  tagFilter = signal<string[]>([]);
   membersOpen = signal(false);
   fieldsOpen = signal(false);
   addingIn = signal<string | null>(null);
@@ -102,10 +107,12 @@ export class ProjectTasksPage implements OnDestroy {
   readonly colors = PROJECT_COLORS;
   readonly dueLabel = dueLabel;
   readonly dueTone = dueTone;
+  readonly chipColors = chipColors;
   readonly NO_SECTION = NO_SECTION;
 
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
   private readonly duePicker = viewChild.required<TmDueDatePickerComponent>('duePicker');
+  private readonly tagPicker = viewChild.required<TmTagPickerComponent>('tagPicker');
   private readonly sectionMenu = viewChild.required<Popover>('sectionMenu');
   private readonly colorMenu = viewChild.required<Popover>('colorMenu');
   private readonly projectMenu = viewChild.required<Popover>('projectMenu');
@@ -117,21 +124,23 @@ export class ProjectTasksPage implements OnDestroy {
   readonly fields = computed(() => this.project()?.customFields ?? []);
   readonly gridTemplate = computed(() => {
     const fieldCols = this.fields().map(() => 'minmax(120px, 150px)').join(' ');
-    return `minmax(280px, 1fr) 150px 120px ${fieldCols} ${this.canEdit() ? '44px' : ''}`.trim();
+    return `minmax(280px, 1fr) 150px 120px 180px ${fieldCols} ${this.canEdit() ? '44px' : ''}`.trim();
   });
 
   /** Shared minimum row width (sum of column minimums). Every row gets the same width so the
    *  `1fr` name column resolves identically and columns stay aligned when the grid is squeezed
    *  (e.g. detail pane open) — `max-content` let each row size to its own content. */
-  readonly gridMinWidth = computed(() => 280 + 150 + 120 + this.fields().length * 120 + (this.canEdit() ? 44 : 0));
+  readonly gridMinWidth = computed(() => 280 + 150 + 120 + 180 + this.fields().length * 120 + (this.canEdit() ? 44 : 0));
 
   readonly groups = computed<Group[]>(() => {
     const project = this.project();
     if (!project) return [];
     const q = this.search().trim().toLowerCase();
     const filter = this.completedFilter();
+    const tagIds = this.tagFilter();
     const visible = this.tasks().filter((t) => {
       if (q && !t.name.toLowerCase().includes(q)) return false;
+      if (tagIds.length && !t.tags.some((tag) => tagIds.includes(tag.id))) return false;
       if (filter === 'completed') return t.isCompleted;
       return true; // 'incomplete' keeps just-completed tasks visible until reload (Asana behavior)
     });
@@ -158,6 +167,7 @@ export class ProjectTasksPage implements OnDestroy {
       const id = this.projectId();
       untracked(() => void this.load(id));
     });
+    void this.store.loadTags();
   }
 
   ngOnDestroy() {
@@ -203,8 +213,58 @@ export class ProjectTasksPage implements OnDestroy {
     this.toast.add({ severity: 'error', summary: 'Something went wrong', detail: err instanceof Error ? err.message : String(err) });
   }
 
+  /** True when the row is a task from another project that's also listed here. */
+  isLinked(t: TaskSummary): boolean {
+    return t.projectId !== this.projectId();
+  }
+
   private patchLocal(id: string, patch: Partial<TaskSummary>) {
-    this.tasks.update((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    this.tasks.update((list) =>
+      list.map((t) => {
+        if (t.id !== id) return t;
+        // Server summaries carry the task's home-project section/position; a linked row keeps its own.
+        if (this.isLinked(t) && patch.projectId !== undefined) {
+          const { sectionId: _s, sortOrder: _o, ...rest } = patch;
+          return { ...t, ...rest };
+        }
+        return { ...t, ...patch };
+      }),
+    );
+  }
+
+  onProjectsChanged() {
+    void this.load(this.projectId(), true);
+  }
+
+  // ── Tags ────────────────────────────────────────────────────────────────
+
+  openTags(event: Event, task: TaskSummary) {
+    event.stopPropagation();
+    if (!this.canEdit()) return;
+    this.pickerTask = task;
+    this.tagPicker().open(event, task.tags);
+  }
+
+  async addTag(pick: TagPick) {
+    const task = this.pickerTask;
+    if (!task) return;
+    try {
+      const tags = await this.api.addTaskTag(task.id, pick);
+      this.store.rememberTags(tags);
+      this.patchLocal(task.id, { tags });
+    } catch (err) {
+      this.fail(err);
+    }
+  }
+
+  async removeTag(event: Event, task: TaskSummary, tagId: string) {
+    event.stopPropagation();
+    this.patchLocal(task.id, { tags: task.tags.filter((t) => t.id !== tagId) });
+    try {
+      this.patchLocal(task.id, { tags: await this.api.removeTaskTag(task.id, tagId) });
+    } catch (err) {
+      this.fail(err);
+    }
   }
 
   // ── Detail pane ─────────────────────────────────────────────────────────
@@ -408,6 +468,7 @@ export class ProjectTasksPage implements OnDestroy {
       const updated = await this.api.moveTask(task.id, {
         sectionId: target.section?.id ?? null,
         afterTaskId: after?.id ?? null,
+        fromProjectId: this.projectId(),
       });
       this.patchLocal(task.id, updated);
     } catch (err) {

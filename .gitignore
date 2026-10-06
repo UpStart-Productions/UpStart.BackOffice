@@ -9,3 +9,6 @@ tmp
 *.js.map
 admin/src/environments/environment.production.generated.ts
 admin/src/environments/environment.development.generated.ts
+
+# local e2e harness config
+prisma.e2e.config.ts

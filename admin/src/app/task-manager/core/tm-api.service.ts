@@ -7,6 +7,8 @@ import {
   FieldType,
   MemberRole,
   MyTask,
+  TaskMembership,
+  TmTag,
   Person,
   Recurrence,
   TaskAttachment,
@@ -128,8 +130,32 @@ export class TmApiService {
   updateTask(id: string, patch: TaskPatch) {
     return this.api.patch<TaskSummary>(`/tm/tasks/${id}`, patch);
   }
-  moveTask(id: string, body: { sectionId?: string | null; afterTaskId?: string | null; projectId?: string }) {
+  /** `fromProjectId`: which of the task's projects the move applies to (home when omitted). */
+  moveTask(id: string, body: { sectionId?: string | null; afterTaskId?: string | null; projectId?: string; fromProjectId?: string }) {
     return this.api.post<TaskSummary>(`/tm/tasks/${id}/move`, body);
+  }
+  addTaskProject(id: string, projectId: string, sectionId?: string | null) {
+    return this.api.post<TaskMembership[]>(`/tm/tasks/${id}/projects`, { projectId, sectionId: sectionId ?? null });
+  }
+  removeTaskProject(id: string, projectId: string) {
+    return this.api.delete<TaskMembership[]>(`/tm/tasks/${id}/projects/${projectId}`);
+  }
+
+  // Tags
+  listTags() {
+    return this.api.get<(TmTag & { taskCount: number })[]>('/tm/tags');
+  }
+  updateTag(id: string, body: { name?: string; color?: string | null }) {
+    return this.api.patch<TmTag>(`/tm/tags/${id}`, body);
+  }
+  deleteTag(id: string) {
+    return this.api.delete(`/tm/tags/${id}`);
+  }
+  addTaskTag(taskId: string, body: { tagId?: string; name?: string }) {
+    return this.api.post<TmTag[]>(`/tm/tasks/${taskId}/tags`, body);
+  }
+  removeTaskTag(taskId: string, tagId: string) {
+    return this.api.delete<TmTag[]>(`/tm/tasks/${taskId}/tags/${tagId}`);
   }
   deleteTask(id: string) {
     return this.api.delete(`/tm/tasks/${id}`);

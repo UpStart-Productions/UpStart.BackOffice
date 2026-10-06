@@ -93,8 +93,34 @@ export class MoveTaskDto {
   @ApiPropertyOptional() @IsOptional() @IsString() sectionId?: string | null;
   /** Place after this sibling; null = top. */
   @ApiPropertyOptional() @IsOptional() @IsString() afterTaskId?: string | null;
-  /** Move to another project (lands at the bottom of its first section). */
+  /** Move to another project (into `sectionId`, or the bottom of its first section). */
   @ApiPropertyOptional() @IsOptional() @IsString() projectId?: string;
+  /** Which of the task's projects this move applies to (home project when omitted). */
+  @ApiPropertyOptional() @IsOptional() @IsString() fromProjectId?: string;
+}
+
+export class AddTaskProjectDto {
+  @ApiProperty() @IsString() projectId!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() sectionId?: string | null;
+}
+
+// ── Tags ────────────────────────────────────────────────────────────────────
+
+export class CreateTagDto {
+  @ApiProperty() @Transform(trim) @IsString() @MinLength(1) @MaxLength(60) name!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
+}
+
+export class UpdateTagDto {
+  @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @MinLength(1) @MaxLength(60) name?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
+}
+
+/** Tag a task with an existing tag (tagId) or by name (created if new). */
+export class AddTaskTagDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() tagId?: string;
+  @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @MinLength(1) @MaxLength(60) name?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
 }
 
 export class TaskListQueryDto {

@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { map } from 'rxjs';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
-import { addDaysKey, dueLabel, dueTone, todayKey } from '../core/tm-format.util';
+import { addDaysKey, chipColors, dueLabel, dueTone, todayKey } from '../core/tm-format.util';
+import { TmStoreService } from '../core/tm-store.service';
 import { MyTask, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
@@ -20,7 +22,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
 @Component({
   selector: 'app-tm-my-tasks-page',
   standalone: true,
-  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, TmTaskDetailComponent, TmDueDatePickerComponent],
+  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, MultiSelectModule, TmTaskDetailComponent, TmDueDatePickerComponent],
   template: `
     <div class="tm-page" [class.tm-with-detail]="!!taskId()">
       <header class="tm-project-header">
@@ -28,6 +30,21 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
           <span class="tm-page-icon"><i class="pi pi-check-circle"></i></span>
           <h1 class="tm-project-title">My tasks</h1>
           <div class="tm-project-header-actions">
+            <p-multiselect
+              [options]="store.tags()"
+              optionLabel="name"
+              optionValue="id"
+              [ngModel]="tagFilter()"
+              (ngModelChange)="tagFilter.set($event ?? [])"
+              placeholder="Tags"
+              [filter]="true"
+              [showClear]="true"
+              [maxSelectedLabels]="2"
+              selectedItemsLabel="{0} tags"
+              appendTo="body"
+              styleClass="tm-toolbar-tags"
+              aria-label="Filter by tag"
+            />
             <label class="tm-toggle-label">
               <p-toggleswitch [ngModel]="showCompleted()" (ngModelChange)="setShowCompleted($event)" />
               Show recently completed
@@ -63,6 +80,9 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                           @if (t.parent) { <span class="tm-muted">{{ t.parent.name }} ›</span> }
                           {{ t.name }}
                         </span>
+                        @for (tag of t.tags; track tag.id) {
+                          <span class="tm-chip tm-tag" [style.background]="chipColors(tag.color).bg" [style.color]="chipColors(tag.color).fg">{{ tag.name }}</span>
+                        }
                         @if (t.recurrence) { <i class="pi pi-sync tm-muted" title="Repeats"></i> }
                       </div>
                       <div class="tm-grid-cell">
@@ -100,6 +120,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
           (closed)="close()"
           (changed)="onChanged($event)"
           (deleted)="onDeleted($event)"
+          (projectsChanged)="load()"
           (openTask)="open({ id: $event })"
         />
       }
@@ -113,6 +134,9 @@ export class MyTasksPage {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly session = inject(SessionService);
+  readonly store = inject(TmStoreService);
+  tagFilter = signal<string[]>([]);
+  readonly chipColors = chipColors;
 
   readonly taskId = toSignal(this.route.queryParamMap.pipe(map((q) => q.get('task'))), {
     initialValue: this.route.snapshot.queryParamMap.get('task'),
@@ -132,7 +156,9 @@ export class MyTasksPage {
     const today = todayKey();
     const weekEnd = addDaysKey(today, 7);
     const b: Record<string, MyTask[]> = { overdue: [], today: [], upcoming: [], later: [], none: [], done: [] };
+    const tagIds = this.tagFilter();
     for (const t of this.tasks()) {
+      if (tagIds.length && !t.tags.some((tag) => tagIds.includes(tag.id))) continue;
       if (t.isCompleted && t.completedAt && !this.recentlyToggled.has(t.id)) b['done'].push(t);
       else if (!t.dueOn) b['none'].push(t);
       else if (t.dueOn < today) b['overdue'].push(t);
@@ -158,6 +184,7 @@ export class MyTasksPage {
       this.session.me();
       untracked(() => void this.load());
     });
+    void this.store.loadTags();
   }
 
   async load() {

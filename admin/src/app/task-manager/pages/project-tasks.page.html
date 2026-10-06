@@ -56,6 +56,21 @@
        
         aria-label="Filter tasks"
       />
+      <p-multiselect
+        [options]="store.tags()"
+        optionLabel="name"
+        optionValue="id"
+        [ngModel]="tagFilter()"
+        (ngModelChange)="tagFilter.set($event ?? [])"
+        placeholder="Tags"
+        [filter]="true"
+        [showClear]="true"
+        [maxSelectedLabels]="2"
+        selectedItemsLabel="{0} tags"
+        appendTo="body"
+        styleClass="tm-toolbar-tags"
+        aria-label="Filter by tag"
+      />
       <p-iconfield iconPosition="left" class="tm-toolbar-search">
         <p-inputicon><i class="pi pi-search"></i></p-inputicon>
         <input pInputText type="text" class="w-full" placeholder="Filter tasks" [ngModel]="search()" (ngModelChange)="search.set($event)" aria-label="Filter tasks by name" />
@@ -67,6 +82,7 @@
         <div class="tm-grid-cell" role="columnheader">Task name</div>
         <div class="tm-grid-cell" role="columnheader">Assignee</div>
         <div class="tm-grid-cell" role="columnheader">Due date</div>
+        <div class="tm-grid-cell" role="columnheader">Tags</div>
         @for (f of fields(); track f.id) {
           <div class="tm-grid-cell" role="columnheader" [title]="f.name">{{ f.name }}</div>
         }
@@ -147,6 +163,7 @@
                       aria-label="Task name"
                     />
                     <span class="tm-row-badges">
+                      @if (isLinked(t)) { <i class="pi pi-link" title="Also in another project"></i> }
                       @if (t.recurrence) { <i class="pi pi-sync" title="Repeats"></i> }
                       @if (t.subtaskCount) { <span title="Subtasks"><i class="pi pi-sitemap"></i> {{ t.completedSubtaskCount }}/{{ t.subtaskCount }}</span> }
                       @if (t.commentCount) { <span title="Comments"><i class="pi pi-comment"></i> {{ t.commentCount }}</span> }
@@ -164,6 +181,18 @@
                     <button type="button" class="tm-cell-btn tm-due" [attr.data-tone]="dueTone(t.dueOn, t.isCompleted)" (click)="openDue($event, t)" [disabled]="!canEdit()">
                       @if (t.dueOn) { {{ dueLabel(t.dueOn) }} } @else { <span class="tm-cell-placeholder"><i class="pi pi-calendar"></i></span> }
                     </button>
+                  </div>
+                  <div class="tm-grid-cell tm-tags-cell" role="gridcell" (click)="openTags($event, t)">
+                    @for (tag of t.tags; track tag.id) {
+                      <span class="tm-chip tm-tag" [style.background]="chipColors(tag.color).bg" [style.color]="chipColors(tag.color).fg">
+                        {{ tag.name }}
+                        @if (canEdit()) {
+                          <button type="button" class="tm-tag-remove" (click)="removeTag($event, t, tag.id)" [attr.aria-label]="'Remove tag ' + tag.name"><i class="pi pi-times"></i></button>
+                        }
+                      </span>
+                    } @empty {
+                      @if (canEdit()) { <span class="tm-cell-placeholder tm-tags-add"><i class="pi pi-tag"></i></span> }
+                    }
                   </div>
                   @for (f of fields(); track f.id) {
                     <div class="tm-grid-cell" role="gridcell" (click)="$event.stopPropagation()">
@@ -227,6 +256,7 @@
         (closed)="closeTask()"
         (changed)="onDetailChanged($event)"
         (deleted)="onDetailDeleted($event)"
+        (projectsChanged)="onProjectsChanged()"
         (openTask)="openTask({ id: $event })"
       />
     }
@@ -238,6 +268,7 @@
 
 <app-tm-person-picker #assigneePicker (picked)="setAssignee($event)" />
 <app-tm-due-date-picker #duePicker (picked)="setDue($event)" />
+<app-tm-tag-picker #tagPicker (picked)="addTag($event)" />
 
 <p-popover #sectionMenu appendTo="body" styleClass="tm-popover">
   <div class="tm-menu">
