@@ -144,13 +144,17 @@ type AAttachment = {
   resource_subtype?: string;
 };
 
-const TASK_FIELDS = [
+const BASE_TASK_FIELDS = [
   'name', 'notes', 'html_notes', 'completed', 'completed_at', 'created_at', 'due_on', 'due_at',
   'assignee.name', 'assignee.email', 'followers.name', 'followers.email', 'num_subtasks', 'resource_subtype',
+];
+const CUSTOM_FIELD_FIELDS = [
   'custom_fields.gid', 'custom_fields.resource_subtype', 'custom_fields.enum_value.gid',
   'custom_fields.multi_enum_values.gid', 'custom_fields.number_value', 'custom_fields.text_value',
   'custom_fields.date_value.date',
-].join(',');
+];
+// Custom fields are a paid Asana feature; dropped automatically on free workspaces.
+let TASK_FIELDS = [...BASE_TASK_FIELDS, ...CUSTOM_FIELD_FIELDS].join(',');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -285,9 +289,17 @@ async function main() {
   const sections = await asanaAll<{ gid: string; name: string }>(`/projects/${asanaProject.gid}/sections?opt_fields=name`);
 
   // Custom fields
-  const settings = await asanaAll<{ custom_field: { gid: string; name: string; resource_subtype: string; enum_options?: { gid: string; name: string; color?: string; enabled?: boolean }[] } }>(
-    `/projects/${asanaProject.gid}/custom_field_settings?opt_fields=custom_field.name,custom_field.resource_subtype,custom_field.enum_options.name,custom_field.enum_options.color,custom_field.enum_options.enabled`,
-  );
+  type ASetting = { custom_field: { gid: string; name: string; resource_subtype: string; enum_options?: { gid: string; name: string; color?: string; enabled?: boolean }[] } };
+  let settings: ASetting[] = [];
+  try {
+    settings = await asanaAll<ASetting>(
+      `/projects/${asanaProject.gid}/custom_field_settings?opt_fields=custom_field.name,custom_field.resource_subtype,custom_field.enum_options.name,custom_field.enum_options.color,custom_field.enum_options.enabled`,
+    );
+  } catch (err) {
+    if (!String(err).includes('Asana 402')) throw err;
+    console.log('Custom fields: not available on this Asana plan — skipping');
+    TASK_FIELDS = BASE_TASK_FIELDS.join(',');
+  }
   const fields = settings
     .map((s) => s.custom_field)
     .map((f) => ({ ...f, type: fieldType(f.resource_subtype) }));
