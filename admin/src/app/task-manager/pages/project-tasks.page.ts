@@ -84,8 +84,6 @@ export class ProjectTasksPage implements OnDestroy {
   newTaskName = '';
   editingSectionId = signal<string | null>(null);
   sectionDraft = '';
-  editingTitle = signal(false);
-  titleDraft = '';
   newSectionName = '';
   addingSection = signal(false);
 
@@ -200,11 +198,11 @@ export class ProjectTasksPage implements OnDestroy {
   // ── Detail pane ─────────────────────────────────────────────────────────
 
   openTask(task: { id: string }) {
-    void this.router.navigate(['/projects', this.projectId(), 'tasks', task.id]);
+    void this.router.navigate(['/tasks/projects', this.projectId(), 'tasks', task.id]);
   }
 
   closeTask() {
-    void this.router.navigate(['/projects', this.projectId()]);
+    void this.router.navigate(['/tasks/projects', this.projectId()]);
   }
 
   onDetailChanged(summary: TaskSummary) {
@@ -523,29 +521,6 @@ export class ProjectTasksPage implements OnDestroy {
 
   // ── Project header ──────────────────────────────────────────────────────
 
-  startEditTitle() {
-    if (!this.canEdit()) return;
-    this.titleDraft = this.project()?.name ?? '';
-    this.editingTitle.set(true);
-    setTimeout(() => (document.querySelector('.tm-project-title-input') as HTMLInputElement | null)?.select(), 0);
-  }
-
-  async saveTitle() {
-    const p = this.project();
-    this.editingTitle.set(false);
-    const next = this.titleDraft.trim();
-    if (!p || !next || next === p.name) return;
-    this.project.set({ ...p, name: next });
-    this.store.patchProject(p.id, { name: next });
-    try {
-      await this.api.updateProject(p.id, { name: next });
-    } catch (err) {
-      this.project.set(p);
-      this.store.patchProject(p.id, { name: p.name });
-      this.fail(err);
-    }
-  }
-
   async toggleStar() {
     const p = this.project();
     if (!p) return;
@@ -574,18 +549,28 @@ export class ProjectTasksPage implements OnDestroy {
     this.projectMenu().toggle(event);
   }
 
-  async toggleArchive() {
+  /** Hide this project from Tasks (its tasks are kept if it's added back later). */
+  removeFromTasks() {
     const p = this.project();
     this.projectMenu().hide();
     if (!p) return;
-    try {
-      const updated = await this.api.updateProject(p.id, { isActive: !p.isActive });
-      this.project.set(updated);
-      await this.store.loadProjects();
-      this.toast.add({ severity: 'success', summary: updated.isActive ? 'Project restored' : 'Project archived', life: 2500 });
-    } catch (err) {
-      this.fail(err);
-    }
+    this.confirm.confirm({
+      header: `Remove “${p.name}” from Tasks?`,
+      message: 'The project itself is not changed. Its tasks are kept and come back if you add it to Tasks again.',
+      acceptLabel: 'Remove from Tasks',
+      rejectLabel: 'Cancel',
+      acceptButtonStyleClass: 'p-button-danger',
+      rejectButtonStyleClass: 'p-button-text p-button-secondary',
+      accept: async () => {
+        try {
+          await this.api.removeProject(p.id);
+          await this.store.loadProjects();
+          await this.router.navigate(['/tasks/projects']);
+        } catch (err) {
+          this.fail(err);
+        }
+      },
+    });
   }
 
   onProjectUpdated(project: TmProject) {

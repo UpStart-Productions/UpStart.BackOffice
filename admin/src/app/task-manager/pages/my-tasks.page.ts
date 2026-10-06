@@ -65,7 +65,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                         @if (t.recurrence) { <i class="pi pi-sync tm-muted" title="Repeats"></i> }
                       </div>
                       <div class="tm-grid-cell">
-                        <a class="tm-project-pill" [routerLink]="['/projects', t.project.id]" (click)="$event.stopPropagation()">
+                        <a class="tm-project-pill" [routerLink]="['/tasks/projects', t.project.id]" (click)="$event.stopPropagation()">
                           <span class="tm-project-dot" [style.background]="t.project.color || '#94a3b8'"></span>{{ t.project.name }}
                         </a>
                       </div>

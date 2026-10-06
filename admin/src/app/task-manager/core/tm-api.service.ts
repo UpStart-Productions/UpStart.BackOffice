@@ -40,10 +40,17 @@ export class TmApiService {
   getProject(id: string) {
     return this.api.get<TmProject>(`/tm/projects/${id}`);
   }
-  createProject(body: { name: string; clientId?: string | null; color?: string | null }) {
-    return this.api.post<TmProject>('/tm/projects', body);
+  /** Existing projects (from the Projects page) not yet in Tasks. */
+  availableProjects() {
+    return this.api.get<{ id: string; name: string; client: { id: string; name: string } | null }[]>('/tm/available-projects');
   }
-  updateProject(id: string, body: Partial<{ name: string; color: string | null; description: string | null; isActive: boolean }>) {
+  addProject(id: string, color?: string | null) {
+    return this.api.put<TmProject>(`/tm/projects/${id}/tasks-enabled`, { color: color ?? null });
+  }
+  removeProject(id: string) {
+    return this.api.delete(`/tm/projects/${id}/tasks-enabled`);
+  }
+  updateProject(id: string, body: { color: string | null }) {
     return this.api.patch<TmProject>(`/tm/projects/${id}`, body);
   }
   star(id: string, starred: boolean) {

@@ -305,6 +305,8 @@ model Project {
   asanaSectionName String?
   /// Task Manager display color (hex) and source Asana project for imports.
   color            String?
+  /// Added to the Task Manager (Tasks). Projects are created/edited on the Projects page.
+  inTaskManager    Boolean  @default(false)
   importedAsanaGid String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

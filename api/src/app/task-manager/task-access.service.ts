@@ -52,8 +52,8 @@ export class TaskAccessService {
   }
 
   async assertProject(user: UserContext, projectId: string, need: ProjectPermission = 'view'): Promise<void> {
-    const exists = await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
-    if (!exists) throw new NotFoundException('Project not found');
+    const exists = await this.prisma.project.findUnique({ where: { id: projectId }, select: { inTaskManager: true } });
+    if (!exists || !exists.inTaskManager) throw new NotFoundException('Project not found in Tasks');
     if (!(await this.can(user, projectId, need))) {
       // Hide existence from guests who aren't members.
       if (need === 'view') throw new NotFoundException('Project not found');

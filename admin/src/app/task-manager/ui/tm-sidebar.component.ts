@@ -4,23 +4,23 @@ import { isStaffRole } from '@upstart/back-office/shared';
 import { SessionService } from '../../core/session.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmProject, TmProjectListItem } from '../core/tm.types';
-import { TmNewProjectDialogComponent } from './new-project-dialog.component';
+import { TmAddProjectDialogComponent } from './add-project-dialog.component';
 
 /** Asana-style Task Manager navigation: My tasks, Inbox, Projects, Starred and the project list. */
 @Component({
   selector: 'app-tm-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, TmNewProjectDialogComponent],
+  imports: [RouterLink, RouterLinkActive, TmAddProjectDialogComponent],
   template: `
     <nav class="tm-sidebar" aria-label="Task Manager">
       <ul class="tm-nav">
         <li>
-          <a routerLink="/my-tasks" routerLinkActive="active" class="tm-nav-link">
+          <a routerLink="/tasks" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="tm-nav-link">
             <i class="pi pi-check-circle"></i><span>My tasks</span>
           </a>
         </li>
         <li>
-          <a routerLink="/inbox" routerLinkActive="active" class="tm-nav-link">
+          <a routerLink="/tasks/inbox" routerLinkActive="active" class="tm-nav-link">
             <i class="pi pi-inbox"></i><span>Inbox</span>
             @if (store.unreadCount() > 0) {
               <span class="tm-nav-badge" [attr.aria-label]="store.unreadCount() + ' unread'">{{ store.unreadCount() > 99 ? '99+' : store.unreadCount() }}</span>
@@ -28,7 +28,7 @@ import { TmNewProjectDialogComponent } from './new-project-dialog.component';
           </a>
         </li>
         <li>
-          <a routerLink="/projects" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="tm-nav-link">
+          <a routerLink="/tasks/projects" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="tm-nav-link">
             <i class="pi pi-th-large"></i><span>Projects</span>
           </a>
         </li>
@@ -44,7 +44,7 @@ import { TmNewProjectDialogComponent } from './new-project-dialog.component';
             <ul class="tm-nav">
               @for (p of store.starred(); track p.id) {
                 <li>
-                  <a [routerLink]="['/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
+                  <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
                     <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>
                     <span class="tm-nav-label">{{ p.name }}</span>
                   </a>
@@ -62,7 +62,7 @@ import { TmNewProjectDialogComponent } from './new-project-dialog.component';
             <span>Projects</span>
           </button>
           @if (canCreate()) {
-            <button type="button" class="tm-icon-btn" (click)="newProjectOpen.set(true)" title="New project" aria-label="New project">
+            <button type="button" class="tm-icon-btn" (click)="addOpen.set(true)" title="Add a project to Tasks" aria-label="Add a project to Tasks">
               <i class="pi pi-plus"></i>
             </button>
           }
@@ -71,21 +71,21 @@ import { TmNewProjectDialogComponent } from './new-project-dialog.component';
           <ul class="tm-nav">
             @for (p of sortedProjects(); track p.id) {
               <li>
-                <a [routerLink]="['/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
+                <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
                   <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>
                   <span class="tm-nav-label">{{ p.name }}</span>
                 </a>
               </li>
             } @empty {
               @if (store.projectsLoaded()) {
-                <li class="tm-nav-empty">No projects yet</li>
+                <li class="tm-nav-empty">No projects yet{{ canCreate() ? ' — use + to add one' : '' }}</li>
               }
             }
           </ul>
         }
       </div>
     </nav>
-    <app-tm-new-project-dialog [(visible)]="newProjectOpen" (created)="onCreated($event)" />
+    <app-tm-add-project-dialog [(visible)]="addOpen" (added)="onAdded($event)" />
   `,
 })
 export class TmSidebarComponent implements OnInit, OnDestroy {
@@ -95,7 +95,7 @@ export class TmSidebarComponent implements OnInit, OnDestroy {
 
   starredOpen = signal(true);
   projectsOpen = signal(true);
-  newProjectOpen = signal(false);
+  addOpen = signal(false);
 
   canCreate = computed(() => isStaffRole(this.session.me()?.role ?? 'GUEST'));
   sortedProjects = computed<TmProjectListItem[]>(() =>
@@ -111,8 +111,8 @@ export class TmSidebarComponent implements OnInit, OnDestroy {
     this.store.stopPolling();
   }
 
-  async onCreated(project: TmProject) {
+  async onAdded(project: TmProject) {
     await this.store.loadProjects();
-    await this.router.navigate(['/projects', project.id]);
+    await this.router.navigate(['/tasks/projects', project.id]);
   }
 }

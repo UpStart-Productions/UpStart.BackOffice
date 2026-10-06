@@ -4,24 +4,13 @@
   } @else if (error()) {
     <div class="card">
       <p class="text-color-secondary">{{ error() }}</p>
-      <a pButton routerLink="/projects" label="Back to projects" [text]="true"></a>
+      <a pButton routerLink="/tasks/projects" label="Back to projects" [text]="true"></a>
     </div>
   } @else if (project(); as p) {
     <header class="tm-project-header">
       <div class="tm-project-title-row">
         <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color"></button>
-        @if (editingTitle()) {
-          <input
-            class="tm-project-title-input"
-            [(ngModel)]="titleDraft"
-            (blur)="saveTitle()"
-            (keydown.enter)="saveTitle()"
-            (keydown.escape)="editingTitle.set(false)"
-            aria-label="Project name"
-          />
-        } @else {
-          <h1 class="tm-project-title" (click)="startEditTitle()" [class.editable]="canEdit()">{{ p.name }}</h1>
-        }
+        <h1 class="tm-project-title">{{ p.name }}</h1>
         <button type="button" class="tm-icon-btn tm-star" [class.starred]="p.isStarred" (click)="toggleStar()" [attr.aria-label]="p.isStarred ? 'Unstar project' : 'Star project'" [pTooltip]="p.isStarred ? 'Remove from starred' : 'Add to starred'" tooltipPosition="bottom">
           <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
         </button>
@@ -31,7 +20,7 @@
           <span class="tm-client-chip tm-client-chip--personal">Personal</span>
         }
         @if (!p.isActive) {
-          <span class="tm-client-chip tm-client-chip--archived">Archived</span>
+          <span class="tm-client-chip tm-client-chip--archived">Inactive</span>
         }
         <div class="tm-project-header-actions">
           <button type="button" class="tm-member-stack" (click)="membersOpen.set(true)" aria-label="Project members">
@@ -270,16 +259,15 @@
 <p-popover #projectMenu appendTo="body" styleClass="tm-popover">
   <div class="tm-menu">
     @if (project()?.permissions?.isStaff) {
-      <a class="tm-picker-item" [routerLink]="['/projects', projectId(), 'settings']"><i class="pi pi-cog"></i> Billing &amp; settings</a>
+      <a class="tm-picker-item" [routerLink]="['/projects', projectId()]"><i class="pi pi-external-link"></i> Open in Projects</a>
     }
     <button type="button" class="tm-picker-item" (click)="membersOpen.set(true); projectMenu.hide()"><i class="pi pi-users"></i> Members</button>
     @if (canEdit()) {
       <button type="button" class="tm-picker-item" (click)="fieldsOpen.set(true); projectMenu.hide()"><i class="pi pi-sliders-h"></i> Custom fields</button>
+    }
+    @if (project()?.permissions?.canManage) {
       <hr />
-      <button type="button" class="tm-picker-item" (click)="toggleArchive()">
-        <i class="pi" [class.pi-box]="project()?.isActive" [class.pi-replay]="!project()?.isActive"></i>
-        {{ project()?.isActive ? 'Archive project' : 'Restore project' }}
-      </button>
+      <button type="button" class="tm-picker-item tm-danger" (click)="removeFromTasks()"><i class="pi pi-minus-circle"></i> Remove from Tasks</button>
     }
   </div>
 </p-popover>

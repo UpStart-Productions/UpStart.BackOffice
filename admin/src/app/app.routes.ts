@@ -116,12 +116,17 @@ export const appRoutes: Route[] = [
           import('./pages/network/company-form.page').then((m) => m.NetworkCompanyFormPage),
       },
       {
+        path: 'projects',
+        loadComponent: () =>
+          import('./pages/projects/projects-list.page').then((m) => m.ProjectsListPage),
+      },
+      {
         path: 'projects/new',
         loadComponent: () =>
           import('./pages/projects/project-form.page').then((m) => m.ProjectFormPage),
       },
       {
-        path: 'projects/:id/settings',
+        path: 'projects/:id',
         loadComponent: () =>
           import('./pages/projects/project-form.page').then((m) => m.ProjectFormPage),
       },
@@ -178,22 +183,22 @@ export const appRoutes: Route[] = [
       { path: 'booking-types', redirectTo: 'bookings/types', pathMatch: 'full' },
       { path: 'booking-types/new', redirectTo: 'bookings/types/new', pathMatch: 'full' },
       { path: 'booking-types/:id', redirectTo: 'bookings/types/:id', pathMatch: 'full' },
-      // ── Task Manager (staff + guests) ─────────────────────────────────────
+      // ── Task Manager (staff + guests) — everything under /tasks ─────────────
       {
-        path: 'my-tasks',
+        path: 'tasks',
         loadComponent: () => import('./task-manager/pages/my-tasks.page').then((m) => m.MyTasksPage),
       },
       {
-        path: 'inbox',
+        path: 'tasks/inbox',
         loadComponent: () => import('./task-manager/pages/inbox.page').then((m) => m.InboxPage),
       },
       {
-        path: 'projects',
+        path: 'tasks/projects',
         loadComponent: () =>
           import('./task-manager/pages/projects-browser.page').then((m) => m.ProjectsBrowserPage),
       },
       {
-        path: 'projects/:projectId',
+        path: 'tasks/projects/:projectId',
         loadComponent: () =>
           import('./task-manager/pages/project-tasks.page').then((m) => m.ProjectTasksPage),
         // Componentless child so the list stays mounted while the detail pane opens/closes.

@@ -12,8 +12,8 @@
           [text]="true"
           severity="secondary"
           type="button"
-          [routerLink]="id() ? ['/projects', id()] : ['/projects']"
-          aria-label="Back to project"
+          routerLink="/projects"
+          aria-label="Back to Projects"
         />
         <h2 class="page-title page-title-in-card mb-0">
           {{ isNew ? 'New Project' : 'Edit Project' }}

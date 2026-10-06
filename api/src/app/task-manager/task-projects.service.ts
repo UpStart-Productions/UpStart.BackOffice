@@ -8,12 +8,12 @@ import {
   AddMemberDto,
   CreateFieldDto,
   CreateSectionDto,
-  CreateTmProjectDto,
   UpdateFieldDto,
   UpdateSectionDto,
   UpdateTmProjectDto,
 } from './dto/task-manager.dto';
 import { TaskAccessService } from './task-access.service';
+import { projectRoute } from './task-events.service';
 import { normalizeOptions } from './task-fields.util';
 import { person, toField } from './task-mappers';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
@@ -36,6 +36,7 @@ export class TaskProjectsService {
     const visible = await this.access.visibleProjectIds(user);
     const projects = await this.prisma.project.findMany({
       where: {
+        inTaskManager: true,
         ...(visible ? { id: { in: visible } } : {}),
         ...(includeArchived ? {} : { isActive: true }),
       },
@@ -105,29 +106,53 @@ export class TaskProjectsService {
     };
   }
 
-  async create(user: UserContext, dto: CreateTmProjectDto) {
-    if (!isStaffRole(user.role)) throw new BadRequestException('Only staff can create projects');
-    const clientId = dto.clientId || null;
-    if (clientId) {
-      const client = await this.prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
-      if (!client) throw new NotFoundException('Client not found');
-    }
-    const count = await this.prisma.project.count();
-    const project = await this.prisma.project.create({
-      data: {
-        name: dto.name,
-        clientId,
-        description: dto.description ?? null,
-        color: dto.color || PROJECT_COLORS[count % PROJECT_COLORS.length],
-        isBillable: !!clientId,
-        sections: {
-          create: DEFAULT_SECTIONS.map((name, i) => ({ name, sortOrder: (i + 1) * ORDER_STEP })),
-        },
-        members: { create: { userId: user.id, role: ProjectMemberRole.OWNER } },
-      },
-      select: { id: true },
+  /** Active projects (from the Projects page) not yet added to Tasks. Staff only. */
+  async available(user: UserContext) {
+    if (!isStaffRole(user.role)) return [];
+    return this.prisma.project.findMany({
+      where: { inTaskManager: false, isActive: true },
+      select: { id: true, name: true, client: { select: { id: true, name: true } } },
+      orderBy: { name: 'asc' },
     });
-    return this.get(user, project.id);
+  }
+
+  /**
+   * Add an existing project to Tasks. Projects are created on the Projects page;
+   * Tasks never creates them. First add seeds default sections and makes the adder owner.
+   */
+  async addToTaskManager(user: UserContext, projectId: string, color?: string | null) {
+    if (!isStaffRole(user.role)) throw new BadRequestException('Only staff can add projects to Tasks');
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, color: true, _count: { select: { sections: true, members: true } } },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+    const enabledCount = await this.prisma.project.count({ where: { inTaskManager: true } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          inTaskManager: true,
+          color: color || project.color || PROJECT_COLORS[enabledCount % PROJECT_COLORS.length],
+        },
+      });
+      if (project._count.sections === 0) {
+        await tx.taskSection.createMany({
+          data: DEFAULT_SECTIONS.map((name, i) => ({ projectId, name, sortOrder: (i + 1) * ORDER_STEP })),
+        });
+      }
+      if (project._count.members === 0) {
+        await tx.projectMember.create({ data: { projectId, userId: user.id, role: ProjectMemberRole.OWNER } });
+      }
+    });
+    return this.get(user, projectId);
+  }
+
+  /** Hide a project from Tasks. Its tasks, sections and members are kept for if it's added back. */
+  async removeFromTaskManager(user: UserContext, projectId: string) {
+    await this.access.assertProject(user, projectId, 'manage');
+    await this.prisma.project.update({ where: { id: projectId }, data: { inTaskManager: false } });
+    return { removed: true };
   }
 
   async update(user: UserContext, projectId: string, dto: UpdateTmProjectDto) {
@@ -135,10 +160,7 @@ export class TaskProjectsService {
     await this.prisma.project.update({
       where: { id: projectId },
       data: {
-        ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.color !== undefined && { color: dto.color }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
     return this.get(user, projectId);
@@ -186,7 +208,7 @@ export class TaskProjectsService {
         meta: {
           entityType: 'project',
           entityId: projectId,
-          route: ['projects', projectId],
+          route: projectRoute(projectId),
           actorUserId: user.id,
           actorLabel: personName(user),
           projectId,

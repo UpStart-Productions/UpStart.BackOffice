@@ -20,18 +20,13 @@ const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? val
 
 // ── Projects ────────────────────────────────────────────────────────────────
 
-export class CreateTmProjectDto {
-  @ApiProperty() @Transform(trim) @IsString() @MinLength(1) @MaxLength(200) name!: string;
-  @ApiPropertyOptional() @IsOptional() @IsString() clientId?: string | null;
+export class AddToTasksDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() description?: string | null;
 }
 
+/** Tasks-only project settings. Name, client, billing and active status are edited on the Projects page. */
 export class UpdateTmProjectDto {
-  @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @MinLength(1) @MaxLength(200) name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsString() description?: string | null;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class AddMemberDto {

@@ -9,13 +9,13 @@ import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmProject, TmProjectListItem } from '../core/tm.types';
-import { TmNewProjectDialogComponent } from '../ui/new-project-dialog.component';
+import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component';
 
-/** All projects you can see: browse, star, create; archived toggle. Replaces the old billing projects list. */
+/** Projects that have been added to Tasks: browse, star, add existing projects; archived toggle. */
 @Component({
   selector: 'app-tm-projects-browser-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, TmNewProjectDialogComponent],
+  imports: [FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, TmAddProjectDialogComponent],
   template: `
     <div class="tm-page">
       <header class="tm-project-header">
@@ -29,10 +29,10 @@ import { TmNewProjectDialogComponent } from '../ui/new-project-dialog.component'
             </span>
             <label class="tm-toggle-label">
               <p-toggleswitch [ngModel]="showArchived()" (ngModelChange)="setArchived($event)" />
-              Archived
+              Inactive
             </label>
             @if (isStaff()) {
-              <p-button label="New project" icon="pi pi-plus" size="small" (onClick)="newOpen.set(true)" />
+              <p-button label="Add project" icon="pi pi-plus" size="small" (onClick)="newOpen.set(true)" />
             }
           </div>
         </div>
@@ -58,10 +58,10 @@ import { TmNewProjectDialogComponent } from '../ui/new-project-dialog.component'
                 </button>
               </td>
               <td>
-                <a [routerLink]="['/projects', p.id]" class="tm-browser-name" (click)="$event.stopPropagation()">
+                <a [routerLink]="['/tasks/projects', p.id]" class="tm-browser-name" (click)="$event.stopPropagation()">
                   <span class="tm-project-dot" [style.background]="p.color || '#94a3b8'"></span>{{ p.name }}
                 </a>
-                @if (!p.isActive) { <span class="tm-client-chip tm-client-chip--archived">Archived</span> }
+                @if (!p.isActive) { <span class="tm-client-chip tm-client-chip--archived">Inactive</span> }
               </td>
               <td>{{ p.client?.name ?? 'Personal' }}</td>
               <td>{{ p.openTaskCount }}</td>
@@ -72,12 +72,12 @@ import { TmNewProjectDialogComponent } from '../ui/new-project-dialog.component'
             </tr>
           </ng-template>
           <ng-template #emptymessage>
-            <tr><td [attr.colspan]="isStaff() ? 6 : 5" class="text-center p-4 text-color-secondary">{{ query() ? 'No projects match.' : 'No projects yet.' }}</td></tr>
+            <tr><td [attr.colspan]="isStaff() ? 6 : 5" class="text-center p-4 text-color-secondary">{{ query() ? 'No projects match.' : 'No projects in Tasks yet — use Add project to bring one in.' }}</td></tr>
           </ng-template>
         </p-table>
       </div>
     </div>
-    <app-tm-new-project-dialog [(visible)]="newOpen" (created)="onCreated($event)" />
+    <app-tm-add-project-dialog [(visible)]="newOpen" (added)="onCreated($event)" />
   `,
 })
 export class ProjectsBrowserPage implements OnInit {
@@ -121,7 +121,7 @@ export class ProjectsBrowserPage implements OnInit {
   }
 
   go(p: TmProjectListItem) {
-    void this.router.navigate(['/projects', p.id]);
+    void this.router.navigate(['/tasks/projects', p.id]);
   }
 
   async star(p: TmProjectListItem, event: Event) {
@@ -132,6 +132,6 @@ export class ProjectsBrowserPage implements OnInit {
 
   async onCreated(project: TmProject) {
     await this.store.loadProjects();
-    await this.router.navigate(['/projects', project.id]);
+    await this.router.navigate(['/tasks/projects', project.id]);
   }
 }

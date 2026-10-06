@@ -25,7 +25,7 @@ import {
   CreateFieldDto,
   CreateSectionDto,
   CreateTaskDto,
-  CreateTmProjectDto,
+  AddToTasksDto,
   MoveSectionDto,
   MoveTaskDto,
   SetFieldValueDto,
@@ -61,9 +61,22 @@ export class TaskManagerController {
     return this.projects.list(me(req), archived === 'true');
   }
 
-  @Post('projects')
-  createProject(@Req() req: Request, @Body() dto: CreateTmProjectDto) {
-    return this.projects.create(me(req), dto);
+  /** Existing projects that can be added to Tasks (staff). */
+  @Get('available-projects')
+  availableProjects(@Req() req: Request) {
+    return this.projects.available(me(req));
+  }
+
+  /** Add an existing project to Tasks. */
+  @Put('projects/:id/tasks-enabled')
+  addProject(@Req() req: Request, @Param('id') id: string, @Body() dto: AddToTasksDto) {
+    return this.projects.addToTaskManager(me(req), id, dto?.color);
+  }
+
+  /** Remove a project from Tasks (data kept). */
+  @Delete('projects/:id/tasks-enabled')
+  removeProject(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.removeFromTaskManager(me(req), id);
   }
 
   @Get('projects/:id')

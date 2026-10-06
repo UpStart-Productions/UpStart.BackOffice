@@ -6,6 +6,15 @@ import { CreateNotificationInput, NotificationType } from '../notifications/noti
 import { PrismaService } from '../prisma/prisma.service';
 import { personName } from './task-people.util';
 
+/** Admin-app route to a task in the Task Manager. */
+export function taskRoute(projectId: string, taskId: string): string[] {
+  return ['tasks', 'projects', projectId, 'tasks', taskId];
+}
+
+export function projectRoute(projectId: string): string[] {
+  return ['tasks', 'projects', projectId];
+}
+
 type TaskRef = { id: string; name: string; projectId: string; project?: { name: string } | null };
 
 /**
@@ -69,7 +78,7 @@ export class TaskEventsService {
       meta: {
         entityType: 'task',
         entityId: task.id,
-        route: ['projects', task.projectId, 'tasks', task.id],
+        route: taskRoute(task.projectId, task.id),
         actorUserId: actor.id,
         actorLabel: personName(actor),
         projectId: task.projectId,

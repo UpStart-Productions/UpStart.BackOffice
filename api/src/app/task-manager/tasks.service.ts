@@ -73,6 +73,7 @@ export class TasksService {
     const rows = await this.prisma.task.findMany({
       where: {
         assigneeId: user.id,
+        project: { inTaskManager: true },
         ...(visible ? { projectId: { in: visible } } : {}),
         OR: [{ isCompleted: false }, ...(since ? [{ isCompleted: true, completedAt: { gte: since } }] : [])],
       },

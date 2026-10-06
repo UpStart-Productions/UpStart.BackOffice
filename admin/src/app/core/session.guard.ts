@@ -65,11 +65,8 @@ export const staffGuard: CanActivateChildFn = async (_route, state) => {
   const me = await session.getReady();
   if (!me || isStaffRole(me.role)) return true;
   const path = state.url.split(/[?#]/)[0];
-  const isTaskRoute =
-    /^\/(my-tasks|inbox)(\/|$)/.test(path) ||
-    (/^\/projects(\/|$)/.test(path) && !/^\/projects\/(new|[^/]+\/settings)(\/|$)/.test(path));
-  if (isTaskRoute) return true;
-  return router.createUrlTree(['/my-tasks']);
+  if (/^\/tasks(\/|$)/.test(path)) return true;
+  return router.createUrlTree(['/tasks']);
 };
 
 /** @deprecated Use adminGuard */

@@ -1788,3 +1788,13 @@ a.tm-project-pill:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.tm-color-swatches--row {
+  max-width: none;
+}
+
+.tm-field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  line-height: 1.4;
+}

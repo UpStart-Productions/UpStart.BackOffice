@@ -184,7 +184,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   async copyLink() {
     const t = this.task();
     if (!t) return;
-    const url = `${location.origin}/projects/${t.projectId}/tasks/${t.id}`;
+    const url = `${location.origin}/tasks/projects/${t.projectId}/tasks/${t.id}`;
     try {
       await navigator.clipboard.writeText(url);
       this.toast.add({ severity: 'success', summary: 'Link copied', life: 2000 });
@@ -208,7 +208,7 @@ export class TmTaskDetailComponent implements OnDestroy {
     try {
       await this.api.moveTask(t.id, { projectId });
       this.deleted.emit(t.id); // leaves the current project's list
-      await this.router.navigate(['/projects', projectId, 'tasks', t.id]);
+      await this.router.navigate(['/tasks/projects', projectId, 'tasks', t.id]);
     } catch (err) {
       this.fail(err);
     }
