@@ -120,6 +120,11 @@ export class ProjectTasksPage implements OnDestroy {
     return `minmax(280px, 1fr) 150px 120px ${fieldCols} ${this.canEdit() ? '44px' : ''}`.trim();
   });
 
+  /** Shared minimum row width (sum of column minimums). Every row gets the same width so the
+   *  `1fr` name column resolves identically and columns stay aligned when the grid is squeezed
+   *  (e.g. detail pane open) — `max-content` let each row size to its own content. */
+  readonly gridMinWidth = computed(() => 280 + 150 + 120 + this.fields().length * 120 + (this.canEdit() ? 44 : 0));
+
   readonly groups = computed<Group[]>(() => {
     const project = this.project();
     if (!project) return [];

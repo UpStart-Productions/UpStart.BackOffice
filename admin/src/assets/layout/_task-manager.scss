@@ -13,6 +13,9 @@ $tm-detail-width: min(42rem, 48vw);
   --tm-hover: var(--p-datatable-row-hover-background, color-mix(in srgb, var(--brand-primary) 4%, transparent));
   --tm-selected: color-mix(in srgb, var(--brand-primary) 9%, transparent);
   --tm-muted: var(--text-color-secondary);
+  // Two text sizes only: standard (app base) and small (meta: "Created by…", counts, labels).
+  --tm-fs: 1rem;
+  --tm-fs-sm: 0.875rem;
   --tm-overdue: #dc2626;
   --tm-today: #15803d;
 }
@@ -184,7 +187,7 @@ $tm-detail-width: min(42rem, 48vw);
   background: var(--brand-primary);
   color: #fff;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: var(--tm-fs-sm);
   font-weight: 700;
   padding: 0 0.45rem;
   line-height: 1.25rem;
@@ -209,7 +212,7 @@ $tm-detail-width: min(42rem, 48vw);
   background: none;
   border: none;
   color: var(--tm-muted);
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -224,7 +227,7 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-nav-empty {
   padding: 0.35rem 0.65rem;
   color: var(--tm-muted);
-  font-size: 0.85rem;
+  font-size: var(--tm-fs);
 }
 
 .tm-project-dot {
@@ -279,7 +282,7 @@ $tm-detail-width: min(42rem, 48vw);
   border: none;
   padding: 0;
   color: var(--brand-primary);
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   cursor: pointer;
 
   &:hover {
@@ -313,7 +316,7 @@ $tm-detail-width: min(42rem, 48vw);
   display: inline-block;
   border-radius: 999px;
   padding: 0.05rem 0.55rem;
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -418,7 +421,7 @@ $tm-detail-width: min(42rem, 48vw);
   cursor: pointer;
   color: var(--text-color);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--tm-fs);
   text-decoration: none;
 
   &:hover {
@@ -444,7 +447,7 @@ $tm-detail-width: min(42rem, 48vw);
 
 .tm-picker-meta {
   color: var(--tm-muted);
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -454,7 +457,7 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-picker-empty {
   padding: 0.5rem;
   color: var(--tm-muted);
-  font-size: 0.85rem;
+  font-size: var(--tm-fs);
 }
 
 .tm-picker-clear {
@@ -472,7 +475,7 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 .tm-menu-label {
-  font-size: 0.7rem;
+  font-size: var(--tm-fs-sm);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--tm-muted);
@@ -500,7 +503,7 @@ $tm-detail-width: min(42rem, 48vw);
     background: transparent;
     border-radius: 999px;
     padding: 0.2rem 0.65rem;
-    font-size: 0.8rem;
+    font-size: var(--tm-fs-sm);
     cursor: pointer;
 
     &:hover {
@@ -527,7 +530,7 @@ $tm-detail-width: min(42rem, 48vw);
 
   label,
   .tm-recurrence-label {
-    font-size: 0.8rem;
+    font-size: var(--tm-fs-sm);
     color: var(--tm-muted);
   }
 }
@@ -644,7 +647,7 @@ $tm-detail-width: min(42rem, 48vw);
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
   background: var(--surface-ground);
@@ -691,7 +694,7 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 .tm-member-more {
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   color: var(--tm-muted);
   margin-left: 0.3rem;
 }
@@ -712,7 +715,7 @@ $tm-detail-width: min(42rem, 48vw);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--tm-fs);
   color: var(--tm-muted);
 }
 
@@ -729,7 +732,7 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-row {
   display: grid;
   align-items: stretch;
-  min-width: max-content;
+  min-width: var(--tm-grid-min-width, max-content);
 }
 
 .tm-grid-head {
@@ -796,7 +799,7 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 .tm-section-count {
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   color: var(--tm-muted);
   margin-right: 0.25rem;
 }
@@ -846,6 +849,7 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-row-main {
   gap: 0.45rem;
   padding-left: 0.25rem;
+  overflow: hidden; // long names/badges shrink inside the column instead of widening the row
 }
 
 .tm-drag-handle {
@@ -891,7 +895,7 @@ $tm-detail-width: min(42rem, 48vw);
   align-items: center;
   gap: 0.55rem;
   color: var(--tm-muted);
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   white-space: nowrap;
 
   .pi {
@@ -904,7 +908,7 @@ $tm-detail-width: min(42rem, 48vw);
   border: none;
   background: transparent;
   color: var(--tm-muted);
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   cursor: pointer;
   white-space: nowrap;
   border-radius: 4px;
@@ -1034,7 +1038,7 @@ $tm-detail-width: min(42rem, 48vw);
 .tm-empty-row {
   padding: 0.6rem 0.5rem 0.6rem 2.5rem;
   color: var(--tm-muted);
-  font-size: 0.85rem;
+  font-size: var(--tm-fs);
 }
 
 .tm-empty-state {
@@ -1061,7 +1065,7 @@ $tm-detail-width: min(42rem, 48vw);
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   color: var(--text-color);
   text-decoration: none;
   overflow: hidden;
@@ -1138,7 +1142,7 @@ a.tm-project-pill:hover {
   border-radius: 6px;
   padding: 0.35rem 0.75rem;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--tm-fs);
   cursor: pointer;
 
   &:hover:not(:disabled) {
@@ -1170,7 +1174,7 @@ a.tm-project-pill:hover {
   border: none;
   background: transparent;
   color: var(--tm-muted);
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   cursor: pointer;
   padding: 0;
   margin-bottom: 0.4rem;
@@ -1216,7 +1220,7 @@ a.tm-project-pill:hover {
   margin: 0 0 1.25rem;
 
   dt {
-    font-size: 0.8rem;
+    font-size: var(--tm-fs-sm);
     color: var(--tm-muted);
   }
 
@@ -1231,6 +1235,29 @@ a.tm-project-pill:hover {
       width: auto;
       min-width: 8rem;
     }
+
+    // Same box for every value: icon/avatar in a fixed 1.5rem slot, text centered beside it,
+    // so the labels on the right line up row to row.
+    .tm-field-btn,
+    .tm-project-pill {
+      gap: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      font-size: var(--tm-fs);
+      line-height: 1.5rem;
+    }
+
+    .tm-field-btn > .pi,
+    .tm-field-btn > app-tm-avatar,
+    .tm-project-pill > app-tm-project-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 1.5rem;
+      height: 1.5rem;
+      font-size: 1rem;
+      line-height: 1;
+    }
   }
 }
 
@@ -1243,7 +1270,7 @@ a.tm-project-pill:hover {
   border-radius: 6px;
   padding: 0.25rem 0.5rem;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--tm-fs);
   color: var(--text-color);
   cursor: pointer;
 
@@ -1268,7 +1295,7 @@ a.tm-project-pill:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.95rem;
+  font-size: var(--tm-fs);
   font-weight: 600;
   margin: 0 0 0.5rem;
 }
@@ -1292,7 +1319,7 @@ a.tm-project-pill:hover {
     border-radius: 0 0 6px 6px;
     border-color: var(--tm-border);
     font-family: inherit;
-    font-size: 0.9rem;
+    font-size: var(--tm-fs);
   }
 }
 
@@ -1303,7 +1330,7 @@ a.tm-project-pill:hover {
 
 .tm-rich {
   padding: 0 !important;
-  font-size: 0.9rem;
+  font-size: var(--tm-fs);
   line-height: 1.5;
 }
 
@@ -1338,7 +1365,7 @@ a.tm-project-pill:hover {
   border-radius: 4px;
   padding: 0.25rem 0.35rem;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--tm-fs);
 
   &:focus {
     outline: none;
@@ -1358,7 +1385,7 @@ a.tm-project-pill:hover {
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 0.875rem;
+    font-size: var(--tm-fs);
     outline: none;
   }
 }
@@ -1376,7 +1403,7 @@ a.tm-project-pill:hover {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--tm-fs);
 
   a {
     color: var(--brand-primary);
@@ -1423,7 +1450,7 @@ a.tm-project-pill:hover {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   margin-bottom: 0.15rem;
 }
 
@@ -1431,7 +1458,7 @@ a.tm-project-pill:hover {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   color: var(--tm-muted);
   padding-left: 0.6rem;
 
@@ -1453,7 +1480,7 @@ a.tm-project-pill:hover {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   color: var(--tm-muted);
 }
 
@@ -1474,7 +1501,7 @@ a.tm-project-pill:hover {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
 
   .tm-muted {
     margin-right: 0.25rem;
@@ -1490,7 +1517,7 @@ a.tm-project-pill:hover {
 }
 
 .tm-share-hint {
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   color: var(--tm-muted);
   margin: 0.5rem 0 1rem;
 }
@@ -1519,10 +1546,10 @@ a.tm-project-pill:hover {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  font-size: 0.875rem;
+  font-size: var(--tm-fs);
 
   .tm-muted {
-    font-size: 0.8rem;
+    font-size: var(--tm-fs-sm);
   }
 }
 
@@ -1547,7 +1574,7 @@ a.tm-project-pill:hover {
 
   h4 {
     margin: 0 0 0.5rem;
-    font-size: 0.9rem;
+    font-size: var(--tm-fs);
   }
 }
 
@@ -1569,7 +1596,7 @@ a.tm-project-pill:hover {
   border-radius: 6px;
   padding: 0.4rem;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
 }
 
 .tm-pref-list li {
@@ -1577,7 +1604,7 @@ a.tm-project-pill:hover {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.9rem;
+  font-size: var(--tm-fs);
 }
 
 // ── Inbox ──────────────────────────────────────────────────────────────────
@@ -1637,11 +1664,11 @@ a.tm-project-pill:hover {
 }
 
 .tm-inbox-title {
-  font-size: 0.9rem;
+  font-size: var(--tm-fs);
 }
 
 .tm-inbox-body {
-  font-size: 0.85rem;
+  font-size: var(--tm-fs);
   color: var(--tm-muted);
   margin-top: 0.2rem;
   white-space: pre-line;
@@ -1652,7 +1679,7 @@ a.tm-project-pill:hover {
 }
 
 .tm-inbox-meta {
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   color: var(--tm-muted);
   margin-top: 0.3rem;
 }
@@ -1764,7 +1791,7 @@ a.tm-project-pill:hover {
 
 .mention-suggest-item__name {
   flex: 1 1 auto;
-  font-size: 0.875rem;
+  font-size: var(--tm-fs);
   font-weight: 500;
   min-width: 0;
   overflow: hidden;
@@ -1779,7 +1806,7 @@ a.tm-project-pill:hover {
 .mention-suggest-item__email {
   color: var(--tm-muted);
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   max-width: 45%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1822,7 +1849,7 @@ a.tm-project-pill:hover {
   margin-left: 0.4rem;
   background: color-mix(in srgb, #d97706 14%, transparent);
   color: #b45309;
-  font-size: 0.7rem;
+  font-size: var(--tm-fs-sm);
   vertical-align: middle;
 }
 
@@ -1865,7 +1892,7 @@ a.tm-project-pill:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: var(--tm-fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1874,7 +1901,7 @@ a.tm-project-pill:hover {
 }
 
 .tm-appearance-label .tm-link-btn {
-  font-size: 0.8rem;
+  font-size: var(--tm-fs-sm);
   font-weight: 500;
   text-transform: none;
   letter-spacing: normal;

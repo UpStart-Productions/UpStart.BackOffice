@@ -62,7 +62,7 @@
       </p-iconfield>
     </div>
 
-    <div class="tm-grid" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>
+    <div class="tm-grid" [style.--tm-grid-min-width]="gridMinWidth() + 'px'" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>
       <div class="tm-grid-head" [style.grid-template-columns]="gridTemplate()" role="row">
         <div class="tm-grid-cell" role="columnheader">Task name</div>
         <div class="tm-grid-cell" role="columnheader">Assignee</div>
