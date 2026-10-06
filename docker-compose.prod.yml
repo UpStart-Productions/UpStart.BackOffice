@@ -42,6 +42,10 @@ services:
       MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
       API_BASE_URL: ${API_BASE_URL:-}
+      # Admin app URL used in emailed links (Task invites, notifications).
+      ADMIN_BASE_URL: ${ADMIN_BASE_URL:-https://office.heyupstart.com}
+      ADMIN_APP_URL: ${ADMIN_APP_URL:-}
+      TASK_EMAIL_NOTIFICATIONS: ${TASK_EMAIL_NOTIFICATIONS:-}
       PORTAL_BASE_URL: ${PORTAL_BASE_URL:-https://heyupstart.com/clients}
       PORTAL_SESSION_SECRET: ${PORTAL_SESSION_SECRET:-}
       PORTAL_SESSION_MAX_AGE_DAYS: ${PORTAL_SESSION_MAX_AGE_DAYS:-90}
