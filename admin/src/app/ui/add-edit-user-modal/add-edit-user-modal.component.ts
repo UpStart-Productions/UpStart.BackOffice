@@ -6,7 +6,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -32,7 +32,7 @@ const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    DialogModule,
+    AppDialogModule,
     InputTextModule,
     InputNumberModule,
     ButtonModule,

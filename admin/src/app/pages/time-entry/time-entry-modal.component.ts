@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
@@ -15,7 +15,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 @Component({
   selector: 'app-time-entry-modal',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, TextareaModule, SelectModule, DatePickerModule],
+  imports: [FormsModule, AppDialogModule, ButtonModule, TextareaModule, SelectModule, DatePickerModule],
   template: `
     <p-dialog
       [(visible)]="visible"

@@ -1,7 +1,7 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { ApiService } from '../../core/api.service';
@@ -14,7 +14,7 @@ import {
 @Component({
   selector: 'app-invoice-mark-paid-dialog',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, MessageModule, DateInputComponent],
+  imports: [FormsModule, AppDialogModule, ButtonModule, InputTextModule, MessageModule, DateInputComponent],
   template: `
     <p-dialog
       header="Mark invoice paid"

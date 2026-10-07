@@ -20,6 +20,31 @@ export function chipColors(color: string | null | undefined): { bg: string; fg: 
   return OPTION_COLOR_HEX[color ?? 'gray'] ?? OPTION_COLOR_HEX['gray'];
 }
 
+/** Chip colors for custom field options (hex project colors or legacy name keys). */
+export function fieldOptionChipColors(color: string | null | undefined): { bg: string; fg: string } {
+  if (!color) return OPTION_COLOR_HEX['gray'];
+  if (color.startsWith('#')) return { bg: color, fg: '#ffffff' };
+  return OPTION_COLOR_HEX[color] ?? OPTION_COLOR_HEX['gray'];
+}
+
+/** Map legacy option color names to the shared project palette. */
+export function normalizeFieldOptionColor(color: string | null | undefined): string {
+  if (!color) return PROJECT_COLORS[9];
+  if (color.startsWith('#')) return color;
+  const legacy: Record<string, string> = {
+    purple: PROJECT_COLORS[0],
+    blue: PROJECT_COLORS[1],
+    teal: PROJECT_COLORS[2],
+    green: PROJECT_COLORS[3],
+    yellow: PROJECT_COLORS[4],
+    orange: PROJECT_COLORS[5],
+    red: PROJECT_COLORS[7],
+    pink: PROJECT_COLORS[8],
+    gray: PROJECT_COLORS[9],
+  };
+  return legacy[color] ?? PROJECT_COLORS[9];
+}
+
 export function todayKey(): string {
   return dateKey(new Date());
 }

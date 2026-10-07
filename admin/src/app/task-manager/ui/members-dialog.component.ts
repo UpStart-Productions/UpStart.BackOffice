@@ -2,7 +2,7 @@ import { Component, computed, inject, input, model, output, signal } from '@angu
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
@@ -19,7 +19,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
 @Component({
   selector: 'app-tm-members-dialog',
   standalone: true,
-  imports: [FormsModule, DialogModule, ButtonModule, InputTextModule, SelectModule, MessageModule, TmAvatarComponent],
+  imports: [FormsModule, AppDialogModule, ButtonModule, InputTextModule, SelectModule, MessageModule, TmAvatarComponent],
   template: `
     <p-dialog [header]="'Share ' + project().name" [(visible)]="visible" [modal]="true" [style]="{ width: '36rem' }" (onShow)="onShow()" [draggable]="false">
       @if (project().permissions.canManage) {

@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { MessageService, ConfirmationService } from 'primeng/api';
@@ -87,7 +87,7 @@ interface SettingsStatusIcon {
     PageComponent,
     TableModule,
     ButtonModule,
-    DialogModule,
+    AppDialogModule,
     InputTextModule,
     MessageModule,
     TagModule,

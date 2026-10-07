@@ -6,7 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
@@ -52,7 +52,7 @@ const SERVICE_OPTIONS = [
   imports: [
     FormsModule, RouterLink,
     ButtonModule, InputTextModule, MessageModule, TextareaModule,
-    SelectModule, DialogModule, TagModule,
+    SelectModule, AppDialogModule, TagModule,
     PageComponent, ArtifactsPanelComponent, DateInputComponent,
   ],
   templateUrl: './lead-detail.page.html',

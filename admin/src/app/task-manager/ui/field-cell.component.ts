@@ -1,9 +1,9 @@
-import { Component, computed, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { dateKey, parseDateKey } from '../../core/date.util';
-import { dueLabel, OPTION_COLOR_HEX } from '../core/tm-format.util';
+import { dueLabel, fieldOptionChipColors } from '../core/tm-format.util';
 import { FieldOption, TmField } from '../core/tm.types';
 
 /** Display + edit a custom field value (grid cell or detail-panel row). */
@@ -11,6 +11,7 @@ import { FieldOption, TmField } from '../core/tm.types';
   selector: 'app-tm-field-cell',
   standalone: true,
   imports: [FormsModule, PopoverModule, DatePickerModule],
+  host: { class: 'tm-field-cell-host' },
   template: `
     @switch (field().type) {
       @case ('TEXT') {
@@ -63,7 +64,7 @@ import { FieldOption, TmField } from '../core/tm.types';
       @default {
         <button type="button" class="tm-cell-btn tm-cell-chips" [disabled]="!editable()" (click)="openOptions($event)">
           @for (o of selectedOptions(); track o.id) {
-            <span class="tm-chip" [style.background]="chip(o).bg" [style.color]="chip(o).fg">{{ o.label }}</span>
+            <span class="tm-chip tm-tag" [style.background]="chip(o).bg" [style.color]="chip(o).fg">{{ o.label }}</span>
           } @empty {
             <span class="tm-cell-placeholder">—</span>
           }
@@ -79,7 +80,7 @@ import { FieldOption, TmField } from '../core/tm.types';
               @if (field().type === 'MULTI_SELECT') {
                 <i class="pi" [class.pi-check-square]="isSelected(o)" [class.pi-stop]="!isSelected(o)"></i>
               }
-              <span class="tm-chip" [style.background]="chip(o).bg" [style.color]="chip(o).fg">{{ o.label }}</span>
+              <span class="tm-chip tm-tag" [style.background]="chip(o).bg" [style.color]="chip(o).fg">{{ o.label }}</span>
             </button>
           </li>
         } @empty {
@@ -100,6 +101,8 @@ import { FieldOption, TmField } from '../core/tm.types';
   `,
 })
 export class TmFieldCellComponent {
+  private readonly host = inject(ElementRef<HTMLElement>);
+
   field = input.required<TmField>();
   value = input<unknown>(null);
   editable = input(true);
@@ -120,7 +123,7 @@ export class TmFieldCellComponent {
   dateText = computed(() => dueLabel(typeof this.value() === 'string' ? (this.value() as string) : null));
 
   chip(o: FieldOption) {
-    return OPTION_COLOR_HEX[o.color ?? 'gray'] ?? OPTION_COLOR_HEX['gray'];
+    return fieldOptionChipColors(o.color);
   }
 
   isSelected(o: FieldOption) {
@@ -150,7 +153,9 @@ export class TmFieldCellComponent {
   }
 
   openOptions(event: Event) {
-    this.optionsPop().show(event, event.currentTarget ?? event.target);
+    if (!this.editable()) return;
+    event.stopPropagation();
+    this.optionsPop().show(event, this.host.nativeElement);
   }
 
   toggleOption(o: FieldOption) {
@@ -164,7 +169,9 @@ export class TmFieldCellComponent {
   }
 
   openDate(event: Event) {
-    this.datePop().show(event, event.currentTarget ?? event.target);
+    if (!this.editable()) return;
+    event.stopPropagation();
+    this.datePop().show(event, this.host.nativeElement);
   }
 
   pickDate(d: Date | null) {

@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TmApiService } from '../core/tm-api.service';
@@ -23,7 +23,7 @@ const TYPE_ICON: Record<string, string> = {
 @Component({
   selector: 'app-tm-inbox-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, DialogModule, SelectButtonModule, ToggleSwitchModule],
+  imports: [FormsModule, ButtonModule, AppDialogModule, SelectButtonModule, ToggleSwitchModule],
   template: `
     <div class="tm-page tm-inbox">
       <header class="tm-project-header">

@@ -3,11 +3,12 @@ import { Component, inject, input, model, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TmApiService } from '../core/tm-api.service';
-import { OPTION_COLOR_HEX } from '../core/tm-format.util';
+import { fieldOptionChipColors, normalizeFieldOptionColor, PROJECT_COLORS } from '../core/tm-format.util';
+import { TmColorPickerComponent } from './color-picker.component';
 import { FieldOption, FieldType, TmField, TmProject } from '../core/tm.types';
 
 const TYPE_LABELS: Record<FieldType, string> = {
@@ -23,7 +24,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
 @Component({
   selector: 'app-tm-fields-dialog',
   standalone: true,
-  imports: [NgTemplateOutlet, FormsModule, DialogModule, ButtonModule, InputTextModule, SelectModule],
+  imports: [NgTemplateOutlet, FormsModule, AppDialogModule, ButtonModule, InputTextModule, SelectModule, TmColorPickerComponent],
   template: `
     <p-dialog header="Custom fields" [(visible)]="visible" [modal]="true" [style]="{ width: '36rem' }" (onShow)="reset()" [draggable]="false">
       <ul class="tm-field-list">
@@ -82,11 +83,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
         <div class="tm-options-editor">
           @for (o of draftOptions(); track $index) {
             <div class="tm-option-row">
-              <select class="tm-option-color" [ngModel]="o.color" (ngModelChange)="setOptionColor($index, $event)" aria-label="Option color">
-                @for (c of colorNames; track c) {
-                  <option [value]="c">{{ c }}</option>
-                }
-              </select>
+              <app-tm-color-picker [ngModel]="o.color" (ngModelChange)="setOptionColor($index, $event)" />
               <input pInputText [ngModel]="o.label" (ngModelChange)="setOptionLabel($index, $event)" aria-label="Option label" class="flex-1" />
               <button type="button" class="tm-icon-btn" (click)="removeOption($index)" aria-label="Remove option"><i class="pi pi-times"></i></button>
             </div>
@@ -107,7 +104,6 @@ export class TmFieldsDialogComponent {
   changed = output<void>();
 
   readonly typeOptions = (Object.keys(TYPE_LABELS) as FieldType[]).map((value) => ({ value, label: TYPE_LABELS[value] }));
-  readonly colorNames = Object.keys(OPTION_COLOR_HEX);
   editingId = signal<string | null>(null);
   draftName = '';
   draftType: FieldType = 'SINGLE_SELECT';
@@ -125,7 +121,7 @@ export class TmFieldsDialogComponent {
     return t === 'SINGLE_SELECT' || t === 'MULTI_SELECT';
   }
   chip(o: FieldOption) {
-    return OPTION_COLOR_HEX[o.color ?? 'gray'] ?? OPTION_COLOR_HEX['gray'];
+    return fieldOptionChipColors(o.color);
   }
 
   reset() {
@@ -133,21 +129,23 @@ export class TmFieldsDialogComponent {
     this.draftName = '';
     this.draftType = 'SINGLE_SELECT';
     this.draftOptions.set([
-      { id: '', label: 'High', color: 'red' },
-      { id: '', label: 'Medium', color: 'yellow' },
-      { id: '', label: 'Low', color: 'green' },
+      { id: '', label: 'High', color: PROJECT_COLORS[7] },
+      { id: '', label: 'Medium', color: PROJECT_COLORS[5] },
+      { id: '', label: 'Low', color: PROJECT_COLORS[3] },
     ]);
   }
 
   startEdit(f: TmField) {
     this.editingId.set(f.id);
     this.draftName = f.name;
-    this.draftOptions.set(f.options.map((o) => ({ ...o })));
+    this.draftOptions.set(f.options.map((o) => ({ ...o, color: normalizeFieldOptionColor(o.color) })));
   }
 
   addOption() {
-    const colors = this.colorNames;
-    this.draftOptions.update((list) => [...list, { id: '', label: '', color: colors[list.length % colors.length] }]);
+    this.draftOptions.update((list) => [
+      ...list,
+      { id: '', label: '', color: PROJECT_COLORS[list.length % PROJECT_COLORS.length] },
+    ]);
   }
   removeOption(i: number) {
     this.draftOptions.update((list) => list.filter((_, idx) => idx !== i));

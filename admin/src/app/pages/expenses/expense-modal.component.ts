@@ -2,7 +2,7 @@ import { Component, computed, signal } from '@angular/core';
 import { inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -21,7 +21,7 @@ export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
   standalone: true,
   imports: [
     FormsModule,
-    DialogModule,
+    AppDialogModule,
     ButtonModule,
     InputTextModule,
     InputNumberModule,

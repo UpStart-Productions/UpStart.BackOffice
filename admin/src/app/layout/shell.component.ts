@@ -3,7 +3,7 @@ import { Component, computed, inject, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { AppConfirmDialogModule } from '../core/app-dialog.module';
 import { ToastModule } from 'primeng/toast';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
@@ -29,7 +29,7 @@ export function isTaskManagerUrl(url: string): boolean {
   imports: [
     NgClass,
     RouterOutlet,
-    ConfirmDialogModule,
+    AppConfirmDialogModule,
     ToastModule,
     AppTopbarComponent,
     AppSidebarComponent,
