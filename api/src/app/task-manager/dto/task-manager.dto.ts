@@ -11,10 +11,13 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value);
 
@@ -128,6 +131,12 @@ export class TaskListQueryDto {
   @IsOptional()
   @IsIn(['incomplete', 'completed', 'all'])
   completed?: 'incomplete' | 'completed' | 'all';
+}
+
+export class TaskSearchQueryDto {
+  @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @MaxLength(200) q?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() projectId?: string;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) @Max(100) limit?: number;
 }
 
 export class SetFieldValueDto {

@@ -27,6 +27,7 @@ import {
   parseTimesheetCsv,
   startedStoppedAt,
 } from './timesheet-csv.util';
+import { assertTmTaskInProject } from './time-entry-task.util';
 
 function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
   return Math.round((stoppedAt.getTime() - startedAt.getTime()) / 60000);
@@ -42,6 +43,13 @@ const entryInclude = {
     },
   },
   projectTask: { select: { id: true, name: true, isBillable: true, source: true } },
+  task: {
+    select: {
+      id: true,
+      name: true,
+      parent: { select: { id: true, name: true } },
+    },
+  },
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
 };
 
@@ -55,6 +63,13 @@ const entryIncludeWithoutUser = {
     },
   },
   projectTask: { select: { id: true, name: true, isBillable: true, source: true } },
+  task: {
+    select: {
+      id: true,
+      name: true,
+      parent: { select: { id: true, name: true } },
+    },
+  },
 };
 
 @ApiTags('time-entries')
@@ -191,6 +206,10 @@ export class TimeEntriesController {
     const startedAt = new Date(dto.startedAt);
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
+    if (dto.taskId) {
+      await assertTmTaskInProject(this.prisma, dto.projectId, dto.taskId);
+    }
+
     const isBillable = await resolveTimeEntryBillable(
       this.prisma,
       dto.projectId,
@@ -203,6 +222,7 @@ export class TimeEntriesController {
         userId: user.id,
         projectId: dto.projectId,
         projectTaskId: dto.projectTaskId,
+        taskId: dto.taskId,
         description: dto.description,
         startedAt,
         stoppedAt,
@@ -269,9 +289,15 @@ export class TimeEntriesController {
 
     const projectId = dto.projectId ?? entry.projectId;
     const projectTaskId = dto.projectTaskId !== undefined ? dto.projectTaskId : entry.projectTaskId ?? undefined;
+    const taskId = dto.taskId !== undefined ? dto.taskId || null : entry.taskId;
     const startedAt = dto.startedAt ? new Date(dto.startedAt) : entry.startedAt;
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : entry.stoppedAt ?? undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
+
+    if (taskId) {
+      await assertTmTaskInProject(this.prisma, projectId, taskId);
+    }
+
     const isBillable = await resolveTimeEntryBillable(
       this.prisma,
       projectId,
@@ -284,6 +310,7 @@ export class TimeEntriesController {
       data: {
         ...(dto.projectId !== undefined && { projectId: dto.projectId }),
         ...(dto.projectTaskId !== undefined && { projectTaskId: dto.projectTaskId }),
+        ...(dto.taskId !== undefined && { taskId: dto.taskId || null }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.startedAt !== undefined && { startedAt }),
         ...(dto.stoppedAt !== undefined && { stoppedAt, durationMin }),

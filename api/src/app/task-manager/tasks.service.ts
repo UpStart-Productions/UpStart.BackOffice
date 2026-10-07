@@ -99,6 +99,42 @@ export class TasksService {
     return rows.map((row) => ({ ...toTaskSummary(row), project: row.project, parent: row.parent }));
   }
 
+  /** Task picker search. With `projectId` and no query, returns the project's open tasks (for select dropdowns). */
+  async search(user: UserContext, q?: string, projectId?: string, limit = 25) {
+    const term = q?.trim() ?? '';
+    if (!term && !projectId) return [];
+
+    if (projectId) {
+      await this.access.assertProject(user, projectId, 'view');
+    }
+
+    const visible = await this.access.visibleProjectIds(user);
+    const projectScope = projectId
+      ? { OR: [{ projectId }, { projectLinks: { some: { projectId } } }] }
+      : visible
+        ? { OR: [{ projectId: { in: visible } }, { projectLinks: { some: { projectId: { in: visible } } } }] }
+        : {};
+
+    const rows = await this.prisma.task.findMany({
+      where: {
+        isCompleted: false,
+        project: { inTaskManager: true },
+        ...(term ? { name: { contains: term, mode: 'insensitive' } } : {}),
+        ...projectScope,
+      },
+      select: {
+        id: true,
+        name: true,
+        project: { select: { id: true, name: true } },
+        parent: { select: { id: true, name: true } },
+      },
+      orderBy: [{ name: 'asc' }, { createdAt: 'asc' }],
+      take: Math.min(Math.max(limit, 1), 100),
+    });
+
+    return rows;
+  }
+
   async get(user: UserContext, taskId: string) {
     await this.access.assertTask(user, taskId, 'view');
     const task = await this.prisma.task.findUniqueOrThrow({

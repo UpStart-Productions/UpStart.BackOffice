@@ -35,6 +35,7 @@ import {
   MoveTaskDto,
   SetFieldValueDto,
   TaskListQueryDto,
+  TaskSearchQueryDto,
   UpdateCommentDto,
   UpdateFieldDto,
   UpdateMemberDto,
@@ -200,6 +201,11 @@ export class TaskManagerController {
   @Post('tasks')
   createTask(@Req() req: Request, @Body() dto: CreateTaskDto) {
     return this.tasks.create(me(req), dto);
+  }
+
+  @Get('tasks/search')
+  searchTasks(@Req() req: Request, @Query() query: TaskSearchQueryDto) {
+    return this.tasks.search(me(req), query.q, query.projectId, query.limit);
   }
 
   @Get('tasks/:id')

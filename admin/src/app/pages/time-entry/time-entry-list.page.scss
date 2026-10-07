@@ -279,12 +279,18 @@ button.calendar-btn {
   align-items: center;
 }
 
-.entry-task {
+.entry-task,
+.entry-work-task {
   margin: 0 0 0.25rem;
   font-size: 13px;
   font-weight: 600;
   color: var(--harvest-text);
   line-height: 1.35;
+}
+
+.entry-work-task {
+  font-weight: 500;
+  color: var(--harvest-muted);
 }
 
 .entry-notes {

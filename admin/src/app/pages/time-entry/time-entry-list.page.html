@@ -119,6 +119,9 @@
               @if (run.projectTask?.name) {
                 <p class="entry-task">{{ run.projectTask.name }}</p>
               }
+              @if (run.task?.name) {
+                <p class="entry-work-task">{{ run.task.name }}</p>
+              }
               @if (run.description) {
                 <p class="entry-notes">{{ run.description }}</p>
               }
@@ -145,6 +148,9 @@
                 <h3 class="entry-project">{{ projectTitle(entry) }}</h3>
                 @if (entry.projectTask?.name) {
                   <p class="entry-task">{{ entry.projectTask.name }}</p>
+                }
+                @if (entry.task?.name) {
+                  <p class="entry-work-task">{{ entry.task.name }}</p>
                 }
                 @if (entry.description) {
                   <p class="entry-notes">{{ entry.description }}</p>

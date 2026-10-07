@@ -18,6 +18,12 @@ export type Project = {
   tasks?: ProjectTask[];
 };
 
+export type TimeEntryTask = {
+  id: string;
+  name: string;
+  parent?: { id: string; name: string } | null;
+};
+
 export type TimeEntry = {
   id: string;
   description?: string;
@@ -26,9 +32,20 @@ export type TimeEntry = {
   durationMin?: number;
   isBillable: boolean;
   projectTaskId?: string;
+  taskId?: string | null;
   project: Project;
   projectTask?: { id: string; name: string; isBillable: boolean; source?: 'MANUAL' | 'ASANA' } | null;
+  task?: TimeEntryTask | null;
 };
+
+export type TmTaskSearchHit = {
+  id: string;
+  name: string;
+  project: { id: string; name: string };
+  parent: { id: string; name: string } | null;
+};
+
+export type TmTaskOption = TmTaskSearchHit & { label: string };
 
 export type ProjectTaskDraft = {
   id?: string;
