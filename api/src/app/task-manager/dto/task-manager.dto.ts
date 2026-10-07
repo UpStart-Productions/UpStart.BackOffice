@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TaskCustomFieldType, ProjectMemberRole } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import { TaskCustomFieldType, TaskFormAccess, ProjectMemberRole } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   Allow,
@@ -172,4 +172,37 @@ export class CreateCommentDto {
 
 export class UpdateCommentDto {
   @ApiProperty() @IsString() @MinLength(1) body!: string;
+}
+
+// ── Forms ───────────────────────────────────────────────────────────────────
+
+export class CreateFormDto {
+  @ApiProperty() @Transform(trim) @IsString() @MinLength(1) @MaxLength(200) name!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(60) slug?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(5000) description?: string | null;
+  @ApiPropertyOptional({ enum: TaskFormAccess }) @IsOptional() @IsEnum(TaskFormAccess) access?: TaskFormAccess;
+  @ApiPropertyOptional() @IsOptional() @IsString() sectionId?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() assigneeId?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsArray() @Allow() tagIds?: string[];
+  /** FormQuestion[] */
+  @ApiPropertyOptional() @IsOptional() @IsArray() @Allow() questions?: unknown[];
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(2000) confirmationMessage?: string | null;
+}
+
+export class UpdateFormDto extends PartialType(CreateFormDto) {
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+/**
+ * A form submission. JSON body, or multipart/form-data with these as JSON strings plus `files`.
+ * answers: { [questionKey or questionId]: value }
+ */
+export class SubmitFormDto {
+  @ApiPropertyOptional() @Allow() answers?: unknown;
+  /** { email, name } — email required on open forms */
+  @ApiPropertyOptional() @Allow() submitter?: unknown;
+  /** Extra key/value details (app version, device…) appended to the description. */
+  @ApiPropertyOptional() @Allow() context?: unknown;
+  /** Honeypot — leave empty. */
+  @ApiPropertyOptional() @Allow() website?: unknown;
 }

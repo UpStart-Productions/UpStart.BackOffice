@@ -139,6 +139,8 @@ model User {
   projectMemberships ProjectMember[]
   projectStars       ProjectStar[]
   tasksAssigned      Task[]                      @relation("TaskAssignee")
+  assignedTaskForms  TaskForm[]                  @relation("TaskFormAssignee")
+  createdTaskForms   TaskForm[]                  @relation("TaskFormCreatedBy")
   tasksCreated       Task[]                      @relation("TaskCreatedBy")
   tasksCompleted     Task[]                      @relation("TaskCompletedBy")
   taskFollows        TaskFollower[]
@@ -328,6 +330,7 @@ model Project {
   sections     TaskSection[]
   workTasks    Task[]
   taskLinks    TaskProjectLink[]
+  taskForms    TaskForm[]
   customFields TaskCustomField[]
 
   @@index([clientId])
@@ -761,6 +764,7 @@ model TaskSection {
   project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks     Task[]
   taskLinks TaskProjectLink[]
+  forms     TaskForm[]
 
   @@index([projectId, sortOrder])
 }
@@ -831,9 +835,14 @@ model Task {
   /// The task this one was generated from when a recurring task completed.
   recurredFromId   String?
   importedAsanaGid String?   @unique
+  /// Set when the task came in through a form.
+  formId           String?
+  submitterEmail   String?
+  submitterName    String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  form         TaskForm?              @relation(fields: [formId], references: [id], onDelete: SetNull)
   project      Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
   section      TaskSection?           @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   parent       Task?                  @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
@@ -989,4 +998,46 @@ model UserInvite {
   invitedBy User? @relation("InviteSentBy", fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
+}
+
+enum TaskFormAccess {
+  /// Anyone with the link (email required).
+  OPEN
+  /// Signed-in collaborators on the form's project.
+  COLLABORATORS
+  /// Server-to-server: requests carry the form's API key.
+  API_KEY
+}
+
+/// Intake form that creates tasks in a project.
+model TaskForm {
+  id                  String         @id @default(cuid())
+  projectId           String
+  name                String
+  /// URL key: /f/:slug and POST /forms/:slug/submit
+  slug                String         @unique
+  description         String?        @db.Text
+  access              TaskFormAccess @default(COLLABORATORS)
+  isActive            Boolean        @default(true)
+  /// Where new tasks land; null = project's first section.
+  sectionId           String?
+  assigneeId          String?
+  /// Tag ids applied to every submission.
+  tagIds              Json?
+  /// FormQuestion[] (see task-forms.util.ts)
+  questions           Json
+  confirmationMessage String?        @db.Text
+  apiKeyHash          String?        @unique
+  apiKeyHint          String?
+  createdById         String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section   TaskSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  assignee  User?        @relation("TaskFormAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy User?        @relation("TaskFormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  tasks     Task[]
+
+  @@index([projectId])
 }

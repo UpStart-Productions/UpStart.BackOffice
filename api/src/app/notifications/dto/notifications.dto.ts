@@ -23,4 +23,5 @@ export class EmailPreferencesDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() task_comment?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() task_completed?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() project_added?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() task_form_submission?: boolean;
 }

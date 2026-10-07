@@ -10,10 +10,11 @@ import {
   Query,
   Req,
   UploadedFile,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { memoryStorage } from 'multer';
@@ -24,6 +25,9 @@ import {
   AddTaskProjectDto,
   AddTaskTagDto,
   CreateTagDto,
+  CreateFormDto,
+  SubmitFormDto,
+  UpdateFormDto,
   UpdateTagDto,
   CreateCommentDto,
   CreateFieldDto,
@@ -45,6 +49,7 @@ import {
 } from './dto/task-manager.dto';
 import { TaskProjectsService } from './task-projects.service';
 import { TaskTagsService } from './task-tags.service';
+import { FORM_MAX_FILE_BYTES, FORM_MAX_FILES, TaskFormsService } from './task-forms.service';
 import { MAX_ATTACHMENT_BYTES, TasksService } from './tasks.service';
 
 const me = (req: Request) => req.user as UserContext;
@@ -59,6 +64,7 @@ export class TaskManagerController {
     private readonly projects: TaskProjectsService,
     private readonly tasks: TasksService,
     private readonly tags: TaskTagsService,
+    private readonly forms: TaskFormsService,
   ) {}
 
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -232,6 +238,57 @@ export class TaskManagerController {
   @Delete('tasks/:id/projects/:projectId')
   removeTaskProject(@Req() req: Request, @Param('id') id: string, @Param('projectId') projectId: string) {
     return this.tasks.removeProject(me(req), id, projectId);
+  }
+
+  // ── Forms ─────────────────────────────────────────────────────────────────
+
+  @Get('projects/:id/forms')
+  listForms(@Req() req: Request, @Param('id') id: string) {
+    return this.forms.list(me(req), id);
+  }
+
+  @Post('projects/:id/forms')
+  createForm(@Req() req: Request, @Param('id') id: string, @Body() dto: CreateFormDto) {
+    return this.forms.create(me(req), id, dto);
+  }
+
+  @Get('forms/:formId')
+  getForm(@Req() req: Request, @Param('formId') formId: string) {
+    return this.forms.get(me(req), formId);
+  }
+
+  @Patch('forms/:formId')
+  updateForm(@Req() req: Request, @Param('formId') formId: string, @Body() dto: UpdateFormDto) {
+    return this.forms.update(me(req), formId, dto);
+  }
+
+  @Delete('forms/:formId')
+  deleteForm(@Req() req: Request, @Param('formId') formId: string) {
+    return this.forms.remove(me(req), formId);
+  }
+
+  /** Issue a new API key (returned once; replaces the old one). */
+  @Post('forms/:formId/api-key')
+  rotateFormKey(@Req() req: Request, @Param('formId') formId: string) {
+    return this.forms.rotateKey(me(req), formId);
+  }
+
+  /** Collaborator-only forms: definition + submit for a signed-in project member. */
+  @Get('f/:slug')
+  collaboratorForm(@Req() req: Request, @Param('slug') slug: string) {
+    return this.forms.collaboratorDefinition(me(req), slug);
+  }
+
+  @Post('f/:slug/submit')
+  @ApiConsumes('application/json', 'multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files', FORM_MAX_FILES, { storage: memoryStorage(), limits: { fileSize: FORM_MAX_FILE_BYTES } }))
+  submitCollaboratorForm(
+    @Req() req: Request,
+    @Param('slug') slug: string,
+    @Body() dto: SubmitFormDto,
+    @UploadedFiles() files: { buffer: Buffer; mimetype: string; originalname: string; size: number }[] | undefined,
+  ) {
+    return this.forms.submitAsCollaborator(me(req), slug, dto, files ?? []);
   }
 
   // ── Tags ──────────────────────────────────────────────────────────────────

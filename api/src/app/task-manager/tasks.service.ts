@@ -152,6 +152,7 @@ export class TasksService {
         },
         section: { select: { id: true, name: true } },
         parent: { select: { id: true, name: true, parentTaskId: true } },
+        form: { select: { id: true, name: true } },
         createdBy: { select: personSelect },
         completedBy: { select: personSelect },
         followers: { include: { user: { select: personSelect } }, orderBy: { createdAt: 'asc' } },
@@ -182,6 +183,8 @@ export class TasksService {
       customFields: [...task.project.customFields, ...otherFields].map(toField),
       section: task.section,
       projects,
+      form: task.form,
+      submitter: task.submitterEmail || task.submitterName ? { email: task.submitterEmail, name: task.submitterName } : null,
       parent: task.parent,
       createdBy: task.createdBy ? person(task.createdBy) : null,
       completedBy: task.completedBy ? person(task.completedBy) : null,
@@ -680,7 +683,7 @@ export class TasksService {
    * Sort order for a top-level row in one section of a project, where rows are the project's own tasks
    * plus tasks linked in from other projects. undefined = bottom, null = top. Renumbers when gaps run out.
    */
-  private async placeInSection(
+  async placeInSection(
     projectId: string,
     sectionId: string | null,
     afterTaskId: string | null | undefined,
