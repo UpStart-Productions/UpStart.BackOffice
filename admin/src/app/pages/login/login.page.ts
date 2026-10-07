@@ -63,7 +63,7 @@ export class LoginPage implements OnInit {
       this.loading = true;
       try {
         await this.api.get('/users/me');
-        await this.router.navigate(['/dashboard']);
+        await this.router.navigateByUrl(this.takeReturnUrl());
       } catch (err) {
         this.auth.clear();
         this.loginError =
@@ -181,13 +181,25 @@ export class LoginPage implements OnInit {
     }
   }
 
+  /** Where to go after sign-in: a stashed same-app path (e.g. a collaborator form), else the dashboard. */
+  private takeReturnUrl(): string {
+    let url: string | null = null;
+    try {
+      url = sessionStorage.getItem('ubo_return_url');
+      sessionStorage.removeItem('ubo_return_url');
+    } catch {
+      /* storage unavailable */
+    }
+    return url && url.startsWith('/') && !url.startsWith('//') ? url : '/dashboard';
+  }
+
   private async completeCognitoLogin() {
     await this.cognito.getIdToken();
     const email = await this.cognito.getEmailFromSession();
     if (email) this.auth.baseEmail = email;
     this.session.reset();
     await this.session.getReady();
-    await this.router.navigate(['/dashboard']);
+    await this.router.navigateByUrl(this.takeReturnUrl());
   }
 
   private getAuthErrorMessage(err: unknown): string {

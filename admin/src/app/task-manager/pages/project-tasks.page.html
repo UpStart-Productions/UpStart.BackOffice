@@ -344,6 +344,7 @@
     @if (canEdit()) {
       <button type="button" class="tm-picker-item" (click)="fieldsOpen.set(true); projectMenu.hide()"><i class="pi pi-sliders-h"></i> Custom fields</button>
     }
+    <a class="tm-picker-item" [routerLink]="['/tasks/projects', projectId(), 'forms']" (click)="projectMenu.hide()"><i class="pi pi-inbox"></i> Forms</a>
     @if (project()?.permissions?.canManage) {
       <hr />
       <button type="button" class="tm-picker-item tm-danger" (click)="removeFromTasks()"><i class="pi pi-minus-circle"></i> Remove from Tasks</button>

@@ -1,0 +1,108 @@
+<div class="login-page">
+  <div class="login-card card task-form-card">
+    <div class="login-header">
+      <img src="/images/upstart-logo-dark.svg" alt="UpStart" class="login-logo" width="200" height="62" />
+      @if (def()?.projectName) { <p>{{ def()?.projectName }}</p> }
+    </div>
+
+    @if (loading()) {
+      <p class="text-center text-color-secondary"><i class="pi pi-spin pi-spinner"></i></p>
+    } @else if (loadError()) {
+      <p-message severity="error" styleClass="w-full mb-3" [text]="loadError()!" />
+      @if (signedIn()) { <a routerLink="/tasks" class="link-button">Go to Tasks</a> }
+    } @else if (needsSignIn()) {
+      <h2 class="page-title task-form-title">{{ def()?.name }}</h2>
+      <p class="text-color-secondary mb-3">This form is for people working on this project. Sign in to continue.</p>
+      <div class="login-actions">
+        <p-button label="Sign in" icon="pi pi-sign-in" (onClick)="signIn()" />
+      </div>
+    } @else if (result(); as r) {
+      <div class="task-form-done">
+        <i class="pi pi-check-circle"></i>
+        <h2 class="page-title task-form-title">Submitted</h2>
+        <p class="text-color-secondary mb-3">{{ r.message }}</p>
+        <div class="flex gap-2 justify-content-center">
+          <p-button label="Submit another" severity="secondary" [outlined]="true" (onClick)="reset()" />
+          @if (r.route) { <p-button label="Open task" icon="pi pi-arrow-right" iconPos="right" (onClick)="openTask()" /> }
+        </div>
+      </div>
+    } @else if (def(); as d) {
+      <h2 class="page-title task-form-title">{{ d.name }}</h2>
+      @if (d.description) {
+        <p class="text-color-secondary task-form-intro">{{ d.description }}</p>
+      } @else {
+        <div class="mb-3"></div>
+      }
+
+      <form class="login-form" (ngSubmit)="submit()" #f="ngForm">
+        @if (d.requiresEmail) {
+          <div class="flex gap-2 mb-3">
+            <div class="form-field flex-1">
+              <label for="tf-email">Your email<span class="task-form-required">*</span></label>
+              <input pInputText id="tf-email" name="email" type="email" class="w-full" [(ngModel)]="email" required autocomplete="email" />
+            </div>
+            <div class="form-field flex-1">
+              <label for="tf-name">Your name</label>
+              <input pInputText id="tf-name" name="name" class="w-full" [(ngModel)]="name" autocomplete="name" />
+            </div>
+          </div>
+        }
+
+        @for (q of visibleQuestions(); track q.id) {
+          <div class="form-field mb-3">
+            @if (q.type !== 'CHECKBOX') {
+              <label [for]="'tf-' + q.id">{{ q.label }}@if (q.required) {<span class="task-form-required">*</span>}</label>
+              @if (q.helpText) { <small class="task-form-help">{{ q.helpText }}</small> }
+            }
+            @switch (q.type) {
+              @case ('LONG_TEXT') {
+                <textarea pTextarea [id]="'tf-' + q.id" [name]="q.key" class="w-full" rows="5" [(ngModel)]="answers[q.key]" [required]="q.required"></textarea>
+              }
+              @case ('NUMBER') {
+                <input pInputText [id]="'tf-' + q.id" [name]="q.key" type="number" class="w-full" [(ngModel)]="answers[q.key]" [required]="q.required" />
+              }
+              @case ('EMAIL') {
+                <input pInputText [id]="'tf-' + q.id" [name]="q.key" type="email" class="w-full" [(ngModel)]="answers[q.key]" [required]="q.required" />
+              }
+              @case ('DATE') {
+                <p-datepicker [inputId]="'tf-' + q.id" [name]="q.key" [(ngModel)]="dates[q.key]" dateFormat="M d, yy" [showIcon]="true" styleClass="w-full" appendTo="body" [required]="q.required" />
+              }
+              @case ('SELECT') {
+                <p-select [inputId]="'tf-' + q.id" [name]="q.key" [options]="q.options ?? []" [(ngModel)]="answers[q.key]" placeholder="Choose…" [showClear]="!q.required" styleClass="w-full" appendTo="body" [required]="q.required" />
+              }
+              @case ('MULTI_SELECT') {
+                <p-multiselect [inputId]="'tf-' + q.id" [name]="q.key" [options]="q.options ?? []" [(ngModel)]="answers[q.key]" placeholder="Choose…" display="chip" styleClass="w-full" appendTo="body" [required]="q.required" />
+              }
+              @case ('CHECKBOX') {
+                <div class="task-form-check">
+                  <p-checkbox [inputId]="'tf-' + q.id" [name]="q.key" [binary]="true" [(ngModel)]="answers[q.key]" />
+                  <label [for]="'tf-' + q.id">{{ q.label }}@if (q.required) {<span class="task-form-required">*</span>}</label>
+                </div>
+                @if (q.helpText) { <small class="task-form-help">{{ q.helpText }}</small> }
+              }
+              @case ('FILE') {
+                <input [id]="'tf-' + q.id" type="file" class="task-form-file" multiple (change)="onFiles(q, $event)" />
+                @if (fileNames(q)) { <small class="text-color-secondary">{{ fileNames(q) }}</small> }
+              }
+              @default {
+                <input pInputText [id]="'tf-' + q.id" [name]="q.key" class="w-full" [(ngModel)]="answers[q.key]" [required]="q.required" />
+              }
+            }
+          </div>
+        }
+
+        <div class="task-form-hp" aria-hidden="true">
+          <label for="tf-website">Website</label>
+          <input id="tf-website" name="website" tabindex="-1" autocomplete="off" [(ngModel)]="website" />
+        </div>
+
+        @if (submitError()) {
+          <p-message severity="error" styleClass="w-full mb-3" [text]="submitError()!" />
+        }
+        <div class="login-actions">
+          <p-button type="submit" label="Submit" [loading]="submitting()" [disabled]="submitting()" />
+        </div>
+      </form>
+    }
+  </div>
+</div>

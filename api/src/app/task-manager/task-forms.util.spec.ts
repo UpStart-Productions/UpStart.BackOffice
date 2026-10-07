@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSubmission, normalizeQuestions, slugify } from './task-forms.util';
+import { buildSubmission, normalizeQuestions, slugify, withLiveFields } from './task-forms.util';
 
 const fields = [
   { id: 'f1', name: 'Priority', type: 'SINGLE_SELECT', options: [{ id: 'o1', label: 'High' }, { id: 'o2', label: 'Low' }] },
@@ -53,5 +53,12 @@ describe('task forms', () => {
     expect(s.descriptionHtml).toContain('appVersion');
     expect(s.descriptionHtml).toContain('Pat &lt;pat@x.com&gt;');
     expect(() => buildSubmission(qs, { severity: 'nope' }, fields, { formName: 'Bugs' })).toThrow(/Summary.*required.*isn't one of the choices.*needs a file/);
+  });
+
+  it('refreshes field-backed questions', () => {
+    const qs = normalizeQuestions([{ label: 'S', target: 'NAME' }, { label: 'P', target: 'FIELD', fieldId: 'f1' }], fields);
+    const live = withLiveFields(qs, [{ ...fields[0], options: [{ id: 'o3', label: 'Urgent' }] }]);
+    expect(live[1].options).toEqual(['Urgent']);
+    expect(withLiveFields(qs, [])[1].target).toBe('DESCRIPTION');
   });
 });

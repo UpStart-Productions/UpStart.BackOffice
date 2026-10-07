@@ -17,6 +17,7 @@ const TYPE_ICON: Record<string, string> = {
   task_comment: 'pi-comment',
   task_completed: 'pi-check-circle',
   project_added: 'pi-users',
+  task_form_submission: 'pi-inbox',
 };
 
 /** Notification inbox (Asana-style): activity / archive, mark read, email settings. */
@@ -105,6 +106,7 @@ export class InboxPage implements OnInit {
     { key: 'task_comment', label: 'Comments on tasks I follow' },
     { key: 'task_completed', label: 'Tasks I follow are completed' },
     { key: 'project_added', label: "I'm added to a project" },
+    { key: 'task_form_submission', label: 'A form I own gets a submission' },
   ];
   readonly relativeTime = relativeTime;
 

@@ -279,6 +279,23 @@ export function buildSubmission(
   return { name: name || `${opts.formName} submission`, descriptionHtml: parts.join(''), fieldValues, answered };
 }
 
+/**
+ * Refresh custom-field-backed questions from the project's current fields (choices may have changed
+ * since the form was saved). Questions whose field was deleted fall back to plain description answers.
+ */
+export function withLiveFields(questions: FormQuestion[], fields: FieldDef[]): FormQuestion[] {
+  return questions.map((q) => {
+    if (q.target !== 'FIELD') return q;
+    const field = fields.find((f) => f.id === q.fieldId);
+    if (!field) {
+      const { fieldId: _f, ...rest } = q;
+      return { ...rest, target: 'DESCRIPTION' as const };
+    }
+    const type = FIELD_TO_QUESTION[field.type as FieldType] ?? 'SHORT_TEXT';
+    return { ...q, type, ...(type === 'SELECT' || type === 'MULTI_SELECT' ? { options: field.options.map((o) => o.label) } : {}) };
+  });
+}
+
 /** Questions as sent to a form page / API caller (field-backed choices resolved, hidden flagged). */
 export function publicQuestions(questions: FormQuestion[]) {
   return questions.map(({ fieldId: _f, target, ...q }) => ({ ...q, isTaskName: target === 'NAME' }));

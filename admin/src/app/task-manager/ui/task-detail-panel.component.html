@@ -279,6 +279,15 @@
       </section>
 
       <section class="tm-detail-meta">
+        @if (t.form) {
+          <span>
+            Submitted via the “{{ t.form.name }}” form
+            @if (t.submitter && !t.createdBy) {
+              by {{ t.submitter.name || t.submitter.email }}@if (t.submitter.name && t.submitter.email) { (<a [href]="'mailto:' + t.submitter.email">{{ t.submitter.email }}</a>)} @else if (t.submitter.email) { (<a [href]="'mailto:' + t.submitter.email">email</a>)}
+            }
+            · {{ relativeTime(t.createdAt) }}
+          </span>
+        }
         @if (t.createdBy) {
           <span>Created by {{ t.createdBy.name }} · {{ relativeTime(t.createdAt) }}</span>
         }

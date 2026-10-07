@@ -1,0 +1,218 @@
+<div class="tm-page tm-form-builder">
+  @if (loading()) {
+    <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
+  } @else if (error()) {
+    <div class="card"><p class="text-color-secondary">{{ error() }}</p></div>
+  } @else if (draft(); as d) {
+    <header class="tm-project-header">
+      @if (project(); as p) {
+        <a class="tm-back-link" [routerLink]="['/tasks/projects', p.id, 'forms']">
+          <app-tm-project-icon [color]="p.color" [icon]="p.icon" /> {{ p.name }} · Forms
+        </a>
+      }
+      <div class="tm-project-title-row">
+        <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
+        <h1 class="tm-project-title">{{ d.name || 'Untitled form' }}</h1>
+        <div class="tm-project-header-actions">
+          <label class="tm-toggle-label">
+            <p-toggleswitch [ngModel]="d.isActive" (ngModelChange)="set('isActive', $event)" [disabled]="!canEdit()" />
+            Accepting submissions
+          </label>
+          @if (form()?.access !== 'API_KEY') {
+            <a pButton [href]="pageUrl()" target="_blank" rel="noopener" label="Open form" icon="pi pi-external-link" severity="secondary" [outlined]="true"></a>
+          }
+          @if (canEdit()) {
+            @if (dirty()) {
+              <p-button label="Discard" severity="secondary" [text]="true" (onClick)="discard()" />
+            }
+            <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty() || saving()" (onClick)="save()" />
+            <button type="button" class="tm-icon-btn" (click)="remove()" pTooltip="Delete form" aria-label="Delete form"><i class="pi pi-trash"></i></button>
+          }
+        </div>
+      </div>
+      <p class="tm-muted tm-page-intro">{{ form()?.submissionCount }} submission{{ form()?.submissionCount === 1 ? '' : 's' }} so far · each one becomes a task in {{ project()?.name }}.</p>
+    </header>
+
+    <div class="tm-form-builder-grid">
+      <!-- Questions -->
+      <section class="tm-fb-questions">
+        <h2 class="tm-fb-heading">Questions</h2>
+        @for (q of d.questions; track q.id; let i = $index; let last = $last) {
+          <div class="card tm-fb-question" [class.tm-fb-question--name]="q.target === 'NAME'">
+            <div class="tm-fb-q-row">
+              <input pInputText class="tm-fb-q-label" [ngModel]="q.label" (ngModelChange)="setQ(i, 'label', $event)" [disabled]="!canEdit()" aria-label="Question" placeholder="Question" />
+              <p-select
+                [options]="typeOptions"
+                optionLabel="label"
+                optionValue="value"
+                [ngModel]="q.type"
+                (ngModelChange)="setQ(i, 'type', $event)"
+                [disabled]="!canEdit() || typeLocked(q)"
+                styleClass="tm-fb-q-type"
+                appendTo="body"
+                aria-label="Answer type"
+              />
+            </div>
+
+            <div class="tm-fb-q-row tm-fb-q-meta">
+              @if (q.type !== 'FILE') {
+                <label class="tm-fb-inline">
+                  <span class="tm-muted">Goes to</span>
+                  <p-select
+                    [options]="targetOptions()"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="targetValue(q)"
+                    (ngModelChange)="setTarget(i, $event)"
+                    [disabled]="!canEdit()"
+                    styleClass="tm-fb-q-target"
+                    appendTo="body"
+                    aria-label="Where the answer goes"
+                  />
+                </label>
+              } @else {
+                <span class="tm-muted">Files are attached to the task</span>
+              }
+              <label class="tm-fb-inline">
+                <p-toggleswitch [ngModel]="q.required" (ngModelChange)="setQ(i, 'required', $event)" [disabled]="!canEdit() || q.target === 'NAME'" />
+                Required
+              </label>
+              @if (q.type !== 'FILE') {
+                <label class="tm-fb-inline" pTooltip="Not shown on the form. Filled from the link (?{{ q.key || 'key' }}=…) or by an API caller.">
+                  <p-toggleswitch [ngModel]="!!q.hidden" (ngModelChange)="setQ(i, 'hidden', $event)" [disabled]="!canEdit() || q.target === 'NAME'" />
+                  Hidden
+                </label>
+              }
+              <span class="tm-fb-q-actions">
+                @if (q.key) { <code class="tm-fb-key" pTooltip="Key for API callers and link prefill">{{ q.key }}</code> }
+                @if (canEdit()) {
+                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="moveQuestion(i, -1)" [disabled]="i === 0" aria-label="Move up"><i class="pi pi-arrow-up"></i></button>
+                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="moveQuestion(i, 1)" [disabled]="last" aria-label="Move down"><i class="pi pi-arrow-down"></i></button>
+                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="removeQuestion(i)" [disabled]="q.target === 'NAME'" pTooltip="Delete question" aria-label="Delete question"><i class="pi pi-trash"></i></button>
+                }
+              </span>
+            </div>
+
+            @if (hasChoices(q)) {
+              @if (q.target === 'FIELD') {
+                <div class="tm-fb-choices tm-muted">Choices come from the field: {{ (q.options ?? []).join(', ') }}</div>
+              } @else {
+                <textarea
+                  pTextarea
+                  class="w-full tm-fb-choices"
+                  rows="3"
+                  [ngModel]="q.optionsText"
+                  (ngModelChange)="setOptionsText(i, $event)"
+                  [disabled]="!canEdit()"
+                  placeholder="One choice per line"
+                  aria-label="Choices, one per line"
+                ></textarea>
+              }
+            }
+            <input pInputText class="w-full tm-fb-help" [ngModel]="q.helpText ?? ''" (ngModelChange)="setQ(i, 'helpText', $event)" [disabled]="!canEdit()" placeholder="Help text (optional)" aria-label="Help text" />
+          </div>
+        }
+        @if (canEdit()) {
+          <button type="button" class="tm-add-section" (click)="addQuestion()"><i class="pi pi-plus"></i> Add question</button>
+        }
+      </section>
+
+      <!-- Settings -->
+      <aside class="tm-fb-settings">
+        <div class="card">
+          <h2 class="tm-fb-heading">Form</h2>
+          <div class="form-field mb-3">
+            <label for="fb-name">Name</label>
+            <input pInputText id="fb-name" class="w-full" [ngModel]="d.name" (ngModelChange)="set('name', $event)" [disabled]="!canEdit()" />
+          </div>
+          <div class="form-field mb-3">
+            <label for="fb-desc">Intro text <span class="tm-muted">(optional)</span></label>
+            <textarea pTextarea id="fb-desc" class="w-full" rows="3" [ngModel]="d.description" (ngModelChange)="set('description', $event)" [disabled]="!canEdit()" placeholder="Shown at the top of the form"></textarea>
+          </div>
+          <div class="form-field mb-3">
+            <label for="fb-access">Who can submit</label>
+            <p-select inputId="fb-access" [options]="accessOptions" optionLabel="label" optionValue="value" [ngModel]="d.access" (ngModelChange)="set('access', $event)" [disabled]="!canEdit()" styleClass="w-full" appendTo="body">
+              <ng-template #item let-o>
+                <div class="tm-access-option"><span><i class="pi" [class]="o.icon"></i> {{ o.label }}</span><small class="tm-muted">{{ o.hint }}</small></div>
+              </ng-template>
+            </p-select>
+          </div>
+          <div class="form-field mb-3">
+            <label for="fb-slug">Link</label>
+            <div class="tm-fb-slug">
+              <span class="tm-muted">{{ d.access === 'API_KEY' ? '/forms/' : '/f/' }}</span>
+              <input pInputText id="fb-slug" class="w-full" [ngModel]="d.slug" (ngModelChange)="set('slug', $event)" [disabled]="!canEdit()" />
+              <button type="button" class="tm-icon-btn" (click)="copy(d.access === 'API_KEY' ? apiUrl() : pageUrl(), 'Link copied')" [disabled]="dirty()" pTooltip="Copy link" aria-label="Copy link"><i class="pi pi-copy"></i></button>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="fb-confirm">Thank-you message</label>
+            <textarea pTextarea id="fb-confirm" class="w-full" rows="2" [ngModel]="d.confirmationMessage" (ngModelChange)="set('confirmationMessage', $event)" [disabled]="!canEdit()" placeholder="Thanks! Your submission was received."></textarea>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="tm-fb-heading">New tasks</h2>
+          <div class="form-field mb-3">
+            <label for="fb-section">Section</label>
+            <p-select inputId="fb-section" [options]="sectionOptions()" optionLabel="name" optionValue="id" [ngModel]="d.sectionId" (ngModelChange)="set('sectionId', $event)" [disabled]="!canEdit()" styleClass="w-full" appendTo="body" />
+          </div>
+          <div class="form-field mb-3">
+            <label for="fb-assignee">Assignee</label>
+            <p-select inputId="fb-assignee" [options]="assigneeOptions()" optionLabel="name" optionValue="id" [ngModel]="d.assigneeId" (ngModelChange)="set('assigneeId', $event)" [filter]="true" [disabled]="!canEdit()" styleClass="w-full" appendTo="body" />
+          </div>
+          <div class="form-field">
+            <label for="fb-tags">Tags</label>
+            <p-multiselect inputId="fb-tags" [options]="store.tags()" optionLabel="name" optionValue="id" [ngModel]="d.tagIds" (ngModelChange)="set('tagIds', $event ?? [])" [filter]="true" display="chip" placeholder="None" [disabled]="!canEdit()" styleClass="w-full" appendTo="body" />
+          </div>
+        </div>
+
+        @if (form()?.access === 'API_KEY' || d.access === 'API_KEY') {
+          <div class="card">
+            <h2 class="tm-fb-heading">API</h2>
+            @if (form()?.access !== 'API_KEY') {
+              <p class="tm-muted">Save the form to switch it to API-key access.</p>
+            } @else {
+              <div class="form-field mb-3">
+                <label>Endpoint</label>
+                <div class="tm-fb-slug">
+                  <code class="tm-fb-code-inline">POST {{ apiUrl() }}</code>
+                  <button type="button" class="tm-icon-btn" (click)="copy(apiUrl(), 'Endpoint copied')" aria-label="Copy endpoint"><i class="pi pi-copy"></i></button>
+                </div>
+              </div>
+              <div class="form-field mb-3">
+                <label>Key</label>
+                @if (newKey(); as key) {
+                  <div class="tm-fb-newkey">
+                    <code>{{ key }}</code>
+                    <button type="button" class="tm-icon-btn" (click)="copy(key, 'Key copied')" aria-label="Copy key"><i class="pi pi-copy"></i></button>
+                  </div>
+                  <small class="tm-muted">Copy it now — it won't be shown again.</small>
+                } @else if (form()?.hasApiKey) {
+                  <div><code>{{ form()?.apiKeyHint }}</code></div>
+                } @else {
+                  <small class="tm-muted">No key yet.</small>
+                }
+                @if (canEdit()) {
+                  <div class="mt-2">
+                    <p-button [label]="form()?.hasApiKey ? 'Replace key' : 'Generate key'" icon="pi pi-key" severity="secondary" [outlined]="true" size="small" (onClick)="rotateKey()" />
+                  </div>
+                }
+              </div>
+              <details class="tm-fb-example">
+                <summary>Example request</summary>
+                <pre>{{ curlExample() }}</pre>
+                <p class="tm-muted">
+                  Send the key as <code>X-Form-Key</code> (or <code>Authorization: Bearer …</code>). <code>answers</code> uses the question keys;
+                  <code>submitter</code> and <code>context</code> are optional and show up in the task. For files, post
+                  <code>multipart/form-data</code> with <code>answers</code> as a JSON string and up to 5 <code>files</code>.
+                  <code>GET</code> the same URL without <code>/submit</code> to read the questions.
+                </p>
+              </details>
+            }
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</div>

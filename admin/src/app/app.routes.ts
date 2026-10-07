@@ -15,6 +15,11 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/accept-invite/accept-invite.page').then((m) => m.AcceptInvitePage),
   },
   {
+    // Public / collaborator intake forms that create tasks.
+    path: 'f/:slug',
+    loadComponent: () => import('./pages/task-form/task-form.page').then((m) => m.TaskFormPage),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],
@@ -201,6 +206,14 @@ export const appRoutes: Route[] = [
         path: 'tasks/projects',
         loadComponent: () =>
           import('./task-manager/pages/projects-browser.page').then((m) => m.ProjectsBrowserPage),
+      },
+      {
+        path: 'tasks/projects/:projectId/forms',
+        loadComponent: () => import('./task-manager/forms/forms-list.page').then((m) => m.FormsListPage),
+      },
+      {
+        path: 'tasks/projects/:projectId/forms/:formId',
+        loadComponent: () => import('./task-manager/forms/form-builder.page').then((m) => m.FormBuilderPage),
       },
       {
         path: 'tasks/projects/:projectId',

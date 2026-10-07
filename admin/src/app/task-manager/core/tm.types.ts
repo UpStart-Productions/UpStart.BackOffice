@@ -125,6 +125,8 @@ export type TaskDetail = TaskSummary & {
   customFields: TmField[];
   section: { id: string; name: string } | null;
   projects: TaskMembership[];
+  form: { id: string; name: string } | null;
+  submitter: { email: string | null; name: string | null } | null;
   parent: { id: string; name: string; parentTaskId: string | null } | null;
   createdBy: Person | null;
   completedBy: Person | null;
@@ -156,4 +158,59 @@ export type AppNotification = {
   createdAt: string;
 };
 
-export type EmailPrefs = Record<'task_assigned' | 'task_mention' | 'task_comment' | 'task_completed' | 'project_added', boolean>;
+export type EmailPrefs = Record<'task_assigned' | 'task_mention' | 'task_comment' | 'task_completed' | 'project_added' | 'task_form_submission', boolean>;
+
+// ── Forms ──────────────────────────────────────────────────────────────────
+
+export type FormAccess = 'OPEN' | 'COLLABORATORS' | 'API_KEY';
+export type FormQuestionType = 'SHORT_TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'EMAIL' | 'SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'FILE';
+export type FormQuestionTarget = 'NAME' | 'DESCRIPTION' | 'FIELD';
+
+export type FormQuestion = {
+  id: string;
+  key: string;
+  label: string;
+  type: FormQuestionType;
+  required: boolean;
+  helpText?: string;
+  options?: string[];
+  target: FormQuestionTarget;
+  fieldId?: string;
+  hidden?: boolean;
+};
+
+export type TmForm = {
+  id: string;
+  projectId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  access: FormAccess;
+  isActive: boolean;
+  sectionId: string | null;
+  assigneeId: string | null;
+  tagIds: string[];
+  questions: FormQuestion[];
+  confirmationMessage: string | null;
+  hasApiKey: boolean;
+  apiKeyHint: string | null;
+  submissionCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** What a form page renders (public or collaborator). */
+export type FormDefinition = {
+  slug: string;
+  name: string;
+  description?: string | null;
+  access: FormAccess;
+  projectName?: string | null;
+  requiresSignIn: boolean;
+  requiresEmail?: boolean;
+  questions?: (Omit<FormQuestion, 'target' | 'fieldId'> & { isTaskName: boolean })[];
+  maxFiles?: number;
+  maxFileBytes?: number;
+};
+
+export type FormSubmitResult = { ok: boolean; taskId?: string; message: string; route?: string[] };

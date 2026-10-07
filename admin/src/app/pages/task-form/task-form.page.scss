@@ -1,0 +1,64 @@
+.task-form-card {
+  max-width: 40rem;
+}
+
+.task-form-title {
+  margin: 0 0 0.35rem;
+}
+
+.task-form-intro {
+  white-space: pre-line;
+  margin: 0 0 1.5rem;
+}
+
+.task-form-help {
+  display: block;
+  margin: -0.1rem 0 0.35rem;
+  color: var(--text-color-secondary);
+}
+
+.task-form-required {
+  color: var(--p-red-500, #dc2626);
+  margin-left: 0.15rem;
+}
+
+.task-form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.task-form-file {
+  display: block;
+  width: 100%;
+}
+
+/* Honeypot: invisible to people, tempting to bots. */
+.task-form-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.task-form-done {
+  text-align: center;
+
+  .pi-check-circle {
+    font-size: 2.5rem;
+    color: var(--p-green-500, #16a34a);
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    white-space: pre-line;
+  }
+}
+
+.task-form-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+}

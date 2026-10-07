@@ -29,6 +29,7 @@ import {
   isValidEmail,
   normalizeQuestions,
   publicQuestions,
+  withLiveFields,
   slugify,
 } from './task-forms.util';
 import { personName } from './task-people.util';
@@ -88,14 +89,15 @@ export class TaskFormsService {
       include: { _count: { select: { tasks: true } } },
       orderBy: { createdAt: 'asc' },
     });
-    return forms.map((f) => this.toDto(f, f._count.tasks));
+    const fields = await this.fieldsFor(projectId);
+    return forms.map((f) => this.toDto(f, f._count.tasks, fields));
   }
 
   async get(user: UserContext, formId: string) {
     const form = await this.findOr404(formId);
     await this.access.assertProject(user, form.projectId, 'view');
     const count = await this.prisma.task.count({ where: { formId } });
-    return this.toDto(form, count);
+    return this.toDto(form, count, await this.fieldsFor(form.projectId));
   }
 
   async create(user: UserContext, projectId: string, dto: CreateFormDto) {
@@ -163,14 +165,14 @@ export class TaskFormsService {
       return { slug: form.slug, name: form.name, access: form.access, requiresSignIn: true };
     }
     if (form.access === TaskFormAccess.API_KEY) this.assertKey(form, apiKey);
-    return this.definition(form);
+    return this.definition(form, await this.fieldsFor(form.projectId));
   }
 
   /** Definition for a signed-in collaborator. */
   async collaboratorDefinition(user: UserContext, slug: string) {
     const form = await this.bySlug(slug);
     await this.assertCollaborator(user, form);
-    return this.definition(form);
+    return this.definition(form, await this.fieldsFor(form.projectId));
   }
 
   /** OPEN or API_KEY submission (no signed-in user). */
@@ -213,8 +215,8 @@ export class TaskFormsService {
   ) {
     if (files.length > FORM_MAX_FILES) throw new BadRequestException(`Attach at most ${FORM_MAX_FILES} files`);
     if (files.some((f) => f.size > FORM_MAX_FILE_BYTES)) throw new BadRequestException('Each file must be 10 MB or smaller');
-    const questions = (form.questions as unknown as FormQuestion[]) ?? [];
     const fields = await this.fieldsFor(form.projectId);
+    const questions = withLiveFields((form.questions as unknown as FormQuestion[]) ?? [], fields);
     const answers = (this.parseObject(dto.answers) ?? {}) as Record<string, unknown>;
     const context = this.parseObject(dto.context);
     let built;
@@ -332,7 +334,7 @@ export class TaskFormsService {
     if (!result.sent) this.logger.warn(`Form confirmation to ${who.email} failed: ${result.error}`);
   }
 
-  private definition(form: TaskForm & { project?: { name: string } | null }) {
+  private definition(form: TaskForm & { project?: { name: string } | null }, fields: Awaited<ReturnType<TaskFormsService['fieldsFor']>>) {
     return {
       slug: form.slug,
       name: form.name,
@@ -341,7 +343,7 @@ export class TaskFormsService {
       projectName: form.project?.name ?? null,
       requiresSignIn: false,
       requiresEmail: form.access === TaskFormAccess.OPEN,
-      questions: publicQuestions((form.questions as unknown as FormQuestion[]) ?? []),
+      questions: publicQuestions(withLiveFields((form.questions as unknown as FormQuestion[]) ?? [], fields)),
       maxFiles: FORM_MAX_FILES,
       maxFileBytes: FORM_MAX_FILE_BYTES,
     };
@@ -433,7 +435,7 @@ export class TaskFormsService {
     return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
   }
 
-  private toDto(form: TaskForm, submissionCount: number) {
+  private toDto(form: TaskForm, submissionCount: number, fields?: Awaited<ReturnType<TaskFormsService['fieldsFor']>>) {
     return {
       id: form.id,
       projectId: form.projectId,
@@ -445,7 +447,7 @@ export class TaskFormsService {
       sectionId: form.sectionId,
       assigneeId: form.assigneeId,
       tagIds: Array.isArray(form.tagIds) ? (form.tagIds as string[]) : [],
-      questions: (form.questions as unknown as FormQuestion[]) ?? [],
+      questions: fields ? withLiveFields((form.questions as unknown as FormQuestion[]) ?? [], fields) : ((form.questions as unknown as FormQuestion[]) ?? []),
       confirmationMessage: form.confirmationMessage,
       hasApiKey: !!form.apiKeyHash,
       apiKeyHint: form.apiKeyHint,

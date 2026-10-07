@@ -7,6 +7,9 @@ import {
   FieldType,
   MemberRole,
   MyTask,
+  FormDefinition,
+  FormSubmitResult,
+  TmForm,
   TaskMembership,
   TmTag,
   Person,
@@ -139,6 +142,32 @@ export class TmApiService {
   }
   removeTaskProject(id: string, projectId: string) {
     return this.api.delete<TaskMembership[]>(`/tm/tasks/${id}/projects/${projectId}`);
+  }
+
+  // Forms
+  listForms(projectId: string) {
+    return this.api.get<TmForm[]>(`/tm/projects/${projectId}/forms`);
+  }
+  createForm(projectId: string, body: Partial<TmForm>) {
+    return this.api.post<TmForm>(`/tm/projects/${projectId}/forms`, body);
+  }
+  getForm(id: string) {
+    return this.api.get<TmForm>(`/tm/forms/${id}`);
+  }
+  updateForm(id: string, body: Partial<TmForm>) {
+    return this.api.patch<TmForm>(`/tm/forms/${id}`, body);
+  }
+  deleteForm(id: string) {
+    return this.api.delete(`/tm/forms/${id}`);
+  }
+  rotateFormKey(id: string) {
+    return this.api.post<{ key: string; hint: string }>(`/tm/forms/${id}/api-key`, {});
+  }
+  collaboratorForm(slug: string) {
+    return this.api.get<FormDefinition>(`/tm/f/${encodeURIComponent(slug)}`);
+  }
+  submitCollaboratorForm(slug: string, body: FormData) {
+    return this.api.postFormData<FormSubmitResult>(`/tm/f/${encodeURIComponent(slug)}/submit`, body);
   }
 
   // Tags

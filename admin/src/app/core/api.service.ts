@@ -150,6 +150,29 @@ export class ApiService {
     }
   }
 
+  /** Authenticated multipart POST of a prepared FormData (browser sets the boundary). */
+  async postFormData<T>(path: string, formData: FormData, retriedAfterRefresh = false): Promise<T> {
+    const options = await this.auth.getHeaders({ method: 'POST', body: formData });
+    delete (options.headers as Record<string, string>)['Content-Type'];
+    const res = await fetch(`${this.base}${path}`, options);
+    const text = await res.text();
+    if (!res.ok) {
+      if (res.status === 401) {
+        if (!retriedAfterRefresh && this.cognito.useCognito && (await this.cognito.refreshSession())) {
+          return this.postFormData<T>(path, formData, true);
+        }
+        await this.redirectToLoginOnAuthFailure();
+      }
+      throw new Error(extractMessage(res.status, text));
+    }
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as unknown as T;
+    }
+  }
+
   async fetchPdfBlob(path: string, retriedAfterRefresh = false): Promise<Blob> {
     const options = await this.auth.getHeaders({ method: 'GET' });
     const res = await fetch(`${this.base}${path}`, options);
