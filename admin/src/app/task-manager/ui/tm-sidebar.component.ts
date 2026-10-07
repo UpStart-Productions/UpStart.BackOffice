@@ -46,7 +46,7 @@ import { TmProjectIconComponent } from './tm-project-icon.component';
               @for (p of store.starred(); track p.id) {
                 <li>
                   <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
-                    <app-tm-project-icon [color]="p.color" [icon]="p.icon" />
+                    <app-tm-project-icon [color]="p.color" [icon]="p.icon" [large]="true" />
                     <span class="tm-nav-label">{{ p.name }}</span>
                   </a>
                 </li>
@@ -73,7 +73,7 @@ import { TmProjectIconComponent } from './tm-project-icon.component';
             @for (p of sortedProjects(); track p.id) {
               <li>
                 <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
-                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" />
+                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" [large]="true" />
                   <span class="tm-nav-label">{{ p.name }}</span>
                 </a>
               </li>

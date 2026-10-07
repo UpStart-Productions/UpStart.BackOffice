@@ -63,7 +63,7 @@ import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
               </td>
               <td>
                 <a [routerLink]="['/tasks/projects', p.id]" class="tm-browser-name" (click)="$event.stopPropagation()">
-                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" />{{ p.name }}
+                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" [large]="true" />{{ p.name }}
                 </a>
                 @if (!p.isActive) { <span class="tm-client-chip tm-client-chip--archived">Inactive</span> }
               </td>

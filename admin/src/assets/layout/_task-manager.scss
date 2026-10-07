@@ -232,9 +232,9 @@ $tm-detail-width: min(42rem, 48vw);
 
 .tm-project-dot {
   display: inline-block;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 3px;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
@@ -1935,8 +1935,9 @@ a.tm-project-pill:hover {
 }
 
 .tm-project-dot--lg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 6px;
 }
 
 .tm-appearance {
