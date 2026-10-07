@@ -39,6 +39,7 @@ import {
   MoveTaskDto,
   SetFieldValueDto,
   TaskListQueryDto,
+  TaskReportQueryDto,
   TaskSearchQueryDto,
   UpdateCommentDto,
   UpdateFieldDto,
@@ -196,6 +197,17 @@ export class TaskManagerController {
   }
 
   // ── Tasks ─────────────────────────────────────────────────────────────────
+
+  @Get('reports/tasks')
+  taskReport(@Req() req: Request, @Query() query: TaskReportQueryDto) {
+    return this.tasks.report(
+      me(req),
+      new Date(query.from),
+      new Date(query.to),
+      query.projectId,
+      query.clientId,
+    );
+  }
 
   @Get('my-tasks')
   @ApiQuery({ name: 'completedDays', required: false })

@@ -84,7 +84,7 @@
         </div>
         <div
           class="form-field report-filter-field"
-          title="Limit time and invoices to one client. Select a client to also filter by project."
+          title="Limit time, invoices, and tasks to one client. Select a client to also filter by project."
         >
           <label for="reportClient">Client</label>
           <p-select
@@ -123,7 +123,7 @@
           label="Run report"
           icon="pi pi-play"
           [loading]="loading()"
-          title="Load time and invoice data for the selected filters"
+          title="Load report data for the selected filters"
           (click)="runReport()"
         ></button>
       </div>
@@ -141,6 +141,7 @@
       <p-tablist>
         <p-tab [value]="0" title="Hours worked in the selected period">Time</p-tab>
         <p-tab [value]="1" title="Invoices issued in the selected period">Invoices</p-tab>
+        <p-tab [value]="2" title="Tasks created, completed, or overdue in the selected period">Tasks</p-tab>
       </p-tablist>
       <p-tabpanels>
         <p-tabpanel [value]="0">
@@ -399,6 +400,162 @@
                   </tr>
                 </ng-template>
               </p-table>
+            }
+          }
+        </p-tabpanel>
+
+        <p-tabpanel [value]="2">
+          @if (!hasRun()) {
+            <p class="text-muted report-empty">Choose a period and run the report to see task data.</p>
+          } @else if (loading()) {
+            <p class="text-muted report-empty">Loading…</p>
+          } @else {
+            @if (newTasksChart() || completedTasksChart() || overdueTasksChart()) {
+              <div class="time-summary-charts">
+                @if (newTasksChart(); as chart) {
+                  <div class="time-chart-block">
+                    <span class="time-chart-title">
+                      New tasks ({{ taskSummary().newCount }})
+                    </span>
+                    <p-chart
+                      type="doughnut"
+                      [data]="chart.data"
+                      [options]="chart.options"
+                      height="9.5rem"
+                      ariaLabel="New tasks by project"
+                    />
+                  </div>
+                }
+                @if (completedTasksChart(); as chart) {
+                  <div class="time-chart-block">
+                    <span class="time-chart-title">
+                      Completed ({{ taskSummary().completedCount }})
+                    </span>
+                    <p-chart
+                      type="doughnut"
+                      [data]="chart.data"
+                      [options]="chart.options"
+                      height="9.5rem"
+                      ariaLabel="Completed tasks by project"
+                    />
+                  </div>
+                }
+                @if (overdueTasksChart(); as chart) {
+                  <div class="time-chart-block">
+                    <span class="time-chart-title">
+                      Overdue ({{ taskSummary().overdueCount }})
+                    </span>
+                    <p-chart
+                      type="doughnut"
+                      [data]="chart.data"
+                      [options]="chart.options"
+                      height="9.5rem"
+                      ariaLabel="Overdue tasks by project"
+                    />
+                  </div>
+                }
+              </div>
+            }
+
+            <h3 class="report-section-title">Task summary</h3>
+            <p-table [value]="[taskSummary()]" styleClass="table-bordered report-table">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th class="text-right">New</th>
+                  <th class="text-right">Completed</th>
+                  <th class="text-right">Overdue</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr>
+                  <td class="text-right font-semibold">{{ row.newCount }}</td>
+                  <td class="text-right font-semibold">{{ row.completedCount }}</td>
+                  <td class="text-right font-semibold">{{ row.overdueCount }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+
+            @if (!hasTaskData()) {
+              <p class="text-muted">No task activity in this period.</p>
+            } @else {
+              @if (newTasks().length > 0) {
+                <h3 class="report-section-title">New tasks</h3>
+                <p-table [value]="newTasks()" styleClass="table-bordered report-table">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Task</th>
+                      <th>Project</th>
+                      <th>Assignee</th>
+                      <th>Created</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>
+                        <a [routerLink]="taskLink(row)" class="text-primary font-semibold">{{ row.name }}</a>
+                      </td>
+                      <td>{{ row.projectName }}</td>
+                      <td>{{ row.assigneeName ?? '—' }}</td>
+                      <td>{{ formatDate(row.createdAt) }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (completedTasks().length > 0) {
+                <h3 class="report-section-title">Completed tasks</h3>
+                <p-table [value]="completedTasks()" styleClass="table-bordered report-table">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Task</th>
+                      <th>Project</th>
+                      <th>Assignee</th>
+                      <th>Completed</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>
+                        <a [routerLink]="taskLink(row)" class="text-primary font-semibold">{{ row.name }}</a>
+                      </td>
+                      <td>{{ row.projectName }}</td>
+                      <td>{{ row.assigneeName ?? '—' }}</td>
+                      <td>{{ row.completedAt ? formatDate(row.completedAt) : '—' }}</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+
+              @if (overdueTasks().length > 0) {
+                <h3 class="report-section-title">Overdue tasks</h3>
+                <p-table [value]="overdueTasks()" styleClass="table-bordered report-table">
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Task</th>
+                      <th>Project</th>
+                      <th>Assignee</th>
+                      <th>Due</th>
+                      <th>Status</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-row>
+                    <tr>
+                      <td>
+                        <a [routerLink]="taskLink(row)" class="text-primary font-semibold">{{ row.name }}</a>
+                      </td>
+                      <td>{{ row.projectName }}</td>
+                      <td>{{ row.assigneeName ?? '—' }}</td>
+                      <td>{{ formatDateOnly(row.dueOn) }}</td>
+                      <td>
+                        <p-tag
+                          [value]="row.isCompleted ? 'Completed late' : 'Open'"
+                          [severity]="row.isCompleted ? 'warn' : 'danger'"
+                        />
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
             }
           }
         </p-tabpanel>

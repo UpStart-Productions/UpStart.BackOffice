@@ -162,7 +162,7 @@
           @for (s of t.subtasks; track s.id) {
             <li class="tm-subtask" [class.completed]="s.isCompleted">
               <button type="button" class="tm-check" [class.done]="s.isCompleted" (click)="toggleSubtask(s)" [disabled]="!canEdit()" [attr.aria-label]="s.isCompleted ? 'Mark incomplete' : 'Mark complete'">
-                <i class="pi pi-check"></i>
+                <i class="pi" [class.pi-check-circle]="s.isCompleted" [class.pi-circle]="!s.isCompleted"></i>
               </button>
               <input
                 class="tm-subtask-name"
@@ -188,7 +188,7 @@
         @if (canEdit()) {
           @if (addingSubtask()) {
             <div class="tm-subtask tm-subtask-new">
-              <span class="tm-check"><i class="pi pi-check"></i></span>
+              <span class="tm-check" aria-hidden="true"><i class="pi pi-circle"></i></span>
               <input
                 class="tm-subtask-name tm-subtask-new-input"
                 [(ngModel)]="newSubtask"

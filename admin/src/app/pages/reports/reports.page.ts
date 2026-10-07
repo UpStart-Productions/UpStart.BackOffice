@@ -81,6 +81,34 @@ type InvoiceClientRow = {
   draft: number;
 };
 
+type TaskReportRow = {
+  id: string;
+  name: string;
+  projectId: string;
+  projectName: string;
+  clientName: string;
+  assigneeName: string | null;
+  dueOn: string | null;
+  createdAt: string;
+  completedAt: string | null;
+  isCompleted: boolean;
+};
+
+type TaskReport = {
+  summary: { newCount: number; completedCount: number; overdueCount: number };
+  newTasks: TaskReportRow[];
+  completedTasks: TaskReportRow[];
+  overdueTasks: TaskReportRow[];
+};
+
+type TaskProjectRow = {
+  clientName: string;
+  projectName: string;
+  newCount: number;
+  completedCount: number;
+  overdueCount: number;
+};
+
 @Component({
   selector: 'app-reports-page',
   standalone: true,
@@ -147,6 +175,7 @@ export class ReportsPage implements OnInit {
 
   private timeEntries = signal<TimeEntry[]>([]);
   private invoices = signal<Invoice[]>([]);
+  private taskReport = signal<TaskReport | null>(null);
 
   readonly periodTypeOptions = [
     { label: 'Month', value: 'month' as ReportPeriodType },
@@ -321,6 +350,61 @@ export class ReportsPage implements OnInit {
     ),
   );
 
+  readonly taskSummary = computed(
+    () =>
+      this.taskReport()?.summary ?? { newCount: 0, completedCount: 0, overdueCount: 0 },
+  );
+
+  readonly newTasks = computed(() => this.taskReport()?.newTasks ?? []);
+  readonly completedTasks = computed(() => this.taskReport()?.completedTasks ?? []);
+  readonly overdueTasks = computed(() => this.taskReport()?.overdueTasks ?? []);
+
+  readonly hasTaskData = computed(
+    () =>
+      this.taskSummary().newCount > 0 ||
+      this.taskSummary().completedCount > 0 ||
+      this.taskSummary().overdueCount > 0,
+  );
+
+  readonly tasksByProject = computed((): TaskProjectRow[] => {
+    const map = new Map<string, TaskProjectRow>();
+    const bump = (tasks: TaskReportRow[], field: 'newCount' | 'completedCount' | 'overdueCount') => {
+      for (const t of tasks) {
+        const row =
+          map.get(t.projectId) ??
+          ({
+            clientName: t.clientName,
+            projectName: t.projectName,
+            newCount: 0,
+            completedCount: 0,
+            overdueCount: 0,
+          } satisfies TaskProjectRow);
+        row[field] += 1;
+        map.set(t.projectId, row);
+      }
+    };
+    bump(this.newTasks(), 'newCount');
+    bump(this.completedTasks(), 'completedCount');
+    bump(this.overdueTasks(), 'overdueCount');
+    return [...map.values()].sort(
+      (a, b) =>
+        b.newCount + b.completedCount + b.overdueCount - (a.newCount + a.completedCount + a.overdueCount) ||
+        a.clientName.localeCompare(b.clientName),
+    );
+  });
+
+  readonly newTasksChart = computed(() =>
+    this.buildCountByProjectChart(this.tasksByProject(), (r) => r.newCount),
+  );
+
+  readonly completedTasksChart = computed(() =>
+    this.buildCountByProjectChart(this.tasksByProject(), (r) => r.completedCount),
+  );
+
+  readonly overdueTasksChart = computed(() =>
+    this.buildCountByProjectChart(this.tasksByProject(), (r) => r.overdueCount),
+  );
+
   async ngOnInit() {
     const [clients, projects] = await Promise.all([
       this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
@@ -380,9 +464,17 @@ export class ReportsPage implements OnInit {
         params.set('projectId', this.filters.projectId);
       }
 
-      const [entries, invoices] = await Promise.all([
+      const taskParams = new URLSearchParams({
+        from: bounds.from.toISOString(),
+        to: bounds.to.toISOString(),
+      });
+      if (this.filters.projectId) taskParams.set('projectId', this.filters.projectId);
+      if (this.filters.clientId) taskParams.set('clientId', this.filters.clientId);
+
+      const [entries, invoices, tasks] = await Promise.all([
         this.api.get<TimeEntry[]>(`/time-entries?${params}`),
         this.api.get<Invoice[]>('/invoices'),
+        this.api.get<TaskReport>(`/tm/reports/tasks?${taskParams}`).catch(() => null),
       ]);
 
       const clientId = this.filters.clientId;
@@ -400,6 +492,7 @@ export class ReportsPage implements OnInit {
           return dateInPeriod(inv.issueDate, bounds.from, bounds.to);
         }),
       );
+      this.taskReport.set(tasks);
       this.appliedClientId.set(clientId);
       this.appliedProjectId.set(projectId);
       this.hasRun.set(true);
@@ -424,6 +517,21 @@ export class ReportsPage implements OnInit {
       day: 'numeric',
       year: 'numeric',
     });
+  }
+
+  formatDateOnly(key: string | null): string {
+    if (!key) return '—';
+    const [y, m, d] = key.split('-').map(Number);
+    if (!y || !m || !d) return key;
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  }
+
+  taskLink(row: TaskReportRow): string[] {
+    return ['/tasks/projects', row.projectId, 'tasks', row.id];
   }
 
   async exportTimeReportPdf() {
@@ -469,7 +577,15 @@ export class ReportsPage implements OnInit {
     rows: TimeProjectRow[],
     getMin: (row: TimeProjectRow) => number,
   ): { data: { labels: string[]; datasets: { data: number[]; backgroundColor: string[] }[] }; options: Record<string, unknown> } | null {
-    const filtered = rows.filter((r) => getMin(r) > 0);
+    return this.buildCountByProjectChart(rows, (r) => Math.round((getMin(r) / 60) * 100) / 100, 'hrs');
+  }
+
+  private buildCountByProjectChart<T extends { clientName: string; projectName: string }>(
+    rows: T[],
+    getValue: (row: T) => number,
+    unitLabel = 'tasks',
+  ): { data: { labels: string[]; datasets: { data: number[]; backgroundColor: string[] }[] }; options: Record<string, unknown> } | null {
+    const filtered = rows.filter((r) => getValue(r) > 0);
     if (filtered.length === 0) return null;
 
     const colors = [
@@ -488,7 +604,7 @@ export class ReportsPage implements OnInit {
         labels: filtered.map((r) => r.projectName),
         datasets: [
           {
-            data: filtered.map((r) => Math.round((getMin(r) / 60) * 100) / 100),
+            data: filtered.map((r) => getValue(r)),
             backgroundColor: filtered.map((_, i) => colors[i % colors.length]),
           },
         ],
@@ -505,7 +621,7 @@ export class ReportsPage implements OnInit {
                 const row = filtered[items[0].dataIndex];
                 return `${row.clientName} — ${row.projectName}`;
               },
-              label: (ctx: { parsed: number }) => `${ctx.parsed} hrs`,
+              label: (ctx: { parsed: number }) => `${ctx.parsed} ${unitLabel}`,
             },
           },
         },

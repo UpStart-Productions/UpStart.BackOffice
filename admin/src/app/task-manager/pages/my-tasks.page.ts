@@ -75,7 +75,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                     <div class="tm-row tm-my-row" [class.selected]="taskId() === t.id" [class.completed]="t.isCompleted" (click)="open(t)">
                       <div class="tm-grid-cell tm-row-main">
                         <button type="button" class="tm-check" [class.done]="t.isCompleted" (click)="toggleComplete(t, $event)" [attr.aria-label]="t.isCompleted ? 'Mark incomplete' : 'Mark complete'">
-                          <i class="pi pi-check"></i>
+                          <i class="pi" [class.pi-check-circle]="t.isCompleted" [class.pi-circle]="!t.isCompleted"></i>
                         </button>
                         <span class="tm-row-title">
                           @if (t.parent) { <span class="tm-muted">{{ t.parent.name }} ›</span> }

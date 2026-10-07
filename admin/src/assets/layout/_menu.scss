@@ -106,3 +106,11 @@
     border-top: 1px solid rgba(255, 255, 255, 0.15);
   }
 }
+
+// Collapsed nav icon labels (PrimeNG tooltip)
+.p-tooltip.layout-nav-tooltip {
+  .p-tooltip-arrow {
+    display: none;
+  }
+}
+

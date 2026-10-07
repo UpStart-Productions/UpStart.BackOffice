@@ -139,6 +139,13 @@ export class TaskSearchQueryDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) @Max(100) limit?: number;
 }
 
+export class TaskReportQueryDto {
+  @ApiProperty() @IsDateString() from!: string;
+  @ApiProperty() @IsDateString() to!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() projectId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() clientId?: string;
+}
+
 export class SetFieldValueDto {
   /** string | number | boolean | ISO date | optionId | optionId[] | null to clear */
   @ApiPropertyOptional() @Allow() value?: unknown;

@@ -13,6 +13,7 @@ import { TaskEventsService } from './task-events.service';
 import { coerceFieldValue, FieldOption, FieldType } from './task-fields.util';
 import {
   commentInclude,
+  dateOnlyIso,
   person,
   taskSummaryInclude,
   toAttachment,
@@ -23,6 +24,35 @@ import {
 import { extractMentionedUserIds, htmlToPlainText } from './task-mentions.util';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
 import { personName, personSelect } from './task-people.util';
+
+const reportTaskInclude = {
+  assignee: { select: personSelect },
+  project: { select: { id: true, name: true, client: { select: { id: true, name: true } } } },
+} satisfies Prisma.TaskInclude;
+
+type ReportTaskRow = Prisma.TaskGetPayload<{ include: typeof reportTaskInclude }>;
+
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function utcDateFromKey(key: string): Date {
+  return new Date(`${key.slice(0, 10)}T00:00:00.000Z`);
+}
+
+function isOverdueInPeriod(row: Pick<ReportTaskRow, 'dueOn' | 'isCompleted' | 'completedAt'>, from: Date, to: Date): boolean {
+  if (!row.dueOn) return false;
+  const dueKey = row.dueOn.toISOString().slice(0, 10);
+  const fromKey = localDateKey(from);
+  const toKey = localDateKey(to);
+  if (dueKey < fromKey || dueKey > toKey) return false;
+  const endOfDue = new Date(`${dueKey}T23:59:59.999Z`);
+  if (row.isCompleted) return Boolean(row.completedAt && row.completedAt > endOfDue);
+  return dueKey < localDateKey(new Date());
+}
 import { describeRecurrence, nextDueDate, normalizeRecurrence, TaskRecurrence } from './task-recurrence.util';
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
@@ -133,6 +163,55 @@ export class TasksService {
     });
 
     return rows;
+  }
+
+  /** Task counts and lists for the Reports page (new, completed, overdue in a date range). */
+  async report(user: UserContext, from: Date, to: Date, projectId?: string, clientId?: string) {
+    const scope = await this.reportScope(user, projectId, clientId);
+    const empty = {
+      summary: { newCount: 0, completedCount: 0, overdueCount: 0 },
+      newTasks: [] as ReturnType<typeof this.toReportTask>[],
+      completedTasks: [] as ReturnType<typeof this.toReportTask>[],
+      overdueTasks: [] as ReturnType<typeof this.toReportTask>[],
+    };
+    if (!scope) return empty;
+
+    const dueFrom = utcDateFromKey(localDateKey(from));
+    const dueTo = utcDateFromKey(localDateKey(to));
+
+    const [newRows, completedRows, dueRows] = await Promise.all([
+      this.prisma.task.findMany({
+        where: { ...scope, createdAt: { gte: from, lte: to } },
+        include: reportTaskInclude,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.task.findMany({
+        where: { ...scope, isCompleted: true, completedAt: { gte: from, lte: to } },
+        include: reportTaskInclude,
+        orderBy: { completedAt: 'desc' },
+      }),
+      this.prisma.task.findMany({
+        where: { ...scope, dueOn: { gte: dueFrom, lte: dueTo } },
+        include: reportTaskInclude,
+        orderBy: [{ dueOn: 'asc' }, { createdAt: 'asc' }],
+      }),
+    ]);
+
+    const overdueRows = dueRows.filter((row) => isOverdueInPeriod(row, from, to));
+    const newTasks = newRows.map((row) => this.toReportTask(row));
+    const completedTasks = completedRows.map((row) => this.toReportTask(row));
+    const overdueTasks = overdueRows.map((row) => this.toReportTask(row));
+
+    return {
+      summary: {
+        newCount: newTasks.length,
+        completedCount: completedTasks.length,
+        overdueCount: overdueTasks.length,
+      },
+      newTasks,
+      completedTasks,
+      overdueTasks,
+    };
   }
 
   async get(user: UserContext, taskId: string) {
@@ -741,5 +820,64 @@ export class TasksService {
       renumber(siblings).map((r) => this.prisma.task.update({ where: { id: r.id }, data: { sortOrder: r.sortOrder } })),
     );
     return (index + 1) * ORDER_STEP + ORDER_STEP / 2;
+  }
+
+  private async reportScope(
+    user: UserContext,
+    projectId?: string,
+    clientId?: string,
+  ): Promise<Prisma.TaskWhereInput | null> {
+    if (projectId) {
+      await this.access.assertProject(user, projectId, 'view');
+      return {
+        project: { inTaskManager: true },
+        OR: [{ projectId }, { projectLinks: { some: { projectId } } }],
+      };
+    }
+
+    const visible = await this.access.visibleProjectIds(user);
+    if (visible && visible.length === 0) return null;
+
+    if (clientId) {
+      const ids = (
+        await this.prisma.project.findMany({
+          where: {
+            inTaskManager: true,
+            clientId,
+            ...(visible ? { id: { in: visible } } : {}),
+          },
+          select: { id: true },
+        })
+      ).map((p) => p.id);
+      if (ids.length === 0) return null;
+      return {
+        project: { inTaskManager: true },
+        OR: [{ projectId: { in: ids } }, { projectLinks: { some: { projectId: { in: ids } } } }],
+      };
+    }
+
+    if (visible) {
+      return {
+        project: { inTaskManager: true },
+        OR: [{ projectId: { in: visible } }, { projectLinks: { some: { projectId: { in: visible } } } }],
+      };
+    }
+
+    return { project: { inTaskManager: true } };
+  }
+
+  private toReportTask(row: ReportTaskRow) {
+    return {
+      id: row.id,
+      name: row.name,
+      projectId: row.projectId,
+      projectName: row.project.name,
+      clientName: row.project.client?.name ?? 'Personal',
+      assigneeName: row.assignee ? personName(row.assignee) : null,
+      dueOn: dateOnlyIso(row.dueOn),
+      createdAt: row.createdAt.toISOString(),
+      completedAt: row.completedAt?.toISOString() ?? null,
+      isCompleted: row.isCompleted,
+    };
   }
 }

@@ -1,7 +1,13 @@
 import { Component, inject, input } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { TooltipModule } from 'primeng/tooltip';
 import { filter } from 'rxjs';
 import { LayoutService } from './layout.service';
+
+/** Hover delay before collapsed nav labels appear. */
+const NAV_TOOLTIP_SHOW_DELAY_MS = 500;
+/** Extra gap between icon rail and nav label tooltip. */
+const NAV_TOOLTIP_OFFSET_PX = 4;
 
 export type NavItem =
   | { label: string; icon: string; route: string }
@@ -10,7 +16,7 @@ export type NavItem =
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, TooltipModule],
   template: `
     <div class="layout-sidebar" [class.layout-sidebar--compact]="compact()">
       <ul class="layout-menu">
@@ -30,7 +36,13 @@ export type NavItem =
                     routerLinkActive="active-route"
                     [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' || item.route === '/time-entry' }"
                     class="layout-menuitem-link"
-                    [attr.title]="compact() ? item.label : null"
+                    [pTooltip]="item.label"
+                    [tooltipDisabled]="!compact()"
+                    tooltipPosition="right"
+                    [showDelay]="navTooltipShowDelayMs"
+                    [positionLeft]="navTooltipOffsetPx"
+                    tooltipStyleClass="layout-nav-tooltip"
+                    appendTo="body"
                     [attr.aria-label]="compact() ? item.label : null"
                   >
                     <i class="pi layout-menuitem-icon {{ item.icon }}"></i>
@@ -54,6 +66,8 @@ export class AppSidebarComponent {
   navItems = input<NavItem[]>([]);
   /** Icon-only rail (Task Manager mode). */
   compact = input(false);
+  readonly navTooltipShowDelayMs = NAV_TOOLTIP_SHOW_DELAY_MS;
+  readonly navTooltipOffsetPx = NAV_TOOLTIP_OFFSET_PX;
 
   trackItem(index: number, item: NavItem): string {
     return 'sectionLabel' in item ? `section-${item.sectionLabel}-${index}` : item.route;

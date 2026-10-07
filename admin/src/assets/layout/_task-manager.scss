@@ -18,6 +18,9 @@ $tm-detail-width: min(42rem, 48vw);
   --tm-fs-sm: 0.875rem;
   --tm-overdue: #dc2626;
   --tm-today: #15803d;
+  --tm-check-idle: #c5cdd6;
+  --tm-check-hover: #86efac;
+  --tm-check-done: var(--tm-today);
 }
 
 // ── Layout: rail + sidebar ─────────────────────────────────────────────────
@@ -325,30 +328,37 @@ $tm-detail-width: min(42rem, 48vw);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 999px;
-  border: 1.5px solid color-mix(in srgb, var(--tm-muted) 80%, transparent);
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
   background: transparent;
-  color: transparent;
+  color: var(--tm-check-idle);
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
 
   .pi {
-    font-size: 0.6rem;
+    font-size: 1.15rem;
+    line-height: 1;
   }
 
-  &:hover:not(:disabled) {
-    border-color: var(--tm-today);
-    color: var(--tm-today);
+  &:hover:not(:disabled):not(.done) {
+    color: var(--tm-check-hover);
   }
 
   &.done {
-    background: var(--tm-today);
-    border-color: var(--tm-today);
-    color: #fff;
+    color: var(--tm-check-done);
   }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+span.tm-check {
+  cursor: default;
+  pointer-events: none;
 }
 
 .tm-due {

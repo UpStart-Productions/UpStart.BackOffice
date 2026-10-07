@@ -153,7 +153,7 @@
                       <span class="tm-drag-handle" cdkDragHandle (click)="$event.stopPropagation()" aria-hidden="true"><i class="pi pi-bars"></i></span>
                     }
                     <button type="button" class="tm-check" [class.done]="t.isCompleted" (click)="toggleComplete(t, $event)" [disabled]="!canEdit()" [attr.aria-label]="t.isCompleted ? 'Mark incomplete' : 'Mark complete'">
-                      <i class="pi pi-check"></i>
+                      <i class="pi" [class.pi-check-circle]="t.isCompleted" [class.pi-circle]="!t.isCompleted"></i>
                     </button>
                     <input
                       class="tm-row-name"
@@ -212,7 +212,7 @@
                     <div class="tm-grid-cell tm-row-main">
                       <span class="tm-row-index tm-row-index--spacer" aria-hidden="true"></span>
                       <span class="tm-drag-handle" aria-hidden="true"><i class="pi pi-bars"></i></span>
-                      <span class="tm-check"><i class="pi pi-check"></i></span>
+                      <span class="tm-check" aria-hidden="true"><i class="pi pi-circle"></i></span>
                       <input
                         class="tm-row-name"
                         [(ngModel)]="newTaskName"
