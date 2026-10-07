@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { Component, computed, effect, inject, OnDestroy, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, effect, HostListener, inject, OnDestroy, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
@@ -13,10 +13,12 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, map } from 'rxjs';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, dueLabel, dueTone, PROJECT_COLORS } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { Person, TaskSummary, TmProject, TmSection } from '../core/tm.types';
+import { TmBulkActionsComponent } from '../ui/bulk-actions.component';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmFieldCellComponent } from '../ui/field-cell.component';
 import { TmFieldsDialogComponent } from '../ui/fields-dialog.component';
@@ -60,6 +62,7 @@ const NO_SECTION = '__none__';
     TmTaskDetailComponent,
     TmMembersDialogComponent,
     TmFieldsDialogComponent,
+    TmBulkActionsComponent,
   ],
   templateUrl: './project-tasks.page.html',
 })
@@ -69,6 +72,7 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly api = inject(TmApiService);
   readonly store = inject(TmStoreService);
   private readonly confirm = inject(ConfirmationService);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
 
   readonly projectId = toSignal(this.route.paramMap.pipe(map((p) => p.get('projectId')!)), {
@@ -98,6 +102,8 @@ export class ProjectTasksPage implements OnDestroy {
   sectionDraft = '';
   newSectionName = '';
   addingSection = signal(false);
+  selectedIds = signal<Set<string>>(new Set());
+  private selectionAnchorId: string | null = null;
 
   readonly filterOptions = [
     { label: 'Incomplete', value: 'incomplete' },
@@ -116,7 +122,9 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly sectionMenu = viewChild.required<Popover>('sectionMenu');
   private readonly colorMenu = viewChild.required<Popover>('colorMenu');
   private readonly projectMenu = viewChild.required<Popover>('projectMenu');
+  private readonly bulkSectionPop = viewChild.required<Popover>('bulkSectionPop');
   private pickerTask: TaskSummary | null = null;
+  private bulkPickerIds: string[] | null = null;
   menuSection: TmSection | null = null;
   private loadSeq = 0;
 
@@ -161,6 +169,11 @@ export class ProjectTasksPage implements OnDestroy {
   });
 
   readonly dropListIds = computed(() => this.groups().map((g) => this.dropId(g)));
+  readonly visibleTaskOrder = computed(() => this.groups().flatMap((g) => g.tasks.map((t) => t.id)));
+  readonly selectedCount = computed(() => this.selectedIds().size);
+  readonly sortedSections = computed(() =>
+    [...(this.project()?.sections ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
+  );
 
   constructor() {
     effect(() => {
@@ -206,7 +219,171 @@ export class ProjectTasksPage implements OnDestroy {
 
   setFilter(value: CompletedFilter) {
     this.completedFilter.set(value);
+    this.clearSelection();
     void this.load(this.projectId(), true);
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && this.selectedCount() > 0) {
+      this.clearSelection();
+    }
+  }
+
+  isBulkSelected(id: string) {
+    return this.selectedIds().has(id);
+  }
+
+  clearSelection() {
+    this.selectedIds.set(new Set());
+    this.selectionAnchorId = null;
+  }
+
+  /** Plain click: one selected row, detail open — keeps anchor for Shift/Ctrl extend. */
+  private selectSingle(task: TaskSummary) {
+    this.selectedIds.set(new Set([task.id]));
+    this.selectionAnchorId = task.id;
+    this.openTask(task);
+  }
+
+  /** Title column click (not the name field): select/open, or Shift/Ctrl/Cmd multi-select. */
+  onTitleColumnClick(task: TaskSummary, event: MouseEvent) {
+    const target = event.target;
+    if (target instanceof Element && target.closest('button, input, .tm-drag-handle')) return;
+    this.onRowClick(task, event);
+  }
+
+  /** Title field click: open/select, then focus for inline rename. */
+  onTitleClick(task: TaskSummary, event: MouseEvent, input: HTMLInputElement) {
+    event.stopPropagation();
+    const multi = event.shiftKey || event.metaKey || event.ctrlKey;
+    if (multi && this.canEdit()) {
+      this.onRowClick(task, event);
+      return;
+    }
+    this.selectSingle(task);
+    if (this.canEdit()) {
+      input.focus();
+      input.select();
+    }
+  }
+
+  /** Shift/Ctrl/Cmd multi-select; plain click selects one and opens the detail pane. */
+  private onRowClick(task: TaskSummary, event: MouseEvent) {
+    const multi = event.shiftKey || event.metaKey || event.ctrlKey;
+    if (!this.canEdit() || !multi) {
+      this.selectSingle(task);
+      return;
+    }
+
+    event.preventDefault();
+
+    if (event.shiftKey && this.selectionAnchorId) {
+      const order = this.visibleTaskOrder();
+      const anchorIdx = order.indexOf(this.selectionAnchorId);
+      const currentIdx = order.indexOf(task.id);
+      if (anchorIdx >= 0 && currentIdx >= 0) {
+        const [lo, hi] = anchorIdx < currentIdx ? [anchorIdx, currentIdx] : [currentIdx, anchorIdx];
+        const range = order.slice(lo, hi + 1);
+        this.selectedIds.update((s) => new Set([...s, ...range]));
+      }
+      this.selectionAnchorId = task.id;
+    } else {
+      this.selectedIds.update((s) => {
+        const next = new Set(s);
+        if (next.has(task.id)) next.delete(task.id);
+        else next.add(task.id);
+        return next;
+      });
+      this.selectionAnchorId = task.id;
+    }
+  }
+
+  private selectedTasksInOrder(): TaskSummary[] {
+    const ids = new Set(this.selectedIds());
+    const byId = new Map(this.tasks().map((t) => [t.id, t]));
+    return this.visibleTaskOrder()
+      .filter((id) => ids.has(id))
+      .map((id) => byId.get(id)!)
+      .filter(Boolean);
+  }
+
+  openBulkAssign(event: Event) {
+    this.bulkPickerIds = [...this.selectedIds()];
+    this.assigneePicker().open(event, this.people(), null);
+  }
+
+  openBulkDue(event: Event) {
+    this.bulkPickerIds = [...this.selectedIds()];
+    this.duePicker().open(event, null);
+  }
+
+  openBulkMove(event: Event) {
+    this.bulkSectionPop().toggle(event);
+  }
+
+  async bulkMoveToSection(sectionId: string | null) {
+    this.bulkSectionPop().hide();
+    const tasks = this.selectedTasksInOrder();
+    if (!tasks.length) return;
+    let afterId: string | null = null;
+    try {
+      for (const task of tasks) {
+        const updated = await this.api.moveTask(task.id, {
+          sectionId,
+          afterTaskId: afterId,
+          fromProjectId: this.projectId(),
+        });
+        this.patchLocal(task.id, updated);
+        afterId = task.id;
+      }
+      this.toast.add({ severity: 'success', summary: `Moved ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, life: 2500 });
+      this.clearSelection();
+    } catch (err) {
+      this.fail(err);
+      void this.load(this.projectId(), true);
+    }
+  }
+
+  async bulkMarkComplete() {
+    const tasks = this.selectedTasksInOrder().filter((t) => !t.isCompleted);
+    if (!tasks.length) return;
+    for (const task of tasks) this.patchLocal(task.id, { isCompleted: true });
+    try {
+      await Promise.all(tasks.map((t) => this.api.updateTask(t.id, { isCompleted: true })));
+      this.toast.add({ severity: 'success', summary: `Completed ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, life: 2500 });
+      this.clearSelection();
+      if (tasks.some((t) => t.recurrence)) void this.load(this.projectId(), true);
+    } catch (err) {
+      this.fail(err);
+      void this.load(this.projectId(), true);
+    }
+  }
+
+  confirmBulkDelete() {
+    const n = this.selectedCount();
+    if (!n) return;
+    this.confirmDelete.confirm({
+      message: `Delete ${n} task${n === 1 ? '' : 's'}? This cannot be undone.`,
+      accept: () => this.bulkDelete(),
+    });
+  }
+
+  private async bulkDelete() {
+    const tasks = this.selectedTasksInOrder();
+    if (!tasks.length) return;
+    const ids = new Set(tasks.map((t) => t.id));
+    this.tasks.update((list) => list.filter((t) => !ids.has(t.id)));
+    this.clearSelection();
+    if (this.taskId() && ids.has(this.taskId()!)) void this.closeTask();
+    try {
+      await Promise.all(tasks.map((t) => this.api.deleteTask(t.id)));
+      this.bumpOpenCount(-tasks.filter((t) => !t.isCompleted).length);
+      this.toast.add({ severity: 'success', summary: `Deleted ${tasks.length} task${tasks.length === 1 ? '' : 's'}`, life: 2500 });
+    } catch (err) {
+      this.fail(err);
+      void this.load(this.projectId(), true);
+    }
   }
 
   private fail(err: unknown) {
@@ -349,6 +526,24 @@ export class ProjectTasksPage implements OnDestroy {
   }
 
   async setAssignee(person: Person | null) {
+    const bulkIds = this.bulkPickerIds;
+    if (bulkIds?.length) {
+      this.bulkPickerIds = null;
+      for (const id of bulkIds) this.patchLocal(id, { assignee: person });
+      try {
+        await Promise.all(bulkIds.map((id) => this.api.updateTask(id, { assigneeId: person?.id ?? null })));
+        this.toast.add({
+          severity: 'success',
+          summary: `Updated ${bulkIds.length} task${bulkIds.length === 1 ? '' : 's'}`,
+          life: 2500,
+        });
+        this.clearSelection();
+      } catch (err) {
+        this.fail(err);
+        void this.load(this.projectId(), true);
+      }
+      return;
+    }
     const task = this.pickerTask;
     if (!task) return;
     this.patchLocal(task.id, { assignee: person });
@@ -368,6 +563,24 @@ export class ProjectTasksPage implements OnDestroy {
   }
 
   async setDue(key: string | null) {
+    const bulkIds = this.bulkPickerIds;
+    if (bulkIds?.length) {
+      this.bulkPickerIds = null;
+      for (const id of bulkIds) this.patchLocal(id, { dueOn: key });
+      try {
+        await Promise.all(bulkIds.map((id) => this.api.updateTask(id, { dueOn: key })));
+        this.toast.add({
+          severity: 'success',
+          summary: `Updated ${bulkIds.length} task${bulkIds.length === 1 ? '' : 's'}`,
+          life: 2500,
+        });
+        this.clearSelection();
+      } catch (err) {
+        this.fail(err);
+        void this.load(this.projectId(), true);
+      }
+      return;
+    }
     const task = this.pickerTask;
     if (!task) return;
     this.patchLocal(task.id, { dueOn: key });

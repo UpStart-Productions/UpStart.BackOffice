@@ -1,4 +1,5 @@
-import { Component, computed, effect, ElementRef, inject, input, OnDestroy, output, signal, untracked, viewChild } from '@angular/core';
+import { animate, style, transition, trigger } from '@angular/animations';
+import { Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { QuillModule } from 'ngx-quill';
@@ -42,6 +43,21 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     TmFieldCellComponent,
   ],
   templateUrl: './task-detail-panel.component.html',
+  animations: [
+    trigger('pane', [
+      transition(':enter', [
+        style({ transform: 'translateX(2rem)', opacity: 0 }),
+        animate('220ms ease-out', style({ transform: 'translateX(0)', opacity: 1 })),
+      ]),
+      transition(':leave', [
+        animate('200ms ease-in', style({ transform: 'translateX(2rem)', opacity: 0 })),
+      ]),
+    ]),
+  ],
+  host: {
+    class: 'tm-detail-host',
+    '[@pane]': '',
+  },
 })
 export class TmTaskDetailComponent implements OnDestroy {
   private readonly api = inject(TmApiService);
@@ -77,6 +93,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   editCommentDraft = '';
   uploading = signal(false);
 
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
   private readonly duePicker = viewChild.required<TmDueDatePickerComponent>('duePicker');
   private readonly recurrenceEditor = viewChild.required<TmRecurrenceEditorComponent>('recurrenceEditor');
@@ -126,6 +143,22 @@ export class TmTaskDetailComponent implements OnDestroy {
 
   ngOnDestroy() {
     this.saveDescription();
+  }
+
+  /** Clicking the page behind the pane closes it. A task row switches tasks instead, and menus opened from the pane stay up. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const node = event.target;
+    if (!(node instanceof Node) || this.host.nativeElement.contains(node)) return;
+    const el = node instanceof Element ? node : node.parentElement;
+    if (
+      el?.closest(
+        '.tm-row, .p-popover, .p-dialog, .p-dialog-mask, .p-select-overlay, .p-multiselect-overlay, .p-datepicker-panel, .mention-suggest-container, .ql-tooltip',
+      )
+    ) {
+      return;
+    }
+    this.closed.emit();
   }
 
   async load(id: string, quiet = false) {

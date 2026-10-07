@@ -42,7 +42,12 @@ type Mode = 'section' | 'move' | 'add';
         </div>
       }
       @if (canEdit() && !isSubtask()) {
-        <button type="button" class="tm-link-btn tm-membership-add" (click)="openAdd($event)"><i class="pi pi-plus"></i> Add to project</button>
+        <div class="tm-membership-add">
+          <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="openAdd($event)" pTooltip="Add to project" tooltipPosition="bottom" aria-label="Add to project">
+            <i class="pi pi-plus"></i>
+          </button>
+          <button type="button" class="tm-link-btn" (click)="openAdd($event)">Add to project</button>
+        </div>
       }
     </div>
 

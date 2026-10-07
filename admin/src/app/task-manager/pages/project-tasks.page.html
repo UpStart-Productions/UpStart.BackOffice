@@ -110,7 +110,7 @@
                   aria-label="Section name"
                 />
               } @else {
-                <h2 class="tm-section-name" (dblclick)="startRenameSection(s)">{{ s.name }}</h2>
+                <h2 class="tm-section-name" [class.tm-section-name--editable]="canEdit()" (click)="startRenameSection(s)">{{ s.name }}</h2>
               }
               <span class="tm-section-count">{{ g.tasks.length }}</span>
               @if (canEdit()) {
@@ -124,7 +124,8 @@
             }
           </div>
 
-          @if (!g.section?.isCollapsed) {
+          <div class="tm-section-collapse" [class.is-collapsed]="!!g.section?.isCollapsed">
+            <div class="tm-section-collapse-inner">
             <div
               class="tm-section-rows"
               cdkDropList
@@ -133,19 +134,21 @@
               [cdkDropListDisabled]="!canEdit()"
               (cdkDropListDropped)="onDrop($event)"
             >
-              @for (t of g.tasks; track t.id) {
+              @for (t of g.tasks; track t.id; let i = $index) {
                 <div
                   class="tm-row"
                   role="row"
                   cdkDrag
+                  cdkDragLockAxis="y"
                   [cdkDragData]="t"
                   [attr.data-task-id]="t.id"
                   [class.selected]="taskId() === t.id"
+                  [class.bulk-selected]="isBulkSelected(t.id)"
                   [class.completed]="t.isCompleted"
                   [style.grid-template-columns]="gridTemplate()"
-                  (click)="openTask(t)"
                 >
-                  <div class="tm-grid-cell tm-row-main" role="gridcell">
+                  <div class="tm-grid-cell tm-row-main" role="gridcell" (click)="onTitleColumnClick(t, $event)">
+                    <span class="tm-row-index" aria-hidden="true">{{ i + 1 }}</span>
                     @if (canEdit()) {
                       <span class="tm-drag-handle" cdkDragHandle (click)="$event.stopPropagation()" aria-hidden="true"><i class="pi pi-bars"></i></span>
                     }
@@ -156,7 +159,7 @@
                       class="tm-row-name"
                       [value]="t.name"
                       #nameInput
-                      (click)="$event.stopPropagation()"
+                      (click)="onTitleClick(t, $event, nameInput)"
                       (blur)="renameTask(t, nameInput.value)"
                       (keydown)="onNameKey($event, t, g)"
                       [readonly]="!canEdit()"
@@ -169,7 +172,6 @@
                       @if (t.commentCount) { <span title="Comments"><i class="pi pi-comment"></i> {{ t.commentCount }}</span> }
                       @if (t.attachmentCount) { <span title="Attachments"><i class="pi pi-paperclip"></i> {{ t.attachmentCount }}</span> }
                     </span>
-                    <button type="button" class="tm-row-open" (click)="openTask(t); $event.stopPropagation()" aria-label="Open task details">Details <i class="pi pi-angle-right"></i></button>
                   </div>
                   <div class="tm-grid-cell" role="gridcell">
                     <button type="button" class="tm-cell-btn" (click)="openAssignee($event, t)" [disabled]="!canEdit()">
@@ -208,6 +210,8 @@
                 @if (addingIn() === (g.section?.id ?? NO_SECTION)) {
                   <div class="tm-row tm-row-new" [style.grid-template-columns]="gridTemplate()">
                     <div class="tm-grid-cell tm-row-main">
+                      <span class="tm-row-index tm-row-index--spacer" aria-hidden="true"></span>
+                      <span class="tm-drag-handle" aria-hidden="true"><i class="pi pi-bars"></i></span>
                       <span class="tm-check"><i class="pi pi-check"></i></span>
                       <input
                         class="tm-row-name"
@@ -225,7 +229,8 @@
                 }
               }
             </div>
-          }
+            </div>
+          </div>
         </div>
       }
 
@@ -251,13 +256,24 @@
 
     @if (taskId(); as tid) {
       <app-tm-task-detail
-        class="tm-detail-host"
         [taskId]="tid"
         (closed)="closeTask()"
         (changed)="onDetailChanged($event)"
         (deleted)="onDetailDeleted($event)"
         (projectsChanged)="onProjectsChanged()"
         (openTask)="openTask({ id: $event })"
+      />
+    }
+
+    @if (canEdit() && selectedCount() >= 2) {
+      <app-tm-bulk-actions
+        [count]="selectedCount()"
+        (assign)="openBulkAssign($event)"
+        (dueDate)="openBulkDue($event)"
+        (move)="openBulkMove($event)"
+        (complete)="bulkMarkComplete()"
+        (delete)="confirmBulkDelete()"
+        (closed)="clearSelection()"
       />
     }
 
@@ -296,6 +312,26 @@
       }
     </div>
     <nmp-lucide-icon-picker-panel (iconSelected)="setIcon($event)" />
+  </div>
+</p-popover>
+
+<p-popover #bulkSectionPop appendTo="body" styleClass="tm-popover">
+  <div class="tm-picker">
+    <div class="tm-menu-label">Move to section</div>
+    <ul class="tm-picker-list">
+      <li>
+        <button type="button" class="tm-picker-item" (click)="bulkMoveToSection(null)">
+          <span>Untitled section</span>
+        </button>
+      </li>
+      @for (s of sortedSections(); track s.id) {
+        <li>
+          <button type="button" class="tm-picker-item" (click)="bulkMoveToSection(s.id)">
+            <span>{{ s.name }}</span>
+          </button>
+        </li>
+      }
+    </ul>
   </div>
 </p-popover>
 

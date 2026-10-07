@@ -69,7 +69,8 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                   <h2 class="tm-section-name" [class.tm-overdue-heading]="b.key === 'overdue'">{{ b.label }}</h2>
                   <span class="tm-section-count">{{ b.tasks.length }}</span>
                 </div>
-                @if (!collapsed().has(b.key)) {
+                <div class="tm-section-collapse" [class.is-collapsed]="collapsed().has(b.key)">
+                  <div class="tm-section-collapse-inner">
                   @for (t of b.tasks; track t.id) {
                     <div class="tm-row tm-my-row" [class.selected]="taskId() === t.id" [class.completed]="t.isCompleted" (click)="open(t)">
                       <div class="tm-grid-cell tm-row-main">
@@ -100,7 +101,8 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                   @if (b.key === 'today' && !b.tasks.length) {
                     <div class="tm-empty-row">Nothing due today 🎉</div>
                   }
-                }
+                  </div>
+                </div>
               </div>
             }
           }
@@ -115,7 +117,6 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
 
       @if (taskId(); as tid) {
         <app-tm-task-detail
-          class="tm-detail-host"
           [taskId]="tid"
           (closed)="close()"
           (changed)="onChanged($event)"
