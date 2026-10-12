@@ -112,33 +112,36 @@
                 Client-side contacts for this project (e.g. for invoicing and communication).
               </p>
 
-              <div class="project-contact-directory">
-                <label for="contactDirectorySearch" class="project-contact-directory-label">
-                  Add from Back Office
-                </label>
-                <p-autocomplete
-                  inputId="contactDirectorySearch"
-                  name="contactDirectorySearch"
-                  [(ngModel)]="directoryQuery"
-                  [suggestions]="directorySuggestions()"
-                  (completeMethod)="searchDirectory($event)"
-                  (onSelect)="onDirectoryPick($event)"
-                  optionLabel="displayName"
-                  [minLength]="2"
-                  [delay]="250"
+              <div class="form-field project-contact-directory">
+                <label for="projectContactDirectory">Add from Back Office</label>
+                <p-select
+                  inputId="projectContactDirectory"
+                  name="projectContactDirectory"
+                  [options]="directoryOptions()"
+                  optionLabel="label"
+                  optionValue="id"
+                  [(ngModel)]="directoryPickId"
+                  (ngModelChange)="onDirectoryPickId($event)"
+                  [filter]="true"
+                  filterBy="label,firstName,lastName,email,sourceLabel,displayName"
+                  filterPlaceholder="Search contacts…"
                   [showClear]="true"
+                  [loading]="directoryLoading()"
+                  placeholder="Search and select a contact…"
+                  styleClass="w-full project-contact-select"
+                  panelStyleClass="project-contact-select-panel"
                   appendTo="body"
-                  placeholder="Search team, projects, pipeline, network, bookings, task forms…"
-                  styleClass="w-full"
-                  emptyMessage="No people found"
                 >
-                  <ng-template let-item pTemplate="item">
-                    <div class="project-directory-item">
-                      <span class="project-directory-name">{{ item.displayName }}</span>
-                      <span class="project-directory-meta">{{ directoryItemDetail(item) }}</span>
+                  <ng-template #item let-option>
+                    <div class="project-directory-option">
+                      <app-tm-avatar [person]="directoryAvatarPerson(option)" [size]="32" [showTitle]="false" />
+                      <span class="project-directory-option-text">
+                        <span class="project-directory-option-name">{{ option.label }}</span>
+                        <span class="project-directory-option-email">{{ option.email || 'No email on file' }}</span>
+                      </span>
                     </div>
                   </ng-template>
-                </p-autocomplete>
+                </p-select>
               </div>
 
               @if (contactRows().length > 0) {

@@ -1,0 +1,60 @@
+---
+description: Searchable entity pickers use PrimeNG p-select with filter — never modals or one-off autocomplete UX
+alwaysApply: true
+---
+
+# Combo search select (searchable dropdown)
+
+When the user needs to **pick one record from a list** (people, tasks, clients, projects, etc.), use the same **filterable `p-select`** pattern used elsewhere in the admin app. Do **not** introduce modals, popovers, or bare `p-autocomplete` for these flows unless the feature is explicitly the global top-bar search.
+
+## Default control
+
+- **`p-select`** with `[filter]="true"`, `filterBy="…"`, `filterPlaceholder="Search…"`, `[showClear]="true"`, `appendTo="body"`, `styleClass="w-full"`.
+- Load **options upfront** (API or computed signals). User opens the dropdown and types to filter — no minimum character count, no “search to see anything.”
+- After selection: run the action (e.g. add row), then **clear** the bound value so the control stays a “pick again” field (`setTimeout(() => pickId = null)` if needed).
+
+## Reference implementations
+
+| Use case | Where to copy |
+|----------|----------------|
+| Task picker on a form | `admin/src/app/pages/time-entry/time-entry-modal.component.ts` — Work task `p-select` |
+| Person from across Back Office | `admin/src/app/pages/projects/project-form.page.html` — “Add from Back Office” + `GET /search/people` |
+| Static / already-loaded lists | `admin/src/app/pages/projects/project-form.page.html` — Client `p-select` |
+
+## Rich rows (avatar, subtitle)
+
+Use `#item` (and `#selectedItem` if needed) templates inside `p-select`. Reuse `app-tm-avatar` for people when appropriate.
+
+```html
+<p-select
+  [options]="options()"
+  optionLabel="label"
+  optionValue="id"
+  [(ngModel)]="pickId"
+  (ngModelChange)="onPick($event)"
+  [filter]="true"
+  filterBy="label,email,firstName,lastName"
+  filterPlaceholder="Search…"
+  [showClear]="true"
+  [loading]="loading()"
+  placeholder="Search and select…"
+  styleClass="w-full"
+  appendTo="body"
+>
+  <ng-template #item let-option>
+    <!-- avatar + primary line + secondary line -->
+  </ng-template>
+</p-select>
+```
+
+## Cross-system people lists
+
+- API: `GET /search/people?limit=250` (optional `q`, `excludeProjectId`). Implementation: `api/src/app/search/people-directory.service.ts`.
+- Sort **last name, then first name**; show **Last, First** in the list when both exist.
+
+## Do not
+
+- `p-dialog` / modal pickers for “choose one from a list”
+- `p-autocomplete` with `minLength={2}` as the only way to see options
+- Custom popover pickers when `p-select` + filter suffices
+- New UI patterns without checking the references above first

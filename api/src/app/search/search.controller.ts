@@ -24,6 +24,6 @@ export class SearchController {
   /** People anywhere in Back Office (for project contacts, etc.). */
   @Get('people')
   searchPeople(@Query() query: PeopleSearchQueryDto) {
-    return this.peopleDirectory.search(query.q, query.excludeProjectId, query.limit);
+    return this.peopleDirectory.search(query.q ?? '', query.excludeProjectId, query.limit);
   }
 }

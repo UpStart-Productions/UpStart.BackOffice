@@ -11,7 +11,6 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AccordionModule } from 'primeng/accordion';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
@@ -23,6 +22,13 @@ import {
   ProjectTaskDraft,
   SUGGESTED_PROJECT_TASKS,
 } from '../time-entry/time-entry.types';
+import { PeopleDirectoryEntry } from './people-directory.types';
+import {
+  PeopleDirectoryOption,
+  toDirectoryAvatarPerson,
+  toDirectoryOptions,
+} from './people-directory.util';
+import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 
 type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
@@ -35,17 +41,6 @@ type ProjectContactDraft = {
   phone: string;
   email: string;
   sortOrder: number;
-};
-
-type PeopleDirectoryEntry = {
-  id: string;
-  source: string;
-  sourceLabel: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  displayName: string;
 };
 
 type ProjectResponse = {
@@ -82,8 +77,8 @@ type ProjectResponse = {
     MultiSelectModule,
     InputNumberModule,
     AccordionModule,
-    AutoCompleteModule,
     QuillModule,
+    TmAvatarComponent,
     PageComponent,
     ArtifactsPanelComponent,
   ],
@@ -104,8 +99,10 @@ export class ProjectFormPage implements OnInit {
   error = signal<string | null>(null);
   clients = signal<Client[]>([]);
   contactRows = signal<ProjectContactDraft[]>([]);
-  directoryQuery = '';
-  directorySuggestions = signal<PeopleDirectoryEntry[]>([]);
+  directoryOptions = signal<PeopleDirectoryOption[]>([]);
+  directoryLoading = signal(false);
+  directoryPickId: string | null = null;
+  readonly directoryAvatarPerson = toDirectoryAvatarPerson;
   manualTasks = signal<ProjectTaskDraft[]>([]);
   asanaTasks = signal<ProjectTaskDraft[]>([]);
 
@@ -178,6 +175,7 @@ export class ProjectFormPage implements OnInit {
       const clientId = this.route.snapshot.queryParamMap.get('clientId');
       if (clientId) this.form.clientId = clientId;
     }
+    void this.loadDirectoryOptions();
     this.loading.set(false);
   }
 
@@ -202,6 +200,31 @@ export class ProjectFormPage implements OnInit {
       this.ensureAsanaSectionOptions(sectionGids, project.asanaSectionName);
     }
     this.splitTasks(project.tasks ?? [], project.isBillable);
+    void this.loadDirectoryOptions();
+  }
+
+  async loadDirectoryOptions() {
+    this.directoryLoading.set(true);
+    try {
+      const params = new URLSearchParams({ limit: '250' });
+      const projectId = this.id();
+      if (projectId) params.set('excludeProjectId', projectId);
+      const rows = await this.api
+        .get<PeopleDirectoryEntry[]>(`/search/people?${params}`)
+        .catch(() => [] as PeopleDirectoryEntry[]);
+      this.directoryOptions.set(toDirectoryOptions(rows));
+    } finally {
+      this.directoryLoading.set(false);
+    }
+  }
+
+  onDirectoryPickId(id: string | null | undefined) {
+    if (!id) return;
+    const entry = this.directoryOptions().find((o) => o.id === id);
+    if (entry) this.addContactFromDirectory(entry);
+    setTimeout(() => {
+      this.directoryPickId = null;
+    });
   }
 
   private splitTasks(tasks: ProjectTaskDraft[], projectBillable = this.form.isBillable) {
@@ -374,27 +397,6 @@ export class ProjectFormPage implements OnInit {
     this.openAccordionPanel('contact');
   }
 
-  async searchDirectory(event: { query: string }) {
-    const q = event.query.trim();
-    if (q.length < 2) {
-      this.directorySuggestions.set([]);
-      return;
-    }
-    const params = new URLSearchParams({ q });
-    const projectId = this.id();
-    if (projectId) params.set('excludeProjectId', projectId);
-    const rows = await this.api
-      .get<PeopleDirectoryEntry[]>(`/search/people?${params}`)
-      .catch(() => [] as PeopleDirectoryEntry[]);
-    this.directorySuggestions.set(rows);
-  }
-
-  onDirectoryPick(event: { value: PeopleDirectoryEntry }) {
-    this.addContactFromDirectory(event.value);
-    this.directoryQuery = '';
-    this.directorySuggestions.set([]);
-  }
-
   addContactFromDirectory(entry: PeopleDirectoryEntry) {
     const email = entry.email.trim().toLowerCase();
     if (
@@ -424,13 +426,6 @@ export class ProjectFormPage implements OnInit {
       summary: 'Contact added',
       detail: entry.displayName,
     });
-  }
-
-  directoryItemDetail(entry: PeopleDirectoryEntry): string {
-    const parts = [entry.sourceLabel];
-    if (entry.email) parts.push(entry.email);
-    else if (entry.phone) parts.push(entry.phone);
-    return parts.join(' · ');
   }
 
   contactDisplayName(contact: Pick<ProjectContactDraft, 'firstName' | 'lastName'>): string {

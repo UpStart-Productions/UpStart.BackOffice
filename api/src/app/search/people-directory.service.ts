@@ -12,10 +12,13 @@ export type PeopleDirectoryEntry = {
   email: string;
   phone: string;
   displayName: string;
+  avatarUrl: string | null;
 };
 
-const PER_SOURCE = 8;
-const DEFAULT_LIMIT = 25;
+const SEARCH_PER_SOURCE = 12;
+const BROWSE_PER_SOURCE = 120;
+const DEFAULT_LIMIT = 250;
+const MAX_LIMIT = 400;
 
 function contains(q: string) {
   return { contains: q, mode: 'insensitive' as const };
@@ -51,6 +54,24 @@ function displayName(firstName: string, lastName: string, fallback?: string): st
   return (fallback ?? '').trim() || 'Unknown';
 }
 
+function lastNameSortKey(entry: PeopleDirectoryEntry): string {
+  const last = entry.lastName.trim();
+  if (last) return last.toLowerCase();
+  const first = entry.firstName.trim();
+  if (first) return first.toLowerCase();
+  return entry.displayName.toLowerCase();
+}
+
+function sortByLastName(entries: PeopleDirectoryEntry[]): PeopleDirectoryEntry[] {
+  return entries.sort((a, b) => {
+    const byLast = lastNameSortKey(a).localeCompare(lastNameSortKey(b), undefined, { sensitivity: 'base' });
+    if (byLast !== 0) return byLast;
+    const byFirst = a.firstName.localeCompare(b.firstName, undefined, { sensitivity: 'base' });
+    if (byFirst !== 0) return byFirst;
+    return a.email.localeCompare(b.email, undefined, { sensitivity: 'base' });
+  });
+}
+
 function mergeEntries(entries: PeopleDirectoryEntry[], limit: number): PeopleDirectoryEntry[] {
   const byKey = new Map<string, PeopleDirectoryEntry>();
   for (const entry of entries) {
@@ -60,26 +81,87 @@ function mergeEntries(entries: PeopleDirectoryEntry[], limit: number): PeopleDir
       byKey.set(key, entry);
       continue;
     }
-    // Prefer the row with more contact detail.
     const score = (e: PeopleDirectoryEntry) =>
-      (e.email ? 1 : 0) + (e.phone ? 1 : 0) + (e.firstName ? 1 : 0) + (e.lastName ? 1 : 0);
+      (e.avatarUrl ? 2 : 0) +
+      (e.email ? 1 : 0) +
+      (e.phone ? 1 : 0) +
+      (e.firstName ? 1 : 0) +
+      (e.lastName ? 1 : 0);
     if (score(entry) > score(existing)) byKey.set(key, entry);
   }
-  return [...byKey.values()]
-    .sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }))
-    .slice(0, limit);
+  return sortByLastName([...byKey.values()]).slice(0, limit);
 }
 
 @Injectable()
 export class PeopleDirectoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(qRaw: string, excludeProjectId?: string, limit = DEFAULT_LIMIT): Promise<PeopleDirectoryEntry[]> {
-    const q = qRaw.trim();
-    if (q.length < 2) return [];
+  async search(qRaw: string | undefined, excludeProjectId?: string, limit = DEFAULT_LIMIT): Promise<PeopleDirectoryEntry[]> {
+    const q = (qRaw ?? '').trim();
+    const cap = Math.min(Math.max(limit, 1), MAX_LIMIT);
+    const take = q.length >= 2 ? SEARCH_PER_SOURCE : BROWSE_PER_SOURCE;
+    const textFilter = q.length >= 2;
 
-    const cap = Math.min(Math.max(limit, 1), 50);
-    const take = PER_SOURCE;
+    const userWhere = textFilter
+      ? {
+          isActive: true,
+          OR: [
+            { email: contains(q) },
+            { firstName: contains(q) },
+            { lastName: contains(q) },
+            { name: contains(q) },
+          ],
+        }
+      : { isActive: true };
+
+    const projectContactWhere = textFilter
+      ? {
+          ...(excludeProjectId ? { projectId: { not: excludeProjectId } } : {}),
+          OR: [
+            { email: contains(q) },
+            { firstName: contains(q) },
+            { lastName: contains(q) },
+            { phone: contains(q) },
+          ],
+        }
+      : {
+          ...(excludeProjectId ? { projectId: { not: excludeProjectId } } : {}),
+        };
+
+    const networkWhere = textFilter
+      ? {
+          OR: [
+            { email: contains(q) },
+            { firstName: contains(q) },
+            { lastName: contains(q) },
+            { phone: contains(q) },
+            { company: { name: contains(q) } },
+          ],
+        }
+      : {};
+
+    const leadWhere = textFilter
+      ? {
+          OR: [
+            { primaryContact: contains(q) },
+            { email: contains(q) },
+            { phone: contains(q) },
+            { organization: contains(q) },
+          ],
+        }
+      : {};
+
+    const bookingWhere = textFilter
+      ? {
+          OR: [{ guestName: contains(q) }, { guestEmail: contains(q) }, { guestOrg: contains(q) }],
+        }
+      : {};
+
+    const taskWhere = textFilter
+      ? { OR: [{ submitterEmail: contains(q) }, { submitterName: contains(q) }] }
+      : {
+          OR: [{ submitterEmail: { not: null } }, { submitterName: { not: null } }],
+        };
 
     const [
       users,
@@ -90,76 +172,45 @@ export class PeopleDirectoryService {
       taskSubmitters,
     ] = await Promise.all([
       this.prisma.user.findMany({
-        where: {
-          isActive: true,
-          OR: [
-            { email: contains(q) },
-            { firstName: contains(q) },
-            { lastName: contains(q) },
-            { name: contains(q) },
-          ],
+        where: userWhere,
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+          role: true,
+          avatarUrl: true,
         },
-        select: { id: true, email: true, firstName: true, lastName: true, name: true, role: true },
-        orderBy: [{ firstName: 'asc' }, { email: 'asc' }],
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
         take,
       }),
       this.prisma.projectContact.findMany({
-        where: {
-          ...(excludeProjectId ? { projectId: { not: excludeProjectId } } : {}),
-          OR: [
-            { email: contains(q) },
-            { firstName: contains(q) },
-            { lastName: contains(q) },
-            { phone: contains(q) },
-          ],
-        },
+        where: projectContactWhere,
         include: { project: { select: { name: true } } },
-        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         take,
       }),
       this.prisma.networkContact.findMany({
-        where: {
-          OR: [
-            { email: contains(q) },
-            { firstName: contains(q) },
-            { lastName: contains(q) },
-            { phone: contains(q) },
-            { company: { name: contains(q) } },
-          ],
-        },
+        where: networkWhere,
         include: { company: { select: { name: true } } },
-        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         take,
       }),
       this.prisma.lead.findMany({
-        where: {
-          OR: [
-            { primaryContact: contains(q) },
-            { email: contains(q) },
-            { phone: contains(q) },
-            { organization: contains(q) },
-          ],
-        },
+        where: leadWhere,
         select: { id: true, primaryContact: true, email: true, phone: true, organization: true },
         orderBy: { organization: 'asc' },
         take,
       }),
       this.prisma.booking.findMany({
-        where: {
-          OR: [
-            { guestName: contains(q) },
-            { guestEmail: contains(q) },
-            { guestOrg: contains(q) },
-          ],
-        },
+        where: bookingWhere,
         select: { id: true, guestName: true, guestEmail: true, guestOrg: true },
         orderBy: { startAt: 'desc' },
         take,
       }),
       this.prisma.task.findMany({
-        where: {
-          OR: [{ submitterEmail: contains(q) }, { submitterName: contains(q) }],
-        },
+        where: taskWhere,
         select: { submitterEmail: true, submitterName: true },
         orderBy: { createdAt: 'desc' },
         take: take * 2,
@@ -182,6 +233,7 @@ export class PeopleDirectoryService {
         email,
         phone: '',
         displayName: personName(u),
+        avatarUrl: u.avatarUrl,
       });
     }
 
@@ -199,6 +251,7 @@ export class PeopleDirectoryService {
         email,
         phone,
         displayName: displayName(firstName, lastName, email || phone),
+        avatarUrl: null,
       });
     }
 
@@ -216,6 +269,7 @@ export class PeopleDirectoryService {
         email,
         phone,
         displayName: displayName(firstName, lastName, email),
+        avatarUrl: c.avatarUrl,
       });
     }
 
@@ -232,6 +286,7 @@ export class PeopleDirectoryService {
         email,
         phone,
         displayName: displayName(firstName, lastName, lead.primaryContact ?? lead.organization),
+        avatarUrl: null,
       });
     }
 
@@ -247,6 +302,7 @@ export class PeopleDirectoryService {
         email,
         phone: '',
         displayName: displayName(firstName, lastName, b.guestName),
+        avatarUrl: null,
       });
     }
 
@@ -268,6 +324,7 @@ export class PeopleDirectoryService {
         email,
         phone: '',
         displayName: displayName(firstName, lastName, name || email),
+        avatarUrl: null,
       });
     }
 
