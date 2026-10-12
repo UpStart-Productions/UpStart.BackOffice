@@ -112,6 +112,35 @@
                 Client-side contacts for this project (e.g. for invoicing and communication).
               </p>
 
+              <div class="project-contact-directory">
+                <label for="contactDirectorySearch" class="project-contact-directory-label">
+                  Add from Back Office
+                </label>
+                <p-autocomplete
+                  inputId="contactDirectorySearch"
+                  name="contactDirectorySearch"
+                  [(ngModel)]="directoryQuery"
+                  [suggestions]="directorySuggestions()"
+                  (completeMethod)="searchDirectory($event)"
+                  (onSelect)="onDirectoryPick($event)"
+                  optionLabel="displayName"
+                  [minLength]="2"
+                  [delay]="250"
+                  [showClear]="true"
+                  appendTo="body"
+                  placeholder="Search team, projects, pipeline, network, bookings, task forms…"
+                  styleClass="w-full"
+                  emptyMessage="No people found"
+                >
+                  <ng-template let-item pTemplate="item">
+                    <div class="project-directory-item">
+                      <span class="project-directory-name">{{ item.displayName }}</span>
+                      <span class="project-directory-meta">{{ directoryItemDetail(item) }}</span>
+                    </div>
+                  </ng-template>
+                </p-autocomplete>
+              </div>
+
               @if (contactRows().length > 0) {
                 <p-table [value]="contactRows()" styleClass="table-bordered">
                   <ng-template pTemplate="header">
@@ -180,7 +209,7 @@
               <button
                 type="button"
                 pButton
-                label="+ Add contact"
+                label="+ Add contact manually"
                 [text]="true"
                 severity="secondary"
                 class="mt-2 p-0"

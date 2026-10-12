@@ -11,6 +11,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { AccordionModule } from 'primeng/accordion';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
@@ -34,6 +35,17 @@ type ProjectContactDraft = {
   phone: string;
   email: string;
   sortOrder: number;
+};
+
+type PeopleDirectoryEntry = {
+  id: string;
+  source: string;
+  sourceLabel: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  displayName: string;
 };
 
 type ProjectResponse = {
@@ -70,6 +82,7 @@ type ProjectResponse = {
     MultiSelectModule,
     InputNumberModule,
     AccordionModule,
+    AutoCompleteModule,
     QuillModule,
     PageComponent,
     ArtifactsPanelComponent,
@@ -91,6 +104,8 @@ export class ProjectFormPage implements OnInit {
   error = signal<string | null>(null);
   clients = signal<Client[]>([]);
   contactRows = signal<ProjectContactDraft[]>([]);
+  directoryQuery = '';
+  directorySuggestions = signal<PeopleDirectoryEntry[]>([]);
   manualTasks = signal<ProjectTaskDraft[]>([]);
   asanaTasks = signal<ProjectTaskDraft[]>([]);
 
@@ -356,6 +371,66 @@ export class ProjectFormPage implements OnInit {
         sortOrder: rows.length,
       },
     ]);
+    this.openAccordionPanel('contact');
+  }
+
+  async searchDirectory(event: { query: string }) {
+    const q = event.query.trim();
+    if (q.length < 2) {
+      this.directorySuggestions.set([]);
+      return;
+    }
+    const params = new URLSearchParams({ q });
+    const projectId = this.id();
+    if (projectId) params.set('excludeProjectId', projectId);
+    const rows = await this.api
+      .get<PeopleDirectoryEntry[]>(`/search/people?${params}`)
+      .catch(() => [] as PeopleDirectoryEntry[]);
+    this.directorySuggestions.set(rows);
+  }
+
+  onDirectoryPick(event: { value: PeopleDirectoryEntry }) {
+    this.addContactFromDirectory(event.value);
+    this.directoryQuery = '';
+    this.directorySuggestions.set([]);
+  }
+
+  addContactFromDirectory(entry: PeopleDirectoryEntry) {
+    const email = entry.email.trim().toLowerCase();
+    if (
+      email &&
+      this.contactRows().some((c) => c.email.trim().toLowerCase() === email)
+    ) {
+      this.toast.add({
+        severity: 'info',
+        summary: 'Already on this project',
+        detail: `${entry.displayName} is already listed as a contact.`,
+      });
+      return;
+    }
+    this.contactRows.update((rows) => [
+      ...rows,
+      {
+        firstName: entry.firstName,
+        lastName: entry.lastName,
+        phone: entry.phone,
+        email: entry.email,
+        sortOrder: rows.length,
+      },
+    ]);
+    this.openAccordionPanel('contact');
+    this.toast.add({
+      severity: 'success',
+      summary: 'Contact added',
+      detail: entry.displayName,
+    });
+  }
+
+  directoryItemDetail(entry: PeopleDirectoryEntry): string {
+    const parts = [entry.sourceLabel];
+    if (entry.email) parts.push(entry.email);
+    else if (entry.phone) parts.push(entry.phone);
+    return parts.join(' · ');
   }
 
   contactDisplayName(contact: Pick<ProjectContactDraft, 'firstName' | 'lastName'>): string {
