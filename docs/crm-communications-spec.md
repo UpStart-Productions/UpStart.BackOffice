@@ -5,7 +5,7 @@ Date: 2026-10-17 · Author: Jeff + Claude · Status: draft for review, not yet s
 ## 1. TL;DR
 
 - **Goal:** let The Purple Nest (TPN) replace HubSpot (and Asana) with UBO. The make-or-break feature is a **shared communication timeline per client**: who talked to whom, when, and what the next step is.
-- **Email capture:** each person sets a one-time Gmail filter that forwards *incoming* client mail to a per-tenant UBO address. UBO files it to the right Account's timeline. Gmail filters never see sent mail, so *outgoing* mail is captured by Bcc'ing the same address (manually, or via a Google Workspace admin routing rule that Bccs outbound mail).
+- **Email capture:** CC the tenant's UBO address on any email to log. Reply-all keeps UBO on the thread in both directions, and UBO files it to the right Account's timeline. No mailbox connection, no mail filters, no admin rules.
 - **Model:** add **Contact** (people). Promote today's **Client** into the single **Account** record (absorbing Network companies and Lead organizations). **Leads** become pipeline items attached to an Account. **Network** becomes a tag + saved view. **Tenant** is the multi-tenancy boundary.
 - **Order of work:** (1) email spike, (2) tenancy + roles, (3) CRM consolidation, (4) follow-ups/notifications, (5) calendar + timesheet extras.
 - **Open:** HIPAA stance, TPN's real workflow (who is invoiced, pipeline stages, people types).
@@ -17,6 +17,7 @@ Date: 2026-10-17 · Author: Jeff + Claude · Status: draft for review, not yet s
 3. Network goes away as its own concept: Network contacts = Contacts tagged "Network"; Network companies = Accounts tagged "Network"/"Partner"; the Network page becomes a saved filter.
 4. v1 email capture is **capture-only** (no sending from UBO).
 5. Terminology: **Tenant** = multi-tenancy boundary (UpStart, TPN). **Account** = organization/family record in the CRM.
+6. Capture is by deliberate CC only (2026-10-18). Rejected: full mailbox connection (Google/Microsoft review and access), forward-everything filters (too much junk to triage), and server-side Bcc rules (nobody wants to touch Microsoft 365 / Workspace admin). Accepted trade-off: people must remember to CC; reply-all carries it from there.
 
 ## 3. Data model
 
@@ -67,8 +68,8 @@ Naming in the schema (phase 1): "Account" is the existing `Client` table, so for
 
 ## 4. Email capture flow
 
-1. Admin opens Settings → Email capture and sees the tenant's address (e.g. `tpn@in.<domain>`) plus Gmail filter instructions.
-2. Each person creates a Gmail filter: incoming mail from client addresses → forward to that address. Outgoing mail is captured by Bcc'ing the address (Gmail filters don't apply to sent mail). Gmail requires confirming the forwarding address; UBO catches Gmail's confirmation email and shows the code/link in Settings.
+1. Settings → Email capture shows the tenant's address (e.g. `tpn@in.<domain>`).
+2. Staff CC that address on any email to log; the Email button on clients, leads and contacts opens their mail app with it pre-filled. Everyone who replies-all keeps it on. For an email received without it, reply-all and add the address (the original is kept in the quoted text). Every captured message is deliberate, so team-only notes are kept too. Replies show only their new text; the full message is one click away.
 3. SES inbound receives the message, stores the raw MIME in S3, and a thin Lambda notifies the API (system-key endpoint, GrovLink pattern).
 4. The API parses the message (headers incl. CC, Message-ID, In-Reply-To, References; text; HTML; attachments).
 5. Dedupe on Message-ID per tenant. A second forward of the same message adds an `InteractionCapture`, not a new record.
@@ -146,7 +147,7 @@ TPN needs phases 1, 2 and the tag/stage part of 3 before go-live.
 - Gmail forwarding-address confirmation mechanics (whether the code/link can be reliably extracted).
 - Whether forwarded mail preserves original headers well enough for matching in all cases.
 - Whether the capture filter approach is acceptable to TPN's partners on mixed domains.
-- Outgoing capture: is manual Bcc acceptable, or does TPN have Google Workspace admin access for an automatic outbound Bcc routing rule? (If TPN is not on Workspace, ask which mail system they use.)
+- Habit risk: will TPN reliably CC UBO on the first message of a thread? The model depends on it.
 
 ## 11. Out of scope for v1
 

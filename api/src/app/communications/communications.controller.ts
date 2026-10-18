@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
+import { CaptureSettingsService } from './capture-settings.service';
 import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
 import { InteractionsService } from './interactions.service';
 
@@ -11,7 +12,16 @@ import { InteractionsService } from './interactions.service';
 @UseGuards(StaffAuthGuard)
 @Controller('communications')
 export class CommunicationsController {
-  constructor(private readonly interactions: InteractionsService) {}
+  constructor(
+    private readonly interactions: InteractionsService,
+    private readonly captureSettings: CaptureSettingsService,
+  ) {}
+
+  /** The address to CC, for the Email button. (Full capture settings are admin-only.) */
+  @Get('capture-address')
+  captureAddress() {
+    return this.captureSettings.address();
+  }
 
   @Get('accounts/:clientId/timeline')
   accountTimeline(@Param('clientId') clientId: string, @Query('limit') limit?: string, @Query('before') before?: string) {

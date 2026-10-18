@@ -9,6 +9,7 @@ export type FilingReason =
   | 'ambiguous-clients'
   | 'no-client-link'
   | 'lead-match'
+  | 'thread'
   | 'no-match';
 
 export interface FilingDecision {
@@ -22,13 +23,18 @@ export interface FilingDecision {
  * Decide where an interaction belongs, given the external contacts we matched and any leads
  * whose email matched an external address.
  *
- *  - exactly one distinct client across all matched contacts -> FILED to it
+ *  - exactly one distinct client across matched contacts and direct client matches -> FILED to it
  *  - several distinct clients -> UNFILED (a human picks)
  *  - no client but exactly one lead -> FILED to the lead
  *  - anything else -> UNFILED
  */
-export function decideFiling(matches: ContactMatch[], leadIds: string[]): FilingDecision {
-  const clientIds = [...new Set(matches.flatMap((m) => m.clientIds))];
+export function decideFiling(
+  matches: ContactMatch[],
+  leadIds: string[],
+  /** Clients matched without a contact: Client.email, or a lead already converted to a client. */
+  directClientIds: string[] = [],
+): FilingDecision {
+  const clientIds = [...new Set([...matches.flatMap((m) => m.clientIds), ...directClientIds])];
   const leads = [...new Set(leadIds)];
 
   if (clientIds.length === 1) {

@@ -220,7 +220,7 @@
         </p-table>
       </div>
 
-      <app-activity-timeline [clientId]="id()!" />
+      <app-activity-timeline [clientId]="id()!" [emailTo]="form.email" [emailSubject]="form.name" />
 
       <app-artifacts-panel [clientId]="id()!" />
     }

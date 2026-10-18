@@ -19,10 +19,12 @@ export interface Interaction {
   occurredAt: string;
   subject: string | null;
   snippet: string | null;
-  /** Only present on the single-item endpoint. */
+  /** Only present on the single-item endpoint. New text only (quoted history removed). */
   bodyText?: string | null;
+  /** Only on the single-item endpoint, when quoted history was removed: the whole message. */
+  fullText?: string | null;
   hasRaw: boolean;
-  source: 'FORWARD' | 'BCC' | 'CALENDAR' | 'MANUAL';
+  source: 'FORWARD' | 'BCC' | 'CC' | 'CALENDAR' | 'MANUAL';
   status: 'FILED' | 'UNFILED';
   clientId: string | null;
   leadId: string | null;
@@ -119,6 +121,20 @@ export function interactionIcon(type: InteractionType): string {
 export class CommunicationsApi {
   private readonly api = inject(ApiService);
 
+  private captureAddressRequest: Promise<string | null> | null = null;
+
+  /** The address to CC so an email is logged in UBO. Cached for the session; null if not set up. */
+  captureAddress(): Promise<string | null> {
+    this.captureAddressRequest ??= this.api
+      .get<{ address: string | null }>('/communications/capture-address')
+      .then((r) => r.address)
+      .catch(() => {
+        this.captureAddressRequest = null;
+        return null;
+      });
+    return this.captureAddressRequest;
+  }
+
   /** Number of emails waiting in the Unfiled inbox (drives the nav badge). */
   readonly unfiledCount = signal(0);
 
@@ -159,7 +175,10 @@ export class CommunicationsApi {
   }
 
   file(id: string, target: { clientId?: string; leadId?: string; learn?: boolean }) {
-    return this.api.post<{ contactsLinked: number }>(`/communications/interactions/${id}/file`, target);
+    return this.api.post<{ contactsLinked: number; threadItemsFiled: number }>(
+      `/communications/interactions/${id}/file`,
+      target,
+    );
   }
 
   unfile(id: string) {

@@ -14,6 +14,7 @@ import { CommunicationsApi, Interaction, participantLine } from '../../core/comm
 import { PageComponent } from '../../ui/layout/page.component';
 
 type Option = { id: string; label: string };
+type OpenMessage = { body: string; full: string | null; showFull: boolean };
 
 @Component({
   selector: 'app-unfiled-inbox-page',
@@ -35,8 +36,8 @@ type Option = { id: string; label: string };
       <div class="card">
         <h2 class="page-title page-title-in-card">Unfiled inbox</h2>
         <p class="text-color-secondary mb-3">
-          Emails we captured but couldn't match to a client or lead. File each one and we'll remember the
-          sender, so their next email files itself.
+          Emails CC'd to UBO that we couldn't match to a client or lead. File one and the rest of its thread
+          follows, and we remember the people on it so their next email files itself.
         </p>
 
         @if (error()) {
@@ -58,14 +59,19 @@ type Option = { id: string; label: string };
               <td>{{ people(item) }}</td>
               <td>
                 <strong>{{ item.subject || '(no subject)' }}</strong>
-                @if (open()[item.id] !== undefined) {
-                  <pre class="inbox-text">{{ open()[item.id] }}</pre>
+                @if (open()[item.id]; as msg) {
+                  <pre class="inbox-text">{{ msg.showFull && msg.full ? msg.full : msg.body }}</pre>
                 } @else if (item.snippet) {
                   <div class="text-color-secondary">{{ item.snippet }}</div>
                 }
                 @if (item.snippet) {
                   <button type="button" class="link-btn" (click)="toggle(item)">
-                    {{ open()[item.id] !== undefined ? 'Show less' : 'Read more' }}
+                    {{ open()[item.id] ? 'Show less' : 'Read more' }}
+                  </button>
+                }
+                @if (open()[item.id]?.full) {
+                  <button type="button" class="link-btn ml-3" (click)="toggleFull(item)">
+                    {{ open()[item.id]?.showFull ? 'Hide quoted text' : 'Show quoted text' }}
                   </button>
                 }
               </td>
@@ -154,7 +160,7 @@ export class UnfiledInboxPage implements OnInit {
   nextBefore = signal<string | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
-  open = signal<Record<string, string>>({});
+  open = signal<Record<string, OpenMessage>>({});
 
   clients = signal<Option[]>([]);
   leads = signal<Option[]>([]);
@@ -195,17 +201,26 @@ export class UnfiledInboxPage implements OnInit {
 
   async toggle(item: Interaction) {
     const current = this.open();
-    if (current[item.id] !== undefined) {
+    if (current[item.id]) {
       const { [item.id]: _removed, ...rest } = current;
       this.open.set(rest);
       return;
     }
     try {
-      const full = await this.comms.interaction(item.id);
-      this.open.set({ ...current, [item.id]: full.bodyText ?? item.snippet ?? '' });
+      const one = await this.comms.interaction(item.id);
+      this.open.set({
+        ...current,
+        [item.id]: { body: one.bodyText ?? item.snippet ?? '', full: one.fullText ?? null, showFull: false },
+      });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load message');
     }
+  }
+
+  toggleFull(item: Interaction) {
+    const current = this.open()[item.id];
+    if (!current) return;
+    this.open.set({ ...this.open(), [item.id]: { ...current, showFull: !current.showFull } });
   }
 
   async openFile(item: Interaction) {
@@ -239,16 +254,15 @@ export class UnfiledInboxPage implements OnInit {
           ? { clientId: this.targetId, learn: this.learn }
           : { leadId: this.targetId },
       );
-      this.items.set(this.items().filter((i) => i.id !== item.id));
       this.fileVisible = false;
-      void this.comms.refreshUnfiledCount();
-      this.toast.add({
-        severity: 'success',
-        summary: 'Filed',
-        detail: res.contactsLinked
-          ? `Filed, and linked ${res.contactsLinked} contact${res.contactsLinked === 1 ? '' : 's'} to the client.`
-          : 'Filed.',
-      });
+      const parts = ['Filed.'];
+      if (res.threadItemsFiled) parts.push(`${res.threadItemsFiled} more from the same thread filed too.`);
+      if (res.contactsLinked) {
+        parts.push(`Linked ${res.contactsLinked} contact${res.contactsLinked === 1 ? '' : 's'} to the client.`);
+      }
+      this.toast.add({ severity: 'success', summary: 'Filed', detail: parts.join(' ') });
+      // Other rows from the thread may have been filed with it, so reload rather than splice.
+      await this.load(false);
     } catch (err) {
       this.fileError.set(err instanceof Error ? err.message : 'Filing failed');
     } finally {

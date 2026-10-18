@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_TENANT_ID } from './communications.constants';
 import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
+import { stripQuotedText } from './quoted-text.util';
 
 const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's tenant.
 const SNIPPET_LENGTH = 300;
@@ -39,13 +40,19 @@ export function snippetOf(text: string | null | undefined): string | null {
   return flat.length > SNIPPET_LENGTH ? `${flat.slice(0, SNIPPET_LENGTH)}…` : flat;
 }
 
+/**
+ * Emails show only their new text; the quoted history of a reply-all chain is already on the
+ * timeline as earlier messages. The full text is still available on the single-item view.
+ */
 export function toInteractionView(row: InteractionRow, withBody: boolean) {
   const { bodyText, rawKey, ...rest } = row;
+  const { body, quoted } =
+    row.type === 'EMAIL' ? stripQuotedText(bodyText) : { body: bodyText, quoted: false };
   return {
     ...rest,
     hasRaw: !!rawKey,
-    snippet: snippetOf(bodyText),
-    ...(withBody ? { bodyText } : {}),
+    snippet: snippetOf(body),
+    ...(withBody ? { bodyText: body, fullText: quoted ? bodyText : null } : {}),
   };
 }
 
@@ -145,7 +152,7 @@ export class InteractionsService {
     }
     const existing = await this.prisma.interaction.findFirst({
       where: { id, tenantId: TENANT },
-      select: { id: true, participants: { select: { contactId: true, userId: true } } },
+      select: { id: true, threadKey: true, participants: { select: { contactId: true, userId: true } } },
     });
     if (!existing) throw new NotFoundException('Interaction not found.');
 
@@ -166,6 +173,16 @@ export class InteractionsService {
       },
     });
 
+    // The rest of an id-based thread that is still unfiled goes to the same place.
+    let threadItemsFiled = 0;
+    if (existing.threadKey?.startsWith('mid:')) {
+      const res = await this.prisma.interaction.updateMany({
+        where: { tenantId: TENANT, threadKey: existing.threadKey, status: 'UNFILED', id: { not: id } },
+        data: { status: 'FILED', clientId: dto.clientId ?? null, leadId: dto.leadId ?? null },
+      });
+      threadItemsFiled = res.count;
+    }
+
     // Teach the system: outside contacts on this item now belong to the client,
     // so the next message from them files itself.
     let contactsLinked = 0;
@@ -185,7 +202,14 @@ export class InteractionsService {
         contactsLinked = res.count;
       }
     }
-    return { id, status: 'FILED' as const, clientId: dto.clientId ?? null, leadId: dto.leadId ?? null, contactsLinked };
+    return {
+      id,
+      status: 'FILED' as const,
+      clientId: dto.clientId ?? null,
+      leadId: dto.leadId ?? null,
+      contactsLinked,
+      threadItemsFiled,
+    };
   }
 
   async unfile(id: string) {

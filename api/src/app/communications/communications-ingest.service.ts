@@ -25,8 +25,7 @@ export type IngestStatus =
   | 'duplicate'
   | 'forwarding_verification'
   | 'dropped_no_alias'
-  | 'dropped_unknown_alias'
-  | 'dropped_internal_only';
+  | 'dropped_unknown_alias';
 
 export interface IngestResult {
   status: IngestStatus;
@@ -121,11 +120,8 @@ export class CommunicationsIngestService {
     );
     const participants = collectParticipants(parsed);
     const { external } = splitParticipants(participants, isInternal, ignore);
-
-    // Partner-to-partner chatter with no outside party is not client communication.
-    if (external.length === 0) {
-      return { status: 'dropped_internal_only' };
-    }
+    // Every capture is deliberate (someone CC'd or Bcc'd the address), so team-only mail is kept too:
+    // a note between partners about a client belongs on that client's timeline.
 
     // 5. Same message forwarded by several people? Record the extra capture, nothing else.
     const capturedBy = detectCapturer(parsed, ignore, isInternal);
@@ -143,14 +139,16 @@ export class CommunicationsIngestService {
 
     // 6. Match outsiders to contacts, accounts and leads.
     const externalEmails = [...new Set(external.map((p) => p.email))];
-    const emailRows = await this.prisma.contactEmail.findMany({
-      where: { tenantId, email: { in: externalEmails } },
-      select: {
-        email: true,
-        contactId: true,
-        contact: { select: { accountLinks: { select: { clientId: true } } } },
-      },
-    });
+    const emailRows = externalEmails.length
+      ? await this.prisma.contactEmail.findMany({
+          where: { tenantId, email: { in: externalEmails } },
+          select: {
+            email: true,
+            contactId: true,
+            contact: { select: { accountLinks: { select: { clientId: true } } } },
+          },
+        })
+      : [];
     const contactIdByEmail = new Map<string, string>();
     const matchByContact = new Map<string, ContactMatch>();
     for (const row of emailRows) {
@@ -160,16 +158,37 @@ export class CommunicationsIngestService {
         clientIds: row.contact.accountLinks.map((l) => l.clientId),
       });
     }
-    const leads = await this.prisma.lead.findMany({
-      where: {
-        OR: externalEmails.map((email) => ({ email: { equals: email, mode: 'insensitive' as const } })),
-      },
-      select: { id: true },
-    });
-    const decision = decideFiling(
+    const anyEmail = externalEmails.map((email) => ({ email: { equals: email, mode: 'insensitive' as const } }));
+    const leads = anyEmail.length
+      ? await this.prisma.lead.findMany({ where: { OR: anyEmail }, select: { id: true, convertedClientId: true } })
+      : [];
+    // Clients matched by their own email field, before anyone has created Contacts for them.
+    const clientRows = anyEmail.length
+      ? await this.prisma.client.findMany({ where: { OR: anyEmail }, select: { id: true, email: true } })
+      : [];
+    const directClientIds = [
+      ...clientRows.map((c) => c.id),
+      ...leads.map((l) => l.convertedClientId).filter((id): id is string => !!id),
+    ];
+    let decision = decideFiling(
       [...matchByContact.values()],
-      leads.map((l) => l.id),
+      leads.filter((l) => !l.convertedClientId).map((l) => l.id),
+      directClientIds,
     );
+
+    // 6b. A reply in a thread that is already filed goes to the same place. This covers people
+    // added on a reply-all (a spouse, a case manager) and team-only notes in a client thread.
+    const threadKey = computeThreadKey(parsed);
+    if (decision.status === 'UNFILED' && threadKey?.startsWith('mid:')) {
+      const prior = await this.prisma.interaction.findFirst({
+        where: { tenantId, threadKey, status: 'FILED' },
+        orderBy: { occurredAt: 'desc' },
+        select: { clientId: true, leadId: true },
+      });
+      if (prior && (prior.clientId || prior.leadId)) {
+        decision = { status: 'FILED', clientId: prior.clientId, leadId: prior.leadId, reason: 'thread' };
+      }
+    }
 
     // 7. Unknown outsiders become auto-created contacts, to be reviewed from the Unfiled inbox.
     const occurredAt = this.resolveDate(parsed.date, dto.receivedAt);
@@ -179,6 +198,15 @@ export class CommunicationsIngestService {
       const id = await this.createAutoContact(tenantId, p.email, p.name, occurredAt);
       contactIdByEmail.set(p.email, id);
       contactsCreated++;
+    }
+    // 7b. A contact whose address is a client's own email belongs to that client.
+    const clientLinks = clientRows.flatMap((c) => {
+      const email = normalizeEmail(c.email);
+      const contactId = email ? contactIdByEmail.get(email) : undefined;
+      return contactId ? [{ contactId, clientId: c.id }] : [];
+    });
+    if (clientLinks.length) {
+      await this.prisma.contactAccount.createMany({ data: clientLinks, skipDuplicates: true });
     }
 
     // 8. Keep the raw message (S3 key is already ours in production; dev uploads go to storage).
@@ -190,20 +218,22 @@ export class CommunicationsIngestService {
 
     // 9. Write the interaction.
     const fromIsInternal = !!parsed.from && isInternal(parsed.from.email);
+    // Visible in To/Cc means it was CC'd (and stays on reply-all); otherwise a hidden Bcc copy.
+    const aliasVisible = participants.some((p) => ignore.has(p.email));
     let interactionId: string;
     try {
       const created = await this.prisma.interaction.create({
         data: {
           tenantId,
           type: 'EMAIL',
-          direction: directionOf(fromIsInternal, true),
+          direction: directionOf(fromIsInternal, external.length > 0),
           occurredAt,
           subject: parsed.subject,
           bodyText: parsed.text,
           rawKey,
           messageId: parsed.messageId,
-          threadKey: computeThreadKey(parsed),
-          source: parsed.forwardedFor ? 'FORWARD' : fromIsInternal ? 'BCC' : 'FORWARD',
+          threadKey,
+          source: parsed.forwardedFor ? 'FORWARD' : aliasVisible ? 'CC' : 'BCC',
           status: decision.status,
           clientId: decision.clientId,
           leadId: decision.leadId,
@@ -243,13 +273,15 @@ export class CommunicationsIngestService {
 
     // 10. Bump "last contacted" where it moved forward.
     const contactIds = [...new Set(external.map((p) => contactIdByEmail.get(p.email)).filter((c): c is string => !!c))];
-    await this.prisma.contact.updateMany({
-      where: {
-        id: { in: contactIds },
-        OR: [{ lastContactAt: null }, { lastContactAt: { lt: occurredAt } }],
-      },
-      data: { lastContactAt: occurredAt },
-    });
+    if (contactIds.length) {
+      await this.prisma.contact.updateMany({
+        where: {
+          id: { in: contactIds },
+          OR: [{ lastContactAt: null }, { lastContactAt: { lt: occurredAt } }],
+        },
+        data: { lastContactAt: occurredAt },
+      });
+    }
     if (decision.leadId) {
       await this.prisma.lead.updateMany({
         where: {

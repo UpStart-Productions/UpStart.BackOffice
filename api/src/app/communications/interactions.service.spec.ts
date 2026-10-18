@@ -14,7 +14,7 @@ const row = (id: string, d: number, extra: Record<string, unknown> = {}) => ({
 
 function make() {
   const prisma = {
-    interaction: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn(), count: vi.fn() },
+    interaction: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn(), create: vi.fn(), count: vi.fn() },
     client: { findUnique: vi.fn() },
     lead: { findUnique: vi.fn(), updateMany: vi.fn() },
     contact: { findMany: vi.fn(), updateMany: vi.fn() },
@@ -120,6 +120,38 @@ describe('InteractionsService', () => {
       await expect(h.svc.file('a', { leadId: 'nope' })).rejects.toBeInstanceOf(NotFoundException);
       expect(h.prisma.interaction.update).not.toHaveBeenCalled();
     });
+  });
+
+  it('shows only the new text of an email, with the full text on the detail view', async () => {
+    const quoted = 'Friday works.\n\nOn Tue, Oct 13, 2026 at 10:30 AM Lori <l@x.test> wrote:\n> old schedule';
+    h.prisma.interaction.findMany.mockResolvedValue([row('a', 5, { bodyText: quoted })]);
+    const page = await h.svc.timeline({ clientId: 'c1' });
+    expect(page.items[0].snippet).toBe('Friday works.');
+    h.prisma.interaction.findFirst.mockResolvedValue(row('a', 5, { bodyText: quoted }));
+    const one = await h.svc.get('a');
+    expect(one).toMatchObject({ bodyText: 'Friday works.', fullText: quoted });
+    h.prisma.interaction.findFirst.mockResolvedValue(row('n', 5, { type: 'NOTE', bodyText: quoted }));
+    expect(await h.svc.get('n')).toMatchObject({ bodyText: quoted, fullText: null });
+  });
+
+  it('filing one message files the rest of its unfiled thread', async () => {
+    h.prisma.interaction.findFirst.mockResolvedValue({ id: 'a', threadKey: 'mid:root@x', participants: [] });
+    h.prisma.client.findUnique.mockResolvedValue({ id: 'c1' });
+    h.prisma.interaction.updateMany.mockResolvedValue({ count: 2 });
+    const res = await h.svc.file('a', { clientId: 'c1' });
+    expect(h.prisma.interaction.updateMany).toHaveBeenCalledWith({
+      where: { tenantId: 'default', threadKey: 'mid:root@x', status: 'UNFILED', id: { not: 'a' } },
+      data: { status: 'FILED', clientId: 'c1', leadId: null },
+    });
+    expect(res.threadItemsFiled).toBe(2);
+  });
+
+  it('never files by a subject-only thread', async () => {
+    h.prisma.interaction.findFirst.mockResolvedValue({ id: 'a', threadKey: 'subj:hello', participants: [] });
+    h.prisma.client.findUnique.mockResolvedValue({ id: 'c1' });
+    const res = await h.svc.file('a', { clientId: 'c1' });
+    expect(h.prisma.interaction.updateMany).not.toHaveBeenCalled();
+    expect(res.threadItemsFiled).toBe(0);
   });
 
   it('unfile clears the links', async () => {

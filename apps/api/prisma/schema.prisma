@@ -1074,6 +1074,8 @@ enum InteractionDirection {
 enum InteractionSource {
   FORWARD
   BCC
+  /// Capture address visible in To/Cc (deliberate CC, kept on reply-all).
+  CC
   CALENDAR
   MANUAL
 }

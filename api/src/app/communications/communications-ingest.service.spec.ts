@@ -15,7 +15,9 @@ const RECIPIENTS = ['tpn@in.example.test'];
 type Row = Record<string, any>;
 
 /** Minimal in-memory stand-in for the Prisma calls the ingest service makes. */
-function makeHarness(opts: { leads?: Row[]; knownContacts?: Array<{ email: string; clientIds: string[] }> } = {}) {
+function makeHarness(
+  opts: { leads?: Row[]; clients?: Row[]; knownContacts?: Array<{ email: string; clientIds: string[] }> } = {},
+) {
   const db = {
     contacts: [] as Row[],
     contactEmails: [] as Row[],
@@ -24,6 +26,7 @@ function makeHarness(opts: { leads?: Row[]; knownContacts?: Array<{ email: strin
     captures: [] as Row[],
     verifications: [] as Row[],
     leads: opts.leads ?? [],
+    clients: opts.clients ?? [],
     leadUpdates: [] as Row[],
     uploads: [] as string[],
   };
@@ -53,6 +56,10 @@ function makeHarness(opts: { leads?: Row[]; knownContacts?: Array<{ email: strin
             i.tenantId === where.tenantId_messageId.tenantId &&
             i.messageId === where.tenantId_messageId.messageId,
         ) ?? null,
+      findFirst: async ({ where }: Row) =>
+        db.interactions
+          .filter((i) => i.tenantId === where.tenantId && i.threadKey === where.threadKey && i.status === where.status)
+          .sort((a, b) => b.occurredAt - a.occurredAt)[0] ?? null,
       create: async ({ data }: Row) => {
         const id = nextId('int-');
         const { participants, captures, ...rest } = data;
@@ -101,9 +108,24 @@ function makeHarness(opts: { leads?: Row[]; knownContacts?: Array<{ email: strin
     lead: {
       findMany: async ({ where }: Row) => {
         const wanted: string[] = where.OR.map((o: Row) => o.email.equals);
-        return db.leads.filter((l) => l.email && wanted.includes(l.email.toLowerCase())).map((l) => ({ id: l.id }));
+        return db.leads
+          .filter((l) => l.email && wanted.includes(l.email.toLowerCase()))
+          .map((l) => ({ id: l.id, convertedClientId: l.convertedClientId ?? null }));
       },
       updateMany: async ({ where, data }: Row) => (db.leadUpdates.push({ id: where.id, ...data }), { count: 1 }),
+    },
+    client: {
+      findMany: async ({ where }: Row) => {
+        const wanted: string[] = where.OR.map((o: Row) => o.email.equals);
+        return db.clients.filter((c) => c.email && wanted.includes(c.email.toLowerCase())).map((c) => ({ id: c.id, email: c.email }));
+      },
+    },
+    contactAccount: {
+      createMany: async ({ data }: Row) => {
+        const fresh = data.filter((d: Row) => !db.links.some((l) => l.contactId === d.contactId && l.clientId === d.clientId));
+        db.links.push(...fresh);
+        return { count: fresh.length };
+      },
     },
   };
 
@@ -181,12 +203,62 @@ describe('CommunicationsIngestService', () => {
     expect(db.leadUpdates[0].lastContactDate.toISOString()).toBe('2026-10-13T22:04:00.000Z');
   });
 
-  it('drops partner-to-partner mail', async () => {
+  it('keeps a team-only note as INTERNAL and leaves it Unfiled when nothing places it', async () => {
     const { db, service } = makeHarness();
     const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('internal-only.eml')) });
-    expect(res.status).toBe('dropped_internal_only');
-    expect(db.interactions).toHaveLength(0);
+    expect(res).toMatchObject({ status: 'created', filing: 'UNFILED', contactsCreated: 0 });
+    expect(db.interactions[0]).toMatchObject({ direction: 'INTERNAL', source: 'BCC' });
     expect(db.contacts).toHaveLength(0);
+  });
+
+  it('files a team-only note in a client thread to that client', async () => {
+    const { db, service } = makeHarness({ knownContacts: [{ email: 'sally@familyclient.test', clientIds: ['client-A'] }] });
+    await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('outbound-bcc.eml')) });
+    const note = fixture('internal-only.eml').replace(
+      'Message-ID: <internal-1@example-tpn.test>',
+      'Message-ID: <internal-1@example-tpn.test>\nIn-Reply-To: <orig-1@example-tpn.test>\nReferences: <orig-1@example-tpn.test>',
+    );
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(note) });
+    expect(res).toMatchObject({ filing: 'FILED', clientId: 'client-A', reason: 'thread' });
+    expect(db.interactions[1].direction).toBe('INTERNAL');
+  });
+
+  it('records a visible CC as source CC and files a new participant by thread', async () => {
+    const { db, service } = makeHarness();
+    // Lori's original went to Sally, who is not known yet; Lori files it by hand (simulated).
+    await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('outbound-bcc.eml')) });
+    Object.assign(db.interactions[0], { status: 'FILED', clientId: 'client-A' });
+
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('cc-reply-all.eml')) });
+    expect(res).toMatchObject({ filing: 'FILED', clientId: 'client-A', reason: 'thread' });
+    const reply = db.interactions[1];
+    expect(reply).toMatchObject({ source: 'CC', direction: 'INBOUND', threadKey: 'mid:orig-1@example-tpn.test' });
+    expect(reply.participants.map((p: Row) => p.email)).not.toContain('tpn@in.example.test');
+  });
+
+  it('does not use subject-only threads to file', async () => {
+    const { db, service } = makeHarness();
+    db.interactions.push({ id: 'old', tenantId: TENANT, threadKey: 'subj:hello', status: 'FILED', clientId: 'client-Z', occurredAt: new Date() });
+    const raw = fixture('client-reply-forwarded.eml')
+      .replace(/Message-ID: .*\n/, '')
+      .replace(/In-Reply-To: .*\n/, '')
+      .replace(/References: .*\n/, '')
+      .replace('Subject: Re: Schedule for next week', 'Subject: Hello');
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(raw) });
+    expect(res.filing).toBe('UNFILED');
+  });
+
+  it("files by the client's own email and links the new contact to that client", async () => {
+    const { db, service } = makeHarness({ clients: [{ id: 'client-B', email: 'Sally@FamilyClient.test' }] });
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('client-reply-forwarded.eml')) });
+    expect(res).toMatchObject({ filing: 'FILED', clientId: 'client-B', reason: 'single-client', contactsCreated: 1 });
+    expect(db.links).toContainEqual({ contactId: db.contacts[0].id, clientId: 'client-B' });
+  });
+
+  it('files mail from a converted lead to the client it became', async () => {
+    const { service } = makeHarness({ leads: [{ id: 'lead-1', email: 'sally@familyclient.test', convertedClientId: 'client-C' }] });
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('client-reply-forwarded.eml')) });
+    expect(res).toMatchObject({ filing: 'FILED', clientId: 'client-C', leadId: null });
   });
 
   it('stores Gmail forwarding confirmations instead of filing them', async () => {

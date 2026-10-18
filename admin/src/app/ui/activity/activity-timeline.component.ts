@@ -21,6 +21,9 @@ import {
   participantLine,
   TimelineTarget,
 } from '../../core/communications.api';
+import { EmailButtonComponent } from '../email-button/email-button.component';
+
+type OpenMessage = { body: string; full: string | null; showFull: boolean };
 
 const DIRECTION_LABEL = { INBOUND: 'Incoming', OUTBOUND: 'Outgoing', INTERNAL: 'Internal' } as const;
 
@@ -50,14 +53,18 @@ function nowForInput(): string {
     SelectButtonModule,
     TagModule,
     TextareaModule,
+    EmailButtonComponent,
   ],
   template: `
     <div class="card">
       <div class="activity-header">
         <h3 class="text-lg font-semibold mb-0">Activity</h3>
-        @if (canLog()) {
-          <p-button label="Log call / note" icon="pi pi-plus" size="small" (onClick)="openLog()" />
-        }
+        <div class="activity-header-actions">
+          <app-email-button [to]="emailTo()" [subject]="emailSubject()" />
+          @if (canLog()) {
+            <p-button label="Log call / note" icon="pi pi-plus" size="small" (onClick)="openLog()" />
+          }
+        </div>
       </div>
 
       @if (error()) {
@@ -68,7 +75,7 @@ function nowForInput(): string {
         <p class="text-color-secondary">Loading…</p>
       } @else if (items().length === 0) {
         <p class="text-color-secondary">
-          No activity yet. Emails forwarded to your capture address will appear here, or log a call or note.
+          No activity yet. CC UBO on an email (the Email button does it for you) or log a call or note.
         </p>
       }
 
@@ -92,8 +99,8 @@ function nowForInput(): string {
               }
             </div>
 
-            @if (expanded()[item.id] !== undefined) {
-              <pre class="activity-text">{{ expanded()[item.id] }}</pre>
+            @if (expanded()[item.id]; as open) {
+              <pre class="activity-text">{{ open.showFull && open.full ? open.full : open.body }}</pre>
             } @else if (item.snippet) {
               <p class="activity-snippet">{{ item.snippet }}</p>
             }
@@ -101,7 +108,12 @@ function nowForInput(): string {
             <div class="activity-actions">
               @if (item.snippet) {
                 <button type="button" class="link-btn" (click)="toggle(item)">
-                  {{ expanded()[item.id] !== undefined ? 'Show less' : 'Read more' }}
+                  {{ expanded()[item.id] ? 'Show less' : 'Read more' }}
+                </button>
+              }
+              @if (expanded()[item.id]?.full) {
+                <button type="button" class="link-btn" (click)="toggleFull(item)">
+                  {{ expanded()[item.id]?.showFull ? 'Hide quoted text' : 'Show quoted text' }}
                 </button>
               }
               @if (item.status === 'FILED' && item.type === 'EMAIL' && !contactId()) {
@@ -188,7 +200,8 @@ function nowForInput(): string {
     </p-dialog>
   `,
   styles: `
-    .activity-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
     .activity-item { display: flex; gap: 0.85rem; padding: 0.9rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .activity-item:first-of-type { border-top: 0; }
     .activity-icon { flex: 0 0 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-100, #f3f4f6); color: var(--text-color-secondary, #6b7280); }
@@ -211,6 +224,9 @@ export class ActivityTimelineComponent {
   clientId = input<string>();
   leadId = input<string>();
   contactId = input<string>();
+  /** Pre-filled To address for the Email button. */
+  emailTo = input<string | null | undefined>();
+  emailSubject = input<string | null | undefined>();
 
   readonly target = computed<TimelineTarget | null>(() => {
     const c = this.clientId();
@@ -227,8 +243,8 @@ export class ActivityTimelineComponent {
   nextBefore = signal<string | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
-  /** Full message text by interaction id, once the user opened it. */
-  expanded = signal<Record<string, string>>({});
+  /** Opened messages by interaction id. */
+  expanded = signal<Record<string, OpenMessage>>({});
 
   // Log dialog state
   logVisible = false;
@@ -283,17 +299,26 @@ export class ActivityTimelineComponent {
 
   async toggle(item: Interaction) {
     const open = this.expanded();
-    if (open[item.id] !== undefined) {
+    if (open[item.id]) {
       const { [item.id]: _removed, ...rest } = open;
       this.expanded.set(rest);
       return;
     }
     try {
-      const full = await this.comms.interaction(item.id);
-      this.expanded.set({ ...open, [item.id]: full.bodyText ?? item.snippet ?? '' });
+      const one = await this.comms.interaction(item.id);
+      this.expanded.set({
+        ...open,
+        [item.id]: { body: one.bodyText ?? item.snippet ?? '', full: one.fullText ?? null, showFull: false },
+      });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load message');
     }
+  }
+
+  toggleFull(item: Interaction) {
+    const current = this.expanded()[item.id];
+    if (!current) return;
+    this.expanded.set({ ...this.expanded(), [item.id]: { ...current, showFull: !current.showFull } });
   }
 
   async unfile(item: Interaction) {

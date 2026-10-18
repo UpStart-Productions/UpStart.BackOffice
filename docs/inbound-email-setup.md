@@ -1,9 +1,9 @@
 # Inbound email capture: AWS setup
 
-How client email gets into UBO. Staff set up a Gmail filter that forwards client mail to their workspace's capture address (for example `upstart@in.heyupstart.com`). The pieces below turn that address into timeline entries.
+How client email gets into UBO. Staff CC their workspace's capture address (for example `upstart@in.heyupstart.com`) on any email they want logged, and reply-all keeps it on the thread. The pieces below turn that address into timeline entries.
 
 ```
-Gmail filter -> upstart@<INBOUND_DOMAIN>
+Email with UBO on CC -> upstart@<INBOUND_DOMAIN>
    -> SES receipt rule (MX record points the domain at SES)
         1. S3 action:     raw message saved to s3://<bucket>/inbound/<messageId>
         2. Lambda action: ubo-inbound-email
@@ -57,7 +57,6 @@ Then do the three manual steps the script prints:
 | Nothing arrives | MX record (propagation can take a while); that the SES rule set is the *active* one (`aws ses describe-active-receipt-rule-set`) |
 | Object appears in S3 but not in UBO | CloudWatch log group `/aws/lambda/ubo-inbound-email`. An HTTP 401 means the service key in the Lambda is wrong or revoked; a connection error means `INGEST_BACKEND_URL` is wrong |
 | Lambda logs `ingested` with status `dropped_unknown_alias` | The address's local part isn't a known alias. Check Settings, Email capture |
-| Status `dropped_internal_only` | Every address on the message is a team address. Add the client's address, or check `INTERNAL_EMAIL_DOMAINS` isn't too broad |
 | API log: `INBOUND_EMAIL_BUCKET is not set` or an S3 access error | Step 2 or 3 above |
 
 The Lambda retries failed calls twice, and ingest is idempotent (it dedupes on Message-ID), so retries and re-sends never duplicate a message.

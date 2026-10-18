@@ -5,6 +5,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LeadStage } from '@prisma/client';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
+import { moveLeadCommunicationsToClient } from '../communications/lead-conversion.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
@@ -125,6 +126,9 @@ export class LeadsController {
         where: { leadId: id },
         data: { clientId: client.id },
       });
+
+      // Same for emails, calls and notes, and link the people on them to the new client.
+      await moveLeadCommunicationsToClient(tx, id, client.id);
 
       await tx.lead.update({
         where: { id },

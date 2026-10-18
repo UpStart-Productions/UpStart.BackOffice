@@ -27,3 +27,16 @@ describe('decideFiling', () => {
     expect(decideFiling([], ['L1', 'L2']).status).toBe('UNFILED');
   });
 });
+
+describe('decideFiling with direct client matches', () => {
+  it('files to a client matched by Client.email or a converted lead', () => {
+    expect(decideFiling([], [], ['c1'])).toMatchObject({ status: 'FILED', clientId: 'c1', reason: 'single-client' });
+    expect(decideFiling([{ contactId: 'k', clientIds: ['c1'] }], [], ['c1']).clientId).toBe('c1');
+  });
+  it('treats different clients across sources as ambiguous', () => {
+    expect(decideFiling([{ contactId: 'k', clientIds: ['c1'] }], [], ['c2']).reason).toBe('ambiguous-clients');
+  });
+  it('prefers a direct client over a lead', () => {
+    expect(decideFiling([], ['lead-1'], ['c1'])).toMatchObject({ clientId: 'c1', leadId: null });
+  });
+});

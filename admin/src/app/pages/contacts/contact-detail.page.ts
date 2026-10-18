@@ -128,7 +128,7 @@ import { PageComponent } from '../../ui/layout/page.component';
           </div>
         </div>
 
-        <app-activity-timeline [contactId]="c.id" />
+        <app-activity-timeline [contactId]="c.id" [emailTo]="c.emails[0]?.email" />
       }
     </app-page>
   `,

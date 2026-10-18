@@ -84,6 +84,13 @@ export class CaptureSettingsService {
     };
   }
 
+  /** Just the address, for any staff member (the Email button needs it). */
+  async address(): Promise<{ address: string | null }> {
+    const inboundDomain = (process.env.INBOUND_EMAIL_DOMAIN ?? '').trim().toLowerCase() || null;
+    const primary = (await this.aliases.listForTenant(TENANT)).find((a) => a.isPrimary)?.alias ?? null;
+    return { address: captureAddress(primary, inboundDomain) };
+  }
+
   async setAlias(alias: string): Promise<CaptureSettings> {
     await this.aliases.setPrimaryAlias(TENANT, alias);
     return this.get();
