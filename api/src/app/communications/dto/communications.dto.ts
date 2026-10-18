@@ -1,0 +1,61 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsISO8601, IsOptional, IsString, MaxLength,
+} from 'class-validator';
+
+export const MANUAL_TYPES = ['CALL', 'MEETING', 'NOTE'] as const;
+export type ManualType = (typeof MANUAL_TYPES)[number];
+
+export class FileInteractionDto {
+  @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() leadId?: string;
+  @ApiPropertyOptional({ description: 'Link the outside contacts on this item to the client so future mail files itself. Default true.' })
+  @IsBoolean() @IsOptional() learn?: boolean;
+}
+
+export class LogInteractionDto {
+  @ApiProperty({ enum: MANUAL_TYPES }) @IsIn(MANUAL_TYPES as unknown as string[]) type!: ManualType;
+  @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() leadId?: string;
+  @ApiPropertyOptional({ description: 'Defaults to now.' }) @IsISO8601() @IsOptional() occurredAt?: string;
+  @ApiPropertyOptional() @IsString() @MaxLength(300) @IsOptional() subject?: string;
+  @ApiPropertyOptional() @IsString() @MaxLength(20000) @IsOptional() bodyText?: string;
+  @ApiPropertyOptional({ enum: ['INBOUND', 'OUTBOUND', 'INTERNAL'] })
+  @IsIn(['INBOUND', 'OUTBOUND', 'INTERNAL']) @IsOptional() direction?: 'INBOUND' | 'OUTBOUND' | 'INTERNAL';
+  @ApiPropertyOptional({ description: 'Contacts who took part.' })
+  @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() contactIds?: string[];
+}
+
+export class CreateContactDto {
+  @ApiProperty() @IsString() @MaxLength(100) firstName!: string;
+  @ApiPropertyOptional() @IsString() @MaxLength(100) @IsOptional() lastName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() title?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
+  @ApiPropertyOptional() @IsEmail() @IsOptional() email?: string;
+  @ApiPropertyOptional({ description: 'Link to this client on creation.' }) @IsString() @IsOptional() clientId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() role?: string;
+}
+
+export class UpdateContactDto {
+  @ApiPropertyOptional() @IsString() @MaxLength(100) @IsOptional() firstName?: string;
+  @ApiPropertyOptional() @IsString() @MaxLength(100) @IsOptional() lastName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() title?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
+  @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;
+  @ApiPropertyOptional({ description: 'Set false once an auto-created contact has been reviewed.' })
+  @IsBoolean() @IsOptional() autoCreated?: boolean;
+}
+
+export class AddContactEmailDto {
+  @ApiProperty() @IsEmail() email!: string;
+  @ApiPropertyOptional() @IsBoolean() @IsOptional() isPrimary?: boolean;
+}
+
+export class LinkContactAccountDto {
+  @ApiProperty() @IsString() clientId!: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() role?: string;
+  @ApiPropertyOptional() @IsBoolean() @IsOptional() isPrimary?: boolean;
+}
+
