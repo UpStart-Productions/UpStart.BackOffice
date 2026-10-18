@@ -16,6 +16,7 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { EmailCaptureSettingsComponent } from '../../ui/email-capture/email-capture-settings.component';
 
 interface ServiceKey {
   id:         string;
@@ -95,6 +96,7 @@ interface SettingsStatusIcon {
     SelectModule,
     AccordionModule,
     RowActionsMenuComponent,
+    EmailCaptureSettingsComponent,
   ],
   templateUrl: './settings.page.html',
   styles: [

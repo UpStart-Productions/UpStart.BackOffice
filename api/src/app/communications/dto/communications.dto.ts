@@ -59,3 +59,10 @@ export class LinkContactAccountDto {
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isPrimary?: boolean;
 }
 
+
+export class SetCaptureAliasDto {
+  @ApiProperty({ description: 'New capture address local part, e.g. "tpn". Older aliases keep working.' })
+  @IsString()
+  @MaxLength(64)
+  alias!: string;
+}

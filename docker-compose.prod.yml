@@ -55,6 +55,10 @@ services:
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       AUDIT_WEBHOOK_SECRET: ${AUDIT_WEBHOOK_SECRET:-}
+      # Inbound email capture (see docs/inbound-email-setup.md)
+      INBOUND_EMAIL_DOMAIN: ${INBOUND_EMAIL_DOMAIN:-}
+      INBOUND_EMAIL_BUCKET: ${INBOUND_EMAIL_BUCKET:-}
+      INTERNAL_EMAIL_DOMAINS: ${INTERNAL_EMAIL_DOMAINS:-}
     ports:
       - "80:3000"
     depends_on:

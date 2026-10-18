@@ -12,3 +12,6 @@ admin/src/environments/environment.development.generated.ts
 
 # local e2e harness config
 prisma.e2e.config.ts
+
+# Packed Lambda zip (built by npm run pack-inbound-email-lambda)
+tools/inbound-email-lambda/function.zip

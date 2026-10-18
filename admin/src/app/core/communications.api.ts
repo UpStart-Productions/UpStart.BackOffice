@@ -55,6 +55,22 @@ export interface ContactSummary {
   }[];
 }
 
+export interface CaptureSettings {
+  inboundDomain: string | null;
+  primaryAlias: string | null;
+  address: string | null;
+  aliases: { alias: string; isPrimary: boolean; address: string | null }[];
+  internalDomains: string[];
+  verifications: {
+    id: string;
+    gmailAddress: string | null;
+    code: string | null;
+    link: string | null;
+    receivedAt: string;
+    alias: string;
+  }[];
+}
+
 export type TimelineTarget = { clientId: string } | { leadId: string } | { contactId: string };
 
 export interface LogInteractionPayload {
@@ -113,6 +129,14 @@ export class CommunicationsApi {
     } catch {
       // The badge is cosmetic; never let it break navigation.
     }
+  }
+
+  captureSettings(): Promise<CaptureSettings> {
+    return this.api.get('/communications/capture-settings');
+  }
+
+  setCaptureAlias(alias: string): Promise<CaptureSettings> {
+    return this.api.put('/communications/capture-settings/alias', { alias });
   }
 
   timeline(target: TimelineTarget, before?: string | null): Promise<TimelinePage> {
