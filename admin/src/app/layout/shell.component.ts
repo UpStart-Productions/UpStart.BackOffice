@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, computed, inject, OnInit } from '@angular/core';
+import { Component, computed, effect, inject, OnInit } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -16,6 +16,7 @@ import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-p
 import { LayoutService } from './layout.service';
 import { isAdminRole, isGuestRole } from '@upstart/back-office/shared';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
+import { CommunicationsApi } from '../core/communications.api';
 
 /** Routes rendered in Task Manager mode (icon rail + task sidebar). */
 export function isTaskManagerUrl(url: string): boolean {
@@ -45,6 +46,7 @@ export class ShellComponent implements OnInit {
   private readonly cognito = inject(CognitoAuthService);
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly comms = inject(CommunicationsApi);
   readonly layout = inject(LayoutService);
 
   private readonly currentUrl = toSignal(
@@ -58,6 +60,12 @@ export class ShellComponent implements OnInit {
   /** Task Manager mode: main menu shrinks to an icon rail and the task sidebar takes over. */
   readonly taskMode = computed(() => isTaskManagerUrl(this.currentUrl()));
   readonly isGuest = computed(() => isGuestRole(this.session.me()?.role ?? 'MEMBER'));
+
+  /** Keep the Inbox badge fresh: refresh the unfiled count after every navigation. */
+  private readonly refreshInboxCount = effect(() => {
+    this.currentUrl();
+    if (!this.isGuest()) void this.comms.refreshUnfiledCount();
+  });
 
   navItems = computed<NavItem[]>(() => {
     if (this.isGuest()) {
@@ -74,6 +82,9 @@ export class ShellComponent implements OnInit {
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
       { label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
+      { sectionLabel: 'Communications' },
+      { label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
+      { label: 'Contacts', icon: 'pi-address-book', route: '/contacts' },
       { sectionLabel: 'Growth' },
       { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
       { label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },

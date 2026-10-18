@@ -123,6 +123,8 @@
     </form>
 
     @if (!isNew) {
+      <app-activity-timeline [leadId]="id()!" />
+
       <app-artifacts-panel [leadId]="id()!" />
     }
   }

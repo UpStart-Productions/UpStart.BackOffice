@@ -111,6 +111,21 @@ export const appRoutes: Route[] = [
           import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
       },
       {
+        path: 'inbox',
+        loadComponent: () =>
+          import('./pages/inbox/unfiled-inbox.page').then((m) => m.UnfiledInboxPage),
+      },
+      {
+        path: 'contacts',
+        loadComponent: () =>
+          import('./pages/contacts/contacts-list.page').then((m) => m.ContactsListPage),
+      },
+      {
+        path: 'contacts/:id',
+        loadComponent: () =>
+          import('./pages/contacts/contact-detail.page').then((m) => m.ContactDetailPage),
+      },
+      {
         path: 'network',
         loadComponent: () =>
           import('./pages/network/companies-list.page').then((m) => m.NetworkCompaniesListPage),

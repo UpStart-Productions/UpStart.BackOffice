@@ -10,7 +10,7 @@ const NAV_TOOLTIP_SHOW_DELAY_MS = 500;
 const NAV_TOOLTIP_OFFSET_PX = 4;
 
 export type NavItem =
-  | { label: string; icon: string; route: string }
+  | { label: string; icon: string; route: string; badge?: number }
   | { sectionLabel: string };
 
 @Component({
@@ -49,6 +49,9 @@ export type NavItem =
                     @if (!compact()) {
                       <span>{{ item.label }}</span>
                     }
+                    @if (item.badge) {
+                      <span class="nav-badge" [attr.aria-label]="item.badge + ' waiting'">{{ item.badge }}</span>
+                    }
                   </a>
                 </li>
               }
@@ -58,6 +61,21 @@ export type NavItem =
       </ul>
     </div>
   `,
+  styles: [
+    `
+      .nav-badge {
+        margin-left: auto;
+        min-width: 1.25rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        background: var(--p-primary-color, #2563eb);
+        color: #fff;
+        font-size: 0.75rem;
+        line-height: 1.25rem;
+        text-align: center;
+      }
+    `,
+  ],
 })
 export class AppSidebarComponent {
   private readonly router = inject(Router);
