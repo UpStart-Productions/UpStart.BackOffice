@@ -3,13 +3,14 @@
 #   SES receives mail for INBOUND_DOMAIN -> raw message saved to S3 -> Lambda -> UBO API.
 #
 #   INBOUND_DOMAIN=in.heyupstart.com UBO_SERVICE_KEY=<key from Settings> \
+#   (INBOUND_DOMAIN must match INBOUND_EMAIL_DOMAIN in api/src/app/communications/communications.constants.ts)
 #     bash tools/setup-inbound-email-aws.sh
 #
 # Optional env:
 #   DRY_RUN=1                 print every change instead of making it (reads still run)
 #   AWS_REGION                default us-west-2 (SES inbound must be available there)
 #   INGEST_BACKEND_URL        default https://api.heyupstart.com   (no /api)
-#   INBOUND_EMAIL_BUCKET      default ubo-inbound-email-<account id>
+#   INBOUND_BUCKET            default ubo-inbound-email-<account id>
 #   RETENTION_DAYS            days to keep raw .eml files in S3; 0 = keep forever (default 365)
 #   API_IAM_USER              IAM user the API runs as; if set, it gets read access to the bucket
 #
@@ -37,7 +38,7 @@ fi
 SERVICE_KEY="${UBO_SERVICE_KEY:-dry-run-key}"
 
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
-BUCKET="${INBOUND_EMAIL_BUCKET:-ubo-inbound-email-$ACCOUNT}"
+BUCKET="${INBOUND_BUCKET:-ubo-inbound-email-$ACCOUNT}"
 FUNC_ARN="arn:aws:lambda:$REGION:$ACCOUNT:function:$FUNC_NAME"
 
 run() {
@@ -105,11 +106,12 @@ ROLE_ARN="arn:aws:iam::$ACCOUNT:role/$ROLE_NAME"
 
 bash "$ROOT/tools/inbound-email-lambda/pack.sh"
 
-S3_PREFIX="$PREFIX" BACKEND_URL="$BACKEND_URL" SERVICE_KEY="$SERVICE_KEY" python3 - >"$TMP/lambda-env.json" <<'PY'
+S3_PREFIX="$PREFIX" BUCKET="$BUCKET" BACKEND_URL="$BACKEND_URL" SERVICE_KEY="$SERVICE_KEY" python3 - >"$TMP/lambda-env.json" <<'PY'
 import json, os
 print(json.dumps({"Variables": {
     "INGEST_BACKEND_URL": os.environ["BACKEND_URL"],
     "INGEST_API_KEY": os.environ["SERVICE_KEY"],
+    "INBOUND_BUCKET": os.environ["BUCKET"],
     "S3_PREFIX": os.environ["S3_PREFIX"],
 }}))
 PY
@@ -198,11 +200,7 @@ echo "1. DNS: add this MX record where $INBOUND_DOMAIN is managed:"
 echo "     $INBOUND_DOMAIN   MX   10   inbound-smtp.$REGION.amazonaws.com"
 echo "   Use a subdomain; never repoint the MX of a domain that already receives real mail."
 echo
-echo "2. API environment on the server (the .env that docker-compose.prod.yml reads):"
-echo "     INBOUND_EMAIL_DOMAIN=$INBOUND_DOMAIN"
-echo "     INBOUND_EMAIL_BUCKET=$BUCKET"
-echo "     INTERNAL_EMAIL_DOMAINS=<your team's email domains, comma separated>"
-echo "   Then redeploy the API."
+echo "2. In UBO Settings > Email capture, list your team's email domains."
 echo
 if [[ -n "${API_IAM_USER:-}" ]]; then
   echo "3. API bucket access: already granted to IAM user $API_IAM_USER."

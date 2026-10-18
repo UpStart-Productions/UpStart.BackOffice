@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 // The real PrismaService opens a database connection on import; the service only needs its type.
 vi.mock('../prisma/prisma.service', () => ({ PrismaService: class {} }));
@@ -16,7 +16,13 @@ type Row = Record<string, any>;
 
 /** Minimal in-memory stand-in for the Prisma calls the ingest service makes. */
 function makeHarness(
-  opts: { leads?: Row[]; clients?: Row[]; knownContacts?: Array<{ email: string; clientIds: string[] }> } = {},
+  opts: {
+    leads?: Row[];
+    clients?: Row[];
+    knownContacts?: Array<{ email: string; clientIds: string[] }>;
+    internalDomains?: string[];
+    s3Body?: string;
+  } = {},
 ) {
   const db = {
     contacts: [] as Row[],
@@ -29,6 +35,7 @@ function makeHarness(
     clients: opts.clients ?? [],
     leadUpdates: [] as Row[],
     uploads: [] as string[],
+    fetched: [] as string[],
   };
   let seq = 0;
   const nextId = (p: string) => `${p}${++seq}`;
@@ -131,17 +138,16 @@ function makeHarness(
 
   const aliases = {
     resolve: async (a: string) =>
-      a === 'tpn' ? { aliasId: 'alias-1', alias: 'tpn', tenantId: TENANT, tenantName: 'Test' } : null,
+      a === 'tpn'
+        ? { aliasId: 'alias-1', alias: 'tpn', tenantId: TENANT, tenantName: 'Test', internalDomains: opts.internalDomains ?? [] }
+        : null,
   };
+  const rawEmail = { fetch: async (bucket: string, key: string) => (db.fetched.push(`${bucket}/${key}`), Buffer.from(opts.s3Body ?? '')) };
   const storage = { upload: async ({ key }: Row) => (db.uploads.push(key), key) };
-  const service = new CommunicationsIngestService(prisma as never, aliases as never, {} as never, storage as never);
+  const service = new CommunicationsIngestService(prisma as never, aliases as never, rawEmail as never, storage as never);
   return { db, service };
 }
 
-beforeEach(() => {
-  process.env.INBOUND_EMAIL_DOMAIN = 'in.example.test';
-  delete process.env.INTERNAL_EMAIL_DOMAINS;
-});
 
 describe('CommunicationsIngestService', () => {
   it('files an inbound reply from a known contact to their client', async () => {
@@ -275,11 +281,30 @@ describe('CommunicationsIngestService', () => {
     const { service } = makeHarness();
     const raw = b64(fixture('client-reply-forwarded.eml'));
     expect((await service.ingest({ recipients: ['nobody@in.example.test'], rawBase64: raw })).status).toBe('dropped_unknown_alias');
-    expect((await service.ingest({ recipients: ['x@other.test'], rawBase64: raw })).status).toBe('dropped_no_alias');
+    expect((await service.ingest({ recipients: ['not-an-email'], rawBase64: raw })).status).toBe('dropped_no_alias');
+    // Any domain works: SES only accepts mail for the inbound domain in the first place.
+    expect((await service.ingest({ recipients: ['someone@else.test', 'tpn@local.test'], rawBase64: raw })).status).toBe('created');
   });
 
-  it('requires rawBase64 or s3Key', async () => {
+  it('reads the raw message from the bucket the Lambda names', async () => {
+    const { db, service } = makeHarness({ s3Body: fixture('client-reply-forwarded.eml') });
+    const res = await service.ingest({ recipients: RECIPIENTS, s3Bucket: 'inbound-bucket', s3Key: 'inbound/abc' });
+    expect(res.status).toBe('created');
+    expect(db.fetched).toEqual(['inbound-bucket/inbound/abc']);
+    expect(db.interactions[0].rawKey).toBe('inbound/abc');
+    expect(db.uploads).toHaveLength(0);
+  });
+
+  it("uses the tenant's team domains to tell team from outsiders", async () => {
+    const { db, service } = makeHarness({ internalDomains: ['familyclient.test'] });
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('client-reply-forwarded.eml')) });
+    expect(res).toMatchObject({ status: 'created', contactsCreated: 0 });
+    expect(db.interactions[0].direction).toBe('INTERNAL');
+  });
+
+  it('requires rawBase64, or s3Bucket with s3Key', async () => {
     const { service } = makeHarness();
-    await expect(service.ingest({ recipients: RECIPIENTS })).rejects.toThrow(/rawBase64 or s3Key/);
+    await expect(service.ingest({ recipients: RECIPIENTS })).rejects.toThrow(/s3Bucket and s3Key/);
+    await expect(service.ingest({ recipients: RECIPIENTS, s3Key: 'k' })).rejects.toThrow(/s3Bucket and s3Key/);
   });
 });

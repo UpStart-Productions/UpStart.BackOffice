@@ -27,21 +27,16 @@ export function splitName(
 }
 
 /**
- * Extract the tenant alias (local part) from the SES envelope recipients.
- * When `domain` is set only that domain matches; when empty (local dev) any domain does.
+ * Every distinct local part among the envelope recipients, in order. SES only accepts mail for
+ * the inbound domain, so the domain itself doesn't need checking here.
  */
-export function extractAliasFromRecipients(
-  recipients: string[],
-  domain?: string | null,
-): string | null {
-  const wanted = domain?.trim().toLowerCase();
+export function aliasCandidates(recipients: string[]): string[] {
+  const out: string[] = [];
   for (const recipient of recipients) {
     const email = normalizeEmail(recipient);
     if (!email) continue;
-    const at = email.lastIndexOf('@');
-    const local = email.slice(0, at);
-    const dom = email.slice(at + 1);
-    if (local && (!wanted || dom === wanted)) return local;
+    const local = email.slice(0, email.lastIndexOf('@'));
+    if (local && !out.includes(local)) out.push(local);
   }
-  return null;
+  return out;
 }

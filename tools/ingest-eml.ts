@@ -17,7 +17,7 @@
  * INBOUND_EMAIL_DOMAIN, pass a --to on that domain.
  *
  * NOTE: the fixtures use fake addresses (example-tpn.test). For the sender to count as "team",
- * a staff user with that email must exist (or set INTERNAL_EMAIL_DOMAINS=example-tpn.test).
+ * a staff user with that email must exist (or add example-tpn.test as a team domain in Settings > Email capture).
  */
 import { readFileSync } from 'node:fs';
 

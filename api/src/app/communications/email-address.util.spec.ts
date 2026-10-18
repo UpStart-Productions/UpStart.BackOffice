@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractAliasFromRecipients, normalizeEmail, splitName } from './email-address.util';
+import { aliasCandidates, normalizeEmail, splitName } from './email-address.util';
 
 describe('normalizeEmail', () => {
   it('lowercases, trims and strips brackets', () => {
@@ -23,15 +23,11 @@ describe('splitName', () => {
   });
 });
 
-describe('extractAliasFromRecipients', () => {
-  it('returns the local part for the configured domain', () => {
-    expect(extractAliasFromRecipients(['TPN@in.example.test'], 'in.example.test')).toBe('tpn');
+describe('aliasCandidates', () => {
+  it('returns each distinct local part in order, lowercased', () => {
+    expect(aliasCandidates(['TPN@in.example.test', 'other@x.test', 'tpn@in.example.test'])).toEqual(['tpn', 'other']);
   });
-  it('skips other domains when a domain is configured', () => {
-    expect(extractAliasFromRecipients(['a@other.test', 'tpn@in.example.test'], 'in.example.test')).toBe('tpn');
-    expect(extractAliasFromRecipients(['a@other.test'], 'in.example.test')).toBeNull();
-  });
-  it('accepts any domain when none is configured (dev)', () => {
-    expect(extractAliasFromRecipients(['tpn@anything.test'])).toBe('tpn');
+  it('ignores values that are not addresses', () => {
+    expect(aliasCandidates(['not-an-email', ''])).toEqual([]);
   });
 });

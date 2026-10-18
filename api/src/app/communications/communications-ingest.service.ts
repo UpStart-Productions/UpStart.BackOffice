@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { IngestEmailDto } from './dto/ingest-email.dto';
-import { extractAliasFromRecipients, normalizeEmail, splitName } from './email-address.util';
+import { aliasCandidates, normalizeEmail, splitName } from './email-address.util';
 import { parseRawEmail } from './email-parse.util';
 import { decideFiling, type ContactMatch, type FilingReason } from './filing.util';
 import {
@@ -63,19 +63,23 @@ export class CommunicationsIngestService {
   ) {}
 
   async ingest(dto: IngestEmailDto): Promise<IngestResult> {
-    if (!dto.rawBase64 && !dto.s3Key) {
-      throw new BadRequestException('Provide rawBase64 or s3Key.');
+    if (!dto.rawBase64 && !(dto.s3Bucket && dto.s3Key)) {
+      throw new BadRequestException('Provide rawBase64, or s3Bucket and s3Key.');
     }
 
-    // 1. Which tenant is this for?
-    const alias = extractAliasFromRecipients(dto.recipients, process.env.INBOUND_EMAIL_DOMAIN);
-    if (!alias) {
-      this.logger.warn(`No capture-address recipient in: ${dto.recipients.join(', ')}`);
+    // 1. Which tenant is this for? The first recipient whose name is a known alias.
+    const candidates = aliasCandidates(dto.recipients);
+    if (candidates.length === 0) {
+      this.logger.warn(`No usable recipient in: ${dto.recipients.join(', ')}`);
       return { status: 'dropped_no_alias' };
     }
-    const resolved = await this.aliases.resolve(alias);
+    let resolved: Awaited<ReturnType<InboundAliasService['resolve']>> = null;
+    for (const candidate of candidates) {
+      resolved = await this.aliases.resolve(candidate);
+      if (resolved) break;
+    }
     if (!resolved) {
-      this.logger.warn(`No tenant mapped to alias "${alias}" - dropping.`);
+      this.logger.warn(`No tenant mapped to: ${candidates.join(', ')} - dropping.`);
       return { status: 'dropped_unknown_alias' };
     }
     const tenantId = resolved.tenantId;
@@ -83,7 +87,7 @@ export class CommunicationsIngestService {
     // 2. Get and parse the message.
     const raw = dto.rawBase64
       ? Buffer.from(dto.rawBase64, 'base64')
-      : await this.rawEmail.fetch(dto.s3Key as string);
+      : await this.rawEmail.fetch(dto.s3Bucket as string, dto.s3Key as string);
     const parsed = await parseRawEmail(raw);
 
     // 3. Gmail's "confirm forwarding" message is setup plumbing, not communication.
@@ -106,12 +110,7 @@ export class CommunicationsIngestService {
       const e = normalizeEmail(u.email);
       if (e) userByEmail.set(e, u.id);
     }
-    const internalDomains = new Set(
-      (process.env.INTERNAL_EMAIL_DOMAINS ?? '')
-        .split(',')
-        .map((d) => d.trim().toLowerCase())
-        .filter(Boolean),
-    );
+    const internalDomains = new Set(resolved.internalDomains.map((d) => d.toLowerCase()));
     const isInternal = (email: string) =>
       userByEmail.has(email) || internalDomains.has(domainOf(email));
 

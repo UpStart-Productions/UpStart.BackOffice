@@ -15,16 +15,17 @@ const record = (over = {}) => ({
     ...over,
   },
 });
-const env = { INGEST_BACKEND_URL: 'https://api.example.test/', INGEST_API_KEY: 'secret-key' };
+const env = { INGEST_BACKEND_URL: 'https://api.example.test/', INGEST_API_KEY: 'secret-key', INBOUND_BUCKET: 'raw-bucket' };
 const ok = (json = { status: 'created' }) => ({ ok: true, status: 200, text: async () => JSON.stringify(json) });
 
 test('builds the request body from the SES record', () => {
-  assert.deepEqual(toIngestBody(record()), {
+  assert.deepEqual(toIngestBody(record(), 'raw-bucket'), {
     recipients: ['tpn@in.example.test'],
+    s3Bucket: 'raw-bucket',
     s3Key: 'inbound/abc123',
     receivedAt: '2026-10-17T12:00:00.000Z',
   });
-  assert.equal(toIngestBody(record(), 'mail/').s3Key, 'mail/abc123');
+  assert.equal(toIngestBody(record(), 'raw-bucket', 'mail/').s3Key, 'mail/abc123');
 });
 
 test('skips infected mail, non-SES records and incomplete records', () => {
@@ -45,7 +46,12 @@ test('posts to the ingest endpoint with the api key and no trailing-slash issues
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, 'https://api.example.test/api/communications/ingest-email');
   assert.equal(calls[0].init.headers['x-api-key'], 'secret-key');
-  assert.equal(JSON.parse(calls[0].init.body).s3Key, 'inbound/abc123');
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    recipients: ['tpn@in.example.test'],
+    s3Bucket: 'raw-bucket',
+    s3Key: 'inbound/abc123',
+    receivedAt: '2026-10-17T12:00:00.000Z',
+  });
 });
 
 test('throws on an API error so Lambda retries', async () => {

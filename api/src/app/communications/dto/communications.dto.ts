@@ -60,6 +60,14 @@ export class LinkContactAccountDto {
 }
 
 
+export class SetInternalDomainsDto {
+  @ApiProperty({ description: 'Domains that count as your own team, e.g. ["thepurplenest.org"].' })
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  domains!: string[];
+}
+
 export class SetCaptureAliasDto {
   @ApiProperty({ description: 'New capture address local part, e.g. "tpn". Older aliases keep working.' })
   @IsString()

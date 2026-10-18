@@ -1,31 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DEFAULT_TENANT_ID } from './communications.constants';
+import { DEFAULT_TENANT_ID, INBOUND_EMAIL_DOMAIN } from './communications.constants';
 import { InboundAliasService } from './inbound-alias.service';
 
 const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's tenant.
 const GOOGLE_LINK_PREFIX = 'https://mail-settings.google.com/';
+const DOMAIN_RE = /^(?=.{3,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
-export function captureAddress(alias: string | null, domain: string | null): string | null {
-  return alias && domain ? `${alias}@${domain}` : null;
+export function captureAddress(alias: string | null): string | null {
+  return alias ? `${alias}@${INBOUND_EMAIL_DOMAIN}` : null;
 }
 
-export function parseDomainList(raw: string | undefined): string[] {
-  return (raw ?? '')
-    .split(',')
-    .map((d) => d.trim().toLowerCase())
-    .filter(Boolean);
+/** Lowercase, strip a leading "@" or "www.", drop duplicates. Throws on anything that isn't a domain. */
+export function normalizeDomains(input: string[]): string[] {
+  const out: string[] = [];
+  for (const raw of input) {
+    const domain = raw.trim().toLowerCase().replace(/^@/, '').replace(/^www\./, '');
+    if (!domain) continue;
+    if (!DOMAIN_RE.test(domain)) throw new BadRequestException(`"${raw.trim()}" is not a domain.`);
+    if (!out.includes(domain)) out.push(domain);
+  }
+  return out;
 }
 
 export interface CaptureSettings {
-  /** From INBOUND_EMAIL_DOMAIN; null until the server is configured. */
-  inboundDomain: string | null;
+  inboundDomain: string;
   primaryAlias: string | null;
-  /** Full address to forward to, or null when the domain isn't configured. */
+  /** Full address to CC, or null when the tenant has no alias yet. */
   address: string | null;
   aliases: { alias: string; isPrimary: boolean; address: string | null }[];
+  /** Domains that count as the tenant's own team (besides staff users). */
   internalDomains: string[];
-  /** Recent Gmail forwarding confirmations (newest first). */
+  /** Recent Gmail forwarding confirmations (newest first). Unused in the CC model, kept for setups that forward. */
   verifications: {
     id: string;
     gmailAddress: string | null;
@@ -44,10 +50,12 @@ export class CaptureSettingsService {
   ) {}
 
   async get(): Promise<CaptureSettings> {
-    const inboundDomain = (process.env.INBOUND_EMAIL_DOMAIN ?? '').trim().toLowerCase() || null;
     const aliasRows = await this.aliases.listForTenant(TENANT);
     const primaryAlias = aliasRows.find((a) => a.isPrimary)?.alias ?? null;
-
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: TENANT },
+      select: { internalDomains: true },
+    });
     const verifications = await this.prisma.forwardingVerification.findMany({
       where: { alias: { tenantId: TENANT } },
       orderBy: { receivedAt: 'desc' },
@@ -63,15 +71,11 @@ export class CaptureSettingsService {
     });
 
     return {
-      inboundDomain,
+      inboundDomain: INBOUND_EMAIL_DOMAIN,
       primaryAlias,
-      address: captureAddress(primaryAlias, inboundDomain),
-      aliases: aliasRows.map((a) => ({
-        alias: a.alias,
-        isPrimary: a.isPrimary,
-        address: captureAddress(a.alias, inboundDomain),
-      })),
-      internalDomains: parseDomainList(process.env.INTERNAL_EMAIL_DOMAINS),
+      address: captureAddress(primaryAlias),
+      aliases: aliasRows.map((a) => ({ alias: a.alias, isPrimary: a.isPrimary, address: captureAddress(a.alias) })),
+      internalDomains: tenant?.internalDomains ?? [],
       verifications: verifications.map((v) => ({
         id: v.id,
         gmailAddress: v.gmailAddress,
@@ -86,13 +90,20 @@ export class CaptureSettingsService {
 
   /** Just the address, for any staff member (the Email button needs it). */
   async address(): Promise<{ address: string | null }> {
-    const inboundDomain = (process.env.INBOUND_EMAIL_DOMAIN ?? '').trim().toLowerCase() || null;
     const primary = (await this.aliases.listForTenant(TENANT)).find((a) => a.isPrimary)?.alias ?? null;
-    return { address: captureAddress(primary, inboundDomain) };
+    return { address: captureAddress(primary) };
   }
 
   async setAlias(alias: string): Promise<CaptureSettings> {
     await this.aliases.setPrimaryAlias(TENANT, alias);
+    return this.get();
+  }
+
+  async setInternalDomains(domains: string[]): Promise<CaptureSettings> {
+    await this.prisma.tenant.update({
+      where: { id: TENANT },
+      data: { internalDomains: normalizeDomains(domains) },
+    });
     return this.get();
   }
 }

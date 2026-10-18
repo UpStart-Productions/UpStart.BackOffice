@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { CaptureSettingsService } from './capture-settings.service';
-import { SetCaptureAliasDto } from './dto/communications.dto';
+import { SetCaptureAliasDto, SetInternalDomainsDto } from './dto/communications.dto';
 
 /** Settings > Email capture. Admin only: it exposes forwarding confirmation codes. */
 @ApiTags('communications')
@@ -21,5 +21,10 @@ export class CaptureSettingsController {
   @Put('alias')
   setAlias(@Body() dto: SetCaptureAliasDto) {
     return this.settings.setAlias(dto.alias);
+  }
+
+  @Put('internal-domains')
+  setInternalDomains(@Body() dto: SetInternalDomainsDto) {
+    return this.settings.setInternalDomains(dto.domains);
   }
 }

@@ -33,6 +33,8 @@ export interface ResolvedAlias {
   alias: string;
   tenantId: string;
   tenantName: string;
+  /** Domains that count as the tenant's own team. */
+  internalDomains: string[];
 }
 
 /**
@@ -105,7 +107,12 @@ export class InboundAliasService implements OnModuleInit {
     if (!alias) return null;
     const row = await this.prisma.inboundAlias.findUnique({
       where: { alias },
-      select: { id: true, alias: true, tenantId: true, tenant: { select: { name: true } } },
+      select: {
+        id: true,
+        alias: true,
+        tenantId: true,
+        tenant: { select: { name: true, internalDomains: true } },
+      },
     });
     if (!row) return null;
     return {
@@ -113,6 +120,7 @@ export class InboundAliasService implements OnModuleInit {
       alias: row.alias,
       tenantId: row.tenantId,
       tenantName: row.tenant.name,
+      internalDomains: row.tenant.internalDomains,
     };
   }
 }

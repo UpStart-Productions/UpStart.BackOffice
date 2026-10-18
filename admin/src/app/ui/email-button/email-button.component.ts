@@ -14,7 +14,7 @@ import { CommunicationsApi } from '../../core/communications.api';
   imports: [SplitButtonModule, TooltipModule],
   template: `
     <span
-      [pTooltip]="address() ? 'Opens your mail app with UBO on CC' : 'Email capture is not set up on this server yet'"
+      [pTooltip]="address() ? 'Opens your mail app with UBO on CC' : 'No UBO address yet'"
       tooltipPosition="top"
     >
       <p-splitbutton

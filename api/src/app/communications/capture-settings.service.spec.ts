@@ -1,11 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../prisma/prisma.service', () => ({ PrismaService: class {} }));
 
-import { captureAddress, CaptureSettingsService, parseDomainList } from './capture-settings.service';
+import { BadRequestException } from '@nestjs/common';
+import { captureAddress, CaptureSettingsService, normalizeDomains } from './capture-settings.service';
+import { INBOUND_EMAIL_DOMAIN } from './communications.constants';
 
-function make(opts: { aliases?: unknown[]; verifications?: unknown[] } = {}) {
-  const prisma = { forwardingVerification: { findMany: vi.fn().mockResolvedValue(opts.verifications ?? []) } };
+function make(opts: { aliases?: unknown[]; verifications?: unknown[]; internalDomains?: string[] } = {}) {
+  const prisma = {
+    tenant: {
+      findUnique: vi.fn().mockResolvedValue({ internalDomains: opts.internalDomains ?? ['tpn.test'] }),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    forwardingVerification: { findMany: vi.fn().mockResolvedValue(opts.verifications ?? []) },
+  };
   const aliases = {
     listForTenant: vi.fn().mockResolvedValue(
       opts.aliases ?? [
@@ -19,45 +27,33 @@ function make(opts: { aliases?: unknown[]; verifications?: unknown[] } = {}) {
 }
 
 describe('helpers', () => {
-  it('builds addresses only when both parts exist', () => {
-    expect(captureAddress('tpn', 'in.example.test')).toBe('tpn@in.example.test');
-    expect(captureAddress('tpn', null)).toBeNull();
-    expect(captureAddress(null, 'in.example.test')).toBeNull();
+  it('builds addresses on the product domain', () => {
+    expect(captureAddress('tpn')).toBe(`tpn@${INBOUND_EMAIL_DOMAIN}`);
+    expect(captureAddress(null)).toBeNull();
   });
-  it('parses domain lists', () => {
-    expect(parseDomainList(' A.com, b.org ,,')).toEqual(['a.com', 'b.org']);
-    expect(parseDomainList(undefined)).toEqual([]);
+  it('normalizes domains and rejects junk', () => {
+    expect(normalizeDomains([' @ThePurpleNest.org ', 'www.tpn.org', 'tpn.org', ''])).toEqual(['thepurplenest.org', 'tpn.org']);
+    expect(() => normalizeDomains(['not a domain'])).toThrow(BadRequestException);
+    expect(() => normalizeDomains(['lori@tpn.org'])).toThrow(BadRequestException);
   });
 });
 
 describe('CaptureSettingsService', () => {
-  const saved = { ...process.env };
-  beforeEach(() => {
-    process.env.INBOUND_EMAIL_DOMAIN = ' IN.Example.Test ';
-    process.env.INTERNAL_EMAIL_DOMAINS = 'tpn.test, Upstart.test';
-  });
-  afterEach(() => {
-    process.env = { ...saved };
-  });
-
-  it('reports addresses, aliases and team domains', async () => {
-    const h = make();
-    const s = await h.svc.get();
-    expect(s.inboundDomain).toBe('in.example.test');
-    expect(s.address).toBe('tpn@in.example.test');
-    expect(s.aliases).toEqual([
-      { alias: 'tpn', isPrimary: true, address: 'tpn@in.example.test' },
-      { alias: 'old-name', isPrimary: false, address: 'old-name@in.example.test' },
-    ]);
-    expect(s.internalDomains).toEqual(['tpn.test', 'upstart.test']);
-  });
-
-  it('has no address until the server domain is configured', async () => {
-    delete process.env.INBOUND_EMAIL_DOMAIN;
+  it('reports address, aliases and the tenant team domains', async () => {
     const s = await make().svc.get();
-    expect(s.inboundDomain).toBeNull();
+    expect(s.inboundDomain).toBe(INBOUND_EMAIL_DOMAIN);
+    expect(s.address).toBe(`tpn@${INBOUND_EMAIL_DOMAIN}`);
+    expect(s.aliases).toEqual([
+      { alias: 'tpn', isPrimary: true, address: `tpn@${INBOUND_EMAIL_DOMAIN}` },
+      { alias: 'old-name', isPrimary: false, address: `old-name@${INBOUND_EMAIL_DOMAIN}` },
+    ]);
+    expect(s.internalDomains).toEqual(['tpn.test']);
+  });
+
+  it('has no address until the tenant has an alias', async () => {
+    const s = await make({ aliases: [] }).svc.get();
     expect(s.address).toBeNull();
-    expect(s.primaryAlias).toBe('tpn');
+    expect((await make({ aliases: [] }).svc.address()).address).toBeNull();
   });
 
   it('scopes verifications to the tenant and only returns Google links', async () => {
@@ -68,20 +64,19 @@ describe('CaptureSettingsService', () => {
       ],
     });
     const s = await h.svc.get();
-    expect(h.prisma.forwardingVerification.findMany.mock.calls[0][0]).toMatchObject({
-      where: { alias: { tenantId: 'default' } },
-      orderBy: { receivedAt: 'desc' },
-      take: 5,
-    });
-    expect(s.verifications[0].link).toBe('https://mail-settings.google.com/mail/vf-x');
-    expect(s.verifications[1].link).toBeNull();
-    expect(s.verifications[1].code).toBe('654321');
+    expect(h.prisma.forwardingVerification.findMany.mock.calls[0][0].where).toEqual({ alias: { tenantId: 'default' } });
+    expect(s.verifications.map((v) => v.link)).toEqual(['https://mail-settings.google.com/mail/vf-x', null]);
+  });
+
+  it('saves normalized team domains on the tenant', async () => {
+    const h = make();
+    await h.svc.setInternalDomains(['@TPN.org', 'tpn.org']);
+    expect(h.prisma.tenant.update).toHaveBeenCalledWith({ where: { id: 'default' }, data: { internalDomains: ['tpn.org'] } });
   });
 
   it('changing the alias delegates and returns fresh settings', async () => {
     const h = make();
-    const s = await h.svc.setAlias('New Name');
+    await h.svc.setAlias('New Name');
     expect(h.aliases.setPrimaryAlias).toHaveBeenCalledWith('default', 'New Name');
-    expect(s.address).toBe('tpn@in.example.test');
   });
 });

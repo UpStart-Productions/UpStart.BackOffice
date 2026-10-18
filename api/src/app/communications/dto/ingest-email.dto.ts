@@ -2,7 +2,7 @@ import { ArrayNotEmpty, IsArray, IsOptional, IsString } from 'class-validator';
 
 /**
  * Body of POST /communications/ingest-email (called by the SES -> S3 -> Lambda hop, or by
- * tools/ingest-eml.ts in development). Provide exactly one of rawBase64 or s3Key.
+ * tools/ingest-eml.ts in development). Provide rawBase64, or s3Bucket + s3Key.
  */
 export class IngestEmailDto {
   /** SES envelope recipients, e.g. ["tpn@in.example.com"]. The local part picks the tenant. */
@@ -16,7 +16,12 @@ export class IngestEmailDto {
   @IsString()
   rawBase64?: string;
 
-  /** Object key of the raw message in INBOUND_EMAIL_BUCKET (production path). */
+  /** Bucket SES wrote the raw message to (sent by the Lambda, which owns that infrastructure). */
+  @IsOptional()
+  @IsString()
+  s3Bucket?: string;
+
+  /** Object key of the raw message in s3Bucket (production path). */
   @IsOptional()
   @IsString()
   s3Key?: string;

@@ -1097,6 +1097,8 @@ model Tenant {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
+  /// Email domains that count as this tenant's own team (besides staff users), e.g. thepurplenest.org.
+  internalDomains String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

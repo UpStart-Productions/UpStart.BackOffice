@@ -25,9 +25,7 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
         </div>
       } @else {
         <p-message severity="warn" class="block mb-2">
-          Inbound email isn't set up on this server yet. The address will be
-          <code>{{ s.primaryAlias || 'alias' }}&#64;your-inbound-domain</code> once
-          <code>INBOUND_EMAIL_DOMAIN</code> is set (see docs/inbound-email-setup.md).
+          No address yet. It is created automatically when the API starts; reload in a moment.
         </p-message>
       }
       <div class="capture-row mt-2">
@@ -62,20 +60,21 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
         UBO only sees messages this address is on. Nothing else in anyone's mailbox is read.
       </p>
 
-      <h4 class="mt-4 mb-2">Who counts as your team</h4>
-      @if (s.internalDomains.length) {
-        <p class="mt-0">
-          Staff accounts plus these domains:
-          @for (d of s.internalDomains; track d) {
-            <code class="mr-2">{{ d }}</code>
-          }
-        </p>
-      } @else {
-        <p class="text-color-secondary mt-0">
-          Only staff accounts' addresses. To include other team addresses, set
-          <code>INTERNAL_EMAIL_DOMAINS</code> on the server.
-        </p>
-      }
+      <h4 class="mt-4 mb-2">Your team's email domains</h4>
+      <p class="text-color-secondary mt-0">
+        Addresses at these domains count as your team (staff accounts always do), so they're never
+        treated as clients.
+      </p>
+      <div class="capture-row">
+        <input
+          pInputText
+          [(ngModel)]="domainsText"
+          placeholder="e.g. thepurplenest.org"
+          class="flex-1"
+          aria-label="Team email domains, comma separated"
+        />
+        <p-button label="Save" icon="pi pi-check" severity="secondary" [loading]="savingDomains()" (onClick)="saveDomains()" />
+      </div>
     } @else if (loading()) {
       <p class="text-color-secondary">Loading…</p>
     }
@@ -93,7 +92,9 @@ export class EmailCaptureSettingsComponent implements OnInit {
   settings = signal<CaptureSettings | null>(null);
   loading = signal(true);
   saving = signal(false);
+  savingDomains = signal(false);
   error = signal<string | null>(null);
+  domainsText = '';
 
   editing = false;
   newAlias = '';
@@ -105,12 +106,30 @@ export class EmailCaptureSettingsComponent implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      this.settings.set(await this.comms.captureSettings());
+      this.apply(await this.comms.captureSettings());
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load email capture settings');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  private apply(s: CaptureSettings) {
+    this.settings.set(s);
+    this.domainsText = s.internalDomains.join(', ');
+  }
+
+  async saveDomains() {
+    this.savingDomains.set(true);
+    try {
+      const domains = this.domainsText.split(/[\s,;]+/).filter(Boolean);
+      this.apply(await this.comms.setInternalDomains(domains));
+      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Team domains saved.' });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Error', detail: err instanceof Error ? err.message : 'Save failed' });
+    } finally {
+      this.savingDomains.set(false);
     }
   }
 
@@ -122,7 +141,7 @@ export class EmailCaptureSettingsComponent implements OnInit {
   async saveAlias() {
     this.saving.set(true);
     try {
-      this.settings.set(await this.comms.setCaptureAlias(this.newAlias.trim()));
+      this.apply(await this.comms.setCaptureAlias(this.newAlias.trim()));
       this.editing = false;
       this.toast.add({ severity: 'success', summary: 'Saved', detail: 'New address saved. The old one keeps working.' });
     } catch (err) {

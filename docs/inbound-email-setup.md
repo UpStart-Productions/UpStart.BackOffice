@@ -8,10 +8,12 @@ Email with UBO on CC -> upstart@<INBOUND_DOMAIN>
         1. S3 action:     raw message saved to s3://<bucket>/inbound/<messageId>
         2. Lambda action: ubo-inbound-email
    -> POST https://api.heyupstart.com/api/communications/ingest-email   (x-api-key)
-   -> API reads the .eml from S3, parses it, matches contacts, writes the Interaction
+   -> API reads the .eml from the bucket the Lambda names, parses it, matches contacts, writes the Interaction
 ```
 
 The alias (the part before the `@`) picks the tenant. Today there is one tenant, so there is one alias, created on first API start from the tenant slug.
+
+Nothing here is app configuration. The inbound domain is a constant in the code (`INBOUND_EMAIL_DOMAIN` in `api/src/app/communications/communications.constants.ts`; it must match the domain you set up below). Team email domains are edited in Settings, Email capture. The bucket name lives only in the Lambda. The API needs nothing new in its environment.
 
 ## One-time setup
 
@@ -36,18 +38,13 @@ If the account already has an **active SES rule set** (GrovLink, SPP), the scrip
 Then do the three manual steps the script prints:
 
 1. **DNS.** Add `MX 10 inbound-smtp.us-west-2.amazonaws.com` for the inbound domain. Use a dedicated subdomain. Never repoint the MX of a domain that already receives real mail.
-2. **API environment** (the `.env` that `docker-compose.prod.yml` reads), then redeploy:
-   ```
-   INBOUND_EMAIL_DOMAIN=in.heyupstart.com
-   INBOUND_EMAIL_BUCKET=ubo-inbound-email-<account id>
-   INTERNAL_EMAIL_DOMAINS=<your team's domains, comma separated>
-   ```
+2. **Team domains.** In UBO Settings, Email capture, list your team's email domains.
 3. **Let the API read the bucket.** Give its AWS credentials `s3:GetObject` on `arn:aws:s3:::<bucket>/inbound/*`. Passing `API_IAM_USER=<user>` to the script does this for you.
 
 ## Check it works
 
 1. `dig MX in.heyupstart.com` shows the SES endpoint.
-2. Send an email from outside to `upstart@in.heyupstart.com`.
+2. Send an email to someone outside with `upstart@in.heyupstart.com` on CC.
 3. Within a minute it appears in UBO's Unfiled inbox. If it doesn't, see below.
 
 ## Troubleshooting
@@ -57,7 +54,7 @@ Then do the three manual steps the script prints:
 | Nothing arrives | MX record (propagation can take a while); that the SES rule set is the *active* one (`aws ses describe-active-receipt-rule-set`) |
 | Object appears in S3 but not in UBO | CloudWatch log group `/aws/lambda/ubo-inbound-email`. An HTTP 401 means the service key in the Lambda is wrong or revoked; a connection error means `INGEST_BACKEND_URL` is wrong |
 | Lambda logs `ingested` with status `dropped_unknown_alias` | The address's local part isn't a known alias. Check Settings, Email capture |
-| API log: `INBOUND_EMAIL_BUCKET is not set` or an S3 access error | Step 2 or 3 above |
+| API log: S3 `AccessDenied` | Step 3 above |
 
 The Lambda retries failed calls twice, and ingest is idempotent (it dedupes on Message-ID), so retries and re-sends never duplicate a message.
 

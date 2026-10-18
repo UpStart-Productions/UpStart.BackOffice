@@ -58,7 +58,7 @@ export interface ContactSummary {
 }
 
 export interface CaptureSettings {
-  inboundDomain: string | null;
+  inboundDomain: string;
   primaryAlias: string | null;
   address: string | null;
   aliases: { alias: string; isPrimary: boolean; address: string | null }[];
@@ -153,6 +153,10 @@ export class CommunicationsApi {
 
   setCaptureAlias(alias: string): Promise<CaptureSettings> {
     return this.api.put('/communications/capture-settings/alias', { alias });
+  }
+
+  setInternalDomains(domains: string[]): Promise<CaptureSettings> {
+    return this.api.put('/communications/capture-settings/internal-domains', { domains });
   }
 
   timeline(target: TimelineTarget, before?: string | null): Promise<TimelinePage> {
