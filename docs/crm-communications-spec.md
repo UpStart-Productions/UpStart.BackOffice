@@ -22,6 +22,8 @@ Date: 2026-10-17 · Author: Jeff + Claude · Status: draft for review, not yet s
 
 Conventions: every new table has `tenantId` from day one. Existing tables get `tenantId` in phase 2.
 
+Naming in the schema (phase 1): "Account" is the existing `Client` table, so foreign keys are `clientId` (not `accountId`); the pipeline item is the existing `Lead` table, so links are `leadId`. New tables take `tenantId` with no DB default; code passes the default tenant (`'default'`) explicitly until phase 2.
+
 ### Tenant and access
 - `Tenant`: id, name, slug.
 - `User` gains `tenantId`. Add a finance permission (flag or BILLING role; decide in phase 2) so invoices can be hidden. Existing roles ADMIN / MEMBER / CLIENT / GUEST stay; GUEST is already limited to its task projects.

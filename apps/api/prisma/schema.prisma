@@ -136,20 +136,23 @@ model User {
   expenses         Expense[]
   bookingTypesHost BookingType[] @relation("BookingTypeHost")
 
-  projectMemberships ProjectMember[]
-  projectStars       ProjectStar[]
-  tasksAssigned      Task[]                      @relation("TaskAssignee")
-  assignedTaskForms  TaskForm[]                  @relation("TaskFormAssignee")
-  createdTaskForms   TaskForm[]                  @relation("TaskFormCreatedBy")
-  tasksCreated       Task[]                      @relation("TaskCreatedBy")
-  tasksCompleted     Task[]                      @relation("TaskCompletedBy")
-  taskFollows        TaskFollower[]
-  taskComments       TaskComment[]
-  taskAttachments    TaskAttachment[]
-  notifications      UserNotification[]
-  notificationPref   UserNotificationPreference?
-  invites            UserInvite[]                @relation("InviteFor")
-  invitesSent        UserInvite[]                @relation("InviteSentBy")
+  projectMemberships        ProjectMember[]
+  projectStars              ProjectStar[]
+  tasksAssigned             Task[]                      @relation("TaskAssignee")
+  assignedTaskForms         TaskForm[]                  @relation("TaskFormAssignee")
+  createdTaskForms          TaskForm[]                  @relation("TaskFormCreatedBy")
+  tasksCreated              Task[]                      @relation("TaskCreatedBy")
+  tasksCompleted            Task[]                      @relation("TaskCompletedBy")
+  taskFollows               TaskFollower[]
+  taskComments              TaskComment[]
+  taskAttachments           TaskAttachment[]
+  notifications             UserNotification[]
+  notificationPref          UserNotificationPreference?
+  invites                   UserInvite[]                @relation("InviteFor")
+  invitesSent               UserInvite[]                @relation("InviteSentBy")
+  interactionsLogged        Interaction[]               @relation("InteractionLoggedBy")
+  interactionCaptures       InteractionCapture[]
+  interactionParticipations InteractionParticipant[]
 }
 
 model Client {
@@ -177,6 +180,8 @@ model Client {
   artifacts         Artifact[]
   users             User[]
   convertedFromLead Lead?
+  contactLinks      ContactAccount[]
+  interactions      Interaction[]
 }
 
 model Lead {
@@ -199,9 +204,10 @@ model Lead {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  convertedClient Client?    @relation(fields: [convertedClientId], references: [id])
+  convertedClient Client?       @relation(fields: [convertedClientId], references: [id])
   artifacts       Artifact[]
   bookings        Booking[]
+  interactions    Interaction[]
 
   @@index([stage])
 }
@@ -262,6 +268,7 @@ model Artifact {
   projectId        String?
   networkCompanyId String?
   networkContactId String?
+  interactionId    String?
   type             ArtifactType
   title            String
 
@@ -284,12 +291,14 @@ model Artifact {
   project        Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   networkCompany NetworkCompany? @relation(fields: [networkCompanyId], references: [id], onDelete: Cascade)
   networkContact NetworkContact? @relation(fields: [networkContactId], references: [id], onDelete: Cascade)
+  interaction    Interaction?    @relation(fields: [interactionId], references: [id], onDelete: Cascade)
 
   @@index([leadId])
   @@index([clientId])
   @@index([projectId])
   @@index([networkCompanyId])
   @@index([networkContactId])
+  @@index([interactionId])
 }
 
 model Project {
@@ -1040,4 +1049,214 @@ model TaskForm {
   tasks     Task[]
 
   @@index([projectId])
+}
+
+// ---------------------------------------------------------------------------
+// CRM & communications (see docs/crm-communications-spec.md)
+// Phase 1: `Tenant` is a stub with a single "default" row. Every new table
+// carries tenantId from day one; existing tables get it in phase 2.
+// "Account" in the spec == the existing Client table, so FKs here say clientId.
+// ---------------------------------------------------------------------------
+
+enum InteractionType {
+  EMAIL
+  CALL
+  MEETING
+  NOTE
+}
+
+enum InteractionDirection {
+  INBOUND
+  OUTBOUND
+  INTERNAL
+}
+
+enum InteractionSource {
+  FORWARD
+  BCC
+  CALENDAR
+  MANUAL
+}
+
+enum InteractionStatus {
+  FILED
+  UNFILED
+}
+
+enum ParticipantRole {
+  FROM
+  TO
+  CC
+  BCC
+  ATTENDEE
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts       Contact[]
+  contactEmails  ContactEmail[]
+  interactions   Interaction[]
+  inboundAliases InboundAlias[]
+}
+
+/// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
+model Contact {
+  id            String    @id @default(cuid())
+  tenantId      String
+  firstName     String
+  lastName      String?
+  title         String?
+  phone         String?
+  avatarUrl     String?
+  notes         String?   @db.Text
+  isActive      Boolean   @default(true)
+  /// True when created from an inbound email and not yet reviewed.
+  autoCreated   Boolean   @default(false)
+  lastContactAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
+  emails       ContactEmail[]
+  accountLinks ContactAccount[]
+  participants InteractionParticipant[]
+
+  @@index([tenantId, lastName, firstName])
+}
+
+model ContactEmail {
+  id        String   @id @default(cuid())
+  tenantId  String
+  contactId String
+  /// Stored lowercased.
+  email     String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([contactId])
+}
+
+/// Many-to-many between people and accounts (Client rows), with a role.
+model ContactAccount {
+  id        String   @id @default(cuid())
+  contactId String
+  clientId  String
+  /// e.g. family member, POA, case manager, employee
+  role      String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, clientId])
+  @@index([clientId])
+}
+
+/// One entry on a client/lead communication timeline.
+model Interaction {
+  id             String               @id @default(cuid())
+  tenantId       String
+  type           InteractionType
+  direction      InteractionDirection @default(INBOUND)
+  occurredAt     DateTime
+  subject        String?
+  bodyText       String?              @db.Text
+  /// Storage keys for sanitized HTML and the raw MIME message.
+  bodyHtmlKey    String?
+  rawKey         String?
+  /// RFC 5322 Message-ID; dedupes the same email forwarded by several people.
+  messageId      String?
+  threadKey      String?
+  source         InteractionSource
+  status         InteractionStatus    @default(UNFILED)
+  clientId       String?
+  leadId         String?
+  loggedByUserId String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
+  client       Client?                  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  lead         Lead?                    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  loggedBy     User?                    @relation("InteractionLoggedBy", fields: [loggedByUserId], references: [id], onDelete: SetNull)
+  participants InteractionParticipant[]
+  captures     InteractionCapture[]
+  artifacts    Artifact[]
+
+  @@unique([tenantId, messageId])
+  @@index([tenantId, clientId, occurredAt])
+  @@index([tenantId, status, occurredAt])
+  @@index([tenantId, threadKey])
+  @@index([leadId])
+}
+
+model InteractionParticipant {
+  id            String          @id @default(cuid())
+  interactionId String
+  contactId     String?
+  userId        String?
+  email         String
+  name          String?
+  role          ParticipantRole
+
+  interaction Interaction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+  contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([interactionId])
+  @@index([contactId])
+  @@index([email])
+}
+
+/// Who forwarded/BCC'd a message. A second forward of the same Message-ID adds a row here, not a new Interaction.
+model InteractionCapture {
+  id              String   @id @default(cuid())
+  interactionId   String
+  userId          String?
+  capturedByEmail String
+  capturedAt      DateTime @default(now())
+
+  interaction Interaction @relation(fields: [interactionId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([interactionId, capturedByEmail])
+}
+
+/// Per-tenant inbound address local-part (e.g. "tpn" for tpn@in.<domain>). Old aliases keep routing.
+model InboundAlias {
+  id        String   @id @default(cuid())
+  tenantId  String
+  alias     String   @unique
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant        Tenant                   @relation(fields: [tenantId], references: [id])
+  verifications ForwardingVerification[]
+
+  @@index([tenantId])
+}
+
+/// Gmail's forwarding-confirmation message, surfaced in Settings so the user can finish setting up a filter.
+model ForwardingVerification {
+  id           String   @id @default(cuid())
+  aliasId      String
+  /// The Gmail address asking to forward to us.
+  gmailAddress String?
+  code         String?
+  link         String?  @db.Text
+  receivedAt   DateTime @default(now())
+
+  alias InboundAlias @relation(fields: [aliasId], references: [id], onDelete: Cascade)
+
+  @@index([aliasId, receivedAt])
 }
