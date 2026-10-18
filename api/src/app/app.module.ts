@@ -27,6 +27,7 @@ import { PayModule } from './pay/pay.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TaskManagerModule } from './task-manager/task-manager.module';
 import { InvitesModule } from './invites/invites.module';
+import { CommunicationsModule } from './communications/communications.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -61,6 +62,7 @@ import { HealthController } from './health.controller';
     NotificationsModule,
     TaskManagerModule,
     InvitesModule,
+    CommunicationsModule,
   ],
 })
 export class AppModule implements NestModule {
