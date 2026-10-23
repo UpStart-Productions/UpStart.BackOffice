@@ -1,26 +1,26 @@
 // SES receipt rule -> (S3 action stores the raw message) -> this Lambda -> UBO API.
-// No dependencies: Node 22 has fetch built in, so the zip is just this file.
+// No dependencies: Node 22 has fetch built in, so the deployment is just this file.
 //
-// Env:
-//   INGEST_BACKEND_URL  API origin, no /api (e.g. https://api.heyupstart.com)
-//   INGEST_API_KEY      a UBO service key (Settings), sent as x-api-key
-//   INBOUND_BUCKET      bucket the SES S3 action writes to (passed to the API with each message)
-//   S3_PREFIX           object key prefix used by the SES S3 action (default "inbound/")
+// The only environment variable is the secret:
+//   INGEST_API_KEY   a UBO service key (Settings > API Keys), sent as x-api-key
+// Everything else is fixed infrastructure, so it lives here.
 
-const INGEST_PATH = '/api/communications/ingest-email';
+export const INGEST_URL = 'https://api.heyupstart.com/api/communications/ingest-email';
+export const INBOUND_BUCKET = 'upstart-back-office-inbound-email';
+export const S3_PREFIX = 'inbound/'; // must match the SES rule's S3 action "object key prefix"
 
 /** Turn one SES record into the API request body, or null if it should be skipped. */
-export function toIngestBody(record, bucket, prefix = 'inbound/') {
+export function toIngestBody(record) {
   if (record?.eventSource !== 'aws:ses' || !record.ses) return null;
   const { mail, receipt } = record.ses;
   if (!mail?.messageId || !receipt?.recipients?.length) return null;
-  // Infected mail is never ingested. Spam verdicts are only logged: mail relayed by
-  // Gmail forwarding can score oddly, and a missed client email costs more than a junk one.
+  // Infected mail is never ingested. Spam verdicts are only logged: a missed client email
+  // costs more than a junk one, and everything here was CC'd on purpose.
   if (receipt.virusVerdict?.status === 'FAIL') return null;
   return {
     recipients: receipt.recipients,
-    s3Bucket: bucket,
-    s3Key: `${prefix}${mail.messageId}`,
+    s3Bucket: INBOUND_BUCKET,
+    s3Key: `${S3_PREFIX}${mail.messageId}`,
     receivedAt: mail.timestamp,
   };
 }
@@ -30,14 +30,11 @@ export async function handler(event, _context, deps = {}) {
   const fetchImpl = deps.fetch ?? fetch;
   const log = deps.log ?? console.log;
 
-  const base = (env.INGEST_BACKEND_URL ?? '').trim().replace(/\/+$/, '');
   const apiKey = env.INGEST_API_KEY;
-  const bucket = env.INBOUND_BUCKET;
-  if (!base || !apiKey || !bucket) throw new Error('INGEST_BACKEND_URL, INGEST_API_KEY and INBOUND_BUCKET must be set');
-  const prefix = env.S3_PREFIX ?? 'inbound/';
+  if (!apiKey) throw new Error('INGEST_API_KEY must be set');
 
   for (const record of event?.Records ?? []) {
-    const body = toIngestBody(record, bucket, prefix);
+    const body = toIngestBody(record);
     const id = record?.ses?.mail?.messageId ?? 'unknown';
     if (!body) {
       log(JSON.stringify({ msg: 'skipped', messageId: id, virus: record?.ses?.receipt?.virusVerdict?.status }));
@@ -47,7 +44,7 @@ export async function handler(event, _context, deps = {}) {
       log(JSON.stringify({ msg: 'spam-verdict-fail (ingesting anyway)', messageId: id }));
     }
 
-    const res = await fetchImpl(`${base}${INGEST_PATH}`, {
+    const res = await fetchImpl(INGEST_URL, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey },
       body: JSON.stringify(body),

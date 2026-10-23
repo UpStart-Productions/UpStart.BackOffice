@@ -1,7 +1,7 @@
 // Run with: node --test tools/inbound-email-lambda/index.test.mjs
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { handler, toIngestBody } from './index.mjs';
+import { handler, INBOUND_BUCKET, INGEST_URL, toIngestBody } from './index.mjs';
 
 const record = (over = {}) => ({
   eventSource: 'aws:ses',
@@ -15,17 +15,21 @@ const record = (over = {}) => ({
     ...over,
   },
 });
-const env = { INGEST_BACKEND_URL: 'https://api.example.test/', INGEST_API_KEY: 'secret-key', INBOUND_BUCKET: 'raw-bucket' };
+const env = { INGEST_API_KEY: 'secret-key' };
 const ok = (json = { status: 'created' }) => ({ ok: true, status: 200, text: async () => JSON.stringify(json) });
 
+test('points at the production API and the inbound bucket', () => {
+  assert.equal(INGEST_URL, 'https://api.heyupstart.com/api/communications/ingest-email');
+  assert.equal(INBOUND_BUCKET, 'upstart-back-office-inbound-email');
+});
+
 test('builds the request body from the SES record', () => {
-  assert.deepEqual(toIngestBody(record(), 'raw-bucket'), {
+  assert.deepEqual(toIngestBody(record()), {
     recipients: ['tpn@in.example.test'],
-    s3Bucket: 'raw-bucket',
+    s3Bucket: INBOUND_BUCKET,
     s3Key: 'inbound/abc123',
     receivedAt: '2026-10-17T12:00:00.000Z',
   });
-  assert.equal(toIngestBody(record(), 'raw-bucket', 'mail/').s3Key, 'mail/abc123');
 });
 
 test('skips infected mail, non-SES records and incomplete records', () => {
@@ -36,7 +40,7 @@ test('skips infected mail, non-SES records and incomplete records', () => {
   assert.equal(toIngestBody({ eventSource: 'aws:ses', ses: { mail: {}, receipt: {} } }), null);
 });
 
-test('posts to the ingest endpoint with the api key and no trailing-slash issues', async () => {
+test('posts to the ingest endpoint with the api key', async () => {
   const calls = [];
   await handler({ Records: [record()] }, {}, {
     env,
@@ -44,14 +48,9 @@ test('posts to the ingest endpoint with the api key and no trailing-slash issues
     fetch: async (url, init) => (calls.push({ url, init }), ok()),
   });
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, 'https://api.example.test/api/communications/ingest-email');
+  assert.equal(calls[0].url, INGEST_URL);
   assert.equal(calls[0].init.headers['x-api-key'], 'secret-key');
-  assert.deepEqual(JSON.parse(calls[0].init.body), {
-    recipients: ['tpn@in.example.test'],
-    s3Bucket: 'raw-bucket',
-    s3Key: 'inbound/abc123',
-    receivedAt: '2026-10-17T12:00:00.000Z',
-  });
+  assert.equal(JSON.parse(calls[0].init.body).s3Key, 'inbound/abc123');
 });
 
 test('throws on an API error so Lambda retries', async () => {
@@ -78,6 +77,6 @@ test('does not call the API for skipped records and never logs the key', async (
   assert.ok(lines.every((l) => !l.includes('secret-key')));
 });
 
-test('fails fast when misconfigured', async () => {
-  await assert.rejects(handler({ Records: [record()] }, {}, { env: {}, log: () => {} }), /must be set/);
+test('fails fast without the key', async () => {
+  await assert.rejects(handler({ Records: [record()] }, {}, { env: {}, log: () => {} }), /INGEST_API_KEY/);
 });

@@ -9,8 +9,7 @@
 # Optional env:
 #   DRY_RUN=1                 print every change instead of making it (reads still run)
 #   AWS_REGION                default us-west-2 (SES inbound must be available there)
-#   INGEST_BACKEND_URL        default https://api.heyupstart.com   (no /api)
-#   INBOUND_BUCKET            default ubo-inbound-email-<account id>
+#   (bucket name and API URL are constants in tools/inbound-email-lambda/index.mjs)
 #   RETENTION_DAYS            days to keep raw .eml files in S3; 0 = keep forever (default 365)
 #   API_IAM_USER              IAM user the API runs as; if set, it gets read access to the bucket
 #
@@ -21,7 +20,6 @@ set -euo pipefail
 REGION="${AWS_REGION:-us-west-2}"
 DRY_RUN="${DRY_RUN:-}"
 INBOUND_DOMAIN="${INBOUND_DOMAIN:?Set INBOUND_DOMAIN, e.g. in.heyupstart.com (a domain or subdomain whose MX you will point at SES)}"
-BACKEND_URL="${INGEST_BACKEND_URL:-https://api.heyupstart.com}"
 RETENTION_DAYS="${RETENTION_DAYS:-365}"
 PREFIX="inbound/"
 FUNC_NAME="ubo-inbound-email"
@@ -38,7 +36,7 @@ fi
 SERVICE_KEY="${UBO_SERVICE_KEY:-dry-run-key}"
 
 ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
-BUCKET="${INBOUND_BUCKET:-ubo-inbound-email-$ACCOUNT}"
+BUCKET="$(sed -n "s/^export const INBOUND_BUCKET = '\(.*\)';$/\1/p" "$ROOT/tools/inbound-email-lambda/index.mjs")"
 FUNC_ARN="arn:aws:lambda:$REGION:$ACCOUNT:function:$FUNC_NAME"
 
 run() {
@@ -106,14 +104,9 @@ ROLE_ARN="arn:aws:iam::$ACCOUNT:role/$ROLE_NAME"
 
 bash "$ROOT/tools/inbound-email-lambda/pack.sh"
 
-S3_PREFIX="$PREFIX" BUCKET="$BUCKET" BACKEND_URL="$BACKEND_URL" SERVICE_KEY="$SERVICE_KEY" python3 - >"$TMP/lambda-env.json" <<'PY'
+SERVICE_KEY="$SERVICE_KEY" python3 - >"$TMP/lambda-env.json" <<'PY'
 import json, os
-print(json.dumps({"Variables": {
-    "INGEST_BACKEND_URL": os.environ["BACKEND_URL"],
-    "INGEST_API_KEY": os.environ["SERVICE_KEY"],
-    "INBOUND_BUCKET": os.environ["BUCKET"],
-    "S3_PREFIX": os.environ["S3_PREFIX"],
-}}))
+print(json.dumps({"Variables": {"INGEST_API_KEY": os.environ["SERVICE_KEY"]}}))
 PY
 chmod 600 "$TMP/lambda-env.json"
 
