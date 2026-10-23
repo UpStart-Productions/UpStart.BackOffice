@@ -69,5 +69,17 @@ export const staffGuard: CanActivateChildFn = async (_route, state) => {
   return router.createUrlTree(['/tasks']);
 };
 
+/** Platform operators (super users) only. */
+export const platformAdminGuard: CanActivateFn = async () => {
+  const session = inject(SessionService);
+  const router = inject(Router);
+
+  const me = await session.getReady();
+  if (me?.isSuper) return true;
+
+  router.navigate(['/dashboard']);
+  return false;
+};
+
 /** @deprecated Use adminGuard */
 export const superGuard = adminGuard;

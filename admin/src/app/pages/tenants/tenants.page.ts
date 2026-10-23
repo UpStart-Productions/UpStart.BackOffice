@@ -1,0 +1,145 @@
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
+import { MessageModule } from 'primeng/message';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { ApiService } from '../../core/api.service';
+import { AppDialogModule } from '../../core/app-dialog.module';
+import { TenantService } from '../../core/tenant.service';
+import { PageComponent } from '../../ui/layout/page.component';
+
+type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; createdAt: string };
+
+const slugify = (s: string) =>
+  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+
+/** Platform admin: list and add tenants, and switch into one. Super users only. */
+@Component({
+  selector: 'app-tenants-page',
+  standalone: true,
+  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule],
+  template: `
+    <app-page title="Tenants" [skipTitle]="true">
+      @if (error()) {
+        <div class="card"><p-message severity="error" [text]="error()!" /></div>
+      }
+      <div class="card">
+        <h2 class="page-title page-title-in-card">Tenants</h2>
+        <p class="text-color-secondary">
+          Each tenant is a separate organization with its own data. After adding one, switch into it and add its
+          first admin from Users.
+        </p>
+        <div class="toolbar">
+          <button pButton label="Add tenant" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
+        </div>
+        <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered mt-3">
+          <ng-template pTemplate="header">
+            <tr><th>Name</th><th>Slug</th><th>Internal domains</th><th style="width: 9rem"></th></tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-t>
+            <tr>
+              <td>
+                {{ t.name }}
+                @if (t.slug === tenant.currentSlug()) { <p-tag value="Current" severity="info" styleClass="ml-2" /> }
+              </td>
+              <td><code>{{ t.slug }}</code></td>
+              <td>{{ t.internalDomains.length ? t.internalDomains.join(', ') : '—' }}</td>
+              <td>
+                @if (t.slug !== tenant.currentSlug()) {
+                  <button pButton label="Switch to" size="small" severity="secondary" [outlined]="true" (click)="tenant.switchTo(t.slug)"></button>
+                }
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <p-dialog
+        header="Add tenant"
+        [(visible)]="addVisible"
+        [modal]="true"
+        [draggable]="false"
+        [resizable]="false"
+        [closable]="!saving()"
+        [style]="{ width: 'min(30rem, 96vw)' }"
+      >
+        <div class="form">
+          <label for="t-name">Name</label>
+          <input pInputText id="t-name" [ngModel]="name" (ngModelChange)="onName($event)" placeholder="The Purple Nest" class="w-full" />
+          <label for="t-slug">Slug</label>
+          <input pInputText id="t-slug" [(ngModel)]="slug" (ngModelChange)="slugEdited = true" placeholder="purplenest" class="w-full" />
+          <small class="text-color-secondary">Lowercase letters, numbers and dashes. Also their email capture address (slug&#64;in.…).</small>
+          <label for="t-domains">Internal email domains (optional)</label>
+          <input pInputText id="t-domains" [(ngModel)]="domains" placeholder="thepurplenest.org, example.com" class="w-full" />
+          <small class="text-color-secondary">Comma separated. Email from these domains is treated as the team, not contacts.</small>
+          @if (formError()) { <p-message severity="error" [text]="formError()!" /> }
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="addVisible = false" />
+          <p-button label="Add" icon="pi pi-check" [loading]="saving()" [disabled]="!name.trim() || !slug.trim()" (onClick)="save()" />
+        </ng-template>
+      </p-dialog>
+    </app-page>
+  `,
+  styles: `.form { display: flex; flex-direction: column; gap: 0.5rem; }`,
+})
+export class TenantsPage implements OnInit {
+  private readonly api = inject(ApiService);
+  readonly tenant = inject(TenantService);
+
+  tenants = signal<TenantRow[]>([]);
+  loading = signal(true);
+  error = signal<string | null>(null);
+  saving = signal(false);
+  formError = signal<string | null>(null);
+  addVisible = false;
+  name = '';
+  slug = '';
+  domains = '';
+  slugEdited = false;
+
+  ngOnInit() {
+    void this.load();
+  }
+
+  async load() {
+    this.loading.set(true);
+    this.error.set(null);
+    try {
+      this.tenants.set(await this.api.get<TenantRow[]>('/tenants'));
+    } catch (e) {
+      this.error.set(e instanceof Error ? e.message : 'Failed to load tenants');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  openAdd() {
+    this.name = this.slug = this.domains = '';
+    this.slugEdited = false;
+    this.formError.set(null);
+    this.addVisible = true;
+  }
+
+  onName(v: string) {
+    this.name = v;
+    if (!this.slugEdited) this.slug = slugify(v);
+  }
+
+  async save() {
+    this.saving.set(true);
+    this.formError.set(null);
+    try {
+      const internalDomains = this.domains.split(',').map((d) => d.trim()).filter(Boolean);
+      await this.api.post('/tenants', { name: this.name.trim(), slug: this.slug.trim(), internalDomains });
+      this.addVisible = false;
+      await Promise.all([this.load(), this.tenant.load()]);
+    } catch (e) {
+      this.formError.set(e instanceof Error ? e.message.replace(/^API error \d+: /, '') : 'Could not add tenant');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+}

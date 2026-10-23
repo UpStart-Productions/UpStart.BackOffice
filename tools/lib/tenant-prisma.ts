@@ -2,10 +2,15 @@
  * Shared Prisma client for CLI tools. Same tenant scoping as the API: every query is limited to
  * one tenant, chosen with `--tenant <slug>` (default: upstart). Wrap each tool's main() in runForTenant().
  */
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { tenantExtension } from '../../api/src/app/tenancy/prisma-tenant.extension';
 import { runUnscoped, runWithTenant } from '../../api/src/app/tenancy/tenant-context';
+
+// Load .env here: this module builds the DB client at import time, before a tool's own dotenv call runs.
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), quiet: true });
 
 export const DEFAULT_TENANT_SLUG = 'upstart';
 

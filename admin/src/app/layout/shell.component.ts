@@ -102,6 +102,9 @@ export class ShellComponent implements OnInit {
       items.push({ sectionLabel: 'Admin' });
       items.push({ label: 'Users', icon: 'pi-user-edit', route: '/users' });
       items.push({ label: 'Settings', icon: 'pi-cog', route: '/settings' });
+      if (this.session.me()?.isSuper) {
+        items.push({ label: 'Tenants', icon: 'pi-building', route: '/tenants' });
+      }
     }
     return items;
   });
