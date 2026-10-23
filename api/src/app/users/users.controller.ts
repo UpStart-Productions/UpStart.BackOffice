@@ -19,6 +19,7 @@ import { Request } from 'express';
 import { isAdminRole, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
+import { InvitesService } from '../invites/invites.service';
 import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -81,6 +82,7 @@ export class UsersController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cognito: CognitoService,
+    private readonly invites: InvitesService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
     private readonly imageResize: ImageResizeService,
   ) {}
@@ -146,7 +148,7 @@ export class UsersController {
 
   @Post()
   @UseGuards(RequireAdminGuard)
-  async create(@Body() dto: CreateUserDto) {
+  async create(@Body() dto: CreateUserDto, @Req() req: Request) {
     const email = dto.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -176,7 +178,8 @@ export class UsersController {
       },
     });
 
-    return { user: toListItem(user) };
+    const invite = await this.invites.sendStaffInvite({ user, invitedBy: req.user as UserContext });
+    return { user: toListItem(user), invite };
   }
 
   @Patch(':id')
@@ -272,20 +275,13 @@ export class UsersController {
 
   @Post(':id/invite')
   @UseGuards(RequireAdminGuard)
-  async invite(@Param('id') id: string) {
-    if (!this.cognito.isConfigured) {
-      throw new BadRequestException(
-        'Email/password sign-in is not configured. Set up Cognito to invite users.',
-      );
-    }
-
+  async invite(@Param('id') id: string, @Req() req: Request) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: { email: true },
+      select: { id: true, email: true, firstName: true },
     });
     if (!user) throw new NotFoundException('User not found');
-
-    return this.cognito.createUserForEmail(user.email);
+    return this.invites.sendStaffInvite({ user, invitedBy: req.user as UserContext });
   }
 
   @Delete(':id')

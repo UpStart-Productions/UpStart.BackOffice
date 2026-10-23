@@ -1,3 +1,5 @@
+import { AuthStoreService } from '../../core/auth-store.service';
+import { inviteToast } from './invite-toast';
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -55,6 +57,7 @@ export class UsersListPage {
   private readonly api = inject(ApiService);
   private readonly cognito = inject(CognitoAuthService);
   private readonly session = inject(SessionService);
+  private readonly auth = inject(AuthStoreService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
 
@@ -156,15 +159,16 @@ export class UsersListPage {
     }
   }
 
+  /** Full reload so nothing from the previous identity stays on screen. */
+  impersonate(user: UserRow) {
+    this.auth.startImpersonating(user.id, user.name || user.email);
+    window.location.assign('/dashboard');
+  }
+
   async invite(user: UserRow) {
     try {
-      const result = await this.api.post<{ sent: boolean; message: string }>(`/users/${user.id}/invite`);
-      this.toast.add({
-        severity: result.sent ? 'success' : 'info',
-        summary: result.sent ? 'Invitation sent' : 'Already set up',
-        detail: result.message,
-        life: 8000,
-      });
+      const r = await this.api.post<{ emailed: boolean; link?: string }>(`/users/${user.id}/invite`);
+      this.toast.add(inviteToast(user.email, r));
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to send invite');
     }
@@ -188,12 +192,19 @@ export class UsersListPage {
     const actions: RowActionItem[] = [
       { id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEdit(user) },
     ];
-    if (this.useCognito) {
+    actions.push({
+      id: 'invite',
+      label: 'Send sign-in invite',
+      icon: 'pi pi-envelope',
+      command: () => this.invite(user),
+    });
+    const me = this.session.me();
+    if (me?.isSuper && !this.auth.impersonatedUserId && user.id !== me.id && user.isActive) {
       actions.push({
-        id: 'invite',
-        label: 'Send sign-in invite',
-        icon: 'pi pi-envelope',
-        command: () => this.invite(user),
+        id: 'impersonate',
+        label: 'Impersonate',
+        icon: 'pi pi-user',
+        command: () => this.impersonate(user),
       });
     }
     actions.push(

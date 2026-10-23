@@ -14,7 +14,7 @@ import { AppTopbarComponent } from './app-topbar.component';
 import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialog.component';
 import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-paid-dialog.component';
 import { LayoutService } from './layout.service';
-import { isAdminRole, isGuestRole } from '@upstart/back-office/shared';
+import { isAdminRole, isGuestRole, type PermissionArea } from '@upstart/back-office/shared';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
 
@@ -42,7 +42,7 @@ export function isTaskManagerUrl(url: string): boolean {
   templateUrl: './shell.component.html',
 })
 export class ShellComponent implements OnInit {
-  private readonly auth = inject(AuthStoreService);
+  protected readonly auth = inject(AuthStoreService);
   private readonly cognito = inject(CognitoAuthService);
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
@@ -73,27 +73,36 @@ export class ShellComponent implements OnInit {
         { label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
       ];
     }
+    const me = this.session.me();
+    const admin = isAdminRole(me?.role ?? 'MEMBER');
+    // Admins see everything; staff see only the areas their tenant role grants (any level).
+    const can = (area: PermissionArea) => admin || !!me?.permissions?.[area];
+    const section = (label: string, entries: Array<NavItem & { area: PermissionArea }>, badge?: number): NavItem[] => {
+      const visible = entries.filter((e) => can(e.area)).map(({ area: _area, ...item }) => item);
+      return visible.length ? [{ sectionLabel: label, ...(badge ? { badge } : {}) }, ...visible] : [];
+    };
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
       // CRM, ordered by how often it is used. Network is a rolodex that becomes a tag + saved
       // view under Contacts in the CRM consolidation phase; Inbox is the unfiled-email queue.
-      { sectionLabel: 'CRM', badge: this.comms.unfiledCount() },
-      { label: 'Clients', icon: 'pi-users', route: '/clients' },
-      { label: 'Contacts', icon: 'pi-address-book', route: '/contacts' },
-      { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
-      { label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
-      { label: 'Network', icon: 'pi-sitemap', route: '/network' },
-      { label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
-      { sectionLabel: 'Office' },
-      { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
-      { label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
-      { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
-      { label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
-      { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
-      { sectionLabel: 'Reports' },
-      { label: 'Reports', icon: 'pi-chart-line', route: '/reports' },
+      ...section('CRM', [
+        { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
+        { area: 'contacts', label: 'Contacts', icon: 'pi-address-book', route: '/contacts' },
+        { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
+        { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
+        { area: 'network', label: 'Network', icon: 'pi-sitemap', route: '/network' },
+        { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
+      ], this.comms.unfiledCount()),
+      ...section('Office', [
+        { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
+        { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
+        { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },
+        { area: 'expenses', label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
+        { area: 'invoices', label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
+      ]),
+      ...section('Reports', [{ area: 'reports', label: 'Reports', icon: 'pi-chart-line', route: '/reports' }]),
     ];
-    if (isAdminRole(this.session.me()?.role ?? 'MEMBER')) {
+    if (admin) {
       items.push({ sectionLabel: 'Accounting' });
       items.push({ label: 'Chart of Accounts', icon: 'pi-book', route: '/accounting/accounts' });
       items.push({ label: 'Journal', icon: 'pi-list', route: '/accounting/journal' });

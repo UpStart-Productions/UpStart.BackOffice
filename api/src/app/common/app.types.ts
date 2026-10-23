@@ -26,6 +26,8 @@ declare global {
       portalClientId?: string;
       /** Tenant for requests with no user: set by ServiceKeyGuard and PortalSessionGuard. */
       tenantId?: string;
+      /** Set when a platform admin is acting as request.user (the real caller). */
+      impersonatedBy?: { id: string; email: string };
     }
   }
 }

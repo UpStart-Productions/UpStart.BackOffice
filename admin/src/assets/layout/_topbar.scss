@@ -119,3 +119,16 @@
 .layout-topbar .topbar-tenant-select {
   min-width: 11rem;
 }
+
+.impersonation-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  padding: 0.35rem 1rem;
+  text-align: center;
+  font-weight: 600;
+  color: #fff;
+  background: #dc3545;
+}

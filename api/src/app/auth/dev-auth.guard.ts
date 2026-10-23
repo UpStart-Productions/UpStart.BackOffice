@@ -8,6 +8,7 @@ import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
+import { applyImpersonation } from './impersonation';
 import { UserContext } from '../common/app.types';
 import { sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 
@@ -49,7 +50,7 @@ export class DevAuthGuard implements CanActivate {
 
     const role = (roleHeader || user.role) as UserRole;
 
-    request.user = {
+    const real = {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -63,6 +64,7 @@ export class DevAuthGuard implements CanActivate {
       permissions: sanitizePermissions(user.tenantRole?.permissions),
     } satisfies UserContext;
 
+    request.user = await applyImpersonation(request, this.prisma, real);
     return true;
   }
 }

@@ -13,13 +13,15 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingStatus } from '@prisma/client';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
+import { Area, AreaGuard } from '../access/area.guard';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { BookingService } from './booking.service';
 import { UpsertBookingTypeDto } from './dto/upsert-booking-type.dto';
 
 @ApiTags('booking')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('bookings')
 @Controller('booking/admin')
 export class BookingAdminController {
   constructor(private readonly booking: BookingService) {}

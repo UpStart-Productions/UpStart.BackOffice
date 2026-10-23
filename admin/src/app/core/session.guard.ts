@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
-import { isAdminRole, isGuestRole, isStaffRole } from '@upstart/back-office/shared';
+import { isAdminRole, isGuestRole, isStaffRole, type PermissionArea } from '@upstart/back-office/shared';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { SessionService } from './session.service';
@@ -83,3 +83,20 @@ export const platformAdminGuard: CanActivateFn = async () => {
 
 /** @deprecated Use adminGuard */
 export const superGuard = adminGuard;
+
+/** URL prefix -> the permission area it belongs to. Anything unlisted (dashboard, etc.) is open to staff. */
+const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
+  ['/clients', 'clients'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'],
+  ['/booking-types', 'bookings'], ['/network', 'network'], ['/inbox', 'inbox'], ['/projects', 'projects'],
+  ['/tasks', 'tasks'], ['/time-entry', 'time'], ['/expenses', 'expenses'], ['/invoices', 'invoices'],
+  ['/reports', 'reports'],
+];
+
+/** Sends staff away from areas their role doesn't grant (admins and guests pass; the API enforces the same). */
+export const areaGuard: CanActivateChildFn = async (_route, state) => {
+  const me = await inject(SessionService).getReady();
+  if (!me || isAdminRole(me.role) || isGuestRole(me.role)) return true;
+  const hit = AREA_BY_PREFIX.find(([prefix]) => state.url === prefix || state.url.startsWith(prefix + '/') || state.url.startsWith(prefix + '?'));
+  if (!hit || me.permissions?.[hit[1]]) return true;
+  return inject(Router).createUrlTree(['/dashboard']);
+};

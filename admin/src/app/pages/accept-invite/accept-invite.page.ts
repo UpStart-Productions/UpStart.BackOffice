@@ -48,8 +48,11 @@ type InviteInfo = {
           } @else {
             <h2 class="page-title mb-2">You're invited</h2>
             <p class="text-color-secondary mb-3">
-              {{ i.inviterName || 'Someone' }} shared
-              <strong>{{ i.projectName || 'a project' }}</strong> with you.
+              @if (i.projectName) {
+                {{ i.inviterName || 'Someone' }} shared <strong>{{ i.projectName }}</strong> with you.
+              } @else {
+                {{ i.inviterName || 'Someone' }} invited you to UpStart Back Office.
+              }
               {{ i.usesPassword ? 'Set a password to get started.' : '' }}
             </p>
             <form class="login-form" (ngSubmit)="accept()">
@@ -173,7 +176,7 @@ export class AcceptInvitePage implements OnInit {
       this.auth.baseEmail = res.email;
       this.session.reset();
       await this.session.getReady();
-      await this.router.navigate(res.projectId ? ['/tasks/projects', res.projectId] : ['/tasks']);
+      await this.router.navigate(res.projectId ? ['/tasks/projects', res.projectId] : ['/dashboard']);
     } catch (err) {
       this.error.set(this.clean(err));
     } finally {

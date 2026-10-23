@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Area, AreaGuard } from '../access/area.guard';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadAvatarDto } from '../users/dto/user.dto';
@@ -21,7 +22,8 @@ import { UpdateNetworkContactDto } from './dto/update-network-contact.dto';
 
 @ApiTags('network')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('network')
 @Controller('network/contacts')
 export class NetworkContactsController {
   constructor(

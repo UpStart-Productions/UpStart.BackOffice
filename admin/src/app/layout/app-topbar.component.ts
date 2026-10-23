@@ -6,6 +6,7 @@ import { SelectModule } from 'primeng/select';
 import { resolveAssetUrl } from '../core/asset-url.util';
 import { TenantService } from '../core/tenant.service';
 import { GlobalSearchComponent } from '../ui/global-search/global-search.component';
+import { AuthStoreService } from '../core/auth-store.service';
 import { LayoutService } from './layout.service';
 
 @Component({
@@ -49,6 +50,9 @@ import { LayoutService } from './layout.service';
             styleClass="topbar-tenant-select"
           />
         }
+        @if (impersonating()) {
+          <button pButton type="button" label="Return to my account" icon="pi pi-undo" severity="danger" size="small" (click)="stopImpersonating()"></button>
+        }
         @if (avatarUrl() && !avatarImageError) {
           <img
             [src]="resolveAssetUrl(avatarUrl())!"
@@ -76,6 +80,13 @@ import { LayoutService } from './layout.service';
 export class AppTopbarComponent {
   readonly layout = inject(LayoutService);
   readonly tenant = inject(TenantService);
+  private readonly auth = inject(AuthStoreService);
+  readonly impersonating = () => !!this.auth.impersonatedUserId;
+
+  stopImpersonating() {
+    this.auth.stopImpersonating();
+    window.location.assign('/dashboard');
+  }
   readonly resolveAssetUrl = resolveAssetUrl;
   userName = input('');
   avatarUrl = input<string | null | undefined>(null);

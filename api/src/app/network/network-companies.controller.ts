@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
+import { Area, AreaGuard } from '../access/area.guard';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateNetworkCompanyDto } from './dto/create-network-company.dto';
@@ -32,7 +33,8 @@ function toStaffNetworkCompanyView(
 
 @ApiTags('network')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('network')
 @Controller('network/companies')
 export class NetworkCompaniesController {
   constructor(private readonly prisma: PrismaService) {}

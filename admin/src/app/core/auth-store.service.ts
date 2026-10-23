@@ -4,6 +4,8 @@ import { CognitoAuthService } from './cognito-auth.service';
 const KEYS = {
   baseEmail: 'ubo_base_email',
   tenantSlug: 'ubo_tenant_slug',
+  impersonatedUserId: 'ubo_impersonated_user_id',
+  impersonatedName: 'ubo_impersonated_name',
 } as const;
 
 @Injectable({ providedIn: 'root' })
@@ -23,7 +25,21 @@ export class AuthStoreService {
     else localStorage.removeItem(KEYS.tenantSlug);
   }
 
+  /** Super users only (the API ignores it otherwise): act as this user. */
+  get impersonatedUserId(): string { return localStorage.getItem(KEYS.impersonatedUserId) ?? ''; }
+  get impersonatedName(): string { return localStorage.getItem(KEYS.impersonatedName) ?? ''; }
+  startImpersonating(id: string, name: string) {
+    localStorage.setItem(KEYS.impersonatedUserId, id);
+    localStorage.setItem(KEYS.impersonatedName, name);
+    localStorage.removeItem(KEYS.tenantSlug);
+  }
+  stopImpersonating() {
+    localStorage.removeItem(KEYS.impersonatedUserId);
+    localStorage.removeItem(KEYS.impersonatedName);
+  }
+
   clear() {
+    this.stopImpersonating();
     localStorage.removeItem(KEYS.baseEmail);
     localStorage.removeItem(KEYS.tenantSlug);
   }
@@ -41,6 +57,7 @@ export class AuthStoreService {
     }
 
     if (this.tenantSlug) headers['x-tenant-slug'] = this.tenantSlug;
+    if (this.impersonatedUserId) headers['x-impersonate-user-id'] = this.impersonatedUserId;
 
     return { ...options, headers };
   }

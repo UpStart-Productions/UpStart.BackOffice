@@ -1,6 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
-import { sessionGuard, adminGuard, staffGuard, platformAdminGuard } from './core/session.guard';
+import { sessionGuard, adminGuard, staffGuard, platformAdminGuard, areaGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -23,7 +23,7 @@ export const appRoutes: Route[] = [
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],
-    canActivateChild: [staffGuard],
+    canActivateChild: [staffGuard, areaGuard],
     children: [
       {
         path: 'dashboard',

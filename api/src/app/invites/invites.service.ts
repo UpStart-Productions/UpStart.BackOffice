@@ -104,6 +104,41 @@ export class InvitesService {
     return { emailed: result.sent };
   }
 
+  /**
+   * Welcome email for a newly added staff/admin user (no project). Works without Cognito.
+   * When the email can't be sent (no SES keys locally) the link is logged and, outside
+   * production, returned so it can be tested.
+   */
+  async sendStaffInvite(params: {
+    user: { id: string; email: string; firstName: string | null };
+    invitedBy: UserContext;
+  }): Promise<{ emailed: boolean; link?: string; error?: string }> {
+    const { user, invitedBy } = params;
+    await this.cognito.createUserSilently(user.email);
+    const { token, hash } = newInviteToken();
+    await this.prisma.userInvite.create({
+      data: { userId: user.id, invitedById: invitedBy.id, projectId: null, tokenHash: hash, expiresAt: inviteExpiry() },
+    });
+    const link = `${adminAppBaseUrl()}/accept-invite?token=${encodeURIComponent(token)}`;
+    const inviter = personName(invitedBy);
+    const html = wrapClientEmail({
+      title: `${inviter} invited you to UpStart Back Office`,
+      greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
+      intro: `${inviter} added you to UpStart Back Office. Click below to ${this.cognito.isConfigured ? 'set your password and ' : ''}get started.`,
+      action: { href: link, label: 'Accept invitation' },
+      actionNote: `This link expires in ${INVITE_TTL_DAYS} days. If you weren't expecting this, you can ignore this email.`,
+      extraHtml: `<p style="margin:16px 0 0;font-size:12px;color:#8a8a8a;word-break:break-all;">Or paste this link into your browser: ${escapeHtml(link)}</p>`,
+    });
+    const result = await this.mail.sendRaw({
+      to: user.email,
+      subject: `${inviter} invited you to UpStart Back Office`,
+      html,
+    });
+    if (result.sent) return { emailed: true };
+    this.logger.warn(`Welcome email to ${user.email} not sent (${result.error ?? 'unknown'}). Invite link: ${link}`);
+    return { emailed: false, error: result.error, ...(process.env.NODE_ENV === 'production' ? {} : { link }) };
+  }
+
   async lookup(token: string): Promise<InviteLookup> {
     const invite = await this.prisma.userInvite.findUnique({
       where: { tokenHash: hashInviteToken(token) },

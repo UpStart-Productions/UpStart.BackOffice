@@ -1,7 +1,11 @@
 import {
   Body, Controller, Delete, Get, NotFoundException, Param,
-  Post, Put, UseGuards,
+  Post, Put, Req, UseGuards,
 } from '@nestjs/common';
+import { Request } from 'express';
+import { AccessService } from '../access/access.service';
+import { Area, AreaGuard } from '../access/area.guard';
+import { UserContext } from '../common/app.types';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { generatePortalToken } from '../portal/portal-token.util';
@@ -34,17 +38,27 @@ const clientSelect = {
 
 @ApiTags('clients')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('clients')
 @Controller('clients')
 export class ClientsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageFolders: StorageFoldersService,
+    private readonly access: AccessService,
   ) {}
 
+  /** 404 (not 403) for a client outside the user's reach, so ids can't be probed. */
+  private async assertReach(req: Request, id: string): Promise<void> {
+    const ids = await this.access.clientIds(req.user as UserContext);
+    if (ids !== null && !ids.includes(id)) throw new NotFoundException('Client not found');
+  }
+
   @Get()
-  async list() {
+  async list(@Req() req: Request) {
+    const reach = await this.access.clientIdFilter(req.user as UserContext);
     const clients = await this.prisma.client.findMany({
+      where: reach ? { id: reach } : undefined,
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -69,7 +83,7 @@ export class ClientsController {
   }
 
   @Post()
-  async create(@Body() dto: CreateClientDto) {
+  async create(@Body() dto: CreateClientDto, @Req() req: Request) {
     const client = await this.prisma.client.create({
       data: {
         name: dto.name,
@@ -86,12 +100,18 @@ export class ClientsController {
       },
       select: clientSelect,
     });
+    const user = req.user as UserContext;
+    if (this.access.level(user, 'clients') !== 'all') {
+      // Someone limited to their own clients keeps access to the one they just made.
+      await this.prisma.clientAssignment.create({ data: { clientId: client.id, userId: user.id } });
+    }
     await this.storageFolders.ensureClientFolders(client.id);
     return toStaffClientView(client);
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
+  async get(@Param('id') id: string, @Req() req: Request) {
+    await this.assertReach(req, id);
     const client = await this.prisma.client.findUnique({
       where: { id },
       select: clientSelect,
@@ -101,7 +121,8 @@ export class ClientsController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
+  async update(@Param('id') id: string, @Body() dto: UpdateClientDto, @Req() req: Request) {
+    await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
     const client = await this.prisma.client.update({
@@ -125,7 +146,8 @@ export class ClientsController {
   }
 
   @Post(':id/portal/enable')
-  async enablePortal(@Param('id') id: string) {
+  async enablePortal(@Param('id') id: string, @Req() req: Request) {
+    await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id }, select: clientSelect });
     if (!existing) throw new NotFoundException('Client not found');
 
@@ -143,7 +165,8 @@ export class ClientsController {
   }
 
   @Post(':id/portal/disable')
-  async disablePortal(@Param('id') id: string) {
+  async disablePortal(@Param('id') id: string, @Req() req: Request) {
+    await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
 
@@ -156,7 +179,8 @@ export class ClientsController {
   }
 
   @Post(':id/portal/regenerate')
-  async regeneratePortal(@Param('id') id: string) {
+  async regeneratePortal(@Param('id') id: string, @Req() req: Request) {
+    await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
 
@@ -173,7 +197,8 @@ export class ClientsController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string, @Req() req: Request) {
+    await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
     await this.storageFolders.removeClientTree(id);

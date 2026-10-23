@@ -7,6 +7,7 @@ import {
 import { Request } from 'express';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import { applyImpersonation } from './impersonation';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
@@ -106,7 +107,7 @@ export class JwtAuthGuard implements CanActivate {
     if (!user) throw new UnauthorizedException('User not found. Contact your administrator.');
     if (!user.isActive) throw new UnauthorizedException('Account is disabled.');
 
-    request.user = {
+    const real = {
       id: user.id,
       email: user.email,
       name: user.name,
@@ -120,6 +121,7 @@ export class JwtAuthGuard implements CanActivate {
       permissions: sanitizePermissions(user.tenantRole?.permissions),
     } satisfies UserContext;
 
+    request.user = await applyImpersonation(request, this.prisma, real);
     return true;
   }
 }

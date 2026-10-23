@@ -26,6 +26,8 @@ type RoleOption = { label: string; value: string };
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
+import { inviteToast } from '../../pages/users/invite-toast';
+
 @Component({
   selector: 'app-add-edit-user-modal',
   standalone: true,
@@ -300,12 +302,12 @@ export class AddEditUserModalComponent {
         userId = existing.id;
         this.toast.add({ severity: 'success', summary: 'Saved', detail: 'User updated.' });
       } else {
-        const created = await this.api.post<{ user: UserRow }>('/users', {
+        const created = await this.api.post<{ user: UserRow; invite: { emailed: boolean; link?: string } }>('/users', {
           ...payload,
           email: v.email!.trim().toLowerCase(),
         });
         userId = created.user.id;
-        this.toast.add({ severity: 'success', summary: 'Added', detail: 'User added.' });
+        this.toast.add(inviteToast(created.user.email, created.invite));
       }
 
       if (this.selectedAvatarFile) {
