@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { isAdminRole, type UserRole } from '@upstart/back-office/shared';
+import { isAdminRole, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
 import { CognitoService } from '../cognito/cognito.service';
@@ -52,9 +52,13 @@ function toListItem(user: {
   hourlyRate: { toNumber?: () => number } | null;
   isActive: boolean;
   clientId: string | null;
+  roleId?: string | null;
+  tenantRole?: { id: string; name: string } | null;
   client?: { id: string; name: string; code: string } | null;
 }) {
   return {
+    roleId: user.roleId ?? null,
+    roleName: user.tenantRole?.name ?? null,
     id: user.id,
     email: user.email,
     firstName: user.firstName,
@@ -100,6 +104,7 @@ export class UsersController {
           clientId: true,
           tenantId: true,
           isSuper: true,
+          tenantRole: { select: { name: true, permissions: true } },
         },
       }),
     );
@@ -115,6 +120,8 @@ export class UsersController {
       clientId: row.clientId,
       tenantId: row.tenantId,
       isSuper: row.isSuper,
+      roleName: row.tenantRole?.name ?? null,
+      permissions: sanitizePermissions(row.tenantRole?.permissions),
     };
   }
 
@@ -131,6 +138,7 @@ export class UsersController {
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
       include: {
         client: { select: { id: true, name: true, code: true } },
+        tenantRole: { select: { id: true, name: true } },
       },
     });
     return { users: users.map(toListItem) };
@@ -149,6 +157,8 @@ export class UsersController {
     const lastName = dto.lastName?.trim() || null;
     const name = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
+    const roleId = await this.resolveRoleId(dto.role, dto.roleId);
+
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -156,11 +166,13 @@ export class UsersController {
         lastName,
         name,
         role: dto.role,
+        roleId,
         hourlyRate: dto.hourlyRate,
         clientId: null,
       },
       include: {
         client: { select: { id: true, name: true, code: true } },
+        tenantRole: { select: { id: true, name: true } },
       },
     });
 
@@ -187,6 +199,15 @@ export class UsersController {
       dto.lastName !== undefined ? dto.lastName.trim() || null : existing.lastName;
     const name = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
+    // Admins have no tenant role. Staff need one. Changing role type or picking a role updates roleId.
+    const effectiveRole = dto.role ?? existing.role;
+    let newRoleId: string | null | undefined;
+    if (effectiveRole === 'ADMIN') {
+      if (dto.role !== undefined || dto.roleId !== undefined) newRoleId = null;
+    } else if (dto.roleId !== undefined || dto.role !== undefined) {
+      newRoleId = await this.resolveRoleId(effectiveRole, dto.roleId ?? existing.roleId ?? undefined);
+    }
+
     if (dto.avatarUrl === null && existing.avatarUrl) {
       await this.deleteStoredAvatar(existing.avatarUrl);
     }
@@ -199,11 +220,13 @@ export class UsersController {
         ...(dto.lastName !== undefined && { lastName }),
         ...(dto.firstName !== undefined || dto.lastName !== undefined ? { name } : {}),
         ...(dto.role !== undefined && { role: dto.role, clientId: null }),
+        ...(newRoleId !== undefined && { roleId: newRoleId }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
       },
       include: {
         client: { select: { id: true, name: true, code: true } },
+        tenantRole: { select: { id: true, name: true } },
       },
     });
 
@@ -282,6 +305,15 @@ export class UsersController {
 
     await this.prisma.user.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  /** Admins have no tenant role. Staff must be given one that exists in this tenant. */
+  private async resolveRoleId(role: UserRole, roleId?: string | null): Promise<string | null> {
+    if (role === 'ADMIN') return null;
+    if (!roleId) throw new BadRequestException('Choose a role for this user.');
+    const found = await this.prisma.role.findFirst({ where: { id: roleId }, select: { id: true } });
+    if (!found) throw new BadRequestException('That role does not exist.');
+    return found.id;
   }
 
   private uploadAvatarFromDto(userId: string, dto: UploadAvatarDto) {

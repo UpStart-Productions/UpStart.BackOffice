@@ -1,4 +1,11 @@
 <app-page title="Users" [skipTitle]="true">
+<p-tabs [(value)]="tab">
+  <p-tablist>
+    <p-tab value="users">Users</p-tab>
+    <p-tab value="roles">Roles</p-tab>
+  </p-tablist>
+  <p-tabpanels>
+  <p-tabpanel value="users">
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -55,7 +62,7 @@
           <td>{{ user.name || '—' }}</td>
           <td><app-copy-email [email]="user.email" [showEmpty]="false" /></td>
           <td>
-            {{ roleLabel(user.role) }}
+            {{ user.role === 'MEMBER' && user.roleName ? user.roleName : roleLabel(user.role) }}
             @if (user.client) {
               <span class="text-color-secondary"> · {{ user.client.name }}</span>
             }
@@ -76,6 +83,13 @@
       </ng-template>
     </p-table>
   </div>
+
+  </p-tabpanel>
+  <p-tabpanel value="roles">
+    <app-roles-tab (changed)="load()" />
+  </p-tabpanel>
+  </p-tabpanels>
+</p-tabs>
 
   <app-add-edit-user-modal #addEditModal />
 </app-page>

@@ -117,6 +117,41 @@ enum JournalEntrySource {
   BANK_IMPORT
 }
 
+/// Staff user assigned to a client (e.g. a care manager on a family). With Clients at level "own",
+/// a user only reaches clients they are assigned to.
+model ClientAssignment {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("ClientAssignmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([clientId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+/// Tenant-defined role for staff users: a name plus the app areas it can use, each at level own or all.
+/// Admins are not a Role: User.role = ADMIN can do everything.
+model Role {
+  id          String   @id @default(cuid())
+  tenantId    String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  /// Area -> level, e.g. { "time": "own", "clients": "all" }. Missing area = no access. See libs/shared permissions.ts.
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
 model User {
   id         String   @id @default(cuid())
   tenantId   String?
@@ -129,6 +164,9 @@ model User {
   name       String?
   avatarUrl  String?
   role       UserRole @default(MEMBER)
+  /// For staff (MEMBER) users: which areas they can use. Null for admins, who can do everything.
+  roleId     String?
+  tenantRole Role?    @relation(fields: [roleId], references: [id])
   hourlyRate Decimal? @db.Decimal(10, 2)
   isActive   Boolean  @default(true)
   clientId   String?
@@ -157,8 +195,11 @@ model User {
   interactionsLogged        Interaction[]               @relation("InteractionLoggedBy")
   interactionCaptures       InteractionCapture[]
   interactionParticipations InteractionParticipant[]
+  invoicesCreated           Invoice[]                   @relation("InvoiceCreatedBy")
+  clientAssignments         ClientAssignment[]          @relation("ClientAssignmentUser")
 
   @@index([tenantId])
+  @@index([roleId])
 }
 
 model Client {
@@ -190,6 +231,7 @@ model Client {
   convertedFromLead Lead?
   contactLinks      ContactAccount[]
   interactions      Interaction[]
+  assignments       ClientAssignment[]
 
   @@unique([tenantId, code])
 }
@@ -533,6 +575,9 @@ model Invoice {
   tenantId      String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
   clientId      String
+  /// Who created it; null for invoices that predate this. Used by roles limited to their own invoices.
+  createdById   String?
+  createdBy     User?         @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   number        Int
   displayNumber String
   status        InvoiceStatus @default(DRAFT)
@@ -556,6 +601,7 @@ model Invoice {
 
   @@unique([tenantId, number])
   @@index([clientId])
+  @@index([createdById])
   @@index([status])
 }
 
@@ -1284,6 +1330,8 @@ model Tenant {
   interactionParticipants     InteractionParticipant[]
   interactionCaptures         InteractionCapture[]
   forwardingVerifications     ForwardingVerification[]
+  roles                       Role[]
+  clientAssignments           ClientAssignment[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.

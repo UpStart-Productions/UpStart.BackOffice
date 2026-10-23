@@ -127,6 +127,10 @@ export type MeDto = {
   tenantId?: string | null;
   /** Platform operator: can switch between tenants. */
   isSuper?: boolean;
+  /** Name of the tenant role (staff only). */
+  roleName?: string | null;
+  /** Areas this user can use, per level. Admins can use everything regardless. */
+  permissions?: import('./permissions').RolePermissions;
 };
 
 export type UserListDto = {
@@ -140,6 +144,9 @@ export type UserListDto = {
   hourlyRate?: number | null;
   isActive: boolean;
   clientId?: string | null;
+  /** Tenant role for staff users (null for admins). */
+  roleId?: string | null;
+  roleName?: string | null;
   client?: { id: string; name: string; code: string } | null;
 };
 

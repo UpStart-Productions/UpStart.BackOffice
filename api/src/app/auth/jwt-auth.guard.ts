@@ -10,6 +10,7 @@ import jwksClient from 'jwks-rsa';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
+import { sanitizePermissions } from '@upstart/back-office/shared';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 const COGNITO_JWKS_URI = (region: string, userPoolId: string) =>
@@ -98,6 +99,7 @@ export class JwtAuthGuard implements CanActivate {
         clientId: true,
         tenantId: true,
         isSuper: true,
+        tenantRole: { select: { permissions: true } },
       },
     }));
 
@@ -115,6 +117,7 @@ export class JwtAuthGuard implements CanActivate {
       clientId: user.clientId,
       tenantId: user.tenantId,
       isSuper: user.isSuper,
+      permissions: sanitizePermissions(user.tenantRole?.permissions),
     } satisfies UserContext;
 
     return true;

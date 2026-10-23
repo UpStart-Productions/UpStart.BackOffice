@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
@@ -23,6 +24,7 @@ import {
   type UserRow,
 } from '../../ui/add-edit-user-modal/add-edit-user-modal.component';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
+import { RolesTabComponent } from './roles-tab.component';
 import { roleLabel, type UserListDto } from '@upstart/back-office/shared';
 
 type SortBy = 'name' | 'email' | 'role';
@@ -41,6 +43,8 @@ type SortBy = 'name' | 'email' | 'role';
     InputIconModule,
     SelectModule,
     TagModule,
+    TabsModule,
+    RolesTabComponent,
     RowActionsMenuComponent,
     AddEditUserModalComponent,
     CopyEmailComponent,
@@ -54,6 +58,7 @@ export class UsersListPage {
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
 
+  tab = 'users';
   users = signal<UserRow[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);

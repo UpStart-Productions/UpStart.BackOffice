@@ -33,6 +33,11 @@ export class CreateUserDto {
   @IsIn(USER_ROLES)
   role!: (typeof USER_ROLES)[number];
 
+  /** Required for staff (MEMBER): the tenant role that decides what they can use. Ignored for admins. */
+  @IsOptional()
+  @IsString()
+  roleId?: string;
+
   @IsOptional()
   @IsNumber()
   hourlyRate?: number;
@@ -55,6 +60,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsIn(USER_ROLES)
   role?: (typeof USER_ROLES)[number];
+
+  @IsOptional()
+  @IsString()
+  roleId?: string | null;
 
   @IsOptional()
   @IsNumber()

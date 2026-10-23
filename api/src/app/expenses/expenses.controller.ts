@@ -17,7 +17,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { Prisma } from '@prisma/client';
 import { Request } from 'express';
+import { AccessService } from '../access/access.service';
+import { Area, AreaGuard } from '../access/area.guard';
 import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
@@ -44,13 +47,35 @@ const expenseInclude = {
 
 @ApiTags('expenses')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('expenses')
 @Controller('expenses')
 export class ExpensesController {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly access: AccessService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
+
+  /** Own expenses when the role says so; expenses on a project must be for a client the user can reach. */
+  private async scope(user: UserContext): Promise<Prisma.ExpenseWhereInput> {
+    const clientIds = await this.access.clientIdFilter(user);
+    return {
+      AND: [
+        this.access.level(user, 'expenses') === 'own' ? { userId: user.id } : {},
+        clientIds ? { OR: [{ project: { clientId: clientIds } }, { projectId: null, userId: user.id }] } : {},
+      ],
+    };
+  }
+
+  private async assertProjectAllowed(user: UserContext, projectId: string) {
+    const clientIds = await this.access.clientIdFilter(user);
+    const project = await this.prisma.project.findFirst({
+      where: { id: projectId, ...(clientIds ? { clientId: clientIds } : {}) },
+      select: { id: true },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+  }
 
   @Get()
   @ApiQuery({ name: 'projectId', required: false })
@@ -58,13 +83,16 @@ export class ExpensesController {
   @ApiQuery({ name: 'from', required: false })
   @ApiQuery({ name: 'to', required: false })
   async list(
+    @Req() req: Request,
     @Query('projectId') projectId?: string,
     @Query('userId') userId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+    const scope = await this.scope(req.user as UserContext);
     const expenses = await this.prisma.expense.findMany({
       where: {
+        AND: [scope],
         ...(projectId ? { projectId } : {}),
         ...(userId ? { userId } : {}),
         ...(from || to
@@ -85,10 +113,7 @@ export class ExpensesController {
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateExpenseDto) {
     const user = req.user as UserContext;
-    if (dto.projectId) {
-      const project = await this.prisma.project.findUnique({ where: { id: dto.projectId } });
-      if (!project) throw new NotFoundException('Project not found');
-    }
+    if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
     const expense = await this.prisma.expense.create({
       data: {
         userId: user.id,
@@ -108,20 +133,18 @@ export class ExpensesController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
-    const expense = await this.prisma.expense.findUnique({ where: { id }, include: expenseInclude });
+  async get(@Req() req: Request, @Param('id') id: string) {
+    const expense = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) }, include: expenseInclude });
     if (!expense) throw new NotFoundException('Expense not found');
     return this.toView(expense);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateExpenseDto) {
-    const existing = await this.prisma.expense.findUnique({ where: { id } });
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateExpenseDto) {
+    const user = req.user as UserContext;
+    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(user)) } });
     if (!existing) throw new NotFoundException('Expense not found');
-    if (dto.projectId) {
-      const project = await this.prisma.project.findUnique({ where: { id: dto.projectId } });
-      if (!project) throw new NotFoundException('Project not found');
-    }
+    if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
 
     const expense = await this.prisma.expense.update({
       where: { id },
@@ -146,10 +169,11 @@ export class ExpensesController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: RECEIPT_MAX_BYTES } }))
   async uploadReceipt(
+    @Req() req: Request,
     @Param('id') id: string,
     @UploadedFile() file: { buffer: Buffer; mimetype: string; originalname: string; size: number },
   ) {
-    const existing = await this.prisma.expense.findUnique({ where: { id } });
+    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!existing) throw new NotFoundException('Expense not found');
     if (!file) throw new BadRequestException('file is required');
 
@@ -170,8 +194,8 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    const existing = await this.prisma.expense.findUnique({ where: { id } });
+  async remove(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!existing) throw new NotFoundException('Expense not found');
     if (existing.receiptUrl) {
       await this.deleteStoredReceipt(existing.receiptUrl);

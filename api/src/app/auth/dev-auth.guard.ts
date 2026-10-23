@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { UserContext } from '../common/app.types';
-import type { UserRole } from '@upstart/back-office/shared';
+import { sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 
 @Injectable()
 export class DevAuthGuard implements CanActivate {
@@ -40,6 +40,7 @@ export class DevAuthGuard implements CanActivate {
         clientId: true,
         tenantId: true,
         isSuper: true,
+        tenantRole: { select: { permissions: true } },
       },
     }));
 
@@ -59,6 +60,7 @@ export class DevAuthGuard implements CanActivate {
       clientId: user.clientId,
       tenantId: user.tenantId,
       isSuper: user.isSuper,
+      permissions: sanitizePermissions(user.tenantRole?.permissions),
     } satisfies UserContext;
 
     return true;

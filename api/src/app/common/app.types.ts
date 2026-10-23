@@ -1,4 +1,4 @@
-import type { UserRole } from '@upstart/back-office/shared';
+import type { RolePermissions, UserRole } from '@upstart/back-office/shared';
 
 export type UserContext = {
   id: string;
@@ -13,6 +13,8 @@ export type UserContext = {
   tenantId?: string | null;
   /** Platform operator: may act in any tenant via the x-tenant-slug header. */
   isSuper?: boolean;
+  /** Areas a staff user's tenant role grants (admins ignore this and can do everything). */
+  permissions?: RolePermissions;
 };
 
 declare global {

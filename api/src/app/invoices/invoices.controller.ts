@@ -1,10 +1,13 @@
 import {
-  BadRequestException, Body, Controller, Delete, Get, Logger, NotFoundException,
+  BadRequestException, Body, Req, Controller, Delete, Get, Logger, NotFoundException,
   Param, Post, Put, Query, Res, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import { AccessService } from '../access/access.service';
+import { Area, AreaGuard } from '../access/area.guard';
+import { UserContext } from '../common/app.types';
 import { JournalPostingService } from '../accounting/journal-posting.service';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { publicFromName } from '../mail/email-layout';
@@ -53,7 +56,8 @@ type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceIncl
 
 @ApiTags('invoices')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('invoices')
 @Controller('invoices')
 export class InvoicesController {
   private readonly logger = new Logger(InvoicesController.name);
@@ -66,12 +70,29 @@ export class InvoicesController {
     private readonly invoiceFromTime: InvoiceFromTimeService,
     private readonly journalPosting: JournalPostingService,
     private readonly pay: PayService,
+    private readonly access: AccessService,
   ) {}
 
-  @Get('preview')
-  async preview(@Query() query: InvoicePreviewQueryDto) {
-    const client = await this.prisma.client.findUnique({ where: { id: query.clientId } });
+  /** Own invoices when the role says so; only for clients the user can reach. */
+  private async scope(user: UserContext): Promise<Prisma.InvoiceWhereInput> {
+    const clientIds = await this.access.clientIdFilter(user);
+    return {
+      ...(this.access.level(user, 'invoices') === 'own' ? { createdById: user.id } : {}),
+      ...(clientIds ? { clientId: clientIds } : {}),
+    };
+  }
+
+  /** A client the user may invoice. Same not-found answer as a missing client. */
+  private async requireClient(user: UserContext, clientId: string) {
+    const clientIds = await this.access.clientIdFilter(user);
+    const client = await this.prisma.client.findFirst({ where: { AND: [{ id: clientId }, clientIds ? { id: clientIds } : {}] } });
     if (!client) throw new NotFoundException('Client not found');
+    return client;
+  }
+
+  @Get('preview')
+  async preview(@Req() req: Request, @Query() query: InvoicePreviewQueryDto) {
+    await this.requireClient(req.user as UserContext, query.clientId);
     if (query.projectId) {
       const project = await this.prisma.project.findFirst({
         where: { id: query.projectId, clientId: query.clientId },
@@ -82,17 +103,18 @@ export class InvoicesController {
   }
 
   @Get()
-  async list() {
+  async list(@Req() req: Request) {
     return this.prisma.invoice.findMany({
+      where: await this.scope(req.user as UserContext),
       include: { client: { select: { id: true, name: true, code: true } } },
       orderBy: { number: 'desc' },
     });
   }
 
   @Post()
-  async create(@Body() dto: CreateInvoiceDto) {
-    const client = await this.prisma.client.findUnique({ where: { id: dto.clientId } });
-    if (!client) throw new NotFoundException('Client not found');
+  async create(@Req() req: Request, @Body() dto: CreateInvoiceDto) {
+    const user = req.user as UserContext;
+    const client = await this.requireClient(user, dto.clientId);
 
     await this.invoiceFromTime.assertTimeEntriesLinkable(dto.clientId, dto.lineItems);
 
@@ -110,6 +132,7 @@ export class InvoicesController {
       const invoice = await tx.invoice.create({
         data: {
           clientId: dto.clientId,
+          createdById: user.id,
           number,
           displayNumber,
           issueDate: new Date(dto.issueDate),
@@ -132,9 +155,9 @@ export class InvoicesController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id },
+  async get(@Req() req: Request, @Param('id') id: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
       include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
@@ -142,8 +165,8 @@ export class InvoicesController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateInvoiceDto) {
-    const existing = await this.prisma.invoice.findUnique({ where: { id } });
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateInvoiceDto) {
+    const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!existing) throw new NotFoundException('Invoice not found');
     if (existing.status !== 'DRAFT') {
       throw new BadRequestException('Only draft invoices can be edited');
@@ -215,8 +238,8 @@ export class InvoicesController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    const existing = await this.prisma.invoice.findUnique({ where: { id } });
+  async remove(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!existing) throw new NotFoundException('Invoice not found');
     await this.storageFolders.removeInvoicePdf(existing.clientId, existing.displayNumber);
     await this.prisma.invoice.delete({ where: { id } });
@@ -224,9 +247,9 @@ export class InvoicesController {
   }
 
   @Get(':id/pdf')
-  async downloadPdf(@Res() res: Response, @Param('id') id: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id },
+  async downloadPdf(@Req() req: Request, @Res() res: Response, @Param('id') id: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
       include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
@@ -242,9 +265,9 @@ export class InvoicesController {
   }
 
   @Get(':id/send-recipients')
-  async sendRecipients(@Param('id') id: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id },
+  async sendRecipients(@Req() req: Request, @Param('id') id: string) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
       include: sendRecipientsInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
@@ -263,8 +286,8 @@ export class InvoicesController {
   }
 
   @Post(':id/mark-paid')
-  async markPaid(@Param('id') id: string, @Body() dto: MarkInvoicePaidDto) {
-    const existing = await this.prisma.invoice.findUnique({ where: { id } });
+  async markPaid(@Req() req: Request, @Param('id') id: string, @Body() dto: MarkInvoicePaidDto) {
+    const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!existing) throw new NotFoundException('Invoice not found');
     if (existing.status !== 'SENT') {
       throw new BadRequestException('Only sent invoices can be marked as paid');
@@ -287,9 +310,9 @@ export class InvoicesController {
   }
 
   @Post(':id/send')
-  async send(@Param('id') id: string, @Body() dto: SendInvoiceDto) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id },
+  async send(@Req() req: Request, @Param('id') id: string, @Body() dto: SendInvoiceDto) {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
       include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');

@@ -14,7 +14,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { Prisma } from '@prisma/client';
 import { Request } from 'express';
+import { AccessService } from '../access/access.service';
+import { Area, AreaGuard } from '../access/area.guard';
 import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
@@ -74,10 +77,31 @@ const entryIncludeWithoutUser = {
 
 @ApiTags('time-entries')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(StaffAuthGuard, AreaGuard)
+@Area('time')
 @Controller('time-entries')
 export class TimeEntriesController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
+
+  /** Which entries this user may reach: own entries when the role says so, and only assigned clients' projects. */
+  private async scope(user: UserContext): Promise<Prisma.TimeEntryWhereInput> {
+    const clientIds = await this.access.clientIdFilter(user);
+    return {
+      ...(this.access.level(user, 'time') === 'own' ? { userId: user.id } : {}),
+      ...(clientIds ? { project: { clientId: clientIds } } : {}),
+    };
+  }
+
+  /** A project the user is allowed to log against (its client is one they can reach). */
+  private async assertProjectAllowed(user: UserContext, projectId: string) {
+    const clientIds = await this.access.clientIdFilter(user);
+    if (!clientIds) return;
+    const ok = await this.prisma.project.findFirst({ where: { id: projectId, clientId: clientIds }, select: { id: true } });
+    if (!ok) throw new NotFoundException('Project not found');
+  }
 
   @Get()
   @ApiQuery({ name: 'projectId', required: false })
@@ -85,13 +109,16 @@ export class TimeEntriesController {
   @ApiQuery({ name: 'from', required: false })
   @ApiQuery({ name: 'to', required: false })
   async list(
+    @Req() req: Request,
     @Query('projectId') projectId?: string,
     @Query('userId') userId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
+    const scope = await this.scope(req.user as UserContext);
     return this.prisma.timeEntry.findMany({
       where: {
+        AND: [scope],
         ...(projectId ? { projectId } : {}),
         ...(userId ? { userId } : {}),
         ...(from || to ? {
@@ -107,8 +134,9 @@ export class TimeEntriesController {
   }
 
   @Get('days')
-  async listDays() {
+  async listDays(@Req() req: Request) {
     const entries = await this.prisma.timeEntry.findMany({
+      where: await this.scope(req.user as UserContext),
       select: { startedAt: true },
     });
     return entries.map((e) => e.startedAt.toISOString());
@@ -131,8 +159,9 @@ export class TimeEntriesController {
       throw new BadRequestException(err instanceof Error ? err.message : 'Invalid CSV');
     }
 
+    const importClientIds = await this.access.clientIdFilter(user);
     const projects = await this.prisma.project.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...(importClientIds ? { clientId: importClientIds } : {}) },
       include: {
         client: { select: { id: true, name: true } },
         tasks: { where: { isActive: true } },
@@ -200,6 +229,7 @@ export class TimeEntriesController {
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateTimeEntryDto) {
     const user = req.user as UserContext;
+    await this.assertProjectAllowed(user, dto.projectId);
     if (!dto.stoppedAt) {
       await this.assertNoRunningTimer(user.id);
     }
@@ -237,7 +267,7 @@ export class TimeEntriesController {
   @Post(':id/restart')
   async restart(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as UserContext;
-    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
+    const entry = await this.prisma.timeEntry.findFirst({ where: { id, ...(await this.scope(user)) } });
     if (!entry) throw new NotFoundException('Time entry not found');
     if (entry.userId !== user.id) throw new NotFoundException('Time entry not found');
     if (!entry.stoppedAt) {
@@ -258,8 +288,8 @@ export class TimeEntriesController {
   }
 
   @Post(':id/stop')
-  async stop(@Param('id') id: string) {
-    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
+  async stop(@Req() req: Request, @Param('id') id: string) {
+    const entry = await this.prisma.timeEntry.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!entry) throw new NotFoundException('Time entry not found');
     if (entry.stoppedAt) throw new NotFoundException('Timer already stopped');
 
@@ -273,9 +303,9 @@ export class TimeEntriesController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
-    const entry = await this.prisma.timeEntry.findUnique({
-      where: { id },
+  async get(@Req() req: Request, @Param('id') id: string) {
+    const entry = await this.prisma.timeEntry.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
       include: entryInclude,
     });
     if (!entry) throw new NotFoundException('Time entry not found');
@@ -283,9 +313,11 @@ export class TimeEntriesController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateTimeEntryDto) {
-    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateTimeEntryDto) {
+    const user = req.user as UserContext;
+    const entry = await this.prisma.timeEntry.findFirst({ where: { id, ...(await this.scope(user)) } });
     if (!entry) throw new NotFoundException('Time entry not found');
+    if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
 
     const projectId = dto.projectId ?? entry.projectId;
     const projectTaskId = dto.projectTaskId !== undefined ? dto.projectTaskId : entry.projectTaskId ?? undefined;
@@ -324,8 +356,8 @@ export class TimeEntriesController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    const entry = await this.prisma.timeEntry.findUnique({ where: { id } });
+  async remove(@Req() req: Request, @Param('id') id: string) {
+    const entry = await this.prisma.timeEntry.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
     if (!entry) throw new NotFoundException('Time entry not found');
     await this.prisma.timeEntry.delete({ where: { id } });
     return { deleted: true };

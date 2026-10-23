@@ -8,6 +8,8 @@ import { InvoicesModule } from './invoices/invoices.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { TenancyModule } from './tenancy/tenancy.module';
+import { AccessModule } from './access/access.module';
+import { RolesModule } from './roles/roles.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { ExpensesModule } from './expenses/expenses.module';
@@ -37,6 +39,8 @@ import { HealthController } from './health.controller';
   imports: [
     PrismaModule,
     TenancyModule,
+    AccessModule,
+    RolesModule,
     StorageModule,
     UploadsModule,
     CommonModule,

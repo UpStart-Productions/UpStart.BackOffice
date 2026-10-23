@@ -15,14 +15,13 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { SessionService } from '../../core/session.service';
-import type { UserListDto, UserRole } from '@upstart/back-office/shared';
+import type { UserListDto } from '@upstart/back-office/shared';
 
 export type UserRow = UserListDto;
 
-const ROLE_OPTIONS: { label: string; value: UserRole }[] = [
-  { label: 'Admin', value: 'ADMIN' },
-  { label: 'Staff', value: 'MEMBER' },
-];
+const ADMIN_CHOICE = 'ADMIN';
+
+type RoleOption = { label: string; value: string };
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -124,8 +123,9 @@ const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
             <label for="user-role">Role</label>
             <p-select
               id="user-role"
-              formControlName="role"
-              [options]="roleOptions"
+              formControlName="roleChoice"
+              [options]="roleOptions()"
+              placeholder="Choose a role"
               optionLabel="label"
               optionValue="value"
               styleClass="w-full"
@@ -174,19 +174,30 @@ export class AddEditUserModalComponent {
   avatarPreview = signal<string | null>(null);
   removeAvatar = false;
   selectedAvatarFile: File | null = null;
-  readonly roleOptions = ROLE_OPTIONS;
+  /** Admin, plus the tenant's own roles. Loaded each time the dialog opens. */
+  roleOptions = signal<RoleOption[]>([{ label: 'Admin', value: ADMIN_CHOICE }]);
 
   form = new FormGroup({
     firstName: new FormControl(''),
     lastName: new FormControl(''),
     email: new FormControl('', [Validators.required, Validators.email]),
-    role: new FormControl<UserRole>('MEMBER', { nonNullable: true }),
+    roleChoice: new FormControl<string | null>(null, [Validators.required]),
     hourlyRate: new FormControl<number | null>(null),
   });
 
   private resolve: ((saved: boolean) => void) | null = null;
 
+  private async loadRoleOptions() {
+    try {
+      const roles = await this.api.get<{ id: string; name: string }[]>('/roles');
+      this.roleOptions.set([{ label: 'Admin', value: ADMIN_CHOICE }, ...roles.map((r) => ({ label: r.name, value: r.id }))]);
+    } catch {
+      this.roleOptions.set([{ label: 'Admin', value: ADMIN_CHOICE }]);
+    }
+  }
+
   open(existing?: UserRow): Promise<boolean> {
+    void this.loadRoleOptions();
     return new Promise((resolve) => {
       this.resolve = resolve;
       this.user.set(existing ?? null);
@@ -200,7 +211,7 @@ export class AddEditUserModalComponent {
         firstName: existing?.firstName ?? '',
         lastName: existing?.lastName ?? '',
         email: existing?.email ?? '',
-        role: existing?.role === 'CLIENT' ? 'MEMBER' : (existing?.role ?? 'MEMBER'),
+        roleChoice: existing ? (existing.role === 'ADMIN' ? ADMIN_CHOICE : (existing.roleId ?? null)) : null,
         hourlyRate: existing?.hourlyRate ?? null,
       });
       if (existing) {
@@ -274,7 +285,8 @@ export class AddEditUserModalComponent {
     const payload = {
       firstName: v.firstName?.trim() || undefined,
       lastName: v.lastName?.trim() || undefined,
-      role: v.role,
+      role: v.roleChoice === ADMIN_CHOICE ? ('ADMIN' as const) : ('MEMBER' as const),
+      roleId: v.roleChoice === ADMIN_CHOICE ? null : v.roleChoice,
       hourlyRate: v.hourlyRate,
       ...(this.removeAvatar ? { avatarUrl: null as null } : {}),
     };
