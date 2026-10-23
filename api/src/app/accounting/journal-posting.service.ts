@@ -133,7 +133,7 @@ export class JournalPostingService {
   }
 
   private async requireAccount(client: Client, code: string) {
-    const account = await client.account.findUnique({ where: { code } });
+    const account = await client.account.findFirst({ where: { code } });
     if (!account) {
       throw new BadRequestException(
         `Chart of accounts is missing required account ${code}. Check Accounting > Chart of Accounts.`,

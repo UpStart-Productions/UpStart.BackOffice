@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 const COGNITO_JWKS_URI = (region: string, userPoolId: string) =>
@@ -82,7 +83,8 @@ export class JwtAuthGuard implements CanActivate {
       (decoded['cognito:username']?.includes('@') ? decoded['cognito:username'] : null);
     if (!email) throw new UnauthorizedException('Token missing email claim');
 
-    const user = await this.prisma.user.findUnique({
+    // Unscoped: the tenant isn't known until we know who the user is.
+    const user = await runUnscoped(() => this.prisma.user.findUnique({
       where: { email },
       select: {
         id: true,
@@ -94,8 +96,10 @@ export class JwtAuthGuard implements CanActivate {
         role: true,
         isActive: true,
         clientId: true,
+        tenantId: true,
+        isSuper: true,
       },
-    });
+    }));
 
     if (!user) throw new UnauthorizedException('User not found. Contact your administrator.');
     if (!user.isActive) throw new UnauthorizedException('Account is disabled.');
@@ -109,6 +113,8 @@ export class JwtAuthGuard implements CanActivate {
       avatarUrl: toPublicAssetUrl(user.avatarUrl),
       role: user.role,
       clientId: user.clientId,
+      tenantId: user.tenantId,
+      isSuper: user.isSuper,
     } satisfies UserContext;
 
     return true;

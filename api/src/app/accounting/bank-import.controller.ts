@@ -10,6 +10,7 @@ import { SYSTEM_ACCOUNT_CODES } from './journal-posting.service';
 import { bankRowExternalId, normalizeDescription, parseBankCsv } from './bank-csv.util';
 import { CategorizeBankTransactionDto } from './dto/categorize-bank-transaction.dto';
 import { ImportBankTransactionsDto } from './dto/import-bank-transactions.dto';
+import { currentTenantId } from '../tenancy/tenant-context';
 
 const accountSelect = { id: true, code: true, name: true } as const;
 
@@ -65,7 +66,7 @@ export class BankImportController {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const externalId = bankRowExternalId(row, i);
-      const existing = await this.prisma.bankTransaction.findUnique({ where: { externalId } });
+      const existing = await this.prisma.bankTransaction.findFirst({ where: { externalId } });
       if (existing) {
         skipped++;
         continue;
@@ -191,7 +192,7 @@ export class BankImportController {
     if (!matchKey) return; // nothing stable to key on (e.g. an all-numeric wire reference)
 
     await this.prisma.categorizationRule.upsert({
-      where: { matchKey },
+      where: { tenantId_matchKey: { tenantId: currentTenantId(), matchKey } },
       update: { accountId, matchCount: { increment: 1 }, lastUsedAt: new Date() },
       create: { matchKey, accountId },
     });
@@ -212,7 +213,7 @@ export class BankImportController {
   }
 
   private async requireCashAccount() {
-    const cash = await this.prisma.account.findUnique({ where: { code: SYSTEM_ACCOUNT_CODES.CASH } });
+    const cash = await this.prisma.account.findFirst({ where: { code: SYSTEM_ACCOUNT_CODES.CASH } });
     if (!cash) {
       throw new BadRequestException(
         `Chart of accounts is missing the Cash account (${SYSTEM_ACCOUNT_CODES.CASH}).`,

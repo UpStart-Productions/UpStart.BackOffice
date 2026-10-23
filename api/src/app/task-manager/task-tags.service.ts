@@ -30,7 +30,7 @@ export class TaskTagsService {
     const name = dto.name.trim().replace(/\s+/g, ' ');
     if (!name) throw new BadRequestException('Tag name is required');
     const nameKey = tagKey(name);
-    const existing = await this.prisma.tag.findUnique({ where: { nameKey }, select: tagSelect });
+    const existing = await this.prisma.tag.findFirst({ where: { nameKey }, select: tagSelect });
     if (existing) return existing;
     const count = await this.prisma.tag.count();
     return this.prisma.tag.create({
@@ -47,7 +47,7 @@ export class TaskTagsService {
     if (dto.name !== undefined) {
       const name = dto.name.trim().replace(/\s+/g, ' ');
       const nameKey = tagKey(name);
-      const clash = await this.prisma.tag.findUnique({ where: { nameKey } });
+      const clash = await this.prisma.tag.findFirst({ where: { nameKey } });
       if (clash && clash.id !== id) throw new BadRequestException(`There's already a tag named "${clash.name}"`);
       data.name = name;
       data.nameKey = nameKey;

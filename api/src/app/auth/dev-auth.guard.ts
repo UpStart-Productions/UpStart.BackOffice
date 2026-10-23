@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { UserContext } from '../common/app.types';
 import type { UserRole } from '@upstart/back-office/shared';
@@ -24,7 +25,8 @@ export class DevAuthGuard implements CanActivate {
       (request.headers['x-user-email'] as string)?.trim() || 'admin@upstart.test';
     const roleHeader = (request.headers['x-user-role'] as string)?.trim().toUpperCase();
 
-    const user = await this.prisma.user.findUnique({
+    // Unscoped: the tenant isn't known until we know who the user is.
+    const user = await runUnscoped(() => this.prisma.user.findUnique({
       where: { email },
       select: {
         id: true,
@@ -36,8 +38,10 @@ export class DevAuthGuard implements CanActivate {
         role: true,
         isActive: true,
         clientId: true,
+        tenantId: true,
+        isSuper: true,
       },
-    });
+    }));
 
     if (!user) throw new UnauthorizedException('Dev user not found. Run npm run add-admin-user.');
     if (!user.isActive) throw new UnauthorizedException('Account is disabled.');
@@ -53,6 +57,8 @@ export class DevAuthGuard implements CanActivate {
       avatarUrl: toPublicAssetUrl(user.avatarUrl),
       role,
       clientId: user.clientId,
+      tenantId: user.tenantId,
+      isSuper: user.isSuper,
     } satisfies UserContext;
 
     return true;

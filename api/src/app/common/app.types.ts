@@ -9,6 +9,10 @@ export type UserContext = {
   avatarUrl?: string | null;
   role: UserRole;
   clientId?: string | null;
+  /** The user's tenant. Null only for super users (platform operators), who pick one per request. */
+  tenantId?: string | null;
+  /** Platform operator: may act in any tenant via the x-tenant-slug header. */
+  isSuper?: boolean;
 };
 
 declare global {

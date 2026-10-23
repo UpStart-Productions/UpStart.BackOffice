@@ -25,6 +25,7 @@ import {
 } from '../../core/communications.api';
 import { PageComponent } from '../../ui/layout/page.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type Option = { id: string; label: string };
 @Component({
@@ -47,6 +48,7 @@ type Option = { id: string; label: string };
     TagModule,
     PageComponent,
     MessageBodyComponent,
+    RowActionsMenuComponent,
   ],
   template: `
     <app-page title="Inbox" [skipTitle]="true">
@@ -96,15 +98,18 @@ type Option = { id: string; label: string };
           <p-table [value]="filtered()" [loading]="loading()" styleClass="table-bordered" dataKey="id">
             <ng-template pTemplate="header">
               <tr>
+                <th style="width: 3rem"></th>
                 <th style="width: 8rem">Received</th>
                 <th style="width: 20rem">People</th>
                 <th>Subject</th>
-                <th style="width: 9rem"></th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-item>
               @let who = parts(item);
               <tr class="clickable-row" (click)="mb.toggle()">
+                <td (click)="$event.stopPropagation()">
+                  <app-row-actions-menu [items]="rowActions(item)" ariaLabel="Email actions" />
+                </td>
                 <td>
                   <span [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
                 </td>
@@ -116,9 +121,6 @@ type Option = { id: string; label: string };
                 <td>
                   <strong>{{ item.subject || '(no subject)' }}</strong>
                   <app-message-body #mb [item]="item" />
-                </td>
-                <td class="text-right" (click)="$event.stopPropagation()">
-                  <p-button label="File…" icon="pi pi-folder" size="small" (onClick)="openFile(item)" />
                 </td>
               </tr>
             </ng-template>
@@ -177,9 +179,12 @@ type Option = { id: string; label: string };
               [(ngModel)]="targetId"
               [filter]="true"
               filterBy="label"
+              filterPlaceholder="Search…"
+              [showClear]="true"
               [placeholder]="kind === 'client' ? 'Choose a client' : 'Choose a lead'"
               [ariaLabel]="kind === 'client' ? 'Client' : 'Lead'"
               styleClass="w-full"
+              appendTo="body"
             />
             @if (kind === 'client') {
               <div class="flex align-items-center gap-2">
@@ -283,6 +288,10 @@ export class UnfiledInboxPage implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  rowActions(item: Interaction): RowActionItem[] {
+    return [{ id: 'file', label: 'File…', icon: 'pi pi-folder', command: () => void this.openFile(item) }];
   }
 
   async openFile(item: Interaction) {

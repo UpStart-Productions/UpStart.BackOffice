@@ -103,7 +103,7 @@ export class LeadsController {
     if (lead.convertedClientId) throw new ConflictException('Lead already converted to a client');
 
     const code = dto.code.toUpperCase();
-    const existing = await this.prisma.client.findUnique({ where: { code } });
+    const existing = await this.prisma.client.findFirst({ where: { code } });
     if (existing) throw new ConflictException(`Client code "${code}" is already in use`);
 
     return this.prisma.$transaction(async (tx) => {

@@ -119,6 +119,10 @@ enum JournalEntrySource {
 
 model User {
   id         String   @id @default(cuid())
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
+  /// Platform operator: can switch between tenants. Regular users belong to exactly one tenant.
+  isSuper    Boolean  @default(false)
   email      String   @unique
   firstName  String?
   lastName   String?
@@ -153,12 +157,16 @@ model User {
   interactionsLogged        Interaction[]               @relation("InteractionLoggedBy")
   interactionCaptures       InteractionCapture[]
   interactionParticipations InteractionParticipant[]
+
+  @@index([tenantId])
 }
 
 model Client {
   id                   String       @id @default(cuid())
+  tenantId             String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant               Tenant       @relation(fields: [tenantId], references: [id])
   name                 String
-  code                 String       @unique // e.g. "UPSP" — prepended to invoice numbers
+  code                 String // e.g. "UPSP" — prepended to invoice numbers
   email                String?
   phone                String?
   address              String?
@@ -182,10 +190,14 @@ model Client {
   convertedFromLead Lead?
   contactLinks      ContactAccount[]
   interactions      Interaction[]
+
+  @@unique([tenantId, code])
 }
 
 model Lead {
   id                String       @id @default(cuid())
+  tenantId          String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant            Tenant       @relation(fields: [tenantId], references: [id])
   organization      String
   primaryContact    String?
   contactRole       String?
@@ -210,10 +222,13 @@ model Lead {
   interactions    Interaction[]
 
   @@index([stage])
+  @@index([tenantId])
 }
 
 model NetworkCompany {
   id               String        @id @default(cuid())
+  tenantId         String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant        @relation(fields: [tenantId], references: [id])
   name             String
   website          String?
   email            String?
@@ -237,10 +252,13 @@ model NetworkCompany {
   @@index([name])
   @@index([isReferralReady])
   @@index([isPublicFeatured])
+  @@index([tenantId])
 }
 
 model NetworkContact {
   id              String    @id @default(cuid())
+  tenantId        String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
   companyId       String
   firstName       String
   lastName        String?
@@ -259,10 +277,13 @@ model NetworkContact {
 
   @@index([companyId])
   @@index([email])
+  @@index([tenantId])
 }
 
 model Artifact {
   id               String       @id @default(cuid())
+  tenantId         String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant       @relation(fields: [tenantId], references: [id])
   leadId           String?
   clientId         String?
   projectId        String?
@@ -299,10 +320,13 @@ model Artifact {
   @@index([networkCompanyId])
   @@index([networkContactId])
   @@index([interactionId])
+  @@index([tenantId])
 }
 
 model Project {
   id               String   @id @default(cuid())
+  tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
   /// Optional: personal / internal projects have no client.
   clientId         String?
   name             String
@@ -343,10 +367,13 @@ model Project {
   customFields TaskCustomField[]
 
   @@index([clientId])
+  @@index([tenantId])
 }
 
 model ProjectContact {
   id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   projectId String
   firstName String?
   lastName  String?
@@ -359,10 +386,13 @@ model ProjectContact {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
+  @@index([tenantId])
 }
 
 model ProjectTask {
   id           String            @id @default(cuid())
+  tenantId     String            @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
   projectId    String
   name         String
   source       ProjectTaskSource @default(MANUAL)
@@ -379,10 +409,13 @@ model ProjectTask {
   @@unique([projectId, asanaTaskGid])
   @@index([projectId])
   @@index([projectId, source])
+  @@index([tenantId])
 }
 
 model AsanaIntegration {
-  id                         String    @id @default("default")
+  id                         String    @id @default(cuid())
+  tenantId                   String    @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant                     Tenant    @relation(fields: [tenantId], references: [id])
   clientId                   String?
   clientSecretEnc            String?
   redirectUri                String?
@@ -399,7 +432,9 @@ model AsanaIntegration {
 }
 
 model GoogleCalendarIntegration {
-  id                         String    @id @default("default")
+  id                         String    @id @default(cuid())
+  tenantId                   String    @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant                     Tenant    @relation(fields: [tenantId], references: [id])
   clientId                   String?
   clientSecretEnc            String?
   redirectUri                String?
@@ -416,7 +451,9 @@ model GoogleCalendarIntegration {
 }
 
 model OrganizationProfile {
-  id        String   @id @default("default")
+  id        String   @id @default(cuid())
+  tenantId  String   @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   address   String?
   city      String?
   state     String?
@@ -427,6 +464,8 @@ model OrganizationProfile {
 
 model TimeEntry {
   id                String    @id @default(cuid())
+  tenantId          String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
   userId            String
   projectId         String
   projectTaskId     String?
@@ -454,6 +493,7 @@ model TimeEntry {
   @@index([taskId])
   @@index([invoiceLineItemId])
   @@index([startedAt])
+  @@index([tenantId])
 }
 
 /// A logged business expense — reimbursable, billable to a client project, or
@@ -463,6 +503,8 @@ model TimeEntry {
 /// staff/admin), unlike Invoice's draft state.
 model Expense {
   id             String   @id @default(cuid())
+  tenantId       String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
   userId         String
   projectId      String?
   description    String
@@ -483,12 +525,15 @@ model Expense {
   @@index([userId])
   @@index([projectId])
   @@index([incurredAt])
+  @@index([tenantId])
 }
 
 model Invoice {
   id            String        @id @default(cuid())
+  tenantId      String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
   clientId      String
-  number        Int           @unique
+  number        Int
   displayNumber String
   status        InvoiceStatus @default(DRAFT)
   issueDate     DateTime
@@ -509,12 +554,15 @@ model Invoice {
   journalEntries JournalEntry[]
   payable        Payable?
 
+  @@unique([tenantId, number])
   @@index([clientId])
   @@index([status])
 }
 
 model Payable {
   id                      String        @id @default(cuid())
+  tenantId                String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant                  Tenant        @relation(fields: [tenantId], references: [id])
   token                   String        @unique
   kind                    PayableKind
   status                  PayableStatus @default(OPEN)
@@ -534,10 +582,13 @@ model Payable {
   invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([kind, status])
+  @@index([tenantId])
 }
 
 model ServiceKey {
   id         String    @id @default(cuid())
+  tenantId   String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
   name       String // human label, e.g. "Donor Readiness Audit"
   keyHash    String    @unique
   keyPrefix  String // masked display, e.g. "ubo_abcd...wxyz"
@@ -545,10 +596,14 @@ model ServiceKey {
   isActive   Boolean   @default(true)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  @@index([tenantId])
 }
 
 model InvoiceLineItem {
   id          String   @id @default(cuid())
+  tenantId    String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   invoiceId   String
   projectId   String?
   description String
@@ -564,10 +619,13 @@ model InvoiceLineItem {
 
   @@index([invoiceId])
   @@index([projectId])
+  @@index([tenantId])
 }
 
 model BookingType {
   id                 String     @id @default(cuid())
+  tenantId           String     @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant             Tenant     @relation(fields: [tenantId], references: [id])
   slug               String     @unique
   name               String
   brand              String?
@@ -598,10 +656,13 @@ model BookingType {
 
   @@index([isActive])
   @@index([sortOrder])
+  @@index([tenantId])
 }
 
 model BookingAvailabilityRule {
   id            String @id @default(cuid())
+  tenantId      String @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant        Tenant @relation(fields: [tenantId], references: [id])
   bookingTypeId String
   dayOfWeek     Int
   startMinute   Int
@@ -610,10 +671,13 @@ model BookingAvailabilityRule {
   bookingType BookingType @relation(fields: [bookingTypeId], references: [id], onDelete: Cascade)
 
   @@index([bookingTypeId])
+  @@index([tenantId])
 }
 
 model Booking {
   id            String        @id @default(cuid())
+  tenantId      String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
   bookingTypeId String
   startAt       DateTime
   endAt         DateTime
@@ -636,12 +700,15 @@ model Booking {
   @@index([status])
   @@index([guestEmail])
   @@index([bookingTypeId])
+  @@index([tenantId])
 }
 
 /// Chart of accounts. Deliberately flat — no parent/child hierarchy in v1.
 model Account {
   id        String      @id @default(cuid())
-  code      String      @unique // e.g. "1000" — simple numeric COA, sorted for display
+  tenantId  String      @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant      @relation(fields: [tenantId], references: [id])
+  code      String // e.g. "1000" — simple numeric COA, sorted for display
   name      String
   type      AccountType
   isActive  Boolean     @default(true)
@@ -652,6 +719,7 @@ model Account {
   bankTransactions    BankTransaction[]
   categorizationRules CategorizationRule[]
 
+  @@unique([tenantId, code])
   @@index([type])
 }
 
@@ -659,6 +727,8 @@ model Account {
 /// P&L and Balance Sheet are computed by aggregating JournalLine, never stored.
 model JournalEntry {
   id        String             @id @default(cuid())
+  tenantId  String             @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
   date      DateTime
   memo      String?
   source    JournalEntrySource @default(MANUAL)
@@ -672,10 +742,13 @@ model JournalEntry {
   @@index([date])
   @@index([invoiceId])
   @@index([source])
+  @@index([tenantId])
 }
 
 model JournalLine {
   id             String  @id @default(cuid())
+  tenantId       String  @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant         Tenant  @relation(fields: [tenantId], references: [id])
   journalEntryId String
   accountId      String
   debit          Decimal @default(0) @db.Decimal(12, 2)
@@ -686,17 +759,20 @@ model JournalLine {
 
   @@index([journalEntryId])
   @@index([accountId])
+  @@index([tenantId])
 }
 
 /// Imported bank activity, held in an uncategorized queue until matched to an
 /// Account and posted as a JournalEntry (source = BANK_IMPORT).
 model BankTransaction {
   id             String   @id @default(cuid())
+  tenantId       String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
   importBatchId  String?
   date           DateTime
   description    String
   amount         Decimal  @db.Decimal(12, 2) // signed: positive = money in, negative = money out
-  externalId     String?  @unique // dedupe key derived from the CSV row
+  externalId     String? // dedupe key derived from the CSV row
   accountId      String? // categorized to this account once matched; null = uncategorized
   journalEntryId String?  @unique // set once posted to the ledger
   createdAt      DateTime @default(now())
@@ -704,6 +780,7 @@ model BankTransaction {
   account      Account?      @relation(fields: [accountId], references: [id])
   journalEntry JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: SetNull)
 
+  @@unique([tenantId, externalId])
   @@index([date])
   @@index([accountId])
   @@index([importBatchId])
@@ -715,7 +792,9 @@ model BankTransaction {
 /// imports whose description normalizes to the same key.
 model CategorizationRule {
   id         String   @id @default(cuid())
-  matchKey   String   @unique // normalized description: lowercased, digits/punctuation stripped
+  tenantId   String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  matchKey   String // normalized description: lowercased, digits/punctuation stripped
   accountId  String
   matchCount Int      @default(1)
   lastUsedAt DateTime @default(now())
@@ -723,6 +802,7 @@ model CategorizationRule {
 
   account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
+  @@unique([tenantId, matchKey])
   @@index([accountId])
 }
 
@@ -734,6 +814,8 @@ model CategorizationRule {
 
 model ProjectMember {
   id        String            @id @default(cuid())
+  tenantId  String            @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant            @relation(fields: [tenantId], references: [id])
   projectId String
   userId    String
   role      ProjectMemberRole @default(EDITOR)
@@ -744,10 +826,13 @@ model ProjectMember {
 
   @@unique([projectId, userId])
   @@index([userId])
+  @@index([tenantId])
 }
 
 model ProjectStar {
   id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   projectId String
   userId    String
   sortOrder Float    @default(0)
@@ -758,10 +843,13 @@ model ProjectStar {
 
   @@unique([projectId, userId])
   @@index([userId])
+  @@index([tenantId])
 }
 
 model TaskSection {
   id               String   @id @default(cuid())
+  tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
   projectId        String
   name             String
   sortOrder        Float    @default(0)
@@ -776,11 +864,14 @@ model TaskSection {
   forms     TaskForm[]
 
   @@index([projectId, sortOrder])
+  @@index([tenantId])
 }
 
 /// A top-level task listed in an additional project, with its own section and position there.
 model TaskProjectLink {
   id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   taskId    String
   projectId String
   sectionId String?
@@ -793,23 +884,30 @@ model TaskProjectLink {
 
   @@unique([taskId, projectId])
   @@index([projectId, sectionId, sortOrder])
+  @@index([tenantId])
 }
 
 /// Task tags, shared across all projects.
 model Tag {
   id               String   @id @default(cuid())
+  tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
   name             String
   /// Lowercased name for case-insensitive uniqueness.
-  nameKey          String   @unique
+  nameKey          String
   color            String?
   importedAsanaGid String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   tasks TaskTag[]
+
+  @@unique([tenantId, nameKey])
 }
 
 model TaskTag {
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   taskId    String
   tagId     String
   createdAt DateTime @default(now())
@@ -819,6 +917,7 @@ model TaskTag {
 
   @@id([taskId, tagId])
   @@index([tagId])
+  @@index([tenantId])
 }
 
 /// Recurrence rule stored on Task.recurrence:
@@ -827,6 +926,8 @@ model TaskTag {
 /// When a recurring task is completed, the API creates the next instance.
 model Task {
   id               String    @id @default(cuid())
+  tenantId         String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
   projectId        String
   sectionId        String?
   parentTaskId     String?
@@ -871,9 +972,12 @@ model Task {
   @@index([projectId, sectionId, sortOrder])
   @@index([parentTaskId, sortOrder])
   @@index([assigneeId, isCompleted, dueOn])
+  @@index([tenantId])
 }
 
 model TaskFollower {
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   taskId    String
   userId    String
   createdAt DateTime @default(now())
@@ -883,11 +987,14 @@ model TaskFollower {
 
   @@id([taskId, userId])
   @@index([userId])
+  @@index([tenantId])
 }
 
 /// Task comments (Quill HTML with mention spans) and system activity lines.
 model TaskComment {
   id               String          @id @default(cuid())
+  tenantId         String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant          @relation(fields: [tenantId], references: [id])
   taskId           String
   authorId         String?
   /// Display name snapshot; used for imported Asana stories whose author isn't a user here.
@@ -903,10 +1010,13 @@ model TaskComment {
   author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([taskId, createdAt])
+  @@index([tenantId])
 }
 
 model TaskAttachment {
   id               String   @id @default(cuid())
+  tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
   taskId           String
   uploadedById     String?
   fileName         String
@@ -923,11 +1033,14 @@ model TaskAttachment {
   uploadedBy User? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([taskId])
+  @@index([tenantId])
 }
 
 /// Per-project custom field. options (select types): [{ id, label, color }]
 model TaskCustomField {
   id               String              @id @default(cuid())
+  tenantId         String              @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant              @relation(fields: [tenantId], references: [id])
   projectId        String
   name             String
   type             TaskCustomFieldType
@@ -942,10 +1055,13 @@ model TaskCustomField {
 
   @@unique([projectId, importedAsanaGid])
   @@index([projectId, sortOrder])
+  @@index([tenantId])
 }
 
 /// value: string | number | boolean | ISO date | optionId | optionId[]
 model TaskCustomFieldValue {
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   taskId    String
   fieldId   String
   value     Json
@@ -956,6 +1072,7 @@ model TaskCustomFieldValue {
 
   @@id([taskId, fieldId])
   @@index([fieldId])
+  @@index([tenantId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -964,6 +1081,8 @@ model TaskCustomFieldValue {
 
 model UserNotification {
   id        String    @id @default(cuid())
+  tenantId  String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
   userId    String
   /// e.g. task_assigned, task_mention, task_comment, task_completed
   type      String
@@ -979,22 +1098,29 @@ model UserNotification {
 
   @@index([userId, deletedAt, createdAt])
   @@index([userId, deletedAt, readAt])
+  @@index([tenantId])
 }
 
 model UserNotificationPreference {
   userId           String   @id
+  tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant           Tenant   @relation(fields: [tenantId], references: [id])
   /// { task_assigned: bool, task_mention: bool, task_comment: bool, ... } — missing keys default on.
   emailPreferences Json     @default("{}")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 /// Email invitation for someone shared on a Task Manager project. The link lets them set a
 /// password (Cognito) and sign in. Only the SHA-256 of the token is stored.
 model UserInvite {
   id          String    @id @default(cuid())
+  tenantId    String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
   userId      String
   invitedById String?
   projectId   String?
@@ -1007,6 +1133,7 @@ model UserInvite {
   invitedBy User? @relation("InviteSentBy", fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([tenantId])
 }
 
 enum TaskFormAccess {
@@ -1021,6 +1148,8 @@ enum TaskFormAccess {
 /// Intake form that creates tasks in a project.
 model TaskForm {
   id                  String         @id @default(cuid())
+  tenantId            String         @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant              Tenant         @relation(fields: [tenantId], references: [id])
   projectId           String
   name                String
   /// URL key: /f/:slug and POST /forms/:slug/submit
@@ -1049,6 +1178,7 @@ model TaskForm {
   tasks     Task[]
 
   @@index([projectId])
+  @@index([tenantId])
 }
 
 // ---------------------------------------------------------------------------
@@ -1094,24 +1224,72 @@ enum ParticipantRole {
 }
 
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
   /// Email domains that count as this tenant's own team (besides staff users), e.g. thepurplenest.org.
   internalDomains String[] @default([])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   contacts       Contact[]
   contactEmails  ContactEmail[]
   interactions   Interaction[]
   inboundAliases InboundAlias[]
+
+  // Back-relations: every tenant-scoped model.
+  users                       User[]
+  clients                     Client[]
+  leads                       Lead[]
+  networkCompanys             NetworkCompany[]
+  networkContacts             NetworkContact[]
+  artifacts                   Artifact[]
+  projects                    Project[]
+  projectContacts             ProjectContact[]
+  projectTasks                ProjectTask[]
+  asanaIntegrations           AsanaIntegration[]
+  googleCalendarIntegrations  GoogleCalendarIntegration[]
+  organizationProfiles        OrganizationProfile[]
+  timeEntrys                  TimeEntry[]
+  expenses                    Expense[]
+  invoices                    Invoice[]
+  payables                    Payable[]
+  serviceKeys                 ServiceKey[]
+  invoiceLineItems            InvoiceLineItem[]
+  bookingTypes                BookingType[]
+  bookingAvailabilityRules    BookingAvailabilityRule[]
+  bookings                    Booking[]
+  accounts                    Account[]
+  journalEntrys               JournalEntry[]
+  journalLines                JournalLine[]
+  bankTransactions            BankTransaction[]
+  categorizationRules         CategorizationRule[]
+  projectMembers              ProjectMember[]
+  projectStars                ProjectStar[]
+  taskSections                TaskSection[]
+  taskProjectLinks            TaskProjectLink[]
+  tags                        Tag[]
+  taskTags                    TaskTag[]
+  tasks                       Task[]
+  taskFollowers               TaskFollower[]
+  taskComments                TaskComment[]
+  taskAttachments             TaskAttachment[]
+  taskCustomFields            TaskCustomField[]
+  taskCustomFieldValues       TaskCustomFieldValue[]
+  userNotifications           UserNotification[]
+  userNotificationPreferences UserNotificationPreference[]
+  userInvites                 UserInvite[]
+  taskForms                   TaskForm[]
+  contactAccounts             ContactAccount[]
+  interactionParticipants     InteractionParticipant[]
+  interactionCaptures         InteractionCapture[]
+  forwardingVerifications     ForwardingVerification[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
 model Contact {
   id            String    @id @default(cuid())
-  tenantId      String
+  tenantId      String    @default("")
   firstName     String
   lastName      String?
   title         String?
@@ -1135,7 +1313,7 @@ model Contact {
 
 model ContactEmail {
   id        String   @id @default(cuid())
-  tenantId  String
+  tenantId  String   @default("")
   contactId String
   /// Stored lowercased.
   email     String
@@ -1152,6 +1330,8 @@ model ContactEmail {
 /// Many-to-many between people and accounts (Client rows), with a role.
 model ContactAccount {
   id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   contactId String
   clientId  String
   /// e.g. family member, POA, case manager, employee
@@ -1164,12 +1344,13 @@ model ContactAccount {
 
   @@unique([contactId, clientId])
   @@index([clientId])
+  @@index([tenantId])
 }
 
 /// One entry on a client/lead communication timeline.
 model Interaction {
   id             String               @id @default(cuid())
-  tenantId       String
+  tenantId       String               @default("")
   type           InteractionType
   direction      InteractionDirection @default(INBOUND)
   occurredAt     DateTime
@@ -1206,6 +1387,8 @@ model Interaction {
 
 model InteractionParticipant {
   id            String          @id @default(cuid())
+  tenantId      String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant        Tenant          @relation(fields: [tenantId], references: [id])
   interactionId String
   contactId     String?
   userId        String?
@@ -1220,11 +1403,14 @@ model InteractionParticipant {
   @@index([interactionId])
   @@index([contactId])
   @@index([email])
+  @@index([tenantId])
 }
 
 /// Who forwarded/BCC'd a message. A second forward of the same Message-ID adds a row here, not a new Interaction.
 model InteractionCapture {
   id              String   @id @default(cuid())
+  tenantId        String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   interactionId   String
   userId          String?
   capturedByEmail String
@@ -1234,12 +1420,13 @@ model InteractionCapture {
   user        User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([interactionId, capturedByEmail])
+  @@index([tenantId])
 }
 
 /// Per-tenant inbound address local-part (e.g. "tpn" for tpn@in.<domain>). Old aliases keep routing.
 model InboundAlias {
   id        String   @id @default(cuid())
-  tenantId  String
+  tenantId  String   @default("")
   alias     String   @unique
   isPrimary Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -1253,6 +1440,8 @@ model InboundAlias {
 /// Gmail's forwarding-confirmation message, surfaced in Settings so the user can finish setting up a filter.
 model ForwardingVerification {
   id           String   @id @default(cuid())
+  tenantId     String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
   aliasId      String
   /// The Gmail address asking to forward to us.
   gmailAddress String?
@@ -1263,4 +1452,5 @@ model ForwardingVerification {
   alias InboundAlias @relation(fields: [aliasId], references: [id], onDelete: Cascade)
 
   @@index([aliasId, receivedAt])
+  @@index([tenantId])
 }

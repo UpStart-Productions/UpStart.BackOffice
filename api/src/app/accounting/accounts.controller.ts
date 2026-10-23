@@ -30,7 +30,7 @@ export class AccountsController {
 
   @Post()
   async create(@Body() dto: CreateAccountDto) {
-    const existing = await this.prisma.account.findUnique({ where: { code: dto.code } });
+    const existing = await this.prisma.account.findFirst({ where: { code: dto.code } });
     if (existing) {
       throw new BadRequestException(`Account code ${dto.code} is already in use`);
     }
