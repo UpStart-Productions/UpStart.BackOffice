@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 export type PortalSessionPayload = {
   type: 'portal';
   clientId: string;
+  /** Absent on sessions issued before multi-tenancy; those all belong to the default tenant. */
+  tenantId?: string;
 };
 
 const COOKIE_NAME = 'ubo_portal_session';
@@ -33,8 +35,8 @@ export class PortalSessionService {
     return (Number.isFinite(days) && days > 0 ? days : DEFAULT_MAX_AGE_DAYS) * 24 * 60 * 60 * 1000;
   }
 
-  sign(clientId: string): string {
-    return jwt.sign({ type: 'portal', clientId } satisfies PortalSessionPayload, this.secret, {
+  sign(clientId: string, tenantId: string): string {
+    return jwt.sign({ type: 'portal', clientId, tenantId } satisfies PortalSessionPayload, this.secret, {
       expiresIn: Math.floor(this.maxAgeMs / 1000),
     });
   }

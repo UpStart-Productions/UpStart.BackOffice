@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { currentTenantId } from '../tenancy/tenant-context';
 import puppeteer from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
 import { getUpstartLogoDataUri } from './brand-logo';
@@ -48,7 +49,7 @@ export class PdfService {
     payUrl?: string | null,
   ): Promise<Buffer> {
     const profile = await this.prisma.organizationProfile.findUnique({
-      where: { id: 'default' },
+      where: { tenantId: currentTenantId() },
     });
     const html = this.buildInvoiceHtml(invoice, fromName, profile, payUrl);
 

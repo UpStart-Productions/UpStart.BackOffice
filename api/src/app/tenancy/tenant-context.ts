@@ -12,13 +12,25 @@ interface TenantStore {
 
 const storage = new AsyncLocalStorage<TenantStore>();
 
+/**
+ * Prisma queries are lazy: they only run when awaited. If fn() returns one un-awaited, it would
+ * start after the scope has closed and lose the tenant. So start any such thenable inside the scope.
+ */
+function startInScope<T>(result: T): T {
+  const thenable = result as unknown as PromiseLike<unknown> | null;
+  if (thenable && typeof thenable.then === 'function' && !(result instanceof Promise)) {
+    return new Promise((resolve, reject) => thenable.then(resolve, reject)) as unknown as T;
+  }
+  return result;
+}
+
 export function runWithTenant<T>(tenantId: string, fn: () => T): T {
-  return storage.run({ tenantId, unscoped: false }, fn);
+  return storage.run({ tenantId, unscoped: false }, () => startInScope(fn()));
 }
 
 /** Escape hatch for code that must see across tenants. Keep call sites few and obvious. */
 export function runUnscoped<T>(fn: () => T): T {
-  return storage.run({ tenantId: null, unscoped: true }, fn);
+  return storage.run({ tenantId: null, unscoped: true }, () => startInScope(fn()));
 }
 
 export function isUnscoped(): boolean {

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { DEFAULT_BOOKING_SLUG, BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
@@ -7,7 +8,10 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 @ApiTags('booking')
 @Controller('booking')
 export class BookingPublicController {
-  constructor(private readonly booking: BookingService) {}
+  constructor(
+    private readonly booking: BookingService,
+    private readonly tenants: PublicTenantService,
+  ) {}
 
   /** @deprecated Use GET /booking/:slug/meta */
   @Get('meta')
@@ -35,12 +39,12 @@ export class BookingPublicController {
 
   @Get('by-token/:token')
   byToken(@Param('token') token: string) {
-    return this.booking.getByToken(token);
+    return this.tenants.byBookingCancelToken(token, () => this.booking.getByToken(token));
   }
 
   @Post('cancel/:token')
   cancel(@Param('token') token: string) {
-    return this.booking.cancelByToken(token);
+    return this.tenants.byBookingCancelToken(token, () => this.booking.cancelByToken(token));
   }
 
   @Get(':slug/meta')

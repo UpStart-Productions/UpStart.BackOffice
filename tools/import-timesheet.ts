@@ -21,16 +21,13 @@
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { disconnect, prisma, runForTenant } from './lib/tenant-prisma';
 
 if (!process.env.DATABASE_URL) {
   dotenv.config({ path: path.resolve(__dirname, '../.env') });
 }
 
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter });
 
 type CsvRow = {
   date: string;
@@ -338,9 +335,9 @@ async function main() {
   );
 }
 
-main()
+runForTenant(main)
   .catch((e) => {
     console.error(e instanceof Error ? e.message : e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnect());

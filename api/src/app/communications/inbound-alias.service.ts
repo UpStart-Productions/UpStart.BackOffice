@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { DEFAULT_TENANT_ID } from './communications.constants';
 
 /** URL/local-part friendly slug (adapted from GrovLink's common/slugify). */
@@ -51,9 +52,12 @@ export class InboundAliasService implements OnModuleInit {
   /** Make sure the default tenant has a primary alias so local testing works out of the box. */
   async onModuleInit(): Promise<void> {
     try {
-      const tenant = await this.prisma.tenant.findUnique({ where: { id: DEFAULT_TENANT_ID } });
-      if (!tenant) return;
-      await this.ensurePrimaryForTenant(tenant.id, tenant.slug);
+      // Startup has no request, so no tenant in context: run unscoped (tenantId is passed explicitly).
+      await runUnscoped(async () => {
+        const tenant = await this.prisma.tenant.findUnique({ where: { id: DEFAULT_TENANT_ID } });
+        if (!tenant) return;
+        await this.ensurePrimaryForTenant(tenant.id, tenant.slug);
+      });
     } catch (err) {
       // Never block API startup (e.g. migration not applied yet).
       this.logger.warn(`Could not ensure default inbound alias: ${(err as Error).message}`);

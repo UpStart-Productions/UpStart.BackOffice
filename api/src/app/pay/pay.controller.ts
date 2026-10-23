@@ -2,21 +2,25 @@ import { Controller, Get, Headers, HttpCode, Param, Post, Req, Res } from '@nest
 import { ApiTags } from '@nestjs/swagger';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { PayService } from './pay.service';
 
 @ApiTags('pay')
 @Controller('pay')
 export class PayController {
-  constructor(private readonly pay: PayService) {}
+  constructor(
+    private readonly pay: PayService,
+    private readonly tenants: PublicTenantService,
+  ) {}
 
   @Get(':token')
   get(@Param('token') token: string) {
-    return this.pay.getPublicView(token);
+    return this.tenants.byPayableToken(token, () => this.pay.getPublicView(token));
   }
 
   @Get(':token/pdf')
   async pdf(@Param('token') token: string, @Res() res: Response) {
-    const { buffer, filename } = await this.pay.getInvoicePdf(token);
+    const { buffer, filename } = await this.tenants.byPayableToken(token, () => this.pay.getInvoicePdf(token));
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="${filename}"`,
@@ -27,12 +31,12 @@ export class PayController {
 
   @Post(':token/checkout')
   checkout(@Param('token') token: string) {
-    return this.pay.createCheckout(token);
+    return this.tenants.byPayableToken(token, () => this.pay.createCheckout(token));
   }
 
   @Post(':token/confirm')
   confirm(@Param('token') token: string) {
-    return this.pay.confirmCheckout(token);
+    return this.tenants.byPayableToken(token, () => this.pay.confirmCheckout(token));
   }
 }
 

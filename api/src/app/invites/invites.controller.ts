@@ -1,6 +1,8 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { PublicTenantService } from '../tenancy/public-tenant.service';
+import { hashInviteToken } from './invite-token.util';
 import { InvitesService } from './invites.service';
 
 export class AcceptInviteDto {
@@ -13,15 +15,18 @@ export class AcceptInviteDto {
 @ApiTags('invites')
 @Controller('invites')
 export class InvitesController {
-  constructor(private readonly invites: InvitesService) {}
+  constructor(
+    private readonly invites: InvitesService,
+    private readonly tenants: PublicTenantService,
+  ) {}
 
   @Get(':token')
   lookup(@Param('token') token: string) {
-    return this.invites.lookup(token);
+    return this.tenants.byInviteTokenHash(hashInviteToken(token), () => this.invites.lookup(token));
   }
 
   @Post(':token/accept')
   accept(@Param('token') token: string, @Body() dto: AcceptInviteDto) {
-    return this.invites.accept(token, dto);
+    return this.tenants.byInviteTokenHash(hashInviteToken(token), () => this.invites.accept(token, dto));
   }
 }

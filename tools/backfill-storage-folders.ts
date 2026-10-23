@@ -7,15 +7,12 @@ import * as path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
 import { StorageFoldersService } from '../api/src/app/storage/storage-folders.service';
 import { LocalStorageService } from '../api/src/app/storage/local-storage.service';
 import { S3StorageService } from '../api/src/app/storage/s3-storage.service';
 import type { StorageService } from '../api/src/app/storage/storage.interface';
+import { disconnect, prisma, runForTenant } from './lib/tenant-prisma';
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter });
 
 const storage =
   process.env.STORAGE_PROVIDER === 's3' ? new S3StorageService() : new LocalStorageService();
@@ -46,9 +43,9 @@ async function main() {
   console.log('Backfill complete.');
 }
 
-main()
+runForTenant(main)
   .catch((e) => {
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnect());

@@ -19,6 +19,7 @@ import { Request, Response } from 'express';
 import { PdfService } from '../invoices/pdf.service';
 import { publicFromName } from '../mail/email-layout';
 import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { invoicePdfKey } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreatePortalSessionDto } from './dto/create-portal-session.dto';
@@ -77,9 +78,10 @@ export class PortalController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token = dto.token.trim();
-    const client = await this.prisma.client.findFirst({
-      where: { portalToken: token },
-    });
+    // Unscoped: the portal link is what identifies the tenant.
+    const client = await runUnscoped(() =>
+      this.prisma.client.findFirst({ where: { portalToken: token } }),
+    );
 
     if (!client) {
       throw new UnauthorizedException('Invalid or disabled portal link');
@@ -91,7 +93,7 @@ export class PortalController {
       throw new UnauthorizedException('This portal link has been disabled');
     }
 
-    const sessionToken = this.portalSession.sign(client.id);
+    const sessionToken = this.portalSession.sign(client.id, client.tenantId);
     setPortalSessionCookie(res, sessionToken, this.portalSession);
 
     return {

@@ -114,3 +114,8 @@
     display: none;
   }
 }
+
+// Tenant switcher (super users only)
+.layout-topbar .topbar-tenant-select {
+  min-width: 11rem;
+}

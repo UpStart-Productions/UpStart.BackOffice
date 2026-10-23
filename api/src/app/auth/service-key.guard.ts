@@ -32,6 +32,7 @@ export class ServiceKeyGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or revoked API key.');
     }
 
+    request.tenantId = record.tenantId;
     return true;
   }
 }

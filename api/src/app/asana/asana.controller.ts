@@ -11,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
@@ -30,7 +31,10 @@ function adminAppUrl(): string {
 @ApiTags('asana')
 @Controller('asana')
 export class AsanaController {
-  constructor(private readonly asana: AsanaService) {}
+  constructor(
+    private readonly asana: AsanaService,
+    private readonly tenants: PublicTenantService,
+  ) {}
 
   @Get('status')
   @ApiBearerAuth()
@@ -74,7 +78,7 @@ export class AsanaController {
       return;
     }
     try {
-      await this.asana.completeConnect(code, state);
+      await this.tenants.byAsanaOAuthState(state, () => this.asana.completeConnect(code, state));
       res.redirect(`${settingsUrl}?asana=connected`);
     } catch {
       res.redirect(`${settingsUrl}?asana=error`);

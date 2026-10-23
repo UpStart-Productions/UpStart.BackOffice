@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { PortalSessionService } from './portal-session.service';
+import { DEFAULT_TENANT_ID } from '../communications/communications.constants';
 import { readRequestCookie } from './portal-token.util';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class PortalSessionGuard implements CanActivate {
 
     const payload = this.portalSession.verify(token);
     req.portalClientId = payload.clientId;
+    req.tenantId = payload.tenantId ?? DEFAULT_TENANT_ID;
     return true;
   }
 

@@ -32,12 +32,11 @@ import { randomUUID } from 'crypto';
 
 if (!process.env.DATABASE_URL) dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Prisma, PrismaClient, TaskCustomFieldType } from '@prisma/client';
+import { Prisma, TaskCustomFieldType } from '@prisma/client';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
+import { disconnect, prisma, runForTenant } from './lib/tenant-prisma';
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 // ── Args ─────────────────────────────────────────────────────────────────────
 
@@ -602,9 +601,9 @@ async function main() {
   if (toCreate.length) console.log(`Created ${toCreate.length} guest(s) without invites: ${toCreate.map((p) => p.email).join(', ')} — send invites from Share when ready.`);
 }
 
-main()
+runForTenant(main)
   .catch((err) => {
     console.error('\nImport failed:', err instanceof Error ? err.message : err);
     process.exitCode = 1;
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnect());

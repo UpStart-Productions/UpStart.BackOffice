@@ -12,10 +12,9 @@
  */
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { disconnect, prisma, runForTenant } from '../lib/tenant-prisma';
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
 
 const TENANT = 'default'; // DEFAULT_TENANT_ID in api/src/app/communications/communications.constants.ts
 const MARK = 'seed-inbox';
@@ -35,7 +34,6 @@ if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(host)) {
   process.exit(1);
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
 
 const args = process.argv.slice(2);
 const cleanOnly = args.includes('--clean');
@@ -281,9 +279,9 @@ async function main() {
   console.log('Remove it all with: npm run seed:inbox -- --clean');
 }
 
-main()
+runForTenant(main)
   .catch((e) => {
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => disconnect());

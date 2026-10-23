@@ -11,6 +11,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
@@ -33,7 +34,10 @@ function adminAppUrl(): string {
 export class GoogleCalendarController {
   private readonly logger = new Logger(GoogleCalendarController.name);
 
-  constructor(private readonly googleCalendar: GoogleCalendarService) {}
+  constructor(
+    private readonly googleCalendar: GoogleCalendarService,
+    private readonly tenants: PublicTenantService,
+  ) {}
 
   @Get('status')
   @ApiBearerAuth()
@@ -77,7 +81,7 @@ export class GoogleCalendarController {
       return;
     }
     try {
-      await this.googleCalendar.completeConnect(code, state);
+      await this.tenants.byCalendarOAuthState(state, () => this.googleCalendar.completeConnect(code, state));
       res.redirect(`${settingsUrl}?google-calendar=connected`);
     } catch (err) {
       this.logger.error(

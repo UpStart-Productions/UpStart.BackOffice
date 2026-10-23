@@ -13,6 +13,7 @@ import { PdfService } from '../invoices/pdf.service';
 import { publicFromName } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { invoicePdfKey } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import {
@@ -51,6 +52,7 @@ export class PayService {
     private readonly journalPosting: JournalPostingService,
     private readonly pdf: PdfService,
     private readonly mail: MailService,
+    private readonly tenants: PublicTenantService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -185,7 +187,13 @@ export class PayService {
 
     this.logger.log(`Fulfilling Stripe webhook ${event.type}`);
     const session = event.data.object as Stripe.Checkout.Session;
-    await this.fulfillCheckoutSession(session);
+    const payableId = session.metadata?.payableId || session.client_reference_id;
+    if (!payableId) {
+      this.logger.warn(`Checkout session ${session.id} has no payable id`);
+      return;
+    }
+    // The webhook has no user or tenant; the payable it points at decides the scope.
+    await this.tenants.byPayableId(payableId, () => this.fulfillCheckoutSession(session));
   }
 
   async getOrCreateForInvoice(invoice: InvoiceForPay): Promise<Payable | null> {

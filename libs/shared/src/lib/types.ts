@@ -123,6 +123,10 @@ export type MeDto = {
   role: UserRole;
   hourlyRate?: number | null;
   clientId?: string | null;
+  /** The user's own tenant. Null for super users that have none. */
+  tenantId?: string | null;
+  /** Platform operator: can switch between tenants. */
+  isSuper?: boolean;
 };
 
 export type UserListDto = {

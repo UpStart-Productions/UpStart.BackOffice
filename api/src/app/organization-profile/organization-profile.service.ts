@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { currentTenantId } from '../tenancy/tenant-context';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.dto';
 
-const PROFILE_ID = 'default';
 
 export type OrganizationProfileDto = {
   address: string;
@@ -18,7 +18,7 @@ export class OrganizationProfileService {
 
   async get(): Promise<OrganizationProfileDto> {
     const row = await this.prisma.organizationProfile.findUnique({
-      where: { id: PROFILE_ID },
+      where: { tenantId: currentTenantId() },
     });
     return this.toDto(row);
   }
@@ -32,8 +32,8 @@ export class OrganizationProfileService {
       phone: trimToNull(dto.phone),
     };
     const row = await this.prisma.organizationProfile.upsert({
-      where: { id: PROFILE_ID },
-      create: { id: PROFILE_ID, ...data },
+      where: { tenantId: currentTenantId() },
+      create: { ...data },
       update: data,
     });
     return this.toDto(row);

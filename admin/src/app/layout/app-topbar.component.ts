@@ -1,14 +1,17 @@
 import { Component, effect, inject, input, output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { SelectModule } from 'primeng/select';
 import { resolveAssetUrl } from '../core/asset-url.util';
+import { TenantService } from '../core/tenant.service';
 import { GlobalSearchComponent } from '../ui/global-search/global-search.component';
 import { LayoutService } from './layout.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink, ButtonModule, GlobalSearchComponent],
+  imports: [RouterLink, FormsModule, ButtonModule, SelectModule, GlobalSearchComponent],
   template: `
     <div class="layout-topbar">
       <div class="layout-topbar-logo-container">
@@ -34,6 +37,18 @@ import { LayoutService } from './layout.service';
         <app-global-search />
       </div>
       <div class="layout-topbar-actions">
+        @if (tenant.canSwitch()) {
+          <p-select
+            [options]="tenant.tenants()"
+            optionLabel="name"
+            optionValue="slug"
+            [ngModel]="tenant.currentSlug()"
+            (onChange)="tenant.switchTo($event.value)"
+            ariaLabel="Switch tenant"
+            size="small"
+            styleClass="topbar-tenant-select"
+          />
+        }
         @if (avatarUrl() && !avatarImageError) {
           <img
             [src]="resolveAssetUrl(avatarUrl())!"
@@ -60,6 +75,7 @@ import { LayoutService } from './layout.service';
 })
 export class AppTopbarComponent {
   readonly layout = inject(LayoutService);
+  readonly tenant = inject(TenantService);
   readonly resolveAssetUrl = resolveAssetUrl;
   userName = input('');
   avatarUrl = input<string | null | undefined>(null);
@@ -67,6 +83,7 @@ export class AppTopbarComponent {
   avatarImageError = false;
 
   constructor() {
+    void this.tenant.load().catch(() => undefined);
     effect(() => {
       this.avatarUrl();
       this.avatarImageError = false;

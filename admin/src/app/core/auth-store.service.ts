@@ -3,6 +3,7 @@ import { CognitoAuthService } from './cognito-auth.service';
 
 const KEYS = {
   baseEmail: 'ubo_base_email',
+  tenantSlug: 'ubo_tenant_slug',
 } as const;
 
 @Injectable({ providedIn: 'root' })
@@ -15,8 +16,16 @@ export class AuthStoreService {
     else localStorage.removeItem(KEYS.baseEmail);
   }
 
+  /** Tenant a super user is working in. Sent as x-tenant-slug; ignored by the API for regular users. */
+  get tenantSlug(): string { return localStorage.getItem(KEYS.tenantSlug) ?? ''; }
+  set tenantSlug(v: string) {
+    if (v?.trim()) localStorage.setItem(KEYS.tenantSlug, v.trim());
+    else localStorage.removeItem(KEYS.tenantSlug);
+  }
+
   clear() {
     localStorage.removeItem(KEYS.baseEmail);
+    localStorage.removeItem(KEYS.tenantSlug);
   }
 
   async getHeaders(options?: RequestInit): Promise<RequestInit> {
@@ -30,6 +39,8 @@ export class AuthStoreService {
     } else {
       headers['x-user-email'] = this.baseEmail.trim() || 'admin@upstart.test';
     }
+
+    if (this.tenantSlug) headers['x-tenant-slug'] = this.tenantSlug;
 
     return { ...options, headers };
   }

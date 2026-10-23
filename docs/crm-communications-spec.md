@@ -18,16 +18,27 @@ Date: 2026-10-17 · Author: Jeff + Claude · Status: draft for review, not yet s
 4. v1 email capture is **capture-only** (no sending from UBO).
 5. Terminology: **Tenant** = multi-tenancy boundary (UpStart, TPN). **Account** = organization/family record in the CRM.
 6. Capture is by deliberate CC only (2026-10-18). Rejected: full mailbox connection (Google/Microsoft review and access), forward-everything filters (too much junk to triage), and server-side Bcc rules (nobody wants to touch Microsoft 365 / Workspace admin). Accepted trade-off: people must remember to CC; reply-all carries it from there.
+7. Multi-tenancy (2026-10-23): one tenant per regular user (`User.tenantId`); no membership table. Platform operators are `User.isSuper` and switch tenants from the topbar (`x-tenant-slug` header), as in GrovLink admin. Roles are untouched for now. Isolation is enforced centrally by a Prisma extension plus an AsyncLocalStorage tenant context, not by each service (see "Tenancy" below).
 
 ## 3. Data model
 
-Conventions: every new table has `tenantId` from day one. Existing tables get `tenantId` in phase 2.
+Conventions: every table except `Tenant` has `tenantId` (added to the existing tables in phase 2, migration `20261023020000_multi_tenancy`).
 
-Naming in the schema (phase 1): "Account" is the existing `Client` table, so foreign keys are `clientId` (not `accountId`); the pipeline item is the existing `Lead` table, so links are `leadId`. New tables take `tenantId` with no DB default; code passes the default tenant (`'default'`) explicitly until phase 2.
+Naming in the schema (phase 1): "Account" is the existing `Client` table, so foreign keys are `clientId` (not `accountId`); the pipeline item is the existing `Lead` table, so links are `leadId`. `tenantId` is injected by the Prisma extension. The schema default `''` exists only so the column is optional in TypeScript types; a missed injection fails the foreign key loudly. The original tenant is id `default`, slug `upstart`.
 
 ### Tenant and access
 - `Tenant`: id, name, slug.
-- `User` gains `tenantId`. Add a finance permission (flag or BILLING role; decide in phase 2) so invoices can be hidden. Existing roles ADMIN / MEMBER / CLIENT / GUEST stay; GUEST is already limited to its task projects.
+- `User` has `tenantId` (null only for a super user with no home tenant) and `isSuper`. Add a finance permission (flag or BILLING role; decide in phase 2) so invoices can be hidden. Existing roles ADMIN / MEMBER / CLIENT / GUEST stay; GUEST is already limited to its task projects.
+
+### Tenancy (implemented, phase 2 part 1)
+- **Enforcement:** `api/src/app/tenancy/`. A Prisma `$extends` hook (driven by Prisma's DMMF, so new models are covered automatically) adds `tenantId` to every `where`, injects it into creates (including nested creates, `connectOrCreate`, upserts, `createMany`), and strips any attempt to change it on update. A query with no tenant in context throws.
+- **Context:** a global interceptor sets the tenant after the guards run. Regular user: own `tenantId` (header ignored). Super user: tenant named by `x-tenant-slug`, else their own. Service-key calls and portal sessions: the tenant their guard puts on the request. Anonymous slug routes (booking, forms): `x-tenant-slug`, else `default`. Token routes (pay, booking cancel, invites, Stripe webhook, Asana/Google OAuth callbacks) take the tenant from the row the token points to (`PublicTenantService`). Inbound email takes it from the recipient alias.
+- **Escape hatch:** `runUnscoped()` for the few lookups that must see across tenants (auth user lookup, token lookups, tenant admin). Keep call sites few.
+- **Per-tenant uniques:** Client.code, Account.code, Invoice.number, BankTransaction.externalId, CategorizationRule.matchKey, Tag.nameKey. Still global (to revisit): BookingType.slug, TaskForm.slug.
+- **Per-tenant singletons:** Asana, Google Calendar and organization profile are one row per tenant (`tenantId` unique); service keys carry a tenant.
+- **Tools:** `npm run add-tenant <slug> "<Name>" [--domains a.com]`, `npm run set-super <email>`; CLI tools take `--tenant <slug>` (default `upstart`).
+- **Tests:** `api/src/app/tenancy/tenant-isolation.spec.ts` runs against a real Postgres engine (pglite) when `TENANT_TEST_SCHEMA_SQL` is set.
+- **Known gaps:** a request can still name another tenant's row by id as a foreign key (ids are random cuids); uploaded files are not separated by tenant in storage; public form/booking pages for a non-default tenant need the `x-tenant-slug` header or a tenant in the URL.
 
 ### Account (today's `Client`, promoted)
 - Keep the table and ids (projects, invoices, time, portal, artifacts already point at it). UI label becomes configurable ("Account"/"Client").
@@ -105,7 +116,7 @@ BCC/CC to the address takes the same path. Parsing in the API (not the Lambda) k
 | Phase | Scope | Done when |
 |---|---|---|
 | 1. Email spike | `Tenant` stub, Contact + ContactEmail, Interaction, InboundAlias, SES inbound → parse → match → Activity tab on Account, Unfiled inbox, Settings page. Uses existing Client as the Account. | Forward an email to the alias and see it on the right account's timeline. Demo to TPN. |
-| 2. Tenancy + roles | `tenantId` on all tables, enforced centrally (Prisma extension and/or Postgres row-level security), per-tenant singletons (Asana, Google Calendar, org profile, service keys), finance permission, 2FA via Cognito for admins. | TPN and UpStart run side by side with no data leakage; guests can't see invoices. |
+| 2. Tenancy + roles | **Tenancy done (2026-10-23, pending local test and prod migration):** `tenantId` on all tables, enforced centrally by a Prisma extension, per-tenant singletons, super-user tenant switcher. **Still to do:** finance permission, 2FA via Cognito for admins. | TPN and UpStart run side by side with no data leakage; guests can't see invoices. |
 | 3. CRM consolidation | Fold Network/Lead orgs into Account, tags, configurable pipelines/stages, Contacts on leads, drag-to-won creates the Account. | One directory and one pipeline model; Network is a tag + view. |
 | 4. Follow-ups and watching | Tasks from interactions, next step, `AccountFollow`, `client_activity` notifications, dashboard widgets, stale-client alerts. Digests need a scheduled job. | A partner not on a thread sees the activity. |
 | 5. Calendar and invoicing extras | Per-tenant/per-user calendar connection, meetings logged as interactions, calendar → timesheet suggestions, per-person breakdown on invoices (internal), QuickBooks-friendly totals. | Meetings appear automatically; invoice shows who contributed what. |

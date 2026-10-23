@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 
 const KEY_PREFIX = 'ubo_';
 const KEY_RANDOM_BYTES = 32;
@@ -35,13 +36,18 @@ export class ServiceKeyService {
    * Validate an incoming key. Returns the service key record (minus hash)
    * and bumps lastUsedAt. Returns null if invalid or inactive.
    */
-  async validate(plainKey: string): Promise<{ id: string; name: string } | null> {
+  async validate(plainKey: string): Promise<{ id: string; name: string; tenantId: string } | null> {
+    // Unscoped: the key itself is what tells us the tenant.
+    return runUnscoped(() => this.validateKey(plainKey));
+  }
+
+  private async validateKey(plainKey: string): Promise<{ id: string; name: string; tenantId: string } | null> {
     if (!plainKey?.startsWith(KEY_PREFIX)) return null;
 
     const keyHash = this.hashKey(plainKey);
     const record  = await this.prisma.serviceKey.findFirst({
       where: { keyHash, isActive: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, tenantId: true },
     });
     if (!record) return null;
 

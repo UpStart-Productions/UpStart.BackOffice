@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { currentTenantId } from '../tenancy/tenant-context';
 import {
   BadGatewayException,
   BadRequestException,
@@ -17,7 +18,6 @@ import {
 import { decryptSecret, encryptSecret } from './asana-crypto.util';
 import { UpdateAsanaConfigDto } from './dto/update-asana-config.dto';
 
-const INTEGRATION_ID = 'default';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
@@ -71,7 +71,7 @@ export class AsanaService {
     const clientId = dto.clientId.trim();
 
     await this.prisma.asanaIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         clientId,
         redirectUri,
@@ -94,9 +94,8 @@ export class AsanaService {
     const state = randomUUID();
     const expiresAt = new Date(Date.now() + OAUTH_STATE_TTL_MS);
     await this.prisma.asanaIntegration.upsert({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       create: {
-        id: INTEGRATION_ID,
         pendingOAuthState: state,
         pendingOAuthStateExpiresAt: expiresAt,
         connectedByEmail: connectedByEmail ?? null,
@@ -135,7 +134,7 @@ export class AsanaService {
     }
 
     await this.prisma.asanaIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         accessTokenEnc: encryptSecret(token.access_token),
         refreshTokenEnc: encryptSecret(token.refresh_token),
@@ -151,7 +150,7 @@ export class AsanaService {
 
   async disconnect() {
     await this.prisma.asanaIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         accessTokenEnc: null,
         refreshTokenEnc: null,
@@ -197,7 +196,7 @@ export class AsanaService {
       accessToken = refreshed.access_token;
       const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000);
       await this.prisma.asanaIntegration.update({
-        where: { id: INTEGRATION_ID },
+        where: { tenantId: currentTenantId() },
         data: {
           accessTokenEnc: encryptSecret(refreshed.access_token),
           ...(refreshed.refresh_token
@@ -244,8 +243,8 @@ export class AsanaService {
 
   private async ensureIntegrationRow() {
     return this.prisma.asanaIntegration.upsert({
-      where: { id: INTEGRATION_ID },
-      create: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
+      create: {},
       update: {},
     });
   }

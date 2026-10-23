@@ -10,6 +10,7 @@ import {
   isGmailForwardingConfirmation,
   parseGmailForwardingConfirmation,
 } from './gmail-verification.util';
+import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
 import { InboundAliasService } from './inbound-alias.service';
 import { InboundRawEmailService } from './inbound-raw-email.service';
 import {
@@ -75,13 +76,22 @@ export class CommunicationsIngestService {
     }
     let resolved: Awaited<ReturnType<InboundAliasService['resolve']>> = null;
     for (const candidate of candidates) {
-      resolved = await this.aliases.resolve(candidate);
+      // Unscoped: the recipient alias is what tells us the tenant.
+      resolved = await runUnscoped(() => this.aliases.resolve(candidate));
       if (resolved) break;
     }
     if (!resolved) {
       this.logger.warn(`No tenant mapped to: ${candidates.join(', ')} - dropping.`);
       return { status: 'dropped_unknown_alias' };
     }
+    const found = resolved;
+    return runWithTenant(found.tenantId, () => this.ingestForTenant(dto, found));
+  }
+
+  private async ingestForTenant(
+    dto: IngestEmailDto,
+    resolved: NonNullable<Awaited<ReturnType<InboundAliasService['resolve']>>>,
+  ): Promise<IngestResult> {
     const tenantId = resolved.tenantId;
 
     // 2. Get and parse the message.

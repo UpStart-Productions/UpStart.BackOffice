@@ -23,6 +23,7 @@ import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateUserDto, SetUserActiveDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
@@ -83,20 +84,25 @@ export class UsersController {
   @Get('me')
   async me(@Req() req: Request) {
     const user = req.user as UserContext;
-    const row = await this.prisma.user.findUniqueOrThrow({
-      where: { id: user.id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        name: true,
-        avatarUrl: true,
-        role: true,
-        hourlyRate: true,
-        clientId: true,
-      },
-    });
+    // Unscoped: a super user switched into another tenant must still find their own row.
+    const row = await runUnscoped(() =>
+      this.prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+          avatarUrl: true,
+          role: true,
+          hourlyRate: true,
+          clientId: true,
+          tenantId: true,
+          isSuper: true,
+        },
+      }),
+    );
     return {
       id: row.id,
       email: row.email,
@@ -107,6 +113,8 @@ export class UsersController {
       role: row.role,
       hourlyRate: row.hourlyRate != null ? Number(row.hourlyRate) : null,
       clientId: row.clientId,
+      tenantId: row.tenantId,
+      isSuper: row.isSuper,
     };
   }
 

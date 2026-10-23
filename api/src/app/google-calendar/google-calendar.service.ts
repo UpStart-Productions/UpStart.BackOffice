@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { currentTenantId } from '../tenancy/tenant-context';
 import {
   BadGatewayException,
   BadRequestException,
@@ -21,7 +22,6 @@ import {
 } from './google-calendar-api.client';
 import { UpdateGoogleCalendarConfigDto } from './dto/update-google-calendar-config.dto';
 
-const INTEGRATION_ID = 'default';
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 export type GoogleCalendarStatusDto = {
@@ -75,7 +75,7 @@ export class GoogleCalendarService {
     }
 
     await this.prisma.googleCalendarIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         clientId: dto.clientId.trim(),
         redirectUri: dto.redirectUri.trim(),
@@ -104,7 +104,7 @@ export class GoogleCalendarService {
     const expiresAt = new Date(Date.now() + OAUTH_STATE_TTL_MS);
     await this.ensureIntegrationRow();
     await this.prisma.googleCalendarIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         pendingOAuthState: state,
         pendingOAuthStateExpiresAt: expiresAt,
@@ -156,7 +156,7 @@ export class GoogleCalendarService {
     }
 
     await this.prisma.googleCalendarIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         accessTokenEnc: encryptSecret(token.access_token),
         refreshTokenEnc: encryptSecret(refreshToken),
@@ -173,7 +173,7 @@ export class GoogleCalendarService {
 
   async disconnect() {
     await this.prisma.googleCalendarIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         accessTokenEnc: null,
         refreshTokenEnc: null,
@@ -201,7 +201,7 @@ export class GoogleCalendarService {
       throw new BadRequestException('Calendar not found for this account');
     }
     await this.prisma.googleCalendarIntegration.update({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
       data: {
         calendarId: match.id,
         calendarSummary: match.summary,
@@ -317,7 +317,7 @@ export class GoogleCalendarService {
       accessToken = refreshed.access_token;
       const expiresAt = new Date(Date.now() + refreshed.expires_in * 1000);
       await this.prisma.googleCalendarIntegration.update({
-        where: { id: INTEGRATION_ID },
+        where: { tenantId: currentTenantId() },
         data: {
           accessTokenEnc: encryptSecret(refreshed.access_token),
           ...(refreshed.refresh_token
@@ -347,13 +347,13 @@ export class GoogleCalendarService {
 
   private async ensureIntegrationRow() {
     const existing = await this.prisma.googleCalendarIntegration.findUnique({
-      where: { id: INTEGRATION_ID },
+      where: { tenantId: currentTenantId() },
     });
     if (existing) return existing;
 
     try {
       return await this.prisma.googleCalendarIntegration.create({
-        data: { id: INTEGRATION_ID },
+        data: {},
       });
     } catch (err) {
       if (
@@ -361,7 +361,7 @@ export class GoogleCalendarService {
         err.code === 'P2002'
       ) {
         return this.prisma.googleCalendarIntegration.findUniqueOrThrow({
-          where: { id: INTEGRATION_ID },
+          where: { tenantId: currentTenantId() },
         });
       }
       throw err;

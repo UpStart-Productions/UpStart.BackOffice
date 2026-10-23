@@ -22,6 +22,8 @@ declare global {
       user?: UserContext;
       /** Set by PortalSessionGuard after magic-link or session cookie auth. */
       portalClientId?: string;
+      /** Tenant for requests with no user: set by ServiceKeyGuard and PortalSessionGuard. */
+      tenantId?: string;
     }
   }
 }

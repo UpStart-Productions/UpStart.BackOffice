@@ -8,6 +8,7 @@ import {
 import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { DEFAULT_TENANT_ID } from '../communications/communications.constants';
 import { runUnscoped, runWithTenant } from './tenant-context';
 
 export const TENANT_SLUG_HEADER = 'x-tenant-slug';
@@ -16,7 +17,9 @@ export const TENANT_SLUG_HEADER = 'x-tenant-slug';
  * Puts the request's tenant into context so the Prisma extension can scope every query.
  *  - Regular users: their own tenant (User.tenantId). The header is ignored.
  *  - Super users (platform operators): the tenant named by x-tenant-slug.
- *  - No user (public / service-key routes): no context here; those entry points set their own.
+ *  - Service key / portal session: the tenant their guard put on the request.
+ *  - Anonymous public routes (booking, forms): x-tenant-slug header, else the default tenant.
+ *    Token routes (pay, invites, booking cancel) re-scope from the token's row via PublicTenantService.
  * Runs after guards, so request.user is already populated.
  */
 @Injectable()
@@ -30,9 +33,10 @@ export class TenantInterceptor implements NestInterceptor {
 
     return new Observable((subscriber) => {
       const start = async () => {
-        let tenantId: string | null = user?.tenantId ?? null;
+        let tenantId: string | null = req.tenantId ?? user?.tenantId ?? null;
 
-        if (user?.isSuper) {
+        const anonymous = !user && !tenantId;
+        if (user?.isSuper || anonymous) {
           const slug = (req.headers[TENANT_SLUG_HEADER] as string | undefined)?.trim();
           if (slug) {
             const tenant = await runUnscoped(() =>
@@ -42,6 +46,7 @@ export class TenantInterceptor implements NestInterceptor {
             tenantId = tenant.id;
           }
         }
+        if (anonymous && !tenantId) tenantId = DEFAULT_TENANT_ID;
 
         const handle = () => next.handle().subscribe(subscriber);
         // Subscribe inside the ALS scope so the handler (and everything it awaits) inherits it.
