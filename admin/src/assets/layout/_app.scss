@@ -258,3 +258,48 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Text-style button used for inline actions ("Read more", "Change the address name"). */
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--brand-primary);
+
+  &:hover:not(:disabled) {
+    color: var(--brand-primary-hover);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+/* Centered "nothing here" block with an icon. */
+.empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-color-secondary);
+
+  > i {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.6;
+  }
+
+  > p {
+    margin: 0;
+  }
+}

@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { IconFieldModule } from 'primeng/iconfield';
@@ -14,7 +14,9 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 @Component({
   selector: 'app-contacts-list-page',
@@ -34,6 +36,8 @@ import { PageComponent } from '../../ui/layout/page.component';
     TableModule,
     TagModule,
     PageComponent,
+    CopyEmailComponent,
+    RowActionsMenuComponent,
   ],
   template: `
     <app-page title="Contacts" [skipTitle]="true">
@@ -54,33 +58,59 @@ import { PageComponent } from '../../ui/layout/page.component';
                 placeholder="Search by name or email…"
                 [ngModel]="query"
                 (ngModelChange)="onSearch($event)"
+                aria-label="Search contacts"
               />
             </p-iconfield>
+            @if (query) {
+              <p-button icon="pi pi-times" [text]="true" severity="secondary" aria-label="Clear search" (onClick)="onSearch('')" />
+            }
             <div class="flex align-items-center gap-2 ml-3">
               <p-checkbox inputId="review" [ngModel]="review" (ngModelChange)="onReview($event)" [binary]="true" />
               <label for="review">Needs review</label>
+              @if (reviewCount() > 0) {
+                <p-tag [value]="'' + reviewCount()" severity="info" />
+              }
             </div>
           </div>
         </div>
 
-        <p-table [value]="contacts()" [loading]="loading()" styleClass="table-bordered">
+        <p-table
+          [value]="contacts()"
+          [loading]="loading()"
+          styleClass="table-bordered"
+          [paginator]="contacts().length > pageSize"
+          [rows]="pageSize"
+        >
           <ng-template pTemplate="header">
             <tr>
-              <th>Name</th>
+              <th style="width: 3rem"></th>
+              <th pSortableColumn="firstName">
+                Name
+                <p-sortIcon field="firstName" />
+              </th>
               <th>Email</th>
               <th>Accounts</th>
-              <th style="width: 10rem">Last contact</th>
+              <th style="width: 10rem" pSortableColumn="lastContactAt">
+                Last contact
+                <p-sortIcon field="lastContactAt" />
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-c>
             <tr>
               <td>
+                <app-row-actions-menu [items]="rowActions(c)" ariaLabel="Contact actions" />
+              </td>
+              <td>
                 <a [routerLink]="['/contacts', c.id]" class="text-primary">{{ name(c) }}</a>
                 @if (c.autoCreated) {
                   <p-tag value="New" severity="info" class="ml-2" />
                 }
+                @if (!c.isActive) {
+                  <p-tag value="Inactive" severity="secondary" class="ml-2" />
+                }
               </td>
-              <td>{{ c.emails[0]?.email || '—' }}</td>
+              <td><app-copy-email [email]="c.emails[0]?.email" /></td>
               <td>
                 @for (link of c.accountLinks; track link.clientId; let last = $last) {
                   <a [routerLink]="['/clients', link.clientId]" class="text-primary">{{ link.client.name }}</a>{{ last ? '' : ', ' }}
@@ -93,8 +123,11 @@ import { PageComponent } from '../../ui/layout/page.component';
           </ng-template>
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="4" class="text-center p-4 text-color-secondary">
-                {{ review ? 'Nothing needs review.' : 'No contacts found.' }}
+              <td colspan="5">
+                <div class="empty-state">
+                  <i class="pi pi-address-book" aria-hidden="true"></i>
+                  <p>{{ review ? 'Nothing needs review.' : query ? 'No contacts match your search.' : 'No contacts yet.' }}</p>
+                </div>
               </td>
             </tr>
           </ng-template>
@@ -163,6 +196,7 @@ export class ContactsListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   contacts = signal<ContactSummary[]>([]);
   loading = signal(true);
@@ -178,9 +212,18 @@ export class ContactsListPage implements OnInit {
   form = { firstName: '', lastName: '', email: '', clientId: null as string | null, role: '' };
 
   name = contactName;
+  readonly pageSize = 25;
+  /** Contacts awaiting review, from the last unsearched load. */
+  reviewCount = signal(0);
 
   async ngOnInit() {
     await this.load();
+    // "Add person" on a client page links here with ?newForClient=<clientId>.
+    const forClient = this.route.snapshot.queryParamMap.get('newForClient');
+    if (forClient) {
+      await this.openNew();
+      this.form.clientId = forClient;
+    }
   }
 
   onSearch(value: string) {
@@ -197,12 +240,33 @@ export class ContactsListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      this.contacts.set(await this.comms.contacts({ q: this.query, review: this.review }));
+      const list = await this.comms.contacts({ q: this.query, review: this.review });
+      this.contacts.set(list);
+      if (!this.query.trim()) this.reviewCount.set(this.review ? list.length : list.filter((c) => c.autoCreated).length);
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load contacts');
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  rowActions(c: ContactSummary): RowActionItem[] {
+    const items: RowActionItem[] = [
+      { id: 'open', label: 'Open', icon: 'pi pi-pencil', command: () => this.router.navigate(['/contacts', c.id]) },
+    ];
+    if (c.autoCreated) {
+      items.push({ id: 'reviewed', label: 'Mark as reviewed', icon: 'pi pi-check', command: () => void this.markReviewed(c) });
+    }
+    return items;
+  }
+
+  async markReviewed(c: ContactSummary) {
+    try {
+      await this.comms.updateContact(c.id, { autoCreated: false });
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Update failed');
     }
   }
 

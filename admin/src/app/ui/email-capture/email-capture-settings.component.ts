@@ -20,7 +20,7 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
       <h4 class="mt-0 mb-2">UBO address</h4>
       @if (s.address) {
         <div class="capture-row">
-          <input pInputText [value]="s.address" readonly class="flex-1" aria-label="UBO address" />
+          <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="UBO address" />
           <p-button label="Copy" icon="pi pi-copy" severity="secondary" (onClick)="copy(s.address)" />
         </div>
       } @else {
@@ -49,12 +49,23 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
       }
 
       <h4 class="mt-4 mb-2">How to log email</h4>
+      <ol class="steps">
+        <li>
+          <span class="step-num" aria-hidden="true">1</span>
+          <div><strong>CC this address</strong> on any email you want in UBO. It lands on the matching client's or lead's Activity.</div>
+        </li>
+        <li>
+          <span class="step-num" aria-hidden="true">2</span>
+          <div><strong>Reply-all keeps it logged.</strong> Everyone who replies-all, including clients, keeps UBO on the thread.</div>
+        </li>
+        <li>
+          <span class="step-num" aria-hidden="true">3</span>
+          <div>Anything UBO can't match goes to the <strong>Inbox</strong>. File it once; the rest of the thread follows, and the people on it are remembered.</div>
+        </li>
+      </ol>
       <ul class="how">
-        <li><strong>CC this address</strong> on any email you want in UBO. It lands on the matching client's or lead's Activity.</li>
-        <li><strong>Reply-all keeps it logged.</strong> Everyone who replies-all, including clients, keeps UBO on the thread.</li>
         <li><strong>Got an email without UBO on it?</strong> Reply-all and add this address. The earlier message is kept in the quoted text.</li>
         <li>The <strong>Email</strong> button on clients, leads and contacts opens your mail app with this address already on CC.</li>
-        <li>Anything UBO can't match goes to the <strong>Inbox</strong>. File it once; the rest of the thread follows, and the people on it are remembered.</li>
       </ul>
       <p class="text-color-secondary text-sm">
         UBO only sees messages this address is on. Nothing else in anyone's mailbox is read.
@@ -82,7 +93,10 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
   styles: `
     .capture-row { display: flex; align-items: center; gap: 0.5rem; }
     .how { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; margin: 0 0 0.75rem; }
-    .link-btn { background: none; border: 0; padding: 0; cursor: pointer; color: var(--primary-color, #2563eb); font-size: 0.9rem; }
+    .capture-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .steps { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .steps li { display: flex; gap: 0.75rem; align-items: flex-start; }
+    .step-num { flex: 0 0 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: var(--brand-primary); background: color-mix(in srgb, var(--brand-primary) 14%, transparent); }
   `,
 })
 export class EmailCaptureSettingsComponent implements OnInit {

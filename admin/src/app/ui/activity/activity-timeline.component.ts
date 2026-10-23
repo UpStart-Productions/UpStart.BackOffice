@@ -8,6 +8,7 @@ import { MessageModule } from 'primeng/message';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { AppDialogModule } from '../../core/app-dialog.module';
@@ -15,17 +16,19 @@ import {
   CommunicationsApi,
   contactName,
   ContactSummary,
+  directionLabel,
   Interaction,
   interactionIcon,
+  InteractionType,
   LogInteractionPayload,
   participantLine,
+  relativeTime,
   TimelineTarget,
 } from '../../core/communications.api';
 import { EmailButtonComponent } from '../email-button/email-button.component';
+import { MessageBodyComponent } from '../message-body/message-body.component';
 
-type OpenMessage = { body: string; full: string | null; showFull: boolean };
-
-const DIRECTION_LABEL = { INBOUND: 'Incoming', OUTBOUND: 'Outgoing', INTERNAL: 'Internal' } as const;
+type TypeFilter = 'ALL' | InteractionType;
 
 /** `datetime-local` wants local time without a zone, e.g. 2026-10-17T14:30. */
 function nowForInput(): string {
@@ -51,9 +54,11 @@ function nowForInput(): string {
     MultiSelectModule,
     SelectModule,
     SelectButtonModule,
+    SkeletonModule,
     TagModule,
     TextareaModule,
     EmailButtonComponent,
+    MessageBodyComponent,
   ],
   template: `
     <div class="card">
@@ -71,23 +76,55 @@ function nowForInput(): string {
         <p-message severity="error" [text]="error()!" class="mb-3" />
       }
 
-      @if (loading() && items().length === 0) {
-        <p class="text-color-secondary">Loading…</p>
-      } @else if (items().length === 0) {
-        <p class="text-color-secondary">
-          No activity yet. CC UBO on an email (the Email button does it for you) or log a call or note.
-        </p>
+      @if (items().length > 0) {
+        <div class="activity-filter">
+          <p-selectbutton
+            [options]="filterOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="filter()"
+            (ngModelChange)="filter.set($event)"
+            [allowEmpty]="false"
+            size="small"
+            ariaLabelledBy="activityFilterLabel"
+          />
+          <span id="activityFilterLabel" class="sr-only">Filter activity by type</span>
+        </div>
       }
 
-      @for (item of items(); track item.id) {
+      @if (loading() && items().length === 0) {
+        <div class="activity-skeleton" aria-busy="true" aria-label="Loading activity">
+          @for (n of skeletonRows; track n) {
+            <div class="activity-item">
+              <p-skeleton shape="circle" size="2rem" />
+              <div class="activity-body">
+                <p-skeleton width="45%" height="1rem" styleClass="mb-2" />
+                <p-skeleton width="30%" height="0.8rem" />
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (items().length === 0) {
+        <div class="empty-state">
+          <i class="pi pi-comments" aria-hidden="true"></i>
+          <p>No activity yet. CC UBO on an email (the Email button does it for you) or log a call or note.</p>
+        </div>
+      } @else if (visible().length === 0) {
+        <div class="empty-state">
+          <i class="pi pi-filter" aria-hidden="true"></i>
+          <p>No {{ filterName() }} in the activity loaded so far.{{ nextBefore() ? ' Try loading older activity.' : '' }}</p>
+        </div>
+      }
+
+      @for (item of visible(); track item.id) {
         <div class="activity-item">
-          <div class="activity-icon" [attr.aria-label]="item.type">
-            <i class="pi {{ icon(item) }}"></i>
+          <div class="activity-icon activity-icon--{{ item.type }}" [attr.aria-label]="item.type" role="img">
+            <i class="pi {{ icon(item) }}" aria-hidden="true"></i>
           </div>
           <div class="activity-body">
             <div class="activity-head">
               <strong>{{ item.subject || '(no subject)' }}</strong>
-              <span class="activity-date">{{ item.occurredAt | date: 'MMM d, y, h:mm a' }}</span>
+              <span class="activity-date" [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
             </div>
             <div class="activity-meta">
               <p-tag [value]="directionLabel(item)" severity="secondary" />
@@ -99,27 +136,20 @@ function nowForInput(): string {
               }
             </div>
 
-            @if (expanded()[item.id]; as open) {
-              <pre class="activity-text">{{ open.showFull && open.full ? open.full : open.body }}</pre>
-            } @else if (item.snippet) {
-              <p class="activity-snippet">{{ item.snippet }}</p>
-            }
+            <app-message-body [item]="item" />
 
-            <div class="activity-actions">
-              @if (item.snippet) {
-                <button type="button" class="link-btn" (click)="toggle(item)">
-                  {{ expanded()[item.id] ? 'Show less' : 'Read more' }}
-                </button>
-              }
-              @if (expanded()[item.id]?.full) {
-                <button type="button" class="link-btn" (click)="toggleFull(item)">
-                  {{ expanded()[item.id]?.showFull ? 'Hide quoted text' : 'Show quoted text' }}
-                </button>
-              }
-              @if (item.status === 'FILED' && item.type === 'EMAIL' && !contactId()) {
-                <button type="button" class="link-btn" (click)="unfile(item)">Move to Unfiled</button>
-              }
-            </div>
+            @if (item.status === 'FILED' && item.type === 'EMAIL' && !contactId()) {
+              <div class="activity-footer">
+                <p-button
+                  label="Move to Unfiled"
+                  icon="pi pi-inbox"
+                  size="small"
+                  severity="secondary"
+                  [text]="true"
+                  (onClick)="unfile(item)"
+                />
+              </div>
+            }
           </div>
         </div>
       }
@@ -202,17 +232,20 @@ function nowForInput(): string {
   styles: `
     .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .activity-filter { margin-bottom: 0.5rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .activity-item { display: flex; gap: 0.85rem; padding: 0.9rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .activity-item:first-of-type { border-top: 0; }
-    .activity-icon { flex: 0 0 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-100, #f3f4f6); color: var(--text-color-secondary, #6b7280); }
+    .activity-icon { --c: var(--text-color-secondary, #6b7280); flex: 0 0 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+    .activity-icon--EMAIL { --c: #2563eb; }
+    .activity-icon--CALL { --c: #16a34a; }
+    .activity-icon--MEETING { --c: #7c3aed; }
+    .activity-icon--NOTE { --c: #d97706; }
     .activity-body { flex: 1; min-width: 0; }
     .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
-    .activity-date { white-space: nowrap; font-size: 0.85rem; color: var(--text-color-secondary, #6b7280); }
+    .activity-date { white-space: nowrap; font-size: 0.85rem; color: var(--text-color-secondary, #6b7280); cursor: default; }
     .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.875rem; color: var(--text-color-secondary, #6b7280); }
-    .activity-snippet { margin: 0.25rem 0; }
-    .activity-text { margin: 0.5rem 0; white-space: pre-wrap; word-break: break-word; font: inherit; max-height: 24rem; overflow: auto; background: var(--surface-50, #f9fafb); padding: 0.75rem; border-radius: 6px; }
-    .activity-actions { display: flex; gap: 1rem; }
-    .link-btn { background: none; border: 0; padding: 0; cursor: pointer; font-size: 0.85rem; color: var(--primary-color, #2563eb); }
+    .activity-footer { margin-top: 0.25rem; margin-left: -0.5rem; }
     .activity-more { text-align: center; margin-top: 0.5rem; }
     .log-form { display: flex; flex-direction: column; gap: 1rem; }
   `,
@@ -243,8 +276,13 @@ export class ActivityTimelineComponent {
   nextBefore = signal<string | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
-  /** Opened messages by interaction id. */
-  expanded = signal<Record<string, OpenMessage>>({});
+  filter = signal<TypeFilter>('ALL');
+  readonly skeletonRows = [1, 2, 3];
+  readonly visible = computed(() => {
+    const f = this.filter();
+    return f === 'ALL' ? this.items() : this.items().filter((i) => i.type === f);
+  });
+  readonly filterName = computed(() => this.filterOptions.find((o) => o.value === this.filter())?.label.toLowerCase() ?? 'activity');
 
   // Log dialog state
   logVisible = false;
@@ -258,6 +296,13 @@ export class ActivityTimelineComponent {
   logContactIds: string[] = [];
   contactOptions = signal<{ id: string; label: string }[]>([]);
 
+  readonly filterOptions: { label: string; value: TypeFilter }[] = [
+    { label: 'All', value: 'ALL' },
+    { label: 'Emails', value: 'EMAIL' },
+    { label: 'Calls', value: 'CALL' },
+    { label: 'Meetings', value: 'MEETING' },
+    { label: 'Notes', value: 'NOTE' },
+  ];
   readonly typeOptions = [
     { label: 'Call', value: 'CALL' },
     { label: 'Meeting', value: 'MEETING' },
@@ -278,7 +323,8 @@ export class ActivityTimelineComponent {
 
   icon = (i: Interaction) => interactionIcon(i.type);
   participants = (i: Interaction) => participantLine(i);
-  directionLabel = (i: Interaction) => (i.type === 'NOTE' ? 'Note' : DIRECTION_LABEL[i.direction]);
+  directionLabel = directionLabel;
+  rel = relativeTime;
 
   async load(more: boolean) {
     const target = this.target();
@@ -289,36 +335,11 @@ export class ActivityTimelineComponent {
       const page = await this.comms.timeline(target, more ? this.nextBefore() : null);
       this.items.set(more ? [...this.items(), ...page.items] : page.items);
       this.nextBefore.set(page.nextBefore);
-      if (!more) this.expanded.set({});
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load activity');
     } finally {
       this.loading.set(false);
     }
-  }
-
-  async toggle(item: Interaction) {
-    const open = this.expanded();
-    if (open[item.id]) {
-      const { [item.id]: _removed, ...rest } = open;
-      this.expanded.set(rest);
-      return;
-    }
-    try {
-      const one = await this.comms.interaction(item.id);
-      this.expanded.set({
-        ...open,
-        [item.id]: { body: one.bodyText ?? item.snippet ?? '', full: one.fullText ?? null, showFull: false },
-      });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to load message');
-    }
-  }
-
-  toggleFull(item: Interaction) {
-    const current = this.expanded()[item.id];
-    if (!current) return;
-    this.expanded.set({ ...this.expanded(), [item.id]: { ...current, showFull: !current.showFull } });
   }
 
   async unfile(item: Interaction) {

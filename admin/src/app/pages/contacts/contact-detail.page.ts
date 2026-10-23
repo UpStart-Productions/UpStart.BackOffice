@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
@@ -26,6 +27,7 @@ import { PageComponent } from '../../ui/layout/page.component';
     MessageModule,
     SelectModule,
     TableModule,
+    TagModule,
     TextareaModule,
     ToggleSwitchModule,
     PageComponent,
@@ -41,12 +43,15 @@ import { PageComponent } from '../../ui/layout/page.component';
           <div class="page-header-with-back">
             <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" severity="secondary" routerLink="/contacts" aria-label="Back to Contacts" />
             <h2 class="page-title page-title-in-card mb-0">{{ name(c) }}</h2>
+            <p-tag [value]="c.isActive ? 'Active' : 'Inactive'" [severity]="c.isActive ? 'success' : 'secondary'" class="ml-2" />
           </div>
 
           @if (c.autoCreated) {
             <p-message severity="info" class="block mb-3">
-              Created automatically from an email. Check the details, then
-              <button type="button" class="link-btn" (click)="markReviewed()">mark as reviewed</button>.
+              <div class="flex align-items-center flex-wrap gap-3">
+                <span>Created automatically from an email. Check the details, then mark it reviewed.</span>
+                <p-button label="Mark as reviewed" size="small" severity="secondary" (onClick)="markReviewed()" />
+              </div>
             </p-message>
           }
 
@@ -76,12 +81,12 @@ import { PageComponent } from '../../ui/layout/page.component';
               <textarea pTextarea id="notes" [(ngModel)]="form.notes" rows="4" class="w-full"></textarea>
             </div>
             <div class="flex align-items-center gap-2">
-              <p-toggleSwitch [(ngModel)]="form.isActive" />
-              <label>Active</label>
+              <p-toggleSwitch inputId="isActive" [(ngModel)]="form.isActive" />
+              <label for="isActive">Active</label>
             </div>
           </div>
           <div class="form-actions">
-            <p-button label="Save" icon="pi pi-check" [loading]="saving()" (onClick)="save()" />
+            <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
           </div>
         </div>
 
@@ -91,7 +96,7 @@ import { PageComponent } from '../../ui/layout/page.component';
           @for (e of c.emails; track e.id) {
             <div class="row-line">
               <span>{{ e.email }}</span>
-              @if (e.isPrimary) { <span class="text-color-secondary">primary</span> }
+              @if (e.isPrimary) { <p-tag value="Primary" severity="info" /> }
               <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="confirmRemoveEmail(e.email)" aria-label="Remove email" />
             </div>
           }
@@ -134,7 +139,6 @@ import { PageComponent } from '../../ui/layout/page.component';
   `,
   styles: `
     .row-line { display: flex; align-items: center; gap: 0.75rem; }
-    .link-btn { background: none; border: 0; padding: 0; cursor: pointer; color: var(--primary-color, #2563eb); text-decoration: underline; }
   `,
 })
 export class ContactDetailPage implements OnInit {
@@ -177,6 +181,21 @@ export class ContactDetailPage implements OnInit {
       notes: c.notes ?? '',
       isActive: c.isActive,
     };
+  }
+
+  /** True when the form differs from the saved contact. */
+  dirty(): boolean {
+    const c = this.contact();
+    if (!c) return false;
+    const f = this.form;
+    return (
+      f.firstName !== c.firstName ||
+      f.lastName !== (c.lastName ?? '') ||
+      f.title !== (c.title ?? '') ||
+      f.phone !== (c.phone ?? '') ||
+      f.notes !== (c.notes ?? '') ||
+      f.isActive !== c.isActive
+    );
   }
 
   private fail(err: unknown, fallback: string) {

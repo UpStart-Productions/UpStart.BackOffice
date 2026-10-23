@@ -75,20 +75,21 @@ export class ShellComponent implements OnInit {
     }
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
-      { sectionLabel: 'Office' },
+      // CRM, ordered by how often it is used. Network is a rolodex that becomes a tag + saved
+      // view under Contacts in the CRM consolidation phase; Inbox is the unfiled-email queue.
+      { sectionLabel: 'CRM', badge: this.comms.unfiledCount() },
       { label: 'Clients', icon: 'pi-users', route: '/clients' },
+      { label: 'Contacts', icon: 'pi-address-book', route: '/contacts' },
+      { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
+      { label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
+      { label: 'Network', icon: 'pi-sitemap', route: '/network' },
+      { label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
+      { sectionLabel: 'Office' },
       { label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
       { label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
       { label: 'Time', icon: 'pi-clock', route: '/time-entry' },
       { label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
       { label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
-      { sectionLabel: 'Communications' },
-      { label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
-      { label: 'Contacts', icon: 'pi-address-book', route: '/contacts' },
-      { sectionLabel: 'Growth' },
-      { label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
-      { label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
-      { label: 'Network', icon: 'pi-sitemap', route: '/network' },
       { sectionLabel: 'Reports' },
       { label: 'Reports', icon: 'pi-chart-line', route: '/reports' },
     ];

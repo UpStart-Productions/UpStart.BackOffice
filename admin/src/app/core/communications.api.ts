@@ -103,6 +103,34 @@ export function participantLine(i: Pick<Interaction, 'participants'>): string {
   return rest.join(', ');
 }
 
+/** Sender and recipients as separate strings, for list rows. */
+export function participantParts(i: Pick<Interaction, 'participants'>): { from: string; to: string } {
+  const from = i.participants.find((p) => p.role === 'FROM');
+  const rest = i.participants.filter((p) => p.role !== 'FROM').map(personLabel);
+  return { from: from ? personLabel(from) : '—', to: rest.length ? rest.join(', ') : '—' };
+}
+
+export const DIRECTION_LABEL = { INBOUND: 'Incoming', OUTBOUND: 'Outgoing', INTERNAL: 'Internal' } as const;
+
+export function directionLabel(i: Pick<Interaction, 'type' | 'direction'>): string {
+  return i.type === 'NOTE' ? 'Note' : DIRECTION_LABEL[i.direction];
+}
+
+/** "5m ago", "Yesterday", "Mar 3" (adds the year when it is not this year). */
+export function relativeTime(iso: string, now: number = Date.now()): string {
+  const then = new Date(iso);
+  const minutes = Math.floor((now - then.getTime()) / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  const sameYear = then.getFullYear() === new Date(now).getFullYear();
+  return then.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: sameYear ? undefined : 'numeric' });
+}
+
 export function interactionIcon(type: InteractionType): string {
   switch (type) {
     case 'EMAIL':

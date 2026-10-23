@@ -1,21 +1,32 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
+import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { SkeletonModule } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { CommunicationsApi, Interaction, participantLine } from '../../core/communications.api';
+import {
+  CommunicationsApi,
+  directionLabel,
+  Interaction,
+  participantLine,
+  participantParts,
+  relativeTime,
+} from '../../core/communications.api';
 import { PageComponent } from '../../ui/layout/page.component';
+import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 
 type Option = { id: string; label: string };
-type OpenMessage = { body: string; full: string | null; showFull: boolean };
-
 @Component({
   selector: 'app-unfiled-inbox-page',
   standalone: true,
@@ -25,11 +36,17 @@ type OpenMessage = { body: string; full: string | null; showFull: boolean };
     AppDialogModule,
     ButtonModule,
     CheckboxModule,
+    IconFieldModule,
+    InputIconModule,
+    InputTextModule,
     MessageModule,
     SelectModule,
     SelectButtonModule,
+    SkeletonModule,
     TableModule,
+    TagModule,
     PageComponent,
+    MessageBodyComponent,
   ],
   template: `
     <app-page title="Inbox" [skipTitle]="true">
@@ -44,48 +61,84 @@ type OpenMessage = { body: string; full: string | null; showFull: boolean };
           <p-message severity="error" [text]="error()!" class="mb-3" />
         }
 
-        <p-table [value]="items()" [loading]="loading()" styleClass="table-bordered" dataKey="id">
-          <ng-template pTemplate="header">
-            <tr>
-              <th style="width: 11rem">Date</th>
-              <th style="width: 18rem">People</th>
-              <th>Subject</th>
-              <th style="width: 11rem"></th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-item>
-            <tr>
-              <td>{{ item.occurredAt | date: 'MMM d, y, h:mm a' }}</td>
-              <td>{{ people(item) }}</td>
-              <td>
-                <strong>{{ item.subject || '(no subject)' }}</strong>
-                @if (open()[item.id]; as msg) {
-                  <pre class="inbox-text">{{ msg.showFull && msg.full ? msg.full : msg.body }}</pre>
-                } @else if (item.snippet) {
-                  <div class="text-color-secondary">{{ item.snippet }}</div>
-                }
-                @if (item.snippet) {
-                  <button type="button" class="link-btn" (click)="toggle(item)">
-                    {{ open()[item.id] ? 'Show less' : 'Read more' }}
-                  </button>
-                }
-                @if (open()[item.id]?.full) {
-                  <button type="button" class="link-btn ml-3" (click)="toggleFull(item)">
-                    {{ open()[item.id]?.showFull ? 'Hide quoted text' : 'Show quoted text' }}
-                  </button>
-                }
-              </td>
-              <td class="text-right">
-                <p-button label="File…" icon="pi pi-folder" size="small" (onClick)="openFile(item)" />
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="4" class="text-center p-4 text-color-secondary">Nothing to file. You're all caught up.</td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <div class="toolbar">
+          <span class="text-muted" aria-live="polite">{{ countLabel() }}</span>
+          <div class="toolbar-search">
+            <p-iconfield iconPosition="left" class="toolbar-search-field">
+              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+              <input
+                pInputText
+                type="text"
+                class="w-full"
+                placeholder="Search subject or people…"
+                aria-label="Search the inbox"
+                [ngModel]="query()"
+                (ngModelChange)="query.set($event)"
+              />
+            </p-iconfield>
+            @if (query()) {
+              <p-button icon="pi pi-times" [text]="true" severity="secondary" aria-label="Clear search" (onClick)="query.set('')" />
+            }
+          </div>
+        </div>
+
+        @if (loading() && items().length === 0) {
+          <div class="skeleton-list" aria-busy="true" aria-label="Loading inbox">
+            @for (n of skeletonRows; track n) {
+              <div class="skeleton-row">
+                <p-skeleton width="6rem" height="1rem" />
+                <p-skeleton width="12rem" height="1rem" />
+                <p-skeleton height="1rem" styleClass="skeleton-grow" />
+              </div>
+            }
+          </div>
+        } @else {
+          <p-table [value]="filtered()" [loading]="loading()" styleClass="table-bordered" dataKey="id">
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="width: 8rem">Received</th>
+                <th style="width: 20rem">People</th>
+                <th>Subject</th>
+                <th style="width: 9rem"></th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-item>
+              @let who = parts(item);
+              <tr class="clickable-row" (click)="mb.toggle()">
+                <td>
+                  <span [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
+                </td>
+                <td>
+                  <div class="person-line"><span class="person-label">From</span><span class="person-value">{{ who.from }}</span></div>
+                  <div class="person-line text-color-secondary"><span class="person-label">To</span><span class="person-value">{{ who.to }}</span></div>
+                  <p-tag [value]="dir(item)" severity="secondary" class="person-tag" />
+                </td>
+                <td>
+                  <strong>{{ item.subject || '(no subject)' }}</strong>
+                  <app-message-body #mb [item]="item" />
+                </td>
+                <td class="text-right" (click)="$event.stopPropagation()">
+                  <p-button label="File…" icon="pi pi-folder" size="small" (onClick)="openFile(item)" />
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="4">
+                  <div class="empty-state">
+                    @if (items().length === 0) {
+                      <i class="pi pi-check-circle" aria-hidden="true"></i>
+                      <p>Nothing to file. You're all caught up.</p>
+                    } @else {
+                      <i class="pi pi-search" aria-hidden="true"></i>
+                      <p>No emails match "{{ query() }}".</p>
+                    }
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        }
 
         @if (nextBefore()) {
           <div class="text-center mt-3">
@@ -125,6 +178,7 @@ type OpenMessage = { body: string; full: string | null; showFull: boolean };
               [filter]="true"
               filterBy="label"
               [placeholder]="kind === 'client' ? 'Choose a client' : 'Choose a lead'"
+              [ariaLabel]="kind === 'client' ? 'Client' : 'Lead'"
               styleClass="w-full"
             />
             @if (kind === 'client') {
@@ -146,9 +200,16 @@ type OpenMessage = { body: string; full: string | null; showFull: boolean };
     </app-page>
   `,
   styles: `
-    .inbox-text { margin: 0.5rem 0; white-space: pre-wrap; word-break: break-word; font: inherit; max-height: 24rem; overflow: auto; background: var(--surface-50, #f9fafb); padding: 0.75rem; border-radius: 6px; }
-    .link-btn { background: none; border: 0; padding: 0; cursor: pointer; font-size: 0.85rem; color: var(--primary-color, #2563eb); }
     .file-form { display: flex; flex-direction: column; gap: 1rem; }
+    .clickable-row { cursor: pointer; }
+    .clickable-row:hover { background: var(--surface-50, #f9fafb); }
+    .person-line { display: flex; gap: 0.5rem; min-width: 0; }
+    .person-label { flex: 0 0 2.5rem; font-size: 0.8rem; color: var(--text-color-secondary); }
+    .person-value { min-width: 0; overflow-wrap: anywhere; }
+    .person-tag { display: inline-block; margin-top: 0.35rem; }
+    .skeleton-list { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0; }
+    .skeleton-row { display: flex; align-items: center; gap: 1.5rem; }
+    :host ::ng-deep .skeleton-grow { flex: 1; }
   `,
 })
 export class UnfiledInboxPage implements OnInit {
@@ -160,7 +221,8 @@ export class UnfiledInboxPage implements OnInit {
   nextBefore = signal<string | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
-  open = signal<Record<string, OpenMessage>>({});
+  query = signal('');
+  readonly skeletonRows = [1, 2, 3, 4];
 
   clients = signal<Option[]>([]);
   leads = signal<Option[]>([]);
@@ -178,7 +240,31 @@ export class UnfiledInboxPage implements OnInit {
     { label: 'Lead', value: 'lead' },
   ];
 
+  parts = participantParts;
+  rel = relativeTime;
+  dir = directionLabel;
   people = (i: Interaction) => participantLine(i);
+
+  readonly filtered = computed(() => {
+    const q = this.query().trim().toLowerCase();
+    const list = this.items();
+    if (!q) return list;
+    return list.filter((i) =>
+      [i.subject, i.snippet, ...i.participants.flatMap((p) => [p.name, p.email])]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q),
+    );
+  });
+
+  readonly countLabel = computed(() => {
+    const total = this.items().length;
+    const shown = this.filtered().length;
+    const more = this.nextBefore() ? '+' : '';
+    if (shown !== total) return `${shown} of ${total}${more} emails`;
+    return `${total}${more} email${total === 1 && !more ? '' : 's'} to file`;
+  });
 
   async ngOnInit() {
     await this.load(false);
@@ -197,30 +283,6 @@ export class UnfiledInboxPage implements OnInit {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  async toggle(item: Interaction) {
-    const current = this.open();
-    if (current[item.id]) {
-      const { [item.id]: _removed, ...rest } = current;
-      this.open.set(rest);
-      return;
-    }
-    try {
-      const one = await this.comms.interaction(item.id);
-      this.open.set({
-        ...current,
-        [item.id]: { body: one.bodyText ?? item.snippet ?? '', full: one.fullText ?? null, showFull: false },
-      });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to load message');
-    }
-  }
-
-  toggleFull(item: Interaction) {
-    const current = this.open()[item.id];
-    if (!current) return;
-    this.open.set({ ...this.open(), [item.id]: { ...current, showFull: !current.showFull } });
   }
 
   async openFile(item: Interaction) {

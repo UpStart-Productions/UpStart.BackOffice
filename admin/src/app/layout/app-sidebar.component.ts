@@ -11,7 +11,7 @@ const NAV_TOOLTIP_OFFSET_PX = 4;
 
 export type NavItem =
   | { label: string; icon: string; route: string; badge?: number }
-  | { sectionLabel: string };
+  | { sectionLabel: string; badge?: number };
 
 @Component({
   selector: 'app-sidebar',
@@ -27,6 +27,11 @@ export type NavItem =
                 <li class="layout-menu-section" role="presentation">
                   @if (!compact()) {
                     <span class="layout-menu-section-label">{{ item.sectionLabel }}</span>
+                    @if (item.badge) {
+                      <span class="nav-badge nav-badge--section" [attr.aria-label]="item.badge + ' waiting'">{{
+                        item.badge > 99 ? '99+' : item.badge
+                      }}</span>
+                    }
                   }
                 </li>
               } @else {
@@ -50,7 +55,9 @@ export type NavItem =
                       <span>{{ item.label }}</span>
                     }
                     @if (item.badge) {
-                      <span class="nav-badge" [attr.aria-label]="item.badge + ' waiting'">{{ item.badge }}</span>
+                      <span class="nav-badge" [class.nav-badge--compact]="compact()" [attr.aria-label]="item.badge + ' waiting'">{{
+                        item.badge > 99 ? '99+' : item.badge
+                      }}</span>
                     }
                   </a>
                 </li>
@@ -63,6 +70,30 @@ export type NavItem =
   `,
   styles: [
     `
+      .layout-menuitem-link {
+        position: relative;
+      }
+      .layout-menu-section {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+      .nav-badge--section {
+        margin-left: 0;
+        min-width: 1rem;
+        font-size: 0.65rem;
+        line-height: 1rem;
+      }
+      .nav-badge.nav-badge--compact {
+        position: absolute;
+        top: 0.15rem;
+        right: 0.15rem;
+        margin: 0;
+        min-width: 1rem;
+        padding: 0 0.3rem;
+        font-size: 0.65rem;
+        line-height: 1rem;
+      }
       .nav-badge {
         margin-left: auto;
         min-width: 1.25rem;
