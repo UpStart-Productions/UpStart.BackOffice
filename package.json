@@ -11,6 +11,7 @@
     "add-admin-user": "tsx tools/add-admin-user.ts",
     "invite-user": "tsx tools/invite-user.ts",
     "test-ses": "tsx tools/test-ses.ts",
+    "seed:inbox": "tsx tools/dev/seed-inbox.ts",
     "setup-inbound-email-aws": "bash tools/setup-inbound-email-aws.sh",
     "pack-inbound-email-lambda": "bash tools/inbound-email-lambda/pack.sh",
     "test:inbound-email-lambda": "node --test tools/inbound-email-lambda/index.test.mjs",
