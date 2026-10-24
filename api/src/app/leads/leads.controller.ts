@@ -11,7 +11,7 @@ import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { applyLeadEditsToLinks, ensureLeadLinks, leadPersonView } from './lead-links.util';
 import { findLane, firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 /** What the pipeline needs to show about a lead's Account and person. */
 const linkInclude = {
@@ -156,6 +156,7 @@ export class LeadsController {
   }
 
   /** Take a card off the board. Its history, account and contact are untouched; restore any time. */
+  @Action('edit')
   @Post(':id/archive')
   async archive(@Param('id') id: string) {
     const existing = await this.prisma.lead.findUnique({ where: { id }, select: { id: true } });
@@ -165,6 +166,7 @@ export class LeadsController {
   }
 
   /** Put an archived card back on the board in the lane it was in (or its pipeline's first lane). */
+  @Action('edit')
   @Post(':id/restore')
   async restore(@Param('id') id: string) {
     const existing = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, stageId: true, pipelineId: true } });
@@ -190,6 +192,7 @@ export class LeadsController {
    * timeline and files. The invoice code is optional and only needed once you invoice. Reversible
    * from the Account's Journey field.
    */
+  @Action('edit')
   @Post(':id/convert')
   async convert(@Param('id') id: string, @Body() dto: ConvertLeadDto) {
     const lead = await this.prisma.lead.findUnique({ where: { id } });

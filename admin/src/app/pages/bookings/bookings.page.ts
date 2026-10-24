@@ -2,7 +2,6 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { TabsModule } from 'primeng/tabs';
-import { isAdminRole } from '@upstart/back-office/shared';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { BookingTypesListPanelComponent } from './booking-types-list-panel.component';
@@ -27,7 +26,8 @@ export class BookingsPage implements OnInit {
 
   activeTab = signal<BookingsTab>('bookings');
 
-  isAdmin = computed(() => isAdminRole(this.session.me()?.role ?? 'USER'));
+  /** Booking types are setup: shown to anyone whose role has Bookings > Setup. */
+  isAdmin = computed(() => !!this.session.me() && this.session.can('bookings', 'setup'));
 
   ngOnInit() {
     this.syncTabFromUrl(this.router.url);

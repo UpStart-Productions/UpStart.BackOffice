@@ -218,3 +218,15 @@
 .pipeline-flag-danger {
   color: var(--p-red-600, #dc2626);
 }
+
+.pipeline-col-header.no-setup {
+  cursor: default;
+}
+
+.lane-name-static {
+  cursor: default;
+
+  &:hover {
+    background: none;
+  }
+}

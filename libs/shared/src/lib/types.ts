@@ -147,6 +147,8 @@ export type MeDto = {
   roleName?: string | null;
   /** Areas this user can use, per level. Admins can use everything regardless. */
   permissions?: import('./permissions').RolePermissions;
+  /** What this user can do per area (create/edit/delete/setup); missing = allowed. */
+  actions?: import('./permissions').RoleActions;
 };
 
 export type UserListDto = {

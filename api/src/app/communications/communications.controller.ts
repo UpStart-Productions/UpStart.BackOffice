@@ -5,7 +5,7 @@ import { UserContext } from '../common/app.types';
 import { CaptureSettingsService } from './capture-settings.service';
 import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
 import { InteractionsService } from './interactions.service';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 
 @ApiTags('communications')
@@ -63,11 +63,13 @@ export class CommunicationsController {
     return this.interactions.log(dto, { id: user.id, email: user.email });
   }
 
+  @Action('edit')
   @Post('interactions/:id/file')
   file(@Param('id') id: string, @Body() dto: FileInteractionDto) {
     return this.interactions.file(id, dto);
   }
 
+  @Action('edit')
   @Post('interactions/:id/unfile')
   unfile(@Param('id') id: string) {
     return this.interactions.unfile(id);

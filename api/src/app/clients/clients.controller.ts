@@ -12,7 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ACCOUNT_JOURNEYS, AccountJourneyValue, CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 const clientSelect = {
   id: true,
@@ -192,6 +192,7 @@ export class ClientsController {
     return toClientView(client);
   }
 
+  @Action('edit')
   @Post(':id/portal/enable')
   async enablePortal(@Param('id') id: string, @Req() req: Request) {
     await this.assertReach(req, id);
@@ -211,6 +212,7 @@ export class ClientsController {
     return toClientView(client);
   }
 
+  @Action('edit')
   @Post(':id/portal/disable')
   async disablePortal(@Param('id') id: string, @Req() req: Request) {
     await this.assertReach(req, id);
@@ -225,6 +227,7 @@ export class ClientsController {
     return toClientView(client);
   }
 
+  @Action('edit')
   @Post(':id/portal/regenerate')
   async regeneratePortal(@Param('id') id: string, @Req() req: Request) {
     await this.assertReach(req, id);

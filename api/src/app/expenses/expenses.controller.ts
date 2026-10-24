@@ -29,7 +29,7 @@ import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -164,6 +164,7 @@ export class ExpensesController {
   }
 
   /** Upload/replace the receipt image for an existing expense. */
+  @Action('edit')
   @Post(':id/receipt')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: RECEIPT_MAX_BYTES } }))

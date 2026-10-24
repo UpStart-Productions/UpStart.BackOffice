@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { isAdminRole, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
+import { isAdminRole, sanitizeActions, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
 import { InvitesService } from '../invites/invites.service';
@@ -106,7 +106,7 @@ export class UsersController {
           clientId: true,
           tenantId: true,
           isSuper: true,
-          tenantRole: { select: { name: true, permissions: true } },
+          tenantRole: { select: { name: true, permissions: true, actions: true } },
         },
       }),
     );
@@ -124,6 +124,7 @@ export class UsersController {
       isSuper: row.isSuper,
       roleName: row.tenantRole?.name ?? null,
       permissions: sanitizePermissions(row.tenantRole?.permissions),
+      actions: sanitizeActions(row.tenantRole?.actions),
     };
   }
 

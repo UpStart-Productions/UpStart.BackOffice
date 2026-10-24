@@ -51,7 +51,7 @@ import { TaskProjectsService } from './task-projects.service';
 import { TaskTagsService } from './task-tags.service';
 import { FORM_MAX_FILE_BYTES, FORM_MAX_FILES, TaskFormsService } from './task-forms.service';
 import { MAX_ATTACHMENT_BYTES, TasksService } from './tasks.service';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 const me = (req: Request) => req.user as UserContext;
 
@@ -84,12 +84,14 @@ export class TaskManagerController {
   }
 
   /** Add an existing project to Tasks. */
+  @Action('edit')
   @Put('projects/:id/tasks-enabled')
   addProject(@Req() req: Request, @Param('id') id: string, @Body() dto: AddToTasksDto) {
     return this.projects.addToTaskManager(me(req), id, dto?.color, dto?.icon);
   }
 
   /** Remove a project from Tasks (data kept). */
+  @Action('edit')
   @Delete('projects/:id/tasks-enabled')
   removeProject(@Req() req: Request, @Param('id') id: string) {
     return this.projects.removeFromTaskManager(me(req), id);
@@ -105,11 +107,13 @@ export class TaskManagerController {
     return this.projects.update(me(req), id, dto);
   }
 
+  @Action('view')
   @Put('projects/:id/star')
   star(@Req() req: Request, @Param('id') id: string) {
     return this.projects.setStar(me(req), id, true);
   }
 
+  @Action('view')
   @Delete('projects/:id/star')
   unstar(@Req() req: Request, @Param('id') id: string) {
     return this.projects.setStar(me(req), id, false);
@@ -132,17 +136,20 @@ export class TaskManagerController {
 
   // ── Members ───────────────────────────────────────────────────────────────
 
+  @Action('edit')
   @Post('projects/:id/members')
   addMember(@Req() req: Request, @Param('id') id: string, @Body() dto: AddMemberDto) {
     return this.projects.addMember(me(req), id, dto);
   }
 
   /** Share by email (creates a guest + emails an invite when the address is new). */
+  @Action('edit')
   @Post('projects/:id/invite')
   invite(@Req() req: Request, @Param('id') id: string, @Body() dto: InviteMemberDto) {
     return this.projects.invite(me(req), id, dto);
   }
 
+  @Action('edit')
   @Post('projects/:id/members/:userId/resend-invite')
   resendInvite(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
     return this.projects.resendInvite(me(req), id, userId);
@@ -153,6 +160,7 @@ export class TaskManagerController {
     return this.projects.updateMember(me(req), id, userId, dto.role);
   }
 
+  @Action('edit')
   @Delete('projects/:id/members/:userId')
   removeMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
     return this.projects.removeMember(me(req), id, userId);
@@ -170,6 +178,7 @@ export class TaskManagerController {
     return this.projects.updateSection(me(req), id, dto);
   }
 
+  @Action('edit')
   @Post('sections/:id/move')
   moveSection(@Req() req: Request, @Param('id') id: string, @Body() dto: MoveSectionDto) {
     return this.projects.moveSection(me(req), id, dto.afterSectionId);
@@ -237,17 +246,20 @@ export class TaskManagerController {
     return this.tasks.update(me(req), id, dto);
   }
 
+  @Action('edit')
   @Post('tasks/:id/move')
   moveTask(@Req() req: Request, @Param('id') id: string, @Body() dto: MoveTaskDto) {
     return this.tasks.move(me(req), id, dto);
   }
 
   /** Also list a task in another project. */
+  @Action('edit')
   @Post('tasks/:id/projects')
   addTaskProject(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTaskProjectDto) {
     return this.tasks.addProject(me(req), id, dto);
   }
 
+  @Action('edit')
   @Delete('tasks/:id/projects/:projectId')
   removeTaskProject(@Req() req: Request, @Param('id') id: string, @Param('projectId') projectId: string) {
     return this.tasks.removeProject(me(req), id, projectId);
@@ -281,6 +293,7 @@ export class TaskManagerController {
   }
 
   /** Issue a new API key (returned once; replaces the old one). */
+  @Action('edit')
   @Post('forms/:formId/api-key')
   rotateFormKey(@Req() req: Request, @Param('formId') formId: string) {
     return this.forms.rotateKey(me(req), formId);
@@ -326,11 +339,13 @@ export class TaskManagerController {
     return this.tags.remove(me(req), tagId);
   }
 
+  @Action('edit')
   @Post('tasks/:id/tags')
   addTaskTag(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTaskTagDto) {
     return this.tags.addToTask(me(req), id, dto);
   }
 
+  @Action('edit')
   @Delete('tasks/:id/tags/:tagId')
   removeTaskTag(@Req() req: Request, @Param('id') id: string, @Param('tagId') tagId: string) {
     return this.tags.removeFromTask(me(req), id, tagId);
@@ -346,11 +361,13 @@ export class TaskManagerController {
     return this.tasks.setFieldValue(me(req), id, fieldId, dto.value);
   }
 
+  @Action('view')
   @Put('tasks/:id/followers/:userId')
   follow(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
     return this.tasks.setFollowing(me(req), id, userId === 'me' ? me(req).id : userId, true);
   }
 
+  @Action('view')
   @Delete('tasks/:id/followers/:userId')
   unfollow(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
     return this.tasks.setFollowing(me(req), id, userId === 'me' ? me(req).id : userId, false);
@@ -363,11 +380,13 @@ export class TaskManagerController {
     return this.tasks.addComment(me(req), id, dto.body);
   }
 
+  @Action('edit')
   @Patch('comments/:id')
   updateComment(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateCommentDto) {
     return this.tasks.updateComment(me(req), id, dto.body);
   }
 
+  @Action('edit')
   @Delete('comments/:id')
   deleteComment(@Req() req: Request, @Param('id') id: string) {
     return this.tasks.deleteComment(me(req), id);
@@ -375,6 +394,7 @@ export class TaskManagerController {
 
   // ── Attachments ───────────────────────────────────────────────────────────
 
+  @Action('edit')
   @Post('tasks/:id/attachments')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_ATTACHMENT_BYTES } }))
@@ -386,6 +406,7 @@ export class TaskManagerController {
     return this.tasks.uploadAttachment(me(req), id, file);
   }
 
+  @Action('edit')
   @Delete('attachments/:id')
   deleteAttachment(@Req() req: Request, @Param('id') id: string) {
     return this.tasks.deleteAttachment(me(req), id);

@@ -7,7 +7,9 @@
   <div class="card">
     <h2 class="page-title page-title-in-card">Clients</h2>
     <div class="toolbar">
-      <a pButton [label]="'New ' + (view() === 'clients' || view() === 'all' ? 'Client' : kind())" icon="pi pi-plus" routerLink="/clients/new" [queryParams]="newQuery()"></a>
+      @if (canCreate()) {
+        <a pButton [label]="'New ' + (view() === 'clients' || view() === 'all' ? 'Client' : kind())" icon="pi pi-plus" routerLink="/clients/new" [queryParams]="newQuery()"></a>
+      }
       <p-selectbutton
         [options]="viewOptions"
         optionLabel="label"

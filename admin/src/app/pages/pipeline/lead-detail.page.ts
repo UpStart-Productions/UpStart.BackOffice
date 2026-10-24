@@ -10,6 +10,7 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
@@ -77,6 +78,8 @@ export class LeadDetailPage implements OnInit {
   contactId = signal<string | null>(null);
 
   private readonly pipelinesApi = inject(PipelinesApi);
+  private readonly session = inject(SessionService);
+  readonly canEdit = computed(() => this.session.can('pipeline', 'edit'));
   pipelines = signal<PipelineSummary[]>([]);
   pipelineId = signal<string | null>(null);
   archivedAt = signal<string | null>(null);

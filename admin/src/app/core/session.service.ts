@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { ApiService } from './api.service';
-import type { MeDto } from '@upstart/back-office/shared';
+import { allows, type AreaAction, type MeDto, type PermissionArea } from '@upstart/back-office/shared';
 
 export type MeResponse = MeDto;
 
@@ -10,6 +10,11 @@ export class SessionService {
 
   readonly me = signal<MeResponse | null>(null);
   private readyPromise: Promise<MeResponse | null> | null = null;
+
+  /** Whether the signed-in user may take an action in an area (the API enforces the same rule). */
+  can(area: PermissionArea, action: AreaAction = 'view'): boolean {
+    return allows(this.me(), area, action);
+  }
 
   reset(): void {
     this.readyPromise = null;

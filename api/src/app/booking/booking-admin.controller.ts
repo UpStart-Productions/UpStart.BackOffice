@@ -14,7 +14,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingStatus } from '@prisma/client';
 import { BookingService } from './booking.service';
 import { UpsertBookingTypeDto } from './dto/upsert-booking-type.dto';
-import { AccessGuard, Area, AdminOnly } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 @ApiTags('booking')
 @ApiBearerAuth()
@@ -32,6 +32,7 @@ export class BookingAdminController {
     return this.booking.listBookings(status, bookingTypeId);
   }
 
+  @Action('edit')
   @Post('cancel/:id')
   async cancel(@Param('id') id: string) {
     const bookings = await this.booking.listBookings();
@@ -46,31 +47,29 @@ export class BookingAdminController {
   }
 
   @Get('types')
-  @AdminOnly()
   listTypes() {
     return this.booking.listBookingTypes();
   }
 
   @Get('types/:id')
-  @AdminOnly()
   getType(@Param('id') id: string) {
     return this.booking.getBookingType(id);
   }
 
+  @Action('setup')
   @Post('types')
-  @AdminOnly()
   createType(@Body() dto: UpsertBookingTypeDto) {
     return this.booking.createBookingType(dto);
   }
 
+  @Action('setup')
   @Put('types/:id')
-  @AdminOnly()
   updateType(@Param('id') id: string, @Body() dto: UpsertBookingTypeDto) {
     return this.booking.updateBookingType(id, dto);
   }
 
+  @Action('setup')
   @Delete('types/:id')
-  @AdminOnly()
   deleteType(@Param('id') id: string) {
     return this.booking.deleteBookingType(id);
   }

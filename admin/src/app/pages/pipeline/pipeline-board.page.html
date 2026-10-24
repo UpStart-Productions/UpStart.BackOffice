@@ -8,7 +8,9 @@
   <div class="card">
     <h2 class="page-title page-title-in-card">Client Pipeline</h2>
     <div class="toolbar">
-      <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
+      @if (canCreate()) {
+        <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
+      }
       <div class="pipeline-switcher">
         @if (pipelines().length > 1) {
           <p-select
@@ -22,7 +24,9 @@
         } @else if (current(); as p) {
           <span class="pipeline-name">{{ p.name }}</span>
         }
-        <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
+        @if (canSetup()) {
+          <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
+        }
       </div>
       <p-selectbutton
         [options]="viewOptions"
@@ -61,8 +65,8 @@
         (cdkDropListDropped)="onLaneDrop($event)"
       >
         @for (lane of lanes(); track lane.id) {
-          <div class="pipeline-col" cdkDrag [cdkDragData]="lane" cdkDragLockAxis="x">
-            <div class="pipeline-col-header" cdkDragHandle title="Drag to reorder">
+          <div class="pipeline-col" cdkDrag [cdkDragData]="lane" cdkDragLockAxis="x" [cdkDragDisabled]="!canSetup()">
+            <div class="pipeline-col-header" cdkDragHandle [class.no-setup]="!canSetup()" [title]="canSetup() ? 'Drag to reorder' : ''">
               @if (editingLaneId() === lane.id) {
                 <input
                   pInputText
@@ -78,11 +82,17 @@
                   appAutofocus
                 />
               } @else {
-                <button type="button" class="lane-name" (click)="startLaneEdit(lane)" title="Click to rename">{{ lane.name }}</button>
+                @if (canSetup()) {
+                  <button type="button" class="lane-name" (click)="startLaneEdit(lane)" title="Click to rename">{{ lane.name }}</button>
+                } @else {
+                  <span class="lane-name lane-name-static">{{ lane.name }}</span>
+                }
               }
               <span class="lane-header-right">
                 <span class="pipeline-badge">{{ leadsForLane(lane.id).length }}</span>
-                <app-row-actions-menu [items]="laneActions(lane)" ariaLabel="Lane actions" />
+                @if (canSetup()) {
+                  <app-row-actions-menu [items]="laneActions(lane)" ariaLabel="Lane actions" />
+                }
               </span>
             </div>
 
@@ -100,6 +110,7 @@
                   class="pipeline-card"
                   cdkDrag
                   [cdkDragData]="lead"
+                  [cdkDragDisabled]="!canEdit()"
                   (cdkDragStarted)="onDragStarted()"
                   (cdkDragEnded)="onDragEnded()"
                   (click)="openLead(lead.id)"
@@ -154,6 +165,7 @@
           </div>
         }
 
+        @if (canSetup()) {
         <div class="pipeline-col pipeline-col-add">
           @if (addingLane()) {
             <input
@@ -174,6 +186,7 @@
             <p-button label="Add lane" icon="pi pi-plus" severity="secondary" [text]="true" (onClick)="addingLane.set(true)" />
           }
         </div>
+        }
       </div>
     } @else {
       <p-table [value]="filteredLeads()" styleClass="table-bordered" sortField="organization" [sortOrder]="1">
@@ -194,7 +207,11 @@
             <td>{{ lead.primaryContact }}</td>
             <td>{{ laneNames().get(lead.stageId) ?? '' }}</td>
             <td>{{ lead.archivedAt ? formatDate(lead.archivedAt) : '' }}</td>
-            <td><p-button label="Restore" icon="pi pi-replay" size="small" severity="secondary" (onClick)="restore(lead)" /></td>
+            <td>
+              @if (canEdit()) {
+                <p-button label="Restore" icon="pi pi-replay" size="small" severity="secondary" (onClick)="restore(lead)" />
+              }
+            </td>
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">

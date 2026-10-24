@@ -16,6 +16,7 @@ import { MessageModule } from 'primeng/message';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import {
   RowActionsMenuComponent,
@@ -72,6 +73,10 @@ export class ClientsListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly session = inject(SessionService);
+  readonly canCreate = computed(() => this.session.can('clients', 'create'));
+  readonly canEdit = computed(() => this.session.can('clients', 'edit'));
+  readonly canDelete = computed(() => this.session.can('clients', 'delete'));
   private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   readonly viewOptions = (Object.keys(VIEWS) as View[]).map((value) => ({ value, label: VIEWS[value].label }));
@@ -162,30 +167,19 @@ export class ClientsListPage implements OnInit {
 
   getRowActions(client: Client): RowActionItem[] {
     const actions: RowActionItem[] = [];
-    if (client.journey !== 'CLIENT') {
-      actions.push({
-        id: 'make-client',
-        label: 'Make client',
-        icon: 'pi pi-check',
-        command: () => this.makeClient(client),
-      });
+    if (client.journey !== 'CLIENT' && this.canEdit()) {
+      actions.push({ id: 'make-client', label: 'Make client', icon: 'pi pi-check', command: () => this.makeClient(client) });
     }
-    return [
-      ...actions,
-      {
-        id: 'edit',
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => this.router.navigate(['/clients', client.id]),
-      },
-      {
-        id: 'delete',
-        label: 'Delete',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        command: () => this.confirmDelete(client),
-      },
-    ];
+    actions.push({
+      id: 'edit',
+      label: this.canEdit() ? 'Edit' : 'Open',
+      icon: this.canEdit() ? 'pi pi-pencil' : 'pi pi-arrow-right',
+      command: () => this.router.navigate(['/clients', client.id]),
+    });
+    if (this.canDelete()) {
+      actions.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(client) });
+    }
+    return actions;
   }
 
   async makeClient(client: Client) {

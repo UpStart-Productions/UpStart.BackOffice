@@ -1,7 +1,7 @@
 import { inject } from '@angular/core';
 import { Route, Router } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
-import { sessionGuard, adminGuard, platformAdminGuard, areaGuard } from './core/session.guard';
+import { sessionGuard, adminGuard, platformAdminGuard, areaGuard, actionGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -194,19 +194,19 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'bookings/types',
-        canActivate: [adminGuard],
+        canActivate: [actionGuard('bookings', 'setup')],
         loadComponent: () =>
           import('./pages/bookings/bookings.page').then((m) => m.BookingsPage),
       },
       {
         path: 'bookings/types/new',
-        canActivate: [adminGuard],
+        canActivate: [actionGuard('bookings', 'setup')],
         loadComponent: () =>
           import('./pages/booking-types/booking-type-form.page').then((m) => m.BookingTypeFormPage),
       },
       {
         path: 'bookings/types/:id',
-        canActivate: [adminGuard],
+        canActivate: [actionGuard('bookings', 'setup')],
         loadComponent: () =>
           import('./pages/booking-types/booking-type-form.page').then((m) => m.BookingTypeFormPage),
       },

@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Request } from 'express';
-import { sanitizePermissions } from '@upstart/back-office/shared';
+import { sanitizeActions, sanitizePermissions } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
@@ -27,7 +27,7 @@ export async function applyImpersonation(
       select: {
         id: true, email: true, name: true, firstName: true, lastName: true, avatarUrl: true,
         role: true, isActive: true, clientId: true, tenantId: true, isSuper: true,
-        tenantRole: { select: { permissions: true } },
+        tenantRole: { select: { permissions: true, actions: true } },
       },
     }),
   );
@@ -49,5 +49,6 @@ export async function applyImpersonation(
     tenantId: target.tenantId,
     isSuper: false,
     permissions: sanitizePermissions(target.tenantRole?.permissions),
+    actions: sanitizeActions(target.tenantRole?.actions),
   };
 }

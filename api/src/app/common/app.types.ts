@@ -1,4 +1,4 @@
-import type { RolePermissions, UserRole } from '@upstart/back-office/shared';
+import type { RoleActions, RolePermissions, UserRole } from '@upstart/back-office/shared';
 
 export type UserContext = {
   id: string;
@@ -15,6 +15,8 @@ export type UserContext = {
   isSuper?: boolean;
   /** Areas the user's tenant role grants (admins ignore this and can do everything). */
   permissions?: RolePermissions;
+  /** What the role may do per area (create/edit/delete/setup); missing = allowed. */
+  actions?: RoleActions;
 };
 
 declare global {

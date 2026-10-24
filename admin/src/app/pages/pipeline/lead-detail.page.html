@@ -26,7 +26,7 @@
         @if (contactId(); as cid) {
           <a [routerLink]="['/contacts', cid]" class="text-primary mr-2">Open contact</a>
         }
-        @if (!isNew && !isConverted) {
+        @if (!isNew && !isConverted && canEdit()) {
           <button pButton type="button" label="Make client" icon="pi pi-check" (click)="showConvertDialog.set(true)"></button>
         }
         @if (isConverted) {
@@ -34,6 +34,8 @@
         }
         @if (!isNew) {
           @if (archivedAt()) { <p-tag value="Archived" severity="secondary" /> }
+        }
+        @if (!isNew && canEdit()) {
           <button pButton type="button" [label]="archivedAt() ? 'Restore' : 'Archive'" [icon]="archivedAt() ? 'pi pi-replay' : 'pi pi-inbox'" class="p-button-secondary p-button-text" (click)="toggleArchive()"></button>
         }
       </div>

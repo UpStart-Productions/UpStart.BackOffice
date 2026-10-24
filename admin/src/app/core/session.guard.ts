@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
-import { isAdminRole, isBackOfficeRole, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
+import { allows, isAdminRole, isBackOfficeRole, tasksOnly, type AreaAction, type PermissionArea } from '@upstart/back-office/shared';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { SessionService } from './session.service';
@@ -46,6 +46,14 @@ export const sessionGuard: CanActivateFn = async () => {
   return false;
 };
 
+/** Only users whose role allows the action in the area (e.g. Bookings setup for booking types). */
+export function actionGuard(area: PermissionArea, action: AreaAction): CanActivateFn {
+  return async () => {
+    const me = await inject(SessionService).getReady();
+    return allows(me, area, action) ? true : inject(Router).createUrlTree(['/dashboard']);
+  };
+}
+
 export const adminGuard: CanActivateFn = async () => {
   const session = inject(SessionService);
   const router = inject(Router);
@@ -75,7 +83,7 @@ export const superGuard = adminGuard;
 /** URL prefix -> the permission area it belongs to. Anything unlisted (dashboard, etc.) is open to every user. */
 const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
   ['/clients', 'clients'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'],
-  ['/booking-types', 'bookings'], ['/network', 'network'], ['/inbox', 'inbox'], ['/projects', 'projects'],
+  ['/booking-types', 'bookings'], ['/inbox', 'inbox'], ['/projects', 'projects'],
   ['/tasks', 'tasks'], ['/time-entry', 'time'], ['/expenses', 'expenses'], ['/invoices', 'invoices'],
   ['/reports', 'reports'],
 ];

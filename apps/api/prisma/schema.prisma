@@ -158,6 +158,8 @@ model Role {
   key         String?
   /// Area -> level, e.g. { "time": "own", "clients": "all" }. Missing area = no access. See libs/shared permissions.ts.
   permissions Json     @default("{}")
+  /// Area -> { create, edit, delete, setup } checkboxes, e.g. { "pipeline": { "delete": false } }. Missing = allowed.
+  actions     Json     @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

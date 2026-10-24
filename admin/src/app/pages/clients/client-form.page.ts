@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -13,6 +13,7 @@ import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -76,6 +77,8 @@ export class ClientFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
+  readonly canEdit = computed(() => this.session.can('clients', 'edit'));
 
   readonly usStates = US_STATES;
   readonly journeyOptions = (Object.keys(ACCOUNT_JOURNEY_LABELS) as AccountJourney[]).map((value) => ({

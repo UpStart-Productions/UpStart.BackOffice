@@ -24,7 +24,7 @@ import { CreateArtifactDto } from './dto/create-artifact.dto';
 import { UpdateArtifactDto } from './dto/update-artifact.dto';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 type ArtifactParent = {
   leadId?: string;
@@ -37,7 +37,7 @@ type ArtifactParent = {
 @ApiTags('artifacts')
 @ApiBearerAuth()
 @UseGuards(AccessGuard)
-@Area('clients', 'projects', 'pipeline', 'network')
+@Area('clients', 'projects', 'pipeline')
 @Controller('artifacts')
 export class ArtifactsController {
   constructor(
@@ -65,6 +65,7 @@ export class ArtifactsController {
     });
   }
 
+  @Action('edit')
   @Post()
   async create(@Body() dto: CreateArtifactDto) {
     const parent = this.resolveParent({
@@ -89,6 +90,7 @@ export class ArtifactsController {
   }
 
   /** Upload a file and create a FILE artifact in one step */
+  @Action('edit')
   @Post('upload')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
@@ -135,6 +137,7 @@ export class ArtifactsController {
     });
   }
 
+  @Action('edit')
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const existing = await this.prisma.artifact.findUnique({ where: { id } });

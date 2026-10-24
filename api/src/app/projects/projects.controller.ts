@@ -15,7 +15,7 @@ import { SyncProjectTasksDto } from './dto/project-task.dto';
 import { UpdateAsanaTaskBillablesDto, UpdateProjectDto } from './dto/update-project.dto';
 import { syncProjectContacts } from './project-contacts.util';
 import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-tasks.util';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 
@@ -175,6 +175,7 @@ export class ProjectsController {
     return project;
   }
 
+  @Action('edit')
   @Post(':id/asana/sync')
   async syncAsanaTasks(@Req() req: Request, @Param('id') id: string) {
     const existing = await this.reachable(req, id);

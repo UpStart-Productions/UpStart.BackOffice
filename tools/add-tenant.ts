@@ -7,8 +7,9 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-import { runUnscoped } from '../api/src/app/tenancy/tenant-context';
-import { disconnect, rawPrisma } from './lib/tenant-prisma';
+import { runUnscoped, runWithTenant } from '../api/src/app/tenancy/tenant-context';
+import { ensurePresetRoles } from '../api/src/app/access/role-presets.util';
+import { disconnect, prisma, rawPrisma } from './lib/tenant-prisma';
 
 async function main() {
   const [slugArg, nameArg] = process.argv.slice(2);
@@ -26,6 +27,7 @@ async function main() {
     // Inbound capture address: <slug>@in.<domain>. Pick a different one later in Settings > Email capture.
     const taken = await rawPrisma.inboundAlias.findUnique({ where: { alias: slug } });
     if (!taken) await rawPrisma.inboundAlias.create({ data: { alias: slug, tenantId: tenant.id, isPrimary: true } });
+    await runWithTenant(tenant.id, () => ensurePresetRoles(prisma as never)); // extended client; same API
     console.log(`Created tenant "${name}" (id ${tenant.id}, slug ${slug})${taken ? ` - alias "${slug}" was taken, set one in Settings` : ''}`);
   });
 }

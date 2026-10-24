@@ -13,6 +13,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -78,6 +79,13 @@ export class PipelineBoardPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
+  private readonly session = inject(SessionService);
+
+  /** What the user's role allows here (the API enforces the same). */
+  readonly canCreate = computed(() => this.session.can('pipeline', 'create'));
+  readonly canEdit = computed(() => this.session.can('pipeline', 'edit'));
+  readonly canDelete = computed(() => this.session.can('pipeline', 'delete'));
+  readonly canSetup = computed(() => this.session.can('pipeline', 'setup'));
 
   readonly viewOptions = [
     { label: 'Board', value: 'board' },
@@ -305,16 +313,17 @@ export class PipelineBoardPage implements OnInit {
   }
 
   getRowActions(lead: Lead): RowActionItem[] {
+    const open: RowActionItem = { id: 'open', label: 'Open', icon: 'pi pi-arrow-right', command: () => this.router.navigate(['/pipeline', lead.id]) };
+    const del: RowActionItem = { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) };
     if (this.view() === 'archived') {
       return [
-        { id: 'open', label: 'Open', icon: 'pi pi-arrow-right', command: () => this.router.navigate(['/pipeline', lead.id]) },
-        { id: 'restore', label: 'Restore to board', icon: 'pi pi-replay', command: () => this.restore(lead) },
-        { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) },
+        open,
+        ...(this.canEdit() ? [{ id: 'restore', label: 'Restore to board', icon: 'pi pi-replay', command: () => this.restore(lead) }] : []),
+        ...(this.canDelete() ? [del] : []),
       ];
     }
-    const actions: RowActionItem[] = [
-      { id: 'open', label: 'Open', icon: 'pi pi-arrow-right', command: () => this.router.navigate(['/pipeline', lead.id]) },
-    ];
+    const actions: RowActionItem[] = [open];
+    if (!this.canEdit()) return this.canDelete() ? [open, del] : actions;
     if (lead.client?.journey !== 'CLIENT') {
       actions.push({
         id: 'convert',
@@ -323,10 +332,8 @@ export class PipelineBoardPage implements OnInit {
         command: () => this.router.navigate(['/pipeline', lead.id], { queryParams: { convert: '1' } }),
       });
     }
-    actions.push(
-      { id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.archive(lead) },
-      { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) },
-    );
+    actions.push({ id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.archive(lead) });
+    if (this.canDelete()) actions.push(del);
     return actions;
   }
 
@@ -378,6 +385,7 @@ export class PipelineBoardPage implements OnInit {
   // ---------- lanes ----------
 
   startLaneEdit(lane: PipelineLane) {
+    if (!this.canSetup()) return;
     this.editingLaneId.set(lane.id);
     this.laneDraft = lane.name;
   }

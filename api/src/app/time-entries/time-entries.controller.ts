@@ -29,7 +29,7 @@ import {
   startedStoppedAt,
 } from './timesheet-csv.util';
 import { assertTmTaskInProject } from './time-entry-task.util';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
   return Math.round((stoppedAt.getTime() - startedAt.getTime()) / 60000);
@@ -294,6 +294,7 @@ export class TimeEntriesController {
     });
   }
 
+  @Action('edit')
   @Post(':id/restart')
   async restart(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as UserContext;
@@ -317,6 +318,7 @@ export class TimeEntriesController {
     });
   }
 
+  @Action('edit')
   @Post(':id/stop')
   async stop(@Req() req: Request, @Param('id') id: string) {
     const entry = await this.prisma.timeEntry.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });

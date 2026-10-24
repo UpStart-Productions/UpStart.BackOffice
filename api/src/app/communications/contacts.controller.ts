@@ -5,7 +5,7 @@ import {
   AddContactEmailDto, CreateContactDto, LinkContactAccountDto, UpdateContactDto,
 } from './dto/communications.dto';
 import { InteractionsService } from './interactions.service';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 @ApiTags('contacts')
 @ApiBearerAuth()
@@ -55,21 +55,25 @@ export class ContactsController {
     return this.contacts.update(id, dto);
   }
 
+  @Action('edit')
   @Post(':id/emails')
   addEmail(@Param('id') id: string, @Body() dto: AddContactEmailDto) {
     return this.contacts.addEmail(id, dto);
   }
 
+  @Action('edit')
   @Delete(':id/emails/:email')
   removeEmail(@Param('id') id: string, @Param('email') email: string) {
     return this.contacts.removeEmail(id, email);
   }
 
+  @Action('edit')
   @Post(':id/accounts')
   linkAccount(@Param('id') id: string, @Body() dto: LinkContactAccountDto) {
     return this.contacts.linkAccount(id, dto);
   }
 
+  @Action('edit')
   @Delete(':id/accounts/:clientId')
   unlinkAccount(@Param('id') id: string, @Param('clientId') clientId: string) {
     return this.contacts.unlinkAccount(id, clientId);

@@ -38,7 +38,7 @@ On a card's page, **Lane** changes its lane, and **Archive** / **Restore** are n
 
 ## Bookings
 
-**Bookings** manages appointment types and bookings. A booking creates or updates a pipeline card, so the guest appears as a contact on a prospect account. Each booking type's **Pipeline lane** says which lane new cards go into (blank means the first lane). A card that is still in its pipeline's first lane moves to that lane when the person books; cards further along stay put. Admins configure booking types under **Bookings** (types sub-route).
+**Bookings** manages appointment types and bookings. A booking creates or updates a pipeline card, so the guest appears as a contact on a prospect account. Each booking type's **Pipeline lane** says which lane new cards go into (blank means the first lane). A card that is still in its pipeline's first lane moves to that lane when the person books; cards further along stay put. Booking types (the **Booking types** tab) are visible to roles with Bookings **Setup**.
 
 ## Inbox
 

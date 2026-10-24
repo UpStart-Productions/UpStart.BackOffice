@@ -6,7 +6,8 @@ import { AppAuthGuard } from '../auth/app-auth.guard';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequireSuperGuard } from './require-super.guard';
-import { runUnscoped } from './tenant-context';
+import { runUnscoped, runWithTenant } from './tenant-context';
+import { ensurePresetRoles } from '../access/role-presets.util';
 
 export class CreateTenantDto {
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
@@ -58,6 +59,8 @@ export class TenantsController {
       const taken = await this.prisma.inboundAlias.findUnique({ where: { alias: dto.slug } });
       if (!taken) await this.prisma.inboundAlias.create({ data: { alias: dto.slug, tenantId: tenant.id, isPrimary: true } });
     });
+    // Every tenant starts with the same preset roles (editable later under Users > Roles).
+    await runWithTenant(tenant.id, () => ensurePresetRoles(this.prisma));
     return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains };
   }
 }

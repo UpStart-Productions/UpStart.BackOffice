@@ -22,7 +22,7 @@ import { InvoiceFromTimeService } from './invoice-from-time.service';
 import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
 import { currentTenantId } from '../tenancy/tenant-context';
-import { AccessGuard, Area } from '../access/access.guard';
+import { AccessGuard, Area, Action } from '../access/access.guard';
 
 const projectContactSelect = {
   id: true,
@@ -365,6 +365,7 @@ export class InvoicesController {
     };
   }
 
+  @Action('edit')
   @Post(':id/mark-paid')
   async markPaid(@Req() req: Request, @Param('id') id: string, @Body() dto: MarkInvoicePaidDto) {
     const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
@@ -389,6 +390,7 @@ export class InvoicesController {
     return invoice;
   }
 
+  @Action('edit')
   @Post(':id/send')
   async send(@Req() req: Request, @Param('id') id: string, @Body() dto: SendInvoiceDto) {
     const invoice = await this.prisma.invoice.findFirst({

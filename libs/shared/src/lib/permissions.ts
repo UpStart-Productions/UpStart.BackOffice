@@ -14,7 +14,6 @@ export const PERMISSION_AREAS = [
   'contacts',
   'pipeline',
   'bookings',
-  'network',
   'inbox',
   'projects',
   'tasks',
@@ -36,7 +35,6 @@ export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   contacts: 'Contacts',
   pipeline: 'Pipeline',
   bookings: 'Bookings',
-  network: 'Network',
   inbox: 'Inbox',
   projects: 'Projects',
   tasks: 'Tasks',
@@ -65,7 +63,129 @@ export function sanitizePermissions(input: unknown): RolePermissions {
 /** Built-in role given to people invited to a Task Manager project by email: only projects they are a member of. */
 export const GUEST_ROLE = { key: 'guest', name: 'Guest', permissions: { tasks: 'own' } as RolePermissions } as const;
 
-type WithAccess = { role: UserRole; permissions?: RolePermissions | null };
+// ---------------------------------------------------------------------------------------------------------------
+// Actions: what a role may DO in an area, on top of what it may SEE (the level above).
+// Checkboxes, not scopes: an action applies to the records the user can already see.
+// A missing action counts as allowed, so roles saved before actions existed keep exactly the access they had.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const ROLE_ACTIONS = ['create', 'edit', 'delete', 'setup'] as const;
+export type RoleAction = (typeof ROLE_ACTIONS)[number];
+/** What a request needs: 'view' is the area level itself; the others are checkboxes. */
+export type AreaAction = 'view' | RoleAction;
+export type AreaActions = Partial<Record<RoleAction, boolean>>;
+export type RoleActions = Partial<Record<PermissionArea, AreaActions>>;
+
+export const ACTION_LABELS: Record<RoleAction, string> = {
+  create: 'Create',
+  edit: 'Edit',
+  delete: 'Delete',
+  setup: 'Setup',
+};
+
+/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types). */
+export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings'];
+
+/** Areas that only show information; actions don't apply. */
+export const VIEW_ONLY_AREAS: readonly PermissionArea[] = ['reports'];
+
+/** The checkboxes that make sense for an area. */
+export function actionsFor(area: PermissionArea): RoleAction[] {
+  if (VIEW_ONLY_AREAS.includes(area)) return [];
+  return ROLE_ACTIONS.filter((a) => a !== 'setup' || SETUP_AREAS.includes(area));
+}
+
+/** Keep known areas and actions with boolean values only. */
+export function sanitizeActions(input: unknown): RoleActions {
+  const out: RoleActions = {};
+  if (!input || typeof input !== 'object') return out;
+  for (const [area, value] of Object.entries(input as Record<string, unknown>)) {
+    if (!isPermissionArea(area) || !value || typeof value !== 'object') continue;
+    const allowed = actionsFor(area);
+    const acts: AreaActions = {};
+    for (const [action, flag] of Object.entries(value as Record<string, unknown>)) {
+      if ((allowed as string[]).includes(action) && typeof flag === 'boolean') acts[action as RoleAction] = flag;
+    }
+    if (Object.keys(acts).length) out[area] = acts;
+  }
+  return out;
+}
+
+type WithAccess = { role: UserRole; permissions?: RolePermissions | null; actions?: RoleActions | null };
+
+/**
+ * Whether the user may take an action in an area. Admins may do everything. Anyone else needs the area
+ * (any level) and, for create/edit/delete/setup, the checkbox (a missing checkbox counts as allowed).
+ */
+export function allows(user: WithAccess | null | undefined, area: PermissionArea, action: AreaAction): boolean {
+  if (!user) return false;
+  if (user.role === 'ADMIN') return true;
+  if (user.role !== 'USER') return false;
+  if (!user.permissions?.[area]) return false;
+  if (action === 'view') return true;
+  return user.actions?.[area]?.[action] !== false;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Preset roles: every tenant starts with the same set and may edit them. Admin is a user type, not a role.
+// ---------------------------------------------------------------------------------------------------------------
+
+export type RolePreset = { key: string; name: string; permissions: RolePermissions; actions: RoleActions };
+
+const ALL: AreaActions = { create: true, edit: true, delete: true };
+const ALL_SETUP: AreaActions = { ...ALL, setup: true };
+const NO_DELETE: AreaActions = { create: true, edit: true, delete: false };
+const NO_DELETE_SETUP: AreaActions = { ...NO_DELETE, setup: false };
+const VIEW_ONLY: AreaActions = { create: false, edit: false, delete: false };
+
+export const ROLE_PRESETS: readonly RolePreset[] = [
+  {
+    key: 'manager',
+    name: 'Manager',
+    permissions: {
+      clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', inbox: 'all',
+      projects: 'all', tasks: 'all', time: 'all', expenses: 'all', invoices: 'all', reports: 'all',
+    },
+    actions: {
+      clients: ALL, contacts: ALL, pipeline: ALL_SETUP, bookings: ALL_SETUP, inbox: ALL,
+      projects: ALL, tasks: ALL, time: ALL, expenses: ALL, invoices: ALL,
+    },
+  },
+  {
+    key: 'team-member',
+    name: 'Team member',
+    permissions: {
+      clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', inbox: 'all',
+      projects: 'own', tasks: 'own', time: 'own', expenses: 'own',
+    },
+    actions: {
+      clients: NO_DELETE, contacts: NO_DELETE, pipeline: NO_DELETE_SETUP, bookings: NO_DELETE_SETUP, inbox: NO_DELETE,
+      projects: ALL, tasks: ALL, time: ALL, expenses: ALL,
+    },
+  },
+  {
+    key: 'coordinator',
+    name: 'Coordinator',
+    permissions: { inbox: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', clients: 'all' },
+    actions: {
+      inbox: NO_DELETE, contacts: NO_DELETE, pipeline: NO_DELETE_SETUP, bookings: NO_DELETE_SETUP,
+      clients: { create: false, edit: true, delete: false },
+    },
+  },
+  {
+    key: 'bookkeeper',
+    name: 'Bookkeeper',
+    permissions: { invoices: 'all', reports: 'all', time: 'all', expenses: 'all', clients: 'all' },
+    actions: { invoices: ALL, time: VIEW_ONLY, expenses: VIEW_ONLY, clients: VIEW_ONLY },
+  },
+  {
+    key: 'contractor',
+    name: 'Contractor',
+    permissions: { projects: 'own', tasks: 'own', time: 'own', expenses: 'own' },
+    actions: { projects: { create: false, edit: true, delete: false }, tasks: ALL, time: ALL, expenses: ALL },
+  },
+  { key: GUEST_ROLE.key, name: GUEST_ROLE.name, permissions: { tasks: 'own' }, actions: { tasks: ALL } },
+];
 
 /** The user's level in an area: admins have 'all' everywhere; null means no access. */
 export function areaLevel(user: WithAccess | null | undefined, area: PermissionArea): AccessLevel | null {
