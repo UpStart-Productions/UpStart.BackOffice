@@ -5,6 +5,7 @@
 **Users** has **Users** and **Roles** tabs.
 
 - **Add User** and sort/search on the Users tab
+- Use the ⋮ menu on a row to **Edit** (name, email, role, hourly rate), **Send sign-in invite**, **Disable** or **Delete**. If you fix someone's email, send them a new sign-in invite afterwards. You can't change your own email.
 - **Roles** tab: what each role can see and do, per area. **View** is None, Own (only their own records, or clients they are assigned to) or All. Checkboxes set what they can do with what they see: **Create**, **Edit**, **Delete**, and **Setup** (Pipeline lanes and pipelines; Bookings booking types). Edit also covers actions like Make client, Archive, filing an email, or sending an invoice. Admins can do everything.
   - **Built-in roles** (marked with an amber open-box icon; hover it for details) every organization starts with. Edit them freely; once one has been changed, its menu offers **Reset to default**. They can't be deleted. The built-in roles are: **Manager** (everything, including Setup), **Team member** (CRM: see all, create and edit, no delete; their own projects, tasks, time and expenses), **Coordinator** (Inbox, People, Pipeline, Bookings: create and edit, no delete; Organizations: view and edit), **Bookkeeper** (Invoices and Reports; views Time, Expenses and Organizations), **Contractor** (their own projects, tasks, time and expenses), **Guest** (only the task projects they are invited to).
   - **Add role** makes your own; those can be deleted once no one has them.

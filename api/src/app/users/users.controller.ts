@@ -192,12 +192,16 @@ export class UsersController {
 
   @Patch(':id')
   @UseGuards(RequireAdminGuard)
-  async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateUserDto) {
     const existing = await this.prisma.user.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('User not found');
 
-    if (dto.email !== undefined) {
+    if (dto.email !== undefined && dto.email.trim().toLowerCase() !== existing.email) {
       const newEmail = dto.email.trim().toLowerCase();
+      // Sign-in matches on email, so changing your own would lock you out of this session.
+      if ((req.user as UserContext).id === id) {
+        throw new ForbiddenException('You cannot change your own email. Ask another admin.');
+      }
       await this.assertEmailAvailable(newEmail, id);
     }
 

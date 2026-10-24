@@ -217,8 +217,10 @@ export class AddEditUserModalComponent {
         roleChoice: existing ? (existing.role === 'ADMIN' ? ADMIN_CHOICE : (existing.roleId ?? null)) : null,
         hourlyRate: existing?.hourlyRate ?? null,
       });
-      if (existing) {
-        this.form.controls.email.disable();
+      if (existing && existing.id === this.session.me()?.id) {
+        this.form.controls.email.disable(); // sign-in matches on email; changing your own would lock you out
+      } else if (existing) {
+        this.form.controls.email.enable();
       } else {
         this.form.controls.email.enable();
       }
@@ -299,9 +301,15 @@ export class AddEditUserModalComponent {
       let userId: string;
 
       if (existing) {
-        await this.api.patch(`/users/${existing.id}`, payload);
+        const newEmail = v.email?.trim().toLowerCase();
+        const emailChanged = !!newEmail && newEmail !== existing.email;
+        await this.api.patch(`/users/${existing.id}`, { ...payload, ...(emailChanged ? { email: newEmail } : {}) });
         userId = existing.id;
-        this.toast.add({ severity: 'success', summary: 'Saved', detail: 'User updated.' });
+        this.toast.add({
+          severity: 'success',
+          summary: 'Saved',
+          detail: emailChanged ? 'Email updated. Use "Send sign-in invite" so they can sign in with the new address.' : 'User updated.',
+        });
       } else {
         const created = await this.api.post<{ user: UserRow; invite: { emailed: boolean; link?: string } }>('/users', {
           ...payload,
