@@ -13,6 +13,8 @@ import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ACCOUNT_JOURNEYS, AccountJourneyValue, CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
+import { hasTagWhere, setClientTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
+import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 
 const clientSelect = {
   id: true,
@@ -28,7 +30,7 @@ const clientSelect = {
   notes: true,
   category: true,
   journey: true,
-  roles: true,
+  ...tagsInclude,
   isReferralReady: true,
   lastContactAt: true,
   isActive: true,
@@ -38,20 +40,6 @@ const clientSelect = {
   createdAt: true,
   updatedAt: true,
 } as const;
-
-/** Trim, drop blanks and case-insensitive duplicates, keep the first spelling. */
-function normalizeRoles(roles: string[] | undefined): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const r of roles ?? []) {
-    const t = r.trim();
-    if (t && !seen.has(t.toLowerCase())) {
-      seen.add(t.toLowerCase());
-      out.push(t);
-    }
-  }
-  return out;
-}
 
 @ApiTags('clients')
 @ApiBearerAuth()
@@ -71,8 +59,14 @@ export class ClientsController {
     if (ids !== null && !ids.includes(id)) throw new NotFoundException('Client not found');
   }
 
+  /** Organizations. ?journey=CLIENT,PAST_CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */
   @Get()
-  async list(@Req() req: Request, @Query('journey') journey?: string, @Query('role') role?: string) {
+  async list(
+    @Req() req: Request,
+    @Query('journey') journey?: string,
+    @Query('tag') tag?: string,
+    @Query('role') role?: string,
+  ) {
     const reach = await this.access.clientIdFilter(req.user as UserContext);
     const journeys = (journey ?? '')
       .split(',')
@@ -81,7 +75,7 @@ export class ClientsController {
       where: {
         ...(reach ? { id: reach } : {}),
         ...(journeys.length ? { journey: { in: journeys } } : {}),
-        ...(role ? { roles: { has: role } } : {}),
+        ...hasTagWhere(tag ?? role),
       },
       orderBy: { name: 'asc' },
       select: {
@@ -98,7 +92,7 @@ export class ClientsController {
         notes: true,
         category: true,
         journey: true,
-        roles: true,
+        ...tagsInclude,
         isReferralReady: true,
         lastContactAt: true,
         isActive: true,
@@ -107,7 +101,7 @@ export class ClientsController {
         updatedAt: true,
       },
     });
-    return clients;
+    return clients.map(({ tags, ...c }) => ({ ...c, tags: tagNames(tags) }));
   }
 
   /**
@@ -125,25 +119,46 @@ export class ClientsController {
     });
   }
 
+  /**
+   * New organization. A Prospect also gets a card in the pipeline's first lane (unless
+   * addToPipeline is false), so prospects always show up on the board.
+   */
   @Post()
   async create(@Body() dto: CreateClientDto, @Req() req: Request) {
-    const client = await this.prisma.client.create({
-      data: {
-        name: dto.name,
-        code: dto.code?.toUpperCase(),
-        journey: dto.journey ?? 'CLIENT',
-        roles: normalizeRoles(dto.roles),
-        email: dto.email,
-        phone: dto.phone,
-        address: dto.address,
-        city: dto.city,
-        state: dto.state,
-        zip: dto.zip,
-        website: dto.website,
-        notes: dto.notes,
-        isActive: dto.isActive ?? true,
-      },
-      select: clientSelect,
+    const journey = dto.journey ?? 'CLIENT';
+    const client = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.client.create({
+        data: {
+          name: dto.name,
+          code: dto.code?.toUpperCase(),
+          journey,
+          email: dto.email,
+          phone: dto.phone,
+          address: dto.address,
+          city: dto.city,
+          state: dto.state,
+          zip: dto.zip,
+          website: dto.website,
+          notes: dto.notes,
+          isActive: dto.isActive ?? true,
+        },
+        select: { id: true },
+      });
+      if (dto.tags?.length) await setClientTags(tx, created.id, dto.tags);
+      if (journey === 'PROSPECT' && dto.addToPipeline !== false) {
+        const lane = await firstLane(tx);
+        await tx.lead.create({
+          data: {
+            ...laneFields(lane),
+            organization: dto.name,
+            clientId: created.id,
+            email: dto.email,
+            phone: dto.phone,
+            website: dto.website,
+          },
+        });
+      }
+      return tx.client.findUniqueOrThrow({ where: { id: created.id }, select: clientSelect });
     });
     const user = req.user as UserContext;
     if (this.access.level(user, 'clients') !== 'all') {
@@ -170,13 +185,17 @@ export class ClientsController {
     await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
+    if (dto.tags !== undefined) await setClientTags(this.prisma, id, dto.tags);
+    if (dto.journey === 'CLIENT' && existing.journey !== 'CLIENT') {
+      // Won: the pipeline holds opportunities, so this organization's open cards come off the board.
+      await this.prisma.lead.updateMany({ where: { clientId: id, archivedAt: null }, data: { archivedAt: new Date() } });
+    }
     const client = await this.prisma.client.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.code !== undefined && { code: dto.code.toUpperCase() }),
         ...(dto.journey !== undefined && { journey: dto.journey }),
-        ...(dto.roles !== undefined && { roles: normalizeRoles(dto.roles) }),
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.phone !== undefined && { phone: dto.phone }),
         ...(dto.address !== undefined && { address: dto.address }),

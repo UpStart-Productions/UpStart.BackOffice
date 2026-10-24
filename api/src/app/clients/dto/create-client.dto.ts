@@ -17,8 +17,11 @@ export class CreateClientDto {
   @ApiPropertyOptional({ enum: ACCOUNT_JOURNEYS, description: 'Where the account is: prospect, client or past client' })
   @IsIn(ACCOUNT_JOURNEYS) @IsOptional() journey?: AccountJourneyValue;
 
-  @ApiPropertyOptional({ type: [String], description: 'Role tags such as Partner, Referral source, Vendor' })
-  @IsArray() @IsString({ each: true }) @IsOptional() roles?: string[];
+  @ApiPropertyOptional({ type: [String], description: 'CRM tags such as Partner, Referral source, Vendor' })
+  @IsArray() @IsString({ each: true }) @IsOptional() tags?: string[];
+
+  @ApiPropertyOptional({ description: 'For a new Prospect: also put a card in the first lane of the pipeline (default true).' })
+  @IsBoolean() @IsOptional() addToPipeline?: boolean;
 
   @ApiPropertyOptional()
   @Transform(emptyToUndefined)

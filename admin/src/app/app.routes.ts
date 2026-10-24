@@ -96,44 +96,60 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/accounting/accounting-reports.page').then((m) => m.AccountingReportsPage),
       },
+      // ── CRM: organizations and people. Clients (under Office) is the working list of current clients;
+      // every organization, client or not, opens at /organizations/:id.
+      {
+        path: 'organizations',
+        loadComponent: () =>
+          import('./pages/organizations/organizations-list.page').then((m) => m.OrganizationsListPage),
+      },
+      {
+        path: 'organizations/new',
+        loadComponent: () =>
+          import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
+      },
+      {
+        path: 'organizations/:id',
+        loadComponent: () =>
+          import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
+      },
       {
         path: 'clients',
+        pathMatch: 'full',
         loadComponent: () =>
           import('./pages/clients/clients-list.page').then((m) => m.ClientsListPage),
       },
       {
         path: 'clients/new',
-        loadComponent: () =>
-          import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
+        pathMatch: 'full',
+        redirectTo: () => inject(Router).parseUrl('/organizations/new?journey=CLIENT&from=clients'),
       },
-      {
-        path: 'clients/:id',
-        loadComponent: () =>
-          import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
-      },
+      { path: 'clients/:id', redirectTo: 'organizations/:id' },
       {
         path: 'inbox',
         loadComponent: () =>
           import('./pages/inbox/unfiled-inbox.page').then((m) => m.UnfiledInboxPage),
       },
       {
-        path: 'contacts',
+        path: 'people',
         loadComponent: () =>
           import('./pages/contacts/contacts-list.page').then((m) => m.ContactsListPage),
       },
       {
-        path: 'contacts/:id',
+        path: 'people/:id',
         loadComponent: () =>
           import('./pages/contacts/contact-detail.page').then((m) => m.ContactDetailPage),
       },
-      // Network was folded into Accounts: partners are Accounts with the Partner role.
-      { path: 'network', pathMatch: 'full', redirectTo: () => inject(Router).parseUrl('/clients?view=partners') },
+      { path: 'contacts', pathMatch: 'full', redirectTo: 'people' },
+      { path: 'contacts/:id', redirectTo: 'people/:id' },
+      // The old Network rolodex: people and organizations tagged Network.
+      { path: 'network', pathMatch: 'full', redirectTo: () => inject(Router).parseUrl('/people?tag=Network') },
       {
         path: 'network/new',
         pathMatch: 'full',
-        redirectTo: () => inject(Router).parseUrl('/clients/new?role=Partner&journey=NONE'),
+        redirectTo: () => inject(Router).parseUrl('/people'),
       },
-      { path: 'network/:id', redirectTo: 'clients/:id' },
+      { path: 'network/:id', redirectTo: 'organizations/:id' },
       {
         path: 'projects',
         loadComponent: () =>

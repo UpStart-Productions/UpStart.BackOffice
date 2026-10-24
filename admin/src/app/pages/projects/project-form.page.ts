@@ -29,6 +29,7 @@ import {
   toDirectoryOptions,
 } from './people-directory.util';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
@@ -64,7 +65,7 @@ type ProjectResponse = {
 @Component({
   selector: 'app-project-form-page',
   standalone: true,
-  imports: [
+  imports: [HelpTextComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,

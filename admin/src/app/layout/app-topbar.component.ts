@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, effect, inject, OnInit, viewChild, ViewChild } from '@angular/core';
+import { Component, effect, inject, OnInit, signal, viewChild, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MenuItem } from 'primeng/api';
@@ -13,6 +13,7 @@ import { CognitoAuthService } from '../core/cognito-auth.service';
 import { SessionService } from '../core/session.service';
 import { TenantService } from '../core/tenant.service';
 import { GlobalSearchComponent } from '../ui/global-search/global-search.component';
+import { HelpDrawerComponent } from '../ui/help-drawer/help-drawer.component';
 import { NotificationsBellComponent } from '../ui/notifications-bell/notifications-bell.component';
 import { LayoutService } from './layout.service';
 
@@ -27,6 +28,7 @@ import { LayoutService } from './layout.service';
     RippleModule,
     GlobalSearchComponent,
     NotificationsBellComponent,
+    HelpDrawerComponent,
     NgClass,
   ],
   styles: [
@@ -103,6 +105,18 @@ import { LayoutService } from './layout.service';
           />
         }
         <app-global-search (opened)="onGlobalSearchOpened()" />
+        @defer (when helpRequested()) {
+          <app-help-drawer />
+        }
+        <button
+          type="button"
+          class="layout-topbar-action"
+          (click)="closeTopbarOverlays(); onHelpClick()"
+          aria-label="Help for this page"
+          title="Help for this page"
+        >
+          <i class="pi pi-question-circle"></i>
+        </button>
         <app-notifications-bell (opened)="onNotificationsOpened()" />
         <div class="layout-topbar-action-wrap">
           <button
@@ -176,6 +190,19 @@ export class AppTopbarComponent implements OnInit {
   avatarImageError = false;
   userMenuItems: MenuItem[] = [];
 
+  /** The help drawer (and its article content) loads on first click of the ? button. */
+  protected readonly helpRequested = signal(false);
+  private helpDrawerInstance?: HelpDrawerComponent;
+  private pendingHelpOpen = false;
+
+  @ViewChild(HelpDrawerComponent) set helpDrawer(component: HelpDrawerComponent | undefined) {
+    this.helpDrawerInstance = component;
+    if (component && this.pendingHelpOpen) {
+      this.pendingHelpOpen = false;
+      queueMicrotask(() => component.open());
+    }
+  }
+
   get avatarSrc(): string | null {
     return resolveAssetUrl(this.session.me()?.avatarUrl ?? null);
   }
@@ -209,6 +236,16 @@ export class AppTopbarComponent implements OnInit {
   onNotificationsOpened(): void {
     this.globalSearchRef()?.close();
     this.userMenu?.hide();
+    this.helpDrawerInstance?.close();
+  }
+
+  onHelpClick(): void {
+    if (this.helpDrawerInstance) {
+      this.helpDrawerInstance.toggle();
+      return;
+    }
+    this.pendingHelpOpen = true;
+    this.helpRequested.set(true);
   }
 
   protected isImpersonating(): boolean {

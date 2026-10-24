@@ -18,15 +18,16 @@ export class ContactsController {
     private readonly interactions: InteractionsService,
   ) {}
 
-  /** ?q= search, ?clientId= filter, ?review=true for auto-created contacts awaiting review. */
+  /** ?q= search, ?clientId= filter, ?tag= CRM tag, ?review=true for auto-created contacts awaiting review. */
   @Get()
   list(
     @Query('q') q?: string,
     @Query('clientId') clientId?: string,
     @Query('review') review?: string,
+    @Query('tag') tag?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.contacts.list({ q, clientId, review: review === 'true', limit });
+    return this.contacts.list({ q, clientId, review: review === 'true', tag, limit });
   }
 
   /** Auto-created contacts awaiting review (drives the Contacts nav badge). Declared before :id. */

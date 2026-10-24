@@ -239,7 +239,7 @@ export class TaskFormsService {
       null;
     const sortOrder = await this.tasks.placeInSection(form.projectId, sectionId, undefined);
     const tagIds = Array.isArray(form.tagIds) ? (form.tagIds as string[]) : [];
-    const validTags = tagIds.length ? await this.prisma.tag.findMany({ where: { id: { in: tagIds } }, select: { id: true } }) : [];
+    const validTags = tagIds.length ? await this.prisma.tag.findMany({ where: { id: { in: tagIds }, scope: 'TASK' }, select: { id: true } }) : [];
 
     const task = await this.prisma.task.create({
       data: {

@@ -32,6 +32,8 @@ import { TaskManagerModule } from './task-manager/task-manager.module';
 import { InvitesModule } from './invites/invites.module';
 import { CommunicationsModule } from './communications/communications.module';
 import { HelpAgentModule } from './help-agent/help-agent.module';
+import { SupportModule } from './support/support.module';
+import { CrmTagsModule } from './crm-tags/crm-tags.module';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -71,6 +73,8 @@ import { HealthController } from './health.controller';
     InvitesModule,
     CommunicationsModule,
     HelpAgentModule,
+    SupportModule,
+    CrmTagsModule,
   ],
 })
 export class AppModule implements NestModule {

@@ -16,6 +16,8 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
+import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
+import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
 
 @Component({
   selector: 'app-contact-detail-page',
@@ -33,16 +35,17 @@ import { PersonComponent } from '../../ui/person/person.component';
     ToggleSwitchModule,
     PageComponent,
     ActivityTimelineComponent,
+    CrmTagInputComponent,
   ],
   template: `
-    <app-page title="Contact" [skipTitle]="true">
+    <app-page title="Person" [skipTitle]="true">
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
       @if (contact(); as c) {
         <div class="card">
           <div class="page-header-with-back">
-            <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" severity="secondary" routerLink="/contacts" aria-label="Back to Contacts" />
+            <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" severity="secondary" routerLink="/people" aria-label="Back to People" />
             <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
             <h2 class="page-title page-title-in-card mb-0">{{ name(c) }}</h2>
             <p-tag [value]="c.isActive ? 'Active' : 'Inactive'" [severity]="c.isActive ? 'success' : 'secondary'" class="ml-2" />
@@ -79,6 +82,10 @@ import { PersonComponent } from '../../ui/person/person.component';
               </div>
             </div>
             <div class="form-field showcase-full">
+              <label for="personTags">Tags</label>
+              <app-crm-tag-input [(tags)]="form.tags" inputId="personTags" />
+            </div>
+            <div class="form-field showcase-full">
               <label for="notes">Notes</label>
               <textarea pTextarea id="notes" [(ngModel)]="form.notes" rows="4" class="w-full"></textarea>
             </div>
@@ -94,7 +101,7 @@ import { PersonComponent } from '../../ui/person/person.component';
 
         <div class="card">
           <h3 class="text-lg font-semibold mb-3">Email addresses</h3>
-          <p class="text-color-secondary mb-3">Mail from any of these addresses is matched to this contact.</p>
+          <p class="text-color-secondary mb-3">Mail from any of these addresses is matched to this person.</p>
           @for (e of c.emails; track e.id) {
             <div class="row-line">
               <span>{{ e.email }}</span>
@@ -109,22 +116,22 @@ import { PersonComponent } from '../../ui/person/person.component';
         </div>
 
         <div class="card">
-          <h3 class="text-lg font-semibold mb-3">Accounts</h3>
+          <h3 class="text-lg font-semibold mb-3">Organizations</h3>
           @for (l of c.accountLinks; track l.clientId) {
             <div class="row-line">
-              <a [routerLink]="['/clients', l.clientId]" class="text-primary">{{ l.client.name }}</a>
+              <a [routerLink]="['/organizations', l.clientId]" class="text-primary">{{ l.client.name }}</a>
               @if (l.role) { <span class="text-color-secondary">{{ l.role }}</span> }
               @if (l.client.journey === 'CLIENT') {
                 <p-tag value="Client" severity="success" />
               } @else {
-                <p-tag [value]="l.client.journey === 'PROSPECT' ? 'Prospect' : 'Past client'" severity="secondary" />
+                <p-tag [value]="journeyLabels[l.client.journey]" severity="secondary" />
                 <p-button label="Make client" size="small" severity="success" [text]="true" (onClick)="makeClient(l.clientId)" />
               }
-              <p-button icon="pi pi-times" severity="secondary" [text]="true" size="small" (onClick)="unlink(l.clientId)" aria-label="Unlink account" />
+              <p-button icon="pi pi-times" severity="secondary" [text]="true" size="small" (onClick)="unlink(l.clientId)" aria-label="Unlink organization" />
             </div>
           } @empty {
-            <p class="text-color-secondary">Not linked to any account yet.</p>
-            <p-button label="Make client from this contact" icon="pi pi-user-plus" size="small" severity="success" (onClick)="createClientFromContact()" />
+            <p class="text-color-secondary">Not linked to any organization. That's fine for an individual.</p>
+            <p-button label="Make client from this person" icon="pi pi-user-plus" size="small" severity="success" (onClick)="createClientFromContact()" />
           }
           <div class="row-line mt-2">
             <p-select
@@ -134,7 +141,7 @@ import { PersonComponent } from '../../ui/person/person.component';
               [(ngModel)]="linkClientId"
               [filter]="true"
               filterBy="name"
-              placeholder="Link to a client"
+              placeholder="Link to an organization"
               styleClass="w-20rem"
             />
             <input pInputText [(ngModel)]="linkRole" placeholder="Role (optional)" class="flex-1" />
@@ -162,12 +169,13 @@ export class ContactDetailPage implements OnInit {
   error = signal<string | null>(null);
   saving = signal(false);
 
-  form = { firstName: '', lastName: '', title: '', phone: '', notes: '', isActive: true };
+  form = { firstName: '', lastName: '', title: '', phone: '', notes: '', isActive: true, tags: [] as string[] };
   newEmail = '';
   linkClientId: string | null = null;
   linkRole = '';
 
   name = contactName;
+  readonly journeyLabels = ACCOUNT_JOURNEY_LABELS;
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -176,7 +184,7 @@ export class ContactDetailPage implements OnInit {
       this.apply(await this.comms.contact(id));
       this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to load contact');
+      this.error.set(err instanceof Error ? err.message : 'Failed to load person');
     }
   }
 
@@ -193,7 +201,7 @@ export class ContactDetailPage implements OnInit {
     }
   }
 
-  /** For a person with no account (a family, an individual): make an account named after them and link it. */
+  /** For a person with no organization (an individual client): make an organization named after them and link it. */
   async createClientFromContact() {
     const c = this.contact();
     if (!c) return;
@@ -206,7 +214,7 @@ export class ContactDetailPage implements OnInit {
       });
       this.apply(await this.comms.linkAccount(c.id, created.id));
       this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
-      this.toast.add({ severity: 'success', summary: 'Client created', detail: 'Linked to this contact.' });
+      this.toast.add({ severity: 'success', summary: 'Client created', detail: 'Linked to this person.' });
     } catch (err) {
       this.fail(err, 'Could not create client');
     }
@@ -221,6 +229,7 @@ export class ContactDetailPage implements OnInit {
       phone: c.phone ?? '',
       notes: c.notes ?? '',
       isActive: c.isActive,
+      tags: [...(c.tags ?? [])],
     };
   }
 
@@ -235,7 +244,8 @@ export class ContactDetailPage implements OnInit {
       f.title !== (c.title ?? '') ||
       f.phone !== (c.phone ?? '') ||
       f.notes !== (c.notes ?? '') ||
-      f.isActive !== c.isActive
+      f.isActive !== c.isActive ||
+      f.tags.join('\n') !== (c.tags ?? []).join('\n')
     );
   }
 
@@ -260,9 +270,10 @@ export class ContactDetailPage implements OnInit {
           phone: this.form.phone,
           notes: this.form.notes,
           isActive: this.form.isActive,
+          tags: this.form.tags,
         }),
       );
-      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Contact saved.' });
+      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Person saved.' });
     } catch (err) {
       this.fail(err, 'Save failed');
     } finally {
@@ -294,7 +305,7 @@ export class ContactDetailPage implements OnInit {
   confirmRemoveEmail(email: string) {
     this.confirm.confirm({
       header: 'Remove email',
-      message: `Remove ${email}? Mail from this address will no longer match this contact.`,
+      message: `Remove ${email}? Mail from this address will no longer match this person.`,
       accept: async () => {
         const c = this.contact();
         if (!c) return;

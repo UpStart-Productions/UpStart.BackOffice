@@ -242,9 +242,10 @@ export class LeadsController {
   }
 
   /**
-   * Make the lead's Account a Client. Nothing is copied: the Account already holds the contacts,
-   * timeline and files. The invoice code is optional and only needed once you invoice. Reversible
-   * from the Account's Journey field.
+   * Make the lead's organization a Client and take the card off the board (archived, history kept):
+   * the pipeline holds opportunities, and this one is won. Nothing is copied: the organization
+   * already holds the contacts, timeline and files. The invoice code is optional and only needed
+   * once you invoice. Reversible from the organization's Status field.
    */
   @Action('edit')
   @Post(':id/convert')
@@ -261,6 +262,7 @@ export class LeadsController {
       }
       // The lead's files show on the Account too.
       await tx.artifact.updateMany({ where: { leadId: id, clientId: null }, data: { clientId } });
+      await tx.lead.update({ where: { id }, data: { archivedAt: lead.archivedAt ?? new Date() } });
       return tx.client.update({
         where: { id: clientId },
         data: { journey: 'CLIENT', ...(code ? { code } : {}) },

@@ -1,4 +1,8 @@
-# Office (Projects, Tasks, Time, Expenses, Invoices)
+# Office (Clients, Projects, Tasks, Time, Expenses, Invoices)
+
+## Clients
+
+**Clients** lists the organizations you are working for (status Client). **Include past clients** adds past clients. See the CRM guide for how clients, prospects and organizations relate.
 
 ## Projects
 

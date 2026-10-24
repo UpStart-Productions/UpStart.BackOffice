@@ -13,6 +13,7 @@ import { ApiService } from '../../core/api.service';
 import { PipelinesApi } from '../../core/pipelines.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type BookingTypeDto = {
   id: string;
@@ -76,7 +77,7 @@ const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 @Component({
   selector: 'app-booking-type-form-page',
   standalone: true,
-  imports: [
+  imports: [HelpTextComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,

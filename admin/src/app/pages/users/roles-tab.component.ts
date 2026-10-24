@@ -28,6 +28,7 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { PersonComponent } from '../../ui/person/person.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type RoleRow = {
   id: string;
@@ -55,7 +56,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
 @Component({
   selector: 'app-roles-tab',
   standalone: true,
-  imports: [PersonComponent, FormsModule, TableModule, ButtonModule, InputTextModule, MessageModule, SelectButtonModule, CheckboxModule, TooltipModule, LucideIconComponent, AppDialogModule, RowActionsMenuComponent],
+  imports: [HelpTextComponent, PersonComponent, FormsModule, TableModule, ButtonModule, InputTextModule, MessageModule, SelectButtonModule, CheckboxModule, TooltipModule, LucideIconComponent, AppDialogModule, RowActionsMenuComponent],
   template: `
     @if (error()) {
       <div class="card"><p-message severity="error" [text]="error()!" /></div>
@@ -142,7 +143,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
           <thead>
             <tr>
               <th>Area</th>
-              <th>View</th>
+              <th>View <app-help-text key="roles.view" /></th>
               @for (a of allActions; track a) { <th class="check">{{ actionLabel(a) }}</th> }
             </tr>
           </thead>

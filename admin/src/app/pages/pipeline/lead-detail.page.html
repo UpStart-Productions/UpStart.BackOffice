@@ -21,7 +21,7 @@
         </h2>
         <span style="flex: 1"></span>
         @if (account(); as acct) {
-          <a [routerLink]="['/clients', acct.id]" class="text-primary mr-2">Open account</a>
+          <a [routerLink]="['/organizations', acct.id]" class="text-primary mr-2">Open organization</a>
         }
         @if (contactId(); as cid) {
           <app-person
@@ -30,7 +30,7 @@
             [email]="form.email"
             [avatarUrl]="contactAvatarUrl()"
             [personId]="cid"
-            [link]="['/contacts', cid]"
+            [link]="['/people', cid]"
           />
         }
         @if (!isNew && !isConverted && canEdit()) {
@@ -87,14 +87,14 @@
             <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
           </div>
           <div class="form-field showcase-half">
-            <label for="warmConnection">Warm Connection</label>
+            <label for="warmConnection">Warm Connection <app-help-text key="lead.warmConnection" /></label>
             <input pInputText id="warmConnection" name="warmConnection" [(ngModel)]="form.warmConnection" class="w-full" />
           </div>
         </div>
 
         <div class="showcase-row">
           <div class="form-field showcase-half">
-            <label for="source">Contact Source</label>
+            <label for="source">Contact Source <app-help-text key="lead.contactSource" /></label>
             <p-select inputId="source" name="source" [(ngModel)]="form.source" [options]="sources" optionLabel="label" optionValue="value" placeholder="Select contact source" [showClear]="true" styleClass="w-full" />
           </div>
           <div class="form-field showcase-half">
@@ -104,7 +104,7 @@
         </div>
 
         <div class="form-field showcase-full">
-          <label>Service Interest</label>
+          <label>Service Interest <app-help-text key="lead.serviceInterest" /></label>
           <div class="service-interest-pills">
             @for (svc of serviceOptions; track svc) {
               <button
@@ -123,13 +123,13 @@
             <app-date-input inputId="lastContactDate" name="lastContactDate" [(ngModel)]="form.lastContactDate" />
           </div>
           <div class="form-field showcase-half">
-            <label for="nextActionDate">Next Action Date</label>
+            <label for="nextActionDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
             <app-date-input inputId="nextActionDate" name="nextActionDate" [(ngModel)]="form.nextActionDate" />
           </div>
         </div>
 
         <div class="form-field showcase-full">
-          <label for="nextAction">Next Action</label>
+          <label for="nextAction">Next Action <app-help-text key="lead.nextAction" /></label>
           <input pInputText id="nextAction" name="nextAction" [(ngModel)]="form.nextAction" class="w-full" />
         </div>
 
@@ -161,8 +161,8 @@
 >
   <p class="mb-3">
     <strong>{{ account()?.name ?? form.organization }}</strong> becomes a client, so projects, time and invoices
-    become available. Nothing is copied: its contacts, emails and files stay where they are, and you can
-    change it back from the account.
+    become available, and this card leaves the board (it's archived, not deleted). Nothing is copied: its people,
+    emails and files stay on the organization.
   </p>
   <div class="form-field">
     <label for="convertCode">Invoice Code</label>

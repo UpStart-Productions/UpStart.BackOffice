@@ -6,7 +6,7 @@
   }
 
   <div class="card">
-    <h2 class="page-title page-title-in-card">Client Pipeline</h2>
+    <h2 class="page-title page-title-in-card">Pipeline</h2>
     <div class="toolbar">
       @if (canCreate()) {
         <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
@@ -301,7 +301,7 @@
 </p-dialog>
 
 <p-dialog
-  [header]="contactsLead() ? 'Contacts · ' + (contactsAccount() || contactsLead()!.organization) : 'Contacts'"
+  [header]="contactsLead() ? 'People · ' + (contactsAccount() || contactsLead()!.organization) : 'People'"
   [visible]="!!contactsLead()"
   (visibleChange)="!$event && contactsLead.set(null)"
   [modal]="true"
@@ -314,7 +314,7 @@
   } @else if (contactsError()) {
     <p-message severity="error" [text]="contactsError()!" />
   } @else if (cardContacts().length === 0) {
-    <p class="text-color-secondary">No one is linked to this account yet. Add a person on the card's page.</p>
+    <p class="text-color-secondary">No one is linked to this organization yet. Add a person on the card's page.</p>
   } @else {
     <ul class="card-contacts">
       @for (c of cardContacts(); track c.id) {
@@ -327,7 +327,7 @@
               [personId]="c.id"
               [subtitle]="c.role"
               [size]="36"
-              [link]="canOpenContacts() ? ['/contacts', c.id] : null"
+              [link]="canOpenContacts() ? ['/people', c.id] : null"
             />
             @if (c.isLeadContact) { <span class="card-contacts-tag">Primary</span> }
           </div>

@@ -7,8 +7,8 @@ This guide powers the in-app **Back Office Guide** (sparkle avatar, bottom-left)
 Sections appear based on role. **Admins** see:
 
 - **Dashboard**
-- **CRM**: Inbox, Pipeline, Clients, Contacts, Bookings (partners are a view on Clients)
-- **Office**: Projects, Tasks, Time, Expenses, Invoices
+- **CRM**: Pipeline, Organizations, People, Inbox, Bookings (partners are organizations tagged Partner)
+- **Office**: Clients, Projects, Tasks, Time, Expenses, Invoices
 - **Reports**
 - **Accounting** (Admin only): Chart of Accounts, Journal, Bank Import, Accounting Reports
 - **Admin** (Admin only): Users, Settings
@@ -18,11 +18,12 @@ Sections appear based on role. **Admins** see:
 
 People (team members and contacts) are shown with their photo, or colored initials when there's no photo, next to their name: on pipeline cards, contact and client pages, the email timeline, the Inbox, expenses and role lists.
 
-**Regular users** see only areas their tenant role grants (Clients, Time, etc.) — if a menu item is missing, they do not have access; do not tell them to use Admin-only screens.
+**Regular users** see only areas their tenant role grants (Organizations, Time, etc.) — if a menu item is missing, they do not have access; do not tell them to use Admin-only screens.
 
 ## Top bar
 
 - **Search** (magnifying glass): expands to search clients, projects, invoices, leads
+- **Help** (question mark): opens a help panel on the right with a short guide to the page you're on. It follows you as you move between pages. At the bottom, **Contact Support** sends a message to UpStart support (support@heyupstart.com); you'll get a reply by email. Some form fields also have a small ⓘ icon; hover it for a one-line explanation.
 - **Notifications** bell (placeholder)
 - **User avatar** (top bar): opens account menu with email, role, Sign out; **Return to my account** when impersonating
 - **Back Office Guide** (sparkle avatar, bottom-left): in-app help chat when configured by a super user

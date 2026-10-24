@@ -23,7 +23,7 @@ import { PersonComponent } from '../person/person.component';
           icon="pi pi-plus"
           size="small"
           severity="secondary"
-          routerLink="/contacts"
+          routerLink="/people"
           [queryParams]="{ newForClient: clientId() }"
         ></a>
       </div>
@@ -48,7 +48,7 @@ import { PersonComponent } from '../person/person.component';
       @for (c of people(); track c.id) {
         <div class="person-row">
           <div class="person-main">
-            <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [link]="['/contacts', c.id]" />
+            <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [link]="['/people', c.id]" />
             @if (c.autoCreated) {
               <p-tag value="New" severity="info" />
             }

@@ -48,7 +48,7 @@
           </p>
         </div>
         <div class="form-field showcase-full">
-          <label for="btBrand">Brand (optional)</label>
+          <label for="btBrand">Brand (optional) <app-help-text key="bookingType.brand" /></label>
           <input pInputText id="btBrand" class="w-full" [(ngModel)]="form.brand" name="btBrand" placeholder="UpStart" />
         </div>
         <div class="form-field showcase-full flex align-items-center gap-2">
@@ -79,11 +79,11 @@
           <input pInputText id="btDuration" type="number" class="w-full" [(ngModel)]="form.durationMin" name="btDuration" />
         </div>
         <div class="form-field">
-          <label for="btNotice">Minimum notice (hours)</label>
+          <label for="btNotice">Minimum notice (hours) <app-help-text key="bookingType.minimumNotice" /></label>
           <input pInputText id="btNotice" type="number" class="w-full" [(ngModel)]="form.minNoticeHours" name="btNotice" />
         </div>
         <div class="form-field">
-          <label for="btHorizon">How far ahead (days)</label>
+          <label for="btHorizon">How far ahead (days) <app-help-text key="bookingType.horizon" /></label>
           <input pInputText id="btHorizon" type="number" class="w-full" [(ngModel)]="form.maxDaysAhead" name="btHorizon" />
         </div>
         <div class="form-field">
@@ -151,7 +151,7 @@
         @if (form.createLead) {
           <div class="showcase-flex">
             <div class="form-field showcase-half">
-              <label for="btLeadStage">Pipeline lane</label>
+              <label for="btLeadStage">Pipeline lane <app-help-text key="bookingType.pipelineLane" /></label>
               <p-select
                 inputId="btLeadStage"
                 [options]="laneOptions()"
@@ -165,11 +165,11 @@
               />
             </div>
             <div class="form-field showcase-half">
-              <label for="btLeadSource">Lead source</label>
+              <label for="btLeadSource">Lead source <app-help-text key="bookingType.leadSource" /></label>
               <p-select inputId="btLeadSource" [options]="leadSources" [(ngModel)]="form.leadSource" name="btLeadSource" styleClass="w-full" />
             </div>
             <div class="form-field showcase-half">
-              <label for="btNoteTitle">Pipeline note title prefix</label>
+              <label for="btNoteTitle">Pipeline note title prefix <app-help-text key="bookingType.noteTitle" /></label>
               <input pInputText id="btNoteTitle" class="w-full" [(ngModel)]="form.pipelineNoteTitle" name="btNoteTitle" placeholder="Discovery call" />
             </div>
           </div>

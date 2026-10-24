@@ -9,7 +9,6 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
@@ -20,6 +19,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PeopleCardComponent } from '../../ui/people-card/people-card.component';
+import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
 import type { AccountJourney, ClientDto } from '@upstart/back-office/shared';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
@@ -31,11 +31,13 @@ type ClientProject = {
   hourlyRate?: number | null;
 };
 
+type NewOrgType = 'prospect' | 'client' | 'partner' | 'other';
+
 type ClientForm = {
   name: string;
   code: string;
   journey: AccountJourney;
-  roles: string[];
+  tags: string[];
   email: string;
   phone: string;
   address: string;
@@ -59,7 +61,6 @@ type ClientForm = {
     ToggleSwitchModule,
     SelectModule,
     SelectButtonModule,
-    AutoCompleteModule,
     TableModule,
     TagModule,
     QuillModule,
@@ -67,6 +68,7 @@ type ClientForm = {
     ArtifactsPanelComponent,
     ActivityTimelineComponent,
     PeopleCardComponent,
+    CrmTagInputComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',
@@ -86,6 +88,17 @@ export class ClientFormPage implements OnInit {
     label: ACCOUNT_JOURNEY_LABELS[value],
   }));
 
+  /** What a new organization is. Partner is status Other plus the Partner tag; Prospect also gets a pipeline card. */
+  readonly typeOptions: { value: NewOrgType; label: string }[] = [
+    { value: 'prospect', label: 'Prospect' },
+    { value: 'client', label: 'Client' },
+    { value: 'partner', label: 'Partner' },
+    { value: 'other', label: 'Other' },
+  ];
+  newType: NewOrgType = 'prospect';
+  /** Where Back and Cancel go: Clients when opened from there, else Organizations. */
+  backLink = '/organizations';
+
   id = signal<string | null>(null);
   loading = signal(true);
   saving = signal(false);
@@ -100,7 +113,7 @@ export class ClientFormPage implements OnInit {
     name: '',
     code: '',
     journey: 'CLIENT',
-    roles: [],
+    tags: [],
     email: '',
     phone: '',
     address: '',
@@ -125,7 +138,7 @@ export class ClientFormPage implements OnInit {
       name: client.name,
       code: this.str(client.code),
       journey: client.journey,
-      roles: client.roles ?? [],
+      tags: client.tags ?? [],
       email: this.str(client.email),
       phone: this.str(client.phone),
       address: this.str(client.address),
@@ -149,7 +162,7 @@ export class ClientFormPage implements OnInit {
       name: this.form.name.trim(),
       code: emptyToUndefined(this.form.code),
       journey: this.form.journey,
-      roles: this.form.roles,
+      tags: this.form.tags,
       email: emptyToUndefined(this.form.email),
       phone: emptyToUndefined(this.form.phone),
       address: emptyToUndefined(this.form.address),
@@ -164,12 +177,19 @@ export class ClientFormPage implements OnInit {
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
-    const startJourney = this.route.snapshot.queryParamMap.get('journey');
-    if (!id && (startJourney === 'PROSPECT' || startJourney === 'PAST_CLIENT' || startJourney === 'NONE')) {
-      this.form.journey = startJourney;
+    const params = this.route.snapshot.queryParamMap;
+    if (params.get('from') === 'clients') this.backLink = '/clients';
+    if (!id) {
+      const type = params.get('type') as NewOrgType | null;
+      const journey = params.get('journey');
+      this.setNewType(
+        type && ['prospect', 'client', 'partner', 'other'].includes(type)
+          ? type
+          : journey === 'CLIENT'
+            ? 'client'
+            : 'prospect',
+      );
     }
-    const startRole = this.route.snapshot.queryParamMap.get('role');
-    if (!id && startRole) this.form.roles = [startRole];
     if (id) {
       this.id.set(id);
       try {
@@ -213,16 +233,18 @@ export class ClientFormPage implements OnInit {
         this.toast.add({
           severity: 'success',
           summary: 'Saved',
-          detail: 'Client created successfully.',
+          detail:
+            this.form.journey === 'PROSPECT'
+              ? `${created.name} added, with a card in the first lane of the pipeline.`
+              : `${created.name} added.`,
         });
-        await this.router.navigate(['/clients', created.id], { replaceUrl: true });
+        await this.router.navigate(['/organizations', created.id], {
+          replaceUrl: true,
+          queryParams: this.backLink === '/clients' ? { from: 'clients' } : {},
+        });
       } else {
         await this.api.put(`/clients/${this.id()}`, payload);
-        this.toast.add({
-          severity: 'success',
-          summary: 'Saved',
-          detail: 'Client saved successfully.',
-        });
+        this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.form.name} saved.` });
       }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
@@ -231,9 +253,18 @@ export class ClientFormPage implements OnInit {
     }
   }
 
-  /** Label for the record type, used in titles and messages. */
-  get kindLabel(): string {
-    return ACCOUNT_JOURNEY_LABELS[this.form.journey];
+  /** New-organization type: sets status, and the Partner tag for partners. */
+  setNewType(type: NewOrgType) {
+    this.newType = type;
+    this.form.journey = type === 'prospect' ? 'PROSPECT' : type === 'client' ? 'CLIENT' : 'NONE';
+    const others = this.form.tags.filter((t) => t.toLowerCase() !== 'partner');
+    this.form.tags = type === 'partner' ? ['Partner', ...others] : others;
+  }
+
+  /** Page title. */
+  get pageTitle(): string {
+    if (!this.isNew) return this.form.name || 'Organization';
+    return this.newType === 'client' ? 'New client' : 'New organization';
   }
 
   /** Flip a prospect or past client to Client. Copies nothing; reversible from the Journey field. */

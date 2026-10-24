@@ -8,23 +8,12 @@
     <h2 class="page-title page-title-in-card">Clients</h2>
     <div class="toolbar">
       @if (canCreate()) {
-        <a pButton [label]="'New ' + (view() === 'clients' || view() === 'all' ? 'Client' : kind())" icon="pi pi-plus" routerLink="/clients/new" [queryParams]="newQuery()"></a>
+        <a pButton label="New Client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client', from: 'clients' }"></a>
       }
-      <p-selectbutton
-        [options]="viewOptions"
-        optionLabel="label"
-        optionValue="value"
-        [ngModel]="view()"
-        (ngModelChange)="onViewChange($event)"
-        [allowEmpty]="false"
-        ariaLabelledBy="View"
-      />
-      @if (view() === 'partners') {
-        <label class="flex align-items-center gap-2 ml-3">
-          <p-toggleswitch [ngModel]="referralReadyOnly()" (ngModelChange)="referralReadyOnly.set($event)" />
-          <span>Referral-ready only</span>
-        </label>
-      }
+      <label class="flex align-items-center gap-2" for="includePast">
+        <p-toggleswitch inputId="includePast" [ngModel]="includePast()" (ngModelChange)="onIncludePast($event)" />
+        <span>Include past clients</span>
+      </label>
       <div class="toolbar-search">
         <p-iconfield iconPosition="left" class="toolbar-search-field">
           <p-inputicon><i class="pi pi-search"></i></p-inputicon>
@@ -33,80 +22,48 @@
             type="text"
             class="w-full"
             placeholder="Search by name, code, email…"
+            aria-label="Search clients"
             [ngModel]="searchQuery"
             (ngModelChange)="onSearchInput($event)"
           />
         </p-iconfield>
         @if (searchQuery) {
-          <button
-            type="button"
-            pButton
-            icon="pi pi-times"
-            [text]="true"
-            (click)="clearSearch()"
-            aria-label="Clear search"
-          ></button>
+          <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
         }
       </div>
     </div>
-    <p-table
-      [value]="filteredClients()"
-      [loading]="loading()"
-      sortField="name"
-      [sortOrder]="1"
-      styleClass="table-bordered"
-    >
+    <p-table [value]="filteredClients()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
-          <th pSortableColumn="name">
-            Name
-            <p-sortIcon field="name" />
-          </th>
+          <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
           <th>Code</th>
-          <th>Roles</th>
           <th>Email</th>
-          <th pSortableColumn="lastContactAt">
-            Last contact
-            <p-sortIcon field="lastContactAt" />
-          </th>
-          <th pSortableColumn="journey">
-            Status
-            <p-sortIcon field="journey" />
-          </th>
+          <th pSortableColumn="lastContactAt">Last contact <p-sortIcon field="lastContactAt" /></th>
+          <th pSortableColumn="journey">Status <p-sortIcon field="journey" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-client>
         <tr>
+          <td><app-row-actions-menu [items]="getRowActions(client)" ariaLabel="Client actions" /></td>
           <td>
-            <app-row-actions-menu [items]="getRowActions(client)" ariaLabel="Client actions" />
-          </td>
-          <td>
-            <a [routerLink]="['/clients', client.id]" class="text-primary">{{ client.name }}</a>
+            <a [routerLink]="['/organizations', client.id]" [queryParams]="{ from: 'clients' }" class="text-primary">{{ client.name }}</a>
           </td>
           <td>@if (client.code) { <code>{{ client.code }}</code> }</td>
-          <td>
-            @for (role of client.roles; track role) {
-              <p-tag [value]="role" severity="info" styleClass="mr-1" />
-            }
-          </td>
           <td><app-copy-email [email]="client.email" /></td>
           <td>{{ lastContactLabel(client.lastContactAt) }}</td>
           <td>
-            @if (view() === 'clients' || client.journey === 'CLIENT') {
-              <p-tag
-                [value]="client.isActive ? 'Active' : 'Inactive'"
-                [severity]="client.isActive ? 'success' : 'secondary'"
-              />
+            @if (client.journey === 'PAST_CLIENT') {
+              <p-tag value="Past client" severity="secondary" />
             } @else {
-              <p-tag [value]="journeyLabel(client)" severity="secondary" />
+              <p-tag [value]="client.isActive ? 'Active' : 'Inactive'" [severity]="client.isActive ? 'success' : 'secondary'" />
             }
           </td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
+          <td colspan="6" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
         </tr>
       </ng-template>
     </p-table>

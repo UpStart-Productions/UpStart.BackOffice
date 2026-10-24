@@ -27,11 +27,12 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 import { inviteToast } from '../../pages/users/invite-toast';
+import { HelpTextComponent } from '../help-text/help-text.component';
 
 @Component({
   selector: 'app-add-edit-user-modal',
   standalone: true,
-  imports: [
+  imports: [HelpTextComponent, 
     ReactiveFormsModule,
     AppDialogModule,
     InputTextModule,
@@ -134,7 +135,7 @@ import { inviteToast } from '../../pages/users/invite-toast';
             />
           </div>
           <div class="showcase-half form-field">
-            <label for="user-hourlyRate">Hourly rate (optional)</label>
+            <label for="user-hourlyRate">Hourly rate (optional) <app-help-text key="user.hourlyRate" /></label>
             <p-inputNumber
               id="user-hourlyRate"
               formControlName="hourlyRate"

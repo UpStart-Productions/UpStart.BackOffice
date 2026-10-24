@@ -51,7 +51,7 @@
         </div>
 
         <div class="form-field project-rate-row">
-          <label for="hourlyRate">Hourly Rate (optional override)</label>
+          <label for="hourlyRate">Hourly Rate (optional override) <app-help-text key="project.hourlyRate" /></label>
           <div class="project-rate-controls">
             <p-inputNumber
               inputId="hourlyRate"
@@ -73,7 +73,7 @@
                   name="isBillable"
                   (ngModelChange)="onProjectBillableChange($event)"
                 />
-                <label>Billable</label>
+                <label>Billable <app-help-text key="project.billable" /></label>
               </div>
               <div class="flex align-items-center gap-2">
                 <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />

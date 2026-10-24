@@ -1,4 +1,4 @@
-<app-page [title]="(isNew ? 'New ' : 'Edit ') + kindLabel" [skipTitle]="true">
+<app-page [title]="pageTitle" [skipTitle]="true">
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -12,12 +12,10 @@
           [text]="true"
           severity="secondary"
           type="button"
-          routerLink="/clients"
-          aria-label="Back to Clients"
+          [routerLink]="backLink"
+          [attr.aria-label]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
         />
-        <h2 class="page-title page-title-in-card mb-0">
-          {{ isNew ? 'New' : 'Edit' }} {{ kindLabel }}
-        </h2>
+        <h2 class="page-title page-title-in-card mb-0">{{ pageTitle }}</h2>
         @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
           <p-button
             label="Make client"
@@ -38,32 +36,44 @@
         </div>
         <div class="showcase-row">
           <div class="form-field showcase-half">
-            <label for="journey">Journey</label>
-            <p-selectbutton
-              inputId="journey"
-              name="journey"
-              [options]="journeyOptions"
-              optionLabel="label"
-              optionValue="value"
-              [(ngModel)]="form.journey"
-              [allowEmpty]="false"
-            />
-            <small class="text-muted">Client turns on projects, time and invoices. You can change it any time.</small>
+            @if (isNew) {
+              <label for="orgType">Type</label>
+              <p-selectbutton
+                inputId="orgType"
+                name="orgType"
+                [options]="typeOptions"
+                optionLabel="label"
+                optionValue="value"
+                [ngModel]="newType"
+                (ngModelChange)="setNewType($event)"
+                [allowEmpty]="false"
+              />
+              <small class="text-muted">
+                @switch (newType) {
+                  @case ('prospect') { Also adds a card to the first lane of the pipeline. }
+                  @case ('client') { Turns on projects, time and invoices. }
+                  @case ('partner') { Tagged Partner. Not on the pipeline. }
+                  @default { Not on the pipeline. Use tags to say what it is. }
+                }
+              </small>
+            } @else {
+              <label for="journey">Status</label>
+              <p-selectbutton
+                inputId="journey"
+                name="journey"
+                [options]="journeyOptions"
+                optionLabel="label"
+                optionValue="value"
+                [(ngModel)]="form.journey"
+                [allowEmpty]="false"
+              />
+              <small class="text-muted">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
+            }
           </div>
           <div class="form-field showcase-half">
-            <label for="roles">Roles</label>
-            <p-autocomplete
-              inputId="roles"
-              name="roles"
-              [(ngModel)]="form.roles"
-              [multiple]="true"
-              [typeahead]="false"
-              [forceSelection]="false"
-              placeholder="Partner, Referral source…"
-              styleClass="w-full"
-              inputStyleClass="w-full"
-            />
-            <small class="text-muted">Press Enter to add. A partner can also be a client.</small>
+            <label for="orgTags">Tags</label>
+            <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
+            <small class="text-muted">Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.</small>
           </div>
         </div>
         <div class="showcase-row">
@@ -134,7 +144,7 @@
             id="notes"
             name="notes"
             [(ngModel)]="form.notes"
-            placeholder="Client notes…"
+            placeholder="Notes…"
             [styles]="{ 'min-height': '140px' }"
           ></quill-editor>
         </div>
@@ -206,7 +216,7 @@
       </div>
 
       <div class="form-actions">
-        <a pButton label="Cancel" class="p-button-secondary" routerLink="/clients"></a>
+        <a pButton label="Cancel" class="p-button-secondary" [routerLink]="backLink"></a>
         <button pButton type="submit" label="Save" [loading]="saving()"></button>
       </div>
     </form>

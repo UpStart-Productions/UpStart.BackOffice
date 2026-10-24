@@ -51,12 +51,14 @@ export interface ContactSummary {
   isActive: boolean;
   autoCreated: boolean;
   lastContactAt: string | null;
+  /** CRM tag names (Partner, Referral source...). */
+  tags: string[];
   emails: { id: string; email: string; isPrimary: boolean }[];
   accountLinks: {
     clientId: string;
     role: string | null;
     isPrimary: boolean;
-    client: { id: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'PAST_CLIENT' };
+    client: { id: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'PAST_CLIENT' | 'NONE' };
   }[];
 }
 
@@ -243,9 +245,10 @@ export class CommunicationsApi {
     return this.api.post(`/communications/interactions/${id}/unfile`, {});
   }
 
-  contacts(opts: { q?: string; clientId?: string; review?: boolean } = {}): Promise<ContactSummary[]> {
+  contacts(opts: { q?: string; clientId?: string; review?: boolean; tag?: string | null } = {}): Promise<ContactSummary[]> {
     const params = new URLSearchParams();
     if (opts.q?.trim()) params.set('q', opts.q.trim());
+    if (opts.tag) params.set('tag', opts.tag);
     if (opts.clientId) params.set('clientId', opts.clientId);
     if (opts.review) params.set('review', 'true');
     const qs = params.toString();
@@ -262,11 +265,12 @@ export class CommunicationsApi {
     email?: string;
     clientId?: string;
     role?: string;
+    tags?: string[];
   }): Promise<ContactSummary> {
     return this.api.post('/contacts', body);
   }
 
-  updateContact(id: string, body: Partial<Pick<ContactSummary, 'firstName' | 'lastName' | 'title' | 'phone' | 'notes' | 'isActive' | 'autoCreated'>>) {
+  updateContact(id: string, body: Partial<Pick<ContactSummary, 'firstName' | 'lastName' | 'title' | 'phone' | 'notes' | 'isActive' | 'autoCreated' | 'tags'>>) {
     return this.api.patch<ContactSummary>(`/contacts/${id}`, body);
   }
 

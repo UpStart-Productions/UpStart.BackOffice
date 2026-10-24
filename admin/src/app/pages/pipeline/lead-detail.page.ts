@@ -17,6 +17,7 @@ import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.c
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { PersonComponent } from '../../ui/person/person.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 const SOURCES = [
   { label: 'Warm Outreach', value: 'WARM_OUTREACH' },
@@ -52,7 +53,7 @@ const SERVICE_OPTIONS = [
 @Component({
   selector: 'app-lead-detail-page',
   standalone: true,
-  imports: [PersonComponent, 
+  imports: [HelpTextComponent, PersonComponent, 
     FormsModule, RouterLink,
     ButtonModule, InputTextModule, MessageModule, TextareaModule,
     SelectModule, AppDialogModule, TagModule,
@@ -248,7 +249,7 @@ export class LeadDetailPage implements OnInit {
         code ? { code } : {},
       );
       this.showConvertDialog.set(false);
-      this.router.navigate(['/clients', client.id]);
+      this.router.navigate(['/organizations', client.id]);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Conversion failed');
     } finally { this.converting.set(false); }

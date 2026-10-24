@@ -6,6 +6,7 @@ import {
 } from './dto/communications.dto';
 import { normalizeEmail } from './email-address.util';
 import { clampLimit } from './interactions.service';
+import { hasTagWhere, setContactTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
 
 const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's tenant.
 
@@ -14,7 +15,14 @@ const contactInclude = {
   accountLinks: {
     select: { clientId: true, role: true, isPrimary: true, client: { select: { id: true, name: true, journey: true } } },
   },
+  ...tagsInclude,
 };
+
+/** API shape: tag rows flattened to names. */
+function toContactView<T extends { tags?: { tag: { name: string } }[] }>(contact: T) {
+  const { tags, ...rest } = contact;
+  return { ...rest, tags: tagNames(tags) };
+}
 
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === 'P2002';
@@ -24,12 +32,13 @@ function isUniqueViolation(err: unknown): boolean {
 export class ContactsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(opts: { q?: string; clientId?: string; review?: boolean; limit?: string | number } = {}) {
+  async list(opts: { q?: string; clientId?: string; review?: boolean; tag?: string; limit?: string | number } = {}) {
     const q = opts.q?.trim();
-    return this.prisma.contact.findMany({
+    const rows = await this.prisma.contact.findMany({
       where: {
         tenantId: TENANT,
         ...(opts.review ? { autoCreated: true } : {}),
+        ...hasTagWhere(opts.tag),
         ...(opts.clientId ? { accountLinks: { some: { clientId: opts.clientId } } } : {}),
         ...(q
           ? {
@@ -45,6 +54,7 @@ export class ContactsService {
       take: clampLimit(opts.limit, 100, 500),
       include: contactInclude,
     });
+    return rows.map(toContactView);
   }
 
   async reviewCount(): Promise<{ count: number }> {
@@ -54,7 +64,7 @@ export class ContactsService {
   async get(id: string) {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: TENANT }, include: contactInclude });
     if (!contact) throw new NotFoundException('Contact not found.');
-    return contact;
+    return toContactView(contact);
   }
 
   async create(dto: CreateContactDto) {
@@ -78,6 +88,7 @@ export class ContactsService {
         },
         select: { id: true },
       });
+      if (dto.tags?.length) await setContactTags(this.prisma, created.id, dto.tags);
       return this.get(created.id);
     } catch (err) {
       if (isUniqueViolation(err)) throw new ConflictException('That email already belongs to another contact.');
@@ -99,6 +110,7 @@ export class ContactsService {
         ...(dto.autoCreated !== undefined ? { autoCreated: dto.autoCreated } : {}),
       },
     });
+    if (dto.tags !== undefined) await setContactTags(this.prisma, id, dto.tags);
     return this.get(id);
   }
 

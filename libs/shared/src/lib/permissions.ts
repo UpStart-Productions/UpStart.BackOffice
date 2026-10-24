@@ -31,8 +31,9 @@ export type RolePermissions = Partial<Record<PermissionArea, AccessLevel>>;
 export const OWNABLE_AREAS: readonly PermissionArea[] = ['clients', 'contacts', 'projects', 'tasks', 'time', 'expenses', 'invoices'];
 
 export const PERMISSION_LABELS: Record<PermissionArea, string> = {
-  clients: 'Clients',
-  contacts: 'Contacts',
+  /** Organizations and the Clients list (the same records). */
+  clients: 'Organizations',
+  contacts: 'People',
   pipeline: 'Pipeline',
   bookings: 'Bookings',
   inbox: 'Inbox',

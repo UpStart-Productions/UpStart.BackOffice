@@ -95,11 +95,11 @@
     <div class="showcase-row">
       <div class="flex align-items-center gap-2">
         <p-toggleSwitch [ngModel]="isReimbursable()" (ngModelChange)="isReimbursable.set($event)" />
-        <label>Reimbursable</label>
+        <label>Reimbursable <app-help-text key="expense.reimbursable" /></label>
       </div>
       <div class="flex align-items-center gap-2">
         <p-toggleSwitch [ngModel]="isBillable()" (ngModelChange)="isBillable.set($event)" />
-        <label>Billable to client</label>
+        <label>Billable to client <app-help-text key="expense.billable" /></label>
       </div>
     </div>
 

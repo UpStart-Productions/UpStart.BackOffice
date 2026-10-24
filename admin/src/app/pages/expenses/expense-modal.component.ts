@@ -13,13 +13,14 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { Expense, ExpenseProject, SUGGESTED_EXPENSE_CATEGORIES } from './expense.types';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
 
 @Component({
   selector: 'app-expense-modal',
   standalone: true,
-  imports: [
+  imports: [HelpTextComponent, 
     FormsModule,
     AppDialogModule,
     ButtonModule,

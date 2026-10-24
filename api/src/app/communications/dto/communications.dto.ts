@@ -35,6 +35,8 @@ export class CreateContactDto {
   @ApiPropertyOptional() @IsEmail() @IsOptional() email?: string;
   @ApiPropertyOptional({ description: 'Link to this client on creation.' }) @IsString() @IsOptional() clientId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() role?: string;
+  @ApiPropertyOptional({ type: [String], description: 'CRM tags such as Partner, Referral source' })
+  @IsArray() @IsString({ each: true }) @IsOptional() tags?: string[];
 }
 
 export class UpdateContactDto {
@@ -46,6 +48,8 @@ export class UpdateContactDto {
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;
   @ApiPropertyOptional({ description: 'Set false once an auto-created contact has been reviewed.' })
   @IsBoolean() @IsOptional() autoCreated?: boolean;
+  @ApiPropertyOptional({ type: [String], description: 'Replaces the contact\'s CRM tags.' })
+  @IsArray() @IsString({ each: true }) @IsOptional() tags?: string[];
 }
 
 export class AddContactEmailDto {

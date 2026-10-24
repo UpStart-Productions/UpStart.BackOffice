@@ -86,16 +86,17 @@ export class ShellComponent implements OnInit {
     };
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
-      // CRM, ordered as the work flows: Pipeline -> Clients -> Contacts -> Bookings, with the Inbox queue last. Prospects and Partners are saved views on Clients
-      // (/clients?view=...); Inbox is the unfiled-email queue.
+      // CRM is relationships: opportunities (Pipeline), every organization and person, bookings and the
+      // unfiled-email queue. Office is the work: Clients (current clients), projects, time and billing.
       ...section('CRM', [
         { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
-        { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
-        { area: 'contacts', label: 'Contacts', icon: 'pi-address-book', route: '/contacts', badge: this.comms.reviewCount() },
-        { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
+        { area: 'clients', label: 'Organizations', icon: 'pi-building', route: '/organizations' },
+        { area: 'contacts', label: 'People', icon: 'pi-address-book', route: '/people', badge: this.comms.reviewCount() },
         { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
+        { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       ]),
       ...section('Office', [
+        { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
         { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
         { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },

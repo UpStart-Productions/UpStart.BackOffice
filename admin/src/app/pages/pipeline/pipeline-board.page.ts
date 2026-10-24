@@ -365,7 +365,7 @@ export class PipelineBoardPage implements OnInit {
 
   getRowActions(lead: Lead): RowActionItem[] {
     const open: RowActionItem = { id: 'open', label: 'Open', icon: 'pi pi-arrow-right', command: () => this.router.navigate(['/pipeline', lead.id]) };
-    const contacts: RowActionItem = { id: 'contacts', label: 'View contacts', icon: 'pi pi-users', command: () => this.openContacts(lead) };
+    const contacts: RowActionItem = { id: 'contacts', label: 'View people', icon: 'pi pi-users', command: () => this.openContacts(lead) };
     const del: RowActionItem = { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) };
     if (this.view() === 'archived') {
       return [

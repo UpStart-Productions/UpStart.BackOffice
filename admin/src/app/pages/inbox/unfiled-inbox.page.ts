@@ -198,15 +198,15 @@ type Option = { id: string; label: string };
               filterBy="label"
               filterPlaceholder="Search…"
               [showClear]="true"
-              [placeholder]="kind === 'client' ? 'Choose a client' : 'Choose a lead'"
-              [ariaLabel]="kind === 'client' ? 'Client' : 'Lead'"
+              [placeholder]="kind === 'client' ? 'Choose an organization' : 'Choose a pipeline card'"
+              [ariaLabel]="kind === 'client' ? 'Organization' : 'Pipeline card'"
               styleClass="w-full"
               appendTo="body"
             />
             @if (kind === 'client') {
               <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="learn" [(ngModel)]="learn" [binary]="true" />
-                <label for="learn">Link the people on this email to the client</label>
+                <label for="learn">Link the people on this email to the organization</label>
               </div>
             }
             @if (fileError()) {
@@ -259,8 +259,8 @@ export class UnfiledInboxPage implements OnInit {
   fileError = signal<string | null>(null);
 
   readonly kindOptions = [
-    { label: 'Client', value: 'client' },
-    { label: 'Lead', value: 'lead' },
+    { label: 'Organization', value: 'client' },
+    { label: 'Pipeline card', value: 'lead' },
   ];
 
   readonly sendersOf = senderAndRecipients;

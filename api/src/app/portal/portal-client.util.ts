@@ -15,7 +15,7 @@ export function toPortalClientView(client: Pick<Client, 'id' | 'name' | 'code' |
 
 /** Back-office client record including portal link (never expose raw token separately). */
 export function toClientView(
-  client: Pick<
+  client: { tags?: { tag: { name: string } }[] } & Pick<
     Client,
     | 'id'
     | 'name'
@@ -30,7 +30,6 @@ export function toClientView(
     | 'notes'
     | 'category'
     | 'journey'
-    | 'roles'
     | 'isReferralReady'
     | 'lastContactAt'
     | 'isActive'
@@ -41,9 +40,10 @@ export function toClientView(
     | 'updatedAt'
   >,
 ) {
-  const { portalToken, ...rest } = client;
+  const { portalToken, tags, ...rest } = client;
   return {
     ...rest,
+    tags: (tags ?? []).map((t) => t.tag.name).sort((a, b) => a.localeCompare(b)),
     portalUrl:
       client.portalEnabled && portalToken ? buildPortalUrl(portalToken) : null,
   };

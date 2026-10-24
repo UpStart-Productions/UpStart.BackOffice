@@ -224,7 +224,7 @@ export class GlobalSearchComponent {
   private routeFor(item: SearchResultItem): string {
     switch (item.type) {
       case 'client':
-        return `/clients/${item.id}`;
+        return `/organizations/${item.id}`;
       case 'project':
         return `/projects/${item.id}`;
       case 'invoice':

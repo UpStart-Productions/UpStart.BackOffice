@@ -17,6 +17,7 @@ import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type Client = { id: string; name: string };
 type Project = { id: string; name: string; clientId: string | null };
@@ -86,7 +87,7 @@ const QUARTERS = [
 @Component({
   selector: 'app-invoice-form-page',
   standalone: true,
-  imports: [
+  imports: [HelpTextComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,

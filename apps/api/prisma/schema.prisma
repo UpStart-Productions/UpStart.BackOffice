@@ -60,7 +60,7 @@ enum AccountJourney {
   PROSPECT
   CLIENT
   PAST_CLIENT
-  /// Not in a sales journey (partners, referral sources, vendors). Roles say what they are.
+  /// Not in a sales journey (partners, referral sources, vendors). Tags say what they are.
   NONE
 }
 
@@ -222,22 +222,20 @@ model User {
 }
 
 model Client {
-  id                   String       @id @default(cuid())
-  tenantId             String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant               Tenant       @relation(fields: [tenantId], references: [id])
+  id                   String         @id @default(cuid())
+  tenantId             String         @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant               Tenant         @relation(fields: [tenantId], references: [id])
   name                 String
   code                 String? // e.g. "UPSP" — prepended to invoice numbers; required once billing starts
   /// Where the account is in the relationship. Manual and reversible; not tied to pipeline stage.
   journey              AccountJourney @default(CLIENT)
-  /// Free-form role tags (Partner, Referral source, Vendor...). Multi-valued, independent of journey.
-  roles                String[]     @default([])
   // Network-derived fields (folded in from NetworkCompany). Kept until we confirm what, if anything, reads them.
-  services             String[]     @default([])
-  products             String[]     @default([])
-  focusCategories      OrgCategory[] @default([])
-  isReferralReady      Boolean      @default(false)
-  isPublicFeatured     Boolean      @default(false)
-  publicSortOrder      Int          @default(0)
+  services             String[]       @default([])
+  products             String[]       @default([])
+  focusCategories      OrgCategory[]  @default([])
+  isReferralReady      Boolean        @default(false)
+  isPublicFeatured     Boolean        @default(false)
+  publicSortOrder      Int            @default(0)
   lastContactAt        DateTime?
   email                String?
   phone                String?
@@ -246,25 +244,26 @@ model Client {
   state                String?
   zip                  String?
   website              String?
-  notes                String?      @db.Text
+  notes                String?        @db.Text
   category             OrgCategory?
-  isActive             Boolean      @default(true)
-  portalEnabled        Boolean      @default(false)
-  portalToken          String?      @unique
+  isActive             Boolean        @default(true)
+  portalEnabled        Boolean        @default(false)
+  portalToken          String?        @unique
   portalTokenCreatedAt DateTime?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   projects          Project[]
   invoices          Invoice[]
   timeEntries       TimeEntry[]
   artifacts         Artifact[]
   users             User[]
-  convertedFromLead Lead?        @relation("LeadConverted")
-  leads             Lead[]       @relation("LeadAccount")
+  convertedFromLead Lead?              @relation("LeadConverted")
+  leads             Lead[]             @relation("LeadAccount")
   contactLinks      ContactAccount[]
   interactions      Interaction[]
   assignments       ClientAssignment[]
+  tags              ClientTag[]
 
   @@unique([tenantId, code])
 }
@@ -300,10 +299,10 @@ model Lead {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  convertedClient Client?       @relation("LeadConverted", fields: [convertedClientId], references: [id])
-  client          Client?       @relation("LeadAccount", fields: [clientId], references: [id])
-  contact         Contact?      @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
-  pipeline        Pipeline?     @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  convertedClient Client?        @relation("LeadConverted", fields: [convertedClientId], references: [id])
+  client          Client?        @relation("LeadAccount", fields: [clientId], references: [id])
+  contact         Contact?       @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+  pipeline        Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   pipelineStage   PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
   artifacts       Artifact[]
   bookings        Booking[]
@@ -580,17 +579,17 @@ model GoogleCalendarIntegration {
 }
 
 model OrganizationProfile {
-  id        String   @id @default(cuid())
-  tenantId  String   @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  address   String?
-  city      String?
-  state     String?
-  zip       String?
-  phone     String?
+  id           String   @id @default(cuid())
+  tenantId     String   @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  address      String?
+  city         String?
+  state        String?
+  zip          String?
+  phone        String?
   /// Where invoices billed to the tenant are sent by default.
   billingEmail String?
-  updatedAt DateTime @updatedAt
+  updatedAt    DateTime @updatedAt
 }
 
 model TimeEntry {
@@ -769,35 +768,35 @@ model InvoiceLineItem {
 }
 
 model BookingType {
-  id                 String     @id @default(cuid())
-  tenantId           String     @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant             Tenant     @relation(fields: [tenantId], references: [id])
-  slug               String     @unique
+  id                 String         @id @default(cuid())
+  tenantId           String         @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  slug               String         @unique
   name               String
   brand              String?
-  isActive           Boolean    @default(true)
+  isActive           Boolean        @default(true)
   hostUserId         String
-  durationMin        Int        @default(30)
-  bufferMin          Int        @default(0)
-  minNoticeHours     Int        @default(4)
-  maxDaysAhead       Int        @default(60)
-  timezone           String     @default("America/Los_Angeles")
+  durationMin        Int            @default(30)
+  bufferMin          Int            @default(0)
+  minNoticeHours     Int            @default(4)
+  maxDaysAhead       Int            @default(60)
+  timezone           String         @default("America/Los_Angeles")
   publicPageUrl      String
-  calendarEventTitle String     @default("Meeting")
-  createLead         Boolean    @default(true)
-  leadStage          LeadStage  @default(DISCOVERY)
+  calendarEventTitle String         @default("Meeting")
+  createLead         Boolean        @default(true)
+  leadStage          LeadStage      @default(DISCOVERY)
   /// Lane a booking puts the lead in (falls back to the first lane of the first pipeline).
   leadStageId        String?
   leadPipelineStage  PipelineStage? @relation(fields: [leadStageId], references: [id], onDelete: SetNull)
-  leadSource         LeadSource @default(INBOUND)
+  leadSource         LeadSource     @default(INBOUND)
   pipelineNoteTitle  String?
   priceCents         Int?
-  currency           String     @default("USD")
-  isBillable         Boolean    @default(false)
-  paymentRequired    Boolean    @default(false)
-  sortOrder          Int        @default(0)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  currency           String         @default("USD")
+  isBillable         Boolean        @default(false)
+  paymentRequired    Boolean        @default(false)
+  sortOrder          Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   host              User                      @relation("BookingTypeHost", fields: [hostUserId], references: [id])
   availabilityRules BookingAvailabilityRule[]
@@ -1036,7 +1035,14 @@ model TaskProjectLink {
   @@index([tenantId])
 }
 
-/// Task tags, shared across all projects.
+/// What a tag is for. Task tags and CRM tags (organizations and people) are separate lists.
+enum TagScope {
+  TASK
+  CRM
+}
+
+/// Tenant tags. TASK tags are shared across all task projects; CRM tags label organizations and
+/// people (Partner, Vendor, Referral source...).
 model Tag {
   id               String   @id @default(cuid())
   tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
@@ -1046,12 +1052,47 @@ model Tag {
   nameKey          String
   color            String?
   importedAsanaGid String?  @unique
+  scope            TagScope @default(TASK)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  tasks TaskTag[]
+  tasks    TaskTag[]
+  clients  ClientTag[]
+  contacts ContactTag[]
 
-  @@unique([tenantId, nameKey])
+  @@unique([tenantId, scope, nameKey])
+}
+
+/// A CRM tag on an organization.
+model ClientTag {
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  clientId  String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, tagId])
+  @@index([tagId])
+  @@index([tenantId])
+}
+
+/// A CRM tag on a person.
+model ContactTag {
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  contactId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+  @@index([tenantId])
 }
 
 model TaskTag {
@@ -1419,6 +1460,8 @@ model Tenant {
   taskProjectLinks            TaskProjectLink[]
   tags                        Tag[]
   taskTags                    TaskTag[]
+  clientTags                  ClientTag[]
+  contactTags                 ContactTag[]
   tasks                       Task[]
   taskFollowers               TaskFollower[]
   taskComments                TaskComment[]
@@ -1462,6 +1505,7 @@ model Contact {
   accountLinks ContactAccount[]
   participants InteractionParticipant[]
   leads        Lead[]
+  tags         ContactTag[]
 
   @@index([tenantId, lastName, firstName])
 }

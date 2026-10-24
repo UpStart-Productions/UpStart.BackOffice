@@ -9,18 +9,19 @@ export const ACCOUNT_JOURNEY_LABELS: Record<AccountJourney, string> = {
   PROSPECT: 'Prospect',
   CLIENT: 'Client',
   PAST_CLIENT: 'Past client',
-  NONE: 'None',
+  NONE: 'Other',
 };
 
-/** Suggested role tags; roles are free-form, these just save typing. */
-export const ACCOUNT_ROLE_SUGGESTIONS = ['Partner', 'Referral source', 'Vendor'] as const;
+/** Suggested CRM tags for organizations and people; tags are free-form, these just save typing. */
+export const CRM_TAG_SUGGESTIONS = ['Network', 'Partner', 'Referral source', 'Vendor'] as const;
 
 export type ClientDto = {
   id: string;
   name: string;
   code?: string | null;
   journey: AccountJourney;
-  roles: string[];
+  /** CRM tag names (Partner, Vendor...). */
+  tags: string[];
   isReferralReady?: boolean;
   email?: string | null;
   phone?: string | null;

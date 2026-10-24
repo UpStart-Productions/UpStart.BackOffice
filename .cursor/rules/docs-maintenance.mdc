@@ -17,4 +17,8 @@ When you change anything a back-office user can see or click — nav labels, pag
 - Planned or partial features belong in `10-known-gaps.md`, not described as working.
 - Add a new topic file rather than overloading one file when a feature area grows.
 
+## Help drawer and field tooltips
+
+The same changes usually also touch the **help drawer** (`admin/src/app/ui/help-drawer/help-content.ts`, one article per route) and **field tooltips** (`admin/src/app/core/help-text.registry.ts`). Keep those in step with `docs/help-guide/`. New routes get a help-content entry. See `docs/help-drawer.md`.
+
 Developer architecture notes belong in `docs/help-agent.md` or other `docs/*.md` files.

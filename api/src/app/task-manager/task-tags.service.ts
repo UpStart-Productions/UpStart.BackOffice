@@ -18,6 +18,7 @@ export class TaskTagsService {
 
   async list() {
     const rows = await this.prisma.tag.findMany({
+      where: { scope: 'TASK' },
       select: { ...tagSelect, _count: { select: { tasks: true } } },
       orderBy: { name: 'asc' },
     });
@@ -29,9 +30,9 @@ export class TaskTagsService {
     const name = dto.name.trim().replace(/\s+/g, ' ');
     if (!name) throw new BadRequestException('Tag name is required');
     const nameKey = tagKey(name);
-    const existing = await this.prisma.tag.findFirst({ where: { nameKey }, select: tagSelect });
+    const existing = await this.prisma.tag.findFirst({ where: { scope: 'TASK', nameKey }, select: tagSelect });
     if (existing) return existing;
-    const count = await this.prisma.tag.count();
+    const count = await this.prisma.tag.count({ where: { scope: 'TASK' } });
     return this.prisma.tag.create({
       data: { name, nameKey, color: dto.color || OPTION_COLORS[count % OPTION_COLORS.length] },
       select: tagSelect,
@@ -41,12 +42,12 @@ export class TaskTagsService {
   async update(user: UserContext, id: string, dto: UpdateTagDto) {
     if (!this.access.seesAllProjects(user)) throw new ForbiddenException('You do not have permission to edit tags');
     const tag = await this.prisma.tag.findUnique({ where: { id } });
-    if (!tag) throw new NotFoundException('Tag not found');
+    if (!tag || tag.scope !== 'TASK') throw new NotFoundException('Tag not found');
     const data: { name?: string; nameKey?: string; color?: string | null } = {};
     if (dto.name !== undefined) {
       const name = dto.name.trim().replace(/\s+/g, ' ');
       const nameKey = tagKey(name);
-      const clash = await this.prisma.tag.findFirst({ where: { nameKey } });
+      const clash = await this.prisma.tag.findFirst({ where: { scope: 'TASK', nameKey } });
       if (clash && clash.id !== id) throw new BadRequestException(`There's already a tag named "${clash.name}"`);
       data.name = name;
       data.nameKey = nameKey;
@@ -57,7 +58,7 @@ export class TaskTagsService {
 
   async remove(user: UserContext, id: string) {
     if (!this.access.seesAllProjects(user)) throw new ForbiddenException('You do not have permission to delete tags');
-    await this.prisma.tag.delete({ where: { id } }).catch(() => {
+    await this.prisma.tag.delete({ where: { id, scope: 'TASK' } }).catch(() => {
       throw new NotFoundException('Tag not found');
     });
     return { deleted: true };
@@ -69,7 +70,7 @@ export class TaskTagsService {
     if (!tagId) {
       if (!dto.name) throw new BadRequestException('tagId or name is required');
       tagId = (await this.create({ name: dto.name, color: dto.color })).id;
-    } else if (!(await this.prisma.tag.count({ where: { id: tagId } }))) {
+    } else if (!(await this.prisma.tag.count({ where: { id: tagId, scope: 'TASK' } }))) {
       throw new NotFoundException('Tag not found');
     }
     await this.prisma.taskTag.upsert({

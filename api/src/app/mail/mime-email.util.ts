@@ -6,6 +6,7 @@ export function buildMultipartEmail(params: {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
   logo?: { content: Buffer; contentType?: string };
   attachment?: { filename: string; content: Buffer; contentType: string };
 }): Buffer {
@@ -59,6 +60,7 @@ export function buildMultipartEmail(params: {
   const parts = [
     `From: ${params.from}`,
     `To: ${params.to}`,
+    ...(params.replyTo ? [`Reply-To: ${params.replyTo}`] : []),
     `Subject: ${encodeSubject(params.subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/mixed; boundary="${mixed}"`,

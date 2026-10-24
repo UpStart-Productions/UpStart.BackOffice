@@ -84,6 +84,7 @@ export class MailService {
     to: string;
     subject: string;
     html: string;
+    replyTo?: string;
   }): Promise<{ sent: boolean; error?: string }> {
     return this.sendMime(params);
   }
@@ -101,6 +102,7 @@ export class MailService {
     to: string;
     subject: string;
     html: string;
+    replyTo?: string;
     attachment?: { filename: string; content: Buffer; contentType: string };
   }): Promise<{ sent: boolean; error?: string }> {
     try {
@@ -110,6 +112,7 @@ export class MailService {
         to: params.to,
         subject: params.subject,
         html: params.html,
+        replyTo: params.replyTo,
         ...(logo ? { logo: { content: logo, contentType: 'image/png' } } : {}),
         attachment: params.attachment,
       });
