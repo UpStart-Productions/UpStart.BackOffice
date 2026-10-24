@@ -37,7 +37,7 @@ import { LayoutService } from './layout.service';
         border-bottom: 1px solid var(--surface-border);
       }
       .user-menu-role {
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         color: var(--text-color-secondary);
       }
       .topbar-user-menu-btn {
@@ -66,7 +66,7 @@ import { LayoutService } from './layout.service';
         color: var(--text-color-secondary);
       }
       .topbar-user-avatar--placeholder .pi {
-        font-size: 1.25rem;
+        font-size: var(--fs-lg);
       }
     `,
   ],

@@ -24,7 +24,7 @@
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--p-inputtext-border-color, #ced4da);
   border-radius: var(--p-inputtext-border-radius, 4px);
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 
   &:focus {
     outline: none;
@@ -36,7 +36,7 @@
   padding: 1.5rem 0.75rem;
   text-align: center;
   color: var(--p-text-muted-color, #6b7280);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 
 .nmp-licon-viewport {
@@ -71,6 +71,6 @@
 .nmp-licon-count {
   padding: 0.4rem 0.6rem;
   border-top: 1px solid var(--p-content-border-color, #e5e5e5);
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: var(--p-text-muted-color, #6b7280);
 }

@@ -57,7 +57,7 @@ import { type HelpArticle, getHelpArticle } from './help-content';
         text-align: center;
       }
       .help-fallback-icon {
-        font-size: 2.25rem; /* icon only */
+        font-size: var(--fs-xl); /* icon only */
         color: var(--color-text-muted);
         margin-bottom: 0.75rem;
       }

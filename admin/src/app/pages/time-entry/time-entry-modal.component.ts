@@ -287,7 +287,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       align-items: center;
       flex-wrap: wrap;
       gap: 0.35rem 0.5rem;
-      font-size: 1.125rem;
+      font-size: var(--fs-md);
       font-weight: 600;
       color: #2d2d2d;
     }
@@ -304,7 +304,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       border: none;
       background: transparent;
       padding: 0.15rem 1.75rem 0.15rem 0.15rem;
-      font-size: 1.125rem;
+      font-size: var(--fs-md);
       font-weight: 600;
       color: #7c3aed;
       box-shadow: none;
@@ -324,7 +324,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 
     .form-field label {
       display: block;
-      font-size: 13px;
+      font-size: var(--fs-sm);
       font-weight: 600;
       margin-bottom: 0.35rem;
       color: #2d2d2d;
@@ -340,13 +340,13 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 
     .entry-project-name {
       font-weight: 600;
-      font-size: 0.875rem;
+      font-size: var(--fs-sm);
       color: #2d2d2d;
     }
 
     .entry-project-client {
       font-weight: 400;
-      font-size: 0.8125rem;
+      font-size: var(--fs-sm);
       color: #6b7785;
     }
 
@@ -355,7 +355,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       border: 1px solid #e2e6ea;
       border-radius: 4px;
       padding: 0.5rem 0.625rem;
-      font-size: 16px;
+      font-size: var(--fs-md);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
@@ -366,7 +366,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       border-radius: 4px;
       background: #fff;
       padding: 0.625rem 0.75rem;
-      font-size: 14px;
+      font-size: var(--fs-base);
       color: #2d2d2d;
     }
 
@@ -383,7 +383,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
     }
 
     .entry-work-task-parent {
-      font-size: 0.8125rem;
+      font-size: var(--fs-sm);
       color: #6b7785;
     }
 
@@ -393,13 +393,13 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       border: 1px solid #e2e6ea;
       border-radius: 4px;
       background: #f8f9fa;
-      font-size: 14px;
+      font-size: var(--fs-base);
       color: #6b7785;
     }
 
     .error-text {
       color: #a94442;
-      font-size: 13px;
+      font-size: var(--fs-sm);
     }
 
     .dialog-footer {

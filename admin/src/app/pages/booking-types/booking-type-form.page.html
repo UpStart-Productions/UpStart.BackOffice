@@ -51,10 +51,6 @@
           <label for="btBrand">Brand (optional) <app-help-text key="bookingType.brand" /></label>
           <input pInputText id="btBrand" class="w-full" [(ngModel)]="form.brand" name="btBrand" placeholder="UpStart" />
         </div>
-        <div class="form-field showcase-full flex align-items-center gap-2">
-          <p-toggleSwitch [(ngModel)]="form.isActive" name="btActive" inputId="btActive" />
-          <label for="btActive">Active — guests can book this type</label>
-        </div>
         <div class="form-field showcase-full">
           <label for="btHost">Host</label>
           <p-select

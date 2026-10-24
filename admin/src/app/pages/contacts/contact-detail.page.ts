@@ -9,7 +9,6 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -32,7 +31,6 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
     TableModule,
     TagModule,
     TextareaModule,
-    ToggleSwitchModule,
     PageComponent,
     ActivityTimelineComponent,
     CrmTagInputComponent,
@@ -88,10 +86,6 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
             <div class="form-field showcase-full">
               <label for="notes">Notes</label>
               <textarea pTextarea id="notes" [(ngModel)]="form.notes" rows="4" class="w-full"></textarea>
-            </div>
-            <div class="flex align-items-center gap-2">
-              <p-toggleSwitch inputId="isActive" [(ngModel)]="form.isActive" />
-              <label for="isActive">Active</label>
             </div>
           </div>
           <div class="form-actions">

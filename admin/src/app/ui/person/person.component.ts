@@ -56,7 +56,7 @@ import { avatarPalette, initials } from '../../task-manager/core/tm-format.util'
     }
     .person-text { display: flex; flex-direction: column; min-width: 0; }
     .person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .person-sub { font-size: 0.8125rem; color: var(--text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .person-sub { font-size: var(--fs-sm); color: var(--text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   `,
 })
 export class PersonComponent {

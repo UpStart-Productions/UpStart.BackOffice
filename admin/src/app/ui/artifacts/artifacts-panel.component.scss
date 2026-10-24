@@ -37,16 +37,16 @@
 
 .artifact-title {
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
 }
 
 .artifact-meta {
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: var(--text-color-secondary);
 }
 
 .artifact-note-content {
-  font-size: 1rem;
+  font-size: var(--fs-base);
   line-height: 1.55;
   color: var(--text-color, #2d2d2d);
   white-space: pre-wrap;
@@ -71,7 +71,7 @@
 }
 
 .artifact-empty {
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--text-color-secondary);
   margin: 0;
 }

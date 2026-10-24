@@ -41,11 +41,11 @@
 
 .dashboard-list-title {
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }
 
 .dashboard-list-meta {
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
@@ -63,7 +63,7 @@
 .dashboard-list-amount {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }
 
 .widget-footer {
@@ -73,7 +73,7 @@
 
 .widget-section-heading {
   margin: 0 0 0.625rem;
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;

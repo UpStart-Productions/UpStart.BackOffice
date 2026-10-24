@@ -104,12 +104,12 @@ export type DashboardWidgetIconColor =
       }
 
       .dashboard-widget-header-icon i {
-        font-size: 1.125rem;
+        font-size: var(--fs-md);
       }
 
       .dashboard-widget-title {
         margin: 0;
-        font-size: 1rem;
+        font-size: var(--fs-base);
         line-height: 1.25;
         min-width: 0;
         overflow: hidden;
@@ -135,7 +135,7 @@ export type DashboardWidgetIconColor =
       }
 
       .dashboard-widget-see-all i {
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
       }
 
       .dashboard-widget-header-actions {
@@ -148,7 +148,7 @@ export type DashboardWidgetIconColor =
       }
 
       .dashboard-widget-header-meta {
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
       }
 
       .dashboard-widget-drag-handle {

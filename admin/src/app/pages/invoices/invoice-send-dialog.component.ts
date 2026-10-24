@@ -102,7 +102,7 @@ type SendRecipients = {
       text-decoration: underline;
       color: var(--p-primary-600);
       font: inherit;
-      font-size: 0.875rem;
+      font-size: var(--fs-sm);
     }
     .invoice-send-link:hover {
       text-decoration: none;

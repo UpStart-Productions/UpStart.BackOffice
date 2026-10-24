@@ -1,5 +1,5 @@
 .page-title {
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   font-weight: 600;
   margin: 0 0 1rem;
   color: var(--text-color);
@@ -32,7 +32,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 1.5rem;
+    font-size: var(--fs-xl);
     line-height: 1;
   }
 
@@ -103,7 +103,7 @@
   flex-shrink: 0;
   background: var(--p-content-hover-background);
   color: var(--p-text-muted-color);
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   line-height: 3rem;
   text-align: center;
@@ -125,7 +125,7 @@
 
 .text-muted {
   color: var(--text-color-secondary);
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }
 
 /* Flex / layout helpers used in templates */
@@ -152,10 +152,6 @@
 
 .text-right {
   text-align: right;
-}
-
-.text-sm {
-  font-size: 0.875rem;
 }
 
 .font-semibold {
@@ -290,7 +286,7 @@
   border: 1px solid #f5c6c6;
   border-radius: 4px;
   color: #a94442;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 @media (max-width: 991px) {
@@ -306,7 +302,7 @@
   padding: 0;
   cursor: pointer;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--brand-primary);
 
   &:hover:not(:disabled) {
@@ -366,7 +362,7 @@
 }
 
 .search-clear-inside .pi {
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   line-height: 1;
 }
 
@@ -383,7 +379,7 @@
 
   > i {
     display: block;
-    font-size: 2rem;
+    font-size: var(--fs-xl);
     margin-bottom: 0.5rem;
     opacity: 0.6;
   }

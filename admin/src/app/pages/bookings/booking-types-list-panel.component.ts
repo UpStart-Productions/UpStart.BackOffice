@@ -116,7 +116,7 @@ const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
       }
 
       .type-detail-section-title {
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         font-weight: 600;
         margin: 0 0 0.75rem;
         color: var(--text-color);

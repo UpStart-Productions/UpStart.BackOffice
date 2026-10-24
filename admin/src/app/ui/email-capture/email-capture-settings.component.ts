@@ -96,7 +96,7 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
     .capture-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .steps { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
     .steps li { display: flex; gap: 0.75rem; align-items: flex-start; }
-    .step-num { flex: 0 0 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; color: var(--brand-primary); background: color-mix(in srgb, var(--brand-primary) 14%, transparent); }
+    .step-num { flex: 0 0 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-sm); font-weight: 600; color: var(--brand-primary); background: color-mix(in srgb, var(--brand-primary) 14%, transparent); }
   `,
 })
 export class EmailCaptureSettingsComponent implements OnInit {

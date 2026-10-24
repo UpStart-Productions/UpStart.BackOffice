@@ -14,10 +14,6 @@
         <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
         <h1 class="tm-project-title">{{ d.name || 'Untitled form' }}</h1>
         <div class="tm-project-header-actions">
-          <label class="tm-toggle-label">
-            <p-toggleswitch [ngModel]="d.isActive" (ngModelChange)="set('isActive', $event)" [disabled]="!canEdit()" />
-            Accepting submissions
-          </label>
           @if (form()?.access !== 'API_KEY') {
             <a pButton [href]="pageUrl()" target="_blank" rel="noopener" label="Open form" icon="pi pi-external-link" severity="secondary" [outlined]="true"></a>
           }

@@ -21,6 +21,14 @@ import { rememberQuillIconInjector } from './core/quill-icon-injector';
 
 const UpStartPreset = definePreset(Aura, {
   semantic: {
+    iconSize: '1rem',
+    formField: {
+      sm: { fontSize: '0.875rem' },
+      lg: { fontSize: '1.125rem' },
+    },
+    navigation: {
+      submenuIcon: { size: '0.875rem' },
+    },
     primary: {
       50: '#f5f3ff',
       100: '#ede9fe',

@@ -120,7 +120,7 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
         min-width: 1.125rem;
         height: 1.125rem;
         padding: 0 0.2rem;
-        font-size: 0.6875rem;
+        font-size: var(--fs-sm);
         font-weight: 700;
         line-height: 1;
         background: var(--color-error, #d32f2f);
@@ -154,7 +154,7 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
       .notifications-item-body {
         margin-top: 0.25rem;
         color: var(--text-color-secondary);
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         word-break: break-word;
         white-space: pre-wrap;
       }

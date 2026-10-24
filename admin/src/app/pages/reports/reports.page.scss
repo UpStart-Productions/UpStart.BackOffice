@@ -27,7 +27,7 @@
 
 .report-range-label {
   display: block;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   margin-bottom: 0.35rem;
 }
@@ -55,7 +55,7 @@
 
 .report-period-label {
   margin: 0 0 1rem;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }
 
 .report-tabs {
@@ -92,13 +92,13 @@
 }
 
 .time-chart-title {
-  font-size: 1rem;
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 
 .report-section-title {
   margin: 0 0 0.75rem;
-  font-size: 1rem;
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 
@@ -107,7 +107,7 @@
 }
 
 .report-total-row > td {
-  font-size: 1.25rem;
+  font-size: var(--fs-lg);
   font-weight: 700;
   background: var(--surface-100, #f4f4f5);
   border-top: 2px solid var(--surface-300, #d4d4d8);
@@ -157,7 +157,7 @@
   overflow-wrap: anywhere;
   word-break: break-word;
   color: var(--text-color-secondary);
-  font-size: 0.9em;
+  font-size: var(--fs-base);
   line-height: 1.35;
 }
 

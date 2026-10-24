@@ -226,7 +226,7 @@ type Option = { id: string; label: string };
     .clickable-row { cursor: pointer; }
     .clickable-row:hover { background: var(--surface-50, #f9fafb); }
     .person-line { display: flex; gap: 0.5rem; min-width: 0; }
-    .person-label { flex: 0 0 2.5rem; font-size: 0.8rem; color: var(--text-color-secondary); }
+    .person-label { flex: 0 0 2.5rem; font-size: var(--fs-sm); color: var(--text-color-secondary); }
     .person-value { min-width: 0; overflow-wrap: anywhere; }
     .person-list { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
     .person-tag { display: inline-block; margin-top: 0.35rem; }

@@ -73,21 +73,21 @@ type Invoice = {
     `
       .overdue-note {
         margin: 0 0 0.875rem;
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         font-weight: 600;
         color: var(--color-severity-danger-text);
       }
 
       .due-note {
         margin: 0 0 0.875rem;
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         font-weight: 600;
         color: var(--color-severity-warning-text);
       }
 
       .draft-note {
         margin: 0 0 0.875rem;
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         font-weight: 600;
         color: var(--color-severity-warning-text);
       }

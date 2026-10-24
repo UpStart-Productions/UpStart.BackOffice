@@ -15,7 +15,7 @@
   background: var(--p-content-background, #fff);
   color: var(--p-text-color, #1f2937);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: var(--fs-sm);
 
   &:hover {
     border-color: var(--p-primary-color, #52822a);

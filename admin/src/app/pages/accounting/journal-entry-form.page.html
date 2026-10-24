@@ -101,7 +101,7 @@
         </div>
       </div>
 
-      <div class="form-actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form-actions" style="margin-top: 0;">
         <a pButton label="Cancel" class="p-button-secondary" routerLink="/accounting/journal"></a>
         <button pButton type="button" label="Save Entry" [loading]="saving()" [disabled]="!isBalanced()" (click)="save()"></button>
       </div>

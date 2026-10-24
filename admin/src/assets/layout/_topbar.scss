@@ -59,14 +59,14 @@
     }
 
     i {
-      font-size: 1.25rem;
+      font-size: var(--fs-lg);
     }
 
     .notifications-bell-badge {
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
-      font-size: 0.6875rem !important;
+      font-size: var(--fs-sm) !important;
       font-weight: 700 !important;
       line-height: 1 !important;
     }

@@ -75,7 +75,7 @@ import {
         display: flex;
         align-items: center;
         gap: 0.375rem;
-        font-size: 0.8125rem;
+        font-size: var(--fs-sm);
         font-weight: 600;
         color: var(--brand-primary);
         margin-bottom: 0.25rem;
@@ -83,12 +83,12 @@ import {
 
       .time-running-project {
         font-weight: 600;
-        font-size: 0.9375rem;
+        font-size: var(--fs-base);
         margin-bottom: 0.25rem;
       }
 
       .time-running-elapsed {
-        font-size: 1.375rem;
+        font-size: var(--fs-lg);
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         color: var(--brand-primary);
@@ -111,7 +111,7 @@ import {
       }
 
       .time-stat-label {
-        font-size: 0.75rem;
+        font-size: var(--fs-sm);
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -119,7 +119,7 @@ import {
       }
 
       .time-stat-value {
-        font-size: 1.25rem;
+        font-size: var(--fs-lg);
         font-weight: 700;
         font-variant-numeric: tabular-nums;
       }

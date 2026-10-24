@@ -7,7 +7,6 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { map } from 'rxjs';
 import { AppDialogModule } from '../../core/app-dialog.module';
@@ -20,7 +19,7 @@ import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from
 @Component({
   selector: 'app-tm-forms-list-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, ToggleSwitchModule, TooltipModule, AppDialogModule, TmProjectIconComponent],
+  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, TmProjectIconComponent],
   template: `
     <div class="tm-page">
       <header class="tm-project-header">
@@ -48,7 +47,6 @@ import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from
               <th>Form</th>
               <th style="width: 15rem">Who can submit</th>
               <th style="width: 8rem">Submissions</th>
-              <th style="width: 6rem">Active</th>
               <th style="width: 7rem"></th>
             </tr>
           </ng-template>
@@ -60,9 +58,6 @@ import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from
               </td>
               <td><span class="tm-access"><i class="pi" [class]="accessIcon(f.access)"></i> {{ accessLabel(f.access) }}</span></td>
               <td>{{ f.submissionCount }}</td>
-              <td (click)="$event.stopPropagation()">
-                <p-toggleswitch [ngModel]="f.isActive" (ngModelChange)="setActive(f, $event)" [disabled]="!canEdit()" [attr.aria-label]="'Active: ' + f.name" />
-              </td>
               <td (click)="$event.stopPropagation()" class="tm-row-actions">
                 <button type="button" class="tm-icon-btn" (click)="copyLink(f)" [pTooltip]="f.access === 'API_KEY' ? 'Copy API endpoint' : 'Copy link'" aria-label="Copy link"><i class="pi pi-link"></i></button>
                 @if (f.access !== 'API_KEY') {
@@ -166,16 +161,6 @@ export class FormsListPage {
 
   open(f: TmForm) {
     void this.router.navigate(['/tasks/projects', this.projectId(), 'forms', f.id]);
-  }
-
-  async setActive(f: TmForm, isActive: boolean) {
-    this.forms.update((list) => list.map((x) => (x.id === f.id ? { ...x, isActive } : x)));
-    try {
-      await this.api.updateForm(f.id, { isActive });
-    } catch (err) {
-      this.forms.update((list) => list.map((x) => (x.id === f.id ? { ...x, isActive: f.isActive } : x)));
-      this.fail(err);
-    }
   }
 
   async copyLink(f: TmForm) {

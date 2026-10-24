@@ -117,7 +117,7 @@ interface SettingsStatusIcon {
         border: 1px solid var(--color-border);
         border-radius: var(--content-border-radius);
         background: var(--color-background);
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         word-break: break-all;
       }
 
@@ -164,18 +164,18 @@ interface SettingsStatusIcon {
       }
 
       .settings-accordion-title {
-        font-size: 1.25rem;
+        font-size: var(--fs-lg);
         font-weight: 600;
       }
 
       .settings-accordion-meta {
         color: var(--text-color-secondary);
         font-weight: 400;
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
       }
 
       .settings-accordion-status {
-        font-size: 1rem;
+        font-size: var(--fs-base);
         flex-shrink: 0;
       }
 

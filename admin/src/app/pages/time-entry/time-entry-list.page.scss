@@ -9,7 +9,7 @@
   --harvest-muted: var(--color-text-muted);
   --harvest-today-bg: #f5f3ff;
   --harvest-row-hover: #fafbfc;
-  font-size: 14px;
+  font-size: var(--fs-base);
   color: var(--harvest-text);
 }
 
@@ -88,7 +88,7 @@
     font-weight: 600;
     min-width: 11rem;
     text-align: center;
-    font-size: 15px;
+    font-size: var(--fs-md);
   }
 }
 
@@ -103,7 +103,7 @@ button.nav-btn {
   align-items: center;
   justify-content: center;
   color: var(--harvest-text);
-  font-size: 1.25rem;
+  font-size: var(--fs-lg);
   line-height: 1;
 
   &:hover {
@@ -122,7 +122,7 @@ button.calendar-btn {
   align-items: center;
   justify-content: center;
   color: var(--harvest-muted);
-  font-size: 1rem;
+  font-size: var(--fs-base);
   line-height: 1;
   flex-shrink: 0;
 
@@ -160,7 +160,7 @@ button.calendar-btn {
   box-sizing: border-box;
 
   .weekday {
-    font-size: 12px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -168,7 +168,7 @@ button.calendar-btn {
   }
 
   .day-hours {
-    font-size: 14px;
+    font-size: var(--fs-base);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--harvest-text);
@@ -178,7 +178,7 @@ button.calendar-btn {
   }
 
   .day-clock {
-    font-size: 11px;
+    font-size: var(--fs-sm);
     color: var(--harvest-muted);
   }
 
@@ -216,7 +216,7 @@ button.calendar-btn {
   min-width: 5.5rem;
 
   .week-total-label {
-    font-size: 11px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -224,7 +224,7 @@ button.calendar-btn {
   }
 
   .week-total-value {
-    font-size: 16px;
+    font-size: var(--fs-md);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: var(--harvest-text);
@@ -272,7 +272,7 @@ button.calendar-btn {
 
 .entry-project {
   margin: 0 0 0.25rem;
-  font-size: 15px;
+  font-size: var(--fs-md);
   font-weight: 600;
   line-height: 1.35;
   display: flex;
@@ -282,7 +282,7 @@ button.calendar-btn {
 .entry-task,
 .entry-work-task {
   margin: 0 0 0.25rem;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--harvest-text);
   line-height: 1.35;
@@ -295,7 +295,7 @@ button.calendar-btn {
 
 .entry-notes {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--harvest-muted);
   line-height: 1.45;
   white-space: pre-wrap;
@@ -310,7 +310,7 @@ button.calendar-btn {
 }
 
 .entry-duration {
-  font-size: 1.375rem;
+  font-size: var(--fs-lg);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -334,13 +334,13 @@ button.calendar-btn {
   border-top: 1px solid var(--harvest-border);
 
   .day-total-label {
-    font-size: 14px;
+    font-size: var(--fs-base);
     font-weight: 600;
     color: var(--harvest-muted);
   }
 
   .day-total-value {
-    font-size: 1.375rem;
+    font-size: var(--fs-lg);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
@@ -368,5 +368,5 @@ button.calendar-btn {
   border: 1px solid #f5c6c6;
   border-radius: 4px;
   color: #a94442;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }

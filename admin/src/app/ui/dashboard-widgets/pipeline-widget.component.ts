@@ -67,7 +67,7 @@ import { type Lead } from '../../pages/pipeline/pipeline-board.page';
       }
 
       .stage-label {
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
       }
 
       .stage-count {

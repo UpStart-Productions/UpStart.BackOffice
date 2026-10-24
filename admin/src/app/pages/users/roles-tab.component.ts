@@ -226,18 +226,18 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
   styles: `
     .form { display: flex; flex-direction: column; gap: 0.5rem; }
     .grid { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
-    .grid th { text-align: left; font-size: 0.8125rem; color: var(--text-color-secondary); font-weight: 600; padding: 0.25rem 0.5rem; }
+    .grid th { text-align: left; font-size: var(--fs-sm); color: var(--text-color-secondary); font-weight: 600; padding: 0.25rem 0.5rem; }
     .grid td { padding: 0.375rem 0.5rem; border-top: 1px solid var(--surface-border); }
     .grid .check { text-align: center; width: 4.5rem; }
     .preset-icon { display: inline-flex; vertical-align: middle; margin-left: 0.5rem; color: var(--p-amber-500, #f59e0b); cursor: help; }
     .role-col { width: 14rem; white-space: nowrap; }
     .caps { display: flex; flex-wrap: wrap; gap: 0.375rem; }
-    .cap { cursor: help; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 6px; font-size: 0.8125rem; white-space: nowrap; }
+    .cap { cursor: help; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.2rem 0.5rem; border: 1px solid var(--surface-border); border-radius: 6px; font-size: var(--fs-sm); white-space: nowrap; }
     .cap-area { font-weight: 600; margin-right: 0.125rem; }
-    .cap-own { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; padding: 0 0.3rem; border-radius: 4px; background: var(--surface-ground); color: var(--text-color-secondary); }
-    .cap .pi, .legend .pi { font-size: 0.75rem; color: var(--text-color); }
+    .cap-own { font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; padding: 0 0.3rem; border-radius: 4px; background: var(--surface-ground); color: var(--text-color-secondary); }
+    .cap .pi, .legend .pi { font-size: var(--fs-sm); color: var(--text-color); }
     .pi.off { opacity: 0.2; }
-    .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.75rem; font-size: 0.8125rem; color: var(--text-color-secondary); }
+    .legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.75rem; font-size: var(--fs-sm); color: var(--text-color-secondary); }
     .legend > span { display: inline-flex; align-items: center; gap: 0.375rem; }
     .role-users { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
     .role-users li { display: flex; align-items: center; gap: 0.75rem; }

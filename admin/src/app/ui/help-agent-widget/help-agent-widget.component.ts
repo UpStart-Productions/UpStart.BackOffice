@@ -179,15 +179,15 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
       .help-agent-fab-avatar--icon {
         width: 100%;
         height: 100%;
-        font-size: 1.5rem;
+        font-size: var(--fs-xl);
       }
 
       .help-agent-panel-avatar--icon {
-        font-size: 1.1rem;
+        font-size: var(--fs-md);
       }
 
       .help-agent-msg-avatar--icon {
-        font-size: 0.85rem;
+        font-size: var(--fs-sm);
       }
 
       .help-agent-dock {
@@ -414,7 +414,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
         align-items: center;
         justify-content: center;
         padding: 0.25rem;
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
       }
 
       .help-agent-panel-icon-btn:hover:not(:disabled) {
@@ -439,7 +439,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
 
       .help-agent-empty-note {
         color: var(--color-text-secondary, #6b6b6b);
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         margin: 0;
       }
 
@@ -449,7 +449,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
         padding: 0.5rem 0.75rem;
         border-radius: var(--content-border-radius);
         background: var(--surface-100, #f1f1f1);
-        font-size: 0.875rem;
+        font-size: var(--fs-sm);
         white-space: pre-wrap;
       }
 
@@ -482,7 +482,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
         background: rgba(0, 0, 0, 0.06);
         padding: 0.1rem 0.3rem;
         border-radius: 3px;
-        font-size: 0.8em;
+        font-size: var(--fs-sm);
       }
 
       .help-agent-typing {

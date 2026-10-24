@@ -27,7 +27,7 @@ import { ButtonModule } from 'primeng/button';
     }
 
     .copy-email__text--muted {
-      font-size: 0.8125rem;
+      font-size: var(--fs-sm);
       color: var(--p-text-muted-color);
     }
 

@@ -94,7 +94,7 @@
 }
 
 .invoice-project-title {
-  font-size: 1rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--p-primary-color, #5b21b6);
   margin: 0 0 0.5rem;
@@ -104,11 +104,11 @@
 
 .invoice-line-desc {
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   white-space: pre-wrap;
 }
 
 .invoice-line-readonly {
   white-space: pre-wrap;
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
 }

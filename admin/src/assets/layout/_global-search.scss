@@ -47,7 +47,7 @@
     padding: 0.5rem 0.75rem;
     text-align: left;
     background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface-card));
-    font-size: 0.75rem;
+    font-size: var(--fs-sm);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -84,7 +84,7 @@
 
   .global-search-item-detail,
   .global-search-item-meta {
-    font-size: 0.8125rem;
+    font-size: var(--fs-sm);
     color: var(--text-color-secondary);
   }
 
@@ -92,7 +92,7 @@
   .p-autocomplete-empty-message {
     padding: 0.75rem;
     color: var(--text-color-secondary);
-    font-size: 0.875rem;
+    font-size: var(--fs-sm);
     text-align: center;
   }
 }

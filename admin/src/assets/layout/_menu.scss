@@ -56,13 +56,13 @@
       padding: 0.75rem 1rem;
       border-radius: var(--content-border-radius);
       text-decoration: none;
-      font-size: 0.875rem;
+      font-size: var(--fs-sm);
       transition:
         background-color var(--element-transition-duration),
         color var(--element-transition-duration);
 
       .layout-menuitem-icon {
-        font-size: 1rem;
+        font-size: var(--fs-base);
         width: 1.25rem;
         text-align: center;
       }
@@ -92,7 +92,7 @@
   .layout-menu-section-label {
     display: block;
     padding: 0.15rem 1rem 0.4rem;
-    font-size: 0.6875rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
     letter-spacing: 0.08em;
     color: rgba(255, 255, 255, 0.45);

@@ -81,7 +81,7 @@ export type NavItem =
       .nav-badge--section {
         margin-left: 0;
         min-width: 1rem;
-        font-size: 0.65rem;
+        font-size: var(--fs-sm);
         line-height: 1rem;
       }
       .nav-badge.nav-badge--compact {
@@ -91,7 +91,7 @@ export type NavItem =
         margin: 0;
         min-width: 1rem;
         padding: 0 0.3rem;
-        font-size: 0.65rem;
+        font-size: var(--fs-sm);
         line-height: 1rem;
       }
       .nav-badge {
@@ -101,7 +101,7 @@ export type NavItem =
         border-radius: 999px;
         background: var(--p-primary-color, #2563eb);
         color: #fff;
-        font-size: 0.75rem;
+        font-size: var(--fs-sm);
         line-height: 1.25rem;
         text-align: center;
       }

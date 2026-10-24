@@ -134,7 +134,7 @@ const BOOKING_TYPE_FORM: HelpArticle = {
   sections: [
     {
       heading: 'Basics',
-      body: 'Name and slug. The slug is used in the public booking API, so change it carefully once it\'s live. Active means guests can book this type.',
+      body: 'Name and slug. The slug is used in the public booking API, so change it carefully once it\'s live.',
     },
     {
       heading: 'Host and schedule',
@@ -479,7 +479,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Who can submit',
-        body: 'Project collaborators (signed-in people on this project), Anyone with the link (no sign-in, email required), or API key (apps and servers post with a secret key). Turn Active off to stop accepting submissions without deleting the form.',
+        body: 'Project collaborators (signed-in people on this project), Anyone with the link (no sign-in, email required), or API key (apps and servers post with a secret key).',
       },
     ],
   },
@@ -493,7 +493,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Form settings',
-        body: 'Intro text shows at the top. Thank-you message shows after submitting. Accepting submissions turns the form on or off.',
+        body: 'Intro text shows at the top. Thank-you message shows after submitting.',
       },
       {
         heading: 'New tasks',

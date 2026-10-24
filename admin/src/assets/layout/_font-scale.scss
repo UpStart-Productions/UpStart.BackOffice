@@ -1,0 +1,44 @@
+// Global type scale (1rem = html root, 14px). Use only these five sizes in the admin app.
+:root {
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-md: 1.125rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+
+  // Task Manager aliases (legacy names → global scale)
+  --tm-fs: var(--fs-base);
+  --tm-fs-sm: var(--fs-sm);
+}
+
+.text-sm {
+  font-size: var(--fs-sm);
+}
+
+.text-base {
+  font-size: var(--fs-base);
+}
+
+.text-md {
+  font-size: var(--fs-md);
+}
+
+.text-lg {
+  font-size: var(--fs-lg);
+}
+
+.text-xl {
+  font-size: var(--fs-xl);
+}
+
+// PrimeNG Aura defaults already use 0.875 / 1 / 1.125 / 1.25 / 1.5rem in most places.
+// Float labels and badges at 0.75rem are nudged to sm for a single caption size.
+.p-floatlabel label,
+.p-iftalabel label {
+  font-size: var(--fs-sm);
+}
+
+.p-badge,
+.p-progressbar-label {
+  font-size: var(--fs-sm);
+}

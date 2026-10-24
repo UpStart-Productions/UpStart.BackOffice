@@ -253,9 +253,9 @@ function nowForInput(): string {
     .activity-icon--NOTE { --c: #d97706; }
     .activity-body { flex: 1; min-width: 0; }
     .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
-    .activity-date { white-space: nowrap; font-size: 0.85rem; color: var(--text-color-secondary, #6b7280); cursor: default; }
-    .activity-arrow { font-size: 0.75rem; color: var(--text-color-secondary); }
-    .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.875rem; color: var(--text-color-secondary, #6b7280); }
+    .activity-date { white-space: nowrap; font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); cursor: default; }
+    .activity-arrow { font-size: var(--fs-sm); color: var(--text-color-secondary); }
+    .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); }
     .activity-footer { margin-top: 0.25rem; margin-left: -0.5rem; }
     .activity-more { text-align: center; margin-top: 0.5rem; }
     .log-form { display: flex; flex-direction: column; gap: 1rem; }

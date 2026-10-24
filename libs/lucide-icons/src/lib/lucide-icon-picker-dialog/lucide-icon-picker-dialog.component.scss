@@ -11,13 +11,13 @@
 
 .nmp-licon-dialog-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-base);
 }
 
 .nmp-licon-dialog-close {
   border: none;
   background: transparent;
-  font-size: 1.25rem;
+  font-size: var(--fs-lg);
   line-height: 1;
   cursor: pointer;
   color: var(--p-text-muted-color, #6b7280);

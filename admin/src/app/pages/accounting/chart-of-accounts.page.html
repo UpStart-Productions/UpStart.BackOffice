@@ -67,14 +67,10 @@
           <td><p-tag [value]="account.type" [severity]="typeSeverity(account.type)" /></td>
           <td class="text-right">{{ formatCurrency(account.balance) }}</td>
           <td>
-            @if (editingId() === account.id) {
-              <input type="checkbox" [(ngModel)]="editDraft.isActive" /> Active
-            } @else {
-              <p-tag
-                [value]="account.isActive ? 'Active' : 'Inactive'"
-                [severity]="account.isActive ? 'success' : 'secondary'"
-              />
-            }
+            <p-tag
+              [value]="account.isActive ? 'Active' : 'Inactive'"
+              [severity]="account.isActive ? 'success' : 'secondary'"
+            />
           </td>
           <td>
             @if (editingId() === account.id) {
