@@ -86,14 +86,14 @@ export class ShellComponent implements OnInit {
     };
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
-      // CRM, ordered as the work flows: new mail (Inbox) -> Pipeline -> Clients -> Contacts -> Bookings. Prospects and Partners are saved views on Clients
+      // CRM, ordered as the work flows: Pipeline -> Clients -> Contacts -> Bookings, with the Inbox queue last. Prospects and Partners are saved views on Clients
       // (/clients?view=...); Inbox is the unfiled-email queue.
       ...section('CRM', [
-        { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
         { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
         { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
         { area: 'contacts', label: 'Contacts', icon: 'pi-address-book', route: '/contacts', badge: this.comms.reviewCount() },
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
+        { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
       ]),
       ...section('Office', [
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
