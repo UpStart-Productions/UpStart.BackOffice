@@ -31,7 +31,7 @@ type InviteInfo = {
       <div class="login-card card">
         <div class="login-header">
           <img src="/images/upstart-logo-dark.svg" alt="UpStart" class="login-logo" width="200" height="62" />
-          <p>Tasks</p>
+          <p>Back Office</p>
         </div>
 
         @if (loading()) {
@@ -103,7 +103,7 @@ type InviteInfo = {
                 <p-message severity="error" styleClass="w-full mb-3" [text]="error()!" />
               }
               <div class="login-actions">
-                <button type="submit" pButton label="Accept and open Tasks" [loading]="saving()" [disabled]="saving()"></button>
+                <button type="submit" pButton label="Accept and continue" [loading]="saving()" [disabled]="saving()"></button>
               </div>
             </form>
           }

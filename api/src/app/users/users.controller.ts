@@ -15,6 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import { isAdminRole, sanitizeActions, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
@@ -24,7 +25,7 @@ import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
-import { runUnscoped } from '../tenancy/tenant-context';
+import { runUnscoped, tryTenantId } from '../tenancy/tenant-context';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateUserDto, SetUserActiveDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
@@ -151,10 +152,7 @@ export class UsersController {
   @UseGuards(RequireAdminGuard)
   async create(@Body() dto: CreateUserDto, @Req() req: Request) {
     const email = dto.email.trim().toLowerCase();
-    const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      throw new ConflictException('A user with this email already exists.');
-    }
+    await this.assertEmailAvailable(email);
 
     const firstName = dto.firstName?.trim() || null;
     const lastName = dto.lastName?.trim() || null;
@@ -162,22 +160,31 @@ export class UsersController {
 
     const roleId = await this.resolveRoleId(dto.role, dto.roleId);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        name,
-        role: dto.role,
-        roleId,
-        hourlyRate: dto.hourlyRate,
-        clientId: null,
-      },
-      include: {
-        client: { select: { id: true, name: true, code: true } },
-        tenantRole: { select: { id: true, name: true } },
-      },
-    });
+    let user;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          name,
+          role: dto.role,
+          roleId,
+          hourlyRate: dto.hourlyRate,
+          clientId: null,
+        },
+        include: {
+          client: { select: { id: true, name: true, code: true } },
+          tenantRole: { select: { id: true, name: true } },
+        },
+      });
+    } catch (err) {
+      // Backstop for a race between the check above and the insert.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('This email is already in use. Use a different email.');
+      }
+      throw err;
+    }
 
     const invite = await this.invites.sendWelcomeInvite({ user, invitedBy: req.user as UserContext });
     return { user: toListItem(user), invite };
@@ -191,10 +198,7 @@ export class UsersController {
 
     if (dto.email !== undefined) {
       const newEmail = dto.email.trim().toLowerCase();
-      const conflict = await this.prisma.user.findFirst({
-        where: { email: newEmail, id: { not: id } },
-      });
-      if (conflict) throw new ConflictException('Another user already has this email.');
+      await this.assertEmailAvailable(newEmail, id);
     }
 
     const firstName =
@@ -302,6 +306,28 @@ export class UsersController {
 
     await this.prisma.user.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  /**
+   * Emails are unique across the whole app (one login per email), but the Prisma tenant scope only
+   * sees the current tenant, so look across all tenants and say which case it is.
+   */
+  private async assertEmailAvailable(email: string, excludeUserId?: string): Promise<void> {
+    const found = await runUnscoped(() =>
+      this.prisma.user.findFirst({
+        where: { email, ...(excludeUserId ? { id: { not: excludeUserId } } : {}) },
+        select: { tenantId: true },
+      }),
+    );
+    if (!found) return;
+    if (found.tenantId === tryTenantId()) {
+      throw new ConflictException(
+        excludeUserId ? 'Another user already has this email.' : 'A user with this email already exists.',
+      );
+    }
+    throw new ConflictException(
+      'This email is already used by a user in another tenant. Each email can belong to only one tenant, so use a different email.',
+    );
   }
 
   /** Admins have no tenant role. Users must be given one that exists in this tenant. */
