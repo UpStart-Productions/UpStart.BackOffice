@@ -28,8 +28,61 @@
             Address and phone appear on invoices under your logo.
           </p>
 
-          <div class="showcase-flex-col mb-3">
-            <div class="form-field showcase-full">
+          <div class="settings-business-form mb-3">
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="businessCompanyName">Company name</label>
+                <input
+                  pInputText
+                  id="businessCompanyName"
+                  name="businessCompanyName"
+                  class="w-full"
+                  [(ngModel)]="businessForm.companyName"
+                  placeholder="Shown in the top bar and on invoices"
+                />
+              </div>
+              <div class="form-field showcase-half">
+                <label>Logo</label>
+                <div class="business-logo-upload">
+                  @if (logoPreviewUrl() || businessForm.logoUrl) {
+                    <div class="business-logo-preview">
+                      <img
+                        [src]="logoPreviewUrl() || resolveAssetUrl(businessForm.logoUrl)"
+                        alt="Company logo preview"
+                      />
+                      <button
+                        type="button"
+                        pButton
+                        icon="pi pi-trash"
+                        severity="danger"
+                        [text]="true"
+                        size="small"
+                        aria-label="Remove logo"
+                        (click)="confirmRemoveLogo()"
+                      ></button>
+                    </div>
+                  }
+                  <input
+                    #logoFileInput
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    hidden
+                    (change)="onLogoSelected($event)"
+                  />
+                  <button
+                    type="button"
+                    pButton
+                    [label]="businessForm.logoUrl || logoPreviewUrl() ? 'Replace logo' : 'Upload logo'"
+                    icon="pi pi-upload"
+                    severity="secondary"
+                    [loading]="logoUploading()"
+                    (click)="logoFileInput.click()"
+                  ></button>
+                  <small class="text-color-secondary">PNG, JPEG, GIF, or WebP. Max 5 MB.</small>
+                </div>
+              </div>
+            </div>
+            <div class="form-field">
               <label for="businessAddress">Address</label>
               <input
                 pInputText
@@ -79,30 +132,32 @@
                 </div>
               </div>
             </div>
-            <div class="form-field showcase-half">
-              <label for="businessPhone">Phone</label>
-              <input
-                pInputText
-                id="businessPhone"
-                name="businessPhone"
-                type="tel"
-                class="w-full"
-                [(ngModel)]="businessForm.phone"
-              />
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="businessPhone">Phone</label>
+                <input
+                  pInputText
+                  id="businessPhone"
+                  name="businessPhone"
+                  type="tel"
+                  class="w-full"
+                  [(ngModel)]="businessForm.phone"
+                />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="businessBillingEmail">Billing email</label>
+                <input
+                  pInputText
+                  id="businessBillingEmail"
+                  name="businessBillingEmail"
+                  type="email"
+                  class="w-full"
+                  [(ngModel)]="businessForm.billingEmail"
+                />
+                <small class="text-color-secondary">Where invoices addressed to your organization are sent by default.</small>
+              </div>
             </div>
-            <div class="form-field showcase-half">
-              <label for="businessBillingEmail">Billing email</label>
-              <input
-                pInputText
-                id="businessBillingEmail"
-                name="businessBillingEmail"
-                type="email"
-                class="w-full"
-                [(ngModel)]="businessForm.billingEmail"
-              />
-              <small class="text-color-secondary">Where invoices addressed to your organization are sent by default.</small>
-            </div>
-            <div>
+            <div class="form-actions">
               <button
                 type="button"
                 pButton

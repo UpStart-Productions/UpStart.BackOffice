@@ -18,6 +18,16 @@ Super users can impersonate a user from row actions (viewing as that user).
 
 **Settings** accordion sections include business profile, integrations (Asana, Google Calendar, email capture), service keys, and related tenant configuration. Expand a section to edit; save within each area.
 
+### Business
+
+The **Business** section is where admins set how your organization appears on invoices and in the top bar:
+
+- **Company name** — shown next to your logo in the top bar when you upload one; also used on invoice PDFs.
+- **Logo** — upload PNG, JPEG, GIF, or WebP (max 5 MB). When a logo is saved, it replaces the default UpStart logo in the top bar for everyone in your tenant. Use **Remove** (trash) to clear it.
+- **Address**, **City**, **State**, **Zip**, **Phone**, and **Billing email** — address and phone print on invoices under your logo; billing email is the default when invoices are addressed to your organization.
+
+Click **Save** after editing text fields. Logo upload saves immediately when you choose a file.
+
 ## Accounting (Admin only)
 
 Under **Accounting** in the nav:

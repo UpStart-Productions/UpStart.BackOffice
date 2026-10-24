@@ -13,7 +13,9 @@ import { SelectModule } from 'primeng/select';
 import { AccordionModule } from 'primeng/accordion';
 import { US_STATES } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { TenantBrandingService } from '../../core/tenant-branding.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { EmailCaptureSettingsComponent } from '../../ui/email-capture/email-capture-settings.component';
@@ -65,6 +67,8 @@ interface GoogleCalendarOption {
 }
 
 interface OrganizationProfile {
+  companyName: string;
+  logoUrl: string | null;
   address: string;
   city: string;
   state: string;
@@ -73,6 +77,9 @@ interface OrganizationProfile {
   /** Where invoices billed to the organization (e.g. by caregivers) are sent by default. */
   billingEmail?: string;
 }
+
+const LOGO_MAX_BYTES = 5 * 1024 * 1024;
+const LOGO_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 type SettingsSectionStatus = 'connected' | 'disconnected' | 'error' | 'neutral';
 
@@ -194,6 +201,41 @@ interface SettingsStatusIcon {
       .settings-status-neutral {
         color: var(--text-color-secondary);
       }
+
+      .settings-business-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .settings-business-form .showcase-row {
+        gap: 1rem;
+      }
+
+      .business-logo-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .business-logo-preview {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+
+      .business-logo-preview img {
+        max-height: 3.25rem;
+        max-width: 12rem;
+        width: auto;
+        object-fit: contain;
+        display: block;
+        border: 1px solid var(--surface-border);
+        border-radius: var(--content-border-radius);
+        padding: 0.25rem;
+        background: var(--surface-card);
+      }
     `,
   ],
 })
@@ -201,6 +243,7 @@ export class SettingsPage implements OnInit {
   private readonly api          = inject(ApiService);
   private readonly toast        = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly tenantBranding = inject(TenantBrandingService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly route        = inject(ActivatedRoute);
   private readonly router       = inject(Router);
@@ -240,6 +283,8 @@ export class SettingsPage implements OnInit {
 
   readonly usStates = US_STATES;
   businessForm: OrganizationProfile = {
+    companyName: '',
+    logoUrl: null,
     address: '',
     city: '',
     state: '',
@@ -249,6 +294,10 @@ export class SettingsPage implements OnInit {
   };
   businessSaving = signal(false);
   businessLoaded = signal(false);
+  logoUploading = signal(false);
+  logoPreviewUrl = signal<string | null>(null);
+
+  readonly resolveAssetUrl = resolveAssetUrl;
 
   showGenerateDialog = false;
   keyName   = '';
@@ -352,6 +401,8 @@ export class SettingsPage implements OnInit {
     this.businessLoaded.set(!!profile);
     if (!profile) return;
     this.businessForm = {
+      companyName: profile.companyName ?? '',
+      logoUrl: profile.logoUrl ?? null,
       address: profile.address ?? '',
       city: profile.city ?? '',
       state: profile.state ?? '',
@@ -359,6 +410,11 @@ export class SettingsPage implements OnInit {
       phone: profile.phone ?? '',
       billingEmail: profile.billingEmail ?? '',
     };
+    this.logoPreviewUrl.set(null);
+    this.tenantBranding.apply({
+      companyName: this.businessForm.companyName,
+      logoUrl: this.businessForm.logoUrl,
+    });
   }
 
   async saveBusinessProfile() {
@@ -366,6 +422,7 @@ export class SettingsPage implements OnInit {
     this.error.set(null);
     try {
       const saved = await this.api.put<OrganizationProfile>('/organization-profile', {
+        companyName: this.businessForm.companyName.trim(),
         address: this.businessForm.address.trim(),
         city: this.businessForm.city.trim(),
         state: (this.businessForm.state ?? '').trim(),
@@ -387,7 +444,67 @@ export class SettingsPage implements OnInit {
     }
   }
 
+  async onLogoSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!LOGO_MIMES.includes(file.type)) {
+      this.error.set('Logo must be PNG, JPEG, GIF, or WebP.');
+      return;
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      this.error.set('Logo must be less than 5 MB.');
+      return;
+    }
+    this.logoUploading.set(true);
+    this.error.set(null);
+    try {
+      const result = await this.api.uploadAvatar<{ logoUrl: string }>('/organization-profile/logo', file);
+      this.businessForm.logoUrl = result.logoUrl;
+      this.logoPreviewUrl.set(null);
+      this.tenantBranding.apply({
+        companyName: this.businessForm.companyName,
+        logoUrl: result.logoUrl,
+      });
+      this.toast.add({
+        severity: 'success',
+        summary: 'Logo saved',
+        detail: 'Your logo appears in the top bar and on new invoices.',
+        life: 3000,
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to upload logo');
+    } finally {
+      this.logoUploading.set(false);
+    }
+  }
+
+  confirmRemoveLogo(): void {
+    this.deleteConfirm.confirm({
+      message: 'Remove your company logo? The UpStart logo will show in the top bar until you upload a new one.',
+      accept: async () => {
+        this.logoUploading.set(true);
+        try {
+          const saved = await this.api.delete<OrganizationProfile>('/organization-profile/logo');
+          this.applyBusinessProfile(saved);
+          this.toast.add({
+            severity: 'info',
+            summary: 'Logo removed',
+            life: 3000,
+          });
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Failed to remove logo');
+        } finally {
+          this.logoUploading.set(false);
+        }
+      },
+    });
+  }
+
   businessSummary(): string {
+    const name = this.businessForm.companyName?.trim();
+    if (name) return name;
     const cityState = [this.businessForm.city, this.businessForm.state].filter(Boolean).join(', ');
     return cityState || this.businessForm.phone || 'Not set';
   }

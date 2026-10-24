@@ -5,6 +5,12 @@ export class UpdateOrganizationProfileDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
+  @MaxLength(120)
+  companyName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
   @MaxLength(200)
   address?: string;
 

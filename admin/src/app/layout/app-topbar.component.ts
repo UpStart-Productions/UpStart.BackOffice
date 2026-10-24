@@ -11,6 +11,7 @@ import { resolveAssetUrl } from '../core/asset-url.util';
 import { AuthStoreService } from '../core/auth-store.service';
 import { CognitoAuthService } from '../core/cognito-auth.service';
 import { SessionService } from '../core/session.service';
+import { TenantBrandingService } from '../core/tenant-branding.service';
 import { TenantService } from '../core/tenant.service';
 import { GlobalSearchComponent } from '../ui/global-search/global-search.component';
 import { HelpDrawerComponent } from '../ui/help-drawer/help-drawer.component';
@@ -68,6 +69,28 @@ import { LayoutService } from './layout.service';
       .topbar-user-avatar--placeholder .pi {
         font-size: var(--fs-lg);
       }
+      .layout-topbar-logo {
+        gap: 0.625rem;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .topbar-tenant-logo {
+        max-height: 3.25rem;
+        max-width: 9rem;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+      }
+      .topbar-tenant-name {
+        font-size: var(--fs-md);
+        font-weight: 600;
+        color: var(--text-color);
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 11rem;
+      }
     `,
   ],
   template: `
@@ -82,13 +105,25 @@ import { LayoutService } from './layout.service';
           <i class="pi pi-bars"></i>
         </button>
         <a class="layout-topbar-logo" routerLink="/dashboard">
-          <img
-            src="/images/upstart-logo-dark.svg"
-            alt="UpStart Back Office"
-            class="topbar-logo-img"
-            width="160"
-            height="49"
-          />
+          @if (showTenantLogo && !tenantLogoError) {
+            <img
+              [src]="tenantLogoSrc!"
+              [alt]="tenantBrandName() || 'Company logo'"
+              class="topbar-logo-img topbar-tenant-logo"
+              (error)="tenantLogoError = true"
+            />
+          } @else if (!hasTenantBranding()) {
+            <img
+              src="/images/upstart-logo-dark.svg"
+              alt="UpStart Back Office"
+              class="topbar-logo-img"
+              width="160"
+              height="49"
+            />
+          }
+          @if (tenantBrandName()) {
+            <span class="topbar-tenant-name">{{ tenantBrandName() }}</span>
+          }
         </a>
       </div>
       <div class="layout-topbar-actions">
@@ -179,6 +214,7 @@ export class AppTopbarComponent implements OnInit {
   readonly layout = inject(LayoutService);
   readonly tenant = inject(TenantService);
   protected readonly session = inject(SessionService);
+  protected readonly tenantBranding = inject(TenantBrandingService);
   private readonly auth = inject(AuthStoreService);
   private readonly cognito = inject(CognitoAuthService);
   private readonly router = inject(Router);
@@ -188,6 +224,7 @@ export class AppTopbarComponent implements OnInit {
   @ViewChild('userMenu') private userMenu?: Menu;
 
   avatarImageError = false;
+  tenantLogoError = false;
   userMenuItems: MenuItem[] = [];
 
   /** The help drawer (and its article content) loads on first click of the ? button. */
@@ -207,6 +244,22 @@ export class AppTopbarComponent implements OnInit {
     return resolveAssetUrl(this.session.me()?.avatarUrl ?? null);
   }
 
+  get tenantLogoSrc(): string | null {
+    return resolveAssetUrl(this.tenantBranding.logoUrl());
+  }
+
+  get showTenantLogo(): boolean {
+    return !!this.tenantLogoSrc;
+  }
+
+  tenantBrandName(): string {
+    return this.tenantBranding.companyName().trim();
+  }
+
+  hasTenantBranding(): boolean {
+    return this.showTenantLogo || !!this.tenantBrandName();
+  }
+
   constructor() {
     void this.tenant.load().catch(() => undefined);
     effect(() => {
@@ -214,7 +267,9 @@ export class AppTopbarComponent implements OnInit {
       this.auth.impersonatedUserId;
       this.tenant.currentSlug();
       this.avatarImageError = false;
+      this.tenantLogoError = false;
       this.userMenuItems = this.buildUserMenuItems();
+      void this.tenantBranding.load();
     });
   }
 

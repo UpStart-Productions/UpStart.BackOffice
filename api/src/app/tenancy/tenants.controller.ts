@@ -59,8 +59,11 @@ export class TenantsController {
       const taken = await this.prisma.inboundAlias.findUnique({ where: { alias: dto.slug } });
       if (!taken) await this.prisma.inboundAlias.create({ data: { alias: dto.slug, tenantId: tenant.id, isPrimary: true } });
     });
-    // Every tenant starts with the same preset roles (editable later under Users > Roles).
-    await runWithTenant(tenant.id, () => ensurePresetRoles(this.prisma));
+    // Preset roles and Business settings company name (tenant display name).
+    await runWithTenant(tenant.id, async () => {
+      await ensurePresetRoles(this.prisma);
+      await this.prisma.organizationProfile.create({ data: { companyName: name } });
+    });
     return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains };
   }
 }

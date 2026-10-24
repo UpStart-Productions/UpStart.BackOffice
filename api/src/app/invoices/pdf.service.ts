@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { currentTenantId } from '../tenancy/tenant-context';
 import puppeteer from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
+import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { getUpstartLogoDataUri } from './brand-logo';
 
 type Numeric = { toString(): string } | number;
@@ -43,7 +44,10 @@ function fmtDate(d: Date): string {
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
+  ) {}
 
   async generateInvoicePdf(
     invoice: InvoiceData,
@@ -53,7 +57,7 @@ export class PdfService {
     const profile = await this.prisma.organizationProfile.findUnique({
       where: { tenantId: currentTenantId() },
     });
-    const html = this.buildInvoiceHtml(invoice, fromName, profile, payUrl);
+    const html = await this.buildInvoiceHtml(invoice, fromName, profile, payUrl);
 
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
     const browser = await puppeteer.launch({
@@ -81,10 +85,12 @@ export class PdfService {
     }
   }
 
-  private buildInvoiceHtml(
+  private async buildInvoiceHtml(
     invoice: InvoiceData,
     fromName: string,
     profile?: {
+      companyName?: string | null;
+      logoUrl?: string | null;
       address?: string | null;
       city?: string | null;
       state?: string | null;
@@ -92,11 +98,15 @@ export class PdfService {
       phone?: string | null;
     } | null,
     payUrl?: string | null,
-  ): string {
-    const logoUri = getUpstartLogoDataUri();
+  ): Promise<string> {
+    const displayName = profile?.companyName?.trim() || fromName;
+    const logoUri = await this.resolveLogoDataUri(profile?.logoUrl);
+    const fallbackLogo = getUpstartLogoDataUri();
     const logoHtml = logoUri
-      ? `<img src="${logoUri}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
-      : `<div class="company">${fromName}</div>`;
+      ? `<img src="${logoUri}" alt="${escapeHtml(displayName)}" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
+      : fallbackLogo
+        ? `<img src="${fallbackLogo}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
+        : `<div class="company">${escapeHtml(displayName)}</div>`;
     const fromDetails = formatFromDetails(profile);
 
     const projectSections = buildProjectSections(invoice.lineItems);
@@ -190,6 +200,30 @@ ${payUrl ? `<div class="pay"><a href="${escapeHtml(payUrl)}">Securely Pay Invoic
 </body>
 </html>`;
   }
+
+  private async resolveLogoDataUri(logoUrl?: string | null): Promise<string | null> {
+    const raw = logoUrl?.trim();
+    if (!raw) return null;
+    try {
+      const key = this.storage.keyFromUrl(raw);
+      if (!key || key.startsWith('http')) return null;
+      const buffer = await this.storage.read(key);
+      if (!buffer.length) return null;
+      const mime = mimeFromLogoKey(key);
+      return `data:${mime};base64,${buffer.toString('base64')}`;
+    } catch (err) {
+      this.logger.warn(`Could not load tenant logo for invoice PDF: ${String(err)}`);
+      return null;
+    }
+  }
+}
+
+function mimeFromLogoKey(key: string): string {
+  const lower = key.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
 }
 
 function hasNotes(notes?: string | null): boolean {

@@ -582,6 +582,8 @@ model OrganizationProfile {
   id           String   @id @default(cuid())
   tenantId     String   @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  companyName  String?
+  logoUrl      String?
   address      String?
   city         String?
   state        String?
