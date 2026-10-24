@@ -54,7 +54,14 @@
               <span class="text-color-secondary">—</span>
             }
           </td>
-          <td>{{ submittedByName(expense) }}</td>
+          <td>
+            <app-person
+              [name]="submittedByName(expense)"
+              [email]="expense.user.email"
+              [avatarUrl]="expense.user.avatarUrl"
+              [personId]="expense.user.id"
+            />
+          </td>
           <td>{{ formatAmount(expense.amount) }}</td>
           <td>
             @if (expense.isReimbursable) {

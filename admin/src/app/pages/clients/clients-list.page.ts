@@ -81,6 +81,9 @@ export class ClientsListPage implements OnInit {
 
   readonly viewOptions = (Object.keys(VIEWS) as View[]).map((value) => ({ value, label: VIEWS[value].label }));
   readonly journeyLabels = ACCOUNT_JOURNEY_LABELS;
+  journeyLabel(client: Client): string {
+    return ACCOUNT_JOURNEY_LABELS[client.journey];
+  }
   readonly lastContactLabel = lastContactLabel;
 
   view = signal<View>('clients');

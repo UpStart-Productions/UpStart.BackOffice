@@ -24,7 +24,14 @@
           <a [routerLink]="['/clients', acct.id]" class="text-primary mr-2">Open account</a>
         }
         @if (contactId(); as cid) {
-          <a [routerLink]="['/contacts', cid]" class="text-primary mr-2">Open contact</a>
+          <app-person
+            class="mr-3"
+            [name]="form.primaryContact"
+            [email]="form.email"
+            [avatarUrl]="contactAvatarUrl()"
+            [personId]="cid"
+            [link]="['/contacts', cid]"
+          />
         }
         @if (!isNew && !isConverted && canEdit()) {
           <button pButton type="button" label="Make client" icon="pi pi-check" (click)="showConvertDialog.set(true)"></button>

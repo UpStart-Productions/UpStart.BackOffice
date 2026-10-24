@@ -24,10 +24,10 @@ import {
   type RolePermissions,
 } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
-import { resolveAssetUrl } from '../../core/asset-url.util';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { PersonComponent } from '../../ui/person/person.component';
 
 type RoleRow = {
   id: string;
@@ -55,7 +55,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
 @Component({
   selector: 'app-roles-tab',
   standalone: true,
-  imports: [FormsModule, TableModule, ButtonModule, InputTextModule, MessageModule, SelectButtonModule, CheckboxModule, TooltipModule, LucideIconComponent, AppDialogModule, RowActionsMenuComponent],
+  imports: [PersonComponent, FormsModule, TableModule, ButtonModule, InputTextModule, MessageModule, SelectButtonModule, CheckboxModule, TooltipModule, LucideIconComponent, AppDialogModule, RowActionsMenuComponent],
   template: `
     @if (error()) {
       <div class="card"><p-message severity="error" [text]="error()!" /></div>
@@ -206,15 +206,16 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
         <ul class="role-users">
           @for (u of roleUsers(); track u.id) {
             <li [class.inactive]="!u.isActive">
-              @if (avatar(u); as src) {
-                <img class="network-list-avatar" [src]="src" [alt]="u.name || u.email" />
-              } @else {
-                <span class="network-list-avatar network-list-avatar--initials" aria-hidden="true">{{ initials(u) }}</span>
-              }
-              <div class="who">
-                <span class="who-name">{{ u.name || u.email }}@if (!u.isActive) { <span class="text-color-secondary"> (disabled)</span> }</span>
-                <span class="who-email">{{ u.email }}</span>
-              </div>
+              <app-person
+                [name]="u.name"
+                [firstName]="u.firstName"
+                [lastName]="u.lastName"
+                [email]="u.email"
+                [avatarUrl]="u.avatarUrl"
+                [personId]="u.id"
+                [subtitle]="u.email + (u.isActive ? '' : ' (disabled)')"
+                [size]="36"
+              />
             </li>
           }
         </ul>
@@ -240,9 +241,6 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
     .role-users { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
     .role-users li { display: flex; align-items: center; gap: 0.75rem; }
     .role-users li.inactive { opacity: 0.6; }
-    .who { display: flex; flex-direction: column; min-width: 0; }
-    .who-name { font-weight: 600; }
-    .who-email { font-size: 0.8125rem; color: var(--text-color-secondary); overflow: hidden; text-overflow: ellipsis; }
   `,
 })
 export class RolesTabComponent implements OnInit {
@@ -441,19 +439,6 @@ export class RolesTabComponent implements OnInit {
     } finally {
       this.usersLoading.set(false);
     }
-  }
-
-  avatar(u: RoleUser): string | null {
-    return resolveAssetUrl(u.avatarUrl);
-  }
-
-  initials(u: RoleUser): string {
-    const first = u.firstName?.trim().charAt(0) ?? '';
-    const last = u.lastName?.trim().charAt(0) ?? '';
-    if (first || last) return (first + last).toUpperCase();
-    const parts = (u.name ?? '').trim().split(/\s+/).filter(Boolean);
-    if (parts.length) return ((parts[0]?.charAt(0) ?? '') + (parts[1]?.charAt(0) ?? '')).toUpperCase() || '?';
-    return u.email.charAt(0).toUpperCase() || '?';
   }
 
   confirmReset(role: RoleRow) {

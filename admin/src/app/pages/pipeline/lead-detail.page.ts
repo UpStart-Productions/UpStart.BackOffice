@@ -16,6 +16,7 @@ import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.comp
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
+import { PersonComponent } from '../../ui/person/person.component';
 
 const SOURCES = [
   { label: 'Warm Outreach', value: 'WARM_OUTREACH' },
@@ -51,7 +52,7 @@ const SERVICE_OPTIONS = [
 @Component({
   selector: 'app-lead-detail-page',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     FormsModule, RouterLink,
     ButtonModule, InputTextModule, MessageModule, TextareaModule,
     SelectModule, AppDialogModule, TagModule,
@@ -76,6 +77,7 @@ export class LeadDetailPage implements OnInit {
   /** The Account this pipeline item belongs to, and the person on it. */
   account = signal<{ id: string; name: string; journey: string } | null>(null);
   contactId = signal<string | null>(null);
+  contactAvatarUrl = signal<string | null>(null);
 
   private readonly pipelinesApi = inject(PipelinesApi);
   private readonly session = inject(SessionService);
@@ -132,6 +134,7 @@ export class LeadDetailPage implements OnInit {
     };
     this.account.set((lead['client'] as { id: string; name: string; journey: string } | null) ?? null);
     this.contactId.set((lead['primaryContactId'] as string) ?? null);
+    this.contactAvatarUrl.set((lead['contactAvatarUrl'] as string) ?? null);
     this.pipelineId.set((lead['pipelineId'] as string) ?? null);
     this.archivedAt.set((lead['archivedAt'] as string) ?? null);
     this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);

@@ -12,13 +12,14 @@ import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ExpenseModalComponent } from './expense-modal.component';
 import { Expense, ExpenseProject } from './expense.types';
+import { PersonComponent } from '../../ui/person/person.component';
 
 type ProjectListItem = { id: string; name: string; isActive?: boolean; client: { id: string; name: string } | null };
 
 @Component({
   selector: 'app-expenses-list-page',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     DatePipe,
     FormsModule,
     ButtonModule,

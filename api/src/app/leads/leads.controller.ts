@@ -12,14 +12,17 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 import { applyLeadEditsToLinks, ensureLeadLinks, leadPersonView } from './lead-links.util';
 import { findLane, firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
 import { AccessGuard, Area, Action } from '../access/access.guard';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 /** What the pipeline needs to show about a lead's Account and person. */
 const linkInclude = {
   client: { select: { id: true, name: true, journey: true } },
   contact: {
     select: {
+      id: true,
       firstName: true,
       lastName: true,
+      avatarUrl: true,
       phone: true,
       emails: { select: { email: true, isPrimary: true }, orderBy: { createdAt: 'asc' as const } },
     },
@@ -30,8 +33,9 @@ const linkInclude = {
 function toLeadView<T extends { contact?: unknown; primaryContact: string | null; email: string | null; phone: string | null; contactRole: string | null }>(
   lead: T,
 ) {
-  const { contact: _contact, ...rest } = lead;
-  return { ...rest, ...leadPersonView(lead as never) };
+  const { contact, ...rest } = lead;
+  const avatar = (contact as { avatarUrl?: string | null } | null | undefined)?.avatarUrl ?? null;
+  return { ...rest, ...leadPersonView(lead as never), contactAvatarUrl: toPublicAssetUrl(avatar) };
 }
 
 /** The lane a create/update asks for: an explicit lane, a legacy stage, or (on create) a pipeline's first lane. */
@@ -116,6 +120,56 @@ export class LeadsController {
     });
     if (!lead) throw new NotFoundException('Lead not found');
     return toLeadView(lead);
+  }
+
+  /**
+   * The people on this card's account (primary person first), for "View contacts" on the board.
+   * Readable with Pipeline access alone, so pipeline users don't need the Contacts area.
+   */
+  @Get(':id/contacts')
+  async contacts(@Param('id') id: string) {
+    const lead = await this.prisma.lead.findUnique({
+      where: { id },
+      select: { clientId: true, primaryContactId: true, client: { select: { name: true } } },
+    });
+    if (!lead) throw new NotFoundException('Lead not found');
+    if (!lead.clientId) return { accountName: null, contacts: [] };
+    const links = await this.prisma.contactAccount.findMany({
+      where: { clientId: lead.clientId },
+      select: {
+        role: true,
+        isPrimary: true,
+        contact: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            title: true,
+            phone: true,
+            avatarUrl: true,
+            isActive: true,
+            emails: { select: { email: true, isPrimary: true }, orderBy: { createdAt: 'asc' } },
+          },
+        },
+      },
+    });
+    const contacts = links
+      .map((l) => {
+        const primaryEmail = l.contact.emails.find((e) => e.isPrimary) ?? l.contact.emails[0];
+        return {
+          id: l.contact.id,
+          name: [l.contact.firstName, l.contact.lastName].filter(Boolean).join(' '),
+          role: l.role ?? l.contact.title ?? null,
+          email: primaryEmail?.email ?? null,
+          phone: l.contact.phone,
+          avatarUrl: toPublicAssetUrl(l.contact.avatarUrl),
+          isActive: l.contact.isActive,
+          /** The lead's own person. */
+          isLeadContact: l.contact.id === lead.primaryContactId,
+        };
+      })
+      .sort((a, b) => Number(b.isLeadContact) - Number(a.isLeadContact) || a.name.localeCompare(b.name));
+    return { accountName: lead.client?.name ?? null, contacts };
   }
 
   @Put(':id')

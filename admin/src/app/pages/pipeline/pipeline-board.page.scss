@@ -8,7 +8,7 @@
 }
 
 .pipeline-col {
-  min-width: 220px;
+  min-width: 264px;
   flex: 1;
   background: var(--surface-ground);
   border-radius: 8px;
@@ -81,7 +81,7 @@
 }
 
 .pipeline-col-add {
-  flex: 0 0 220px;
+  flex: 0 0 264px;
   background: transparent;
   border: 1px dashed var(--surface-border);
 }
@@ -98,15 +98,12 @@
 
 .pipeline-client-tag {
   margin-left: 0.375rem;
-  font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--p-green-600, #16a34a);
+  color: var(--text-color-secondary);
 }
 
 .pipeline-card-next-empty {
-  font-size: 0.8125rem;
   color: var(--text-color-secondary);
-  font-style: italic;
 }
 
 .pipeline-badge {
@@ -160,14 +157,13 @@
 }
 
 .pipeline-card-org {
+  font-size: 1rem;
   font-weight: 600;
-  font-size: 0.875rem;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.25rem;
 }
 
 .pipeline-card-contact {
-  font-size: 0.78rem;
-  color: var(--text-color-secondary);
+  margin-top: 0.25rem;
 }
 
 .pipeline-card-email {
@@ -185,9 +181,9 @@
 }
 
 .pipeline-card-next {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: limegreen;
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--text-color);
   line-height: 1.35;
 }
 
@@ -198,26 +194,6 @@
   padding: 0.75rem 0;
 }
 
-.pipeline-card-touch {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.375rem;
-  margin-top: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--text-color-secondary);
-}
-
-.pipeline-flag {
-  padding: 0 0.375rem;
-  border-radius: 999px;
-  font-weight: 600;
-  line-height: 1.5;
-}
-
-.pipeline-flag-danger {
-  color: var(--p-red-600, #dc2626);
-}
 
 .pipeline-col-header.no-setup {
   cursor: default;
@@ -229,4 +205,72 @@
   &:hover {
     background: none;
   }
+}
+
+.pipeline-card {
+  font-size: 1rem;
+}
+
+.pipeline-card-top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.pipeline-overdue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--p-red-600, #dc2626);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.pipeline-card-meta {
+  margin-top: 0.25rem;
+  color: var(--text-color-secondary);
+}
+
+.pipeline-card-meta--small {
+  font-size: 0.8125rem;
+}
+
+.card-contacts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  li.inactive {
+    opacity: 0.6;
+  }
+}
+
+.card-contacts-name {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.card-contacts-tag {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
 }

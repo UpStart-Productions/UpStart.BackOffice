@@ -233,3 +233,25 @@ describe('InteractionsService', () => {
     });
   });
 });
+
+describe('participant avatars', () => {
+  it('flattens a contact photo (else the team member photo) onto each participant', async () => {
+    const { toInteractionView } = await import('./interactions.service');
+    const view = toInteractionView(
+      {
+        id: 'i', type: 'EMAIL', direction: 'INBOUND', occurredAt: new Date(), subject: null, bodyText: null, rawKey: null,
+        source: 'CC', status: 'FILED', clientId: null, leadId: null, threadKey: null,
+        participants: [
+          { email: 'a@x', name: 'A', role: 'FROM', contactId: 'c', userId: null, contact: { avatarUrl: '/api/uploads/a.png' }, user: null },
+          { email: 'b@x', name: 'B', role: 'TO', contactId: null, userId: 'u', contact: null, user: { avatarUrl: '/api/uploads/b.png' } },
+          { email: 'c@x', name: null, role: 'CC', contactId: null, userId: null },
+        ],
+        loggedBy: { id: 'u', name: 'B', avatarUrl: '/api/uploads/b.png' },
+      } as never,
+      false,
+    ) as { participants: { avatarUrl: string | null; contact?: unknown }[]; loggedBy: { avatarUrl: string } };
+    expect(view.participants.map((p) => p.avatarUrl)).toEqual(['/api/uploads/a.png', '/api/uploads/b.png', null]);
+    expect(view.participants[0].contact).toBeUndefined();
+    expect(view.loggedBy.avatarUrl).toBe('/api/uploads/b.png');
+  });
+});

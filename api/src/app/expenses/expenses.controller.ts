@@ -34,7 +34,7 @@ import { AccessGuard, Area, Action } from '../access/access.guard';
 const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
 const expenseInclude = {
-  user: { select: { id: true, firstName: true, lastName: true, email: true } },
+  user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
   project: {
     select: {
       id: true,

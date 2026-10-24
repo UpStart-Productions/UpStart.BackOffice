@@ -11,6 +11,7 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
@@ -20,13 +21,16 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PipelineLane, PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
-import { isOverdue, lastContactLabel } from '../../core/staleness.util';
+import { daysSince, isOverdue, lastContactLabel } from '../../core/staleness.util';
 import { AutofocusDirective } from '../../ui/autofocus.directive';
+import { PersonComponent } from '../../ui/person/person.component';
 
 export type Lead = {
   id: string;
   organization: string;
   primaryContact?: string;
+  primaryContactId?: string | null;
+  contactAvatarUrl?: string | null;
   contactRole?: string;
   email?: string;
   /** Legacy fixed stage; lanes are `stageId`. */
@@ -45,12 +49,22 @@ export type Lead = {
 };
 
 type View = 'board' | 'archived';
+type CardContact = {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  role: string | null;
+  email: string | null;
+  phone: string | null;
+  isActive: boolean;
+  isLeadContact: boolean;
+};
 type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
 
 @Component({
   selector: 'app-pipeline-board-page',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     FormsModule,
     DragDropModule,
     RouterLink,
@@ -63,6 +77,7 @@ type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
     SelectModule,
     SelectButtonModule,
     TableModule,
+    TooltipModule,
     AppDialogModule,
     PageComponent,
     RowActionsMenuComponent,
@@ -112,6 +127,13 @@ export class PipelineBoardPage implements OnInit {
   removeMoveTo: string | null = null;
   removeNeedsTarget = signal(false);
   busy = signal(false);
+  /** "View contacts" modal for a card. */
+  contactsLead = signal<Lead | null>(null);
+  cardContacts = signal<CardContact[]>([]);
+  contactsAccount = signal<string | null>(null);
+  contactsLoading = signal(false);
+  contactsError = signal<string | null>(null);
+  readonly canOpenContacts = computed(() => this.session.can('contacts', 'view'));
   /** New / rename pipeline dialog. */
   nameDialog = signal<NameDialog>(null);
 
@@ -275,8 +297,37 @@ export class PipelineBoardPage implements OnInit {
     }, 0);
   }
 
+  /** "No contact", "Contacted today", "Contacted 1 day ago", "Contacted 123 days ago". */
+  contactedLabel(lead: Lead): string {
+    const days = daysSince(lead.lastContactDate);
+    if (days === null) return 'No contact';
+    if (days === 0) return 'Contacted today';
+    return `Contacted ${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
   isOverdueLead(lead: Lead): boolean {
     return isOverdue(lead.nextActionDate);
+  }
+
+  overdueTip(lead: Lead): string {
+    return `Next step overdue (due ${this.formatDate(lead.nextActionDate!)})`;
+  }
+
+  async openContacts(lead: Lead) {
+    this.contactsLead.set(lead);
+    this.cardContacts.set([]);
+    this.contactsAccount.set(null);
+    this.contactsError.set(null);
+    this.contactsLoading.set(true);
+    try {
+      const res = await this.api.get<{ accountName: string | null; contacts: CardContact[] }>(`/leads/${lead.id}/contacts`);
+      this.cardContacts.set(res.contacts);
+      this.contactsAccount.set(res.accountName);
+    } catch (err) {
+      this.contactsError.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not load contacts');
+    } finally {
+      this.contactsLoading.set(false);
+    }
   }
 
   formatDate(iso: string): string {
@@ -314,16 +365,18 @@ export class PipelineBoardPage implements OnInit {
 
   getRowActions(lead: Lead): RowActionItem[] {
     const open: RowActionItem = { id: 'open', label: 'Open', icon: 'pi pi-arrow-right', command: () => this.router.navigate(['/pipeline', lead.id]) };
+    const contacts: RowActionItem = { id: 'contacts', label: 'View contacts', icon: 'pi pi-users', command: () => this.openContacts(lead) };
     const del: RowActionItem = { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) };
     if (this.view() === 'archived') {
       return [
         open,
+        contacts,
         ...(this.canEdit() ? [{ id: 'restore', label: 'Restore to board', icon: 'pi pi-replay', command: () => this.restore(lead) }] : []),
         ...(this.canDelete() ? [del] : []),
       ];
     }
-    const actions: RowActionItem[] = [open];
-    if (!this.canEdit()) return this.canDelete() ? [open, del] : actions;
+    const actions: RowActionItem[] = [open, contacts];
+    if (!this.canEdit()) return this.canDelete() ? [...actions, del] : actions;
     if (lead.client?.journey !== 'CLIENT') {
       actions.push({
         id: 'convert',

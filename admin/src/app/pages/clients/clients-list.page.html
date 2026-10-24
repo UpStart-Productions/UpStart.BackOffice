@@ -99,7 +99,7 @@
                 [severity]="client.isActive ? 'success' : 'secondary'"
               />
             } @else {
-              <p-tag [value]="journeyLabels[client.journey]" severity="secondary" />
+              <p-tag [value]="journeyLabel(client)" severity="secondary" />
             }
           </td>
         </tr>

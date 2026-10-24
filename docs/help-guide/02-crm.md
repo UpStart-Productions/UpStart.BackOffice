@@ -22,7 +22,7 @@ The **Last contact** column shows how long since the last logged email, call or 
 
 Every card belongs to an account (a prospect unless the name matches an existing account) and its person is a real contact. **New Lead** adds a card to the first lane of the pipeline you're looking at. Drag cards between lanes to move them. Moving a card never changes anything else, and a card stays on the board after the account becomes a client until you archive it.
 
-Each card leads with the **next step**: what you plan to do next, its due date (**Overdue** once the date has passed) and **Last contact**.
+Each card leads with the **next step**: what you plan to do next and its due date, then how long since the last contact ("Contacted 12 days ago", or "No contact"). A red warning icon next to the card's menu means the next step is overdue; hover it for the date. The card menu's **View contacts** lists everyone on the card's account (the card's own person first) with role, email and phone.
 
 **Lanes are edited right on the board:**
 - **Add lane**: the column at the end of the board.

@@ -3,18 +3,43 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_TENANT_ID } from './communications.constants';
 import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
 import { stripQuotedText } from './quoted-text.util';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's tenant.
 const SNIPPET_LENGTH = 300;
 
 const listInclude = {
   participants: {
-    select: { email: true, name: true, role: true, contactId: true, userId: true },
+    select: {
+      email: true,
+      name: true,
+      role: true,
+      contactId: true,
+      userId: true,
+      contact: { select: { avatarUrl: true } },
+      user: { select: { avatarUrl: true } },
+    },
     orderBy: { role: 'asc' as const },
   },
   captures: { select: { capturedByEmail: true, userId: true } },
-  loggedBy: { select: { id: true, name: true } },
+  loggedBy: { select: { id: true, name: true, firstName: true, lastName: true, avatarUrl: true } },
 };
+
+type ParticipantRow = {
+  email: string;
+  name: string | null;
+  role: string;
+  contactId: string | null;
+  userId: string | null;
+  contact?: { avatarUrl: string | null } | null;
+  user?: { avatarUrl: string | null } | null;
+};
+
+/** Participant with a flat avatarUrl (contact photo, else the team member's). */
+function toParticipantView(p: ParticipantRow) {
+  const { contact, user, ...rest } = p;
+  return { ...rest, avatarUrl: toPublicAssetUrl(contact?.avatarUrl ?? user?.avatarUrl ?? null) };
+}
 
 type InteractionRow = {
   id: string;
@@ -48,8 +73,11 @@ export function toInteractionView(row: InteractionRow, withBody: boolean) {
   const { bodyText, rawKey, ...rest } = row;
   const { body, quoted } =
     row.type === 'EMAIL' ? stripQuotedText(bodyText) : { body: bodyText, quoted: false };
+  const loggedBy = rest.loggedBy as { avatarUrl?: string | null } | null | undefined;
   return {
     ...rest,
+    ...(Array.isArray(rest.participants) ? { participants: (rest.participants as ParticipantRow[]).map(toParticipantView) } : {}),
+    ...(loggedBy ? { loggedBy: { ...loggedBy, avatarUrl: toPublicAssetUrl(loggedBy.avatarUrl ?? null) } } : {}),
     hasRaw: !!rawKey,
     snippet: snippetOf(body),
     ...(withBody ? { bodyText: body, fullText: quoted ? bodyText : null } : {}),

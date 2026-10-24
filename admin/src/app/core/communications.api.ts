@@ -10,6 +10,8 @@ export interface InteractionParticipant {
   role: 'FROM' | 'TO' | 'CC' | 'BCC' | 'ATTENDEE';
   contactId: string | null;
   userId: string | null;
+  /** Contact photo, else the team member's. */
+  avatarUrl?: string | null;
 }
 
 export interface Interaction {
@@ -30,7 +32,7 @@ export interface Interaction {
   leadId: string | null;
   participants: InteractionParticipant[];
   captures: { capturedByEmail: string; userId: string | null }[];
-  loggedBy: { id: string; name: string | null } | null;
+  loggedBy: { id: string; name: string | null; firstName?: string | null; lastName?: string | null; avatarUrl?: string | null } | null;
 }
 
 export interface TimelinePage {
@@ -102,6 +104,17 @@ export function participantLine(i: Pick<Interaction, 'participants'>): string {
   const rest = i.participants.filter((p) => p.role !== 'FROM').map(personLabel);
   if (from) return rest.length ? `${personLabel(from)} → ${rest.join(', ')}` : personLabel(from);
   return rest.join(', ');
+}
+
+/** Sender and everyone else, as people (for avatar + name display). */
+export function senderAndRecipients(i: Pick<Interaction, 'participants'>): {
+  from: InteractionParticipant | null;
+  to: InteractionParticipant[];
+} {
+  return {
+    from: i.participants.find((p) => p.role === 'FROM') ?? null,
+    to: i.participants.filter((p) => p.role !== 'FROM'),
+  };
 }
 
 /** Sender and recipients as separate strings, for list rows. */

@@ -16,6 +16,8 @@ Sections appear based on role. **Admins** see:
 
 **Tasks-only** users (tenant role that only grants Tasks) see **Tasks** alone in the menu.
 
+People (team members and contacts) are shown with their photo, or colored initials when there's no photo, next to their name: on pipeline cards, contact and client pages, the email timeline, the Inbox, expenses and role lists.
+
 **Regular users** see only areas their tenant role grants (Clients, Time, etc.) — if a menu item is missing, they do not have access; do not tell them to use Admin-only screens.
 
 ## Top bar

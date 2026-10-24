@@ -6,12 +6,13 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { CommunicationsApi, contactName, ContactSummary, relativeTime } from '../../core/communications.api';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
+import { PersonComponent } from '../person/person.component';
 
 /** The people linked to one client (Account), with their role there and when we last heard from them. */
 @Component({
   selector: 'app-people-card',
   standalone: true,
-  imports: [RouterLink, ButtonModule, MessageModule, SkeletonModule, TagModule, CopyEmailComponent],
+  imports: [PersonComponent, RouterLink, ButtonModule, MessageModule, SkeletonModule, TagModule, CopyEmailComponent],
   template: `
     <div class="card">
       <div class="people-header">
@@ -47,7 +48,7 @@ import { CopyEmailComponent } from '../copy-email/copy-email.component';
       @for (c of people(); track c.id) {
         <div class="person-row">
           <div class="person-main">
-            <a [routerLink]="['/contacts', c.id]" class="text-primary">{{ name(c) }}</a>
+            <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [link]="['/contacts', c.id]" />
             @if (c.autoCreated) {
               <p-tag value="New" severity="info" />
             }

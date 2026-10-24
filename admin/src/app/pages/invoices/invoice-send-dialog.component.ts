@@ -12,6 +12,7 @@ import {
   InvoiceSendDialogRequest,
   InvoiceSendDialogService,
 } from './invoice-send-dialog.service';
+import { PersonComponent } from '../../ui/person/person.component';
 
 type RecipientType = 'client' | 'project' | 'custom';
 
@@ -31,7 +32,7 @@ type SendRecipients = {
 @Component({
   selector: 'app-invoice-send-dialog',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     FormsModule,
     AppDialogModule,
     ButtonModule,
@@ -183,9 +184,7 @@ type SendRecipients = {
                   <ng-template #selectedItem let-option>
                     @if (option) {
                       <div class="invoice-send-contact-option invoice-send-contact-option--selected">
-                        <span class="invoice-send-contact-option-name">
-                          {{ option.contactName || option.email }}
-                        </span>
+                        <app-person [name]="option.contactName || option.email" [email]="option.email" [personId]="option.email" [size]="22" />
                         <app-copy-email
                           [email]="option.email"
                           [muted]="true"
@@ -196,9 +195,7 @@ type SendRecipients = {
                   </ng-template>
                   <ng-template #item let-option>
                     <div class="invoice-send-contact-option">
-                      <span class="invoice-send-contact-option-name">
-                        {{ option.contactName || 'Project contact' }}
-                      </span>
+                      <app-person [name]="option.contactName || 'Project contact'" [email]="option.email" [personId]="option.email" [size]="22" />
                       <app-copy-email
                         [email]="option.email"
                         [muted]="true"

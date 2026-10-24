@@ -120,21 +120,39 @@
                       {{ lead.organization }}
                       @if (lead.client?.journey === 'CLIENT') { <span class="pipeline-client-tag">Client</span> }
                     </div>
-                    <app-row-actions-menu
-                      [items]="getRowActions(lead)"
-                      ariaLabel="Card actions"
-                      (click)="$event.stopPropagation()"
-                    />
+                    <div class="pipeline-card-top-right">
+                      @if (isOverdueLead(lead)) {
+                        <span
+                          class="pipeline-overdue"
+                          [pTooltip]="overdueTip(lead)"
+                          tooltipPosition="top"
+                          [attr.aria-label]="overdueTip(lead)"
+                          role="img"
+                          >!</span
+                        >
+                      }
+                      <app-row-actions-menu
+                        [items]="getRowActions(lead)"
+                        ariaLabel="Card actions"
+                        (click)="$event.stopPropagation()"
+                      />
+                    </div>
                   </div>
                   @if (lead.primaryContact) {
                     <div class="pipeline-card-contact">
-                      {{ lead.primaryContact }}
-                      @if (lead.contactRole) { · {{ lead.contactRole }} }
+                      <app-person
+                        [name]="lead.primaryContact"
+                        [email]="lead.email"
+                        [avatarUrl]="lead.contactAvatarUrl"
+                        [personId]="lead.primaryContactId ?? lead.id"
+                        [subtitle]="lead.contactRole"
+                        [size]="28"
+                      />
                     </div>
                   }
                   @if (lead.email) {
                     <div class="pipeline-card-email">
-                      <app-copy-email [email]="lead.email" [muted]="true" [block]="true" />
+                      <app-copy-email [email]="lead.email" [block]="true" />
                     </div>
                   }
                   <div class="pipeline-card-next-wrap">
@@ -144,16 +162,10 @@
                     } @else {
                       <div class="pipeline-card-next-empty">No next step</div>
                     }
-                    <div class="pipeline-card-touch">
-                      @if (lead.nextActionDate) {
-                        @if (isOverdueLead(lead)) {
-                          <span class="pipeline-flag pipeline-flag-danger">Overdue · {{ formatDate(lead.nextActionDate) }}</span>
-                        } @else {
-                          <span>Due {{ formatDate(lead.nextActionDate) }}</span>
-                        }
-                      }
-                      <span>Last contact: {{ lastContactLabel(lead.lastContactDate) }}</span>
-                    </div>
+                    @if (lead.nextActionDate && !isOverdueLead(lead)) {
+                      <div class="pipeline-card-meta">Due {{ formatDate(lead.nextActionDate) }}</div>
+                    }
+                    <div class="pipeline-card-meta pipeline-card-meta--small">{{ contactedLabel(lead) }}</div>
                   </div>
                 </div>
               }
@@ -286,4 +298,43 @@
     <p-button label="Cancel" severity="secondary" (onClick)="nameDialog.set(null)" />
     <p-button label="Save" icon="pi pi-check" [loading]="busy()" [disabled]="!nameDialog()?.value?.trim()" (onClick)="saveNameDialog()" />
   </ng-template>
+</p-dialog>
+
+<p-dialog
+  [header]="contactsLead() ? 'Contacts · ' + (contactsAccount() || contactsLead()!.organization) : 'Contacts'"
+  [visible]="!!contactsLead()"
+  (visibleChange)="!$event && contactsLead.set(null)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: 'min(34rem, 96vw)' }"
+>
+  @if (contactsLoading()) {
+    <p class="text-color-secondary">Loading…</p>
+  } @else if (contactsError()) {
+    <p-message severity="error" [text]="contactsError()!" />
+  } @else if (cardContacts().length === 0) {
+    <p class="text-color-secondary">No one is linked to this account yet. Add a person on the card's page.</p>
+  } @else {
+    <ul class="card-contacts">
+      @for (c of cardContacts(); track c.id) {
+        <li [class.inactive]="!c.isActive">
+          <div class="card-contacts-name" (click)="contactsLead.set(null)">
+            <app-person
+              [name]="c.name"
+              [email]="c.email"
+              [avatarUrl]="c.avatarUrl"
+              [personId]="c.id"
+              [subtitle]="c.role"
+              [size]="36"
+              [link]="canOpenContacts() ? ['/contacts', c.id] : null"
+            />
+            @if (c.isLeadContact) { <span class="card-contacts-tag">Primary</span> }
+          </div>
+          @if (c.email) { <app-copy-email [email]="c.email" [block]="true" /> }
+          @if (c.phone) { <div>{{ c.phone }}</div> }
+        </li>
+      }
+    </ul>
+  }
 </p-dialog>

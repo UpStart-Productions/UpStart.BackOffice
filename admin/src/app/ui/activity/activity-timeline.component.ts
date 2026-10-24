@@ -22,11 +22,13 @@ import {
   InteractionType,
   LogInteractionPayload,
   participantLine,
+  senderAndRecipients,
   relativeTime,
   TimelineTarget,
 } from '../../core/communications.api';
 import { EmailButtonComponent } from '../email-button/email-button.component';
 import { MessageBodyComponent } from '../message-body/message-body.component';
+import { PersonComponent } from '../person/person.component';
 
 type TypeFilter = 'ALL' | InteractionType;
 
@@ -44,7 +46,7 @@ function nowForInput(): string {
 @Component({
   selector: 'app-activity-timeline',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     DatePipe,
     FormsModule,
     AppDialogModule,
@@ -128,9 +130,17 @@ function nowForInput(): string {
             </div>
             <div class="activity-meta">
               <p-tag [value]="directionLabel(item)" severity="secondary" />
-              <span>{{ participants(item) }}</span>
+              @let ppl = people(item);
+              @if (ppl.from) {
+                <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" [size]="20" />
+                @if (ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
+              }
+              @for (p of ppl.to; track p.email) {
+                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="20" />
+              }
               @if (item.loggedBy?.name) {
-                <span>· logged by {{ item.loggedBy?.name }}</span>
+                <span class="activity-logged-by">· logged by</span>
+                <app-person [name]="item.loggedBy!.name" [firstName]="item.loggedBy!.firstName" [lastName]="item.loggedBy!.lastName" [avatarUrl]="item.loggedBy!.avatarUrl" [personId]="item.loggedBy!.id" [size]="20" />
               } @else if (item.captures.length) {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
               }
@@ -244,6 +254,7 @@ function nowForInput(): string {
     .activity-body { flex: 1; min-width: 0; }
     .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
     .activity-date { white-space: nowrap; font-size: 0.85rem; color: var(--text-color-secondary, #6b7280); cursor: default; }
+    .activity-arrow { font-size: 0.75rem; color: var(--text-color-secondary); }
     .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: 0.875rem; color: var(--text-color-secondary, #6b7280); }
     .activity-footer { margin-top: 0.25rem; margin-left: -0.5rem; }
     .activity-more { text-align: center; margin-top: 0.5rem; }
@@ -323,6 +334,7 @@ export class ActivityTimelineComponent {
 
   icon = (i: Interaction) => interactionIcon(i.type);
   participants = (i: Interaction) => participantLine(i);
+  readonly people = senderAndRecipients;
   directionLabel = directionLabel;
   rel = relativeTime;
 

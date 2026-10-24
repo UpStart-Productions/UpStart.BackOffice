@@ -15,11 +15,12 @@ import { CommunicationsApi, contactName, ContactSummary } from '../../core/commu
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { PersonComponent } from '../../ui/person/person.component';
 
 @Component({
   selector: 'app-contact-detail-page',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -42,6 +43,7 @@ import { PageComponent } from '../../ui/layout/page.component';
         <div class="card">
           <div class="page-header-with-back">
             <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" severity="secondary" routerLink="/contacts" aria-label="Back to Contacts" />
+            <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
             <h2 class="page-title page-title-in-card mb-0">{{ name(c) }}</h2>
             <p-tag [value]="c.isActive ? 'Active' : 'Inactive'" [severity]="c.isActive ? 'success' : 'secondary'" class="ml-2" />
           </div>

@@ -15,7 +15,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import {
+import { senderAndRecipients,
   CommunicationsApi,
   directionLabel,
   Interaction,
@@ -26,12 +26,13 @@ import {
 import { PageComponent } from '../../ui/layout/page.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { PersonComponent } from '../../ui/person/person.component';
 
 type Option = { id: string; label: string };
 @Component({
   selector: 'app-unfiled-inbox-page',
   standalone: true,
-  imports: [
+  imports: [PersonComponent, 
     DatePipe,
     FormsModule,
     AppDialogModule,
@@ -107,7 +108,6 @@ type Option = { id: string; label: string };
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-item>
-              @let who = parts(item);
               <tr class="clickable-row" (click)="mb.toggle()">
                 <td (click)="$event.stopPropagation()">
                   <app-row-actions-menu [items]="rowActions(item)" ariaLabel="Email actions" />
@@ -116,8 +116,23 @@ type Option = { id: string; label: string };
                   <span [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
                 </td>
                 <td>
-                  <div class="person-line"><span class="person-label">From</span><span class="person-value">{{ who.from }}</span></div>
-                  <div class="person-line text-color-secondary"><span class="person-label">To</span><span class="person-value">{{ who.to }}</span></div>
+                  @let ppl = sendersOf(item);
+                  <div class="person-line">
+                    <span class="person-label">From</span>
+                    <span class="person-value">
+                      @if (ppl.from) {
+                        <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" [size]="22" />
+                      } @else { — }
+                    </span>
+                  </div>
+                  <div class="person-line text-color-secondary">
+                    <span class="person-label">To</span>
+                    <span class="person-value person-list">
+                      @for (p of ppl.to; track p.email) {
+                        <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="22" />
+                      } @empty { — }
+                    </span>
+                  </div>
                   <p-tag [value]="dir(item)" severity="secondary" class="person-tag" />
                 </td>
                 <td>
@@ -213,6 +228,7 @@ type Option = { id: string; label: string };
     .person-line { display: flex; gap: 0.5rem; min-width: 0; }
     .person-label { flex: 0 0 2.5rem; font-size: 0.8rem; color: var(--text-color-secondary); }
     .person-value { min-width: 0; overflow-wrap: anywhere; }
+    .person-list { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
     .person-tag { display: inline-block; margin-top: 0.35rem; }
     .skeleton-list { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0; }
     .skeleton-row { display: flex; align-items: center; gap: 1.5rem; }
@@ -247,7 +263,7 @@ export class UnfiledInboxPage implements OnInit {
     { label: 'Lead', value: 'lead' },
   ];
 
-  parts = participantParts;
+  readonly sendersOf = senderAndRecipients;
   rel = relativeTime;
   dir = directionLabel;
   people = (i: Interaction) => participantLine(i);

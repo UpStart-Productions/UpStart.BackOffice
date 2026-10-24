@@ -1,6 +1,6 @@
 export type ExpenseProject = { id: string; name: string; client: { id: string; name: string } | null };
 
-export type ExpenseUser = { id: string; firstName?: string | null; lastName?: string | null; email: string };
+export type ExpenseUser = { id: string; firstName?: string | null; lastName?: string | null; email: string; avatarUrl?: string | null };
 
 export type Expense = {
   id: string;
