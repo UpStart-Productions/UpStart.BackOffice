@@ -2,6 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { DragDropModule } from 'primeng/dragdrop';
 import { areaLevel, type PermissionArea } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
+import { PipelinesApi, type PipelineSummary } from '../../core/pipelines.api';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import {
@@ -137,6 +138,8 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   readonly timeEntries = signal<TimeEntry[]>([]);
   readonly leads = signal<Lead[]>([]);
+  readonly pipelines = signal<PipelineSummary[]>([]);
+  private readonly pipelinesApi = inject(PipelinesApi);
   readonly invoices = signal<Invoice[]>([]);
   readonly projects = signal<Project[]>([]);
 
@@ -257,10 +260,14 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.pipelineLoading.set(true);
     this.pipelineError.set(null);
     try {
-      const data = await this.api.get<Lead[]>('/leads');
+      // Everything on the board counts as open; archived cards are not returned.
+      const [data, pipelines] = await Promise.all([
+        this.api.get<Lead[]>('/leads'),
+        this.pipelinesApi.list().catch(() => [] as PipelineSummary[]),
+      ]);
       this.leads.set(data);
-      const openStages = new Set(['NEW_LEAD', 'DISCOVERY', 'PROPOSAL_SENT', 'ON_HOLD']);
-      this.openLeadsCount.set(data.filter((l) => openStages.has(l.stage)).length);
+      this.pipelines.set(pipelines);
+      this.openLeadsCount.set(data.length);
     } catch (err) {
       this.pipelineError.set(err instanceof Error ? err.message : 'Failed to load pipeline');
     } finally {

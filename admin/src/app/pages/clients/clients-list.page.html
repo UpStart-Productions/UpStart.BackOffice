@@ -89,7 +89,7 @@
             }
           </td>
           <td><app-copy-email [email]="client.email" /></td>
-          <td [class.text-orange-500]="staleFlag(client)">{{ lastContactLabel(client.lastContactAt) }}</td>
+          <td>{{ lastContactLabel(client.lastContactAt) }}</td>
           <td>
             @if (view() === 'clients' || client.journey === 'CLIENT') {
               <p-tag

@@ -151,8 +151,18 @@
         @if (form.createLead) {
           <div class="showcase-flex">
             <div class="form-field showcase-half">
-              <label for="btLeadStage">Lead stage</label>
-              <p-select inputId="btLeadStage" [options]="leadStages" [(ngModel)]="form.leadStage" name="btLeadStage" styleClass="w-full" />
+              <label for="btLeadStage">Pipeline lane</label>
+              <p-select
+                inputId="btLeadStage"
+                [options]="laneOptions()"
+                optionLabel="label"
+                optionValue="value"
+                [(ngModel)]="form.leadStageId"
+                name="btLeadStage"
+                placeholder="First lane"
+                [showClear]="true"
+                styleClass="w-full"
+              />
             </div>
             <div class="form-field showcase-half">
               <label for="btLeadSource">Lead source</label>

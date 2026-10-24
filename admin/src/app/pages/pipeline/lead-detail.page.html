@@ -32,6 +32,10 @@
         @if (isConverted) {
           <p-tag value="Client" severity="success" />
         }
+        @if (!isNew) {
+          @if (archivedAt()) { <p-tag value="Archived" severity="secondary" /> }
+          <button pButton type="button" [label]="archivedAt() ? 'Restore' : 'Archive'" [icon]="archivedAt() ? 'pi pi-replay' : 'pi pi-inbox'" class="p-button-secondary p-button-text" (click)="toggleArchive()"></button>
+        }
       </div>
 
       <div class="showcase-flex-col">
@@ -41,8 +45,8 @@
             <input pInputText id="organization" name="organization" [(ngModel)]="form.organization" class="w-full" placeholder="Nonprofit Name" />
           </div>
           <div class="form-field showcase-half">
-            <label for="stage">Stage</label>
-            <p-select inputId="stage" name="stage" [(ngModel)]="form.stage" [options]="stages" optionLabel="label" optionValue="value" styleClass="w-full" />
+            <label for="stage">Lane</label>
+            <p-select inputId="stage" name="stage" [(ngModel)]="form.stageId" [options]="stages()" optionLabel="label" optionValue="value" placeholder="First lane" styleClass="w-full" />
           </div>
         </div>
 

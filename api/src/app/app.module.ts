@@ -17,6 +17,7 @@ import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { LeadsModule } from './leads/leads.module';
+import { PipelinesModule } from './pipelines/pipelines.module';
 import { PortalModule } from './portal/portal.module';
 import { ServiceKeysModule } from './service-keys/service-keys.module';
 import { ArtifactsModule } from './artifacts/artifacts.module';
@@ -55,6 +56,7 @@ import { HealthController } from './health.controller';
     ExpensesModule,
     InvoicesModule,
     LeadsModule,
+    PipelinesModule,
     ArtifactsModule,
     PortalModule,
     ServiceKeysModule,

@@ -54,7 +54,7 @@ export class LeadsAutomationController {
   @Get('new-leads')
   async listNewLeads() {
     const leads = await this.prisma.lead.findMany({
-      where: { stage: LeadStage.NEW_LEAD },
+      where: { stage: LeadStage.NEW_LEAD, archivedAt: null },
       orderBy: [
         { lastContactDate: { sort: 'asc', nulls: 'first' } },
         { organization: 'asc' },

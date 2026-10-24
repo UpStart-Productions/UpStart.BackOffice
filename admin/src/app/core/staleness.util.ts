@@ -1,6 +1,4 @@
-/** A prospect or client untouched for this many days is flagged stale. */
-export const STALE_AFTER_DAYS = 14;
-
+/** Date helpers for "last contact" and "next step due" on pipeline cards and lists. No stale timers: relationships can sit quietly. */
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function startOfDay(d: Date): number {
@@ -21,12 +19,6 @@ export function lastContactLabel(iso: string | null | undefined, now: Date = new
   if (days === null) return 'No contact yet';
   if (days === 0) return 'Today';
   return days === 1 ? '1 day ago' : `${days} days ago`;
-}
-
-/** True when nothing has been logged for STALE_AFTER_DAYS or more (or ever). */
-export function isStale(iso: string | null | undefined, now: Date = new Date()): boolean {
-  const days = daysSince(iso, now);
-  return days === null || days >= STALE_AFTER_DAYS;
 }
 
 /** True when the next-step date is before today. */

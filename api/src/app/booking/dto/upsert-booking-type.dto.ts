@@ -91,10 +91,15 @@ export class UpsertBookingTypeDto {
   @IsOptional()
   createLead?: boolean;
 
-  @ApiPropertyOptional({ enum: LeadStage })
+  @ApiPropertyOptional({ enum: LeadStage, description: 'Legacy; prefer leadStageId' })
   @IsEnum(LeadStage)
   @IsOptional()
   leadStage?: LeadStage;
+
+  @ApiPropertyOptional({ nullable: true, description: 'Lane new leads from this booking type go into' })
+  @IsString()
+  @IsOptional()
+  leadStageId?: string | null;
 
   @ApiPropertyOptional({ enum: LeadSource })
   @IsEnum(LeadSource)

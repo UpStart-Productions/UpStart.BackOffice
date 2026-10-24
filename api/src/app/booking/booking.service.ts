@@ -32,6 +32,7 @@ import {
   normalizeWebsiteForStorage,
 } from '../leads/lead-website.util';
 import { ensureLeadLinks } from '../leads/lead-links.util';
+import { findLane, firstLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
 
 export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
 
@@ -285,6 +286,7 @@ export class BookingService {
           calendarEventTitle: dto.calendarEventTitle?.trim() || dto.name.trim(),
           createLead: dto.createLead ?? true,
           leadStage: dto.leadStage ?? LeadStage.DISCOVERY,
+          leadStageId: await this.laneIdOrNull(tx, dto.leadStageId),
           leadSource: dto.leadSource ?? LeadSource.INBOUND,
           pipelineNoteTitle: dto.pipelineNoteTitle?.trim() || null,
           priceCents: dto.priceCents ?? null,
@@ -346,6 +348,7 @@ export class BookingService {
           }),
           ...(dto.createLead !== undefined && { createLead: dto.createLead }),
           ...(dto.leadStage !== undefined && { leadStage: dto.leadStage }),
+          ...(dto.leadStageId !== undefined && { leadStageId: await this.laneIdOrNull(this.prisma, dto.leadStageId) }),
           ...(dto.leadSource !== undefined && { leadSource: dto.leadSource }),
           ...(dto.pipelineNoteTitle !== undefined && {
             pipelineNoteTitle: dto.pipelineNoteTitle?.trim() || null,
@@ -478,12 +481,16 @@ export class BookingService {
       });
     }
 
+    // The booking type's lane (or the lane that came from its old fixed stage).
+    const typeLane =
+      (type.leadStageId ? await findLane(tx, type.leadStageId) : null) ?? (await laneForLegacy(tx, type.leadStage));
+
     const leadFields = {
       organization: org,
       primaryContact: dto.guestName.trim(),
       email,
       ...(website ? { website } : {}),
-      stage: type.leadStage,
+      ...laneFields(typeLane),
       source: type.leadSource,
       nextAction: `${type.name} scheduled`,
       nextActionDate: startAt,
@@ -491,6 +498,9 @@ export class BookingService {
     };
 
     if (lead) {
+      // As before: a card still in its pipeline's first lane moves to the booking type's lane; others stay put.
+      const first = lead.pipelineId ? await firstLane(tx, lead.pipelineId) : null;
+      const moveLane = !lead.stageId || first?.stageId === lead.stageId;
       const updated = await tx.lead.update({
         where: { id: lead.id },
         data: {
@@ -498,7 +508,7 @@ export class BookingService {
           primaryContact: dto.guestName.trim(),
           email: lead.email ?? email,
           ...(website ? { website: lead.website ?? website } : {}),
-          stage: lead.stage === LeadStage.NEW_LEAD ? type.leadStage : lead.stage,
+          ...(moveLane ? laneFields(typeLane) : {}),
           source: lead.source ?? type.leadSource,
           nextAction: `${type.name} scheduled`,
           nextActionDate: startAt,
@@ -618,6 +628,14 @@ export class BookingService {
     };
   }
 
+  /** A lane id that belongs to this tenant, or null (falls back to the first lane at booking time). */
+  private async laneIdOrNull(db: Parameters<typeof findLane>[0], stageId: string | null | undefined): Promise<string | null> {
+    if (!stageId) return null;
+    const lane = await findLane(db, stageId);
+    if (!lane) throw new BadRequestException('Unknown lane for this booking type.');
+    return lane.stageId;
+  }
+
   private toBookingTypeDto(
     type: BookingType & {
       availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
@@ -642,6 +660,7 @@ export class BookingService {
       calendarEventTitle: type.calendarEventTitle,
       createLead: type.createLead,
       leadStage: type.leadStage,
+      leadStageId: type.leadStageId,
       leadSource: type.leadSource,
       pipelineNoteTitle: type.pipelineNoteTitle,
       priceCents: type.priceCents,

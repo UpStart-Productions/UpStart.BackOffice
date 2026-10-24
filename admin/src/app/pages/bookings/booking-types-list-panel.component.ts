@@ -6,6 +6,7 @@ import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { PipelinesApi } from '../../core/pipelines.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
@@ -46,6 +47,7 @@ type BookingTypeDetail = {
   calendarEventTitle: string;
   createLead: boolean;
   leadStage: string;
+  leadStageId?: string | null;
   leadSource: string;
   pipelineNoteTitle: string | null;
   priceCents: number | null;
@@ -129,6 +131,9 @@ const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 })
 export class BookingTypesListPanelComponent implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly pipelinesApi = inject(PipelinesApi);
+  /** Lane names by id, for the detail panel. */
+  laneNames = signal<Map<string, string>>(new Map());
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly router = inject(Router);
 
@@ -148,6 +153,10 @@ export class BookingTypesListPanelComponent implements OnInit {
   typeDetailsError = signal<string | null>(null);
 
   async ngOnInit() {
+    void this.pipelinesApi
+      .list()
+      .then((ps) => this.laneNames.set(new Map(ps.flatMap((p) => p.stages.map((s) => [s.id, s.name] as const)))))
+      .catch(() => undefined);
     await this.load();
   }
 

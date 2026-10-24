@@ -189,8 +189,8 @@
         <dt>Creates lead</dt>
         <dd>{{ detail.createLead ? 'Yes' : 'No' }}</dd>
         @if (detail.createLead) {
-          <dt>Lead stage</dt>
-          <dd>{{ detail.leadStage }}</dd>
+          <dt>Pipeline lane</dt>
+          <dd>{{ (detail.leadStageId && laneNames().get(detail.leadStageId)) || 'First lane' }}</dd>
           <dt>Lead source</dt>
           <dd>{{ detail.leadSource }}</dd>
           @if (detail.pipelineNoteTitle) {

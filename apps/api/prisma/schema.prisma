@@ -290,19 +290,65 @@ model Lead {
   clientId          String?
   /// The lead's person. Source of truth for name, email and phone; the text columns above are a legacy mirror.
   primaryContactId  String?
+  /// The tenant-defined pipeline and lane this card sits in. `stage` above is a legacy mirror.
+  pipelineId        String?
+  stageId           String?
+  /// Set when someone archives the card by hand: off the board, history kept, restorable.
+  archivedAt        DateTime?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
   convertedClient Client?       @relation("LeadConverted", fields: [convertedClientId], references: [id])
   client          Client?       @relation("LeadAccount", fields: [clientId], references: [id])
   contact         Contact?      @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+  pipeline        Pipeline?     @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+  pipelineStage   PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
   artifacts       Artifact[]
   bookings        Booking[]
   interactions    Interaction[]
 
   @@index([stage])
+  @@index([pipelineId, stageId])
   @@index([clientId])
   @@index([primaryContactId])
+  @@index([tenantId])
+}
+
+/// A relationship pipeline. Each tenant defines its own pipelines and lanes; there are no won/lost stages.
+model Pipeline {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stages PipelineStage[]
+  leads  Lead[]
+
+  @@index([tenantId, sortOrder])
+}
+
+/// A lane (swim lane) on a pipeline board. Just a name, a color and a position.
+model PipelineStage {
+  id         String     @id @default(cuid())
+  tenantId   String     @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  pipelineId String
+  pipeline   Pipeline   @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  name       String
+  color      String?
+  sortOrder  Int        @default(0)
+  /// The old fixed stage this lane came from, kept so older automations keep working. Null for new lanes.
+  legacyKey  LeadStage?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  leads        Lead[]
+  bookingTypes BookingType[]
+
+  @@index([pipelineId, sortOrder])
   @@index([tenantId])
 }
 
@@ -738,6 +784,9 @@ model BookingType {
   calendarEventTitle String     @default("Meeting")
   createLead         Boolean    @default(true)
   leadStage          LeadStage  @default(DISCOVERY)
+  /// Lane a booking puts the lead in (falls back to the first lane of the first pipeline).
+  leadStageId        String?
+  leadPipelineStage  PipelineStage? @relation(fields: [leadStageId], references: [id], onDelete: SetNull)
   leadSource         LeadSource @default(INBOUND)
   pipelineNoteTitle  String?
   priceCents         Int?
@@ -1384,6 +1433,8 @@ model Tenant {
   forwardingVerifications     ForwardingVerification[]
   roles                       Role[]
   clientAssignments           ClientAssignment[]
+  pipelines                   Pipeline[]
+  pipelineStages              PipelineStage[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.

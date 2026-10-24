@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -14,7 +14,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
-import { STAGES } from './pipeline-board.page';
+import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 
 const SOURCES = [
   { label: 'Warm Outreach', value: 'WARM_OUTREACH' },
@@ -76,7 +76,14 @@ export class LeadDetailPage implements OnInit {
   account = signal<{ id: string; name: string; journey: string } | null>(null);
   contactId = signal<string | null>(null);
 
-  readonly stages = STAGES.map(s => ({ label: s.label, value: s.key }));
+  private readonly pipelinesApi = inject(PipelinesApi);
+  pipelines = signal<PipelineSummary[]>([]);
+  pipelineId = signal<string | null>(null);
+  archivedAt = signal<string | null>(null);
+  /** Lanes of the card's pipeline, for the Lane picker. */
+  readonly stages = computed(() =>
+    (this.pipelines().find((p) => p.id === this.pipelineId()) ?? this.pipelines()[0])?.stages.map((s) => ({ label: s.name, value: s.id })) ?? [],
+  );
   readonly sources = [...SOURCES].sort((a, b) => a.label.localeCompare(b.label));
   readonly categories = [...CATEGORIES].sort((a, b) => a.label.localeCompare(b.label));
   readonly serviceOptions = SERVICE_OPTIONS;
@@ -89,7 +96,7 @@ export class LeadDetailPage implements OnInit {
     email: '',
     phone: '',
     website: '',
-    stage: 'NEW_LEAD',
+    stageId: '' as string | null,
     source: '' as string | null,
     warmConnection: '',
     category: '' as string | null,
@@ -112,7 +119,7 @@ export class LeadDetailPage implements OnInit {
       email:           (lead['email'] as string) ?? '',
       phone:           (lead['phone'] as string) ?? '',
       website:         (lead['website'] as string) ?? '',
-      stage:           (lead['stage'] as string) ?? 'NEW_LEAD',
+      stageId:         (lead['stageId'] as string) ?? null,
       source:          (lead['source'] as string) ?? null,
       warmConnection:  (lead['warmConnection'] as string) ?? '',
       category:        (lead['category'] as string) ?? null,
@@ -122,6 +129,8 @@ export class LeadDetailPage implements OnInit {
     };
     this.account.set((lead['client'] as { id: string; name: string; journey: string } | null) ?? null);
     this.contactId.set((lead['primaryContactId'] as string) ?? null);
+    this.pipelineId.set((lead['pipelineId'] as string) ?? null);
+    this.archivedAt.set((lead['archivedAt'] as string) ?? null);
     this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);
   }
 
@@ -134,7 +143,8 @@ export class LeadDetailPage implements OnInit {
       email:           e(this.form.email),
       phone:           e(this.form.phone),
       website:         e(this.form.website),
-      stage:           this.form.stage,
+      stageId:         this.form.stageId || undefined,
+      ...(this.isNew && this.pipelineId() ? { pipelineId: this.pipelineId()! } : {}),
       source:          this.form.source || undefined,
       warmConnection:  e(this.form.warmConnection),
       category:        this.form.category || undefined,
@@ -146,6 +156,13 @@ export class LeadDetailPage implements OnInit {
   }
 
   async ngOnInit() {
+    try {
+      this.pipelines.set(await this.pipelinesApi.list());
+    } catch {
+      /* the lane picker just stays empty */
+    }
+    const startPipeline = this.route.snapshot.queryParamMap.get('pipelineId');
+    if (startPipeline) this.pipelineId.set(startPipeline);
     const id = this.route.snapshot.paramMap.get('id');
     if (id && id !== 'new') {
       this.id.set(id);
@@ -194,6 +211,24 @@ export class LeadDetailPage implements OnInit {
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
     } finally { this.saving.set(false); }
+  }
+
+  /** Take the card off the board (history kept), or put it back. */
+  async toggleArchive() {
+    const id = this.id();
+    if (!id) return;
+    const archiving = !this.archivedAt();
+    try {
+      await this.api.post(`/leads/${id}/${archiving ? 'archive' : 'restore'}`, {});
+      this.archivedAt.set(archiving ? new Date().toISOString() : null);
+      this.toast.add({
+        severity: 'success',
+        summary: archiving ? 'Archived' : 'Restored',
+        detail: archiving ? 'Off the board. Find it under Archived on the Pipeline.' : 'Back on the board.',
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not update');
+    }
   }
 
   /** Make the lead's Account a client. Nothing is copied; the invoice code is optional. */

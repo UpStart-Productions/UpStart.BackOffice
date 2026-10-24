@@ -30,10 +30,21 @@ export class CreateLeadDto {
   @ApiPropertyOptional() @IsString() @IsOptional() warmConnection?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() nextAction?: string;
 
+  /** Legacy fixed stage. Prefer stageId; this maps to the lane that came from it. */
   @ApiPropertyOptional({ enum: LeadStage })
   @IsEnum(LeadStage)
   @IsOptional()
   stage?: LeadStage;
+
+  @ApiPropertyOptional({ description: 'Lane to put the card in' })
+  @IsString()
+  @IsOptional()
+  stageId?: string;
+
+  @ApiPropertyOptional({ description: 'Pipeline for a new card when no lane is given (its first lane is used)' })
+  @IsString()
+  @IsOptional()
+  pipelineId?: string;
 
   @ApiPropertyOptional({ enum: LeadSource })
   @IsEnum(LeadSource)

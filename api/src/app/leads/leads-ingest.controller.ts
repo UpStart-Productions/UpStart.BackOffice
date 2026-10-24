@@ -7,6 +7,7 @@ import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
 import { ensureLeadLinks } from './lead-links.util';
+import { laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
 import { normalizeWebsiteDomain } from './lead-website.util';
 
 @ApiTags('leads')
@@ -39,15 +40,16 @@ export class LeadsIngestController {
     nextActionDate.setDate(nextActionDate.getDate() + 3);
 
     const lead = await this.prisma.$transaction(async (tx) => {
+      const lane = await laneForLegacy(tx, LeadStage.DISCOVERY);
       const created = await tx.lead.create({
         data: {
+          ...laneFields(lane),
           organization:    dto.organization,
           website:         dto.website,
           email:           dto.email,
           primaryContact:  primaryContact ?? undefined,
           contactRole:     dto.role,
           source:          LeadSource.INBOUND,
-          stage:           LeadStage.DISCOVERY,
           serviceInterests: dto.serviceInterests ?? [],
           nextAction:      'Follow up on donor readiness audit',
           nextActionDate,

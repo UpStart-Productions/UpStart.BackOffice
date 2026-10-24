@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
-import { isStale, lastContactLabel } from '../../core/staleness.util';
+import { lastContactLabel } from '../../core/staleness.util';
 import type { AccountJourney } from '@upstart/back-office/shared';
 import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
@@ -77,10 +77,7 @@ export class ClientsListPage implements OnInit {
   readonly viewOptions = (Object.keys(VIEWS) as View[]).map((value) => ({ value, label: VIEWS[value].label }));
   readonly journeyLabels = ACCOUNT_JOURNEY_LABELS;
   readonly lastContactLabel = lastContactLabel;
-  /** Only people you are working with or courting are flagged; partners and past clients can be quiet. */
-  staleFlag(client: Client): boolean {
-    return (client.journey === 'CLIENT' || client.journey === 'PROSPECT') && isStale(client.lastContactAt);
-  }
+
   view = signal<View>('clients');
   readonly kind = computed(() => VIEWS[this.view()].kind);
   readonly newQuery = computed(() => VIEWS[this.view()].newQuery ?? {});

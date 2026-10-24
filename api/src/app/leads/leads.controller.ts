@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Delete, Get, NotFoundException,
+  BadRequestException, Body, Controller, Delete, Get, NotFoundException,
   Param, Post, Put, Query, UseGuards, ConflictException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -10,6 +10,7 @@ import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { applyLeadEditsToLinks, ensureLeadLinks, leadPersonView } from './lead-links.util';
+import { findLane, firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
 import { AccessGuard, Area } from '../access/access.guard';
 
 /** What the pipeline needs to show about a lead's Account and person. */
@@ -33,6 +34,21 @@ function toLeadView<T extends { contact?: unknown; primaryContact: string | null
   return { ...rest, ...leadPersonView(lead as never) };
 }
 
+/** The lane a create/update asks for: an explicit lane, a legacy stage, or (on create) a pipeline's first lane. */
+async function requestedLane(
+  db: PipelineDb,
+  dto: { stageId?: string; stage?: LeadStage; pipelineId?: string },
+  isCreate: boolean,
+): Promise<Lane | null> {
+  if (dto.stageId) {
+    const lane = await findLane(db, dto.stageId);
+    if (!lane) throw new BadRequestException('Unknown lane.');
+    return lane;
+  }
+  if (dto.stage) return laneForLegacy(db, dto.stage);
+  return isCreate ? firstLane(db, dto.pipelineId) : null;
+}
+
 @ApiTags('leads')
 @ApiBearerAuth()
 @UseGuards(AccessGuard)
@@ -44,10 +60,19 @@ export class LeadsController {
     private readonly storageFolders: StorageFoldersService,
   ) {}
 
+  /** Board cards. Archived cards are left out unless ?archived=true (then only archived ones). */
   @Get()
-  async list(@Query('stage') stage?: LeadStage) {
+  async list(
+    @Query('stage') stage?: LeadStage,
+    @Query('pipelineId') pipelineId?: string,
+    @Query('archived') archived?: string,
+  ) {
     const leads = await this.prisma.lead.findMany({
-      where: stage ? { stage } : undefined,
+      where: {
+        archivedAt: archived === 'true' ? { not: null } : null,
+        ...(stage ? { stage } : {}),
+        ...(pipelineId ? { pipelineId } : {}),
+      },
       orderBy: { organization: 'asc' },
       include: linkInclude,
     });
@@ -57,15 +82,16 @@ export class LeadsController {
   @Post()
   async create(@Body() dto: CreateLeadDto) {
     const lead = await this.prisma.$transaction(async (tx) => {
+      const lane = (await requestedLane(tx, dto, true)) as Lane;
       const created = await tx.lead.create({
         data: {
+          ...laneFields(lane),
           organization: dto.organization,
           primaryContact: dto.primaryContact,
           contactRole: dto.contactRole,
           email: dto.email,
           phone: dto.phone,
           website: dto.website,
-          stage: dto.stage ?? 'NEW_LEAD',
           source: dto.source,
           warmConnection: dto.warmConnection,
           category: dto.category,
@@ -97,16 +123,17 @@ export class LeadsController {
     const existing = await this.prisma.lead.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Lead not found');
     const lead = await this.prisma.$transaction(async (tx) => {
+      const lane = await requestedLane(tx, dto, false);
       await tx.lead.update({
         where: { id },
         data: {
+          ...(lane ? laneFields(lane) : {}),
           ...(dto.organization !== undefined && { organization: dto.organization }),
           ...(dto.primaryContact !== undefined && { primaryContact: dto.primaryContact }),
           ...(dto.contactRole !== undefined && { contactRole: dto.contactRole }),
           ...(dto.email !== undefined && { email: dto.email }),
           ...(dto.phone !== undefined && { phone: dto.phone }),
           ...(dto.website !== undefined && { website: dto.website }),
-          ...(dto.stage !== undefined && { stage: dto.stage }),
           ...(dto.source !== undefined && { source: dto.source }),
           ...(dto.warmConnection !== undefined && { warmConnection: dto.warmConnection }),
           ...(dto.category !== undefined && { category: dto.category }),
@@ -126,6 +153,28 @@ export class LeadsController {
       return tx.lead.findUniqueOrThrow({ where: { id }, include: linkInclude });
     });
     return toLeadView(lead);
+  }
+
+  /** Take a card off the board. Its history, account and contact are untouched; restore any time. */
+  @Post(':id/archive')
+  async archive(@Param('id') id: string) {
+    const existing = await this.prisma.lead.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) throw new NotFoundException('Lead not found');
+    await this.prisma.lead.update({ where: { id }, data: { archivedAt: new Date() } });
+    return { id, archived: true };
+  }
+
+  /** Put an archived card back on the board in the lane it was in (or its pipeline's first lane). */
+  @Post(':id/restore')
+  async restore(@Param('id') id: string) {
+    const existing = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, stageId: true, pipelineId: true } });
+    if (!existing) throw new NotFoundException('Lead not found');
+    const lane = existing.stageId ? null : await firstLane(this.prisma, existing.pipelineId);
+    await this.prisma.lead.update({
+      where: { id },
+      data: { archivedAt: null, ...(lane ? laneFields(lane) : {}) },
+    });
+    return { id, archived: false };
   }
 
   @Delete(':id')

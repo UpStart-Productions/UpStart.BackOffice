@@ -8,7 +8,30 @@
   <div class="card">
     <h2 class="page-title page-title-in-card">Client Pipeline</h2>
     <div class="toolbar">
-      <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new"></a>
+      <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
+      <div class="pipeline-switcher">
+        @if (pipelines().length > 1) {
+          <p-select
+            [options]="pipelines()"
+            optionLabel="name"
+            optionValue="id"
+            [ngModel]="pipelineId()"
+            (ngModelChange)="selectPipeline($event)"
+            ariaLabel="Pipeline"
+          />
+        } @else if (current(); as p) {
+          <span class="pipeline-name">{{ p.name }}</span>
+        }
+        <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
+      </div>
+      <p-selectbutton
+        [options]="viewOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="view()"
+        (ngModelChange)="setView($event)"
+        [allowEmpty]="false"
+      />
       <div class="toolbar-search">
         <p-iconfield iconPosition="left" class="toolbar-search-field">
           <p-inputicon><i class="pi pi-search"></i></p-inputicon>
@@ -29,23 +52,50 @@
 
     @if (loading()) {
       <p class="text-color-secondary">Loading...</p>
-    } @else {
-      <div class="pipeline-board" cdkDropListGroup>
-        @for (stage of stages; track stage.key) {
-          <div class="pipeline-col">
-            <div class="pipeline-col-header">
-              <span>{{ stage.label }}</span>
-              <span class="pipeline-badge">{{ leadsForStage(stage.key).length }}</span>
+    } @else if (view() === 'board') {
+      <div
+        class="pipeline-board"
+        cdkDropList
+        cdkDropListOrientation="horizontal"
+        [cdkDropListData]="lanes()"
+        (cdkDropListDropped)="onLaneDrop($event)"
+      >
+        @for (lane of lanes(); track lane.id) {
+          <div class="pipeline-col" cdkDrag [cdkDragData]="lane" cdkDragLockAxis="x">
+            <div class="pipeline-col-header" cdkDragHandle title="Drag to reorder">
+              @if (editingLaneId() === lane.id) {
+                <input
+                  pInputText
+                  class="lane-name-input"
+                  [ngModel]="laneDraft"
+                  (ngModelChange)="laneDraft = $event"
+                  (keydown.enter)="saveLaneName(lane)"
+                  (keydown.escape)="cancelLaneEdit()"
+                  (blur)="saveLaneName(lane)"
+                  (mousedown)="$event.stopPropagation()"
+                  (touchstart)="$event.stopPropagation()"
+                  aria-label="Lane name"
+                  appAutofocus
+                />
+              } @else {
+                <button type="button" class="lane-name" (click)="startLaneEdit(lane)" title="Click to rename">{{ lane.name }}</button>
+              }
+              <span class="lane-header-right">
+                <span class="pipeline-badge">{{ leadsForLane(lane.id).length }}</span>
+                <app-row-actions-menu [items]="laneActions(lane)" ariaLabel="Lane actions" />
+              </span>
             </div>
 
             <div
               class="pipeline-col-body"
               cdkDropList
+              [id]="'lane-' + lane.id"
+              [cdkDropListConnectedTo]="laneListIds()"
               cdkDropListSortingDisabled
-              [cdkDropListData]="stage.key"
-              (cdkDropListDropped)="onDrop($event)"
+              [cdkDropListData]="lane.id"
+              (cdkDropListDropped)="onCardDrop($event)"
             >
-              @for (lead of leadsForStage(stage.key); track lead.id) {
+              @for (lead of leadsForLane(lane.id); track lead.id) {
                 <div
                   class="pipeline-card"
                   cdkDrag
@@ -54,46 +104,169 @@
                   (cdkDragEnded)="onDragEnded()"
                   (click)="openLead(lead.id)"
                 >
-                <div class="pipeline-card-top">
-                  <div class="pipeline-card-org">{{ lead.organization }}</div>
-                  <app-row-actions-menu
-                    [items]="getRowActions(lead)"
-                    ariaLabel="Lead actions"
-                    (click)="$event.stopPropagation()"
-                  />
-                </div>
-                @if (lead.primaryContact) {
-                  <div class="pipeline-card-contact">
-                    {{ lead.primaryContact }}
-                    @if (lead.contactRole) { · {{ lead.contactRole }} }
+                  <div class="pipeline-card-top">
+                    <div class="pipeline-card-org">
+                      {{ lead.organization }}
+                      @if (lead.client?.journey === 'CLIENT') { <span class="pipeline-client-tag">Client</span> }
+                    </div>
+                    <app-row-actions-menu
+                      [items]="getRowActions(lead)"
+                      ariaLabel="Card actions"
+                      (click)="$event.stopPropagation()"
+                    />
                   </div>
-                }
-                @if (lead.email) {
-                  <div class="pipeline-card-email">
-                    <app-copy-email [email]="lead.email" [muted]="true" [block]="true" />
-                  </div>
-                }
-                <div class="pipeline-card-touch">
-                  <span [class.pipeline-flag-warn]="isStaleLead(lead)">{{ lastContactLabel(lead.lastContactDate) }}</span>
-                  @if (isStaleLead(lead)) { <span class="pipeline-flag pipeline-flag-warn">Stale</span> }
-                  @if (isOverdueLead(lead)) { <span class="pipeline-flag pipeline-flag-danger">Overdue</span> }
-                </div>
-                @if (lead.nextAction) {
+                  @if (lead.primaryContact) {
+                    <div class="pipeline-card-contact">
+                      {{ lead.primaryContact }}
+                      @if (lead.contactRole) { · {{ lead.contactRole }} }
+                    </div>
+                  }
+                  @if (lead.email) {
+                    <div class="pipeline-card-email">
+                      <app-copy-email [email]="lead.email" [muted]="true" [block]="true" />
+                    </div>
+                  }
                   <div class="pipeline-card-next-wrap">
                     <hr class="pipeline-card-divider" />
-                    <div class="pipeline-card-next">{{ lead.nextAction }}</div>
+                    @if (lead.nextAction) {
+                      <div class="pipeline-card-next">{{ lead.nextAction }}</div>
+                    } @else {
+                      <div class="pipeline-card-next-empty">No next step</div>
+                    }
+                    <div class="pipeline-card-touch">
+                      @if (lead.nextActionDate) {
+                        @if (isOverdueLead(lead)) {
+                          <span class="pipeline-flag pipeline-flag-danger">Overdue · {{ formatDate(lead.nextActionDate) }}</span>
+                        } @else {
+                          <span>Due {{ formatDate(lead.nextActionDate) }}</span>
+                        }
+                      }
+                      <span>Last contact: {{ lastContactLabel(lead.lastContactDate) }}</span>
+                    </div>
                   </div>
-                }
-              </div>
+                </div>
               }
 
-              @if (leadsForStage(stage.key).length === 0) {
-                <div class="pipeline-empty">Drop leads here</div>
+              @if (leadsForLane(lane.id).length === 0) {
+                <div class="pipeline-empty">Drop cards here</div>
               }
             </div>
           </div>
         }
+
+        <div class="pipeline-col pipeline-col-add">
+          @if (addingLane()) {
+            <input
+              pInputText
+              class="w-full mb-2"
+              placeholder="Lane name"
+              [(ngModel)]="newLaneName"
+              (keydown.enter)="addLane()"
+              (keydown.escape)="addingLane.set(false)"
+              aria-label="New lane name"
+              appAutofocus
+            />
+            <div class="flex gap-2">
+              <p-button label="Add" size="small" [loading]="busy()" [disabled]="!newLaneName.trim()" (onClick)="addLane()" />
+              <p-button label="Cancel" size="small" severity="secondary" [text]="true" (onClick)="addingLane.set(false)" />
+            </div>
+          } @else {
+            <p-button label="Add lane" icon="pi pi-plus" severity="secondary" [text]="true" (onClick)="addingLane.set(true)" />
+          }
+        </div>
       </div>
+    } @else {
+      <p-table [value]="filteredLeads()" styleClass="table-bordered" sortField="organization" [sortOrder]="1">
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width: 3rem"></th>
+            <th pSortableColumn="organization">Organization <p-sortIcon field="organization" /></th>
+            <th>Contact</th>
+            <th>Lane</th>
+            <th pSortableColumn="archivedAt">Archived <p-sortIcon field="archivedAt" /></th>
+            <th></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-lead>
+          <tr>
+            <td><app-row-actions-menu [items]="getRowActions(lead)" ariaLabel="Card actions" /></td>
+            <td><a [routerLink]="['/pipeline', lead.id]" class="text-primary">{{ lead.organization }}</a></td>
+            <td>{{ lead.primaryContact }}</td>
+            <td>{{ laneNames().get(lead.stageId) ?? '' }}</td>
+            <td>{{ lead.archivedAt ? formatDate(lead.archivedAt) : '' }}</td>
+            <td><p-button label="Restore" icon="pi pi-replay" size="small" severity="secondary" (onClick)="restore(lead)" /></td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="6" class="text-center p-4 text-color-secondary">Nothing archived in this pipeline.</td></tr>
+        </ng-template>
+      </p-table>
     }
   </div>
 </app-page>
+
+<p-dialog
+  header="Remove lane"
+  [visible]="!!removingLane()"
+  (visibleChange)="!$event && removingLane.set(null)"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+>
+  @if (removingLane(); as lane) {
+    <p class="mb-3">Remove <strong>{{ lane.name }}</strong> from this pipeline?</p>
+    @if (removeNeedsTarget()) {
+      <div class="form-field">
+        <label for="moveTo">Move its cards (archived ones too) to</label>
+        <p-select
+          inputId="moveTo"
+          [options]="otherLanes(lane)"
+          optionLabel="name"
+          optionValue="id"
+          [(ngModel)]="removeMoveTo"
+          styleClass="w-full"
+        />
+      </div>
+    }
+  }
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" severity="secondary" (onClick)="removingLane.set(null)" />
+    <p-button
+      label="Remove lane"
+      icon="pi pi-trash"
+      severity="danger"
+      [loading]="busy()"
+      [disabled]="removeNeedsTarget() && !removeMoveTo"
+      (onClick)="confirmRemoveLane()"
+    />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [header]="nameDialog()?.mode === 'new' ? 'New pipeline' : 'Rename pipeline'"
+  [visible]="!!nameDialog()"
+  (visibleChange)="!$event && nameDialog.set(null)"
+  [modal]="true"
+  [style]="{ width: '400px' }"
+>
+  @if (nameDialog(); as dlg) {
+    <div class="form-field">
+      <label for="pipelineName">Name</label>
+      <input
+        pInputText
+        id="pipelineName"
+        class="w-full"
+        [ngModel]="dlg.value"
+        (ngModelChange)="setNameDraft($event)"
+        (keydown.enter)="saveNameDialog()"
+        appAutofocus
+      />
+      @if (dlg.mode === 'new') {
+        <small class="text-muted">Starts with New Lead, Discovery, Proposal Sent and On Hold. Change them on the board.</small>
+      }
+    </div>
+  }
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" severity="secondary" (onClick)="nameDialog.set(null)" />
+    <p-button label="Save" icon="pi pi-check" [loading]="busy()" [disabled]="!nameDialog()?.value?.trim()" (onClick)="saveNameDialog()" />
+  </ng-template>
+</p-dialog>

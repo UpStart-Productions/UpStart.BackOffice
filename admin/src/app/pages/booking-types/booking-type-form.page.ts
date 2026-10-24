@@ -10,6 +10,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { PipelinesApi } from '../../core/pipelines.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 
@@ -28,6 +29,7 @@ type BookingTypeDto = {
   calendarEventTitle: string;
   createLead: boolean;
   leadStage: string;
+  leadStageId?: string | null;
   leadSource: string;
   pipelineNoteTitle: string | null;
   priceCents: number | null;
@@ -50,14 +52,6 @@ type DayRow = {
 
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const LEAD_STAGES = [
-  'NEW_LEAD',
-  'DISCOVERY',
-  'PROPOSAL_SENT',
-  'ACTIVE_CLIENT',
-  'PAST_CLIENT',
-  'ON_HOLD',
-];
 
 const LEAD_SOURCES = [
   'WARM_OUTREACH',
@@ -110,7 +104,9 @@ export class BookingTypeFormPage implements OnInit {
   bookingCount = signal(0);
   hostOptions = signal<HostOption[]>([]);
 
-  readonly leadStages = LEAD_STAGES;
+  private readonly pipelinesApi = inject(PipelinesApi);
+  /** Lanes a booking can put the lead in, labeled by pipeline when there is more than one. */
+  laneOptions = signal<{ label: string; value: string }[]>([]);
   readonly leadSources = LEAD_SOURCES;
   readonly timezoneOptions = TIMEZONE_OPTIONS;
 
@@ -127,7 +123,7 @@ export class BookingTypeFormPage implements OnInit {
     publicPageUrl: '',
     calendarEventTitle: '',
     createLead: true,
-    leadStage: 'DISCOVERY',
+    leadStageId: null as string | null,
     leadSource: 'INBOUND',
     pipelineNoteTitle: '',
     priceDollars: null as number | null,
@@ -149,11 +145,23 @@ export class BookingTypeFormPage implements OnInit {
     if (paramId && paramId !== 'new') {
       this.id.set(paramId);
     }
-    await this.loadHosts();
+    await Promise.all([this.loadHosts(), this.loadLanes()]);
     if (this.id()) {
       await this.load();
     } else {
       this.loading.set(false);
+    }
+  }
+
+  private async loadLanes() {
+    try {
+      const pipelines = await this.pipelinesApi.list();
+      const many = pipelines.length > 1;
+      this.laneOptions.set(
+        pipelines.flatMap((p) => p.stages.map((s) => ({ label: many ? `${p.name} · ${s.name}` : s.name, value: s.id }))),
+      );
+    } catch {
+      this.laneOptions.set([]);
     }
   }
 
@@ -201,7 +209,7 @@ export class BookingTypeFormPage implements OnInit {
       publicPageUrl: data.publicPageUrl,
       calendarEventTitle: data.calendarEventTitle,
       createLead: data.createLead,
-      leadStage: data.leadStage,
+      leadStageId: data.leadStageId ?? null,
       leadSource: data.leadSource,
       pipelineNoteTitle: data.pipelineNoteTitle ?? '',
       priceDollars:

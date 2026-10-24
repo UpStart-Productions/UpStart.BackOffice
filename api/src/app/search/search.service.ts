@@ -150,6 +150,7 @@ export class SearchService {
           primaryContact: true,
           email: true,
           stage: true,
+          pipelineStage: { select: { name: true } },
         },
         orderBy: { organization: 'asc' },
         take: RESULT_LIMIT,
@@ -210,7 +211,7 @@ export class SearchService {
           id: lead.id,
           label: lead.organization,
           detail: joinDetail([lead.primaryContact, lead.email]),
-          meta: leadStageLabel(lead.stage),
+          meta: lead.pipelineStage?.name ?? leadStageLabel(lead.stage),
         })),
       });
     }
