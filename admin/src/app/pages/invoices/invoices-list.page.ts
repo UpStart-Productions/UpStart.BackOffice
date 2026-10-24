@@ -31,7 +31,11 @@ type Invoice = {
   issueDate: string;
   dueDate?: string | null;
   total: number;
-  client: { id: string; name: string };
+  billTo?: 'CLIENT' | 'TENANT';
+  billToName?: string | null;
+  /** Null when the invoice is billed to the organization. */
+  client: { id: string; name: string } | null;
+  createdBy?: { id: string; firstName?: string | null; lastName?: string | null; email: string } | null;
 };
 
 @Component({
@@ -130,10 +134,20 @@ export class InvoicesListPage implements OnInit {
     }
   }
 
+  billToLabel(inv: Invoice): string {
+    return inv.billToName || inv.client?.name || '';
+  }
+
+  createdByLabel(inv: Invoice): string {
+    const u = inv.createdBy;
+    return u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email : '';
+  }
+
   private invoiceMatchesSearch(invoice: Invoice, q: string): boolean {
     const haystack = [
       invoice.displayNumber,
-      invoice.client.name,
+      this.billToLabel(invoice),
+      this.createdByLabel(invoice),
       invoice.status,
       invoice.issueDate,
       invoice.dueDate,
@@ -175,14 +189,14 @@ export class InvoicesListPage implements OnInit {
     if (invoice.status === 'DRAFT') {
       actions.push({
         id: 'send',
-        label: 'Send to client',
+        label: 'Send',
         icon: 'pi pi-send',
         command: () => this.send(invoice, false),
       });
     } else if (invoice.status === 'SENT' || invoice.status === 'PAID') {
       actions.push({
         id: 'resend',
-        label: 'Resend to client',
+        label: 'Resend',
         icon: 'pi pi-replay',
         command: () => this.send(invoice, true),
       });

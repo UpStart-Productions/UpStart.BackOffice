@@ -13,7 +13,8 @@ type Invoice = {
   dueDate?: string;
   number?: number;
   total: number;
-  client: { id: string; name: string };
+  billToName?: string | null;
+  client: { id: string; name: string } | null;
 };
 
 @Component({
@@ -53,7 +54,7 @@ type Invoice = {
               class="dashboard-list-link"
             >
               <span class="dashboard-list-title">{{ inv.displayNumber }}</span>
-              <span class="text-muted">{{ inv.client.name }}</span>
+              <span class="text-muted">{{ inv.billToName || inv.client?.name }}</span>
             </a>
             <div class="dashboard-list-right">
               <span class="dashboard-list-amount">{{ formatAmount(inv.total) }}</span>

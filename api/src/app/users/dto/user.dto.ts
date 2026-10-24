@@ -1,7 +1,7 @@
 import { Allow, IsBoolean, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
 
-const USER_ROLES = ['ADMIN', 'MEMBER'] as const;
+const USER_ROLES = ['ADMIN', 'USER'] as const;
 
 const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
 
@@ -33,7 +33,7 @@ export class CreateUserDto {
   @IsIn(USER_ROLES)
   role!: (typeof USER_ROLES)[number];
 
-  /** Required for staff (MEMBER): the tenant role that decides what they can use. Ignored for admins. */
+  /** Required for USER accounts: the tenant role that decides what they can use. Ignored for admins. */
   @IsOptional()
   @IsString()
   roleId?: string;

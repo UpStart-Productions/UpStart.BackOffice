@@ -10,6 +10,8 @@ export type OrganizationProfileDto = {
   state: string;
   zip: string;
   phone: string;
+  /** Where invoices billed to the organization are sent by default. */
+  billingEmail: string;
 };
 
 @Injectable()
@@ -30,6 +32,7 @@ export class OrganizationProfileService {
       state: trimToNull(dto.state),
       zip: trimToNull(dto.zip),
       phone: trimToNull(dto.phone),
+      billingEmail: trimToNull(dto.billingEmail),
     };
     const row = await this.prisma.organizationProfile.upsert({
       where: { tenantId: currentTenantId() },
@@ -45,6 +48,7 @@ export class OrganizationProfileService {
     state: string | null;
     zip: string | null;
     phone: string | null;
+    billingEmail: string | null;
   } | null): OrganizationProfileDto {
     return {
       address: row?.address ?? '',
@@ -52,6 +56,7 @@ export class OrganizationProfileService {
       state: row?.state ?? '',
       zip: row?.zip ?? '',
       phone: row?.phone ?? '',
+      billingEmail: row?.billingEmail ?? '',
     };
   }
 }

@@ -4,9 +4,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { ServiceKeyService } from './service-key.service';
+import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 class CreateServiceKeyDto {
   @IsString() @IsNotEmpty() name!: string;
@@ -14,7 +13,8 @@ class CreateServiceKeyDto {
 
 @ApiTags('service-keys')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, RequireAdminGuard)
+@UseGuards(AccessGuard)
+@AdminOnly()
 @Controller('service-keys')
 export class ServiceKeysController {
   constructor(private readonly keys: ServiceKeyService) {}

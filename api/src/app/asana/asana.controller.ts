@@ -14,11 +14,10 @@ import {
 import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { AsanaService } from './asana.service';
 import { UpdateAsanaConfigDto } from './dto/update-asana-config.dto';
+import { AccessGuard, Area, AdminOnly } from '../access/access.guard';
 
 function adminAppUrl(): string {
   const explicit = process.env.ADMIN_APP_URL?.trim();
@@ -38,28 +37,32 @@ export class AsanaController {
 
   @Get('status')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard)
+  @UseGuards(AccessGuard)
+  @Area('projects', 'time')
   status() {
     return this.asana.getStatus();
   }
 
   @Get('config')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   config() {
     return this.asana.getConfig();
   }
 
   @Put('config')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   saveConfig(@Body() dto: UpdateAsanaConfigDto) {
     return this.asana.saveConfig(dto);
   }
 
   @Post('connect')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   async connect(@Req() req: Request) {
     const user = req.user as UserContext;
     return this.asana.startConnect(user.email);
@@ -87,7 +90,8 @@ export class AsanaController {
 
   @Delete('disconnect')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   async disconnect() {
     await this.asana.disconnect();
     return { disconnected: true };
@@ -95,21 +99,24 @@ export class AsanaController {
 
   @Get('projects')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard)
+  @UseGuards(AccessGuard)
+  @Area('projects', 'time')
   listProjects() {
     return this.asana.listProjects();
   }
 
   @Get('projects/:projectGid/sections')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard)
+  @UseGuards(AccessGuard)
+  @Area('projects', 'time')
   listSections(@Param('projectGid') projectGid: string) {
     return this.asana.listSections(projectGid);
   }
 
   @Get('tasks/:taskGid/notes')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard)
+  @UseGuards(AccessGuard)
+  @Area('projects', 'time')
   async taskNotes(@Param('taskGid') taskGid: string) {
     return this.asana.getTaskNotes(taskGid);
   }

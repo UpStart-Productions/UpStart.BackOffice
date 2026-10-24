@@ -7,7 +7,10 @@
   <div class="card">
     <h2 class="page-title page-title-in-card">Expenses</h2>
     <div class="toolbar">
-      <button type="button" pButton label="New Expense" icon="pi pi-plus" (click)="openNew()"></button>
+      <div class="toolbar-start">
+        <button type="button" pButton label="New Expense" icon="pi pi-plus" (click)="openNew()"></button>
+        <span class="expenses-total">Total: <strong>${{ totalAmount().toFixed(2) }}</strong></span>
+      </div>
       <div class="toolbar-search">
         <p-iconfield iconPosition="left" class="toolbar-search-field">
           <p-inputicon><i class="pi pi-search"></i></p-inputicon>
@@ -24,7 +27,6 @@
           <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
         }
       </div>
-      <span class="expenses-total">Total: <strong>${{ totalAmount().toFixed(2) }}</strong></span>
     </div>
 
     <p-table [value]="filteredExpenses()" [loading]="loading()" sortField="incurredAt" [sortOrder]="-1" styleClass="table-bordered">

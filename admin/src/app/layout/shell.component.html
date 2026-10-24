@@ -6,11 +6,7 @@
   <div class="impersonation-banner" role="status">Viewing as {{ auth.impersonatedName }}. Changes you make are saved as this user.</div>
 }
 <div class="layout-wrapper" [ngClass]="containerClass()">
-  <app-topbar
-    [userName]="displayName"
-    [avatarUrl]="session.me()?.avatarUrl"
-    (signOut)="signOut()"
-  />
+  <app-topbar />
   <app-sidebar [navItems]="navItems()" [compact]="taskMode()" />
   @if (taskMode()) {
     <app-tm-sidebar class="layout-tm-sidebar" />

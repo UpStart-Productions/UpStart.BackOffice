@@ -337,7 +337,7 @@
 
 <p-popover #projectMenu appendTo="body" styleClass="tm-popover">
   <div class="tm-menu">
-    @if (project()?.permissions?.isStaff) {
+    @if (project()?.permissions?.seesAllProjects) {
       <a class="tm-picker-item" [routerLink]="['/projects', projectId()]"><i class="pi pi-external-link"></i> Open in Projects</a>
     }
     <button type="button" class="tm-picker-item" (click)="membersOpen.set(true); projectMenu.hide()"><i class="pi pi-users"></i> Members</button>

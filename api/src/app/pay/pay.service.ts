@@ -30,6 +30,7 @@ import { formatReceiptDate, resolveReceiptPayer } from './pay-receipt.util';
 import { StripeService } from './stripe.service';
 
 type InvoiceForPay = Pick<Invoice, 'id' | 'displayNumber' | 'status' | 'total'> & {
+  billTo?: Invoice['billTo'];
   client?: { email?: string | null } | null;
 };
 
@@ -198,6 +199,8 @@ export class PayService {
 
   async getOrCreateForInvoice(invoice: InvoiceForPay): Promise<Payable | null> {
     if (!this.isConfigured()) return null;
+    // Invoices billed to the tenant are paid by the tenant, not through a pay link.
+    if (invoice.billTo === 'TENANT') return null;
     if (invoice.status === 'VOID' || invoice.status === 'PAID') {
       return this.prisma.payable.findUnique({ where: { invoiceId: invoice.id } });
     }

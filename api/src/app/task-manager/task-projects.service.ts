@@ -2,7 +2,6 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { InvitesService } from '../invites/invites.service';
 import { isValidEmail, normalizeEmail } from '../invites/invite-token.util';
 import { Prisma, ProjectMemberRole } from '@prisma/client';
-import { isStaffRole } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,6 +20,8 @@ import { normalizeOptions } from './task-fields.util';
 import { person, toField } from './task-mappers';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
 import { personName, personSelect } from './task-people.util';
+import { usersWithArea, AccessService } from '../access/access.service';
+import { GUEST_ROLE } from '@upstart/back-office/shared';
 
 export const DEFAULT_SECTIONS = ['To do', 'Doing', 'Done'];
 export const PROJECT_COLORS = ['#7c3aed', '#2563eb', '#0891b2', '#059669', '#65a30d', '#d97706', '#ea580c', '#dc2626', '#db2777', '#64748b'];
@@ -32,6 +33,7 @@ export class TaskProjectsService {
     private readonly access: TaskAccessService,
     private readonly delivery: NotificationDeliveryService,
     private readonly invites: InvitesService,
+    private readonly roles: AccessService,
   ) {}
 
   // ── Projects ──────────────────────────────────────────────────────────────
@@ -110,13 +112,13 @@ export class TaskProjectsService {
       })),
       customFields: project.customFields.map(toField),
       members: project.members.map((m) => ({ ...person(m.user), memberRole: m.role, invitePending: pending.has(m.userId) })),
-      permissions: { canEdit, canComment, canManage, isStaff: isStaffRole(user.role) },
+      permissions: { canEdit, canComment, canManage, seesAllProjects: this.access.seesAllProjects(user) },
     };
   }
 
-  /** Active projects (from the Projects page) not yet added to Tasks. Staff only. */
+  /** Active projects (from the Projects page) not yet added to Tasks. Only for people who see every project. */
   async available(user: UserContext) {
-    if (!isStaffRole(user.role)) return [];
+    if (!this.access.seesAllProjects(user)) return [];
     return this.prisma.project.findMany({
       where: { inTaskManager: false, isActive: true },
       select: { id: true, name: true, client: { select: { id: true, name: true } } },
@@ -129,7 +131,7 @@ export class TaskProjectsService {
    * Tasks never creates them. First add seeds default sections and makes the adder owner.
    */
   async addToTaskManager(user: UserContext, projectId: string, color?: string | null, icon?: string | null) {
-    if (!isStaffRole(user.role)) throw new BadRequestException('Only staff can add projects to Tasks');
+    if (!this.access.seesAllProjects(user)) throw new BadRequestException('You do not have permission to add projects to Tasks');
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       select: { id: true, color: true, _count: { select: { sections: true, members: true } } },
@@ -230,7 +232,7 @@ export class TaskProjectsService {
   }
 
   /**
-   * Share by email. Existing staff/guests are added directly; unknown emails become GUEST users
+   * Share by email. Existing users are added directly; unknown emails become users on the Guest role
    * and get a branded invite email with a set-password link.
    */
   async invite(user: UserContext, projectId: string, dto: InviteMemberDto) {
@@ -242,7 +244,7 @@ export class TaskProjectsService {
 
     let target = await this.prisma.user.findFirst({
       where: { email: { equals: email, mode: 'insensitive' } },
-      select: { id: true, email: true, firstName: true, role: true, isActive: true },
+      select: { id: true, email: true, firstName: true, role: true, isActive: true, tenantRole: { select: { key: true } } },
     });
     if (target?.role === 'CLIENT') throw new BadRequestException('That email belongs to a client portal user and cannot be shared on Tasks');
     if (target && !target.isActive) throw new BadRequestException('That account is deactivated. Reactivate it on the Users page first.');
@@ -254,14 +256,14 @@ export class TaskProjectsService {
       if (existing) throw new ConflictException(`${target.email} is already on this project`);
     } else {
       target = await this.prisma.user.create({
-        data: { email, role: 'GUEST' },
-        select: { id: true, email: true, firstName: true, role: true, isActive: true },
+        data: { email, role: 'USER', roleId: await this.roles.guestRoleId() },
+        select: { id: true, email: true, firstName: true, role: true, isActive: true, tenantRole: { select: { key: true } } },
       });
     }
 
     await this.prisma.projectMember.create({ data: { projectId, userId: target.id, role } });
 
-    const neverSignedIn = target.role === 'GUEST' && (await this.needsInvite(target.id));
+    const neverSignedIn = target.tenantRole?.key === GUEST_ROLE.key && (await this.needsInvite(target.id));
     let invited = false;
     let emailed = false;
     if (neverSignedIn) {
@@ -299,7 +301,7 @@ export class TaskProjectsService {
     return { resent: true, emailed: result.emailed };
   }
 
-  /** A guest who has never accepted an invite (brand new, or invited before but not accepted). */
+  /** Someone who has never accepted an invite (brand new, or invited before but not accepted). */
   private async needsInvite(userId: string): Promise<boolean> {
     const accepted = await this.prisma.userInvite.count({ where: { userId, acceptedAt: { not: null } } });
     return accepted === 0;
@@ -319,17 +321,17 @@ export class TaskProjectsService {
     return { removed: true };
   }
 
-  /** People who can be assigned / @mentioned in a project: staff + project members. */
+  /** People who can be assigned / @mentioned in a project: those who see every project, plus its members. */
   async people(user: UserContext, projectId?: string) {
     if (projectId) await this.access.assertProject(user, projectId, 'view');
     const where: Prisma.UserWhereInput = projectId
       ? {
           isActive: true,
-          OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { projectMemberships: { some: { projectId } } }],
+          OR: [usersWithArea('tasks', 'all'), { projectMemberships: { some: { projectId } } }],
         }
-      : isStaffRole(user.role)
-        ? { isActive: true, role: { in: ['ADMIN', 'MEMBER', 'GUEST'] } }
-        : { isActive: true, OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { id: user.id }] };
+      : this.access.seesAllProjects(user)
+        ? { isActive: true, role: { in: ['ADMIN', 'USER'] } }
+        : { isActive: true, OR: [usersWithArea('tasks', 'all'), { id: user.id }] };
     const users = await this.prisma.user.findMany({ where, select: personSelect, orderBy: [{ firstName: 'asc' }, { email: 'asc' }] });
     return users.map(person);
   }

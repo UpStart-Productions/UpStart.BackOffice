@@ -6,12 +6,11 @@ datasource db {
   provider = "postgresql"
 }
 
+/// ADMIN can do everything. USER can do what their tenant Role grants. CLIENT is a client portal login (never the back office).
 enum UserRole {
   ADMIN
-  MEMBER
+  USER
   CLIENT
-  /// External collaborator: sees only Task Manager projects they are a member of.
-  GUEST
 }
 
 enum ProjectMemberRole {
@@ -32,6 +31,12 @@ enum TaskCustomFieldType {
 enum TaskCommentKind {
   COMMENT
   SYSTEM
+}
+
+/// Who the invoice is addressed to. CLIENT: the tenant billing a client (revenue). TENANT: a user billing the tenant (a bill the tenant owes).
+enum InvoiceBillTo {
+  CLIENT
+  TENANT
 }
 
 enum InvoiceStatus {
@@ -141,6 +146,8 @@ model Role {
   tenantId    String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   name        String
+  /// Built-in role marker, e.g. "guest" (given to people invited to a Task Manager project). Null for roles admins create.
+  key         String?
   /// Area -> level, e.g. { "time": "own", "clients": "all" }. Missing area = no access. See libs/shared permissions.ts.
   permissions Json     @default("{}")
   createdAt   DateTime @default(now())
@@ -149,6 +156,7 @@ model Role {
   users User[]
 
   @@unique([tenantId, name])
+  @@unique([tenantId, key])
   @@index([tenantId])
 }
 
@@ -163,8 +171,8 @@ model User {
   lastName   String?
   name       String?
   avatarUrl  String?
-  role       UserRole @default(MEMBER)
-  /// For staff (MEMBER) users: which areas they can use. Null for admins, who can do everything.
+  role       UserRole @default(USER)
+  /// For USER accounts: the tenant role that decides which areas they can use. Null for admins, who can do everything.
   roleId     String?
   tenantRole Role?    @relation(fields: [roleId], references: [id])
   hourlyRate Decimal? @db.Decimal(10, 2)
@@ -226,6 +234,7 @@ model Client {
 
   projects          Project[]
   invoices          Invoice[]
+  timeEntries       TimeEntry[]
   artifacts         Artifact[]
   users             User[]
   convertedFromLead Lead?
@@ -501,6 +510,8 @@ model OrganizationProfile {
   state     String?
   zip       String?
   phone     String?
+  /// Where invoices billed to the tenant are sent by default.
+  billingEmail String?
   updatedAt DateTime @updatedAt
 }
 
@@ -509,7 +520,10 @@ model TimeEntry {
   tenantId          String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant            Tenant    @relation(fields: [tenantId], references: [id])
   userId            String
-  projectId         String
+  /// Optional: time can be logged without a project (e.g. a caregiver's shift).
+  projectId         String?
+  /// The client this time is for: the project's client when there is a project, else picked directly. Optional.
+  clientId          String?
   projectTaskId     String?
   /// Optional link to a Task Manager task.
   taskId            String?
@@ -524,13 +538,15 @@ model TimeEntry {
   updatedAt         DateTime  @updatedAt
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project         Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client          Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
   projectTask     ProjectTask?     @relation(fields: [projectTaskId], references: [id], onDelete: SetNull)
   task            Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
   invoiceLineItem InvoiceLineItem? @relation(fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([projectId])
+  @@index([clientId])
   @@index([projectTaskId])
   @@index([taskId])
   @@index([invoiceLineItemId])
@@ -574,7 +590,13 @@ model Invoice {
   id            String        @id @default(cuid())
   tenantId      String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant        Tenant        @relation(fields: [tenantId], references: [id])
-  clientId      String
+  billTo        InvoiceBillTo @default(CLIENT)
+  /// Set when billTo = CLIENT; null when billing the tenant.
+  clientId      String?
+  /// Bill-to snapshot printed on the invoice and used to send it. Filled from the client or the tenant, editable.
+  billToName    String?
+  billToEmail   String?
+  billToAddress String?       @db.Text
   /// Who created it; null for invoices that predate this. Used by roles limited to their own invoices.
   createdById   String?
   createdBy     User?         @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -594,7 +616,7 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client?           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   lineItems      InvoiceLineItem[]
   journalEntries JournalEntry[]
   payable        Payable?

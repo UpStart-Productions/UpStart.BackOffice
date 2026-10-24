@@ -24,8 +24,10 @@ import {
             Timer running
           </div>
           <div class="time-running-project">
-            {{ running.project.name }}
-            <span class="text-muted">({{ (running.project.client?.name ?? 'Personal') }})</span>
+            {{ running.project?.name ?? running.client?.name ?? 'No project' }}
+            @if (running.project) {
+              <span class="text-muted">({{ running.project.client?.name ?? 'Personal' }})</span>
+            }
           </div>
           <div class="time-running-elapsed">{{ elapsedLabel() }}</div>
         </div>
@@ -47,8 +49,8 @@ import {
           @for (entry of todayEntries(); track entry.id) {
             <li class="dashboard-list-item">
               <div class="dashboard-list-main">
-                <span class="dashboard-list-title">{{ entry.project.name }}</span>
-                <span class="text-muted">{{ (entry.project.client?.name ?? 'Personal') }}</span>
+                <span class="dashboard-list-title">{{ entry.project?.name ?? 'No project' }}</span>
+                <span class="text-muted">{{ entry.project ? (entry.project.client?.name ?? 'Personal') : (entry.client?.name ?? '') }}</span>
               </div>
               <span class="dashboard-list-meta">{{ entryDuration(entry) }}</span>
             </li>

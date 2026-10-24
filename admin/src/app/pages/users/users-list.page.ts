@@ -13,6 +13,7 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
@@ -120,6 +121,21 @@ export class UsersListPage {
   }
 
   roleLabel = roleLabel;
+
+  userAvatar(user: UserRow): string | null {
+    return resolveAssetUrl(user.avatarUrl ?? null);
+  }
+
+  userInitials(user: UserRow): string {
+    const first = user.firstName?.trim().charAt(0) ?? '';
+    const last = user.lastName?.trim().charAt(0) ?? '';
+    if (first || last) return (first + last).toUpperCase();
+    const parts = (user.name ?? '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length) {
+      return ((parts[0]?.charAt(0) ?? '') + (parts[1]?.charAt(0) ?? '')).toUpperCase() || '?';
+    }
+    return user.email.charAt(0).toUpperCase() || '?';
+  }
 
   async load() {
     this.loading.set(true);

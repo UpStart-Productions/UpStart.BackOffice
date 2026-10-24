@@ -13,8 +13,8 @@ export function toPortalClientView(client: Pick<Client, 'id' | 'name' | 'code' |
   };
 }
 
-/** Staff-facing client record including portal link (never expose raw token separately). */
-export function toStaffClientView(
+/** Back-office client record including portal link (never expose raw token separately). */
+export function toClientView(
   client: Pick<
     Client,
     | 'id'

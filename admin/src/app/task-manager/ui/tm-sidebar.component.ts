@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { isStaffRole } from '@upstart/back-office/shared';
+import { areaLevel } from '@upstart/back-office/shared';
 import { SessionService } from '../../core/session.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmProject, TmProjectListItem } from '../core/tm.types';
@@ -98,7 +98,7 @@ export class TmSidebarComponent implements OnInit, OnDestroy {
   projectsOpen = signal(true);
   addOpen = signal(false);
 
-  canCreate = computed(() => isStaffRole(this.session.me()?.role ?? 'GUEST'));
+  canCreate = computed(() => areaLevel(this.session.me(), 'tasks') === 'all');
   sortedProjects = computed<TmProjectListItem[]>(() =>
     [...this.store.projects()].sort((a, b) => a.name.localeCompare(b.name)),
   );

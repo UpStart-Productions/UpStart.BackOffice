@@ -1,5 +1,19 @@
+:root {
+  --global-search-panel-width: min(26.25rem, 40vw);
+}
+
+@media (max-width: 991px) {
+  :root {
+    --global-search-panel-width: min(18rem, calc(100vw - 8rem));
+  }
+}
+
 // Panel is appendTo="body", so these styles must be global.
 .p-autocomplete-overlay.global-search-panel {
+  width: var(--global-search-panel-width) !important;
+  min-width: var(--global-search-panel-width) !important;
+  max-width: var(--global-search-panel-width) !important;
+  box-sizing: border-box;
   overflow: visible !important;
 
   .p-autocomplete-list-container {
@@ -44,6 +58,34 @@
     white-space: normal;
     height: auto;
     align-items: flex-start;
+    transition: background-color 0.15s ease;
+
+    &:not(.p-autocomplete-option-selected):hover,
+    &.p-focus,
+    &[data-p-focused='true'] {
+      background: color-mix(in srgb, var(--text-color) 4%, var(--surface-card)) !important;
+    }
+  }
+
+  .global-search-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    white-space: normal;
+    line-height: 1.35;
+    padding: 0.125rem 0;
+    width: 100%;
+  }
+
+  .global-search-item-label {
+    font-weight: 500;
+    min-width: 0;
+  }
+
+  .global-search-item-detail,
+  .global-search-item-meta {
+    font-size: 0.8125rem;
+    color: var(--text-color-secondary);
   }
 
   .global-search-empty,

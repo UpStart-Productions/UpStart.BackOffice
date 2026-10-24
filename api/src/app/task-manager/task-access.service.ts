@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ProjectMemberRole } from '@prisma/client';
-import { isAdminRole, isStaffRole } from '@upstart/back-office/shared';
+import { isAdminRole } from '@upstart/back-office/shared';
+import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,20 +12,24 @@ const NEED_RANK: Record<ProjectPermission, number> = { view: 1, comment: 1, edit
 
 /**
  * Who can see what in the Task Manager.
- * - ADMIN / MEMBER (staff): every project, full edit. Only ADMIN or project OWNER can manage members/settings.
- * - GUEST: only projects where they have a ProjectMember row; permission from the member role.
+ * - Tasks at 'all' (and admins): every project, full edit. Only ADMIN or project OWNER can manage members/settings.
+ * - Tasks at 'own' (e.g. the Guest role): only projects where they have a ProjectMember row; permission from the member role.
  */
 @Injectable()
 export class TaskAccessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
-  isStaff(user: UserContext): boolean {
-    return isStaffRole(user.role);
+  /** Sees every Task Manager project (Tasks at 'all'). */
+  seesAllProjects(user: UserContext): boolean {
+    return this.access.level(user, 'tasks') === 'all';
   }
 
-  /** null = all projects (staff). */
+  /** null = all projects. */
   async visibleProjectIds(user: UserContext): Promise<string[] | null> {
-    if (this.isStaff(user)) return null;
+    if (this.seesAllProjects(user)) return null;
     const rows = await this.prisma.projectMember.findMany({
       where: { userId: user.id },
       select: { projectId: true },
@@ -43,8 +48,8 @@ export class TaskAccessService {
   async can(user: UserContext, projectId: string, need: ProjectPermission): Promise<boolean> {
     if (isAdminRole(user.role)) return true;
     const role = await this.projectRole(user, projectId);
-    if (this.isStaff(user)) {
-      // Staff can do everything except manage, which needs OWNER (or ADMIN above).
+    if (this.seesAllProjects(user)) {
+      // They can do everything except manage, which needs OWNER (or ADMIN above).
       return need !== 'manage' || role === 'OWNER';
     }
     if (!role) return false;
@@ -55,7 +60,7 @@ export class TaskAccessService {
     const exists = await this.prisma.project.findUnique({ where: { id: projectId }, select: { inTaskManager: true } });
     if (!exists || !exists.inTaskManager) throw new NotFoundException('Project not found in Tasks');
     if (!(await this.can(user, projectId, need))) {
-      // Hide existence from guests who aren't members.
+      // Hide existence from people who aren't members.
       if (need === 'view') throw new NotFoundException('Project not found');
       throw new ForbiddenException('You do not have permission to do that in this project');
     }

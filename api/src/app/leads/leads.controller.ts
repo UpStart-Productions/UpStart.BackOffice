@@ -4,18 +4,17 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LeadStage } from '@prisma/client';
-import { Area, AreaGuard } from '../access/area.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { moveLeadCommunicationsToClient } from '../communications/lead-conversion.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
+import { AccessGuard, Area } from '../access/access.guard';
 
 @ApiTags('leads')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('pipeline')
 @Controller('leads')
 export class LeadsController {

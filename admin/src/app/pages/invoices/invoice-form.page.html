@@ -35,7 +35,7 @@
                 (click)="downloadPdf()"
               />
               <p-button
-                label="Send to client"
+                label="Send"
                 icon="pi pi-send"
                 (click)="sendToClient()"
               />
@@ -45,7 +45,23 @@
 
         <div class="showcase-flex-col">
           <div class="form-field showcase-full">
-            <label for="clientId">Client <span class="required-dot" aria-hidden="true"></span></label>
+            <label for="billTo">Bill to</label>
+            <p-selectbutton
+              inputId="billTo"
+              [options]="billToOptions"
+              optionLabel="label"
+              optionValue="value"
+              [ngModel]="form.billTo"
+              (ngModelChange)="onBillToChange($event)"
+              [allowEmpty]="false"
+              [disabled]="isDraftEdit"
+            />
+          </div>
+          <div class="form-field showcase-full">
+            <label for="clientId">
+              Client
+              @if (!billingTenant) { <span class="required-dot" aria-hidden="true"></span> } @else { (optional, to pull only that client's time) }
+            </label>
             <p-select
               inputId="clientId"
               [options]="clients()"
@@ -54,11 +70,26 @@
               [(ngModel)]="form.clientId"
               (onChange)="onClientChange()"
               placeholder="Select client"
+              [showClear]="billingTenant"
               styleClass="w-full"
               appendTo="body"
               [disabled]="isDraftEdit"
             />
           </div>
+          @if (billingTenant || isDraftEdit) {
+            <div class="form-field showcase-full">
+              <label for="billToName">Bill-to name @if (billingTenant) { <span class="required-dot" aria-hidden="true"></span> }</label>
+              <input pInputText id="billToName" [(ngModel)]="form.billToName" class="w-full" />
+            </div>
+            <div class="form-field showcase-full">
+              <label for="billToEmail">Bill-to email</label>
+              <input pInputText id="billToEmail" type="email" [(ngModel)]="form.billToEmail" class="w-full" />
+            </div>
+            <div class="form-field showcase-full">
+              <label for="billToAddress">Bill-to address</label>
+              <textarea pTextarea id="billToAddress" rows="3" [(ngModel)]="form.billToAddress" class="w-full"></textarea>
+            </div>
+          }
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="issueDate">Issue Date</label>
@@ -114,8 +145,8 @@
                 optionLabel="name"
                 optionValue="id"
                 [(ngModel)]="generate.projectId"
-                [disabled]="!form.clientId"
-                placeholder="All projects for client"
+                [disabled]="!billingTenant && !form.clientId"
+                [placeholder]="form.clientId ? 'All projects for client' : 'All projects'"
                 [showClear]="true"
                 styleClass="w-full"
                 appendTo="body"

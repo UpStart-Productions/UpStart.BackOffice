@@ -1,13 +1,14 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { TaskManagerAuthGuard } from '../auth/task-manager-auth.guard';
 import { EmailPreferencesDto, ListNotificationsQueryDto, MarkReadDto } from './dto/notifications.dto';
 import { NotificationsService } from './notifications.service';
+import { AccessGuard, SignedIn } from '../access/access.guard';
 
 @ApiTags('notifications')
 @ApiBearerAuth()
-@UseGuards(TaskManagerAuthGuard)
+@UseGuards(AccessGuard)
+@SignedIn()
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}

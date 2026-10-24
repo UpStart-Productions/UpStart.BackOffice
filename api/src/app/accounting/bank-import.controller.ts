@@ -3,20 +3,20 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'crypto';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { SYSTEM_ACCOUNT_CODES } from './journal-posting.service';
 import { bankRowExternalId, normalizeDescription, parseBankCsv } from './bank-csv.util';
 import { CategorizeBankTransactionDto } from './dto/categorize-bank-transaction.dto';
 import { ImportBankTransactionsDto } from './dto/import-bank-transactions.dto';
 import { currentTenantId } from '../tenancy/tenant-context';
+import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 const accountSelect = { id: true, code: true, name: true } as const;
 
 @ApiTags('accounting')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, RequireAdminGuard)
+@UseGuards(AccessGuard)
+@AdminOnly()
 @Controller('accounting/bank')
 export class BankImportController {
   constructor(private readonly prisma: PrismaService) {}

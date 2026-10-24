@@ -6,7 +6,6 @@ import { filter, map } from 'rxjs';
 import { AppConfirmDialogModule } from '../core/app-dialog.module';
 import { ToastModule } from 'primeng/toast';
 import { AuthStoreService } from '../core/auth-store.service';
-import { CognitoAuthService } from '../core/cognito-auth.service';
 import { SessionService } from '../core/session.service';
 import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
@@ -14,7 +13,7 @@ import { AppTopbarComponent } from './app-topbar.component';
 import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialog.component';
 import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-paid-dialog.component';
 import { LayoutService } from './layout.service';
-import { isAdminRole, isGuestRole, type PermissionArea } from '@upstart/back-office/shared';
+import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
 
@@ -43,7 +42,6 @@ export function isTaskManagerUrl(url: string): boolean {
 })
 export class ShellComponent implements OnInit {
   protected readonly auth = inject(AuthStoreService);
-  private readonly cognito = inject(CognitoAuthService);
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly comms = inject(CommunicationsApi);
@@ -59,24 +57,25 @@ export class ShellComponent implements OnInit {
 
   /** Task Manager mode: main menu shrinks to an icon rail and the task sidebar takes over. */
   readonly taskMode = computed(() => isTaskManagerUrl(this.currentUrl()));
-  readonly isGuest = computed(() => isGuestRole(this.session.me()?.role ?? 'MEMBER'));
+  /** A Tasks-only role (like Guest): the menu is just Tasks. */
+  readonly isTasksOnly = computed(() => tasksOnly(this.session.me()));
+  readonly canInbox = computed(() => !!areaLevel(this.session.me(), 'inbox'));
 
   /** Keep the Inbox badge fresh: refresh the unfiled count after every navigation. */
   private readonly refreshInboxCount = effect(() => {
     this.currentUrl();
-    if (!this.isGuest()) void this.comms.refreshUnfiledCount();
+    if (this.canInbox()) void this.comms.refreshUnfiledCount();
   });
 
   navItems = computed<NavItem[]>(() => {
-    if (this.isGuest()) {
+    if (this.isTasksOnly()) {
       return [
         { label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
       ];
     }
     const me = this.session.me();
-    const admin = isAdminRole(me?.role ?? 'MEMBER');
-    // Admins see everything; staff see only the areas their tenant role grants (any level).
-    const can = (area: PermissionArea) => admin || !!me?.permissions?.[area];
+    // Admins see everything; other users see only the areas their tenant role grants (any level).
+    const can = (area: PermissionArea) => !!areaLevel(me, area);
     const section = (label: string, entries: Array<NavItem & { area: PermissionArea }>, badge?: number): NavItem[] => {
       const visible = entries.filter((e) => can(e.area)).map(({ area: _area, ...item }) => item);
       return visible.length ? [{ sectionLabel: label, ...(badge ? { badge } : {}) }, ...visible] : [];
@@ -102,7 +101,7 @@ export class ShellComponent implements OnInit {
       ]),
       ...section('Reports', [{ area: 'reports', label: 'Reports', icon: 'pi-chart-line', route: '/reports' }]),
     ];
-    if (admin) {
+    if (me?.role === 'ADMIN') {
       items.push({ sectionLabel: 'Accounting' });
       items.push({ label: 'Chart of Accounts', icon: 'pi-book', route: '/accounting/accounts' });
       items.push({ label: 'Journal', icon: 'pi-list', route: '/accounting/journal' });
@@ -130,20 +129,6 @@ export class ShellComponent implements OnInit {
 
   async ngOnInit() {
     await this.session.getReady();
-  }
-
-  get displayName(): string {
-    const m = this.session.me();
-    if (!m) return '';
-    if (m.firstName || m.lastName) return `${m.firstName ?? ''} ${m.lastName ?? ''}`.trim();
-    return m.email;
-  }
-
-  async signOut() {
-    this.auth.clear();
-    this.session.reset();
-    if (this.cognito.useCognito) await this.cognito.clearLocalSession();
-    await this.router.navigate(['/login']);
   }
 
   onMaskClick() {

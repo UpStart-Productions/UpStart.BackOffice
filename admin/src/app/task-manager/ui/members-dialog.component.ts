@@ -42,7 +42,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
           <p-message severity="error" [text]="error()!" styleClass="mt-2" />
         }
         <p class="tm-share-hint">
-          New people get an email to set a password and only see projects shared with them. Staff can always see every project.
+          New people get an email to set a password and only see projects shared with them. People whose role has Tasks at All can always see every project.
         </p>
       }
 
@@ -57,7 +57,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
               </strong>
               <span class="tm-muted">
                 @if (m.firstName || m.lastName) { {{ m.email }} }
-                @if (m.role === 'GUEST') { {{ m.firstName || m.lastName ? '·' : '' }} Guest }
+                @if (m.isGuest) { {{ m.firstName || m.lastName ? '·' : '' }} Guest }
                 @if (m.invitePending && project().permissions.canManage) {
                   · <button type="button" class="tm-link-btn" (click)="resend(m)" [disabled]="resending() === m.id">
                     {{ resending() === m.id ? 'Sending…' : 'Resend invite' }}
@@ -76,7 +76,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
             }
           </li>
         } @empty {
-          <li class="tm-muted">Nobody has been added yet — staff can still see this project.</li>
+          <li class="tm-muted">Nobody has been added yet — people with Tasks at All can still see this project.</li>
         }
       </ul>
 
@@ -179,7 +179,7 @@ export class TmMembersDialogComponent {
     try {
       await this.api.removeMember(this.project().id, m.id);
       this.store.invalidatePeople(this.project().id);
-      if (m.id === this.meId() && !this.project().permissions.isStaff) {
+      if (m.id === this.meId() && !this.project().permissions.seesAllProjects) {
         this.visible.set(false);
         await this.store.loadProjects();
         return;

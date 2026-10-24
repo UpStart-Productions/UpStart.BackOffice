@@ -6,16 +6,9 @@ import { ArtifactType, LeadStage } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutomationNoteDto } from './dto/automation-note.dto';
+import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 
-function adminBaseUrl(): string {
-  const fromAdmin = process.env.ADMIN_BASE_URL?.trim();
-  if (fromAdmin) return fromAdmin.replace(/\/$/, '');
-
-  const apiBase = process.env.API_BASE_URL?.trim();
-  if (apiBase) return apiBase.replace(/\/api\/?$/, '').replace(/\/$/, '');
-
-  return 'http://localhost:4201';
-}
+const adminBaseUrl = adminAppBaseUrl;
 
 /**
  * The admin NOTE editor (ngx-quill) renders artifact.content as raw HTML
@@ -40,7 +33,7 @@ function plainTextToQuillHtml(text: string): string {
  * Narrow, read/append-only endpoints for the weekly pipeline-outreach
  * automation (and similar service-to-service jobs). Guarded by
  * ServiceKeyGuard (x-api-key) — deliberately separate from the
- * StaffAuthGuard-protected CRUD in LeadsController so automation keys
+ * role-guarded CRUD in LeadsController so automation keys
  * can never edit/delete arbitrary lead fields or other resources.
  *
  * Registered BEFORE LeadsController in LeadsModule so that

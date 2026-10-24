@@ -4,16 +4,15 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AccessService } from '../access/access.service';
-import { Area, AreaGuard } from '../access/area.guard';
 import { UserContext } from '../common/app.types';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { generatePortalToken } from '../portal/portal-token.util';
-import { toStaffClientView } from '../portal/portal-client.util';
+import { toClientView } from '../portal/portal-client.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
+import { AccessGuard, Area } from '../access/access.guard';
 
 const clientSelect = {
   id: true,
@@ -38,7 +37,7 @@ const clientSelect = {
 
 @ApiTags('clients')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('clients')
 @Controller('clients')
 export class ClientsController {
@@ -82,6 +81,21 @@ export class ClientsController {
     return clients;
   }
 
+  /**
+   * Clients the user can reach, by name only: the picker for time, expenses and invoices,
+   * so roles without the Clients area can still choose one of their assigned clients.
+   */
+  @Get('lookup')
+  @Area('clients', 'time', 'expenses', 'invoices')
+  async lookup(@Req() req: Request) {
+    const ids = await this.access.clientIdFilter(req.user as UserContext);
+    return this.prisma.client.findMany({
+      where: { isActive: true, ...(ids ? { id: ids } : {}) },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   @Post()
   async create(@Body() dto: CreateClientDto, @Req() req: Request) {
     const client = await this.prisma.client.create({
@@ -106,7 +120,7 @@ export class ClientsController {
       await this.prisma.clientAssignment.create({ data: { clientId: client.id, userId: user.id } });
     }
     await this.storageFolders.ensureClientFolders(client.id);
-    return toStaffClientView(client);
+    return toClientView(client);
   }
 
   @Get(':id')
@@ -117,7 +131,7 @@ export class ClientsController {
       select: clientSelect,
     });
     if (!client) throw new NotFoundException('Client not found');
-    return toStaffClientView(client);
+    return toClientView(client);
   }
 
   @Put(':id')
@@ -142,7 +156,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return toStaffClientView(client);
+    return toClientView(client);
   }
 
   @Post(':id/portal/enable')
@@ -161,7 +175,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return toStaffClientView(client);
+    return toClientView(client);
   }
 
   @Post(':id/portal/disable')
@@ -175,7 +189,7 @@ export class ClientsController {
       data: { portalEnabled: false },
       select: clientSelect,
     });
-    return toStaffClientView(client);
+    return toClientView(client);
   }
 
   @Post(':id/portal/regenerate')
@@ -193,7 +207,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return toStaffClientView(client);
+    return toClientView(client);
   }
 
   @Delete(':id')

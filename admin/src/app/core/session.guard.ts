@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
-import { isAdminRole, isGuestRole, isStaffRole, type PermissionArea } from '@upstart/back-office/shared';
+import { isAdminRole, isBackOfficeRole, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { SessionService } from './session.service';
@@ -14,7 +14,7 @@ export const sessionGuard: CanActivateFn = async () => {
 
   let me = await session.getReady();
   if (me) {
-    if (!isStaffRole(me.role) && !isGuestRole(me.role)) {
+    if (!isBackOfficeRole(me.role)) {
       router.navigate(['/login']);
       return false;
     }
@@ -26,7 +26,7 @@ export const sessionGuard: CanActivateFn = async () => {
     session.reset();
     me = await session.getReady();
     if (me) {
-      if (!isStaffRole(me.role) && !isGuestRole(me.role)) {
+      if (!isBackOfficeRole(me.role)) {
         router.navigate(['/login']);
         return false;
       }
@@ -57,18 +57,6 @@ export const adminGuard: CanActivateFn = async () => {
   return false;
 };
 
-/** Back-office (non Task Manager) pages: staff only. Guests land on My tasks. */
-export const staffGuard: CanActivateChildFn = async (_route, state) => {
-  const session = inject(SessionService);
-  const router = inject(Router);
-
-  const me = await session.getReady();
-  if (!me || isStaffRole(me.role)) return true;
-  const path = state.url.split(/[?#]/)[0];
-  if (/^\/tasks(\/|$)/.test(path)) return true;
-  return router.createUrlTree(['/tasks']);
-};
-
 /** Platform operators (super users) only. */
 export const platformAdminGuard: CanActivateFn = async () => {
   const session = inject(SessionService);
@@ -84,7 +72,7 @@ export const platformAdminGuard: CanActivateFn = async () => {
 /** @deprecated Use adminGuard */
 export const superGuard = adminGuard;
 
-/** URL prefix -> the permission area it belongs to. Anything unlisted (dashboard, etc.) is open to staff. */
+/** URL prefix -> the permission area it belongs to. Anything unlisted (dashboard, etc.) is open to every user. */
 const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
   ['/clients', 'clients'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'],
   ['/booking-types', 'bookings'], ['/network', 'network'], ['/inbox', 'inbox'], ['/projects', 'projects'],
@@ -92,10 +80,16 @@ const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
   ['/reports', 'reports'],
 ];
 
-/** Sends staff away from areas their role doesn't grant (admins and guests pass; the API enforces the same). */
+/**
+ * Sends users away from areas their role doesn't grant (admins pass; the API enforces the same).
+ * A Tasks-only role (like Guest) only ever sees the Task Manager.
+ */
 export const areaGuard: CanActivateChildFn = async (_route, state) => {
   const me = await inject(SessionService).getReady();
-  if (!me || isAdminRole(me.role) || isGuestRole(me.role)) return true;
+  if (!me || isAdminRole(me.role)) return true;
+  if (tasksOnly(me)) {
+    return /^\/tasks(\/|$|\?)/.test(state.url) ? true : inject(Router).createUrlTree(['/tasks']);
+  }
   const hit = AREA_BY_PREFIX.find(([prefix]) => state.url === prefix || state.url.startsWith(prefix + '/') || state.url.startsWith(prefix + '?'));
   if (!hit || me.permissions?.[hit[1]]) return true;
   return inject(Router).createUrlTree(['/dashboard']);

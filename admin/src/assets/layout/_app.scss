@@ -60,17 +60,57 @@
   margin-bottom: 1rem;
 }
 
+.toolbar-start {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 .toolbar-search {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   margin-left: auto;
+  flex: 0 0 26rem;
+  width: 26rem;
+  max-width: 100%;
 }
 
 .toolbar-search-field {
-  width: 16rem;
-  min-width: 12rem;
-  max-width: 24rem;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Table leading column: row menu + person avatar (Network, Users, Contacts). */
+.network-list-leading-col {
+  width: 6.5rem;
+}
+
+.network-list-leading {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.network-list-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--p-content-hover-background);
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 3rem;
+  text-align: center;
+
+  &--initials {
+    border: 1px solid var(--p-content-border-color);
+  }
 }
 
 .text-primary {
@@ -284,6 +324,55 @@
     opacity: 0.6;
     cursor: default;
   }
+}
+
+.search-input-with-clear {
+  position: relative;
+  min-width: 200px;
+  width: 100%;
+}
+
+.search-input-with-clear p-iconfield {
+  width: 100%;
+  display: block;
+}
+
+.search-input-with-clear p-iconfield input {
+  width: 100%;
+}
+
+.search-clear-inside {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.625rem;
+  height: 1.625rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-clear-inside:hover {
+  color: var(--text-color);
+  background: var(--surface-hover);
+}
+
+.search-clear-inside .pi {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.search-input-with-clear:has(.search-clear-inside) input,
+.search-input-with-clear:has(.search-clear-inside) .p-autocomplete-input {
+  padding-right: 2.25rem;
 }
 
 /* Centered "nothing here" block with an icon. */

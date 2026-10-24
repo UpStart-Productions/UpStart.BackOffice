@@ -25,7 +25,7 @@
           </div>
         </div>
         <div class="invoice-detail-meta text-sm">
-          <span><strong>Client:</strong> {{ inv.client.name }}</span>
+          <span><strong>Bill to:</strong> {{ inv.billToName || inv.client?.name }}</span>
           <span><strong>Issue date:</strong> {{ formatDate(inv.issueDate) }}</span>
           @if (inv.dueDate) {
             <span class="invoice-detail-due" [class.invoice-detail-due--overdue]="dueFlag(inv) === 'overdue'" [class.invoice-detail-due--due]="dueFlag(inv) === 'due'">
@@ -53,7 +53,7 @@
           }
           @if (canResend) {
             <p-button
-              label="Resend to client"
+              label="Resend"
               icon="pi pi-replay"
               (click)="resend()"
             />

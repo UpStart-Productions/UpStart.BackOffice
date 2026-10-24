@@ -11,29 +11,28 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
-import { Area, AreaGuard } from '../access/area.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateNetworkCompanyDto } from './dto/create-network-company.dto';
 import { UpdateNetworkCompanyDto } from './dto/update-network-company.dto';
-import { toStaffNetworkContactView } from './network-contact.util';
+import { toNetworkContactView } from './network-contact.util';
+import { AccessGuard, Area } from '../access/access.guard';
 
 const companyInclude: Prisma.NetworkCompanyInclude = {
   contacts: { orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }] },
 };
 
-function toStaffNetworkCompanyView(
+function toNetworkCompanyView(
   company: Prisma.NetworkCompanyGetPayload<{ include: typeof companyInclude }>,
 ) {
   return {
     ...company,
-    contacts: company.contacts.map(toStaffNetworkContactView),
+    contacts: company.contacts.map(toNetworkContactView),
   };
 }
 
 @ApiTags('network')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('network')
 @Controller('network/companies')
 export class NetworkCompaniesController {
@@ -50,7 +49,7 @@ export class NetworkCompaniesController {
       },
       orderBy: { name: 'asc' },
     });
-    return companies.map(toStaffNetworkCompanyView);
+    return companies.map(toNetworkCompanyView);
   }
 
   @Post()
@@ -95,7 +94,7 @@ export class NetworkCompaniesController {
         });
       }
 
-      return toStaffNetworkCompanyView(
+      return toNetworkCompanyView(
         await tx.networkCompany.findUniqueOrThrow({
           where: { id: company.id },
           include: companyInclude,
@@ -111,7 +110,7 @@ export class NetworkCompaniesController {
       include: companyInclude,
     });
     if (!company) throw new NotFoundException('Network company not found');
-    return toStaffNetworkCompanyView(company);
+    return toNetworkCompanyView(company);
   }
 
   @Put(':id')
@@ -141,7 +140,7 @@ export class NetworkCompaniesController {
       },
       include: companyInclude,
     });
-    return toStaffNetworkCompanyView(company);
+    return toNetworkCompanyView(company);
   }
 
   @Delete(':id')

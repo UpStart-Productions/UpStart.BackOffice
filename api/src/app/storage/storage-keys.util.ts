@@ -18,6 +18,8 @@ export function projectRootPrefix(clientId: string | null | undefined, projectId
   return clientId ? `clients/${clientId}/projects/${projectId}` : `projects/${projectId}`;
 }
 
-export function invoicePdfKey(clientId: string, displayNumber: string): string {
-  return `${clientInvoicesPrefix(clientId)}/${sanitizeFileSegment(displayNumber)}.pdf`;
+/** Client invoices live under the client; invoices billed to the tenant (no client) under `invoices/`. */
+export function invoicePdfKey(clientId: string | null, displayNumber: string): string {
+  const prefix = clientId ? clientInvoicesPrefix(clientId) : 'invoices';
+  return `${prefix}/${sanitizeFileSegment(displayNumber)}.pdf`;
 }

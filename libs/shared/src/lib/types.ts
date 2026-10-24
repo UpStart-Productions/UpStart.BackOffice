@@ -1,6 +1,7 @@
 // Shared types between API and Angular frontend
 
-export type UserRole = 'ADMIN' | 'MEMBER' | 'CLIENT' | 'GUEST';
+/** ADMIN: everything. USER: what their tenant role grants. CLIENT: client portal login only. */
+export type UserRole = 'ADMIN' | 'USER' | 'CLIENT';
 
 export type ClientDto = {
   id: string;
@@ -127,7 +128,7 @@ export type MeDto = {
   tenantId?: string | null;
   /** Platform operator: can switch between tenants. */
   isSuper?: boolean;
-  /** Name of the tenant role (staff only). */
+  /** Name of the tenant role (USER accounts). */
   roleName?: string | null;
   /** Areas this user can use, per level. Admins can use everything regardless. */
   permissions?: import('./permissions').RolePermissions;
@@ -144,7 +145,7 @@ export type UserListDto = {
   hourlyRate?: number | null;
   isActive: boolean;
   clientId?: string | null;
-  /** Tenant role for staff users (null for admins). */
+  /** Tenant role for USER accounts (null for admins). */
   roleId?: string | null;
   roleName?: string | null;
   client?: { id: string; name: string; code: string } | null;

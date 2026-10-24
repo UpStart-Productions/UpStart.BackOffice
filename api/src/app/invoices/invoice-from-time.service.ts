@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { InvoicePeriodBounds, InvoicePeriodType, resolveInvoicePeriod } from './invoice-period.util';
 
 export type InvoicePreviewLine = {
-  projectId: string;
+  projectId: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -14,8 +14,9 @@ export type InvoicePreviewLine = {
   startedAt: string;
 };
 
+/** Lines grouped by project; projectId null groups time logged without a project. */
 export type InvoicePreviewProject = {
-  projectId: string;
+  projectId: string | null;
   projectName: string;
   lines: InvoicePreviewLine[];
   subtotal: number;
@@ -53,9 +54,16 @@ type TimeEntryForInvoice = Prisma.TimeEntryGetPayload<{
 export class InvoiceFromTimeService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Unbilled, billable, finished time in the period.
+   * CLIENT: the client's time (optionally one project). TENANT: one user's own time (optionally narrowed by client/project).
+   * userId limits to that user's entries (always set for TENANT, and for roles limited to their own invoices).
+   */
   async buildPreview(params: {
-    clientId: string;
+    billTo: 'CLIENT' | 'TENANT';
+    clientId?: string;
     projectId?: string;
+    userId?: string;
     periodType: InvoicePeriodType;
     month?: number;
     year?: number;
@@ -71,10 +79,9 @@ export class InvoiceFromTimeService {
         isBillable: true,
         startedAt: { gte: bounds.from },
         stoppedAt: { not: null, lte: bounds.to },
-        project: {
-          clientId: params.clientId,
-          ...(params.projectId ? { id: params.projectId } : {}),
-        },
+        ...(params.clientId ? { clientId: params.clientId } : {}),
+        ...(params.projectId ? { projectId: params.projectId } : {}),
+        ...(params.userId ? { userId: params.userId } : {}),
       },
       include: {
         project: { select: { id: true, name: true, hourlyRate: true } },
@@ -86,13 +93,14 @@ export class InvoiceFromTimeService {
 
     const missingRates: InvoicePreviewMissingRate[] = [];
     const byProject = new Map<string, InvoicePreviewProject>();
+    const NO_PROJECT = 'No project';
 
     for (const entry of entries) {
       const rate = resolveHourlyRate(entry);
       if (rate == null) {
         missingRates.push({
           entryId: entry.id,
-          projectName: entry.project.name,
+          projectName: entry.project?.name ?? NO_PROJECT,
           taskName: entry.projectTask?.name ?? null,
           startedAt: entry.startedAt.toISOString(),
         });
@@ -106,7 +114,7 @@ export class InvoiceFromTimeService {
       const amount = Math.round(quantity * rate * 100) / 100;
       const description = entry.description?.trim() ?? '';
       const line: InvoicePreviewLine = {
-        projectId: entry.project.id,
+        projectId: entry.project?.id ?? null,
         description: buildLineDescription(
           formatEntryDate(entry.startedAt),
           entry.projectTask?.name ?? null,
@@ -119,15 +127,16 @@ export class InvoiceFromTimeService {
         startedAt: entry.startedAt.toISOString(),
       };
 
-      let projectBlock = byProject.get(entry.project.id);
+      const key = entry.project?.id ?? '';
+      let projectBlock = byProject.get(key);
       if (!projectBlock) {
         projectBlock = {
-          projectId: entry.project.id,
-          projectName: entry.project.name,
+          projectId: entry.project?.id ?? null,
+          projectName: entry.project?.name ?? NO_PROJECT,
           lines: [],
           subtotal: 0,
         };
-        byProject.set(entry.project.id, projectBlock);
+        byProject.set(key, projectBlock);
       }
       projectBlock.lines.push(line);
       projectBlock.subtotal = Math.round((projectBlock.subtotal + amount) * 100) / 100;
@@ -160,8 +169,9 @@ export class InvoiceFromTimeService {
     };
   }
 
+  /** CLIENT invoices: entries must be for that client. TENANT invoices: entries must be the creator's own. */
   async assertTimeEntriesLinkable(
-    clientId: string,
+    target: { billTo: 'CLIENT' | 'TENANT'; clientId: string | null; userId: string | null },
     lineItems: { projectId?: string; timeEntryIds?: string[] }[],
   ): Promise<void> {
     const ids = lineItems.flatMap((li) => li.timeEntryIds ?? []);
@@ -170,7 +180,7 @@ export class InvoiceFromTimeService {
     const unique = [...new Set(ids)];
     const entries = await this.prisma.timeEntry.findMany({
       where: { id: { in: unique } },
-      include: { project: { select: { clientId: true } } },
+      select: { id: true, invoiceLineItemId: true, clientId: true, userId: true },
     });
 
     if (entries.length !== unique.length) {
@@ -181,8 +191,11 @@ export class InvoiceFromTimeService {
       if (entry.invoiceLineItemId) {
         throw new BadRequestException('One or more time entries are already invoiced');
       }
-      if (entry.project.clientId !== clientId) {
+      if (target.billTo === 'CLIENT' && entry.clientId !== target.clientId) {
         throw new BadRequestException('Time entry does not belong to this client');
+      }
+      if (target.userId && entry.userId !== target.userId) {
+        throw new BadRequestException('You can only invoice your own time');
       }
     }
   }
@@ -190,7 +203,7 @@ export class InvoiceFromTimeService {
 
 function resolveHourlyRate(entry: TimeEntryForInvoice): number | null {
   if (entry.hourlyRate != null) return Number(entry.hourlyRate);
-  if (entry.project.hourlyRate != null) return Number(entry.project.hourlyRate);
+  if (entry.project?.hourlyRate != null) return Number(entry.project.hourlyRate);
   if (entry.user.hourlyRate != null) return Number(entry.user.hourlyRate);
   return null;
 }

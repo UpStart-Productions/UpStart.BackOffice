@@ -11,18 +11,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Area, AreaGuard } from '../access/area.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadAvatarDto } from '../users/dto/user.dto';
 import { NetworkContactAvatarService } from './network-contact-avatar.service';
-import { toStaffNetworkContactView } from './network-contact.util';
+import { toNetworkContactView } from './network-contact.util';
 import { CreateNetworkContactDto, CreateNetworkContactBodyDto } from './dto/create-network-contact.dto';
 import { UpdateNetworkContactDto } from './dto/update-network-contact.dto';
+import { AccessGuard, Area } from '../access/access.guard';
 
 @ApiTags('network')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('network')
 @Controller('network/contacts')
 export class NetworkContactsController {
@@ -38,7 +37,7 @@ export class NetworkContactsController {
       where: companyId ? { companyId } : undefined,
       orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
     });
-    return contacts.map(toStaffNetworkContactView);
+    return contacts.map(toNetworkContactView);
   }
 
   @Post()
@@ -73,14 +72,14 @@ export class NetworkContactsController {
       });
     });
 
-    return toStaffNetworkContactView(contact);
+    return toNetworkContactView(contact);
   }
 
   @Get(':id')
   async get(@Param('id') id: string) {
     const contact = await this.prisma.networkContact.findUnique({ where: { id } });
     if (!contact) throw new NotFoundException('Network contact not found');
-    return toStaffNetworkContactView(contact);
+    return toNetworkContactView(contact);
   }
 
   @Put(':id')
@@ -113,7 +112,7 @@ export class NetworkContactsController {
       });
     });
 
-    return toStaffNetworkContactView(contact);
+    return toNetworkContactView(contact);
   }
 
   @Post(':id/avatar')

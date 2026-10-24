@@ -8,6 +8,7 @@ import { adminAppBaseUrl } from '../notifications/notification-delivery.service'
 import { PrismaService } from '../prisma/prisma.service';
 import { personName } from '../task-manager/task-people.util';
 import { hashInviteToken, INVITE_TTL_DAYS, inviteExpiry, newInviteToken } from './invite-token.util';
+import { GUEST_ROLE } from '@upstart/back-office/shared';
 
 const ROLE_LABEL: Record<ProjectMemberRole, string> = { OWNER: 'an owner', EDITOR: 'an editor', COMMENTER: 'a commenter' };
 
@@ -35,7 +36,7 @@ export class InvitesService {
     private readonly mail: MailService,
   ) {}
 
-  /** True once the user has accepted any invite (or was never invited, e.g. staff). */
+  /** True when the user has a pending invite and has never accepted one. */
   async hasPendingInvite(userId: string): Promise<boolean> {
     const [pending, accepted] = await Promise.all([
       this.prisma.userInvite.count({ where: { userId, acceptedAt: null } }),
@@ -45,13 +46,13 @@ export class InvitesService {
   }
 
   /**
-   * userIds (of those given) who haven't accepted an invite yet: invited guests, plus guests
-   * created without an invite (e.g. by the Asana import) so Share offers "Resend invite".
+   * userIds (of those given) who haven't accepted an invite yet: invited people, plus people
+   * created without an invite (e.g. by the Asana import) who never signed in so Share offers "Resend invite".
    */
   async pendingUserIds(userIds: string[]): Promise<Set<string>> {
     if (!userIds.length) return new Set();
     const [guests, accepted] = await Promise.all([
-      this.prisma.user.findMany({ where: { id: { in: userIds }, role: 'GUEST' }, select: { id: true } }),
+      this.prisma.user.findMany({ where: { id: { in: userIds }, role: 'USER', tenantRole: { key: GUEST_ROLE.key } }, select: { id: true } }),
       this.prisma.userInvite.findMany({
         where: { userId: { in: userIds }, acceptedAt: { not: null } },
         select: { userId: true },
@@ -105,11 +106,11 @@ export class InvitesService {
   }
 
   /**
-   * Welcome email for a newly added staff/admin user (no project). Works without Cognito.
+   * Welcome email for a newly added user (no project). Works without Cognito.
    * When the email can't be sent (no SES keys locally) the link is logged and, outside
    * production, returned so it can be tested.
    */
-  async sendStaffInvite(params: {
+  async sendWelcomeInvite(params: {
     user: { id: string; email: string; firstName: string | null };
     invitedBy: UserContext;
   }): Promise<{ emailed: boolean; link?: string; error?: string }> {

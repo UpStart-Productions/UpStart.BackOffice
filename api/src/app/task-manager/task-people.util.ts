@@ -1,3 +1,5 @@
+import { GUEST_ROLE } from '@upstart/back-office/shared';
+
 export type PersonDto = {
   id: string;
   name: string;
@@ -6,6 +8,8 @@ export type PersonDto = {
   lastName: string | null;
   avatarUrl: string | null;
   role: string;
+  /** On the built-in Guest role (an outside collaborator). */
+  isGuest: boolean;
 };
 
 export const personSelect = {
@@ -16,6 +20,7 @@ export const personSelect = {
   name: true,
   avatarUrl: true,
   role: true,
+  tenantRole: { select: { key: true } },
 } as const;
 
 export function personName(user: {
@@ -37,6 +42,7 @@ export function toPerson(
     name: string | null;
     avatarUrl: string | null;
     role: string;
+    tenantRole?: { key: string | null } | null;
   },
   toAssetUrl: (stored: string | null) => string | null,
 ): PersonDto {
@@ -48,5 +54,6 @@ export function toPerson(
     lastName: user.lastName,
     avatarUrl: toAssetUrl(user.avatarUrl),
     role: user.role,
+    isGuest: user.tenantRole?.key === GUEST_ROLE.key,
   };
 }

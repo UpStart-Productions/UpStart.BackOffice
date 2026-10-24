@@ -287,7 +287,7 @@ export class AddEditUserModalComponent {
     const payload = {
       firstName: v.firstName?.trim() || undefined,
       lastName: v.lastName?.trim() || undefined,
-      role: v.roleChoice === ADMIN_CHOICE ? ('ADMIN' as const) : ('MEMBER' as const),
+      role: v.roleChoice === ADMIN_CHOICE ? ('ADMIN' as const) : ('USER' as const),
       roleId: v.roleChoice === ADMIN_CHOICE ? null : v.roleChoice,
       hourlyRate: v.hourlyRate,
       ...(this.removeAvatar ? { avatarUrl: null as null } : {}),

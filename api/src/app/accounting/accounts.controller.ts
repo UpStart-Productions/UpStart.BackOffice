@@ -2,16 +2,16 @@ import {
   BadRequestException, Body, Controller, Get, NotFoundException, Param, Post, Put, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { summarizeAccountLines } from './accounting.util';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
+import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 @ApiTags('accounting')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, RequireAdminGuard)
+@UseGuards(AccessGuard)
+@AdminOnly()
 @Controller('accounting/accounts')
 export class AccountsController {
   constructor(private readonly prisma: PrismaService) {}

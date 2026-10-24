@@ -1,34 +1,43 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { CaptureSettingsService } from './capture-settings.service';
 import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
 import { InteractionsService } from './interactions.service';
+import { AccessGuard, Area } from '../access/access.guard';
+import { AccessService } from '../access/access.service';
 
 @ApiTags('communications')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(AccessGuard)
+@Area('inbox')
 @Controller('communications')
 export class CommunicationsController {
   constructor(
     private readonly interactions: InteractionsService,
     private readonly captureSettings: CaptureSettingsService,
+    private readonly access: AccessService,
   ) {}
 
-  /** The address to CC, for the Email button. (Full capture settings are admin-only.) */
+  /** The address to CC, for the Email button on clients, contacts and leads. (Full capture settings are admin-only.) */
   @Get('capture-address')
+  @Area('inbox', 'clients', 'contacts', 'pipeline')
   captureAddress() {
     return this.captureSettings.address();
   }
 
+  /** Shown on the client page, so Clients can read it too (only for clients the user can reach). */
   @Get('accounts/:clientId/timeline')
-  accountTimeline(@Param('clientId') clientId: string, @Query('limit') limit?: string, @Query('before') before?: string) {
+  @Area('inbox', 'clients')
+  async accountTimeline(@Req() req: Request, @Param('clientId') clientId: string, @Query('limit') limit?: string, @Query('before') before?: string) {
+    const ids = await this.access.clientIds(req.user as UserContext);
+    if (ids && !ids.includes(clientId)) throw new NotFoundException('Client not found');
     return this.interactions.timeline({ clientId }, { limit, before });
   }
 
   @Get('leads/:leadId/timeline')
+  @Area('inbox', 'pipeline')
   leadTimeline(@Param('leadId') leadId: string, @Query('limit') limit?: string, @Query('before') before?: string) {
     return this.interactions.timeline({ leadId }, { limit, before });
   }

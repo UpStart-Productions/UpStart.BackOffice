@@ -1,6 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
-import { sessionGuard, adminGuard, staffGuard, platformAdminGuard, areaGuard } from './core/session.guard';
+import { sessionGuard, adminGuard, platformAdminGuard, areaGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
 export const appRoutes: Route[] = [
@@ -23,7 +23,7 @@ export const appRoutes: Route[] = [
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],
-    canActivateChild: [staffGuard, areaGuard],
+    canActivateChild: [areaGuard],
     children: [
       {
         path: 'dashboard',
@@ -213,7 +213,7 @@ export const appRoutes: Route[] = [
       { path: 'booking-types', redirectTo: 'bookings/types', pathMatch: 'full' },
       { path: 'booking-types/new', redirectTo: 'bookings/types/new', pathMatch: 'full' },
       { path: 'booking-types/:id', redirectTo: 'bookings/types/:id', pathMatch: 'full' },
-      // ── Task Manager (staff + guests) — everything under /tasks ─────────────
+      // ── Task Manager — everything under /tasks ─────────────
       {
         path: 'tasks',
         loadComponent: () => import('./task-manager/pages/my-tasks.page').then((m) => m.MyTasksPage),

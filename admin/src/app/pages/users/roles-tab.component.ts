@@ -36,7 +36,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
     <div class="card">
       <h2 class="page-title page-title-in-card">Roles</h2>
       <p class="text-color-secondary">
-        A role decides which parts of the app a staff user can use. Admins can use everything. For each area, choose
+        A role decides which parts of the app a user can use. Admins can use everything. For each area, choose
         <strong>None</strong>, <strong>Own</strong> (only their own records, or clients they are assigned to) or <strong>All</strong>.
       </p>
       <div class="toolbar">
@@ -55,7 +55,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="4" class="text-center p-4 text-color-secondary">No roles yet. Add one to give staff access.</td></tr>
+          <tr><td colspan="4" class="text-center p-4 text-color-secondary">No roles yet. Add one to give users access.</td></tr>
         </ng-template>
       </p-table>
     </div>

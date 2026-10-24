@@ -15,7 +15,7 @@
             pInputText
             type="text"
             class="w-full"
-            placeholder="Search by number, client, status…"
+            placeholder="Search by number, bill to, status…"
             [ngModel]="searchQuery"
             (ngModelChange)="onSearchInput($event)"
           />
@@ -54,7 +54,8 @@
         <tr>
           <th style="width: 3rem"></th>
           <th>Number</th>
-          <th>Client</th>
+          <th>Bill to</th>
+          <th>Created by</th>
           <th>Issue Date</th>
           <th>Due Date</th>
           <th>Total</th>
@@ -72,7 +73,8 @@
               class="text-primary font-semibold"
             >{{ inv.displayNumber }}</a>
           </td>
-          <td>{{ inv.client.name }}</td>
+          <td>{{ billToLabel(inv) }}</td>
+          <td>{{ createdByLabel(inv) }}</td>
           <td>{{ formatDate(inv.issueDate) }}</td>
           <td>
             <div class="invoice-due-cell">
@@ -90,7 +92,7 @@
       </ng-template>
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
+          <td colspan="8" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
         </tr>
       </ng-template>
     </p-table>

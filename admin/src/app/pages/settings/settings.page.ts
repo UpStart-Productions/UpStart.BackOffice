@@ -70,6 +70,8 @@ interface OrganizationProfile {
   state: string;
   zip: string;
   phone: string;
+  /** Where invoices billed to the organization (e.g. by caregivers) are sent by default. */
+  billingEmail?: string;
 }
 
 type SettingsSectionStatus = 'connected' | 'disconnected' | 'error' | 'neutral';
@@ -243,6 +245,7 @@ export class SettingsPage implements OnInit {
     state: '',
     zip: '',
     phone: '',
+    billingEmail: '',
   };
   businessSaving = signal(false);
   businessLoaded = signal(false);
@@ -354,6 +357,7 @@ export class SettingsPage implements OnInit {
       state: profile.state ?? '',
       zip: profile.zip ?? '',
       phone: profile.phone ?? '',
+      billingEmail: profile.billingEmail ?? '',
     };
   }
 
@@ -367,6 +371,7 @@ export class SettingsPage implements OnInit {
         state: (this.businessForm.state ?? '').trim(),
         zip: this.businessForm.zip.trim(),
         phone: this.businessForm.phone.trim(),
+        billingEmail: (this.businessForm.billingEmail ?? '').trim(),
       });
       this.applyBusinessProfile(saved);
       this.toast.add({

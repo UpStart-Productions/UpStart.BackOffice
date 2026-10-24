@@ -37,7 +37,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
               <button type="button" class="tm-picker-item" [class.selected]="p.id === currentId()" (click)="choose(p)" role="option">
                 <app-tm-avatar [person]="p" [size]="22" [showTitle]="false" />
                 <span class="tm-picker-name">{{ p.name }}</span>
-                <span class="tm-picker-meta">{{ p.role === 'GUEST' ? 'Guest' : p.email }}</span>
+                <span class="tm-picker-meta">{{ p.isGuest ? 'Guest' : p.email }}</span>
               </button>
             </li>
           } @empty {

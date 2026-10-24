@@ -5,6 +5,7 @@ import { NotificationDeliveryService } from '../notifications/notification-deliv
 import { CreateNotificationInput, NotificationType } from '../notifications/notification.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { personName } from './task-people.util';
+import { usersWithArea } from '../access/access.service';
 
 /** Admin-app route to a task in the Task Manager. */
 export function taskRoute(projectId: string, taskId: string): string[] {
@@ -63,7 +64,7 @@ export class TaskEventsService {
       where: {
         id: { in: recipients },
         isActive: true,
-        OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { projectMemberships: { some: { projectId: task.projectId } } }],
+        OR: [usersWithArea('tasks', 'all'), { projectMemberships: { some: { projectId: task.projectId } } }],
       },
       select: { id: true },
     });

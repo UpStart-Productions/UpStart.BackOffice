@@ -23,7 +23,7 @@
  *
  * Safe to re-run: every section/task/comment/attachment/field is matched on its Asana gid.
  * People are matched to Back Office users by email. Unknown assignees/followers/project members
- * become GUEST users (no invite email — send from Share → Resend invite when ready).
+ * become users on the Guest role (no invite email — send from Share → Resend invite when ready).
  * Comment authors without an account keep their name on the comment.
  */
 import * as dotenv from 'dotenv';
@@ -408,7 +408,7 @@ async function main() {
   console.log('\nPeople:');
   for (const p of people.values()) {
     const u = userByEmail.get(p.email);
-    const status = u ? `existing ${u.role}` : toCreate.includes(p) ? 'NEW GUEST (no invite sent)' : 'name only (comments)';
+    const status = u ? `existing ${u.role}` : toCreate.includes(p) ? 'NEW guest (no invite sent)' : 'name only (comments)';
     console.log(`  - ${p.name ?? ''} <${p.email}>  [${[...p.roles].join(', ')}]  → ${status}`);
   }
   if (clientConflicts.length) console.log(`  ! Client-portal users can't be on Tasks and will be left unassigned: ${clientConflicts.map((u) => u.email).join(', ')}`);
@@ -425,9 +425,13 @@ async function main() {
   console.log('\nWriting…');
 
   // People
+  const guestRole = toCreate.length
+    ? await prisma.role.findFirst({ where: { tenantId: importer.tenantId ?? '', key: 'guest' }, select: { id: true } })
+    : null;
+  if (toCreate.length && !guestRole) throw new Error('This tenant has no Guest role. Start the app once (migrations create it), then re-run.');
   for (const p of toCreate) {
     const { firstName, lastName } = splitName(p.name);
-    const u = await prisma.user.create({ data: { email: p.email, role: 'GUEST', firstName, lastName }, select: { id: true, email: true, role: true, firstName: true, lastName: true } });
+    const u = await prisma.user.create({ data: { email: p.email, role: 'USER', roleId: guestRole!.id, tenantId: importer.tenantId, firstName, lastName }, select: { id: true, email: true, role: true, firstName: true, lastName: true } });
     userByEmail.set(p.email, u);
   }
   const userId = (u?: AUser | null): string | null => {
@@ -450,9 +454,9 @@ async function main() {
       if (id) memberIds.add(id);
     }
   }
-  const staff = new Set(existingUsers.filter((u) => u.role === 'ADMIN' || u.role === 'MEMBER').map((u) => u.id));
+  const seesAll = new Set(existingUsers.filter((u) => u.role === 'ADMIN').map((u) => u.id));
   for (const id of memberIds) {
-    if (staff.has(id) && id !== importer.id) continue; // staff see every project anyway
+    if (seesAll.has(id) && id !== importer.id) continue; // admins see every project anyway
     await prisma.projectMember.upsert({
       where: { projectId_userId: { projectId: project.id, userId: id } },
       create: { projectId: project.id, userId: id, role: id === importer.id ? 'OWNER' : 'EDITOR' },

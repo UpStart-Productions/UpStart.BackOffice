@@ -20,6 +20,7 @@ import {
   splitParticipants,
 } from './participants.util';
 import { computeThreadKey } from './thread-key.util';
+import { teamUsersWhere } from '../access/access.service';
 
 export type IngestStatus =
   | 'created'
@@ -111,12 +112,12 @@ export class CommunicationsIngestService {
     }
 
     // 4. Who is on our team vs outside?
-    const staff = await this.prisma.user.findMany({
-      where: { role: { in: ['ADMIN', 'MEMBER'] }, isActive: true },
+    const team = await this.prisma.user.findMany({
+      where: { ...teamUsersWhere(), isActive: true },
       select: { id: true, email: true },
     });
     const userByEmail = new Map<string, string>();
-    for (const u of staff) {
+    for (const u of team) {
       const e = normalizeEmail(u.email);
       if (e) userByEmail.set(e, u.id);
     }

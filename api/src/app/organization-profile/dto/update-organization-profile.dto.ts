@@ -31,4 +31,9 @@ export class UpdateOrganizationProfileDto {
   @IsOptional()
   @MaxLength(40)
   phone?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  billingEmail?: string;
 }

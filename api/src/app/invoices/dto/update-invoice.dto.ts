@@ -1,9 +1,12 @@
-import { IsString, IsOptional, IsNumber, IsDateString, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsDateString, IsEnum, IsArray, ValidateNested, MaxLength } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { CreateInvoiceLineItemDto } from './create-invoice.dto';
 
 export class UpdateInvoiceDto {
+  @ApiPropertyOptional() @IsString() @IsOptional() @MaxLength(200) billToName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() @MaxLength(200) billToEmail?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() @MaxLength(1000) billToAddress?: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() issueDate?: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() dueDate?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;

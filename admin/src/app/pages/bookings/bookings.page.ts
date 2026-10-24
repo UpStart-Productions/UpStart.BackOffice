@@ -27,7 +27,7 @@ export class BookingsPage implements OnInit {
 
   activeTab = signal<BookingsTab>('bookings');
 
-  isAdmin = computed(() => isAdminRole(this.session.me()?.role ?? 'MEMBER'));
+  isAdmin = computed(() => isAdminRole(this.session.me()?.role ?? 'USER'));
 
   ngOnInit() {
     this.syncTabFromUrl(this.router.url);

@@ -54,6 +54,7 @@ function isOverdueInPeriod(row: Pick<ReportTaskRow, 'dueOn' | 'isCompleted' | 'c
   return dueKey < localDateKey(new Date());
 }
 import { describeRecurrence, nextDueDate, normalizeRecurrence, TaskRecurrence } from './task-recurrence.util';
+import { usersWithArea } from '../access/access.service';
 
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
@@ -741,13 +742,13 @@ export class TasksService {
     if (!section || section.projectId !== projectId) throw new BadRequestException('Section is not in this project');
   }
 
-  /** Assignee must be active staff or a member of one of the task's projects. */
+  /** Assignee must be active and see every project (Tasks at 'all'), or be a member of one of the task's projects. */
   private async assertAssignable(userId: string, projectIds: string[]) {
     const ok = await this.prisma.user.count({
       where: {
         id: userId,
         isActive: true,
-        OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { projectMemberships: { some: { projectId: { in: projectIds } } } }],
+        OR: [usersWithArea('tasks', 'all'), { projectMemberships: { some: { projectId: { in: projectIds } } } }],
       },
     });
     if (!ok) throw new BadRequestException('That person is not on this project');

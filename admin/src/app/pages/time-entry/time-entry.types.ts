@@ -33,7 +33,11 @@ export type TimeEntry = {
   isBillable: boolean;
   projectTaskId?: string;
   taskId?: string | null;
-  project: Project;
+  /** Optional: time can be logged without a project. */
+  project: Project | null;
+  /** The project's client, or one picked directly when there is no project. */
+  client?: { id: string; name: string } | null;
+  user?: { id: string; firstName?: string | null; lastName?: string | null; email: string } | null;
   projectTask?: { id: string; name: string; isBillable: boolean; source?: 'MANUAL' | 'ASANA' } | null;
   task?: TimeEntryTask | null;
 };
@@ -62,3 +66,6 @@ export const SUGGESTED_PROJECT_TASKS: Pick<ProjectTaskDraft, 'name' | 'isBillabl
   { name: 'Development', isBillable: true },
   { name: 'Graphic Design', isBillable: true },
 ];
+
+/** A client the user can log time or invoice against (name only). */
+export type ClientOption = { id: string; name: string };

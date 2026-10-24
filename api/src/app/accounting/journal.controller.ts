@@ -3,12 +3,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertBalancedLines } from './accounting.util';
 import { CreateJournalEntryDto } from './dto/create-journal-entry.dto';
 import { JournalListQueryDto } from './dto/journal-query.dto';
+import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 const journalEntryInclude = {
   lines: {
@@ -20,7 +19,8 @@ const journalEntryInclude = {
 
 @ApiTags('accounting')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, RequireAdminGuard)
+@UseGuards(AccessGuard)
+@AdminOnly()
 @Controller('accounting/journal')
 export class JournalController {
   constructor(private readonly prisma: PrismaService) {}

@@ -36,7 +36,7 @@ export class StorageFoldersService {
   }
 
   async saveInvoicePdf(
-    clientId: string,
+    clientId: string | null,
     displayNumber: string,
     pdfBuffer: Buffer,
   ): Promise<string> {
@@ -49,7 +49,7 @@ export class StorageFoldersService {
     return key;
   }
 
-  async removeInvoicePdf(clientId: string, displayNumber: string): Promise<void> {
+  async removeInvoicePdf(clientId: string | null, displayNumber: string): Promise<void> {
     const key = invoicePdfKey(clientId, displayNumber);
     try {
       if (await this.storage.exists(key)) {

@@ -14,12 +14,11 @@ import {
 import { PublicTenantService } from '../tenancy/public-tenant.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { UpdateGoogleCalendarConfigDto } from './dto/update-google-calendar-config.dto';
 import { UpdateGoogleCalendarSelectionDto } from './dto/update-google-calendar-selection.dto';
 import { GoogleCalendarService } from './google-calendar.service';
+import { AccessGuard, Area, AdminOnly } from '../access/access.guard';
 
 function adminAppUrl(): string {
   const explicit = process.env.ADMIN_APP_URL?.trim();
@@ -41,28 +40,32 @@ export class GoogleCalendarController {
 
   @Get('status')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard)
+  @UseGuards(AccessGuard)
+  @Area('bookings')
   status() {
     return this.googleCalendar.getStatus();
   }
 
   @Get('config')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   config() {
     return this.googleCalendar.getConfig();
   }
 
   @Put('config')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   saveConfig(@Body() dto: UpdateGoogleCalendarConfigDto) {
     return this.googleCalendar.saveConfig(dto);
   }
 
   @Post('connect')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   async connect(@Req() req: Request) {
     const user = req.user as UserContext;
     return this.googleCalendar.startConnect(user.email);
@@ -93,7 +96,8 @@ export class GoogleCalendarController {
 
   @Delete('disconnect')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   async disconnect() {
     await this.googleCalendar.disconnect();
     return { disconnected: true };
@@ -101,14 +105,16 @@ export class GoogleCalendarController {
 
   @Get('calendars')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   listCalendars() {
     return this.googleCalendar.listCalendars();
   }
 
   @Put('calendar')
   @ApiBearerAuth()
-  @UseGuards(StaffAuthGuard, RequireAdminGuard)
+  @UseGuards(AccessGuard)
+  @AdminOnly()
   setCalendar(@Body() dto: UpdateGoogleCalendarSelectionDto) {
     return this.googleCalendar.setCalendar(dto.calendarId);
   }

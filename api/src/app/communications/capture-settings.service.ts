@@ -29,7 +29,7 @@ export interface CaptureSettings {
   /** Full address to CC, or null when the tenant has no alias yet. */
   address: string | null;
   aliases: { alias: string; isPrimary: boolean; address: string | null }[];
-  /** Domains that count as the tenant's own team (besides staff users). */
+  /** Domains that count as the tenant's own team (besides the tenant's users). */
   internalDomains: string[];
   /** Recent Gmail forwarding confirmations (newest first). Unused in the CC model, kept for setups that forward. */
   verifications: {
@@ -88,7 +88,7 @@ export class CaptureSettingsService {
     };
   }
 
-  /** Just the address, for any staff member (the Email button needs it). */
+  /** Just the address, for any user (the Email button needs it). */
   async address(): Promise<{ address: string | null }> {
     const primary = (await this.aliases.listForTenant(TENANT)).find((a) => a.isPrimary)?.alias ?? null;
     return { address: captureAddress(primary) };

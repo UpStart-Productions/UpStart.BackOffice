@@ -5,11 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateNotificationInput } from './notification.types';
 import { NotificationsService } from './notifications.service';
 
+/**
+ * The admin app's address, for links in emails (invites, notifications). Production sets ADMIN_BASE_URL;
+ * locally it is the dev server. (Not derived from API_BASE_URL: the API and the admin app are on different hosts.)
+ */
 export function adminAppBaseUrl(): string {
   const explicit = process.env.ADMIN_BASE_URL?.trim() || process.env.ADMIN_APP_URL?.trim();
   if (explicit) return explicit.replace(/\/$/, '');
-  const apiBase = process.env.API_BASE_URL?.trim();
-  if (apiBase) return apiBase.replace(/\/api\/?$/, '').replace(/\/$/, '');
   return 'http://localhost:4201';
 }
 

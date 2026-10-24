@@ -20,17 +20,16 @@ import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import { AccessService } from '../access/access.service';
-import { Area, AreaGuard } from '../access/area.guard';
 import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
+import { AccessGuard, Area } from '../access/access.guard';
 
 const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -47,7 +46,7 @@ const expenseInclude = {
 
 @ApiTags('expenses')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('expenses')
 @Controller('expenses')
 export class ExpensesController {

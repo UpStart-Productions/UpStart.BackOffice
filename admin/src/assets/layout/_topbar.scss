@@ -13,13 +13,13 @@
   border-bottom: 1px solid var(--surface-border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
 
   .layout-topbar-logo-container {
     width: 22rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
   }
 
   .layout-topbar-logo {
@@ -48,6 +48,7 @@
     background: transparent;
     border: none;
     border-radius: var(--content-border-radius);
+    transition: background-color var(--element-transition-duration, 0.2s);
 
     &:hover {
       background-color: var(--surface-hover);
@@ -66,35 +67,114 @@
     margin-right: 0.25rem;
   }
 
-  .layout-topbar-search {
-    flex: 1;
-    width: 100%;
-    min-width: 0;
-    margin: 0 1.25rem;
-  }
-
   .layout-topbar-actions {
+    margin-left: auto;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     flex-shrink: 0;
+    position: relative;
   }
 
-  .topbar-user-avatar {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    object-fit: cover;
+  .layout-topbar-action-wrap {
+    display: flex;
+    align-items: center;
     flex-shrink: 0;
   }
 
-  .topbar-user-name {
-    font-size: 0.875rem;
-    color: var(--text-color-secondary);
-    max-width: 12rem;
+  .layout-topbar-action.topbar-user-menu-btn {
+    width: 45px;
+    height: 45px;
+    min-width: 45px;
+    border-radius: 50%;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
+
+  .layout-topbar-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.is-expanded {
+      width: var(--global-search-panel-width);
+      height: auto;
+      min-height: 2.25rem;
+      overflow: visible;
+
+      .topbar-search-field {
+        z-index: 2;
+        opacity: 1;
+        transform: translateX(0);
+        pointer-events: auto;
+      }
+    }
+  }
+
+  .nav-search-btn {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    margin: 0;
+    transition:
+      opacity 0.18s ease,
+      background-color var(--element-transition-duration, 0.2s),
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: scale(0.85);
+      z-index: 0;
+    }
+  }
+
+  .topbar-search-field {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    transform: translateX(0.75rem);
+    pointer-events: none;
+    transition:
+      opacity 0.22s ease 0.04s,
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .layout-topbar-search .search-input-with-clear {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .layout-topbar-search .search-input-with-clear p-iconfield,
+  .layout-topbar-search .search-input-with-clear .p-iconfield,
+  .layout-topbar-search .search-input-with-clear p-autocomplete,
+  .layout-topbar-search .search-input-with-clear .p-autocomplete {
+    width: 100%;
+    display: block;
+  }
+
+  .layout-topbar-search .search-input-with-clear .p-autocomplete-input {
+    width: 100%;
+  }
+
+  .layout-topbar-search .search-input-with-clear .p-autocomplete-dropdown,
+  .layout-topbar-search .search-input-with-clear .p-autocomplete-loader,
+  .layout-topbar-search .search-input-with-clear .p-autocomplete-clear-icon {
+    display: none !important;
+  }
+
+  .layout-topbar-search .search-clear-inside {
+    top: calc(50% + 1px);
   }
 }
 
@@ -110,14 +190,40 @@
     flex: 1;
   }
 
-  .layout-topbar .topbar-user-name {
+  .layout-topbar .topbar-action-mobile-hidden {
     display: none;
+  }
+
+  .layout-topbar .layout-topbar-search.is-expanded {
+    width: var(--global-search-panel-width);
   }
 }
 
 // Tenant switcher (super users only)
 .layout-topbar .topbar-tenant-select {
   min-width: 11rem;
+}
+
+.user-menu-popover {
+  width: calc(15rem + 100px) !important;
+  min-width: calc(15rem + 100px) !important;
+}
+
+.user-menu-popover .p-menu-list {
+  width: 100%;
+}
+
+.user-menu-popover .p-menu-item-content {
+  padding: 0.75rem 1rem;
+}
+
+.user-menu-popover .p-menuitem-icon {
+  margin-right: 0.75rem;
+}
+
+.notifications-panel.p-popover {
+  width: calc(22rem + 100px);
+  min-width: calc(22rem + 100px);
 }
 
 .impersonation-banner {

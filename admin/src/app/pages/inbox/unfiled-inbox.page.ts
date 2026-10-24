@@ -64,7 +64,9 @@ type Option = { id: string; label: string };
         }
 
         <div class="toolbar">
-          <span class="text-muted" aria-live="polite">{{ countLabel() }}</span>
+          <div class="toolbar-start">
+            <span class="text-muted" aria-live="polite">{{ countLabel() }}</span>
+          </div>
           <div class="toolbar-search">
             <p-iconfield iconPosition="left" class="toolbar-search-field">
               <p-inputicon><i class="pi pi-search"></i></p-inputicon>

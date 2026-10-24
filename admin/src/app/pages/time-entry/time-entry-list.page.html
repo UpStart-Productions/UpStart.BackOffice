@@ -58,6 +58,21 @@
         }
       </div>
       <div class="timesheet-actions">
+        @if (people().length > 1) {
+          <p-select
+            [options]="people()"
+            optionLabel="label"
+            optionValue="id"
+            [ngModel]="viewUserId()"
+            (ngModelChange)="onViewUserChange($event)"
+            [filter]="people().length > 8"
+            filterBy="label"
+            ariaLabel="Whose timesheet"
+            styleClass="timesheet-person-select"
+            appendTo="body"
+          />
+        }
+        @if (viewingSelf()) {
         <button
           type="button"
           pButton
@@ -76,6 +91,7 @@
           (change)="onCsvSelected($event)"
         />
         <button type="button" pButton label="+ Track time" (click)="openTrackTimeModal()"></button>
+        }
       </div>
     </div>
 
@@ -158,6 +174,7 @@
               </div>
               <div class="entry-actions">
                 <span class="entry-duration">{{ entryDurationLabel(entry) }}</span>
+                @if (viewingSelf()) {
                 <button
                   type="button"
                   pButton
@@ -168,6 +185,7 @@
                   (click)="startFromEntry(entry)"
                   title="Start timer for this entry"
                 ></button>
+                }
                 <button
                   type="button"
                   pButton
@@ -183,6 +201,7 @@
           @if (!runningEntry()) {
             <div class="empty-day">
               <p>No time tracked for this day.</p>
+              @if (viewingSelf()) {
               <button
                 type="button"
                 pButton
@@ -190,6 +209,7 @@
                 [text]="true"
                 (click)="openTrackTimeModal()"
               ></button>
+              }
             </div>
           }
         }

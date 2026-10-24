@@ -1,16 +1,15 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Area, AreaGuard } from '../access/area.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { ContactsService } from './contacts.service';
 import {
   AddContactEmailDto, CreateContactDto, LinkContactAccountDto, UpdateContactDto,
 } from './dto/communications.dto';
 import { InteractionsService } from './interactions.service';
+import { AccessGuard, Area } from '../access/access.guard';
 
 @ApiTags('contacts')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('contacts')
 @Controller('contacts')
 export class ContactsController {

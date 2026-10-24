@@ -178,7 +178,7 @@ export class UsersController {
       },
     });
 
-    const invite = await this.invites.sendStaffInvite({ user, invitedBy: req.user as UserContext });
+    const invite = await this.invites.sendWelcomeInvite({ user, invitedBy: req.user as UserContext });
     return { user: toListItem(user), invite };
   }
 
@@ -202,7 +202,7 @@ export class UsersController {
       dto.lastName !== undefined ? dto.lastName.trim() || null : existing.lastName;
     const name = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
 
-    // Admins have no tenant role. Staff need one. Changing role type or picking a role updates roleId.
+    // Admins have no tenant role. Users need one. Changing role type or picking a role updates roleId.
     const effectiveRole = dto.role ?? existing.role;
     let newRoleId: string | null | undefined;
     if (effectiveRole === 'ADMIN') {
@@ -281,7 +281,7 @@ export class UsersController {
       select: { id: true, email: true, firstName: true },
     });
     if (!user) throw new NotFoundException('User not found');
-    return this.invites.sendStaffInvite({ user, invitedBy: req.user as UserContext });
+    return this.invites.sendWelcomeInvite({ user, invitedBy: req.user as UserContext });
   }
 
   @Delete(':id')
@@ -303,7 +303,7 @@ export class UsersController {
     return { deleted: true };
   }
 
-  /** Admins have no tenant role. Staff must be given one that exists in this tenant. */
+  /** Admins have no tenant role. Users must be given one that exists in this tenant. */
   private async resolveRoleId(role: UserRole, roleId?: string | null): Promise<string | null> {
     if (role === 'ADMIN') return null;
     if (!roleId) throw new BadRequestException('Choose a role for this user.');

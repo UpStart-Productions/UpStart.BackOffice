@@ -1,7 +1,19 @@
-import { ChangeDetectorRef, Component, inject, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  inject,
+  output,
+  signal,
+  viewChild,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AutoComplete, AutoCompleteModule } from 'primeng/autocomplete';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { ApiService } from '../../core/api.service';
 
 type SearchResultType = 'client' | 'project' | 'invoice' | 'lead';
@@ -24,110 +36,147 @@ type SearchResultGroup = {
 @Component({
   selector: 'app-global-search',
   standalone: true,
-  imports: [FormsModule, AutoCompleteModule],
-  styles: `
-    :host {
-      display: block;
-      width: 100%;
-    }
-
-    .global-search-wrap {
-      position: relative;
-      width: 100%;
-    }
-
-    .global-search-icon {
-      position: absolute;
-      left: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-color-secondary);
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    :host ::ng-deep .global-search-input {
-      width: 100%;
-    }
-
-    :host ::ng-deep .global-search-input .p-autocomplete-input {
-      width: 100%;
-      padding-left: 2.25rem;
-    }
-
-    .global-search-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-      white-space: normal;
-      line-height: 1.35;
-      padding: 0.125rem 0;
-    }
-
-    .global-search-item-label {
-      font-weight: 500;
-    }
-
-    .global-search-item-detail,
-    .global-search-item-meta {
-      font-size: 0.8125rem;
-      color: var(--text-color-secondary);
-    }
-  `,
+  imports: [FormsModule, AutoCompleteModule, IconFieldModule, InputIconModule],
   template: `
-    <div class="global-search-wrap">
-      <i class="pi pi-search global-search-icon" aria-hidden="true"></i>
-      <p-autocomplete
-        #globalSearchAc
-        inputId="globalSearch"
-        [(ngModel)]="query"
-        [suggestions]="groups"
-        [group]="true"
-        optionGroupLabel="label"
-        optionGroupChildren="items"
-        [minLength]="2"
-        [delay]="250"
-        [showClear]="true"
-        [showEmptyMessage]="true"
-        scrollHeight="none"
-        appendTo="body"
-        placeholder="Search clients, projects, invoices, leads…"
-        styleClass="global-search-input w-full"
-        panelStyleClass="global-search-panel"
-        emptyMessage="No results found"
-        (completeMethod)="onComplete($event)"
-        (onSelect)="onSelect($event)"
+    <div
+      class="layout-topbar-search"
+      [class.is-expanded]="expanded()"
+      #searchHost
+    >
+      <button
+        type="button"
+        class="nav-search-btn layout-topbar-action"
+        (click)="open($event)"
+        aria-label="Search"
+        title="Search"
+        [attr.aria-expanded]="expanded()"
+        [class.is-hidden]="expanded()"
       >
-        <ng-template let-group #group>
-          <div class="global-search-group-heading">{{ group.label }}</div>
-        </ng-template>
-        <ng-template let-item #item>
-          <div class="global-search-item">
-            <span class="global-search-item-label">{{ item.label }}</span>
-            @if (item.detail) {
-              <span class="global-search-item-detail">{{ item.detail }}</span>
-            }
-            @if (item.meta) {
-              <span class="global-search-item-meta">{{ item.meta }}</span>
-            }
-          </div>
-        </ng-template>
-        <ng-template #empty>
-          <div class="global-search-empty">No results found</div>
-        </ng-template>
-      </p-autocomplete>
+        <i class="pi pi-search"></i>
+      </button>
+      <div class="topbar-search-field search-input-with-clear">
+        <p-iconfield iconPosition="left">
+          <p-inputicon>
+            <i class="pi pi-search"></i>
+          </p-inputicon>
+          <p-autocomplete
+            #globalSearchAc
+            inputId="globalSearch"
+            [(ngModel)]="query"
+            [suggestions]="groups"
+            [group]="true"
+            optionGroupLabel="label"
+            optionGroupChildren="items"
+            [minLength]="2"
+            [delay]="250"
+            [showClear]="false"
+            [showEmptyMessage]="true"
+            scrollHeight="none"
+            appendTo="body"
+            placeholder="Search clients, projects, invoices, leads…"
+            styleClass="global-search-autocomplete"
+            panelStyleClass="global-search-panel"
+            emptyMessage="No results found"
+            (completeMethod)="onComplete($event)"
+            (onSelect)="onSelect($event)"
+            (keydown.escape)="close()"
+          >
+            <ng-template let-group #group>
+              <div class="global-search-group-heading">{{ group.label }}</div>
+            </ng-template>
+            <ng-template let-item #item>
+              <div class="global-search-item">
+                <span class="global-search-item-label">{{ item.label }}</span>
+                @if (item.detail) {
+                  <span class="global-search-item-detail">{{ item.detail }}</span>
+                }
+                @if (item.meta) {
+                  <span class="global-search-item-meta">{{ item.meta }}</span>
+                }
+              </div>
+            </ng-template>
+            <ng-template #empty>
+              <div class="global-search-empty">No results found</div>
+            </ng-template>
+          </p-autocomplete>
+        </p-iconfield>
+        @if (query) {
+          <button
+            type="button"
+            class="search-clear-inside"
+            (click)="clearQuery($event)"
+            aria-label="Clear search"
+          >
+            <i class="pi pi-times"></i>
+          </button>
+        }
+      </div>
     </div>
   `,
+  styles: [
+    `
+      :host {
+        display: block;
+        flex-shrink: 0;
+      }
+    `,
+  ],
 })
 export class GlobalSearchComponent {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
+  readonly opened = output<void>();
+
   @ViewChild('globalSearchAc') private autocomplete?: AutoComplete;
+  private readonly searchHostRef = viewChild<ElementRef<HTMLElement>>('searchHost');
+
+  readonly expanded = signal(false);
+  private suppressCloseUntil = 0;
 
   query = '';
   groups: SearchResultGroup[] = [];
+
+  open(event: Event) {
+    event.stopPropagation();
+    if (this.expanded()) {
+      this.focusInput();
+      return;
+    }
+    this.suppressCloseUntil = Date.now() + 250;
+    this.expanded.set(true);
+    this.opened.emit();
+    queueMicrotask(() => this.focusInput());
+  }
+
+  close() {
+    if (!this.expanded()) return;
+    this.expanded.set(false);
+    this.query = '';
+    this.applySuggestions([]);
+    this.autocomplete?.hide();
+    this.autocomplete?.inputEL?.nativeElement?.blur();
+  }
+
+  clearQuery(event: Event) {
+    event.stopPropagation();
+    this.query = '';
+    this.applySuggestions([]);
+    this.autocomplete?.hide();
+    this.focusInput();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.expanded()) return;
+    if (Date.now() < this.suppressCloseUntil) return;
+    const host = this.searchHostRef()?.nativeElement;
+    if (host?.contains(event.target as Node)) return;
+    const panel = document.querySelector('.p-autocomplete-overlay.global-search-panel');
+    if (panel?.contains(event.target as Node)) return;
+    this.close();
+  }
 
   async onComplete(event: { query: string }) {
     const q = event.query.trim();
@@ -151,8 +200,11 @@ export class GlobalSearchComponent {
     if (!item?.id || !item.type) return;
 
     void this.router.navigateByUrl(this.routeFor(item));
-    this.query = '';
-    this.applySuggestions([]);
+    this.close();
+  }
+
+  private focusInput() {
+    this.autocomplete?.inputEL?.nativeElement?.focus();
   }
 
   private applySuggestions(groups: SearchResultGroup[]) {

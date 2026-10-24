@@ -18,7 +18,6 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { memoryStorage } from 'multer';
-import { TaskManagerAuthGuard } from '../auth/task-manager-auth.guard';
 import { UserContext } from '../common/app.types';
 import {
   AddMemberDto,
@@ -52,13 +51,15 @@ import { TaskProjectsService } from './task-projects.service';
 import { TaskTagsService } from './task-tags.service';
 import { FORM_MAX_FILE_BYTES, FORM_MAX_FILES, TaskFormsService } from './task-forms.service';
 import { MAX_ATTACHMENT_BYTES, TasksService } from './tasks.service';
+import { AccessGuard, Area } from '../access/access.guard';
 
 const me = (req: Request) => req.user as UserContext;
 
-/** Task Manager API. All routes under /tm. Staff see everything; guests only member projects. */
+/** Task Manager API. All routes under /tm. Tasks at 'all' see every project; 'own' only projects they are a member of. */
 @ApiTags('task-manager')
 @ApiBearerAuth()
-@UseGuards(TaskManagerAuthGuard)
+@UseGuards(AccessGuard)
+@Area('tasks')
 @Controller('tm')
 export class TaskManagerController {
   constructor(
@@ -76,7 +77,7 @@ export class TaskManagerController {
     return this.projects.list(me(req), archived === 'true');
   }
 
-  /** Existing projects that can be added to Tasks (staff). */
+  /** Existing projects that can be added to Tasks (Tasks at 'all'). */
   @Get('available-projects')
   availableProjects(@Req() req: Request) {
     return this.projects.available(me(req));

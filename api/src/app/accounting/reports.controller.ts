@@ -1,16 +1,16 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { accountBalance, round2, toBalanceRow } from './accounting.util';
 import { AsOfQueryDto, ReportRangeQueryDto } from './dto/reports-query.dto';
+import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 const EPOCH = new Date('1970-01-01T00:00:00.000Z');
 
 @ApiTags('accounting')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, RequireAdminGuard)
+@UseGuards(AccessGuard)
+@AdminOnly()
 @Controller('accounting/reports')
 export class ReportsController {
   constructor(private readonly prisma: PrismaService) {}

@@ -1,5 +1,5 @@
 import {
-  IsString, IsOptional, IsNumber, IsDateString, IsArray, ValidateNested,
+  IsString, IsOptional, IsNumber, IsDateString, IsArray, ValidateNested, IsIn, MaxLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -16,7 +16,14 @@ export class CreateInvoiceLineItemDto {
 }
 
 export class CreateInvoiceDto {
-  @ApiProperty() @IsString() clientId!: string;
+  /** CLIENT (default): the tenant bills a client. TENANT: the user bills the tenant. */
+  @ApiPropertyOptional({ enum: ['CLIENT', 'TENANT'] }) @IsIn(['CLIENT', 'TENANT']) @IsOptional() billTo?: 'CLIENT' | 'TENANT';
+  /** Required when billing a client. */
+  @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
+  /** Bill-to overrides; default from the client, or from the tenant when billing the tenant. */
+  @ApiPropertyOptional() @IsString() @IsOptional() @MaxLength(200) billToName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() @MaxLength(200) billToEmail?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() @MaxLength(1000) billToAddress?: string;
   @ApiProperty() @IsDateString() issueDate!: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() dueDate?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;

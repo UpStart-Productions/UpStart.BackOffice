@@ -4,7 +4,7 @@ import { ImageResizeService } from '../storage/image-resize.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { UploadAvatarDto } from '../users/dto/user.dto';
-import { toStaffNetworkContactView } from './network-contact.util';
+import { toNetworkContactView } from './network-contact.util';
 
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
@@ -60,7 +60,7 @@ export class NetworkContactAvatarService {
 
     return {
       url: toPublicAssetUrl(url) ?? url,
-      contact: toStaffNetworkContactView(contact),
+      contact: toNetworkContactView(contact),
     };
   }
 
@@ -80,7 +80,7 @@ export class NetworkContactAvatarService {
       data: { avatarUrl: null },
     });
 
-    return { contact: toStaffNetworkContactView(contact) };
+    return { contact: toNetworkContactView(contact) };
   }
 
   async deleteStoredAvatar(avatarUrl: string): Promise<void> {

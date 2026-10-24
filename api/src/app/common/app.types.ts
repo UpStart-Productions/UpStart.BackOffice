@@ -13,7 +13,7 @@ export type UserContext = {
   tenantId?: string | null;
   /** Platform operator: may act in any tenant via the x-tenant-slug header. */
   isSuper?: boolean;
-  /** Areas a staff user's tenant role grants (admins ignore this and can do everything). */
+  /** Areas the user's tenant role grants (admins ignore this and can do everything). */
   permissions?: RolePermissions;
 };
 

@@ -17,7 +17,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ApiBearerAuth, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { projectRootPrefix } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
@@ -25,6 +24,7 @@ import { CreateArtifactDto } from './dto/create-artifact.dto';
 import { UpdateArtifactDto } from './dto/update-artifact.dto';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
+import { AccessGuard, Area } from '../access/access.guard';
 
 type ArtifactParent = {
   leadId?: string;
@@ -36,7 +36,8 @@ type ArtifactParent = {
 
 @ApiTags('artifacts')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(AccessGuard)
+@Area('clients', 'projects', 'pipeline', 'network')
 @Controller('artifacts')
 export class ArtifactsController {
   constructor(

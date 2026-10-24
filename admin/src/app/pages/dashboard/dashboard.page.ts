@@ -1,6 +1,8 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DragDropModule } from 'primeng/dragdrop';
+import { areaLevel, type PermissionArea } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import {
   DashboardWidgetComponent,
@@ -36,6 +38,14 @@ export interface DashboardWidgetConfig {
 const DEFAULT_WIDGET_ORDER = ['time-today', 'pipeline', 'invoices', 'projects'];
 
 const DROPPABLE_SCOPE: string[] = [...DEFAULT_WIDGET_ORDER];
+
+/** The area each widget needs; widgets for areas the user's role doesn't grant are hidden (and not loaded). */
+const WIDGET_AREA: Record<string, PermissionArea> = {
+  'time-today': 'time',
+  pipeline: 'pipeline',
+  invoices: 'invoices',
+  projects: 'projects',
+};
 
 const WIDGET_CONFIGS: DashboardWidgetConfig[] = [
   {
@@ -80,7 +90,8 @@ type Invoice = {
   issueDate: string;
   dueDate?: string;
   total: number;
-  client: { id: string; name: string };
+  billToName?: string | null;
+  client: { id: string; name: string } | null;
 };
 
 type Project = {
@@ -106,6 +117,12 @@ type Project = {
 })
 export class DashboardPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly session = inject(SessionService);
+
+  /** Whether the user's role grants an area (admins: always). */
+  can(area: PermissionArea): boolean {
+    return !!areaLevel(this.session.me(), area);
+  }
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   protected readonly tick = signal(0);
@@ -137,10 +154,11 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   readonly orderedWidgets = computed(() => {
     const saved = this.savedOrder();
-    if (saved.length === 0) return WIDGET_CONFIGS;
+    const allowed = WIDGET_CONFIGS.filter((w) => this.can(WIDGET_AREA[w.id]));
+    if (saved.length === 0) return allowed;
     const orderMap = new Map(saved.map((id, i) => [id, i]));
     const maxOrder = WIDGET_CONFIGS.length;
-    return [...WIDGET_CONFIGS].sort((a, b) => {
+    return [...allowed].sort((a, b) => {
       const aOrder = orderMap.has(a.id) ? orderMap.get(a.id)! : maxOrder;
       const bOrder = orderMap.has(b.id) ? orderMap.get(b.id)! : maxOrder;
       return aOrder - bOrder;
@@ -202,11 +220,11 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.error.set(null);
 
     await Promise.all([
-      this.loadTimeEntries(),
-      this.loadLeads(),
-      this.loadInvoices(),
-      this.loadProjects(),
-      this.loadClients(),
+      this.can('time') ? this.loadTimeEntries() : this.timeLoading.set(false),
+      this.can('pipeline') ? this.loadLeads() : this.pipelineLoading.set(false),
+      this.can('invoices') ? this.loadInvoices() : this.invoicesLoading.set(false),
+      this.can('projects') ? this.loadProjects() : this.projectsLoading.set(false),
+      this.can('clients') ? this.loadClients() : undefined,
     ]);
 
     this.loading.set(false);
@@ -271,10 +289,10 @@ export class DashboardPage implements OnInit, OnDestroy {
       const from = weekStart.toISOString();
       const to = endOfWeek(weekStart).toISOString();
       let data = await this.api.get<TimeEntry[]>(
-        `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${this.myUserQuery('&')}`,
       );
       if (!data.some((e) => !e.stoppedAt)) {
-        const all = await this.api.get<TimeEntry[]>('/time-entries');
+        const all = await this.api.get<TimeEntry[]>(`/time-entries${this.myUserQuery('?')}`);
         const active = all.find((e) => !e.stoppedAt);
         if (active && !data.some((e) => e.id === active.id)) {
           data = [active, ...data];
@@ -287,6 +305,12 @@ export class DashboardPage implements OnInit, OnDestroy {
     } finally {
       this.timeLoading.set(false);
     }
+  }
+
+  /** The dashboard shows the signed-in user's own time, even for roles that can see everyone's. */
+  private myUserQuery(sep: '?' | '&'): string {
+    const id = this.session.me()?.id;
+    return id ? `${sep}userId=${encodeURIComponent(id)}` : '';
   }
 
   private computeWeekMinutes(entries: TimeEntry[]): number {

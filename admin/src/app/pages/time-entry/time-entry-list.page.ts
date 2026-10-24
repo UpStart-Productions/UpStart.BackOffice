@@ -13,12 +13,14 @@ import {
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
+import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
 import { Popover, PopoverModule } from 'primeng/popover';
 import { PageComponent } from '../../ui/layout/page.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
-import type { Project, TimeEntry } from './time-entry.types';
+import type { ClientOption, Project, TimeEntry } from './time-entry.types';
 import {
   addDays,
   dateKey,
@@ -42,6 +44,7 @@ import {
     FormsModule,
     PageComponent,
     PopoverModule,
+    SelectModule,
     TimeEntryModalComponent,
   ],
   templateUrl: './time-entry-list.page.html',
@@ -50,6 +53,7 @@ import {
 export class TimeEntryListPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly toast = inject(MessageService);
+  private readonly session = inject(SessionService);
   private readonly modal = viewChild.required(TimeEntryModalComponent);
 
   @ViewChild('csvFileInput') csvFileInput?: ElementRef<HTMLInputElement>;
@@ -59,6 +63,12 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   entries = signal<TimeEntry[]>([]);
   projects = signal<Project[]>([]);
+  clients = signal<ClientOption[]>([]);
+  /** People whose timesheet this user can view (only themselves unless their role has Time at All). */
+  people = signal<{ id: string; label: string }[]>([]);
+  /** Whose timesheet is shown; defaults to the signed-in user. */
+  viewUserId = signal<string>('');
+  readonly viewingSelf = computed(() => !this.viewUserId() || this.viewUserId() === this.session.me()?.id);
   asanaConnected = signal(false);
   loading = signal(true);
   importing = signal(false);
@@ -144,13 +154,14 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   }
 
   private async init() {
-    await Promise.all([this.loadProjects(), this.loadAsanaStatus(), this.loadDaysWithTime()]);
+    this.viewUserId.set(this.session.me()?.id ?? '');
+    await Promise.all([this.loadProjects(), this.loadClients(), this.loadPeople(), this.loadAsanaStatus(), this.loadDaysWithTime()]);
     await this.loadWeek();
   }
 
   async loadDaysWithTime() {
     try {
-      const startedAt = await this.api.get<string[]>('/time-entries/days');
+      const startedAt = await this.api.get<string[]>(`/time-entries/days${this.userQuery('?')}`);
       this.daysWithTime.set(new Set(startedAt.map((iso) => dateKey(new Date(iso)))));
     } catch {
       this.daysWithTime.set(
@@ -166,6 +177,38 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     } catch {
       this.asanaConnected.set(false);
     }
+  }
+
+  /** `?userId=…` (or `&userId=…`) for the person being viewed. */
+  private userQuery(sep: '?' | '&'): string {
+    const id = this.viewUserId();
+    return id ? `${sep}userId=${encodeURIComponent(id)}` : '';
+  }
+
+  async loadClients() {
+    try {
+      this.clients.set(await this.api.get<ClientOption[]>('/clients/lookup'));
+    } catch {
+      this.clients.set([]);
+    }
+  }
+
+  async loadPeople() {
+    try {
+      const rows = await this.api.get<{ id: string; firstName?: string | null; lastName?: string | null; email: string }[]>(
+        '/time-entries/people',
+      );
+      this.people.set(
+        rows.map((u) => ({ id: u.id, label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email })),
+      );
+    } catch {
+      this.people.set([]);
+    }
+  }
+
+  async onViewUserChange(id: string | null) {
+    this.viewUserId.set(id || (this.session.me()?.id ?? ''));
+    await Promise.all([this.loadWeek(), this.loadDaysWithTime()]);
   }
 
   async loadProjects() {
@@ -184,10 +227,10 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       const from = this.weekStart().toISOString();
       const to = endOfWeek(this.weekStart()).toISOString();
       let data = await this.api.get<TimeEntry[]>(
-        `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${this.userQuery('&')}`,
       );
       if (!data.some((e) => !e.stoppedAt)) {
-        const all = await this.api.get<TimeEntry[]>('/time-entries');
+        const all = await this.api.get<TimeEntry[]>(`/time-entries${this.userQuery('?')}`);
         const active = all.find((e) => !e.stoppedAt);
         if (active && !data.some((e) => e.id === active.id)) {
           data = [active, ...data];
@@ -314,13 +357,15 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   }
 
   projectTitle(entry: TimeEntry): string {
-    return `${entry.project.name} (${(entry.project.client?.name ?? 'Personal')})`;
+    if (entry.project) return `${entry.project.name} (${entry.project.client?.name ?? 'Personal'})`;
+    return entry.client?.name ?? 'No project';
   }
 
   async openTrackTimeModal() {
     const result = await this.modal().open({
       day: this.selectedDay(),
       projects: this.projects(),
+      clients: this.clients(),
       asanaConnected: this.asanaConnected(),
     });
     if (result !== 'cancelled') await this.loadWeek();
@@ -374,6 +419,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     const result = await this.modal().open({
       day: this.selectedDay(),
       projects: this.projects(),
+      clients: this.clients(),
       asanaConnected: this.asanaConnected(),
       entry,
     });

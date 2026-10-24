@@ -4,7 +4,9 @@ import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import type { InvoicePeriodType } from '../invoice-period.util';
 
 export class InvoicePreviewQueryDto {
-  @ApiProperty() @IsString() clientId!: string;
+  @ApiPropertyOptional({ enum: ['CLIENT', 'TENANT'] }) @IsIn(['CLIENT', 'TENANT']) @IsOptional() billTo?: 'CLIENT' | 'TENANT';
+  /** Required when billing a client; an optional filter when billing the tenant. */
+  @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() projectId?: string;
   @ApiProperty({ enum: ['month', 'quarter', 'custom'] })
   @IsIn(['month', 'quarter', 'custom'])

@@ -4,9 +4,8 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { sanitizePermissions } from '@upstart/back-office/shared';
 import { IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 export class CreateRoleDto {
   @IsString() @MinLength(1) @MaxLength(60) name!: string;
@@ -18,14 +17,15 @@ export class UpdateRoleDto {
   @IsOptional() @IsObject() permissions?: Record<string, unknown>;
 }
 
-function toView(r: { id: string; name: string; permissions: unknown; _count?: { users: number } }) {
-  return { id: r.id, name: r.name, permissions: sanitizePermissions(r.permissions), userCount: r._count?.users ?? 0 };
+function toView(r: { id: string; name: string; key?: string | null; permissions: unknown; _count?: { users: number } }) {
+  return { id: r.id, name: r.name, key: r.key ?? null, permissions: sanitizePermissions(r.permissions), userCount: r._count?.users ?? 0 };
 }
 
-/** Tenant-defined roles for staff users. Admins manage them; every tenant has its own set. */
+/** Tenant-defined roles for USER accounts. Admins manage them; every tenant has its own set. */
 @ApiTags('roles')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, RequireAdminGuard)
+@UseGuards(AccessGuard)
+@AdminOnly()
 @Controller('roles')
 export class RolesController {
   constructor(private readonly prisma: PrismaService) {}

@@ -41,6 +41,7 @@ export function toDirectoryAvatarPerson(entry: PeopleDirectoryEntry): Person {
     firstName: entry.firstName || null,
     lastName: entry.lastName || null,
     avatarUrl: entry.avatarUrl,
-    role: 'MEMBER',
+    role: 'USER',
+    isGuest: false,
   };
 }

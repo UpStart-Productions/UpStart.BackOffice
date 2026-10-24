@@ -44,6 +44,7 @@ export interface ContactSummary {
   lastName: string | null;
   title: string | null;
   phone: string | null;
+  avatarUrl?: string | null;
   notes: string | null;
   isActive: boolean;
   autoCreated: boolean;

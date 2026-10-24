@@ -16,37 +16,38 @@
     <h2 class="page-title page-title-in-card">Users</h2>
 
     <div class="toolbar">
-      <button pButton label="Add User" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
-    </div>
-
-    <div class="toolbar mt-3">
-      <p-iconfield iconPosition="left">
-        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-        <input
-          pInputText
-          type="text"
-          placeholder="Search by name or email…"
-          [ngModel]="searchQuery"
-          (ngModelChange)="onSearchInput($event)"
+      <div class="toolbar-start">
+        <button pButton label="Add User" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
+        <p-select
+          [(ngModel)]="sortBy"
+          [options]="sortOptions"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Sort by"
         />
-      </p-iconfield>
-      @if (searchQuery) {
-        <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
-      }
-      <p-select
-        [(ngModel)]="sortBy"
-        [options]="sortOptions"
-        optionLabel="label"
-        optionValue="value"
-        placeholder="Sort by"
-        styleClass="ml-2"
-      />
+      </div>
+      <div class="toolbar-search">
+        <p-iconfield iconPosition="left" class="toolbar-search-field">
+          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+          <input
+            pInputText
+            type="text"
+            class="w-full"
+            placeholder="Search by name or email…"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </p-iconfield>
+        @if (searchQuery) {
+          <button type="button" pButton icon="pi pi-times" [text]="true" (click)="clearSearch()" aria-label="Clear search"></button>
+        }
+      </div>
     </div>
 
     <p-table [value]="filteredUsers" [loading]="loading()" styleClass="table-bordered mt-3">
       <ng-template pTemplate="header">
         <tr>
-          <th style="width: 3rem"></th>
+          <th class="network-list-leading-col"></th>
           <th>Name</th>
           <th>Email</th>
           <th>Role</th>
@@ -57,12 +58,25 @@
       <ng-template pTemplate="body" let-user>
         <tr [class.user-disabled]="!user.isActive">
           <td>
-            <app-row-actions-menu [items]="getRowActions(user)" ariaLabel="User actions" />
+            <div class="network-list-leading">
+              <app-row-actions-menu [items]="getRowActions(user)" ariaLabel="User actions" />
+              @if (userAvatar(user); as avatarSrc) {
+                <img
+                  class="network-list-avatar"
+                  [src]="avatarSrc"
+                  [alt]="user.name || user.email"
+                />
+              } @else {
+                <span class="network-list-avatar network-list-avatar--initials" aria-hidden="true">
+                  {{ userInitials(user) }}
+                </span>
+              }
+            </div>
           </td>
           <td>{{ user.name || '—' }}</td>
           <td><app-copy-email [email]="user.email" [showEmpty]="false" /></td>
           <td>
-            {{ user.role === 'MEMBER' && user.roleName ? user.roleName : roleLabel(user.role) }}
+            {{ user.role === 'USER' && user.roleName ? user.roleName : roleLabel(user.role) }}
             @if (user.client) {
               <span class="text-color-secondary"> · {{ user.client.name }}</span>
             }

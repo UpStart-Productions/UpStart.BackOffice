@@ -12,6 +12,7 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
@@ -47,7 +48,16 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
           <p-message severity="error" [text]="error()!" class="mb-3" />
         }
         <div class="toolbar">
-          <p-button label="New Contact" icon="pi pi-plus" (onClick)="openNew()" />
+          <div class="toolbar-start">
+            <p-button label="New Contact" icon="pi pi-plus" (onClick)="openNew()" />
+            <div class="flex align-items-center gap-2">
+              <p-checkbox inputId="review" [ngModel]="review" (ngModelChange)="onReview($event)" [binary]="true" />
+              <label for="review">Needs review</label>
+              @if (reviewCount() > 0) {
+                <p-tag [value]="'' + reviewCount()" severity="info" />
+              }
+            </div>
+          </div>
           <div class="toolbar-search">
             <p-iconfield iconPosition="left" class="toolbar-search-field">
               <p-inputicon><i class="pi pi-search"></i></p-inputicon>
@@ -64,13 +74,6 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             @if (query) {
               <p-button icon="pi pi-times" [text]="true" severity="secondary" aria-label="Clear search" (onClick)="onSearch('')" />
             }
-            <div class="flex align-items-center gap-2 ml-3">
-              <p-checkbox inputId="review" [ngModel]="review" (ngModelChange)="onReview($event)" [binary]="true" />
-              <label for="review">Needs review</label>
-              @if (reviewCount() > 0) {
-                <p-tag [value]="'' + reviewCount()" severity="info" />
-              }
-            </div>
           </div>
         </div>
 
@@ -83,7 +86,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         >
           <ng-template pTemplate="header">
             <tr>
-              <th style="width: 3rem"></th>
+              <th class="network-list-leading-col"></th>
               <th pSortableColumn="firstName">
                 Name
                 <p-sortIcon field="firstName" />
@@ -99,7 +102,16 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
           <ng-template pTemplate="body" let-c>
             <tr>
               <td>
-                <app-row-actions-menu [items]="rowActions(c)" ariaLabel="Contact actions" />
+                <div class="network-list-leading">
+                  <app-row-actions-menu [items]="rowActions(c)" ariaLabel="Contact actions" />
+                  @if (contactAvatar(c); as avatarSrc) {
+                    <img class="network-list-avatar" [src]="avatarSrc" [alt]="name(c)" />
+                  } @else {
+                    <span class="network-list-avatar network-list-avatar--initials" aria-hidden="true">
+                      {{ contactInitials(c) }}
+                    </span>
+                  }
+                </div>
               </td>
               <td>
                 <a [routerLink]="['/contacts', c.id]" class="text-primary">{{ name(c) }}</a>
@@ -213,6 +225,16 @@ export class ContactsListPage implements OnInit {
 
   name = contactName;
   readonly pageSize = 25;
+
+  contactAvatar(c: ContactSummary): string | null {
+    return resolveAssetUrl(c.avatarUrl ?? null);
+  }
+
+  contactInitials(c: ContactSummary): string {
+    const first = c.firstName.trim().charAt(0);
+    const last = (c.lastName ?? '').trim().charAt(0);
+    return (first + last).toUpperCase() || '?';
+  }
   /** Contacts awaiting review, from the last unsearched load. */
   reviewCount = signal(0);
 

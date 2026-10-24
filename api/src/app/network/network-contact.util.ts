@@ -16,7 +16,7 @@ export type NetworkContactRecord = {
   updatedAt: Date;
 };
 
-export function toStaffNetworkContactView<T extends NetworkContactRecord>(contact: T) {
+export function toNetworkContactView<T extends NetworkContactRecord>(contact: T) {
   return {
     ...contact,
     avatarUrl: toPublicAssetUrl(contact.avatarUrl),

@@ -7,22 +7,30 @@
     </div>
   } @else {
     <div class="stat-cards mb-4">
+      @if (can('clients')) {
       <div class="stat-card stat-card--clients">
         <small class="text-muted">Clients</small>
         <h3 class="m-0">{{ clientsCount() }}</h3>
       </div>
+      }
+      @if (can('projects')) {
       <div class="stat-card stat-card--projects">
         <small class="text-muted">Active projects</small>
         <h3 class="m-0">{{ projectsCount() }}</h3>
       </div>
+      }
+      @if (can('time')) {
       <div class="stat-card stat-card--hours">
         <small class="text-muted">Hours this week</small>
         <h3 class="m-0">{{ weekHoursLabel() }}</h3>
       </div>
+      }
+      @if (can('pipeline')) {
       <div class="stat-card stat-card--leads">
         <small class="text-muted">Open leads</small>
         <h3 class="m-0">{{ openLeadsCount() }}</h3>
       </div>
+      }
     </div>
 
     <div class="dashboard-grid">

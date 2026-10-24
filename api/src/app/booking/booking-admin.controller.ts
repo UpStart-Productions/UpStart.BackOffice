@@ -12,15 +12,13 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingStatus } from '@prisma/client';
-import { RequireAdminGuard } from '../auth/require-admin.guard';
-import { Area, AreaGuard } from '../access/area.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { BookingService } from './booking.service';
 import { UpsertBookingTypeDto } from './dto/upsert-booking-type.dto';
+import { AccessGuard, Area, AdminOnly } from '../access/access.guard';
 
 @ApiTags('booking')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('bookings')
 @Controller('booking/admin')
 export class BookingAdminController {
@@ -48,31 +46,31 @@ export class BookingAdminController {
   }
 
   @Get('types')
-  @UseGuards(RequireAdminGuard)
+  @AdminOnly()
   listTypes() {
     return this.booking.listBookingTypes();
   }
 
   @Get('types/:id')
-  @UseGuards(RequireAdminGuard)
+  @AdminOnly()
   getType(@Param('id') id: string) {
     return this.booking.getBookingType(id);
   }
 
   @Post('types')
-  @UseGuards(RequireAdminGuard)
+  @AdminOnly()
   createType(@Body() dto: UpsertBookingTypeDto) {
     return this.booking.createBookingType(dto);
   }
 
   @Put('types/:id')
-  @UseGuards(RequireAdminGuard)
+  @AdminOnly()
   updateType(@Param('id') id: string, @Body() dto: UpsertBookingTypeDto) {
     return this.booking.updateBookingType(id, dto);
   }
 
   @Delete('types/:id')
-  @UseGuards(RequireAdminGuard)
+  @AdminOnly()
   deleteType(@Param('id') id: string) {
     return this.booking.deleteBookingType(id);
   }

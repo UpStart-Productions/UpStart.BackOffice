@@ -6,10 +6,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { AccessService } from '../access/access.service';
-import { Area, AreaGuard } from '../access/area.guard';
 import { UserContext } from '../common/app.types';
 import { JournalPostingService } from '../accounting/journal-posting.service';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { publicFromName } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -23,6 +21,8 @@ import { PayService } from '../pay/pay.service';
 import { InvoiceFromTimeService } from './invoice-from-time.service';
 import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
+import { currentTenantId } from '../tenancy/tenant-context';
+import { AccessGuard, Area } from '../access/access.guard';
 
 const projectContactSelect = {
   id: true,
@@ -56,7 +56,7 @@ type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceIncl
 
 @ApiTags('invoices')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('invoices')
 @Controller('invoices')
 export class InvoicesController {
@@ -73,13 +73,50 @@ export class InvoicesController {
     private readonly access: AccessService,
   ) {}
 
-  /** Own invoices when the role says so; only for clients the user can reach. */
+  /**
+   * Own invoices when the role says so. Client invoices only for clients the user can reach;
+   * invoices billed to the tenant have no client, so anyone at 'all' sees them.
+   */
   private async scope(user: UserContext): Promise<Prisma.InvoiceWhereInput> {
     const clientIds = await this.access.clientIdFilter(user);
     return {
-      ...(this.access.level(user, 'invoices') === 'own' ? { createdById: user.id } : {}),
-      ...(clientIds ? { clientId: clientIds } : {}),
+      ...(this.ownOnly(user) ? { createdById: user.id } : {}),
+      ...(clientIds ? { OR: [{ clientId: clientIds }, { clientId: null }] } : {}),
     };
+  }
+
+  private ownOnly(user: UserContext): boolean {
+    return this.access.level(user, 'invoices') === 'own';
+  }
+
+  /** The tenant as a bill-to: its name, address from the organization profile, and billing email. */
+  private async tenantBillTo(): Promise<{ name: string; email: string | null; address: string | null }> {
+    const tenantId = currentTenantId();
+    const [tenant, profile] = await Promise.all([
+      this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { name: true } }),
+      this.prisma.organizationProfile.findUnique({ where: { tenantId } }),
+    ]);
+    const cityLine = [[profile?.city, profile?.state].filter(Boolean).join(', '), profile?.zip].filter(Boolean).join(' ');
+    return {
+      name: tenant?.name ?? '',
+      email: profile?.billingEmail?.trim() || null,
+      address: [profile?.address, cityLine].filter(Boolean).join('\n') || null,
+    };
+  }
+
+  private static clientBillTo(client: { name: string; email: string | null; address: string | null; city: string | null; state: string | null; zip: string | null }) {
+    const cityLine = [[client.city, client.state].filter(Boolean).join(', '), client.zip].filter(Boolean).join(' ');
+    return {
+      name: client.name,
+      email: client.email?.trim() || null,
+      address: [client.address, cityLine].filter(Boolean).join('\n') || null,
+    };
+  }
+
+  /** Default bill-to for a new invoice billed to the tenant (the form prefills with it). */
+  @Get('tenant-bill-to')
+  tenantBillToDefault() {
+    return this.tenantBillTo();
   }
 
   /** A client the user may invoice. Same not-found answer as a missing client. */
@@ -90,23 +127,35 @@ export class InvoicesController {
     return client;
   }
 
+  /** Unbilled time to invoice. Billing the tenant always uses only the user's own time; so does a role limited to its own invoices. */
   @Get('preview')
   async preview(@Req() req: Request, @Query() query: InvoicePreviewQueryDto) {
-    await this.requireClient(req.user as UserContext, query.clientId);
+    const user = req.user as UserContext;
+    const billTo = query.billTo ?? 'CLIENT';
+    if (billTo === 'CLIENT') {
+      if (!query.clientId) throw new BadRequestException('Choose a client');
+      await this.requireClient(user, query.clientId);
+    } else if (query.clientId) {
+      await this.requireClient(user, query.clientId);
+    }
     if (query.projectId) {
       const project = await this.prisma.project.findFirst({
-        where: { id: query.projectId, clientId: query.clientId },
+        where: { id: query.projectId, ...(query.clientId ? { clientId: query.clientId } : {}) },
       });
-      if (!project) throw new NotFoundException('Project not found for this client');
+      if (!project) throw new NotFoundException('Project not found');
     }
-    return this.invoiceFromTime.buildPreview(query);
+    const userId = billTo === 'TENANT' || this.ownOnly(user) ? user.id : undefined;
+    return this.invoiceFromTime.buildPreview({ ...query, billTo, userId });
   }
 
   @Get()
   async list(@Req() req: Request) {
     return this.prisma.invoice.findMany({
       where: await this.scope(req.user as UserContext),
-      include: { client: { select: { id: true, name: true, code: true } } },
+      include: {
+        client: { select: { id: true, name: true, code: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
       orderBy: { number: 'desc' },
     });
   }
@@ -114,15 +163,30 @@ export class InvoicesController {
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateInvoiceDto) {
     const user = req.user as UserContext;
-    const client = await this.requireClient(user, dto.clientId);
+    const billTo = dto.billTo ?? 'CLIENT';
+    let clientId: string | null = null;
+    let prefix = 'INV';
+    let defaults: { name: string; email: string | null; address: string | null };
+    if (billTo === 'CLIENT') {
+      if (!dto.clientId) throw new BadRequestException('Choose a client');
+      const client = await this.requireClient(user, dto.clientId);
+      clientId = client.id;
+      prefix = client.code;
+      defaults = InvoicesController.clientBillTo(client);
+    } else {
+      defaults = await this.tenantBillTo();
+    }
 
-    await this.invoiceFromTime.assertTimeEntriesLinkable(dto.clientId, dto.lineItems);
+    await this.invoiceFromTime.assertTimeEntriesLinkable(
+      { billTo, clientId, userId: billTo === 'TENANT' || this.ownOnly(user) ? user.id : null },
+      dto.lineItems,
+    );
 
     const lastInvoice = await this.prisma.invoice.findFirst({
       orderBy: { number: 'desc' },
     });
     const number = (lastInvoice?.number ?? 0) + 1;
-    const displayNumber = `${client.code}-${String(number).padStart(4, '0')}`;
+    const displayNumber = `${prefix}-${String(number).padStart(4, '0')}`;
 
     const subtotal = dto.lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     const taxAmount = dto.taxRate ? subtotal * dto.taxRate : 0;
@@ -131,7 +195,11 @@ export class InvoicesController {
     return this.prisma.$transaction(async (tx) => {
       const invoice = await tx.invoice.create({
         data: {
-          clientId: dto.clientId,
+          billTo,
+          clientId,
+          billToName: dto.billToName?.trim() || defaults.name,
+          billToEmail: dto.billToEmail !== undefined ? dto.billToEmail.trim() || null : defaults.email,
+          billToAddress: dto.billToAddress !== undefined ? dto.billToAddress.trim() || null : defaults.address,
           createdById: user.id,
           number,
           displayNumber,
@@ -175,7 +243,15 @@ export class InvoicesController {
       if (dto.lineItems.length === 0) {
         throw new BadRequestException('At least one line item is required');
       }
-      await this.invoiceFromTime.assertTimeEntriesLinkable(existing.clientId, dto.lineItems);
+      const user = req.user as UserContext;
+      await this.invoiceFromTime.assertTimeEntriesLinkable(
+        {
+          billTo: existing.billTo,
+          clientId: existing.clientId,
+          userId: existing.billTo === 'TENANT' ? existing.createdById : this.ownOnly(user) ? user.id : null,
+        },
+        dto.lineItems,
+      );
     }
 
     const invoice = await this.prisma.$transaction(async (tx) => {
@@ -206,6 +282,9 @@ export class InvoicesController {
           ...(dto.issueDate !== undefined && { issueDate: new Date(dto.issueDate) }),
           ...(dto.dueDate !== undefined && { dueDate: dto.dueDate ? new Date(dto.dueDate) : null }),
           ...(dto.notes !== undefined && { notes: dto.notes }),
+          ...(dto.billToName !== undefined && { billToName: dto.billToName.trim() || null }),
+          ...(dto.billToEmail !== undefined && { billToEmail: dto.billToEmail.trim() || null }),
+          ...(dto.billToAddress !== undefined && { billToAddress: dto.billToAddress.trim() || null }),
           ...(dto.lineItems || dto.taxRate !== undefined
             ? {
                 subtotal,
@@ -277,9 +356,10 @@ export class InvoicesController {
 
     return {
       displayNumber: invoice.displayNumber,
+      // The invoice's bill-to (the client, or the tenant when billing the tenant).
       client: {
-        name: invoice.client.name,
-        email: invoice.client.email?.trim() || null,
+        name: invoice.billToName || invoice.client?.name || '',
+        email: invoice.billToEmail?.trim() || invoice.client?.email?.trim() || null,
       },
       projectContacts: buildProjectContacts(invoice.lineItems),
     };
@@ -338,7 +418,7 @@ export class InvoicesController {
       to,
       toName: dto.toName?.trim() || undefined,
       invoiceNumber: invoice.displayNumber,
-      clientName: invoice.client.name,
+      clientName: invoice.billToName || invoice.client?.name || '',
       pdfBuffer,
       notes: invoice.notes ?? undefined,
       message: dto.message?.trim() || undefined,

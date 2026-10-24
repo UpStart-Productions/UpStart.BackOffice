@@ -49,7 +49,8 @@ type TimeEntry = {
     name: string;
     isBillable: boolean;
     client: { id: string; name: string } | null;
-  };
+  } | null;
+  client?: { id: string; name: string } | null;
   projectTask?: { id: string; name: string; isBillable: boolean } | null;
 };
 
@@ -60,6 +61,8 @@ type Invoice = {
   issueDate: string;
   dueDate?: string;
   total: number;
+  /** Reports cover client invoices (revenue); invoices billed to the tenant are left out. */
+  billTo?: 'CLIENT' | 'TENANT';
   client: { id: string; name: string };
 };
 
@@ -222,13 +225,13 @@ export class ReportsPage implements OnInit {
   readonly timeByProject = computed((): TimeProjectRow[] => {
     const map = new Map<string, TimeProjectRow>();
     for (const e of this.completedTimeEntries()) {
-      const key = e.project.id;
+      const key = e.project?.id ?? `none:${e.client?.id ?? ''}`;
       const min = e.durationMin ?? 0;
       const row =
         map.get(key) ??
         ({
-          clientName: (e.project.client?.name ?? 'Personal'),
-          projectName: e.project.name,
+          clientName: (e.project?.client?.name ?? e.client?.name ?? 'Personal'),
+          projectName: e.project?.name ?? 'No project',
           totalMin: 0,
           billableMin: 0,
           nonBillableMin: 0,
@@ -291,8 +294,8 @@ export class ReportsPage implements OnInit {
       .map((e) => ({
         id: e.id,
         startedAt: e.startedAt,
-        clientName: (e.project.client?.name ?? 'Personal'),
-        projectName: e.project.name,
+        clientName: (e.project?.client?.name ?? e.client?.name ?? 'Personal'),
+        projectName: e.project?.name ?? 'No project',
         taskName: e.projectTask?.name ?? '—',
         description: e.description?.trim() || '—',
         durationMin: e.durationMin ?? 0,
@@ -481,13 +484,14 @@ export class ReportsPage implements OnInit {
       const projectId = this.filters.projectId;
       this.timeEntries.set(
         entries.filter((e) => {
-          if (clientId && e.project.client?.id !== clientId) return false;
-          if (projectId && e.project.id !== projectId) return false;
+          if (clientId && (e.project?.client?.id ?? e.client?.id) !== clientId) return false;
+          if (projectId && e.project?.id !== projectId) return false;
           return true;
         }),
       );
       this.invoices.set(
         invoices.filter((inv) => {
+          if (inv.billTo === 'TENANT' || !inv.client) return false;
           if (clientId && inv.client.id !== clientId) return false;
           return dateInPeriod(inv.issueDate, bounds.from, bounds.to);
         }),
@@ -570,7 +574,7 @@ export class ReportsPage implements OnInit {
   }
 
   private isEntryBillable(entry: TimeEntry): boolean {
-    return entry.project.isBillable && entry.isBillable;
+    return (entry.project?.isBillable ?? true) && entry.isBillable;
   }
 
   private buildProjectChart(

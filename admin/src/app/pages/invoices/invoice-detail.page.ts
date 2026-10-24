@@ -22,7 +22,9 @@ type InvoiceDetail = {
   total: number;
   paidAt?: string | null;
   amountPaid?: number | null;
-  client: { id: string; name: string };
+  billTo?: 'CLIENT' | 'TENANT';
+  billToName?: string | null;
+  client: { id: string; name: string } | null;
 };
 
 @Component({

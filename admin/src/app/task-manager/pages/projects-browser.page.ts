@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { isStaffRole } from '@upstart/back-office/shared';
+import { areaLevel } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
@@ -35,7 +35,7 @@ import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
               <p-toggleswitch [ngModel]="showArchived()" (ngModelChange)="setArchived($event)" />
               Inactive
             </label>
-            @if (isStaff()) {
+            @if (seesAllProjects()) {
               <p-button label="Add project" icon="pi pi-plus" (onClick)="newOpen.set(true)" />
             }
           </div>
@@ -51,7 +51,7 @@ import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
               <th pSortableColumn="client.name">Client <p-sortIcon field="client.name" /></th>
               <th pSortableColumn="openTaskCount" style="width: 9rem">Open tasks <p-sortIcon field="openTaskCount" /></th>
               <th pSortableColumn="memberCount" style="width: 8rem">Members <p-sortIcon field="memberCount" /></th>
-              @if (isStaff()) { <th style="width: 7rem">Billable</th> }
+              @if (seesAllProjects()) { <th style="width: 7rem">Billable</th> }
             </tr>
           </ng-template>
           <ng-template #body let-p>
@@ -70,13 +70,13 @@ import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
               <td>{{ p.client?.name ?? 'Personal' }}</td>
               <td>{{ p.openTaskCount }}</td>
               <td>{{ p.memberCount }}</td>
-              @if (isStaff()) {
+              @if (seesAllProjects()) {
                 <td><i class="pi" [class.pi-check-circle]="p.isBillable" [class.pi-circle]="!p.isBillable"></i></td>
               }
             </tr>
           </ng-template>
           <ng-template #emptymessage>
-            <tr><td [attr.colspan]="isStaff() ? 6 : 5" class="text-center p-4 text-color-secondary">{{ query() ? 'No projects match.' : 'No projects in Tasks yet — use Add project to bring one in.' }}</td></tr>
+            <tr><td [attr.colspan]="seesAllProjects() ? 6 : 5" class="text-center p-4 text-color-secondary">{{ query() ? 'No projects match.' : 'No projects in Tasks yet — use Add project to bring one in.' }}</td></tr>
           </ng-template>
         </p-table>
       </div>
@@ -96,7 +96,7 @@ export class ProjectsBrowserPage implements OnInit {
   showArchived = signal(false);
   newOpen = signal(false);
 
-  readonly isStaff = computed(() => isStaffRole(this.session.me()?.role ?? 'GUEST'));
+  readonly seesAllProjects = computed(() => areaLevel(this.session.me(), 'tasks') === 'all');
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
     // Keep star state in sync with the sidebar store.

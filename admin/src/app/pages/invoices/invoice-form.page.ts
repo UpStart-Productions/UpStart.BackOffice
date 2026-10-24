@@ -6,6 +6,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { areaLevel } from '@upstart/back-office/shared';
+import { SessionService } from '../../core/session.service';
 import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
@@ -16,10 +19,12 @@ import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 
 type Client = { id: string; name: string };
-type Project = { id: string; name: string; clientId: string };
+type Project = { id: string; name: string; clientId: string | null };
+type BillTo = 'CLIENT' | 'TENANT';
+type BillToFields = { name: string; email: string | null; address: string | null };
 
 type LineItem = {
-  projectId: string;
+  projectId: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -33,10 +38,10 @@ type PeriodType = 'month' | 'quarter' | 'custom';
 type InvoicePreview = {
   period: { label: string };
   projects: Array<{
-    projectId: string;
+    projectId: string | null;
     projectName: string;
     lines: Array<{
-      projectId: string;
+      projectId: string | null;
       description: string;
       quantity: number;
       unitPrice: number;
@@ -89,6 +94,7 @@ const QUARTERS = [
     MessageModule,
     TextareaModule,
     SelectModule,
+    SelectButtonModule,
     TableModule,
     QuillModule,
     PageComponent,
@@ -103,6 +109,12 @@ export class InvoiceFormPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
+  private readonly session = inject(SessionService);
+
+  readonly billToOptions = [
+    { label: 'A client', value: 'CLIENT' as BillTo },
+    { label: 'Our organization', value: 'TENANT' as BillTo },
+  ];
 
   readonly months = MONTHS;
   readonly quarters = QUARTERS;
@@ -138,7 +150,12 @@ export class InvoiceFormPage implements OnInit {
   };
 
   form = {
+    /** Who the invoice is addressed to: a client, or the organization (e.g. a caregiver billing for their hours). */
+    billTo: 'CLIENT' as BillTo,
     clientId: '',
+    billToName: '',
+    billToEmail: '',
+    billToAddress: '',
     issueDate: new Date().toISOString().slice(0, 10),
     dueDate: '',
     notes: '',
@@ -169,11 +186,12 @@ export class InvoiceFormPage implements OnInit {
 
   async ngOnInit() {
     const [clients, projects] = await Promise.all([
-      this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
+      this.api.get<Client[]>('/clients/lookup').catch(() => [] as Client[]),
       this.api.get<Project[]>('/projects').catch(() => [] as Project[]),
     ]);
     this.clients.set(clients);
     this.projects.set(projects);
+    this.filteredProjects.set(projects);
 
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -182,7 +200,11 @@ export class InvoiceFormPage implements OnInit {
         const inv = await this.api.get<{
           status: string;
           displayNumber: string;
-          clientId: string;
+          billTo: BillTo;
+          clientId: string | null;
+          billToName?: string | null;
+          billToEmail?: string | null;
+          billToAddress?: string | null;
           issueDate: string;
           dueDate?: string;
           notes?: string;
@@ -198,7 +220,11 @@ export class InvoiceFormPage implements OnInit {
         }
         this.displayNumber.set(inv.displayNumber);
         this.form = {
-          clientId: inv.clientId,
+          billTo: inv.billTo ?? 'CLIENT',
+          clientId: inv.clientId ?? '',
+          billToName: inv.billToName ?? '',
+          billToEmail: inv.billToEmail ?? '',
+          billToAddress: inv.billToAddress ?? '',
           issueDate: inv.issueDate.slice(0, 10),
           dueDate: inv.dueDate?.slice(0, 10) ?? '',
           notes: inv.notes ?? '',
@@ -206,7 +232,7 @@ export class InvoiceFormPage implements OnInit {
         };
         this.lineItems.set(
           inv.lineItems.map((li) => ({
-            projectId: li.projectId ?? '',
+            projectId: li.projectId ?? null,
             projectName: li.project?.name,
             description: li.description,
             quantity: Number(li.quantity),
@@ -219,12 +245,36 @@ export class InvoiceFormPage implements OnInit {
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load invoice');
       }
+    } else {
+      // Roles limited to their own invoices (e.g. caregivers) usually bill the organization; so does anyone with no clients.
+      const ownOnly = areaLevel(this.session.me(), 'invoices') === 'own';
+      if (ownOnly || clients.length === 0) await this.onBillToChange('TENANT');
     }
     this.loading.set(false);
   }
 
+  get billingTenant() { return this.form.billTo === 'TENANT'; }
+
+  /** Switching to the organization prefills its bill-to (editable); switching to a client clears it (the client's details are used). */
+  async onBillToChange(billTo: BillTo) {
+    this.form.billTo = billTo;
+    if (billTo === 'TENANT') {
+      const d = await this.api.get<BillToFields>('/invoices/tenant-bill-to').catch(() => null);
+      this.form.billToName = d?.name ?? '';
+      this.form.billToEmail = d?.email ?? '';
+      this.form.billToAddress = d?.address ?? '';
+    } else {
+      this.form.billToName = '';
+      this.form.billToEmail = '';
+      this.form.billToAddress = '';
+    }
+    this.onClientChange();
+  }
+
   onClientChange() {
-    this.filteredProjects.set(this.projects().filter((p) => p.clientId === this.form.clientId));
+    this.filteredProjects.set(
+      this.form.clientId ? this.projects().filter((p) => p.clientId === this.form.clientId) : this.projects(),
+    );
     if (this.generate.projectId) {
       const ok = this.filteredProjects().some((p) => p.id === this.generate.projectId);
       if (!ok) this.generate.projectId = '';
@@ -232,7 +282,7 @@ export class InvoiceFormPage implements OnInit {
   }
 
   addLine() {
-    const projectId = this.generate.projectId || '';
+    const projectId = this.generate.projectId || null;
     this.lineItems.update((items) => [
       ...items,
       { projectId, description: '', quantity: 0, unitPrice: 0, amount: 0, timeEntryIds: [] },
@@ -250,7 +300,7 @@ export class InvoiceFormPage implements OnInit {
   }
 
   async generateFromTime() {
-    if (!this.form.clientId) {
+    if (!this.billingTenant && !this.form.clientId) {
       this.error.set('Select a client before generating from time');
       return;
     }
@@ -266,7 +316,8 @@ export class InvoiceFormPage implements OnInit {
 
     try {
       const params = new URLSearchParams({
-        clientId: this.form.clientId,
+        billTo: this.form.billTo,
+        ...(this.form.clientId ? { clientId: this.form.clientId } : {}),
         periodType: this.generate.periodType,
         year: String(this.generate.year),
       });
@@ -324,7 +375,8 @@ export class InvoiceFormPage implements OnInit {
   }
 
   async save() {
-    if (!this.form.clientId) { this.error.set('Client is required'); return; }
+    if (!this.billingTenant && !this.form.clientId) { this.error.set('Client is required'); return; }
+    if (this.billingTenant && !this.form.billToName.trim()) { this.error.set('Bill-to name is required'); return; }
     if (this.lineItems().length === 0) { this.error.set('At least one line item is required'); return; }
     for (const li of this.lineItems()) {
       if (!li.description.trim()) { this.error.set('Each line item needs a description'); return; }
@@ -344,7 +396,9 @@ export class InvoiceFormPage implements OnInit {
 
       if (this.isNew) {
         const created = await this.api.post<{ id: string }>('/invoices', {
-          clientId: this.form.clientId,
+          billTo: this.form.billTo,
+          clientId: this.billingTenant ? undefined : this.form.clientId,
+          ...this.billToPayload(),
           issueDate: this.form.issueDate,
           dueDate: this.form.dueDate || undefined,
           notes: richTextOrUndefined(this.form.notes),
@@ -359,6 +413,7 @@ export class InvoiceFormPage implements OnInit {
         await this.router.navigate(['/invoices', created.id, 'edit'], { replaceUrl: true });
       } else {
         await this.api.put(`/invoices/${this.id()}`, {
+          ...this.billToPayload(),
           notes: richTextOrUndefined(this.form.notes) ?? '',
           dueDate: this.form.dueDate || undefined,
           taxRate: this.form.taxRate ?? undefined,
@@ -373,6 +428,16 @@ export class InvoiceFormPage implements OnInit {
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
     } finally { this.saving.set(false); }
+  }
+
+  /** Bill-to fields as typed; blank on a client invoice means "use the client's details". */
+  private billToPayload() {
+    if (!this.billingTenant && !this.form.billToName && !this.form.billToEmail && !this.form.billToAddress) return {};
+    return {
+      billToName: this.form.billToName,
+      billToEmail: this.form.billToEmail,
+      billToAddress: this.form.billToAddress,
+    };
   }
 
   formatCurrency(n: number): string {

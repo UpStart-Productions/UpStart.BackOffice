@@ -73,7 +73,7 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
 
       <h4 class="mt-4 mb-2">Your team's email domains</h4>
       <p class="text-color-secondary mt-0">
-        Addresses at these domains count as your team (staff accounts always do), so they're never
+        Addresses at these domains count as your team (your users always do), so they're never
         treated as clients.
       </p>
       <div class="capture-row">

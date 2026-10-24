@@ -6,6 +6,8 @@ export type Person = {
   lastName: string | null;
   avatarUrl: string | null;
   role: string;
+  /** On the built-in Guest role (an outside collaborator). */
+  isGuest: boolean;
 };
 
 export type MemberRole = 'OWNER' | 'EDITOR' | 'COMMENTER';
@@ -45,7 +47,7 @@ export type TmProject = {
   sections: TmSection[];
   customFields: TmField[];
   members: ProjectMember[];
-  permissions: { canEdit: boolean; canComment: boolean; canManage: boolean; isStaff: boolean };
+  permissions: { canEdit: boolean; canComment: boolean; canManage: boolean; seesAllProjects: boolean };
 };
 
 export type RecurrenceFreq = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';

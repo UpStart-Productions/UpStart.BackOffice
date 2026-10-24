@@ -24,7 +24,9 @@ type InvoiceData = {
   taxRate?: Numeric | null;
   taxAmount?: Numeric | null;
   total: Numeric;
-  client: { name: string; email?: string | null; address?: string | null; city?: string | null; state?: string | null; zip?: string | null };
+  billToName?: string | null;
+  billToAddress?: string | null;
+  client?: { name: string; email?: string | null; address?: string | null; city?: string | null; state?: string | null; zip?: string | null } | null;
   lineItems: LineItem[];
 };
 
@@ -99,13 +101,17 @@ export class PdfService {
 
     const projectSections = buildProjectSections(invoice.lineItems);
 
+    // The invoice's bill-to snapshot; older invoices fall back to the client record.
+    const c = invoice.client;
     const clientAddr = [
-      invoice.client.name,
-      invoice.client.address,
-      invoice.client.city && invoice.client.state
-        ? `${invoice.client.city}, ${invoice.client.state} ${invoice.client.zip ?? ''}`.trim()
-        : (invoice.client.city || invoice.client.state || ''),
-    ].filter(Boolean).join('<br>');
+      invoice.billToName || c?.name,
+      ...(invoice.billToAddress
+        ? invoice.billToAddress.split(/\r?\n/)
+        : [
+            c?.address,
+            c?.city && c?.state ? `${c.city}, ${c.state} ${c.zip ?? ''}`.trim() : (c?.city || c?.state || ''),
+          ]),
+    ].filter(Boolean).map((line) => escapeHtml(String(line))).join('<br>');
 
     return `<!DOCTYPE html>
 <html>

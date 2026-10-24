@@ -8,7 +8,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { formatDurationMin, parseDurationInput, sanitizeDurationInput } from './timesheet.utils';
-import type { Project, TimeEntry, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
+import type { ClientOption, Project, TimeEntry, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
 
 function tmTaskLabel(task: { name: string; parent?: { name: string } | null }): string {
   return task.parent?.name ? `${task.parent.name} › ${task.name}` : task.name;
@@ -45,8 +45,9 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
         </div>
       </ng-template>
       <div class="entry-form">
+        @if (projectOptions().length > 0) {
         <div class="form-field">
-          <label for="entry-project">Project</label>
+          <label for="entry-project">Project (optional)</label>
           <p-select
             inputId="entry-project"
             [options]="projectOptions()"
@@ -57,7 +58,8 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
             [filter]="true"
             filterBy="projectName,clientName"
             filterPlaceholder="Search by client or project…"
-            placeholder="Select a project"
+            placeholder="No project"
+            [showClear]="true"
             styleClass="w-full entry-project-select"
             panelStyleClass="entry-project-select-panel"
             appendTo="body"
@@ -78,6 +80,27 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
             </ng-template>
           </p-select>
         </div>
+        }
+
+        @if (!projectId() && clients().length > 0) {
+          <div class="form-field">
+            <label for="entry-client">Client (optional)</label>
+            <p-select
+              inputId="entry-client"
+              [options]="clients()"
+              optionLabel="name"
+              optionValue="id"
+              [ngModel]="clientId()"
+              (ngModelChange)="clientId.set($event ?? '')"
+              [filter]="clients().length > 8"
+              filterBy="name"
+              placeholder="No client"
+              [showClear]="true"
+              styleClass="w-full"
+              appendTo="body"
+            />
+          </div>
+        }
 
         @if (manualTasks().length > 0) {
           <div class="form-field">
@@ -405,9 +428,11 @@ export class TimeEntryModalComponent {
   entryDay = signal(new Date());
   editingEntry = signal<TimeEntry | null>(null);
   projects = signal<Project[]>([]);
+  clients = signal<ClientOption[]>([]);
   asanaConnected = signal(false);
 
   projectId = signal('');
+  clientId = signal('');
   manualTaskId = signal('');
   asanaTaskId = signal('');
   tmTaskId = signal('');
@@ -448,13 +473,12 @@ export class TimeEntryModalComponent {
   );
 
   readonly canSubmit = computed(() => {
-    if (!this.projectId()) return false;
     if (this.requiresTask() && !this.hasSelectedTask()) return false;
     return true;
   });
 
   readonly selectableProjects = computed(() => {
-    const editingProjectId = this.editingEntry()?.project.id;
+    const editingProjectId = this.editingEntry()?.project?.id;
     return this.projects().filter(
       (p) => p.isActive !== false || p.id === editingProjectId,
     );
@@ -478,12 +502,15 @@ export class TimeEntryModalComponent {
   open(options: {
     day: Date;
     projects: Project[];
+    /** Clients to pick from when logging time without a project. */
+    clients?: ClientOption[];
     asanaConnected?: boolean;
     entry?: TimeEntry;
   }): Promise<TimeEntryModalResult> {
     return new Promise((resolve) => {
       this.resolve = resolve;
       this.projects.set(options.projects);
+      this.clients.set(options.clients ?? []);
       this.asanaConnected.set(options.asanaConnected ?? false);
       this.entryDay.set(new Date(options.day));
       this.editingEntry.set(options.entry ?? null);
@@ -492,7 +519,8 @@ export class TimeEntryModalComponent {
       this.loadingAsanaNotes.set(false);
 
       if (options.entry) {
-        this.projectId.set(options.entry.project.id);
+        this.projectId.set(options.entry.project?.id ?? '');
+        this.clientId.set(options.entry.project ? '' : (options.entry.client?.id ?? ''));
         this.notes.set(options.entry.description ?? '');
         this.durationInput.set(
           options.entry.durationMin != null
@@ -503,6 +531,7 @@ export class TimeEntryModalComponent {
         this.setTmTaskFromEntry(options.entry);
       } else {
         this.projectId.set('');
+        this.clientId.set('');
         this.manualTaskId.set('');
         this.asanaTaskId.set('');
         this.tmTaskId.set('');
@@ -513,7 +542,7 @@ export class TimeEntryModalComponent {
 
       this.visible = true;
 
-      const projectId = options.entry?.project.id;
+      const projectId = options.entry?.project?.id;
       if (projectId) {
         const project = options.projects.find((p) => p.id === projectId);
         if (project?.asanaSectionGid && this.asanaConnected()) {
@@ -536,7 +565,7 @@ export class TimeEntryModalComponent {
       return;
     }
 
-    const project = this.projects().find((p) => p.id === entry.project.id);
+    const project = this.projects().find((p) => p.id === entry.project?.id);
     const cachedTask = project?.tasks?.find((t) => t.id === taskId);
     const isAsana =
       entry.projectTask?.source === 'ASANA' ||
@@ -560,7 +589,7 @@ export class TimeEntryModalComponent {
 
     this.projects.update((list) =>
       list.map((p) => {
-        if (p.id !== entry.project.id) return p;
+        if (p.id !== entry.project?.id) return p;
         if (p.tasks?.some((t) => t.id === taskId)) return p;
         return {
           ...p,
@@ -581,9 +610,18 @@ export class TimeEntryModalComponent {
     );
   }
 
-  onProjectIdChange(id: string) {
+  onProjectIdChange(id: string | null) {
     const p = this.projects().find((x) => x.id === id);
-    if (!p) return;
+    if (!p) {
+      // Cleared: time without a project.
+      this.projectId.set('');
+      this.manualTaskId.set('');
+      this.asanaTaskId.set('');
+      this.tmTaskId.set('');
+      this.tmTaskOptions.set([]);
+      return;
+    }
+    this.clientId.set('');
     this.selectProject(p);
   }
 
@@ -795,7 +833,8 @@ export class TimeEntryModalComponent {
 
   private entryPayload(projectId: string) {
     const payload: Record<string, unknown> = {
-      projectId,
+      projectId: projectId || null,
+      clientId: projectId ? null : this.clientId() || null,
       description: this.notes().trim() || undefined,
       taskId: this.tmTaskId() || null,
     };
@@ -806,10 +845,6 @@ export class TimeEntryModalComponent {
 
   async saveEntry() {
     const projectId = this.projectId();
-    if (!projectId) {
-      this.error.set('Choose a project.');
-      return;
-    }
     if (this.requiresTask() && !this.hasSelectedTask()) {
       this.error.set('Choose a task or Asana task.');
       return;
@@ -869,10 +904,6 @@ export class TimeEntryModalComponent {
 
   async startTimer() {
     const projectId = this.projectId();
-    if (!projectId) {
-      this.error.set('Choose a project.');
-      return;
-    }
     if (this.requiresTask() && !this.hasSelectedTask()) {
       this.error.set('Choose a task or Asana task.');
       return;
@@ -901,7 +932,9 @@ export class TimeEntryModalComponent {
     const existing = this.editingEntry();
     if (!existing) return;
 
-    const label = `${existing.project.name} (${(existing.project.client?.name ?? 'Personal')})`;
+    const label = existing.project
+      ? `${existing.project.name} (${existing.project.client?.name ?? 'Personal'})`
+      : existing.client?.name ?? 'No project';
     this.deleteConfirm.confirm({
       message: `Delete this time entry for "${label}"? This cannot be undone.`,
       accept: () => this.performDelete(existing.id),

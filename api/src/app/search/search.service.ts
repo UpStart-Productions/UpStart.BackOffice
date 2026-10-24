@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { AccessService } from '../access/access.service';
+import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type SearchResultType = 'client' | 'project' | 'invoice' | 'lead';
@@ -57,15 +59,24 @@ function leadStageLabel(stage: string): string {
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessService,
+  ) {}
 
-  async search(rawQuery: string): Promise<SearchResponse> {
+  /** Searches only the areas the user has, scoped the same way as each area's own list. */
+  async search(user: UserContext, rawQuery: string): Promise<SearchResponse> {
     const q = rawQuery.trim();
     if (q.length < 2) return { groups: [] };
 
+    const clientIds = await this.access.clientIdFilter(user);
+    const projectScope = await this.access.projectFilter(user);
+    const none = Promise.resolve([] as never[]);
+
     const [clients, projects, invoices, leads] = await Promise.all([
-      this.prisma.client.findMany({
+      !this.access.can(user, 'clients') ? none : this.prisma.client.findMany({
         where: {
+          ...(clientIds ? { id: clientIds } : {}),
           OR: [
             { name: contains(q) },
             { code: contains(q) },
@@ -77,8 +88,9 @@ export class SearchService {
         orderBy: { name: 'asc' },
         take: RESULT_LIMIT,
       }),
-      this.prisma.project.findMany({
+      !this.access.can(user, 'projects') ? none : this.prisma.project.findMany({
         where: {
+          AND: [projectScope ?? {}],
           OR: [
             { name: contains(q) },
             { client: { name: contains(q) } },
@@ -104,8 +116,10 @@ export class SearchService {
         orderBy: { name: 'asc' },
         take: RESULT_LIMIT,
       }),
-      this.prisma.invoice.findMany({
+      !this.access.can(user, 'invoices') ? none : this.prisma.invoice.findMany({
         where: {
+          ...(this.access.level(user, 'invoices') === 'own' ? { createdById: user.id } : {}),
+          ...(clientIds ? { clientId: clientIds } : {}),
           OR: [
             { displayNumber: contains(q) },
             { client: { name: contains(q) } },
@@ -121,7 +135,7 @@ export class SearchService {
         orderBy: { number: 'desc' },
         take: RESULT_LIMIT,
       }),
-      this.prisma.lead.findMany({
+      !this.access.can(user, 'pipeline') ? none : this.prisma.lead.findMany({
         where: {
           OR: [
             { organization: contains(q) },

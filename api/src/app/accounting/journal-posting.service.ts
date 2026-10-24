@@ -31,7 +31,8 @@ export class JournalPostingService {
     if (already) return;
 
     const invoice = await client.invoice.findUnique({ where: { id: invoiceId } });
-    if (!invoice) return;
+    // Invoices billed to the tenant are bills it owes, not revenue: nothing to post.
+    if (!invoice || invoice.billTo === 'TENANT') return;
 
     const ar = await this.requireAccount(client, SYSTEM_ACCOUNT_CODES.ACCOUNTS_RECEIVABLE);
     const revenue = await this.requireAccount(client, SYSTEM_ACCOUNT_CODES.REVENUE);
@@ -75,7 +76,7 @@ export class JournalPostingService {
     if (already) return;
 
     const invoice = await client.invoice.findUnique({ where: { id: invoiceId } });
-    if (!invoice) return;
+    if (!invoice || invoice.billTo === 'TENANT') return;
 
     const cash = await this.requireAccount(client, SYSTEM_ACCOUNT_CODES.CASH);
     const ar = await this.requireAccount(client, SYSTEM_ACCOUNT_CODES.ACCOUNTS_RECEIVABLE);

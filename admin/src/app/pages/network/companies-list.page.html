@@ -7,16 +7,18 @@
   <div class="card">
     <h2 class="page-title page-title-in-card">Network</h2>
     <div class="toolbar">
-      <a pButton label="New Company" icon="pi pi-plus" routerLink="/network/new"></a>
-      <button
-        type="button"
-        pButton
-        [label]="referralOnly() ? 'Showing referral-ready' : 'Referral-ready only'"
-        [icon]="referralOnly() ? 'pi pi-filter-fill' : 'pi pi-filter'"
-        [outlined]="!referralOnly()"
-        severity="secondary"
-        (click)="toggleReferralOnly()"
-      ></button>
+      <div class="toolbar-start">
+        <a pButton label="New Company" icon="pi pi-plus" routerLink="/network/new"></a>
+        <button
+          type="button"
+          pButton
+          [label]="referralOnly() ? 'Showing referral-ready' : 'Referral-ready only'"
+          [icon]="referralOnly() ? 'pi pi-filter-fill' : 'pi pi-filter'"
+          [outlined]="!referralOnly()"
+          severity="secondary"
+          (click)="toggleReferralOnly()"
+        ></button>
+      </div>
       <div class="toolbar-search">
         <p-iconfield iconPosition="left" class="toolbar-search-field">
           <p-inputicon><i class="pi pi-search"></i></p-inputicon>

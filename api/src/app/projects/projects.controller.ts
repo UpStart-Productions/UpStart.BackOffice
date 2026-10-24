@@ -1,12 +1,12 @@
 import {
-  Body, Controller, Delete, Get, NotFoundException, Param,
-  Patch, Post, Put, Query, UseGuards,
+  Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param,
+  Patch, Post, Put, Query, Req, UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ProjectTaskSource } from '@prisma/client';
 import { asanaBoardGids, asanaSectionGids, sameGidList } from '../asana/asana-link.util';
 import { AsanaSyncService } from '../asana/asana-sync.service';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -15,30 +15,52 @@ import { SyncProjectTasksDto } from './dto/project-task.dto';
 import { UpdateAsanaTaskBillablesDto, UpdateProjectDto } from './dto/update-project.dto';
 import { syncProjectContacts } from './project-contacts.util';
 import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-tasks.util';
+import { AccessGuard, Area } from '../access/access.guard';
+import { AccessService } from '../access/access.service';
+import { UserContext } from '../common/app.types';
 
 @ApiTags('projects')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard)
+@UseGuards(AccessGuard)
+@Area('projects')
 @Controller('projects')
 export class ProjectsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageFolders: StorageFoldersService,
     private readonly asanaSync: AsanaSyncService,
+    private readonly access: AccessService,
   ) {}
 
+  /** A project the user may reach, or 404 (same answer as a missing project). */
+  private async reachable(req: Request, id: string) {
+    const scope = await this.access.projectFilter(req.user as UserContext);
+    const project = await this.prisma.project.findFirst({ where: { AND: [{ id }, scope ?? {}] } });
+    if (!project) throw new NotFoundException('Project not found');
+    return project;
+  }
+
+  /** Creating and deleting projects needs Projects at 'all'. */
+  private requireAll(req: Request) {
+    if (this.access.level(req.user as UserContext, 'projects') !== 'all') throw new ForbiddenException('You can only work on your own projects');
+  }
+
+  /** Also the project picker for time, expenses and invoices, so those areas can list (their reachable) projects. */
   @Get()
+  @Area('projects', 'time', 'expenses', 'invoices')
   @ApiQuery({ name: 'clientId', required: false })
-  async list(@Query('clientId') clientId?: string) {
+  async list(@Req() req: Request, @Query('clientId') clientId?: string) {
+    const scope = await this.access.projectFilter(req.user as UserContext);
     return this.prisma.project.findMany({
-      where: clientId ? { clientId } : undefined,
+      where: { AND: [clientId ? { clientId } : {}, scope ?? {}] },
       include: activeTasksInclude,
       orderBy: { name: 'asc' },
     });
   }
 
   @Post()
-  async create(@Body() dto: CreateProjectDto) {
+  async create(@Req() req: Request, @Body() dto: CreateProjectDto) {
+    this.requireAll(req);
     const clientId = dto.clientId || null;
     if (clientId) {
       const client = await this.prisma.client.findUnique({ where: { id: clientId } });
@@ -63,7 +85,8 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
+  async get(@Req() req: Request, @Param('id') id: string) {
+    await this.reachable(req, id);
     const project = await this.prisma.project.findUnique({
       where: { id },
       include: projectInclude,
@@ -73,8 +96,8 @@ export class ProjectsController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateProjectDto) {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateProjectDto) {
+    const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
 
     const nextBoardGids =
@@ -121,6 +144,11 @@ export class ProjectsController {
       include: projectInclude,
     });
 
+    // Time entries carry their project's client; keep them in step when the project moves to another client.
+    if (dto.clientId !== undefined && (dto.clientId || null) !== existing.clientId) {
+      await this.prisma.timeEntry.updateMany({ where: { projectId: id }, data: { clientId: dto.clientId || null } });
+    }
+
     if (dto.isBillable === false) {
       await this.prisma.projectTask.updateMany({
         where: { projectId: id },
@@ -148,18 +176,17 @@ export class ProjectsController {
   }
 
   @Post(':id/asana/sync')
-  async syncAsanaTasks(@Param('id') id: string) {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
+  async syncAsanaTasks(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
     return this.asanaSync.syncProjectTasks(id);
   }
 
   @Patch(':id/asana-tasks')
-  async updateAsanaTaskBillables(
-    @Param('id') id: string,
+  async updateAsanaTaskBillables(@Req() req: Request, @Param('id') id: string,
     @Body() dto: UpdateAsanaTaskBillablesDto,
   ) {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
+    const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
 
     for (const task of dto.tasks) {
@@ -176,8 +203,8 @@ export class ProjectsController {
   }
 
   @Put(':id/tasks')
-  async syncTasks(@Param('id') id: string, @Body() dto: SyncProjectTasksDto) {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
+  async syncTasks(@Req() req: Request, @Param('id') id: string, @Body() dto: SyncProjectTasksDto) {
+    const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
     await syncProjectTasks(this.prisma, id, dto.tasks);
     return this.prisma.project.findUnique({
@@ -187,8 +214,8 @@ export class ProjectsController {
   }
 
   @Put(':id/contacts')
-  async syncContacts(@Param('id') id: string, @Body() dto: SyncProjectContactsDto) {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
+  async syncContacts(@Req() req: Request, @Param('id') id: string, @Body() dto: SyncProjectContactsDto) {
+    const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
     await syncProjectContacts(this.prisma, id, dto.contacts);
     return this.prisma.project.findUnique({
@@ -198,8 +225,9 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
+  async remove(@Req() req: Request, @Param('id') id: string) {
+    this.requireAll(req);
+    const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
     await this.storageFolders.removeProjectTree(existing.clientId, id);
     await this.prisma.project.delete({ where: { id } });

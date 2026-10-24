@@ -90,6 +90,18 @@
                 [(ngModel)]="businessForm.phone"
               />
             </div>
+            <div class="form-field showcase-half">
+              <label for="businessBillingEmail">Billing email</label>
+              <input
+                pInputText
+                id="businessBillingEmail"
+                name="businessBillingEmail"
+                type="email"
+                class="w-full"
+                [(ngModel)]="businessForm.billingEmail"
+              />
+              <small class="text-color-secondary">Where invoices addressed to your organization are sent by default.</small>
+            </div>
             <div>
               <button
                 type="button"

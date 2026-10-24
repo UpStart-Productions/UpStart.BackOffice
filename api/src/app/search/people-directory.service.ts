@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { personName } from '../task-manager/task-people.util';
+import { GUEST_ROLE } from '@upstart/back-office/shared';
 
 export type PeopleDirectoryEntry = {
   /** Stable key for UI (deduped). */
@@ -180,6 +181,7 @@ export class PeopleDirectoryService {
           lastName: true,
           name: true,
           role: true,
+          tenantRole: { select: { key: true } },
           avatarUrl: true,
         },
         orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
@@ -223,7 +225,7 @@ export class PeopleDirectoryService {
       const firstName = trimOrEmpty(u.firstName);
       const lastName = trimOrEmpty(u.lastName);
       const email = trimOrEmpty(u.email);
-      const roleLabel = u.role === 'GUEST' ? 'Guest collaborator' : 'Team member';
+      const roleLabel = u.tenantRole?.key === GUEST_ROLE.key ? 'Guest collaborator' : 'Team member';
       candidates.push({
         id: `user:${u.id}`,
         source: 'USER',

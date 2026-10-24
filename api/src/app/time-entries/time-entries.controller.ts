@@ -17,8 +17,6 @@ import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import { AccessService } from '../access/access.service';
-import { Area, AreaGuard } from '../access/area.guard';
-import { StaffAuthGuard } from '../auth/staff-auth.guard';
 import { UserContext } from '../common/app.types';
 import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -31,6 +29,7 @@ import {
   startedStoppedAt,
 } from './timesheet-csv.util';
 import { assertTmTaskInProject } from './time-entry-task.util';
+import { AccessGuard, Area } from '../access/access.guard';
 
 function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
   return Math.round((stoppedAt.getTime() - startedAt.getTime()) / 60000);
@@ -45,6 +44,7 @@ const entryInclude = {
       client: { select: { id: true, name: true } },
     },
   },
+  client: { select: { id: true, name: true } },
   projectTask: { select: { id: true, name: true, isBillable: true, source: true } },
   task: {
     select: {
@@ -65,6 +65,7 @@ const entryIncludeWithoutUser = {
       client: { select: { id: true, name: true } },
     },
   },
+  client: { select: { id: true, name: true } },
   projectTask: { select: { id: true, name: true, isBillable: true, source: true } },
   task: {
     select: {
@@ -77,7 +78,7 @@ const entryIncludeWithoutUser = {
 
 @ApiTags('time-entries')
 @ApiBearerAuth()
-@UseGuards(StaffAuthGuard, AreaGuard)
+@UseGuards(AccessGuard)
 @Area('time')
 @Controller('time-entries')
 export class TimeEntriesController {
@@ -86,21 +87,34 @@ export class TimeEntriesController {
     private readonly access: AccessService,
   ) {}
 
-  /** Which entries this user may reach: own entries when the role says so, and only assigned clients' projects. */
+  /**
+   * Which entries this user may reach. Time at 'own': only their own entries.
+   * Time at 'all': everyone's, limited to their assigned clients when Clients isn't 'all' (plus their own).
+   */
   private async scope(user: UserContext): Promise<Prisma.TimeEntryWhereInput> {
+    if (this.access.level(user, 'time') === 'own') return { userId: user.id };
     const clientIds = await this.access.clientIdFilter(user);
-    return {
-      ...(this.access.level(user, 'time') === 'own' ? { userId: user.id } : {}),
-      ...(clientIds ? { project: { clientId: clientIds } } : {}),
-    };
+    return clientIds ? { OR: [{ clientId: clientIds }, { userId: user.id }] } : {};
   }
 
-  /** A project the user is allowed to log against (its client is one they can reach). */
-  private async assertProjectAllowed(user: UserContext, projectId: string) {
-    const clientIds = await this.access.clientIdFilter(user);
-    if (!clientIds) return;
-    const ok = await this.prisma.project.findFirst({ where: { id: projectId, clientId: clientIds }, select: { id: true } });
-    if (!ok) throw new NotFoundException('Project not found');
+  /**
+   * The project and client an entry is logged against. Both are optional. With a project, its client is used;
+   * without one, the client (if any) must be one the user can reach.
+   */
+  private async resolveLinks(user: UserContext, projectId: string | null, clientId: string | null) {
+    if (projectId) {
+      const scope = await this.access.projectFilter(user);
+      const project = await this.prisma.project.findFirst({ where: { AND: [{ id: projectId }, scope ?? {}] }, select: { id: true, clientId: true } });
+      if (!project) throw new NotFoundException('Project not found');
+      return { projectId: project.id, clientId: project.clientId };
+    }
+    if (clientId) {
+      const ids = await this.access.clientIds(user);
+      if (ids && !ids.includes(clientId)) throw new NotFoundException('Client not found');
+      const client = await this.prisma.client.findFirst({ where: { id: clientId }, select: { id: true } });
+      if (!client) throw new NotFoundException('Client not found');
+    }
+    return { projectId: null, clientId: clientId || null };
   }
 
   @Get()
@@ -133,10 +147,26 @@ export class TimeEntriesController {
     });
   }
 
+  /** People whose time this user can view: just themselves at 'own', everyone at 'all'. */
+  @Get('people')
+  async people(@Req() req: Request) {
+    const user = req.user as UserContext;
+    const select = { id: true, firstName: true, lastName: true, email: true } as const;
+    if (this.access.level(user, 'time') !== 'all') {
+      return this.prisma.user.findMany({ where: { id: user.id }, select });
+    }
+    return this.prisma.user.findMany({
+      where: { isActive: true, role: { in: ['ADMIN', 'USER'] } },
+      select,
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
+    });
+  }
+
   @Get('days')
-  async listDays(@Req() req: Request) {
+  @ApiQuery({ name: 'userId', required: false })
+  async listDays(@Req() req: Request, @Query('userId') userId?: string) {
     const entries = await this.prisma.timeEntry.findMany({
-      where: await this.scope(req.user as UserContext),
+      where: { AND: [await this.scope(req.user as UserContext), userId ? { userId } : {}] },
       select: { startedAt: true },
     });
     return entries.map((e) => e.startedAt.toISOString());
@@ -210,6 +240,7 @@ export class TimeEntriesController {
           data: {
             userId: user.id,
             projectId: project.id,
+            clientId: project.client?.id ?? null,
             projectTaskId,
             description: row.description || undefined,
             startedAt,
@@ -229,7 +260,7 @@ export class TimeEntriesController {
   @Post()
   async create(@Req() req: Request, @Body() dto: CreateTimeEntryDto) {
     const user = req.user as UserContext;
-    await this.assertProjectAllowed(user, dto.projectId);
+    const links = await this.resolveLinks(user, dto.projectId || null, dto.clientId || null);
     if (!dto.stoppedAt) {
       await this.assertNoRunningTimer(user.id);
     }
@@ -237,20 +268,19 @@ export class TimeEntriesController {
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
     if (dto.taskId) {
-      await assertTmTaskInProject(this.prisma, dto.projectId, dto.taskId);
+      if (!links.projectId) throw new BadRequestException('A task needs a project');
+      await assertTmTaskInProject(this.prisma, links.projectId, dto.taskId);
     }
 
-    const isBillable = await resolveTimeEntryBillable(
-      this.prisma,
-      dto.projectId,
-      dto.projectTaskId,
-      dto.isBillable,
-    );
+    const isBillable = links.projectId
+      ? await resolveTimeEntryBillable(this.prisma, links.projectId, dto.projectTaskId, dto.isBillable)
+      : (dto.isBillable ?? true);
 
     return this.prisma.timeEntry.create({
       data: {
         userId: user.id,
-        projectId: dto.projectId,
+        projectId: links.projectId,
+        clientId: links.clientId,
         projectTaskId: dto.projectTaskId,
         taskId: dto.taskId,
         description: dto.description,
@@ -317,9 +347,15 @@ export class TimeEntriesController {
     const user = req.user as UserContext;
     const entry = await this.prisma.timeEntry.findFirst({ where: { id, ...(await this.scope(user)) } });
     if (!entry) throw new NotFoundException('Time entry not found');
-    if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
-
-    const projectId = dto.projectId ?? entry.projectId;
+    const linksChanged = dto.projectId !== undefined || dto.clientId !== undefined;
+    const links = linksChanged
+      ? await this.resolveLinks(
+          user,
+          dto.projectId !== undefined ? dto.projectId || null : entry.projectId,
+          dto.clientId !== undefined ? dto.clientId || null : entry.clientId,
+        )
+      : { projectId: entry.projectId, clientId: entry.clientId };
+    const projectId = links.projectId;
     const projectTaskId = dto.projectTaskId !== undefined ? dto.projectTaskId : entry.projectTaskId ?? undefined;
     const taskId = dto.taskId !== undefined ? dto.taskId || null : entry.taskId;
     const startedAt = dto.startedAt ? new Date(dto.startedAt) : entry.startedAt;
@@ -327,26 +363,28 @@ export class TimeEntriesController {
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
 
     if (taskId) {
+      if (!projectId) throw new BadRequestException('A task needs a project');
       await assertTmTaskInProject(this.prisma, projectId, taskId);
     }
 
-    const isBillable = await resolveTimeEntryBillable(
-      this.prisma,
-      projectId,
-      projectTaskId,
-      dto.isBillable ?? entry.isBillable,
-    );
+    const isBillable = projectId
+      ? await resolveTimeEntryBillable(this.prisma, projectId, projectTaskId, dto.isBillable ?? entry.isBillable)
+      : (dto.isBillable ?? entry.isBillable);
 
     return this.prisma.timeEntry.update({
       where: { id },
       data: {
-        ...(dto.projectId !== undefined && { projectId: dto.projectId }),
+        ...(linksChanged && {
+          projectId: links.projectId,
+          clientId: links.clientId,
+          ...(links.projectId ? {} : { projectTaskId: null, taskId: null }),
+        }),
         ...(dto.projectTaskId !== undefined && { projectTaskId: dto.projectTaskId }),
         ...(dto.taskId !== undefined && { taskId: dto.taskId || null }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.startedAt !== undefined && { startedAt }),
         ...(dto.stoppedAt !== undefined && { stoppedAt, durationMin }),
-        ...(dto.isBillable !== undefined || dto.projectTaskId !== undefined || dto.projectId !== undefined
+        ...(dto.isBillable !== undefined || dto.projectTaskId !== undefined || linksChanged
           ? { isBillable }
           : {}),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),

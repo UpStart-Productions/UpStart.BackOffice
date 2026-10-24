@@ -34,6 +34,7 @@ import {
 } from './task-forms.util';
 import { personName } from './task-people.util';
 import { TasksService } from './tasks.service';
+import { usersWithArea } from '../access/access.service';
 
 export const FORM_MAX_FILES = 5;
 export const FORM_MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -284,7 +285,8 @@ export class TaskFormsService {
       id: '',
       email: who.email ?? 'form',
       firstName: who.name || who.email || form.name,
-      role: 'GUEST' as UserContext['role'],
+      role: 'USER',
+      permissions: {},
     };
     await this.events.notify(
       { id: task.id, name: task.name, projectId: form.projectId, project: { name: project.name } },
@@ -401,7 +403,7 @@ export class TaskFormsService {
     if (dto.assigneeId !== undefined) {
       if (dto.assigneeId) {
         const ok = await this.prisma.user.count({
-          where: { id: dto.assigneeId, isActive: true, OR: [{ role: { in: ['ADMIN', 'MEMBER'] } }, { projectMemberships: { some: { projectId } } }] },
+          where: { id: dto.assigneeId, isActive: true, OR: [usersWithArea('tasks', 'all'), { projectMemberships: { some: { projectId } } }] },
         });
         if (!ok) throw new BadRequestException('That person is not on this project');
       }

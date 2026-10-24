@@ -1,5 +1,4 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { isStaffRole } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddTaskTagDto, CreateTagDto, UpdateTagDto } from './dto/task-manager.dto';
@@ -9,7 +8,7 @@ import { OPTION_COLORS } from './task-fields.util';
 const tagKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
 const tagSelect = { id: true, name: true, color: true } as const;
 
-/** Tags shared across every project. Anyone in Tasks can create/apply them; staff rename and delete. */
+/** Tags shared across every project. Anyone in Tasks can create/apply them; people who see every project rename and delete. */
 @Injectable()
 export class TaskTagsService {
   constructor(
@@ -40,7 +39,7 @@ export class TaskTagsService {
   }
 
   async update(user: UserContext, id: string, dto: UpdateTagDto) {
-    if (!isStaffRole(user.role)) throw new ForbiddenException('Only staff can edit tags');
+    if (!this.access.seesAllProjects(user)) throw new ForbiddenException('You do not have permission to edit tags');
     const tag = await this.prisma.tag.findUnique({ where: { id } });
     if (!tag) throw new NotFoundException('Tag not found');
     const data: { name?: string; nameKey?: string; color?: string | null } = {};
@@ -57,7 +56,7 @@ export class TaskTagsService {
   }
 
   async remove(user: UserContext, id: string) {
-    if (!isStaffRole(user.role)) throw new ForbiddenException('Only staff can delete tags');
+    if (!this.access.seesAllProjects(user)) throw new ForbiddenException('You do not have permission to delete tags');
     await this.prisma.tag.delete({ where: { id } }).catch(() => {
       throw new NotFoundException('Tag not found');
     });
