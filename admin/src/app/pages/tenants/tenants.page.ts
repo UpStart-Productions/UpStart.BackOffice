@@ -47,6 +47,7 @@ const slugify = (s: string) =>
               <td><code>{{ t.slug }}</code></td>
               <td>{{ t.internalDomains.length ? t.internalDomains.join(', ') : '—' }}</td>
               <td>
+                <button pButton icon="pi pi-pencil" size="small" severity="secondary" [text]="true" (click)="openEdit(t)" aria-label="Edit tenant"></button>
                 @if (t.slug !== tenant.currentSlug()) {
                   <button pButton label="Switch to" size="small" severity="secondary" [outlined]="true" (click)="tenant.switchTo(t.slug)"></button>
                 }
@@ -57,7 +58,7 @@ const slugify = (s: string) =>
       </div>
 
       <p-dialog
-        header="Add tenant"
+        [header]="editingId ? 'Edit tenant' : 'Add tenant'"
         [(visible)]="addVisible"
         [modal]="true"
         [draggable]="false"
@@ -78,7 +79,7 @@ const slugify = (s: string) =>
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="addVisible = false" />
-          <p-button label="Add" icon="pi pi-check" [loading]="saving()" [disabled]="!name.trim() || !slug.trim()" (onClick)="save()" />
+          <p-button [label]="editingId ? 'Save' : 'Add'" icon="pi pi-check" [loading]="saving()" [disabled]="!name.trim() || !slug.trim()" (onClick)="save()" />
         </ng-template>
       </p-dialog>
     </app-page>
@@ -99,6 +100,7 @@ export class TenantsPage implements OnInit {
   slug = '';
   domains = '';
   slugEdited = false;
+  editingId: string | null = null;
 
   ngOnInit() {
     void this.load();
@@ -116,7 +118,18 @@ export class TenantsPage implements OnInit {
     }
   }
 
+  openEdit(t: TenantRow) {
+    this.editingId = t.id;
+    this.name = t.name;
+    this.slug = t.slug;
+    this.domains = t.internalDomains.join(', ');
+    this.slugEdited = true;
+    this.formError.set(null);
+    this.addVisible = true;
+  }
+
   openAdd() {
+    this.editingId = null;
     this.name = this.slug = this.domains = '';
     this.slugEdited = false;
     this.formError.set(null);
@@ -133,11 +146,22 @@ export class TenantsPage implements OnInit {
     this.formError.set(null);
     try {
       const internalDomains = this.domains.split(',').map((d) => d.trim()).filter(Boolean);
-      await this.api.post('/tenants', { name: this.name.trim(), slug: this.slug.trim(), internalDomains });
+      const body = { name: this.name.trim(), slug: this.slug.trim(), internalDomains };
+      if (this.editingId) {
+        const old = this.tenants().find((t) => t.id === this.editingId);
+        await this.api.patch(`/tenants/${this.editingId}`, body);
+        // Keep the active tenant selection valid when its slug was changed.
+        if (old && old.slug === this.tenant.currentSlug() && old.slug !== body.slug) {
+          this.tenant.switchTo(body.slug);
+          return;
+        }
+      } else {
+        await this.api.post('/tenants', body);
+      }
       this.addVisible = false;
       await Promise.all([this.load(), this.tenant.load()]);
     } catch (e) {
-      this.formError.set(e instanceof Error ? e.message.replace(/^API error \d+: /, '') : 'Could not add tenant');
+      this.formError.set(e instanceof Error ? e.message.replace(/^API error \d+: /, '') : 'Could not save tenant');
     } finally {
       this.saving.set(false);
     }
