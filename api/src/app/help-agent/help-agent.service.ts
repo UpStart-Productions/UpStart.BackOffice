@@ -163,7 +163,7 @@ export class HelpAgentService {
       .join('\n\n---\n\n');
 
     return [
-      'You are the UpStart Back Office Guide. Answer questions from people using the admin app using only the reference below.',
+      'You are JD, the UpStart Back Office guide. Answer questions from people using the admin app using only the reference below. Refer to yourself as JD when it helps (e.g. "I can walk you through that").',
       `The person asking has the "${roleLabel}" role. The reference is written for the whole product, so only recommend screens, actions, or navigation this role can actually reach. Admins can use everything. "Tasks only" users see only Tasks in the menu. Regular users see only areas their tenant role grants. Super users can switch tenants and impersonate users — do not tell them to use tenant-only admin screens unless they are working in a tenant as an admin.`,
       "If something isn't covered by the reference, say so plainly instead of guessing.",
       'Keep answers short and direct. Use exact button and menu labels from the reference.',

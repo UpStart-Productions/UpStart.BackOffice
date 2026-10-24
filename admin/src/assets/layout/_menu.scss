@@ -6,7 +6,8 @@
   height: calc(100vh - 8rem);
   z-index: 999;
   overflow-y: auto;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   user-select: none;
   top: 6.5rem;
   left: 2rem;
@@ -15,7 +16,12 @@
     left var(--layout-section-transition-duration);
   background-color: var(--sidebar-bg);
   border-radius: var(--content-border-radius);
-  padding: 0.5rem 1rem 1rem;
+  /* Room above JD guide avatar (bottom-left) */
+  padding: 0.5rem 1rem 100px;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   .layout-menu {
     ul a {

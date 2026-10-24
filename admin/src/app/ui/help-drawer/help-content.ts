@@ -756,7 +756,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'platform/help-assistant': {
     title: 'Guide setup',
-    intro: 'Configure the Back Office Guide, the help chat in the bottom-left corner.',
+    intro: 'Configure JD, the Back Office guide — the help chat in the bottom-left corner.',
     sections: [
       {
         heading: 'Connecting a model',

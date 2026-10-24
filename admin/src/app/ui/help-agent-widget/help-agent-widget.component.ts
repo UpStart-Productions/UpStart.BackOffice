@@ -13,6 +13,8 @@ interface HelpAgentChatMessage {
 
 const GUIDE_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
 const GUIDE_CHAT_MAX_MESSAGES = 80;
+/** JD — in-app Back Office guide (floating chat). */
+const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 
 /**
  * Floating Help Agent chat ("Guide"), mounted once in ShellComponent so
@@ -34,8 +36,11 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
           <div class="help-agent-panel">
             <div class="help-agent-panel-header">
               <span class="help-agent-panel-title">
-                <span class="help-agent-panel-avatar help-agent-panel-avatar--icon" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
-                <strong>Back Office Guide</strong>
+                <img class="help-agent-avatar help-agent-panel-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
+                <span class="help-agent-panel-title-text">
+                  <strong>JD</strong>
+                  <span class="help-agent-panel-subtitle">Back Office guide</span>
+                </span>
               </span>
               <div class="help-agent-panel-actions">
                 <button
@@ -73,7 +78,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
               @for (msg of chatMessages(); track $index) {
                 @if (msg.role === 'assistant') {
                   <div class="help-agent-chat-assistant">
-                    <span class="help-agent-msg-avatar help-agent-msg-avatar--icon" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
+                    <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
                     <div class="help-agent-chat-msg">
                       <div [innerHTML]="msg.text | simpleMarkdown"></div>
                     </div>
@@ -85,13 +90,13 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
                 }
               } @empty {
                 <p class="help-agent-empty-note">
-                  Ask where to click in Back Office — invoices, time, tasks, CRM, and more.
+                  Ask JD where to click in Back Office — invoices, time, tasks, CRM, and more.
                 </p>
               }
               @if (chatSending()) {
                 <div class="help-agent-chat-assistant">
-                  <span class="help-agent-msg-avatar help-agent-msg-avatar--icon" aria-hidden="true"><i class="pi pi-sparkles"></i></span>
-                  <div class="help-agent-chat-msg help-agent-typing" aria-label="Guide is typing">
+                  <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
+                  <div class="help-agent-chat-msg help-agent-typing" aria-label="JD is typing">
                     <span class="help-agent-typing-dot"></span>
                     <span class="help-agent-typing-dot"></span>
                     <span class="help-agent-typing-dot"></span>
@@ -125,14 +130,16 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
             type="button"
             class="help-agent-fab"
             (click)="setOpen(!open())"
-            [attr.aria-label]="open() ? 'Close guide' : 'Open guide'"
+            [attr.aria-label]="open() ? 'Close JD, Back Office guide' : 'Open JD, Back Office guide'"
           >
-            <span
-              class="help-agent-fab-avatar help-agent-fab-avatar--icon"
+            <img
+              class="help-agent-avatar help-agent-fab-avatar"
+              [src]="guideAvatarSrc"
+              alt=""
+              aria-hidden="true"
               [class.help-agent-fab-avatar--boing-in]="boing() === 'in'"
               [class.help-agent-fab-avatar--boing-out]="boing() === 'out'"
-              aria-hidden="true"
-            ><i class="pi pi-sparkles"></i></span>
+            />
           </button>
           @if (!open()) {
             <p
@@ -141,7 +148,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
               [class.help-agent-greeting--out]="boing() === 'out'"
               aria-hidden="true"
             >
-              Hi! I'm your Back Office guide. Ask me anything.
+              Hi! I'm JD, your Back Office guide. Ask me anything.
             </p>
           }
         </div>
@@ -165,29 +172,28 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
         bottom: calc(1.5rem + 2rem - 10px);
       }
 
-      .help-agent-fab-avatar--icon,
-      .help-agent-panel-avatar--icon,
-      .help-agent-msg-avatar--icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--p-primary-500, #7c3aed);
-        color: #fff;
+      .help-agent-avatar {
+        border: none;
+        outline: none;
+        box-shadow: none;
         border-radius: 50%;
+        object-fit: cover;
+        display: block;
+        flex-shrink: 0;
+        background: transparent;
       }
 
-      .help-agent-fab-avatar--icon {
-        width: 100%;
-        height: 100%;
-        font-size: var(--fs-xl);
+      .help-agent-panel-title-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        line-height: 1.2;
       }
 
-      .help-agent-panel-avatar--icon {
-        font-size: var(--fs-md);
-      }
-
-      .help-agent-msg-avatar--icon {
+      .help-agent-panel-subtitle {
         font-size: var(--fs-sm);
+        font-weight: 400;
+        color: var(--color-text-secondary, var(--text-color-secondary));
       }
 
       .help-agent-dock {
@@ -199,22 +205,26 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
         height: 60px;
         border-radius: 50%;
         border: none;
+        outline: none;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        overflow: visible;
+        overflow: hidden;
         padding: 0;
         color: var(--p-primary-contrast-color, #fff);
         background: transparent;
         box-shadow: none;
       }
 
+      .help-agent-fab:focus-visible {
+        outline: 2px solid var(--p-primary-500, #7c3aed);
+        outline-offset: 2px;
+      }
+
       .help-agent-fab-avatar {
         width: 100%;
         height: 100%;
-        object-fit: contain;
-        display: block;
         transform-origin: center center;
       }
 
@@ -374,17 +384,11 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
       .help-agent-panel-avatar {
         width: 2.625rem;
         height: 2.625rem;
-        border-radius: 50%;
-        object-fit: contain;
-        flex-shrink: 0;
       }
 
       .help-agent-msg-avatar {
         width: 1.75rem;
         height: 1.75rem;
-        border-radius: 50%;
-        object-fit: cover;
-        flex-shrink: 0;
       }
 
       .help-agent-chat-assistant {
@@ -543,6 +547,8 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
 export class HelpAgentWidgetComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
+
+  readonly guideAvatarSrc = GUIDE_AVATAR_SRC;
 
   private readonly configured = signal(false);
   readonly visible = computed(() => !!this.session.me() && this.configured());
