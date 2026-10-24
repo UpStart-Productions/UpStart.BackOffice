@@ -90,8 +90,25 @@
 
 .form-field label {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   font-weight: 500;
+  font-size: var(--fs-base);
+  color: var(--color-text-secondary);
+}
+
+/* PrimeNG hardcodes 1rem on inputs and selects — match form body size */
+.form-field .p-inputtext,
+.form-field .p-select .p-select-label,
+.form-field .p-multiselect-label,
+.form-field .p-autocomplete-input,
+.form-field .p-textarea {
+  font-size: var(--fs-base) !important;
+}
+
+.form-field .p-select .p-select-dropdown .p-icon {
+  font-size: var(--fs-base) !important;
+  width: var(--fs-base) !important;
+  height: var(--fs-base) !important;
 }
 
 .form-field quill-editor {

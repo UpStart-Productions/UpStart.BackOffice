@@ -23,11 +23,11 @@ const UpStartPreset = definePreset(Aura, {
   semantic: {
     iconSize: '1rem',
     formField: {
-      sm: { fontSize: '0.875rem' },
-      lg: { fontSize: '1.125rem' },
+      sm: { fontSize: '0.75rem' },
+      lg: { fontSize: '0.875rem' },
     },
     navigation: {
-      submenuIcon: { size: '0.875rem' },
+      submenuIcon: { size: '0.75rem' },
     },
     primary: {
       50: '#f5f3ff',

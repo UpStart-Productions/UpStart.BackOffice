@@ -1,8 +1,8 @@
 :root {
   --primary-color: var(--p-primary-color);
   --primary-contrast-color: var(--p-primary-contrast-color);
-  --text-color: var(--p-text-color);
-  --text-color-secondary: var(--p-text-muted-color);
+  --text-color: var(--color-text);
+  --text-color-secondary: var(--color-text-secondary);
   --surface-border: var(--p-content-border-color);
   --surface-card: var(--p-content-background);
   --surface-hover: var(--p-content-hover-background);
@@ -17,4 +17,5 @@
   --focus-ring-color: var(--p-focus-ring-color);
   --focus-ring-offset: var(--p-focus-ring-offset);
   --focus-ring-shadow: var(--p-focus-ring-shadow);
+  --p-font-family: var(--font-family);
 }

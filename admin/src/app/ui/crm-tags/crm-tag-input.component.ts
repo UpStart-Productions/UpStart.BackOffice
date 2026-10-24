@@ -23,10 +23,14 @@ import { CrmTagsApi } from '../../core/crm-tags.api';
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        padding: 0.2rem 0.35rem 0.2rem 0.65rem;
+        padding: 0.15rem 0.35rem 0.15rem 0.55rem;
         border: 1px solid var(--surface-border);
         border-radius: 999px;
         background: var(--surface-ground);
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--color-text-secondary);
       }
       .crm-tag-remove {
         display: inline-flex;

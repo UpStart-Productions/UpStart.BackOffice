@@ -1,14 +1,24 @@
-// Global type scale (1rem = html root, 14px). Use only these five sizes in the admin app.
+// UI type scale at 16px root (aligned with KC.SPP.WebApp density). Prefer inherit + utilities.
 :root {
-  --fs-sm: 0.875rem;
-  --fs-base: 1rem;
-  --fs-md: 1.125rem;
-  --fs-lg: 1.25rem;
-  --fs-xl: 1.5rem;
+  --font-size-root: 16px;
 
-  // Task Manager aliases (legacy names → global scale)
+  --fs-xs: 0.6875rem; /* 11px — badges, micro labels */
+  --fs-sm: 0.75rem; /* 12px — meta / secondary */
+  --fs-base: 0.8125rem; /* 13px — default UI body */
+  --fs-md: 0.875rem; /* 14px — inputs, emphasis */
+  --fs-lg: 1.0625rem; /* 17px — section titles */
+  --fs-xl: 1.375rem; /* 22px — page titles */
+  --fs-2xl: 1.75rem; /* 28px — login hero, stat emphasis */
+
+  --space-table-x: 1.25rem;
+  --space-table-y: 0.75rem;
+
   --tm-fs: var(--fs-base);
   --tm-fs-sm: var(--fs-sm);
+}
+
+.text-xs {
+  font-size: var(--fs-xs);
 }
 
 .text-sm {
@@ -31,14 +41,32 @@
   font-size: var(--fs-xl);
 }
 
-// PrimeNG Aura defaults already use 0.875 / 1 / 1.125 / 1.25 / 1.5rem in most places.
-// Float labels and badges at 0.75rem are nudged to sm for a single caption size.
+.text-2xl {
+  font-size: var(--fs-2xl);
+}
+
 .p-floatlabel label,
 .p-iftalabel label {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
 }
 
 .p-badge,
 .p-progressbar-label {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
+}
+
+.p-tag,
+.p-tag .p-tag-label {
+  font-size: var(--fs-xs) !important;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.p-chip,
+.p-chip-label,
+.p-multiselect-chip,
+.p-multiselect-token,
+.p-autocomplete-chip-item {
+  font-size: var(--fs-xs) !important;
+  font-weight: 600;
 }

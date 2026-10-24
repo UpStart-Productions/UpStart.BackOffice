@@ -56,6 +56,10 @@ type StatusFilter = 'all' | AccountJourney;
         border-radius: 999px;
         background: var(--surface-ground);
         white-space: nowrap;
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--color-text-secondary);
       }
       .org-tag-filter {
         min-width: 11rem;
