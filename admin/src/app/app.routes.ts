@@ -167,6 +167,12 @@ export const appRoutes: Route[] = [
         canActivate: [platformAdminGuard],
       },
       {
+        path: 'platform/help-assistant',
+        loadComponent: () =>
+          import('./pages/platform/help-assistant.page').then((m) => m.HelpAssistantPage),
+        canActivate: [platformAdminGuard],
+      },
+      {
         path: 'settings',
         loadComponent: () =>
           import('./pages/settings/settings.page').then((m) => m.SettingsPage),

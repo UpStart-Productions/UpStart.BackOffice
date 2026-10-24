@@ -1,0 +1,20 @@
+---
+description: Keep docs/help-guide updated when admin UI changes (Back Office Guide)
+alwaysApply: true
+---
+
+# Docs maintenance (Help Agent)
+
+`docs/help-guide/*.md` is the **entire knowledge base** for the in-app Back Office Guide. Stale docs produce confidently wrong answers.
+
+When you change anything a back-office user can see or click — nav labels, page titles, tabs, buttons, role/permission behavior, or workflows — update `docs/help-guide/` **in the same change**.
+
+## Bar for help-guide content
+
+- Task-first: exact nav items, page titles, tab names, and button labels as shipped in the admin app.
+- Verify against live UI or `admin/src/app`, not assumptions.
+- No schema or code references — written for staff using the product, not developers.
+- Planned or partial features belong in `10-known-gaps.md`, not described as working.
+- Add a new topic file rather than overloading one file when a feature area grows.
+
+Developer architecture notes belong in `docs/help-agent.md` or other `docs/*.md` files.

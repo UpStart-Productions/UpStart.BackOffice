@@ -16,6 +16,7 @@ import { LayoutService } from './layout.service';
 import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
+import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
 
 /** Routes rendered in Task Manager mode (icon rail + task sidebar). */
 export function isTaskManagerUrl(url: string): boolean {
@@ -37,6 +38,7 @@ export function isTaskManagerUrl(url: string): boolean {
     TmSidebarComponent,
     InvoiceSendDialogComponent,
     InvoiceMarkPaidDialogComponent,
+    HelpAgentWidgetComponent,
   ],
   templateUrl: './shell.component.html',
 })
@@ -112,6 +114,7 @@ export class ShellComponent implements OnInit {
       items.push({ label: 'Settings', icon: 'pi-cog', route: '/settings' });
       if (this.session.me()?.isSuper) {
         items.push({ label: 'Tenants', icon: 'pi-building', route: '/tenants' });
+        items.push({ label: 'Guide setup', icon: 'pi-sparkles', route: '/platform/help-assistant' });
       }
     }
     return items;
@@ -124,6 +127,7 @@ export class ShellComponent implements OnInit {
       'layout-static-inactive': state.staticMenuDesktopInactive,
       'layout-mobile-active': state.mobileMenuActive,
       'layout-task-mode': this.taskMode(),
+      'has-impersonation-banner': !!this.auth.impersonatedUserId,
     };
   });
 

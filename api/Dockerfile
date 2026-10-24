@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY api/ ./api/
 COPY apps/ ./apps/
+COPY docs/help-guide/ ./docs/help-guide/
 COPY libs/ ./libs/
 COPY nx.json tsconfig.base.json ./
 COPY prisma.config.ts ./
@@ -40,6 +41,7 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 # Copy built app
 COPY --from=builder /app/dist/api ./dist/api
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/docs/help-guide ./docs/help-guide
 COPY --from=builder /app/prisma.config.ts ./
 
 # Use generated package.json (API-only deps) and pruned lockfile

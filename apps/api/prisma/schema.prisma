@@ -205,6 +205,7 @@ model User {
   interactionParticipations InteractionParticipant[]
   invoicesCreated           Invoice[]                   @relation("InvoiceCreatedBy")
   clientAssignments         ClientAssignment[]          @relation("ClientAssignmentUser")
+  helpAgentSettingsUpdates  HelpAgentSettings[]         @relation("HelpAgentSettingsUpdatedBy")
 
   @@index([tenantId])
   @@index([roleId])
@@ -1523,4 +1524,24 @@ model ForwardingVerification {
 
   @@index([aliasId, receivedAt])
   @@index([tenantId])
+}
+
+/// Platform-wide Help Agent (in-app guide). Single row id "default" at the app layer.
+enum AiProvider {
+  ANTHROPIC
+  OPENAI
+  GEMINI
+}
+
+model HelpAgentSettings {
+  id              String     @id
+  provider        AiProvider @default(ANTHROPIC)
+  model           String
+  encryptedApiKey String
+  keyLastFour     String
+  updatedByUserId String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  updatedByUser User? @relation("HelpAgentSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
