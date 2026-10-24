@@ -1,0 +1,241 @@
+// Task Manager shell: layout rail, sidebar nav, design tokens (loaded globally in task mode layout).
+$tm-rail-width: 4.5rem;
+$tm-sidebar-width: 16rem;
+$tm-content-gap: 1.5rem;
+$tm-detail-width: min(42rem, 48vw);
+
+:root {
+  --tm-row-height: 2.5rem;
+  --tm-border: var(--surface-border);
+  --tm-hover: var(--p-datatable-row-hover-background, color-mix(in srgb, var(--brand-primary) 4%, transparent));
+  --tm-selected: color-mix(in srgb, var(--brand-primary) 9%, transparent);
+  --tm-muted: var(--text-color-secondary);
+  --tm-overdue: #dc2626;
+  --tm-today: #15803d;
+  --tm-check-idle: #c5cdd6;
+  --tm-check-hover: #86efac;
+  --tm-check-done: var(--tm-today);
+}
+
+// ── Layout: rail + sidebar ─────────────────────────────────────────────────
+
+.layout-sidebar.layout-sidebar--compact {
+  width: $tm-rail-width;
+  padding: 0.5rem 0.5rem 1rem;
+
+  .layout-menu ul a {
+    justify-content: center;
+    padding: 0.7rem 0;
+    gap: 0;
+
+    .layout-menuitem-icon {
+      font-size: var(--fs-md);
+      width: auto;
+    }
+  }
+
+  .layout-menu .layout-menu-section:not(:first-child) {
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+  }
+}
+
+.layout-tm-sidebar {
+  position: fixed;
+  top: 6.5rem;
+  // Flush against the icon rail so the two read as one navigation block.
+  left: calc(2rem + #{$tm-rail-width});
+  width: $tm-sidebar-width;
+  height: calc(100vh - 8rem);
+  z-index: 998;
+  transition: transform var(--layout-section-transition-duration), left var(--layout-section-transition-duration);
+}
+
+@media (min-width: 992px) {
+  .layout-wrapper.layout-static.layout-task-mode {
+    .layout-main-container {
+      // Rail + sidebar start 2rem from the edge; leave a clear gap before the content.
+      margin-left: calc(2rem + #{$tm-rail-width} + #{$tm-sidebar-width} + #{$tm-content-gap} - 2rem);
+    }
+
+    .layout-sidebar--compact {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .layout-tm-sidebar .tm-sidebar {
+      border-left: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+  }
+
+  .layout-wrapper.layout-static.layout-task-mode.layout-static-inactive {
+    .layout-tm-sidebar {
+      transform: translateX(calc(-100% - #{$tm-rail-width} - 3rem));
+    }
+
+    .layout-main-container {
+      margin-left: 0;
+    }
+  }
+}
+
+@media (max-width: 991px) {
+  .layout-tm-sidebar {
+    position: static;
+    width: auto;
+    height: auto;
+    display: block;
+    margin: 0 0 1rem;
+  }
+
+  .layout-wrapper.layout-task-mode .layout-main-container {
+    padding-top: 8.5rem;
+  }
+
+  .layout-wrapper.layout-task-mode .layout-tm-sidebar {
+    position: fixed;
+    top: 4.5rem;
+    left: 0;
+    right: 0;
+    height: auto;
+    z-index: 996;
+    margin: 0;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--tm-border);
+
+    .tm-sidebar {
+      flex-direction: row;
+      overflow-x: auto;
+      padding: 0.25rem 1rem;
+      border: none;
+      border-radius: 0;
+      height: auto;
+    }
+
+    .tm-nav-group {
+      display: none;
+    }
+
+    .tm-nav {
+      display: flex;
+      gap: 0.25rem;
+    }
+  }
+}
+
+.tm-sidebar {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  background: var(--surface-card);
+  border: 1px solid var(--tm-border);
+  border-radius: var(--content-border-radius);
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tm-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tm-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  color: var(--text-color);
+  text-decoration: none;
+  white-space: nowrap;
+
+  > .pi {
+    color: var(--tm-muted);
+    width: 1.1rem;
+    text-align: center;
+  }
+
+  &:hover {
+    background: var(--tm-hover);
+  }
+
+  &.active {
+    background: var(--tm-selected);
+    font-weight: 600;
+
+    > .pi {
+      color: var(--brand-primary);
+    }
+  }
+}
+
+.tm-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-nav-badge {
+  margin-left: auto;
+  background: var(--brand-primary);
+  color: #fff;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  padding: 0 0.45rem;
+  line-height: 1.25rem;
+}
+
+.tm-nav-group {
+  border-top: 1px solid var(--tm-border);
+  padding-top: 0.5rem;
+}
+
+.tm-nav-group-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 0.25rem;
+}
+
+.tm-nav-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  color: var(--tm-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+
+  .pi {
+    font-size: var(--fs-sm);
+  }
+}
+
+.tm-nav-empty {
+  padding: 0.35rem 0.65rem;
+  color: var(--tm-muted);
+  font-size: var(--fs-base);
+}
+
+.tm-project-dot {
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+
+.tm-page {
+  font-size: var(--fs-base);
+}

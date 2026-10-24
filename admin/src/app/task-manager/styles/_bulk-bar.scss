@@ -1,0 +1,76 @@
+// ── Task projects (detail pane) ────────────────────────────────────────────
+
+.tm-detail-fields dt.tm-dt-top {
+  align-self: start;
+  padding-top: 0.55rem;
+}
+
+.tm-memberships {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.tm-membership {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+
+  .tm-membership-remove {
+    opacity: 0;
+  }
+
+  &:hover .tm-membership-remove {
+    opacity: 1;
+  }
+}
+
+.tm-membership-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-section-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font: inherit;
+  font-size: var(--fs-sm);
+  color: var(--tm-muted);
+  cursor: pointer;
+  white-space: nowrap;
+
+  .pi {
+    font-size: var(--fs-sm);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--tm-border);
+    color: var(--text-color);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.tm-membership-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 7px;
+}
+
+.tm-check-spacer {
+  width: 1em;
+  display: inline-block;
+}
+

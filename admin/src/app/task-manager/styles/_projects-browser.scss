@@ -1,0 +1,24 @@
+// ── Projects browser ───────────────────────────────────────────────────────
+
+.tm-card-flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tm-browser-row {
+  cursor: pointer;
+}
+
+.tm-browser-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-color);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--brand-primary);
+  }
+}
+

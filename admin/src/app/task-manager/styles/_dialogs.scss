@@ -1,0 +1,83 @@
+// ── Dialogs ────────────────────────────────────────────────────────────────
+
+.tm-share-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tm-share-hint {
+  font-size: var(--fs-sm);
+  color: var(--tm-muted);
+  margin: 0.5rem 0 1rem;
+}
+
+.tm-member-list,
+.tm-field-list,
+.tm-pref-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tm-member,
+.tm-field-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tm-member-main,
+.tm-field-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-base);
+
+  .tm-muted {
+    font-size: var(--fs-sm);
+  }
+}
+
+.tm-field-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.tm-field-edit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tm-field-new {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tm-border);
+
+  h4 {
+    margin: 0 0 0.5rem;
+    font-size: var(--fs-base);
+  }
+}
+
+.tm-options-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.tm-option-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+

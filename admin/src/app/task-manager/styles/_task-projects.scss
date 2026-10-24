@@ -1,0 +1,62 @@
+// ── Tags ───────────────────────────────────────────────────────────────────
+
+.tm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.7rem;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.6;
+
+  .pi {
+    font-size: var(--fs-sm);
+  }
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.tm-tags-cell {
+  gap: 0.25rem;
+  overflow: hidden;
+  cursor: pointer;
+
+  .tm-tags-add {
+    opacity: 0;
+  }
+
+  &:hover .tm-tags-add {
+    opacity: 1;
+  }
+}
+
+.tm-tags-dd {
+  flex-wrap: wrap;
+  gap: 0.35rem !important;
+  padding: 0.25rem 0.5rem;
+}
+
+.tm-my-row .tm-tag {
+  flex-shrink: 0;
+}
+
+.tm-toolbar-tags {
+  min-width: 9rem;
+}
+

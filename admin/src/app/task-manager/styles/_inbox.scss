@@ -1,0 +1,83 @@
+// ── Inbox ──────────────────────────────────────────────────────────────────
+
+.tm-inbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface-card);
+  border-radius: var(--content-border-radius);
+  overflow: hidden;
+}
+
+.tm-inbox-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--tm-border);
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--tm-hover);
+
+    .tm-inbox-actions {
+      opacity: 1;
+    }
+  }
+
+  &.unread {
+    background: color-mix(in srgb, var(--brand-primary) 5%, transparent);
+
+    .tm-inbox-title {
+      font-weight: 700;
+    }
+  }
+}
+
+.tm-inbox-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--tm-selected);
+  color: var(--brand-primary);
+  flex-shrink: 0;
+}
+
+.tm-inbox-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-inbox-title {
+  font-size: var(--fs-base);
+}
+
+.tm-inbox-body {
+  font-size: var(--fs-base);
+  color: var(--tm-muted);
+  margin-top: 0.2rem;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tm-inbox-meta {
+  font-size: var(--fs-sm);
+  color: var(--tm-muted);
+  margin-top: 0.3rem;
+}
+
+.tm-inbox-actions {
+  display: flex;
+  gap: 0.15rem;
+  opacity: 0;
+}
+

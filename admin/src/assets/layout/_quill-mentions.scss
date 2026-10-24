@@ -1,0 +1,141 @@
+// Quill @mentions (Task Manager + any rich text with mentions)
+
+// ── @mentions (ported from KC.SPP.WebApp) ──────────────────────────────────
+
+.mention,
+.ql-editor .mention {
+  background-color: color-mix(in srgb, var(--brand-primary) 14%, transparent);
+  border-radius: 0.25rem;
+  color: var(--brand-primary);
+  font-weight: 600;
+  padding: 0.0625rem 0.25rem;
+  white-space: nowrap;
+}
+
+.mention-suggest-container {
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  max-height: 18rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.25rem 0;
+  width: min(22rem, calc(100vw - 2rem)) !important;
+  z-index: 10000;
+}
+
+.mention-suggest-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mention-suggest-list-item {
+  cursor: pointer;
+  line-height: 1.2 !important;
+  margin: 0;
+  padding: 0 !important;
+
+  &.selected {
+    background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+    box-shadow: inset 3px 0 0 var(--brand-primary);
+  }
+
+  &:not(.selected):hover {
+    background: var(--tm-hover);
+  }
+}
+
+.mention-suggest-item {
+  align-items: center;
+  display: flex;
+  gap: 0.625rem;
+  min-height: 2.5rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.mention-suggest-item__avatar {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  height: 1.75rem;
+  justify-content: center;
+  overflow: hidden;
+  width: 1.75rem;
+
+  img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+}
+
+.mention-suggest-item__name {
+  flex: 1 1 auto;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-suggest-item__match {
+  font-weight: 700;
+}
+
+.mention-suggest-item__email {
+  color: var(--tm-muted);
+  flex-shrink: 0;
+  font-size: var(--fs-sm);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-color-swatches--row {
+  max-width: none;
+}
+
+.tm-field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  line-height: 1.4;
+}
+
+.tm-add-subtask-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--tm-border);
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  color: var(--text-color);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tm-hover);
+  }
+}
+
+.tm-subtask-new .tm-subtask-name {
+  border-color: var(--brand-primary);
+}
+
+.tm-chip-invited {
+  margin-left: 0.4rem;
+  background: color-mix(in srgb, #d97706 14%, transparent);
+  color: #b45309;
+  font-size: var(--fs-sm);
+  vertical-align: middle;
+}
+

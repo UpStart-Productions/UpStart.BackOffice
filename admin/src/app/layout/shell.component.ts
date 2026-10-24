@@ -14,6 +14,7 @@ import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialo
 import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-paid-dialog.component';
 import { LayoutService } from './layout.service';
 import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
+import { TaskManagerStyleHostComponent } from '../task-manager/ui/task-manager-style-host.component';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
@@ -35,6 +36,7 @@ export function isTaskManagerUrl(url: string): boolean {
     AppTopbarComponent,
     AppSidebarComponent,
     AppFooterComponent,
+    TaskManagerStyleHostComponent,
     TmSidebarComponent,
     InvoiceSendDialogComponent,
     InvoiceMarkPaidDialogComponent,

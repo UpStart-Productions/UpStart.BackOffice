@@ -1,0 +1,26 @@
+// ── Color picker (reusable) ────────────────────────────────────────────────
+
+.tm-color-picker {
+  flex-shrink: 0;
+}
+
+.tm-color-picker-trigger {
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+.tm-color-picker-popover {
+  width: auto;
+  min-width: 0;
+}
+
+.tm-pref-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: var(--fs-base);
+}
+

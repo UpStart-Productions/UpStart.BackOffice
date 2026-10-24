@@ -1,0 +1,178 @@
+// ── Popovers / pickers ─────────────────────────────────────────────────────
+
+.tm-popover .p-popover-content {
+  padding: 0.5rem;
+}
+
+.tm-picker {
+  width: 18rem;
+}
+
+.tm-picker-search {
+  width: 100%;
+  border: 1px solid var(--tm-border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.35rem;
+  font: inherit;
+}
+
+.tm-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.tm-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-color);
+  font: inherit;
+  font-size: var(--fs-base);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--tm-hover);
+  }
+
+  &.selected {
+    background: var(--tm-selected);
+  }
+
+  &.tm-danger {
+    color: var(--tm-overdue);
+  }
+}
+
+.tm-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-picker-meta {
+  color: var(--tm-muted);
+  font-size: var(--fs-sm);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-picker-empty {
+  padding: 0.5rem;
+  color: var(--tm-muted);
+  font-size: var(--fs-base);
+}
+
+.tm-picker-clear {
+  color: var(--tm-muted);
+}
+
+.tm-menu {
+  min-width: 13rem;
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--tm-border);
+    margin: 0.35rem 0;
+  }
+}
+
+.tm-menu-label {
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tm-muted);
+  padding: 0.25rem 0.5rem;
+}
+
+.tm-menu-scroll {
+  max-height: 14rem;
+}
+
+.tm-date-picker {
+  .p-datepicker {
+    border: none;
+  }
+}
+
+.tm-date-quick {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+
+  button {
+    border: 1px solid var(--tm-border);
+    background: transparent;
+    border-radius: 999px;
+    padding: 0.2rem 0.65rem;
+    font-size: var(--fs-sm);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--tm-hover);
+    }
+  }
+
+  .tm-date-clear {
+    color: var(--tm-overdue);
+  }
+}
+
+.tm-recurrence {
+  width: 20rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.tm-recurrence-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  label,
+  .tm-recurrence-label {
+    font-size: var(--fs-sm);
+    color: var(--tm-muted);
+  }
+}
+
+.tm-rec-interval {
+  width: 4.5rem;
+}
+
+.tm-weekday-toggle {
+  display: flex;
+  gap: 0.25rem;
+
+  button {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    border: 1px solid var(--tm-border);
+    background: transparent;
+    cursor: pointer;
+
+    &.selected {
+      background: var(--brand-primary);
+      border-color: var(--brand-primary);
+      color: #fff;
+    }
+  }
+}
+

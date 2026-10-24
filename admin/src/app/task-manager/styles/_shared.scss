@@ -1,0 +1,150 @@
+// ── Shared atoms ───────────────────────────────────────────────────────────
+
+.tm-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--tm-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) {
+    background: var(--tm-hover);
+    color: var(--text-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 1px;
+  }
+}
+
+.tm-icon-btn-sm {
+  width: 1.6rem;
+  height: 1.6rem;
+
+  .pi {
+    font-size: var(--fs-sm);
+  }
+}
+
+.tm-icon-spacer {
+  width: 1.6rem;
+}
+
+.tm-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--brand-primary);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.tm-muted {
+  color: var(--tm-muted);
+}
+
+.tm-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  object-fit: cover;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.tm-avatar--empty {
+  border: 1px dashed color-mix(in srgb, var(--tm-muted) 70%, transparent);
+  color: var(--tm-muted);
+  background: transparent;
+}
+
+.tm-chip {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tm-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: transparent;
+  color: var(--tm-check-idle);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+
+  .pi {
+    font-size: var(--fs-md);
+    line-height: 1;
+  }
+
+  &:hover:not(:disabled):not(.done) {
+    color: var(--tm-check-hover);
+  }
+
+  &.done {
+    color: var(--tm-check-done);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+span.tm-check {
+  cursor: default;
+  pointer-events: none;
+}
+
+.tm-due {
+  &[data-tone='overdue'] {
+    color: var(--tm-overdue);
+  }
+
+  &[data-tone='today'],
+  &[data-tone='soon'] {
+    color: var(--tm-today);
+  }
+}
+
+.tm-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-width: 14rem;
+}
+
+.tm-color-swatch {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+
+  &.selected {
+    border-color: var(--text-color);
+  }
+}
+

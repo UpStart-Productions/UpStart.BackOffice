@@ -1,0 +1,418 @@
+// ── List grid ──────────────────────────────────────────────────────────────
+
+.tm-grid {
+  background: var(--surface-card);
+  border-radius: var(--content-border-radius);
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+// The detail pane narrows the list enough to overflow the columns. Keep sideways
+// scrolling, but don't show the bar along the bottom of the grid.
+.tm-page.tm-with-detail .tm-grid {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tm-grid-head,
+.tm-row {
+  display: grid;
+  align-items: stretch;
+  min-width: var(--tm-grid-min-width, max-content);
+}
+
+.tm-grid-head {
+  // Matches PrimeNG p-table header cells used across the app.
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--p-datatable-header-cell-background, var(--surface-card));
+  border-bottom: 1px solid var(--p-datatable-header-cell-border-color, var(--tm-border));
+  color: var(--p-datatable-header-cell-color, var(--text-color));
+  font-weight: var(--p-datatable-column-title-font-weight, 600);
+
+  .tm-grid-cell {
+    padding: var(--p-datatable-header-cell-padding, 0.75rem 1rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.tm-grid-cell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-right: 1px solid color-mix(in srgb, var(--tm-border) 60%, transparent);
+  padding: 0 0.35rem;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:has(.tm-field-cell-host) {
+    align-items: stretch;
+    padding: 0;
+  }
+}
+
+.tm-grid-add-col {
+  justify-content: center;
+}
+
+.tm-section {
+  margin-top: 0.75rem;
+}
+
+.tm-section-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.22s ease;
+
+  &.is-collapsed {
+    grid-template-rows: 0fr;
+  }
+}
+
+.tm-section-collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.tm-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+
+  .tm-section-add {
+    opacity: 0;
+  }
+
+  &:hover .tm-section-add {
+    opacity: 1;
+  }
+}
+
+.tm-section-name,
+.tm-section-rename {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  padding: 0;
+}
+
+.tm-section-name {
+  &--editable {
+    cursor: text;
+
+    &:hover {
+      color: var(--brand-primary);
+    }
+  }
+}
+
+.tm-overdue-heading {
+  color: var(--tm-overdue);
+}
+
+.tm-section-count {
+  font-size: var(--fs-sm);
+  color: var(--tm-muted);
+  margin-right: 0.25rem;
+}
+
+.tm-section-rename {
+  border: none;
+  border-radius: 0;
+  font-family: inherit;
+  background: transparent;
+  color: var(--text-color);
+  min-width: 0;
+  width: auto;
+
+  &:focus {
+    outline: none;
+    border: none;
+  }
+}
+
+.tm-section-new {
+  margin-top: 0.75rem;
+}
+
+.tm-row {
+  min-height: var(--tm-row-height);
+  border-bottom: 1px solid color-mix(in srgb, var(--tm-border) 70%, transparent);
+  background: var(--surface-card);
+
+  &:hover {
+    background: var(--tm-hover);
+
+    .tm-drag-handle {
+      opacity: 1;
+    }
+  }
+
+  &.selected,
+  &.bulk-selected {
+    background: var(--tm-selected);
+  }
+
+  &.completed .tm-row-name,
+  &.completed .tm-row-title {
+    color: var(--tm-muted);
+  }
+
+  &:first-child {
+    border-top: 1px solid color-mix(in srgb, var(--tm-border) 70%, transparent);
+  }
+}
+
+.tm-row-main {
+  gap: 0.45rem;
+  padding-left: 0.25rem;
+  overflow: hidden; // long names/badges shrink inside the column instead of widening the row
+  cursor: pointer;
+}
+
+.tm-row-index {
+  flex-shrink: 0;
+  width: var(--tm-row-index-width, 1.35rem);
+  text-align: right;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--tm-muted);
+  user-select: none;
+  line-height: 1.15rem;
+
+  &--spacer {
+    visibility: hidden;
+  }
+}
+
+.tm-drag-handle {
+  cursor: grab;
+  opacity: 0;
+  color: var(--tm-muted);
+  font-size: var(--fs-sm);
+  padding: 0 0.1rem;
+}
+
+.tm-row-name {
+  flex: 1;
+  min-width: 6rem;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  padding: 0.2rem 0.3rem;
+  font: inherit;
+  color: var(--text-color);
+  text-overflow: ellipsis;
+  cursor: text;
+
+  &:focus {
+    outline: none;
+    border: none;
+    background: transparent;
+  }
+
+  &[readonly] {
+    cursor: pointer;
+  }
+}
+
+.tm-row-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-row-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--tm-muted);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+
+  .pi {
+    font-size: var(--fs-sm);
+  }
+}
+
+.tm-row-placeholder {
+  min-height: var(--tm-row-height);
+  background: var(--tm-selected);
+  border: 1px dashed var(--brand-primary);
+}
+
+.cdk-drag-preview.tm-row {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  border-radius: 6px;
+}
+
+.cdk-drag-animating,
+.tm-section-rows.cdk-drop-list-dragging .tm-row:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.tm-section-rows {
+  min-height: 0.5rem;
+}
+
+.tm-field-cell-host {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.tm-cell-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 4px;
+  padding: 0.2rem 0.35rem;
+  width: 100%;
+  min-height: 1.9rem;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover:not(:disabled) {
+    border-color: var(--tm-border);
+    background: var(--surface-card);
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.tm-cell-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tm-cell-placeholder {
+  color: color-mix(in srgb, var(--tm-muted) 60%, transparent);
+}
+
+.tm-cell-num {
+  justify-content: flex-end;
+}
+
+.tm-cell-chips {
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+}
+
+.tm-field-cell-host .tm-cell-btn {
+  flex: 1;
+  height: 100%;
+  min-height: 100%;
+  padding: 0.35rem;
+}
+
+.tm-cell-input {
+  width: 100%;
+  border: 1px solid var(--brand-primary);
+  border-radius: 4px;
+  padding: 0.2rem 0.35rem;
+  font: inherit;
+}
+
+.tm-add-task-row {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--tm-muted);
+  padding: 0.5rem 0.5rem 0.5rem calc(3.1rem + 10px + var(--tm-row-index-width, 1.35rem) + 0.45rem);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tm-hover);
+    color: var(--text-color);
+  }
+}
+
+.tm-row-new {
+  cursor: default;
+}
+
+.tm-add-section {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1rem 0.5rem 0.25rem;
+  border: none;
+  background: transparent;
+  color: var(--tm-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--text-color);
+  }
+}
+
+.tm-empty-row {
+  padding: 0.6rem 0.5rem 0.6rem 2.5rem;
+  color: var(--tm-muted);
+  font-size: var(--fs-base);
+}
+
+.tm-empty-state {
+  list-style: none;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--tm-muted);
+
+  .pi {
+    font-size: var(--fs-xl);
+    margin-bottom: 0.5rem;
+  }
+}
+
+.tm-my-row {
+  grid-template-columns: minmax(280px, 1fr) minmax(140px, 220px) 120px;
+
+  .tm-row-main {
+    padding-left: 2.25rem;
+  }
+}
+
+.tm-project-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--fs-sm);
+  color: var(--text-color);
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 0.35rem;
+}
+
+a.tm-project-pill:hover {
+  text-decoration: underline;
+}
+

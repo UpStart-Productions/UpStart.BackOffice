@@ -9,6 +9,7 @@
   <app-topbar />
   <app-sidebar [navItems]="navItems()" [compact]="taskMode()" />
   @if (taskMode()) {
+    <app-tm-style-host />
     <app-tm-sidebar class="layout-tm-sidebar" />
   }
   <div class="layout-main-container">

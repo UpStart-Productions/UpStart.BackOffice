@@ -1,0 +1,73 @@
+// ── Bulk selection bar ─────────────────────────────────────────────────────
+
+.tm-bulk-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem 0.55rem 1rem;
+  background: #334155;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+  animation: tm-bulk-in 180ms ease-out;
+}
+
+@keyframes tm-bulk-in {
+  from {
+    transform: translateX(-50%) translateY(0.75rem);
+    opacity: 0;
+  }
+}
+
+.tm-bulk-count {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  padding-right: 0.25rem;
+}
+
+.tm-bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.tm-bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+
+  .pi {
+    font-size: var(--fs-base);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  &--danger:hover {
+    background: rgba(239, 68, 68, 0.35);
+  }
+}
+
+.tm-bulk-close {
+  margin-left: 0.15rem;
+  opacity: 0.85;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
