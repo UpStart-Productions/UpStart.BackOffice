@@ -13,4 +13,4 @@
 3. Paste **API key** (required first time; leave blank on later saves to keep existing key)
 4. **Save & test connection**
 
-After configuration, all back-office users see the sparkle **Guide** avatar at the bottom-right of the screen.
+After configuration, all back-office users see the sparkle **Guide** avatar at the bottom-left of the screen.

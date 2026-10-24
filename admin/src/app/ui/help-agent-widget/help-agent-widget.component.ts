@@ -152,17 +152,17 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
     `
       .help-agent-widget {
         position: fixed;
-        right: 1.25rem;
-        bottom: 1.5rem;
+        left: calc(2rem - 10px);
+        bottom: calc(1.5rem - 10px);
         z-index: 1100;
         display: flex;
         flex-direction: column;
-        align-items: flex-end;
+        align-items: flex-start;
         gap: 0.75rem;
       }
 
       :host-context(.has-impersonation-banner) .help-agent-widget {
-        bottom: calc(1.5rem + 2rem);
+        bottom: calc(1.5rem + 2rem - 10px);
       }
 
       .help-agent-fab-avatar--icon,
@@ -261,8 +261,8 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
 
       .help-agent-greeting {
         position: absolute;
-        right: calc(100% + 0.5rem);
-        left: auto;
+        left: calc(100% + 0.5rem);
+        right: auto;
         bottom: 0.5rem;
         width: min(16rem, calc(100vw - 6rem));
         margin: 0;
@@ -272,7 +272,7 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
         border: 1px solid var(--color-border, var(--surface-border, #e5e5e5));
         border-radius: 1rem;
         box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
-        transform-origin: right center;
+        transform-origin: left center;
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
@@ -281,11 +281,11 @@ const GUIDE_CHAT_MAX_MESSAGES = 80;
       .help-agent-greeting::before {
         content: '';
         position: absolute;
-        right: -8px;
-        left: auto;
+        left: -8px;
+        right: auto;
         bottom: 1rem;
         border: 8px solid transparent;
-        border-left-color: #fff;
+        border-right-color: #fff;
       }
 
       .help-agent-greeting--in {

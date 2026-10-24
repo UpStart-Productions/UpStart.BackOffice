@@ -212,9 +212,13 @@ export class TaskProjectsService {
       data: { projectId, userId: dto.userId, role: dto.role ?? ProjectMemberRole.EDITOR },
     });
     if (dto.userId !== user.id) {
-      const project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { name: true } });
+      const project = await this.prisma.project.findUniqueOrThrow({
+        where: { id: projectId },
+        select: { name: true, tenantId: true },
+      });
       await this.delivery.deliver({
         userId: dto.userId,
+        tenantId: project.tenantId,
         type: 'project_added',
         title: `${personName(user)} added you to ${project.name}`,
         meta: {
@@ -240,7 +244,10 @@ export class TaskProjectsService {
     const email = normalizeEmail(dto.email);
     if (!isValidEmail(email)) throw new BadRequestException('Enter a valid email address');
     const role = dto.role ?? ProjectMemberRole.EDITOR;
-    const project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { id: true, name: true } });
+    const project = await this.prisma.project.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { id: true, name: true, tenantId: true },
+    });
 
     let target = await this.prisma.user.findFirst({
       where: { email: { equals: email, mode: 'insensitive' } },
@@ -272,6 +279,7 @@ export class TaskProjectsService {
     } else if (target.id !== user.id) {
       await this.delivery.deliver({
         userId: target.id,
+        tenantId: project.tenantId,
         type: 'project_added',
         title: `${personName(user)} added you to ${project.name}`,
         meta: {

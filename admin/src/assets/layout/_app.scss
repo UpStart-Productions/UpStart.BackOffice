@@ -392,3 +392,29 @@
     margin: 0;
   }
 }
+
+.list-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list-row--bordered {
+  border-bottom: 1px solid var(--surface-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.notifications-approve-btn.p-button-text:not(:disabled):hover {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.notifications-decline-btn.p-button.p-button-text:not(:disabled) {
+  color: var(--p-red-500, #ef4444);
+}
+
+.notifications-decline-btn.p-button.p-button-text:not(:disabled):hover {
+  background: rgba(239, 68, 68, 0.1);
+}

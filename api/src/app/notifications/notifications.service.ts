@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  CreateNotificationInput,
+import type {
   EmailPreferences,
-  NOTIFICATION_TYPES,
   NotificationMeta,
   NotificationType,
   UserNotificationDto,
 } from './notification.types';
+import { CreateNotificationInput, NOTIFICATION_TYPES } from './notification.types';
 
 function toDto(row: {
   id: string;
@@ -36,8 +35,21 @@ export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(input: CreateNotificationInput): Promise<UserNotificationDto> {
+    let tenantId = input.tenantId?.trim();
+    if (!tenantId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { tenantId: true },
+      });
+      tenantId = user?.tenantId ?? undefined;
+    }
+    if (!tenantId) {
+      throw new Error(`Cannot create notification for user ${input.userId}: missing tenantId`);
+    }
+
     const row = await this.prisma.userNotification.create({
       data: {
+        tenantId,
         userId: input.userId,
         type: input.type,
         title: input.title,

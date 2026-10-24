@@ -71,8 +71,10 @@ export class TaskEventsService {
     const projectName =
       task.project?.name ??
       (await this.prisma.project.findUnique({ where: { id: task.projectId }, select: { name: true } }))?.name;
+    const tenantId = actor.tenantId ?? undefined;
     const inputs: CreateNotificationInput[] = allowed.map((u) => ({
       userId: u.id,
+      ...(tenantId ? { tenantId } : {}),
       type,
       title,
       body: body ?? null,

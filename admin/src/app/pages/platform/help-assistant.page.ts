@@ -27,7 +27,7 @@ interface HelpAgentSettingsView {
         <p class="text-color-secondary mt-0 mb-3">
           The Guide answers “where do I click?” questions from the maintained help files in
           <code>docs/help-guide/</code>. Every signed-in back-office user sees a sparkle avatar in the
-          <strong>bottom-right</strong> once this is configured. The API key is encrypted at rest and never
+          <strong>bottom-left</strong> once this is configured. The API key is encrypted at rest and never
           shown again after saving.
         </p>
         @if (error()) {

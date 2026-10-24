@@ -93,7 +93,7 @@ export class ShellComponent implements OnInit {
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
         { area: 'network', label: 'Network', icon: 'pi-sitemap', route: '/network' },
         { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
-      ], this.comms.unfiledCount()),
+      ]),
       ...section('Office', [
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
         { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },

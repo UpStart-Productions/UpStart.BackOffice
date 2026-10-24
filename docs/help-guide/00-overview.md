@@ -1,6 +1,6 @@
 # UpStart Back Office — Overview
 
-This guide powers the in-app **Back Office Guide** (sparkle avatar, bottom-right). It is written for people using the admin app, not for developers.
+This guide powers the in-app **Back Office Guide** (sparkle avatar, bottom-left). It is written for people using the admin app, not for developers.
 
 ## Left navigation (typical Admin)
 
@@ -22,7 +22,9 @@ Sections appear based on role. **Admins** see:
 
 - **Search** (magnifying glass): expands to search clients, projects, invoices, leads
 - **Notifications** bell (placeholder)
-- **User avatar** (bottom-right on page: Guide): opens account menu with email, role, Sign out; **Return to my account** when impersonating
+- **User avatar** (top bar): opens account menu with email, role, Sign out; **Return to my account** when impersonating
+- **Back Office Guide** (sparkle avatar, bottom-left): in-app help chat when configured by a super user
+- **Notifications** (bell, top bar): unread task and project alerts; opens a panel with links, Mark read, and Dismiss
 
 ## Super users
 

@@ -61,6 +61,15 @@
     i {
       font-size: 1.25rem;
     }
+
+    .notifications-bell-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 0.6875rem !important;
+      font-weight: 700 !important;
+      line-height: 1 !important;
+    }
   }
 
   .layout-menu-button {

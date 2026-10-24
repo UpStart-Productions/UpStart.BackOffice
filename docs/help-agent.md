@@ -19,7 +19,7 @@ Single row `HelpAgentSettings` with `id: "default"`. API key encrypted (`help-ag
 ## Angular UI
 
 - **Guide setup** (`/platform/help-assistant`, super users, nav **Guide setup**): provider, model, API key, Save & test connection
-- **Widget** (`admin/src/app/ui/help-agent-widget/`): bottom-right sparkle avatar on every shell page when configured; not on login
+- **Widget** (`admin/src/app/ui/help-agent-widget/`): bottom-left sparkle avatar on every shell page when configured; not on login
 
 ## Maintenance
 
