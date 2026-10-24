@@ -2,7 +2,7 @@
 
 ## Tenants
 
-**Tenants** lists organizations on the platform. **Add tenant** creates one; **Switch into** loads that tenant’s data. Super users pick the active tenant from the top bar tenant dropdown when they have more than one.
+**Tenants** lists organizations on the platform. **Add tenant** creates one. Use the ⋮ menu in the first column to **Edit** a tenant (name, slug, internal domains) or **Switch to** it and load its data. Changing the slug also changes the tenant’s email capture address (slug@in.…). Super users pick the active tenant from the top bar tenant dropdown when they have more than one.
 
 ## Guide setup
 

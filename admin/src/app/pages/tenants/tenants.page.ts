@@ -9,6 +9,7 @@ import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { TenantService } from '../../core/tenant.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; createdAt: string };
 
@@ -19,7 +20,7 @@ const slugify = (s: string) =>
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule],
+  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule, RowActionsMenuComponent],
   template: `
     <app-page title="Tenants" [skipTitle]="true">
       @if (error()) {
@@ -36,22 +37,17 @@ const slugify = (s: string) =>
         </div>
         <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered mt-3">
           <ng-template pTemplate="header">
-            <tr><th>Name</th><th>Slug</th><th>Internal domains</th><th style="width: 9rem"></th></tr>
+            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th></tr>
           </ng-template>
           <ng-template pTemplate="body" let-t>
             <tr>
+              <td><app-row-actions-menu [items]="getRowActions(t)" ariaLabel="Tenant actions" /></td>
               <td>
                 {{ t.name }}
                 @if (t.slug === tenant.currentSlug()) { <p-tag value="Current" severity="info" styleClass="ml-2" /> }
               </td>
               <td><code>{{ t.slug }}</code></td>
               <td>{{ t.internalDomains.length ? t.internalDomains.join(', ') : '—' }}</td>
-              <td>
-                <button pButton icon="pi pi-pencil" size="small" severity="secondary" [text]="true" (click)="openEdit(t)" aria-label="Edit tenant"></button>
-                @if (t.slug !== tenant.currentSlug()) {
-                  <button pButton label="Switch to" size="small" severity="secondary" [outlined]="true" (click)="tenant.switchTo(t.slug)"></button>
-                }
-              </td>
             </tr>
           </ng-template>
         </p-table>
@@ -116,6 +112,14 @@ export class TenantsPage implements OnInit {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  getRowActions(t: TenantRow): RowActionItem[] {
+    const actions: RowActionItem[] = [{ id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEdit(t) }];
+    if (t.slug !== this.tenant.currentSlug()) {
+      actions.push({ id: 'switch', label: 'Switch to', icon: 'pi pi-arrow-right-arrow-left', command: () => this.tenant.switchTo(t.slug) });
+    }
+    return actions;
   }
 
   openEdit(t: TenantRow) {

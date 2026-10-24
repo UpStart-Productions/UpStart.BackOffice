@@ -749,6 +749,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Name and slug (lowercase letters, numbers and dashes). The slug is also their email capture address. Internal email domains mark email from their team so it isn\'t treated as contacts.',
       },
       {
+        heading: 'Edit',
+        body: 'Use the ⋮ menu on the row. Change the name, slug or internal domains. Changing the slug also changes their email capture address, so mail sent to the old address stops arriving.',
+      },
+      {
         heading: 'Switch to',
         body: 'Loads that tenant\'s data. You can also switch from the tenant dropdown in the top bar.',
       },
