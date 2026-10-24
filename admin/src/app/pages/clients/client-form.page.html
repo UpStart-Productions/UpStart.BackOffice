@@ -4,278 +4,263 @@
       <p-message severity="error" [text]="error()!" />
     </div>
   } @else if (!loading()) {
-    <form class="card" (ngSubmit)="save()">
-      <div class="page-header-with-back">
-        <p-button
-          icon="pi pi-arrow-left"
-          [rounded]="true"
-          [text]="true"
-          severity="secondary"
-          type="button"
-          [routerLink]="backLink"
-          [attr.aria-label]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
-        />
-        <h2 class="page-title page-title-in-card mb-0">{{ pageTitle }}</h2>
-        @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
+    <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">
+      <div class="stack" [class.span-2]="!isNew">
+      <form class="card" (ngSubmit)="save()">
+        <div class="page-header-with-back">
           <p-button
-            label="Make client"
-            icon="pi pi-check"
+            icon="pi pi-arrow-left"
+            [rounded]="true"
+            [text]="true"
+            severity="secondary"
             type="button"
-            severity="success"
-            size="small"
-            [loading]="saving()"
-            (onClick)="makeClient()"
+            [routerLink]="backLink"
+            [attr.aria-label]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
           />
+          <h2 class="page-title page-title-in-card mb-0">{{ pageTitle }}</h2>
+          @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
+            <p-button
+              label="Make client"
+              icon="pi pi-check"
+              type="button"
+              severity="success"
+              size="small"
+              [loading]="saving()"
+              (onClick)="makeClient()"
+            />
+          }
+        </div>
+
+        <div class="showcase-flex-col">
+          <div class="form-field showcase-full">
+            <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
+            <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
+          </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              @if (isNew) {
+                <label for="orgType">Type</label>
+                <p-selectbutton
+                  inputId="orgType"
+                  name="orgType"
+                  [options]="typeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [ngModel]="newType"
+                  (ngModelChange)="setNewType($event)"
+                  [allowEmpty]="false"
+                />
+                <small class="text-muted block mt-1">
+                  @switch (newType) {
+                    @case ('prospect') { Also adds a card to the first lane of the pipeline. }
+                    @case ('client') { Turns on projects, time and invoices. }
+                    @case ('partner') { Tagged Partner. Not on the pipeline. }
+                    @default { Not on the pipeline. Use tags to say what it is. }
+                  }
+                </small>
+              } @else {
+                <label for="journey">Status</label>
+                <p-selectbutton
+                  inputId="journey"
+                  name="journey"
+                  [options]="journeyOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [(ngModel)]="form.journey"
+                  [allowEmpty]="false"
+                />
+                <small class="text-muted block mt-1">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
+              }
+            </div>
+            <div class="form-field showcase-half">
+              <label for="orgTags">Tags</label>
+              <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
+              <small class="text-muted block mt-1">Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.</small>
+            </div>
+          </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="code">Invoice Code</label>
+              <input
+                pInputText
+                id="code"
+                name="code"
+                [(ngModel)]="form.code"
+                class="w-full"
+                placeholder="UPSP"
+                maxlength="8"
+                style="text-transform: uppercase"
+              />
+              <small class="text-muted block mt-1">Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.</small>
+            </div>
+            <div class="form-field showcase-half">
+              <label for="email">Email</label>
+              <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
+            </div>
+          </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="phone">Phone</label>
+              <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="website">Website</label>
+              <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
+            </div>
+          </div>
+          <div class="form-field showcase-full">
+            <label for="address">Address</label>
+            <input pInputText id="address" name="address" [(ngModel)]="form.address" class="w-full" />
+          </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="city">City</label>
+              <input pInputText id="city" name="city" [(ngModel)]="form.city" class="w-full" />
+            </div>
+            <div class="form-field showcase-half">
+              <div class="showcase-row">
+                <div class="form-field flex-1">
+                  <label for="state">State</label>
+                  <p-select
+                    inputId="state"
+                    name="state"
+                    [options]="usStates"
+                    optionLabel="name"
+                    optionValue="code"
+                    [(ngModel)]="form.state"
+                    placeholder="Select state"
+                    [showClear]="true"
+                    styleClass="w-full"
+                  />
+                </div>
+                <div class="form-field flex-1">
+                  <label for="zip">Zip</label>
+                  <input pInputText id="zip" name="zip" [(ngModel)]="form.zip" class="w-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-field showcase-full">
+            <label for="notes">Notes</label>
+            <quill-editor
+              id="notes"
+              name="notes"
+              [(ngModel)]="form.notes"
+              placeholder="Notes…"
+              [styles]="{ 'min-height': '140px' }"
+            ></quill-editor>
+          </div>
+          <div class="flex align-items-center gap-2">
+            <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
+            <label>Active</label>
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <a pButton label="Cancel" class="p-button-secondary" [routerLink]="backLink"></a>
+          <button pButton type="submit" label="Save" [loading]="saving()"></button>
+        </div>
+      </form>
+
+        @if (!isNew) {
+          <app-activity-timeline [clientId]="id()!" [emailTo]="form.email" [emailSubject]="form.name" />
+
+          <app-artifacts-panel [clientId]="id()!" />
         }
       </div>
 
-      <div class="showcase-flex-col">
-        <div class="form-field showcase-full">
-          <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
-          <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
-        </div>
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            @if (isNew) {
-              <label for="orgType">Type</label>
-              <p-selectbutton
-                inputId="orgType"
-                name="orgType"
-                [options]="typeOptions"
-                optionLabel="label"
-                optionValue="value"
-                [ngModel]="newType"
-                (ngModelChange)="setNewType($event)"
-                [allowEmpty]="false"
-              />
-              <small class="text-muted">
-                @switch (newType) {
-                  @case ('prospect') { Also adds a card to the first lane of the pipeline. }
-                  @case ('client') { Turns on projects, time and invoices. }
-                  @case ('partner') { Tagged Partner. Not on the pipeline. }
-                  @default { Not on the pipeline. Use tags to say what it is. }
-                }
-              </small>
-            } @else {
-              <label for="journey">Status</label>
-              <p-selectbutton
-                inputId="journey"
-                name="journey"
-                [options]="journeyOptions"
-                optionLabel="label"
-                optionValue="value"
-                [(ngModel)]="form.journey"
-                [allowEmpty]="false"
-              />
-              <small class="text-muted">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
-            }
-          </div>
-          <div class="form-field showcase-half">
-            <label for="orgTags">Tags</label>
-            <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
-            <small class="text-muted">Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.</small>
-          </div>
-        </div>
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="code">Invoice Code</label>
-            <input
-              pInputText
-              id="code"
-              name="code"
-              [(ngModel)]="form.code"
-              class="w-full"
-              placeholder="UPSP"
-              maxlength="8"
-              style="text-transform: uppercase"
-            />
-            <small class="text-muted">Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.</small>
-          </div>
-          <div class="form-field showcase-half">
-            <label for="email">Email</label>
-            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
-          </div>
-        </div>
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="phone">Phone</label>
-            <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
-          </div>
-          <div class="form-field showcase-half">
-            <label for="website">Website</label>
-            <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
-          </div>
-        </div>
-        <div class="form-field showcase-full">
-          <label for="address">Address</label>
-          <input pInputText id="address" name="address" [(ngModel)]="form.address" class="w-full" />
-        </div>
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="city">City</label>
-            <input pInputText id="city" name="city" [(ngModel)]="form.city" class="w-full" />
-          </div>
-          <div class="form-field showcase-half">
-            <div class="showcase-row">
-              <div class="form-field flex-1">
-                <label for="state">State</label>
-                <p-select
-                  inputId="state"
-                  name="state"
-                  [options]="usStates"
-                  optionLabel="name"
-                  optionValue="code"
-                  [(ngModel)]="form.state"
-                  placeholder="Select state"
-                  [showClear]="true"
-                  styleClass="w-full"
-                />
-              </div>
-              <div class="form-field flex-1">
-                <label for="zip">Zip</label>
-                <input pInputText id="zip" name="zip" [(ngModel)]="form.zip" class="w-full" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="form-field showcase-full">
-          <label for="notes">Notes</label>
-          <quill-editor
-            id="notes"
-            name="notes"
-            [(ngModel)]="form.notes"
-            placeholder="Notes…"
-            [styles]="{ 'min-height': '140px' }"
-          ></quill-editor>
-        </div>
-        <div class="flex align-items-center gap-2">
-          <p-toggleSwitch [(ngModel)]="form.isActive" name="isActive" />
-          <label>Active</label>
-        </div>
+      @if (!isNew) {
+        <div class="stack span-1">
+          <app-people-card [clientId]="id()!" [compact]="true" />
 
-        @if (!isNew) {
-          <div class="portal-section">
-            <h3 class="text-lg font-semibold mb-2">Client portal</h3>
-            <p class="text-color-secondary mb-3">
-              Share a bookmarkable link — no login or password for your client.
-            </p>
-            <div class="flex align-items-center gap-2 mb-3">
-              <p-toggleSwitch
-                [ngModel]="portalEnabled()"
-                (ngModelChange)="onPortalToggle($event)"
-                [disabled]="portalBusy()"
-                name="portalEnabled"
-              />
-              <label>Portal enabled</label>
-            </div>
-            @if (portalEnabled() && portalUrl()) {
-              <div class="form-field">
-                <label for="portalUrl">Portal link</label>
-                <div class="portal-link-row">
-                  <input
-                    pInputText
-                    id="portalUrl"
-                    [value]="portalUrl()!"
-                    readonly
-                    class="w-full"
+          @if (isClient) {
+            <div class="card card--side">
+              <div class="card-header">
+                <h3 class="card-title">Projects</h3>
+                <a
+                  pButton
+                  label="New Project"
+                  icon="pi pi-plus"
+                  size="small"
+                  severity="secondary"
+                  [routerLink]="['/projects/new']"
+                  [queryParams]="{ clientId: id() }"
+                ></a>
+              </div>
+              @if (projectsLoading() && projects().length === 0) {
+                <p class="text-color-secondary m-0">Loading projects…</p>
+              }
+              @for (project of projects(); track project.id) {
+                <div class="side-row">
+                  <div class="side-row-main">
+                    <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
+                    <span class="text-color-secondary">
+                      {{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : 'User rate' }} · {{ project.isBillable ? 'Billable' : 'Non-billable' }}
+                    </span>
+                  </div>
+                  <p-tag
+                    [value]="project.isActive ? 'Active' : 'Inactive'"
+                    [severity]="project.isActive ? 'success' : 'secondary'"
                   />
+                </div>
+              } @empty {
+                @if (!projectsLoading()) {
+                  <p class="text-color-secondary m-0">No projects yet.</p>
+                }
+              }
+            </div>
+
+            <div class="card card--side">
+              <div class="card-header">
+                <h3 class="card-title">Client portal</h3>
+              </div>
+              <p class="text-color-secondary mt-0 mb-3">
+                A bookmarkable link for your client. No login or password.
+              </p>
+              <div class="flex align-items-center gap-2 mb-3">
+                <p-toggleSwitch
+                  inputId="portalEnabled"
+                  [ngModel]="portalEnabled()"
+                  (ngModelChange)="onPortalToggle($event)"
+                  [disabled]="portalBusy()"
+                />
+                <label for="portalEnabled">Portal enabled</label>
+              </div>
+              @if (portalEnabled() && portalUrl()) {
+                <div class="form-field">
+                  <label for="portalUrl">Portal link</label>
+                  <input pInputText id="portalUrl" [value]="portalUrl()!" readonly class="w-full" />
+                </div>
+                <div class="portal-actions">
                   <a
                     pButton
                     label="Open"
                     icon="pi pi-external-link"
                     severity="secondary"
+                    size="small"
                     [href]="portalUrl()!"
                     target="_blank"
                     rel="noopener noreferrer"
                   ></a>
+                  <button type="button" pButton label="Copy" icon="pi pi-copy" severity="secondary" size="small" (click)="copyPortalLink()"></button>
                   <button
                     type="button"
                     pButton
-                    label="Copy"
-                    icon="pi pi-copy"
-                    severity="secondary"
-                    (click)="copyPortalLink()"
+                    label="Regenerate"
+                    icon="pi pi-refresh"
+                    severity="warn"
+                    size="small"
+                    [outlined]="true"
+                    [loading]="portalBusy()"
+                    (click)="confirmRegeneratePortalLink()"
                   ></button>
                 </div>
-              </div>
-              <div class="portal-actions">
-                <button
-                  type="button"
-                  pButton
-                  label="Regenerate link"
-                  icon="pi pi-refresh"
-                  severity="warn"
-                  [outlined]="true"
-                  [loading]="portalBusy()"
-                  (click)="confirmRegeneratePortalLink()"
-                ></button>
-              </div>
-            }
-          </div>
-        }
-      </div>
-
-      <div class="form-actions">
-        <a pButton label="Cancel" class="p-button-secondary" [routerLink]="backLink"></a>
-        <button pButton type="submit" label="Save" [loading]="saving()"></button>
-      </div>
-    </form>
-
-    @if (!isNew) {
-      <div class="card">
-        <div class="projects-header">
-          <h3 class="text-lg font-semibold mb-0">Projects</h3>
-          <a
-            pButton
-            label="New Project"
-            icon="pi pi-plus"
-            [routerLink]="['/projects/new']"
-            [queryParams]="{ clientId: id() }"
-          ></a>
+              }
+            </div>
+          }
         </div>
-        <p-table [value]="projects()" [loading]="projectsLoading()" styleClass="table-bordered">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Name</th>
-              <th>Rate</th>
-              <th>Billable</th>
-              <th>Status</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-project>
-            <tr>
-              <td>
-                <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
-              </td>
-              <td>{{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : '—' }}</td>
-              <td>
-                <i
-                  class="pi"
-                  [class.pi-check-circle]="project.isBillable"
-                  [class.pi-circle]="!project.isBillable"
-                ></i>
-              </td>
-              <td>
-                <p-tag
-                  [value]="project.isActive ? 'Active' : 'Inactive'"
-                  [severity]="project.isActive ? 'success' : 'secondary'"
-                />
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="4" class="text-center p-4 text-color-secondary">No projects yet.</td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </div>
-
-      <app-people-card [clientId]="id()!" />
-
-      <app-activity-timeline [clientId]="id()!" [emailTo]="form.email" [emailSubject]="form.name" />
-
-      <app-artifacts-panel [clientId]="id()!" />
-    }
+      }
+    </div>
   }
 </app-page>

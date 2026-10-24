@@ -261,6 +261,11 @@ export class ClientFormPage implements OnInit {
     this.form.tags = type === 'partner' ? ['Partner', ...others] : others;
   }
 
+  /** Projects and Client portal show only for clients (and past clients, who keep their projects). */
+  get isClient(): boolean {
+    return this.form.journey === 'CLIENT' || this.form.journey === 'PAST_CLIENT';
+  }
+
   /** Page title. */
   get pageTitle(): string {
     if (!this.isNew) return this.form.name || 'Organization';

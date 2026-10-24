@@ -1,0 +1,78 @@
+/*
+ * Page grid layout (ported from SPP's _grid.scss).
+ * Pick a column count, place cards, set spans. Main content on the left, side panels on the right:
+ *
+ *   <div class="grid grid-3">
+ *     <div class="stack span-2"> …main cards… </div>
+ *     <div class="stack span-1"> …side cards (class="card card--side")… </div>
+ *   </div>
+ *
+ * Everything collapses to one column below 1200px.
+ */
+
+.grid {
+  display: grid;
+  gap: 2rem;
+  min-width: 0;
+  align-items: start;
+}
+
+.grid-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.span-1 { grid-column: span 1; }
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+.span-4 { grid-column: span 4; }
+
+/* A column of cards with the standard gap. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+}
+
+/* Cards inside a grid or stack take their spacing from the gap, not their own margin. */
+.grid > .card,
+.stack > .card,
+.stack > * > .card {
+  margin-bottom: 0;
+}
+
+/* Side panel: same card, a little tighter, with a header row (title + action). */
+.card.card--side {
+  padding: 1.5rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+@media (max-width: 1200px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .span-1,
+  .span-2,
+  .span-3,
+  .span-4 {
+    grid-column: span 1;
+  }
+}

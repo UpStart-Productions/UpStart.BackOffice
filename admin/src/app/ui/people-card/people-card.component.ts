@@ -14,9 +14,9 @@ import { PersonComponent } from '../person/person.component';
   standalone: true,
   imports: [PersonComponent, RouterLink, ButtonModule, MessageModule, SkeletonModule, TagModule, CopyEmailComponent],
   template: `
-    <div class="card">
-      <div class="people-header">
-        <h3 class="text-lg font-semibold mb-0">People</h3>
+    <div class="card" [class.card--side]="compact()" [class.people--compact]="compact()">
+      <div class="card-header">
+        <h3 class="card-title">People</h3>
         <a
           pButton
           label="Add person"
@@ -70,12 +70,14 @@ import { PersonComponent } from '../person/person.component';
     </div>
   `,
   styles: `
-    .people-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
     .person-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 8rem; gap: 1rem; align-items: center; padding: 0.6rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .person-row:first-of-type { border-top: 0; }
     .person-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-width: 0; }
     .person-role { font-size: 0.85rem; color: var(--text-color-secondary, #6b7280); }
     .person-last { font-size: 0.85rem; color: var(--text-color-secondary, #6b7280); text-align: right; }
+    /* Side-panel layout: one person per block, details stacked under the name. */
+    .people--compact .person-row { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
+    .people--compact .person-last { text-align: left; }
     @media (max-width: 40rem) {
       .person-row { grid-template-columns: 1fr; gap: 0.25rem; }
       .person-last { text-align: left; }
@@ -86,6 +88,8 @@ export class PeopleCardComponent {
   private readonly comms = inject(CommunicationsApi);
 
   clientId = input.required<string>();
+  /** Narrow side-panel layout (organization page right column). */
+  compact = input(false);
 
   people = signal<ContactSummary[]>([]);
   loading = signal(false);
