@@ -6,6 +6,7 @@ import { ArtifactType, LeadSource, LeadStage } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
+import { ensureLeadLinks } from './lead-links.util';
 import { normalizeWebsiteDomain } from './lead-website.util';
 
 @ApiTags('leads')
@@ -37,34 +38,38 @@ export class LeadsIngestController {
     const nextActionDate = new Date(auditDate);
     nextActionDate.setDate(nextActionDate.getDate() + 3);
 
-    const lead = await this.prisma.lead.create({
-      data: {
-        organization:    dto.organization,
-        website:         dto.website,
-        email:           dto.email,
-        primaryContact:  primaryContact ?? undefined,
-        contactRole:     dto.role,
-        source:          LeadSource.INBOUND,
-        stage:           LeadStage.DISCOVERY,
-        serviceInterests: dto.serviceInterests ?? [],
-        nextAction:      'Follow up on donor readiness audit',
-        nextActionDate,
-        lastContactDate: auditDate,
-        artifacts: {
-          create: [
-            {
-              type:    ArtifactType.NOTE,
-              title:   'Lead Source',
-              content: `Created automatically from Donor Readiness Audit submission.\nAudit date: ${auditDate.toISOString().slice(0, 10)}\nWebsite audited: ${dto.website}`,
-            },
-            ...(dto.auditReportUrl ? [{
-              type:  ArtifactType.LINK,
-              title: 'Donor Readiness Audit Report',
-              url:   dto.auditReportUrl,
-            }] : []),
-          ],
+    const lead = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.lead.create({
+        data: {
+          organization:    dto.organization,
+          website:         dto.website,
+          email:           dto.email,
+          primaryContact:  primaryContact ?? undefined,
+          contactRole:     dto.role,
+          source:          LeadSource.INBOUND,
+          stage:           LeadStage.DISCOVERY,
+          serviceInterests: dto.serviceInterests ?? [],
+          nextAction:      'Follow up on donor readiness audit',
+          nextActionDate,
+          lastContactDate: auditDate,
+          artifacts: {
+            create: [
+              {
+                type:    ArtifactType.NOTE,
+                title:   'Lead Source',
+                content: `Created automatically from Donor Readiness Audit submission.\nAudit date: ${auditDate.toISOString().slice(0, 10)}\nWebsite audited: ${dto.website}`,
+              },
+              ...(dto.auditReportUrl ? [{
+                type:  ArtifactType.LINK,
+                title: 'Donor Readiness Audit Report',
+                url:   dto.auditReportUrl,
+              }] : []),
+            ],
+          },
         },
-      },
+      });
+      await ensureLeadLinks(tx, created.id);
+      return created;
     });
 
     return { duplicate: false, leadId: lead.id, organization: lead.organization };

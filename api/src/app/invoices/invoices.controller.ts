@@ -171,7 +171,7 @@ export class InvoicesController {
       if (!dto.clientId) throw new BadRequestException('Choose a client');
       const client = await this.requireClient(user, dto.clientId);
       clientId = client.id;
-      prefix = client.code;
+      prefix = client.code ?? 'INV';
       defaults = InvoicesController.clientBillTo(client);
     } else {
       defaults = await this.tenantBillTo();

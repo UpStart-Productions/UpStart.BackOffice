@@ -17,13 +17,13 @@ A self-hosted back office for agencies and small teams: CRM, project management,
 | **Invoices** | Draft → send → paid workflow, PDF generation, email delivery |
 | **Pipeline** | Kanban CRM board; leads by stage; convert to client |
 | **Bookings** | View/cancel appointments; configure booking types |
-| **Network** | Partner/vendor directory (companies and contacts) |
+| **Partners** | Accounts with the Partner role (a view on Clients); the old Network page redirects here |
 | **Reports** | Time and invoice reports with PDF/Excel export |
 | **Accounting** | Chart of accounts, journal entries, bank CSV import, financial reports |
 | **Users** | Staff user management, Cognito invites, avatars |
 | **Settings** | Asana OAuth, Google Calendar OAuth, service API keys |
 
-Shared UI: global search, file/link/note artifacts on clients, projects, leads, and network contacts, confirm-before-delete dialogs.
+Shared UI: global search, file/link/note artifacts on clients, projects and leads, confirm-before-delete dialogs.
 
 ### API
 

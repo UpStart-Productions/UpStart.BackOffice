@@ -62,11 +62,13 @@ export class ShellComponent implements OnInit {
   /** A Tasks-only role (like Guest): the menu is just Tasks. */
   readonly isTasksOnly = computed(() => tasksOnly(this.session.me()));
   readonly canInbox = computed(() => !!areaLevel(this.session.me(), 'inbox'));
+  readonly canContacts = computed(() => !!areaLevel(this.session.me(), 'contacts'));
 
   /** Keep the Inbox badge fresh: refresh the unfiled count after every navigation. */
   private readonly refreshInboxCount = effect(() => {
     this.currentUrl();
     if (this.canInbox()) void this.comms.refreshUnfiledCount();
+    if (this.canContacts()) void this.comms.refreshReviewCount();
   });
 
   navItems = computed<NavItem[]>(() => {
@@ -84,15 +86,14 @@ export class ShellComponent implements OnInit {
     };
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
-      // CRM, ordered by how often it is used. Network is a rolodex that becomes a tag + saved
-      // view under Contacts in the CRM consolidation phase; Inbox is the unfiled-email queue.
+      // CRM, ordered as the work flows: new mail (Inbox) -> Pipeline -> Clients -> Contacts -> Bookings. Prospects and Partners are saved views on Clients
+      // (/clients?view=...); Inbox is the unfiled-email queue.
       ...section('CRM', [
-        { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
-        { area: 'contacts', label: 'Contacts', icon: 'pi-address-book', route: '/contacts' },
-        { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
-        { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
-        { area: 'network', label: 'Network', icon: 'pi-sitemap', route: '/network' },
         { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
+        { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
+        { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
+        { area: 'contacts', label: 'Contacts', icon: 'pi-address-book', route: '/contacts', badge: this.comms.reviewCount() },
+        { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       ]),
       ...section('Office', [
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },

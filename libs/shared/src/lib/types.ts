@@ -3,10 +3,25 @@
 /** ADMIN: everything. USER: what their tenant role grants. CLIENT: client portal login only. */
 export type UserRole = 'ADMIN' | 'USER' | 'CLIENT';
 
+export type AccountJourney = 'PROSPECT' | 'CLIENT' | 'PAST_CLIENT' | 'NONE';
+
+export const ACCOUNT_JOURNEY_LABELS: Record<AccountJourney, string> = {
+  PROSPECT: 'Prospect',
+  CLIENT: 'Client',
+  PAST_CLIENT: 'Past client',
+  NONE: 'None',
+};
+
+/** Suggested role tags; roles are free-form, these just save typing. */
+export const ACCOUNT_ROLE_SUGGESTIONS = ['Partner', 'Referral source', 'Vendor'] as const;
+
 export type ClientDto = {
   id: string;
   name: string;
-  code: string;
+  code?: string | null;
+  journey: AccountJourney;
+  roles: string[];
+  isReferralReady?: boolean;
   email?: string | null;
   phone?: string | null;
   address?: string | null;

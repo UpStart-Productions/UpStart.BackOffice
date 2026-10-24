@@ -72,6 +72,9 @@ export class LeadDetailPage implements OnInit {
   error = signal<string | null>(null);
   showConvertDialog = signal(false);
   convertCode = '';
+  /** The Account this pipeline item belongs to, and the person on it. */
+  account = signal<{ id: string; name: string; journey: string } | null>(null);
+  contactId = signal<string | null>(null);
 
   readonly stages = STAGES.map(s => ({ label: s.label, value: s.key }));
   readonly sources = [...SOURCES].sort((a, b) => a.label.localeCompare(b.label));
@@ -96,8 +99,7 @@ export class LeadDetailPage implements OnInit {
   };
 
   get isNew() { return !this.id(); }
-  get isConverted() { return this._convertedClientId !== null; }
-  private _convertedClientId: string | null = null;
+  get isConverted() { return this.account()?.journey === 'CLIENT'; }
 
   private patchForm(lead: Record<string, unknown>) {
     const toDateStr = (v: unknown) =>
@@ -118,7 +120,8 @@ export class LeadDetailPage implements OnInit {
       nextActionDate:  toDateStr(lead['nextActionDate']),
       lastContactDate: toDateStr(lead['lastContactDate']),
     };
-    this._convertedClientId = (lead['convertedClientId'] as string) ?? null;
+    this.account.set((lead['client'] as { id: string; name: string; journey: string } | null) ?? null);
+    this.contactId.set((lead['primaryContactId'] as string) ?? null);
     this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);
   }
 
@@ -193,14 +196,15 @@ export class LeadDetailPage implements OnInit {
     } finally { this.saving.set(false); }
   }
 
+  /** Make the lead's Account a client. Nothing is copied; the invoice code is optional. */
   async convertToClient() {
-    if (!this.convertCode.trim()) return;
     this.converting.set(true);
     this.error.set(null);
     try {
+      const code = this.convertCode.trim();
       const client = await this.api.post<{ id: string }>(
         `/leads/${this.id()}/convert`,
-        { code: this.convertCode.trim() },
+        code ? { code } : {},
       );
       this.showConvertDialog.set(false);
       this.router.navigate(['/clients', client.id]);

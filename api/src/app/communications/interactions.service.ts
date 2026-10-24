@@ -156,19 +156,22 @@ export class InteractionsService {
     });
     if (!existing) throw new NotFoundException('Interaction not found.');
 
+    // Filing to a lead also files to the lead's Account, where the shared timeline lives.
+    let targetClientId: string | null = dto.clientId ?? null;
     if (dto.clientId) {
       const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
       if (!client) throw new NotFoundException('Client not found.');
     } else {
-      const lead = await this.prisma.lead.findUnique({ where: { id: dto.leadId as string }, select: { id: true } });
+      const lead = await this.prisma.lead.findUnique({ where: { id: dto.leadId as string }, select: { id: true, clientId: true } });
       if (!lead) throw new NotFoundException('Lead not found.');
+      targetClientId = lead.clientId;
     }
 
     await this.prisma.interaction.update({
       where: { id },
       data: {
         status: 'FILED',
-        clientId: dto.clientId ?? null,
+        clientId: targetClientId,
         leadId: dto.leadId ?? null,
       },
     });
@@ -178,7 +181,7 @@ export class InteractionsService {
     if (existing.threadKey?.startsWith('mid:')) {
       const res = await this.prisma.interaction.updateMany({
         where: { tenantId: TENANT, threadKey: existing.threadKey, status: 'UNFILED', id: { not: id } },
-        data: { status: 'FILED', clientId: dto.clientId ?? null, leadId: dto.leadId ?? null },
+        data: { status: 'FILED', clientId: targetClientId, leadId: dto.leadId ?? null },
       });
       threadItemsFiled = res.count;
     }
@@ -186,7 +189,7 @@ export class InteractionsService {
     // Teach the system: outside contacts on this item now belong to the client,
     // so the next message from them files itself.
     let contactsLinked = 0;
-    if (dto.clientId && dto.learn !== false) {
+    if (targetClientId && dto.learn !== false) {
       const contactIds = [
         ...new Set(
           existing.participants
@@ -196,7 +199,7 @@ export class InteractionsService {
       ];
       if (contactIds.length) {
         const res = await this.prisma.contactAccount.createMany({
-          data: contactIds.map((contactId) => ({ contactId, clientId: dto.clientId as string })),
+          data: contactIds.map((contactId) => ({ contactId, clientId: targetClientId as string })),
           skipDuplicates: true,
         });
         contactsLinked = res.count;
@@ -205,7 +208,7 @@ export class InteractionsService {
     return {
       id,
       status: 'FILED' as const,
-      clientId: dto.clientId ?? null,
+      clientId: targetClientId,
       leadId: dto.leadId ?? null,
       contactsLinked,
       threadItemsFiled,
@@ -227,12 +230,14 @@ export class InteractionsService {
     if (!!dto.clientId === !!dto.leadId) {
       throw new BadRequestException('Provide exactly one of clientId or leadId.');
     }
+    let logClientId: string | null = dto.clientId ?? null;
     if (dto.clientId) {
       const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
       if (!client) throw new NotFoundException('Client not found.');
     } else {
-      const lead = await this.prisma.lead.findUnique({ where: { id: dto.leadId as string }, select: { id: true } });
+      const lead = await this.prisma.lead.findUnique({ where: { id: dto.leadId as string }, select: { id: true, clientId: true } });
       if (!lead) throw new NotFoundException('Lead not found.');
+      logClientId = lead.clientId;
     }
     if (!dto.subject?.trim() && !dto.bodyText?.trim()) {
       throw new BadRequestException('Add a subject or some notes.');
@@ -258,7 +263,7 @@ export class InteractionsService {
         bodyText: dto.bodyText?.trim() || null,
         source: 'MANUAL',
         status: 'FILED',
-        clientId: dto.clientId ?? null,
+        clientId: logClientId,
         leadId: dto.leadId ?? null,
         loggedByUserId: user.id,
         participants: {
@@ -291,7 +296,20 @@ export class InteractionsService {
         data: { lastContactDate: occurredAt },
       });
     }
+    if (logClientId) await this.bumpAccountContact(logClientId, occurredAt);
     return toInteractionView(created as InteractionRow, true);
+  }
+
+  /** Move "last contacted" forward on an Account and its pipeline items. */
+  private async bumpAccountContact(clientId: string, occurredAt: Date) {
+    await this.prisma.client.updateMany({
+      where: { id: clientId, OR: [{ lastContactAt: null }, { lastContactAt: { lt: occurredAt } }] },
+      data: { lastContactAt: occurredAt },
+    });
+    await this.prisma.lead.updateMany({
+      where: { clientId, OR: [{ lastContactDate: null }, { lastContactDate: { lt: occurredAt } }] },
+      data: { lastContactDate: occurredAt },
+    });
   }
 
   private page(rows: InteractionRow[], limit: number): TimelinePage<ReturnType<typeof toInteractionView>> {

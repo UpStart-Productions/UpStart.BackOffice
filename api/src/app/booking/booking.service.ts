@@ -31,6 +31,7 @@ import {
   normalizeWebsiteDomain,
   normalizeWebsiteForStorage,
 } from '../leads/lead-website.util';
+import { ensureLeadLinks } from '../leads/lead-links.util';
 
 export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
 
@@ -490,7 +491,7 @@ export class BookingService {
     };
 
     if (lead) {
-      return tx.lead.update({
+      const updated = await tx.lead.update({
         where: { id: lead.id },
         data: {
           organization: org || lead.organization,
@@ -505,14 +506,19 @@ export class BookingService {
           artifacts: { create: artifacts },
         },
       });
+      await ensureLeadLinks(tx, updated.id);
+      return updated;
     }
 
-    return tx.lead.create({
+    const created = await tx.lead.create({
       data: {
         ...leadFields,
         artifacts: { create: artifacts },
       },
     });
+    // The booking's guest becomes a Contact on a Prospect Account (or joins the existing Account).
+    await ensureLeadLinks(tx, created.id);
+    return created;
   }
 
   private async syncGoogleCalendarEvent(booking: Booking, type: BookingTypeWithRules) {

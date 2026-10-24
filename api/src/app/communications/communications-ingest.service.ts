@@ -170,7 +170,7 @@ export class CommunicationsIngestService {
     }
     const anyEmail = externalEmails.map((email) => ({ email: { equals: email, mode: 'insensitive' as const } }));
     const leads = anyEmail.length
-      ? await this.prisma.lead.findMany({ where: { OR: anyEmail }, select: { id: true, convertedClientId: true } })
+      ? await this.prisma.lead.findMany({ where: { OR: anyEmail }, select: { id: true, clientId: true, convertedClientId: true } })
       : [];
     // Clients matched by their own email field, before anyone has created Contacts for them.
     const clientRows = anyEmail.length
@@ -178,11 +178,12 @@ export class CommunicationsIngestService {
       : [];
     const directClientIds = [
       ...clientRows.map((c) => c.id),
-      ...leads.map((l) => l.convertedClientId).filter((id): id is string => !!id),
+      // A lead's email files to the lead's Account, where the shared timeline lives.
+      ...leads.map((l) => l.clientId ?? l.convertedClientId).filter((id): id is string => !!id),
     ];
     let decision = decideFiling(
       [...matchByContact.values()],
-      leads.filter((l) => !l.convertedClientId).map((l) => l.id),
+      leads.filter((l) => !l.clientId && !l.convertedClientId).map((l) => l.id),
       directClientIds,
     );
 
@@ -296,6 +297,20 @@ export class CommunicationsIngestService {
       await this.prisma.lead.updateMany({
         where: {
           id: decision.leadId,
+          OR: [{ lastContactDate: null }, { lastContactDate: { lt: occurredAt } }],
+        },
+        data: { lastContactDate: occurredAt },
+      });
+    }
+    if (decision.clientId) {
+      // The Account and its pipeline items were just contacted.
+      await this.prisma.client.updateMany({
+        where: { id: decision.clientId, OR: [{ lastContactAt: null }, { lastContactAt: { lt: occurredAt } }] },
+        data: { lastContactAt: occurredAt },
+      });
+      await this.prisma.lead.updateMany({
+        where: {
+          clientId: decision.clientId,
           OR: [{ lastContactDate: null }, { lastContactDate: { lt: occurredAt } }],
         },
         data: { lastContactDate: occurredAt },

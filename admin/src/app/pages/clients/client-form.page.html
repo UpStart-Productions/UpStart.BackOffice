@@ -1,4 +1,4 @@
-<app-page [title]="isNew ? 'New Client' : 'Edit Client'" [skipTitle]="true">
+<app-page [title]="(isNew ? 'New ' : 'Edit ') + kindLabel" [skipTitle]="true">
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -16,18 +16,59 @@
           aria-label="Back to Clients"
         />
         <h2 class="page-title page-title-in-card mb-0">
-          {{ isNew ? 'New Client' : 'Edit Client' }}
+          {{ isNew ? 'New' : 'Edit' }} {{ kindLabel }}
         </h2>
+        @if (!isNew && form.journey !== 'CLIENT') {
+          <p-button
+            label="Make client"
+            icon="pi pi-check"
+            type="button"
+            severity="success"
+            size="small"
+            [loading]="saving()"
+            (onClick)="makeClient()"
+          />
+        }
       </div>
 
       <div class="showcase-flex-col">
         <div class="form-field showcase-full">
-          <label for="name">Client Name <span class="required-dot" aria-hidden="true"></span></label>
+          <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
           <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
         </div>
         <div class="showcase-row">
           <div class="form-field showcase-half">
-            <label for="code">Invoice Code <span class="required-dot" aria-hidden="true"></span></label>
+            <label for="journey">Journey</label>
+            <p-selectbutton
+              inputId="journey"
+              name="journey"
+              [options]="journeyOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="form.journey"
+              [allowEmpty]="false"
+            />
+            <small class="text-muted">Client turns on projects, time and invoices. You can change it any time.</small>
+          </div>
+          <div class="form-field showcase-half">
+            <label for="roles">Roles</label>
+            <p-autocomplete
+              inputId="roles"
+              name="roles"
+              [(ngModel)]="form.roles"
+              [multiple]="true"
+              [typeahead]="false"
+              [forceSelection]="false"
+              placeholder="Partner, Referral source…"
+              styleClass="w-full"
+              inputStyleClass="w-full"
+            />
+            <small class="text-muted">Press Enter to add. A partner can also be a client.</small>
+          </div>
+        </div>
+        <div class="showcase-row">
+          <div class="form-field showcase-half">
+            <label for="code">Invoice Code</label>
             <input
               pInputText
               id="code"
@@ -38,7 +79,7 @@
               maxlength="8"
               style="text-transform: uppercase"
             />
-            <small class="text-muted">Prepended to invoice numbers, e.g. UPSP-0001</small>
+            <small class="text-muted">Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.</small>
           </div>
           <div class="form-field showcase-half">
             <label for="email">Email</label>

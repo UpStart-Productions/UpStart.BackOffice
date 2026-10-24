@@ -1,6 +1,11 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { isStale, lastContactLabel } from '../../core/staleness.util';
+import type { AccountJourney } from '@upstart/back-office/shared';
+import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
 import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
@@ -18,7 +23,29 @@ import {
 } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 
-type Client = { id: string; name: string; code: string; email?: string; phone?: string; isActive: boolean };
+type Client = {
+  id: string;
+  name: string;
+  code?: string | null;
+  journey: AccountJourney;
+  roles: string[];
+  isReferralReady?: boolean;
+  lastContactAt?: string | null;
+  email?: string;
+  phone?: string;
+  isActive: boolean;
+};
+
+type View = 'clients' | 'prospects' | 'past' | 'partners' | 'all';
+
+/** Saved views over the one Accounts table. Clients is the default. */
+const VIEWS: Record<View, { label: string; query: string; kind: string; newQuery?: Record<string, string> }> = {
+  clients: { label: 'Clients', query: '?journey=CLIENT', kind: 'client' },
+  prospects: { label: 'Prospects', query: '?journey=PROSPECT', kind: 'prospect', newQuery: { journey: 'PROSPECT' } },
+  past: { label: 'Past clients', query: '?journey=PAST_CLIENT', kind: 'past client' },
+  partners: { label: 'Partners', query: '?role=Partner', kind: 'partner', newQuery: { journey: 'NONE', role: 'Partner' } },
+  all: { label: 'All', query: '', kind: 'account' },
+};
 
 @Component({
   selector: 'app-clients-list-page',
@@ -33,6 +60,8 @@ type Client = { id: string; name: string; code: string; email?: string; phone?: 
     TableModule,
     MessageModule,
     TagModule,
+    SelectButtonModule,
+    ToggleSwitchModule,
     PageComponent,
     RowActionsMenuComponent,
     CopyEmailComponent,
@@ -42,11 +71,23 @@ type Client = { id: string; name: string; code: string; email?: string; phone?: 
 export class ClientsListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
 
+  readonly viewOptions = (Object.keys(VIEWS) as View[]).map((value) => ({ value, label: VIEWS[value].label }));
+  readonly journeyLabels = ACCOUNT_JOURNEY_LABELS;
+  readonly lastContactLabel = lastContactLabel;
+  /** Only people you are working with or courting are flagged; partners and past clients can be quiet. */
+  staleFlag(client: Client): boolean {
+    return (client.journey === 'CLIENT' || client.journey === 'PROSPECT') && isStale(client.lastContactAt);
+  }
+  view = signal<View>('clients');
+  readonly kind = computed(() => VIEWS[this.view()].kind);
+  readonly newQuery = computed(() => VIEWS[this.view()].newQuery ?? {});
   clients = signal<Client[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  referralReadyOnly = signal(false);
   searchQuery = '';
   searchDebounced = signal('');
 
@@ -54,20 +95,28 @@ export class ClientsListPage implements OnInit {
 
   readonly filteredClients = computed(() => {
     const q = this.searchDebounced().trim().toLowerCase();
-    const list = this.clients();
+    const list = this.referralReadyOnly() ? this.clients().filter((c) => c.isReferralReady) : this.clients();
     if (!q) return list;
     return list.filter((client) => this.clientMatchesSearch(client, q));
   });
 
   readonly emptyMessage = computed(() => {
     if (this.searchDebounced().trim() && this.filteredClients().length === 0 && this.clients().length > 0) {
-      return 'No clients match your search.';
+      return `No ${this.kind()}s match your search.`;
     }
-    return 'No clients yet.';
+    return this.view() === 'clients' ? 'No clients yet.' : `No ${this.kind()}s yet.`;
   });
 
-  async ngOnInit() {
-    await this.load();
+  ngOnInit() {
+    this.route.queryParamMap.subscribe((params) => {
+      const v = params.get('view') as View | null;
+      this.view.set(v && v in VIEWS ? v : 'clients');
+      void this.load();
+    });
+  }
+
+  onViewChange(view: View) {
+    void this.router.navigate([], { queryParams: { view: view === 'clients' ? null : view }, queryParamsHandling: 'merge' });
   }
 
   onSearchInput(value: string) {
@@ -92,6 +141,8 @@ export class ClientsListPage implements OnInit {
     const haystack = [
       client.name,
       client.code,
+      client.roles?.join(' '),
+      ACCOUNT_JOURNEY_LABELS[client.journey],
       client.email,
       client.phone,
       client.isActive ? 'active' : 'inactive',
@@ -105,7 +156,7 @@ export class ClientsListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const data = await this.api.get<Client[]>('/clients');
+      const data = await this.api.get<Client[]>(`/clients${VIEWS[this.view()].query}`);
       this.clients.set(data);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load clients');
@@ -113,7 +164,17 @@ export class ClientsListPage implements OnInit {
   }
 
   getRowActions(client: Client): RowActionItem[] {
+    const actions: RowActionItem[] = [];
+    if (client.journey !== 'CLIENT') {
+      actions.push({
+        id: 'make-client',
+        label: 'Make client',
+        icon: 'pi pi-check',
+        command: () => this.makeClient(client),
+      });
+    }
     return [
+      ...actions,
       {
         id: 'edit',
         label: 'Edit',
@@ -128,6 +189,15 @@ export class ClientsListPage implements OnInit {
         command: () => this.confirmDelete(client),
       },
     ];
+  }
+
+  async makeClient(client: Client) {
+    try {
+      await this.api.put(`/clients/${client.id}`, { journey: 'CLIENT' });
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not update');
+    }
   }
 
   confirmDelete(client: Client) {

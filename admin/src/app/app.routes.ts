@@ -1,4 +1,5 @@
-import { Route } from '@angular/router';
+import { inject } from '@angular/core';
+import { Route, Router } from '@angular/router';
 import { authGuard, loginGuard } from './core/auth.guard';
 import { sessionGuard, adminGuard, platformAdminGuard, areaGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
@@ -125,21 +126,14 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/contacts/contact-detail.page').then((m) => m.ContactDetailPage),
       },
-      {
-        path: 'network',
-        loadComponent: () =>
-          import('./pages/network/companies-list.page').then((m) => m.NetworkCompaniesListPage),
-      },
+      // Network was folded into Accounts: partners are Accounts with the Partner role.
+      { path: 'network', pathMatch: 'full', redirectTo: () => inject(Router).parseUrl('/clients?view=partners') },
       {
         path: 'network/new',
-        loadComponent: () =>
-          import('./pages/network/company-form.page').then((m) => m.NetworkCompanyFormPage),
+        pathMatch: 'full',
+        redirectTo: () => inject(Router).parseUrl('/clients/new?role=Partner&journey=NONE'),
       },
-      {
-        path: 'network/:id',
-        loadComponent: () =>
-          import('./pages/network/company-form.page').then((m) => m.NetworkCompanyFormPage),
-      },
+      { path: 'network/:id', redirectTo: 'clients/:id' },
       {
         path: 'projects',
         loadComponent: () =>

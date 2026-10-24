@@ -166,7 +166,7 @@ export class SearchService {
           type: 'client' as const,
           id: client.id,
           label: client.name,
-          detail: joinDetail([client.code, client.email ?? 'No email']),
+          detail: joinDetail([client.code ?? null, client.email ?? 'No email']),
           meta: activeLabel(client.isActive),
         })),
       });

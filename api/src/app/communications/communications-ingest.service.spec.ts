@@ -34,6 +34,7 @@ function makeHarness(
     leads: opts.leads ?? [],
     clients: opts.clients ?? [],
     leadUpdates: [] as Row[],
+    clientUpdates: [] as Row[],
     uploads: [] as string[],
     fetched: [] as string[],
   };
@@ -117,15 +118,16 @@ function makeHarness(
         const wanted: string[] = where.OR.map((o: Row) => o.email.equals);
         return db.leads
           .filter((l) => l.email && wanted.includes(l.email.toLowerCase()))
-          .map((l) => ({ id: l.id, convertedClientId: l.convertedClientId ?? null }));
+          .map((l) => ({ id: l.id, clientId: l.clientId ?? null, convertedClientId: l.convertedClientId ?? null }));
       },
-      updateMany: async ({ where, data }: Row) => (db.leadUpdates.push({ id: where.id, ...data }), { count: 1 }),
+      updateMany: async ({ where, data }: Row) => (db.leadUpdates.push({ id: where.id, clientId: where.clientId, ...data }), { count: 1 }),
     },
     client: {
       findMany: async ({ where }: Row) => {
         const wanted: string[] = where.OR.map((o: Row) => o.email.equals);
         return db.clients.filter((c) => c.email && wanted.includes(c.email.toLowerCase())).map((c) => ({ id: c.id, email: c.email }));
       },
+      updateMany: async ({ where, data }: Row) => (db.clientUpdates.push({ id: where.id, ...data }), { count: 1 }),
     },
     contactAccount: {
       createMany: async ({ data }: Row) => {
@@ -207,6 +209,15 @@ describe('CommunicationsIngestService', () => {
     expect(res).toMatchObject({ filing: 'FILED', leadId: 'lead-1', reason: 'lead-match' });
     expect(db.leadUpdates[0]).toMatchObject({ id: 'lead-1' });
     expect(db.leadUpdates[0].lastContactDate.toISOString()).toBe('2026-10-13T22:04:00.000Z');
+  });
+
+  it("files mail from a lead to the lead's Account and moves last-contact forward", async () => {
+    const { db, service } = makeHarness({ leads: [{ id: 'lead-1', email: 'sally@familyclient.test', clientId: 'acct-1' }] });
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('client-reply-forwarded.eml')) });
+    expect(res).toMatchObject({ filing: 'FILED', clientId: 'acct-1', leadId: null, reason: 'single-client' });
+    expect(db.clientUpdates[0]).toMatchObject({ id: 'acct-1' });
+    expect(db.clientUpdates[0].lastContactAt.toISOString()).toBe('2026-10-13T22:04:00.000Z');
+    expect(db.leadUpdates).toContainEqual(expect.objectContaining({ clientId: 'acct-1' }));
   });
 
   it('keeps a team-only note as INTERNAL and leaves it Unfiled when nothing places it', async () => {

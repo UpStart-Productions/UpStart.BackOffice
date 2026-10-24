@@ -1,6 +1,6 @@
 import {
   Body, Controller, Delete, Get, NotFoundException, Param,
-  Post, Put, Req, UseGuards,
+  Post, Put, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AccessService } from '../access/access.service';
@@ -10,7 +10,7 @@ import { generatePortalToken } from '../portal/portal-token.util';
 import { toClientView } from '../portal/portal-client.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
-import { CreateClientDto } from './dto/create-client.dto';
+import { ACCOUNT_JOURNEYS, AccountJourneyValue, CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { AccessGuard, Area } from '../access/access.guard';
 
@@ -27,6 +27,10 @@ const clientSelect = {
   website: true,
   notes: true,
   category: true,
+  journey: true,
+  roles: true,
+  isReferralReady: true,
+  lastContactAt: true,
   isActive: true,
   portalEnabled: true,
   portalToken: true,
@@ -34,6 +38,20 @@ const clientSelect = {
   createdAt: true,
   updatedAt: true,
 } as const;
+
+/** Trim, drop blanks and case-insensitive duplicates, keep the first spelling. */
+function normalizeRoles(roles: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of roles ?? []) {
+    const t = r.trim();
+    if (t && !seen.has(t.toLowerCase())) {
+      seen.add(t.toLowerCase());
+      out.push(t);
+    }
+  }
+  return out;
+}
 
 @ApiTags('clients')
 @ApiBearerAuth()
@@ -54,10 +72,17 @@ export class ClientsController {
   }
 
   @Get()
-  async list(@Req() req: Request) {
+  async list(@Req() req: Request, @Query('journey') journey?: string, @Query('role') role?: string) {
     const reach = await this.access.clientIdFilter(req.user as UserContext);
+    const journeys = (journey ?? '')
+      .split(',')
+      .filter((j): j is AccountJourneyValue => (ACCOUNT_JOURNEYS as readonly string[]).includes(j));
     const clients = await this.prisma.client.findMany({
-      where: reach ? { id: reach } : undefined,
+      where: {
+        ...(reach ? { id: reach } : {}),
+        ...(journeys.length ? { journey: { in: journeys } } : {}),
+        ...(role ? { roles: { has: role } } : {}),
+      },
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -72,6 +97,10 @@ export class ClientsController {
         website: true,
         notes: true,
         category: true,
+        journey: true,
+        roles: true,
+        isReferralReady: true,
+        lastContactAt: true,
         isActive: true,
         portalEnabled: true,
         createdAt: true,
@@ -90,7 +119,7 @@ export class ClientsController {
   async lookup(@Req() req: Request) {
     const ids = await this.access.clientIdFilter(req.user as UserContext);
     return this.prisma.client.findMany({
-      where: { isActive: true, ...(ids ? { id: ids } : {}) },
+      where: { isActive: true, journey: 'CLIENT', ...(ids ? { id: ids } : {}) },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });
@@ -101,7 +130,9 @@ export class ClientsController {
     const client = await this.prisma.client.create({
       data: {
         name: dto.name,
-        code: dto.code.toUpperCase(),
+        code: dto.code?.toUpperCase(),
+        journey: dto.journey ?? 'CLIENT',
+        roles: normalizeRoles(dto.roles),
         email: dto.email,
         phone: dto.phone,
         address: dto.address,
@@ -144,6 +175,8 @@ export class ClientsController {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.code !== undefined && { code: dto.code.toUpperCase() }),
+        ...(dto.journey !== undefined && { journey: dto.journey }),
+        ...(dto.roles !== undefined && { roles: normalizeRoles(dto.roles) }),
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.phone !== undefined && { phone: dto.phone }),
         ...(dto.address !== undefined && { address: dto.address }),

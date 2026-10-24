@@ -20,11 +20,17 @@
           {{ isNew ? 'New Lead' : form.organization }}
         </h2>
         <span style="flex: 1"></span>
+        @if (account(); as acct) {
+          <a [routerLink]="['/clients', acct.id]" class="text-primary mr-2">Open account</a>
+        }
+        @if (contactId(); as cid) {
+          <a [routerLink]="['/contacts', cid]" class="text-primary mr-2">Open contact</a>
+        }
         @if (!isNew && !isConverted) {
-          <button pButton type="button" label="Convert to Client" icon="pi pi-arrow-right" (click)="showConvertDialog.set(true)"></button>
+          <button pButton type="button" label="Make client" icon="pi pi-check" (click)="showConvertDialog.set(true)"></button>
         }
         @if (isConverted) {
-          <p-tag value="Converted to Client" severity="success" />
+          <p-tag value="Client" severity="success" />
         }
       </div>
 
@@ -123,7 +129,11 @@
     </form>
 
     @if (!isNew) {
-      <app-activity-timeline [leadId]="id()!" [emailTo]="form.email" />
+      @if (account(); as acct) {
+        <app-activity-timeline [clientId]="acct.id" [emailTo]="form.email" />
+      } @else {
+        <app-activity-timeline [leadId]="id()!" [emailTo]="form.email" />
+      }
 
       <app-artifacts-panel [leadId]="id()!" />
     }
@@ -131,23 +141,24 @@
 </app-page>
 
 <p-dialog
-  header="Convert to Client"
+  header="Make client"
   [(visible)]="showConvertDialog"
   [modal]="true"
   [style]="{ width: '400px' }"
 >
   <p class="mb-3">
-    This will create a new Client record for <strong>{{ form.organization }}</strong>
-    and migrate all attached artifacts. You'll need an invoice code to get started.
+    <strong>{{ account()?.name ?? form.organization }}</strong> becomes a client, so projects, time and invoices
+    become available. Nothing is copied: its contacts, emails and files stay where they are, and you can
+    change it back from the account.
   </p>
   <div class="form-field">
-    <label for="convertCode">Invoice Code <span class="required-dot" aria-hidden="true"></span></label>
+    <label for="convertCode">Invoice Code</label>
     <input pInputText id="convertCode" [(ngModel)]="convertCode" class="w-full"
       placeholder="e.g. LOVN" maxlength="8" style="text-transform:uppercase" />
-    <small class="text-muted">Prepended to invoice numbers, e.g. LOVN-0001</small>
+    <small class="text-muted">Optional for now. Prepended to invoice numbers, e.g. LOVN-0001.</small>
   </div>
   <ng-template pTemplate="footer">
     <p-button label="Cancel" severity="secondary" (onClick)="showConvertDialog.set(false)" />
-    <p-button label="Convert" icon="pi pi-check" [loading]="converting()" (onClick)="convertToClient()" />
+    <p-button label="Make client" icon="pi pi-check" [loading]="converting()" (onClick)="convertToClient()" />
   </ng-template>
 </p-dialog>

@@ -15,7 +15,7 @@ const row = (id: string, d: number, extra: Record<string, unknown> = {}) => ({
 function make() {
   const prisma = {
     interaction: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn(), create: vi.fn(), count: vi.fn() },
-    client: { findUnique: vi.fn() },
+    client: { findUnique: vi.fn(), updateMany: vi.fn() },
     lead: { findUnique: vi.fn(), updateMany: vi.fn() },
     contact: { findMany: vi.fn(), updateMany: vi.fn() },
     contactAccount: { createMany: vi.fn() },
@@ -110,6 +110,21 @@ describe('InteractionsService', () => {
       expect(h.prisma.contactAccount.createMany).not.toHaveBeenCalled();
     });
 
+    it('filing to a lead files to its Account too and teaches the contacts', async () => {
+      h.prisma.interaction.findFirst.mockResolvedValue({ id: 'a', participants: [{ contactId: 'k1', userId: null }] });
+      h.prisma.lead.findUnique.mockResolvedValue({ id: 'l1', clientId: 'acct1' });
+      h.prisma.contactAccount.createMany.mockResolvedValue({ count: 1 });
+      const res = await h.svc.file('a', { leadId: 'l1' });
+      expect(h.prisma.interaction.update).toHaveBeenCalledWith({
+        where: { id: 'a' }, data: { status: 'FILED', clientId: 'acct1', leadId: 'l1' },
+      });
+      expect(h.prisma.contactAccount.createMany).toHaveBeenCalledWith({
+        data: [{ contactId: 'k1', clientId: 'acct1' }],
+        skipDuplicates: true,
+      });
+      expect(res.clientId).toBe('acct1');
+    });
+
     it('404s for unknown interaction, client or lead', async () => {
       h.prisma.interaction.findFirst.mockResolvedValueOnce(null);
       await expect(h.svc.file('a', { clientId: 'c1' })).rejects.toBeInstanceOf(NotFoundException);
@@ -191,6 +206,19 @@ describe('InteractionsService', () => {
         { email: 'ann@x.test', name: 'Ann Lee', role: 'ATTENDEE', contactId: 'k1' },
       ]);
       expect(h.prisma.contact.updateMany).toHaveBeenCalled();
+    });
+
+    it('logging to a lead also files to the lead\'s Account and bumps its last contact', async () => {
+      h.prisma.lead.findUnique.mockResolvedValue({ id: 'l1', clientId: 'acct1' });
+      h.prisma.interaction.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...row('n', 1), ...data }));
+      await h.svc.log({ type: 'CALL', leadId: 'l1', subject: 'Intro' }, user);
+      expect(h.prisma.interaction.create.mock.calls[0][0].data).toMatchObject({ clientId: 'acct1', leadId: 'l1' });
+      expect(h.prisma.client.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ id: 'acct1' }) }),
+      );
+      expect(h.prisma.lead.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ clientId: 'acct1' }) }),
+      );
     });
 
     it('notes default to INTERNAL; lead notes bump lastContactDate; unknown contacts rejected', async () => {

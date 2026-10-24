@@ -29,6 +29,12 @@ export class ContactsController {
     return this.contacts.list({ q, clientId, review: review === 'true', limit });
   }
 
+  /** Auto-created contacts awaiting review (drives the Contacts nav badge). Declared before :id. */
+  @Get('review/count')
+  reviewCount() {
+    return this.contacts.reviewCount();
+  }
+
   @Post()
   create(@Body() dto: CreateContactDto) {
     return this.contacts.create(dto);

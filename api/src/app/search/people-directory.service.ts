@@ -6,7 +6,7 @@ import { GUEST_ROLE } from '@upstart/back-office/shared';
 export type PeopleDirectoryEntry = {
   /** Stable key for UI (deduped). */
   id: string;
-  source: 'USER' | 'PROJECT_CONTACT' | 'NETWORK' | 'PIPELINE' | 'BOOKING' | 'TASK_FORM';
+  source: 'USER' | 'PROJECT_CONTACT' | 'CONTACT' | 'PIPELINE' | 'BOOKING' | 'TASK_FORM';
   sourceLabel: string;
   firstName: string;
   lastName: string;
@@ -129,28 +129,32 @@ export class PeopleDirectoryService {
           ...(excludeProjectId ? { projectId: { not: excludeProjectId } } : {}),
         };
 
-    const networkWhere = textFilter
+    const contactWhere = textFilter
       ? {
           OR: [
-            { email: contains(q) },
+            { emails: { some: { email: contains(q) } } },
             { firstName: contains(q) },
             { lastName: contains(q) },
             { phone: contains(q) },
-            { company: { name: contains(q) } },
+            { accountLinks: { some: { client: { name: contains(q) } } } },
           ],
         }
       : {};
 
-    const leadWhere = textFilter
-      ? {
-          OR: [
-            { primaryContact: contains(q) },
-            { email: contains(q) },
-            { phone: contains(q) },
-            { organization: contains(q) },
-          ],
-        }
-      : {};
+    // Lead people are Contacts now; only leads with no linked Contact still appear here.
+    const leadWhere = {
+      primaryContactId: null,
+      ...(textFilter
+        ? {
+            OR: [
+              { primaryContact: contains(q) },
+              { email: contains(q) },
+              { phone: contains(q) },
+              { organization: contains(q) },
+            ],
+          }
+        : {}),
+    };
 
     const bookingWhere = textFilter
       ? {
@@ -167,7 +171,7 @@ export class PeopleDirectoryService {
     const [
       users,
       projectContacts,
-      networkContacts,
+      crmContacts,
       leads,
       bookings,
       taskSubmitters,
@@ -193,9 +197,12 @@ export class PeopleDirectoryService {
         orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         take,
       }),
-      this.prisma.networkContact.findMany({
-        where: networkWhere,
-        include: { company: { select: { name: true } } },
+      this.prisma.contact.findMany({
+        where: contactWhere,
+        include: {
+          emails: { select: { email: true, isPrimary: true }, orderBy: { isPrimary: 'desc' } },
+          accountLinks: { select: { client: { select: { name: true } } }, take: 1 },
+        },
         orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
         take,
       }),
@@ -257,15 +264,16 @@ export class PeopleDirectoryService {
       });
     }
 
-    for (const c of networkContacts) {
+    for (const c of crmContacts) {
       const firstName = trimOrEmpty(c.firstName);
       const lastName = trimOrEmpty(c.lastName);
-      const email = trimOrEmpty(c.email);
+      const email = trimOrEmpty(c.emails[0]?.email);
       const phone = trimOrEmpty(c.phone);
+      const accountName = c.accountLinks[0]?.client.name;
       candidates.push({
-        id: `network:${c.id}`,
-        source: 'NETWORK',
-        sourceLabel: `Network · ${c.company.name}`,
+        id: `contact:${c.id}`,
+        source: 'CONTACT',
+        sourceLabel: accountName ? `Contact · ${accountName}` : 'Contact',
         firstName,
         lastName,
         email,

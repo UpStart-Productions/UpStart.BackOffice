@@ -14,6 +14,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
+import { isOverdue, isStale, lastContactLabel } from '../../core/staleness.util';
 
 export type Lead = {
   id: string;
@@ -26,7 +27,10 @@ export type Lead = {
   category?: string;
   nextAction?: string;
   nextActionDate?: string;
+  lastContactDate?: string | null;
   serviceInterests: string[];
+  clientId?: string | null;
+  client?: { id: string; name: string; journey: string } | null;
 };
 
 export const STAGES: { key: string; label: string; color: string }[] = [
@@ -179,6 +183,20 @@ export class PipelineBoardPage implements OnInit {
     }
   }
 
+  /** Stages where silence is expected, so no stale flag. */
+  private static readonly QUIET_STAGES = new Set(['ON_HOLD', 'ACTIVE_CLIENT', 'PAST_CLIENT']);
+  private static quiet(stage: string): boolean {
+    return PipelineBoardPage.QUIET_STAGES.has(stage);
+  }
+
+  readonly lastContactLabel = lastContactLabel;
+  isStaleLead(lead: Lead): boolean {
+    return !PipelineBoardPage.quiet(lead.stage) && isStale(lead.lastContactDate);
+  }
+  isOverdueLead(lead: Lead): boolean {
+    return !PipelineBoardPage.quiet(lead.stage) && isOverdue(lead.nextActionDate);
+  }
+
   getRowActions(lead: Lead): RowActionItem[] {
     const actions: RowActionItem[] = [
       {
@@ -189,10 +207,10 @@ export class PipelineBoardPage implements OnInit {
       },
     ];
 
-    if (lead.stage !== 'ACTIVE_CLIENT' && lead.stage !== 'PAST_CLIENT') {
+    if (lead.client?.journey !== 'CLIENT') {
       actions.push({
         id: 'convert',
-        label: 'Convert to Client',
+        label: 'Make client',
         icon: 'pi pi-user-plus',
         command: () => this.router.navigate(['/pipeline', lead.id], { queryParams: { convert: '1' } }),
       });

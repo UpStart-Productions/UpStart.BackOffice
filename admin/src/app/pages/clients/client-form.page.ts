@@ -8,6 +8,8 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { AutoCompleteModule } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
@@ -17,8 +19,8 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PeopleCardComponent } from '../../ui/people-card/people-card.component';
-import type { ClientDto } from '@upstart/back-office/shared';
-import { US_STATES } from '@upstart/back-office/shared';
+import type { AccountJourney, ClientDto } from '@upstart/back-office/shared';
+import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
 type ClientProject = {
   id: string;
@@ -31,6 +33,8 @@ type ClientProject = {
 type ClientForm = {
   name: string;
   code: string;
+  journey: AccountJourney;
+  roles: string[];
   email: string;
   phone: string;
   address: string;
@@ -53,6 +57,8 @@ type ClientForm = {
     MessageModule,
     ToggleSwitchModule,
     SelectModule,
+    SelectButtonModule,
+    AutoCompleteModule,
     TableModule,
     TagModule,
     QuillModule,
@@ -72,6 +78,10 @@ export class ClientFormPage implements OnInit {
   private readonly confirm = inject(ConfirmDeleteService);
 
   readonly usStates = US_STATES;
+  readonly journeyOptions = (Object.keys(ACCOUNT_JOURNEY_LABELS) as AccountJourney[]).map((value) => ({
+    value,
+    label: ACCOUNT_JOURNEY_LABELS[value],
+  }));
 
   id = signal<string | null>(null);
   loading = signal(true);
@@ -86,6 +96,8 @@ export class ClientFormPage implements OnInit {
   form: ClientForm = {
     name: '',
     code: '',
+    journey: 'CLIENT',
+    roles: [],
     email: '',
     phone: '',
     address: '',
@@ -108,7 +120,9 @@ export class ClientFormPage implements OnInit {
   private patchForm(client: ClientDto) {
     this.form = {
       name: client.name,
-      code: client.code,
+      code: this.str(client.code),
+      journey: client.journey,
+      roles: client.roles ?? [],
       email: this.str(client.email),
       phone: this.str(client.phone),
       address: this.str(client.address),
@@ -130,7 +144,9 @@ export class ClientFormPage implements OnInit {
     const emptyToUndefined = (v: string) => (v.trim() ? v.trim() : undefined);
     return {
       name: this.form.name.trim(),
-      code: this.form.code.trim(),
+      code: emptyToUndefined(this.form.code),
+      journey: this.form.journey,
+      roles: this.form.roles,
       email: emptyToUndefined(this.form.email),
       phone: emptyToUndefined(this.form.phone),
       address: emptyToUndefined(this.form.address),
@@ -145,6 +161,12 @@ export class ClientFormPage implements OnInit {
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
+    const startJourney = this.route.snapshot.queryParamMap.get('journey');
+    if (!id && (startJourney === 'PROSPECT' || startJourney === 'PAST_CLIENT' || startJourney === 'NONE')) {
+      this.form.journey = startJourney;
+    }
+    const startRole = this.route.snapshot.queryParamMap.get('role');
+    if (!id && startRole) this.form.roles = [startRole];
     if (id) {
       this.id.set(id);
       try {
@@ -175,8 +197,8 @@ export class ClientFormPage implements OnInit {
   }
 
   async save() {
-    if (!this.form.name || !this.form.code) {
-      this.error.set('Name and Code are required');
+    if (!this.form.name) {
+      this.error.set('Name is required');
       return;
     }
     this.saving.set(true);
@@ -201,6 +223,32 @@ export class ClientFormPage implements OnInit {
       }
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /** Label for the record type, used in titles and messages. */
+  get kindLabel(): string {
+    return ACCOUNT_JOURNEY_LABELS[this.form.journey];
+  }
+
+  /** Flip a prospect or past client to Client. Copies nothing; reversible from the Journey field. */
+  async makeClient() {
+    const id = this.id();
+    if (!id || this.saving()) return;
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      await this.api.put(`/clients/${id}`, { journey: 'CLIENT' });
+      this.form.journey = 'CLIENT';
+      this.toast.add({
+        severity: 'success',
+        summary: 'Now a client',
+        detail: `${this.form.name} is a client. Projects, time and invoices are available.`,
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not update');
     } finally {
       this.saving.set(false);
     }

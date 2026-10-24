@@ -232,7 +232,7 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   private async loadClients() {
     try {
-      const data = await this.api.get<{ id: string }[]>('/clients');
+      const data = await this.api.get<{ id: string }[]>('/clients?journey=CLIENT');
       this.clientsCount.set(data.length);
     } catch {
       // non-critical for dashboard shell

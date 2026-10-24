@@ -73,6 +73,11 @@
                     <app-copy-email [email]="lead.email" [muted]="true" [block]="true" />
                   </div>
                 }
+                <div class="pipeline-card-touch">
+                  <span [class.pipeline-flag-warn]="isStaleLead(lead)">{{ lastContactLabel(lead.lastContactDate) }}</span>
+                  @if (isStaleLead(lead)) { <span class="pipeline-flag pipeline-flag-warn">Stale</span> }
+                  @if (isOverdueLead(lead)) { <span class="pipeline-flag pipeline-flag-danger">Overdue</span> }
+                </div>
                 @if (lead.nextAction) {
                   <div class="pipeline-card-next-wrap">
                     <hr class="pipeline-card-divider" />

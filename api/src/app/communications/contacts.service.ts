@@ -12,7 +12,7 @@ const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's ten
 const contactInclude = {
   emails: { select: { id: true, email: true, isPrimary: true }, orderBy: { createdAt: 'asc' as const } },
   accountLinks: {
-    select: { clientId: true, role: true, isPrimary: true, client: { select: { id: true, name: true } } },
+    select: { clientId: true, role: true, isPrimary: true, client: { select: { id: true, name: true, journey: true } } },
   },
 };
 
@@ -45,6 +45,10 @@ export class ContactsService {
       take: clampLimit(opts.limit, 100, 500),
       include: contactInclude,
     });
+  }
+
+  async reviewCount(): Promise<{ count: number }> {
+    return { count: await this.prisma.contact.count({ where: { tenantId: TENANT, autoCreated: true } }) };
   }
 
   async get(id: string) {

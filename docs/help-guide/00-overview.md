@@ -7,7 +7,7 @@ This guide powers the in-app **Back Office Guide** (sparkle avatar, bottom-left)
 Sections appear based on role. **Admins** see:
 
 - **Dashboard**
-- **CRM**: Clients, Contacts, Pipeline, Bookings, Network, Inbox
+- **CRM**: Inbox, Pipeline, Clients, Contacts, Bookings (partners are a view on Clients)
 - **Office**: Projects, Tasks, Time, Expenses, Invoices
 - **Reports**
 - **Accounting** (Admin only): Chart of Accounts, Journal, Bank Import, Accounting Reports

@@ -112,10 +112,17 @@ import { PageComponent } from '../../ui/layout/page.component';
             <div class="row-line">
               <a [routerLink]="['/clients', l.clientId]" class="text-primary">{{ l.client.name }}</a>
               @if (l.role) { <span class="text-color-secondary">{{ l.role }}</span> }
+              @if (l.client.journey === 'CLIENT') {
+                <p-tag value="Client" severity="success" />
+              } @else {
+                <p-tag [value]="l.client.journey === 'PROSPECT' ? 'Prospect' : 'Past client'" severity="secondary" />
+                <p-button label="Make client" size="small" severity="success" [text]="true" (onClick)="makeClient(l.clientId)" />
+              }
               <p-button icon="pi pi-times" severity="secondary" [text]="true" size="small" (onClick)="unlink(l.clientId)" aria-label="Unlink account" />
             </div>
           } @empty {
-            <p class="text-color-secondary">Not linked to any client yet.</p>
+            <p class="text-color-secondary">Not linked to any account yet.</p>
+            <p-button label="Make client from this contact" icon="pi pi-user-plus" size="small" severity="success" (onClick)="createClientFromContact()" />
           }
           <div class="row-line mt-2">
             <p-select
@@ -168,6 +175,38 @@ export class ContactDetailPage implements OnInit {
       this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load contact');
+    }
+  }
+
+  /** Flip a linked prospect or past client to Client. */
+  async makeClient(clientId: string) {
+    const c = this.contact();
+    if (!c) return;
+    try {
+      await this.api.put(`/clients/${clientId}`, { journey: 'CLIENT' });
+      this.apply(await this.comms.contact(c.id));
+      this.toast.add({ severity: 'success', summary: 'Now a client', detail: 'Projects, time and invoices are available.' });
+    } catch (err) {
+      this.fail(err, 'Could not update');
+    }
+  }
+
+  /** For a person with no account (a family, an individual): make an account named after them and link it. */
+  async createClientFromContact() {
+    const c = this.contact();
+    if (!c) return;
+    try {
+      const created = await this.api.post<{ id: string }>('/clients', {
+        name: contactName(c),
+        journey: 'CLIENT',
+        email: c.emails[0]?.email,
+        phone: c.phone ?? undefined,
+      });
+      this.apply(await this.comms.linkAccount(c.id, created.id));
+      this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
+      this.toast.add({ severity: 'success', summary: 'Client created', detail: 'Linked to this contact.' });
+    } catch (err) {
+      this.fail(err, 'Could not create client');
     }
   }
 

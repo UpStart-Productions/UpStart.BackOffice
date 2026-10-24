@@ -56,6 +56,14 @@ enum PayableStatus {
   CANCELED
 }
 
+enum AccountJourney {
+  PROSPECT
+  CLIENT
+  PAST_CLIENT
+  /// Not in a sales journey (partners, referral sources, vendors). Roles say what they are.
+  NONE
+}
+
 enum LeadStage {
   NEW_LEAD
   DISCOVERY
@@ -216,7 +224,19 @@ model Client {
   tenantId             String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant               Tenant       @relation(fields: [tenantId], references: [id])
   name                 String
-  code                 String // e.g. "UPSP" — prepended to invoice numbers
+  code                 String? // e.g. "UPSP" — prepended to invoice numbers; required once billing starts
+  /// Where the account is in the relationship. Manual and reversible; not tied to pipeline stage.
+  journey              AccountJourney @default(CLIENT)
+  /// Free-form role tags (Partner, Referral source, Vendor...). Multi-valued, independent of journey.
+  roles                String[]     @default([])
+  // Network-derived fields (folded in from NetworkCompany). Kept until we confirm what, if anything, reads them.
+  services             String[]     @default([])
+  products             String[]     @default([])
+  focusCategories      OrgCategory[] @default([])
+  isReferralReady      Boolean      @default(false)
+  isPublicFeatured     Boolean      @default(false)
+  publicSortOrder      Int          @default(0)
+  lastContactAt        DateTime?
   email                String?
   phone                String?
   address              String?
@@ -238,7 +258,8 @@ model Client {
   timeEntries       TimeEntry[]
   artifacts         Artifact[]
   users             User[]
-  convertedFromLead Lead?
+  convertedFromLead Lead?        @relation("LeadConverted")
+  leads             Lead[]       @relation("LeadAccount")
   contactLinks      ContactAccount[]
   interactions      Interaction[]
   assignments       ClientAssignment[]
@@ -265,15 +286,23 @@ model Lead {
   nextActionDate    DateTime?
   lastContactDate   DateTime?
   convertedClientId String?      @unique
+  /// The Account this pipeline item belongs to. Every lead has one (a Prospect until you make it a client).
+  clientId          String?
+  /// The lead's person. Source of truth for name, email and phone; the text columns above are a legacy mirror.
+  primaryContactId  String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  convertedClient Client?       @relation(fields: [convertedClientId], references: [id])
+  convertedClient Client?       @relation("LeadConverted", fields: [convertedClientId], references: [id])
+  client          Client?       @relation("LeadAccount", fields: [clientId], references: [id])
+  contact         Contact?      @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
   artifacts       Artifact[]
   bookings        Booking[]
   interactions    Interaction[]
 
   @@index([stage])
+  @@index([clientId])
+  @@index([primaryContactId])
   @@index([tenantId])
 }
 
@@ -1366,6 +1395,7 @@ model Contact {
   title         String?
   phone         String?
   avatarUrl     String?
+  linkedInUrl   String?
   notes         String?   @db.Text
   isActive      Boolean   @default(true)
   /// True when created from an inbound email and not yet reviewed.
@@ -1378,6 +1408,7 @@ model Contact {
   emails       ContactEmail[]
   accountLinks ContactAccount[]
   participants InteractionParticipant[]
+  leads        Lead[]
 
   @@index([tenantId, lastName, firstName])
 }

@@ -1,9 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Length } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 export class ConvertLeadDto {
-  @ApiProperty({ description: 'Short code prepended to invoice numbers, e.g. LOVN' })
+  @ApiPropertyOptional({ description: 'Short code prepended to invoice numbers, e.g. LOVN. Needed once you invoice.' })
   @IsString()
   @Length(1, 8)
-  code!: string;
+  @IsOptional()
+  code?: string;
 }

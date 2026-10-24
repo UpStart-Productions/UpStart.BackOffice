@@ -54,7 +54,7 @@ export interface ContactSummary {
     clientId: string;
     role: string | null;
     isPrimary: boolean;
-    client: { id: string; name: string };
+    client: { id: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'PAST_CLIENT' };
   }[];
 }
 
@@ -166,6 +166,18 @@ export class CommunicationsApi {
 
   /** Number of emails waiting in the Unfiled inbox (drives the nav badge). */
   readonly unfiledCount = signal(0);
+
+  /** Auto-created contacts waiting for review (drives the Contacts nav badge). */
+  readonly reviewCount = signal(0);
+
+  async refreshReviewCount(): Promise<void> {
+    try {
+      const res = await this.api.get<{ count: number }>('/contacts/review/count');
+      this.reviewCount.set(res.count);
+    } catch {
+      // Cosmetic badge; never break navigation.
+    }
+  }
 
   async refreshUnfiledCount(): Promise<void> {
     try {
