@@ -9,6 +9,7 @@ import { HelpAgentProvider } from './help-agent-provider.interface';
 import { AnthropicHelpAgentProvider } from './providers/anthropic.provider';
 import { OpenAiHelpAgentProvider } from './providers/openai.provider';
 import { GeminiHelpAgentProvider } from './providers/gemini.provider';
+import { personalNoteFor } from './personal-touches';
 
 const SETTINGS_ID = 'default';
 
@@ -131,7 +132,7 @@ export class HelpAgentService {
     };
   }
 
-  async ask(message: string, roleLabel: string): Promise<string> {
+  async ask(message: string, roleLabel: string, email?: string | null): Promise<string> {
     const row = await this.prisma.helpAgentSettings.findUnique({ where: { id: SETTINGS_ID } });
     if (!row) {
       throw new NotFoundException('The Help Agent has not been configured yet. Ask a super user to set it up.');
@@ -139,12 +140,12 @@ export class HelpAgentService {
 
     const apiKey = decryptSecret(row.encryptedApiKey);
     const provider = this.providerFor(row.provider);
-    const systemPrompt = this.loadGuide(roleLabel);
+    const systemPrompt = this.loadGuide(roleLabel, email);
 
     return provider.generate({ systemPrompt, message, model: row.model, apiKey });
   }
 
-  private loadGuide(roleLabel: string): string {
+  private loadGuide(roleLabel: string, email?: string | null): string {
     const guideDir = resolveGuideDir();
     let files: string[];
     try {
@@ -167,6 +168,7 @@ export class HelpAgentService {
       `The person asking has the "${roleLabel}" role. The reference is written for the whole product, so only recommend screens, actions, or navigation this role can actually reach. Admins can use everything. "Tasks only" users see only Tasks in the menu. Regular users see only areas their tenant role grants. Super users can switch tenants and impersonate users — do not tell them to use tenant-only admin screens unless they are working in a tenant as an admin.`,
       "If something isn't covered by the reference, say so plainly instead of guessing.",
       'Keep answers short and direct. Use exact button and menu labels from the reference.',
+      ...(personalNoteFor(email) ? [personalNoteFor(email) as string] : []),
       '',
       '--- REFERENCE START ---',
       guide,

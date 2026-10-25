@@ -5,6 +5,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { SimpleMarkdownPipe } from '../../core/simple-markdown.pipe';
+import { DEFAULT_GREETING, pickGreeting } from './personal-greetings';
 
 interface HelpAgentChatMessage {
   role: 'user' | 'assistant';
@@ -148,7 +149,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
               [class.help-agent-greeting--out]="boing() === 'out'"
               aria-hidden="true"
             >
-              Hi! I'm JD, your Back Office guide. Ask me anything.
+              {{ greeting() }}
             </p>
           }
         </div>
@@ -555,6 +556,7 @@ export class HelpAgentWidgetComponent implements OnInit {
 
   readonly open = signal(false);
   readonly boing = signal<'in' | 'out' | null>(null);
+  readonly greeting = signal(DEFAULT_GREETING);
   private pointerOnDock = false;
   private ignoreHoverUntilLeave = false;
   readonly chatMessages = signal<HelpAgentChatMessage[]>([]);
@@ -573,6 +575,7 @@ export class HelpAgentWidgetComponent implements OnInit {
     const me = this.session.me();
     if (!me) return;
 
+    this.greeting.set(pickGreeting(me.email));
     this.restoreChat();
     try {
       // /status, not /settings: /settings is Admin-only (provider/model/key
@@ -629,6 +632,7 @@ export class HelpAgentWidgetComponent implements OnInit {
 
   onDockEnter() {
     this.pointerOnDock = true;
+    this.greeting.update((g) => pickGreeting(this.session.me()?.email, g));
     this.playBoing('in');
   }
 
