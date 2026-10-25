@@ -45,6 +45,7 @@ export class UpdateContactDto {
   @ApiPropertyOptional() @IsString() @IsOptional() title?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() avatarUrl?: string | null;
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;
   @ApiPropertyOptional({ description: 'Set false once an auto-created contact has been reviewed.' })
   @IsBoolean() @IsOptional() autoCreated?: boolean;

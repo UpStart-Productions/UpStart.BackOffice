@@ -28,6 +28,11 @@ export class SearchController {
   @Get('people')
   @Area('projects')
   searchPeople(@Query() query: PeopleSearchQueryDto) {
-    return this.peopleDirectory.search(query.q ?? '', query.excludeProjectId, query.limit);
+    return this.peopleDirectory.search(
+      query.q ?? '',
+      query.excludeProjectId,
+      query.limit,
+      query.crmOnly === true,
+    );
   }
 }

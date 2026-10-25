@@ -40,9 +40,9 @@ On an organization's page: Status (Prospect, Client, or Past client), Tags, Invo
 
 ## People
 
-**People** lists every person, with their organizations and tags. Filter by tag with the tag list. **New Person** asks for a name, email, and optionally an organization (with their role there) and tags. **Needs review** shows people created automatically from email; the People menu item shows how many are waiting.
+**People** lists every person, with their organizations and tags. Filter by tag with the tag list. **New Person** asks for first and last name, email and title (optional photo), and optionally an organization (with their role there) and tags. **Needs review** shows people created automatically from email; the People menu item shows how many are waiting.
 
-On a person's page: name, title, phone, **Tags**, notes, **Email addresses** (mail from any of them is matched to this person), **Organizations** (link or unlink, with a role), and Activity. A person with no organization (an individual client) can become a client with **Make client from this person**.
+On a person's page: name, email, title, phone, optional photo (drag or click), **Tags**, notes, **Email addresses** for any extra addresses (mail from any of them is matched to this person), **Organizations** (link or unlink, with a role), and Activity. A person with no organization (an individual client) can become a client with **Make client from this person**.
 
 ## Pipeline
 

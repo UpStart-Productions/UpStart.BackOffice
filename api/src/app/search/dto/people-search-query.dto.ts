@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class PeopleSearchQueryDto {
   @ApiPropertyOptional({
@@ -24,4 +25,10 @@ export class PeopleSearchQueryDto {
   @Min(1)
   @Max(400)
   limit?: number;
+
+  @ApiPropertyOptional({ description: 'When true, only CRM People records (for project client contacts).' })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  crmOnly?: boolean;
 }

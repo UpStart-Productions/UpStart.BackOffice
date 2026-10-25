@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -17,6 +17,7 @@ import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.c
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
+import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
 
 @Component({
@@ -35,6 +36,7 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
     PageComponent,
     ActivityTimelineComponent,
     CrmTagInputComponent,
+    AvatarDropzoneComponent,
   ],
   template: `
     <app-page title="Person" [skipTitle]="true">
@@ -48,7 +50,12 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
               <div class="page-header-with-back">
                 <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" severity="secondary" routerLink="/people" aria-label="Back to People" />
                 <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
-                <h2 class="page-title page-title-in-card mb-0">{{ name(c) }}</h2>
+                <div class="person-header-text">
+                  <h2 class="page-title page-title-in-card mb-0">{{ name(c) }}</h2>
+                  @if (form.title.trim()) {
+                    <span class="text-color-secondary text-sm">{{ form.title }}</span>
+                  }
+                </div>
               </div>
 
               @if (c.autoCreated) {
@@ -60,26 +67,36 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
                 </p-message>
               }
 
-              <div class="showcase-flex-col">
-                <div class="showcase-row">
-                  <div class="form-field showcase-half">
+              <div class="person-profile-form">
+                <app-avatar-dropzone
+                  #avatarDropzone
+                  [existingUrl]="c.avatarUrl"
+                  (fileChange)="onAvatarFile($event)"
+                  (invalidFile)="onAvatarError($event)"
+                />
+                <div class="form-row">
+                  <div class="form-field">
                     <label for="firstName">First name</label>
                     <input pInputText id="firstName" [(ngModel)]="form.firstName" class="w-full" />
                   </div>
-                  <div class="form-field showcase-half">
+                  <div class="form-field">
                     <label for="lastName">Last name</label>
                     <input pInputText id="lastName" [(ngModel)]="form.lastName" class="w-full" />
                   </div>
                 </div>
-                <div class="showcase-row">
-                  <div class="form-field showcase-half">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="primaryEmail">Email</label>
+                    <input pInputText id="primaryEmail" type="email" [(ngModel)]="form.primaryEmail" class="w-full" />
+                  </div>
+                  <div class="form-field">
                     <label for="title">Title</label>
                     <input pInputText id="title" [(ngModel)]="form.title" class="w-full" />
                   </div>
-                  <div class="form-field showcase-half">
-                    <label for="phone">Phone</label>
-                    <input pInputText id="phone" [(ngModel)]="form.phone" class="w-full" />
-                  </div>
+                </div>
+                <div class="form-field">
+                  <label for="phone">Phone</label>
+                  <input pInputText id="phone" [(ngModel)]="form.phone" class="w-full" />
                 </div>
                 <div class="form-field showcase-full">
                   <label for="notes">Notes</label>
@@ -175,6 +192,26 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
     </app-page>
   `,
   styles: `
+    .person-header-text {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+    .person-profile-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .form-row .form-field {
+      flex: 1 1 0;
+      min-width: 0;
+    }
     .side-row-line {
       display: flex;
       align-items: center;
@@ -224,13 +261,25 @@ export class ContactDetailPage implements OnInit {
   private readonly comms = inject(CommunicationsApi);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+  private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
 
   contact = signal<ContactSummary | null>(null);
   clients = signal<{ id: string; name: string }[]>([]);
   error = signal<string | null>(null);
   saving = signal(false);
 
-  form = { firstName: '', lastName: '', title: '', phone: '', notes: '', isActive: true, tags: [] as string[] };
+  form = {
+    firstName: '',
+    lastName: '',
+    title: '',
+    primaryEmail: '',
+    phone: '',
+    notes: '',
+    isActive: true,
+    tags: [] as string[],
+  };
+  private pendingAvatarFile: File | null = null;
+  private avatarDirty = false;
   newEmail = '';
   linkClientId: string | null = null;
   linkRole = '';
@@ -289,15 +338,34 @@ export class ContactDetailPage implements OnInit {
 
   private apply(c: ContactSummary) {
     this.contact.set(c);
+    const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
     this.form = {
       firstName: c.firstName,
       lastName: c.lastName ?? '',
       title: c.title ?? '',
+      primaryEmail: primary?.email ?? '',
       phone: c.phone ?? '',
       notes: c.notes ?? '',
       isActive: c.isActive,
       tags: [...(c.tags ?? [])],
     };
+    this.pendingAvatarFile = null;
+    this.avatarDirty = false;
+    this.avatarDropzone()?.reset();
+  }
+
+  onAvatarFile(file: File | null) {
+    this.pendingAvatarFile = file;
+    this.avatarDirty = true;
+  }
+
+  onAvatarError(message: string) {
+    this.toast.add({ severity: 'warn', summary: 'Photo', detail: message });
+  }
+
+  private primaryEmailOnRecord(c: ContactSummary): string {
+    const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
+    return primary?.email ?? '';
   }
 
   /** True when the form differs from the saved contact. */
@@ -309,10 +377,12 @@ export class ContactDetailPage implements OnInit {
       f.firstName !== c.firstName ||
       f.lastName !== (c.lastName ?? '') ||
       f.title !== (c.title ?? '') ||
+      f.primaryEmail.trim() !== this.primaryEmailOnRecord(c) ||
       f.phone !== (c.phone ?? '') ||
       f.notes !== (c.notes ?? '') ||
       f.isActive !== c.isActive ||
-      f.tags.join('\n') !== (c.tags ?? []).join('\n')
+      f.tags.join('\n') !== (c.tags ?? []).join('\n') ||
+      this.avatarDirty
     );
   }
 
@@ -329,17 +399,29 @@ export class ContactDetailPage implements OnInit {
     }
     this.saving.set(true);
     try {
-      this.apply(
-        await this.comms.updateContact(c.id, {
-          firstName: this.form.firstName,
-          lastName: this.form.lastName,
-          title: this.form.title,
-          phone: this.form.phone,
-          notes: richTextOrUndefined(this.form.notes),
-          isActive: this.form.isActive,
-          tags: this.form.tags,
-        }),
-      );
+      let updated = await this.comms.updateContact(c.id, {
+        firstName: this.form.firstName,
+        lastName: this.form.lastName,
+        title: this.form.title,
+        phone: this.form.phone,
+        notes: richTextOrUndefined(this.form.notes),
+        isActive: this.form.isActive,
+        tags: this.form.tags,
+      });
+      const nextEmail = this.form.primaryEmail.trim();
+      const savedEmail = this.primaryEmailOnRecord(updated);
+      if (nextEmail !== savedEmail) {
+        if (savedEmail && !nextEmail) {
+          updated = await this.comms.removeEmail(updated.id, savedEmail);
+        } else if (nextEmail) {
+          updated = await this.comms.addEmail(updated.id, nextEmail, true);
+        }
+      }
+      if (this.pendingAvatarFile) {
+        await this.api.uploadAvatar<{ url: string }>(`/contacts/${updated.id}/avatar`, this.pendingAvatarFile);
+        updated = await this.comms.contact(updated.id);
+      }
+      this.apply(updated);
       this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Person saved.' });
     } catch (err) {
       this.fail(err, 'Save failed');

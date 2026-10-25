@@ -38,7 +38,7 @@
                   icon="pi pi-plus"
                   size="small"
                   severity="secondary"
-                  (click)="openContactModal()"
+                  (click)="openNewPersonForProject()"
                 />
               </div>
               <ng-container *ngTemplateOutlet="projectContactSection" />
@@ -188,11 +188,11 @@
 
   <ng-template #projectContactSection>
     <p class="text-color-secondary mt-0 mb-3 text-sm">
-      Client-side contacts for this project (e.g. for invoicing and communication).
+      Client-side contacts for this project. Each contact is a person in People; name, email, and photo stay in sync when you save the project.
     </p>
 
     <div class="form-field project-contact-directory">
-      <label for="projectContactDirectory">Add from Back Office</label>
+      <label for="projectContactDirectory">Add from People</label>
       <p-select
         inputId="projectContactDirectory"
         name="projectContactDirectory"
@@ -203,10 +203,10 @@
         (ngModelChange)="onDirectoryPickId($event)"
         [filter]="true"
         filterBy="label,firstName,lastName,email,sourceLabel,displayName"
-        filterPlaceholder="Search contacts…"
+        filterPlaceholder="Search people…"
         [showClear]="true"
         [loading]="directoryLoading()"
-        placeholder="Search and select a contact…"
+        placeholder="Search and select a person…"
         styleClass="w-full project-contact-select"
         panelStyleClass="project-contact-select-panel"
         appendTo="body"
@@ -228,7 +228,9 @@
         <app-tm-avatar [person]="contactRowPerson(contact)" [size]="36" [showTitle]="false" />
         <div class="side-row-main">
           <span class="side-row-title">{{ contactDisplayName(contact) || 'Unnamed contact' }}</span>
-          @if (contact.email) {
+          @if (!contact.contactId) {
+            <span class="text-color-secondary text-sm">Legacy contact — remove and add from People</span>
+          } @else if (contact.email) {
             <span class="text-color-secondary text-sm">{{ contact.email }}</span>
           } @else if (contact.phone) {
             <span class="text-color-secondary text-sm">{{ contact.phone }}</span>
@@ -244,11 +246,11 @@
       <button
         type="button"
         pButton
-        label="Add contact manually"
+        label="New person"
         [text]="true"
         severity="secondary"
         class="mt-3 p-0"
-        (click)="openContactModal()"
+        (click)="openNewPersonForProject()"
       ></button>
     }
   </ng-template>
@@ -444,99 +446,7 @@
     </div>
   </ng-template>
 
-  <p-dialog
-    [header]="contactEditIndex() === null ? 'Add contact' : 'Edit contact'"
-    [visible]="contactModalVisible()"
-    (visibleChange)="onContactModalVisible($event)"
-    [modal]="true"
-    [style]="{ width: '32rem' }"
-    [contentStyle]="{ overflow: 'visible' }"
-  >
-    <div class="form-field">
-      <label>Avatar</label>
-      <div class="project-contact-avatar-upload">
-        @if (contactModalPhoto()) {
-          <div class="project-contact-avatar-preview">
-            <img [src]="contactModalPhoto()!" alt="" />
-            <p-button
-              type="button"
-              icon="pi pi-trash"
-              severity="danger"
-              [text]="true"
-              [rounded]="true"
-              (click)="clearContactAvatar()"
-              aria-label="Remove avatar"
-            />
-          </div>
-        }
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/gif,image/webp"
-          id="projectContactAvatarInput"
-          style="display: none"
-          (change)="onContactAvatarSelected($event)"
-        />
-        <p-button
-          type="button"
-          [label]="contactModalPhoto() ? 'Change photo' : 'Upload photo'"
-          icon="pi pi-upload"
-          severity="secondary"
-          [outlined]="true"
-          size="small"
-          (click)="triggerContactAvatarUpload()"
-        />
-      </div>
-    </div>
-    <div class="showcase-flex-col">
-      <div class="showcase-row">
-        <div class="form-field showcase-half">
-          <label for="contactModalFirstName">First name</label>
-          <input
-            pInputText
-            id="contactModalFirstName"
-            name="contactModalFirstName"
-            [(ngModel)]="contactDraft.firstName"
-            class="w-full"
-          />
-        </div>
-        <div class="form-field showcase-half">
-          <label for="contactModalLastName">Last name</label>
-          <input
-            pInputText
-            id="contactModalLastName"
-            name="contactModalLastName"
-            [(ngModel)]="contactDraft.lastName"
-            class="w-full"
-          />
-        </div>
-      </div>
-      <div class="form-field showcase-full">
-        <label for="contactModalPhone">Phone</label>
-        <input
-          pInputText
-          id="contactModalPhone"
-          name="contactModalPhone"
-          [(ngModel)]="contactDraft.phone"
-          class="w-full"
-        />
-      </div>
-      <div class="form-field showcase-full">
-        <label for="contactModalEmail">Email</label>
-        <input
-          pInputText
-          id="contactModalEmail"
-          name="contactModalEmail"
-          type="email"
-          [(ngModel)]="contactDraft.email"
-          class="w-full"
-        />
-      </div>
-    </div>
-    <div class="form-actions mt-3">
-      <p-button label="Cancel" severity="secondary" type="button" (click)="onContactModalVisible(false)" />
-      <p-button label="Save" type="button" icon="pi pi-check" (click)="saveContactModal()" />
-    </div>
-  </p-dialog>
+  <app-create-person-modal />
 
   <p-dialog
     [header]="taskEditIndex() === null ? 'Add task' : 'Edit task'"

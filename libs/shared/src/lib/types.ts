@@ -52,6 +52,7 @@ export type ProjectTaskDto = {
 export type ProjectContactDto = {
   id: string;
   projectId: string;
+  contactId?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;

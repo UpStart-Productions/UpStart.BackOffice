@@ -169,7 +169,7 @@ const PROJECT_FORM: HelpArticle = {
     },
     {
       heading: 'Contact people',
-      body: 'Client-side contacts for invoicing and communication. Add from Back Office picks an existing contact (their photo comes along when they have one). Use Add or the row menu to add or edit someone in a dialog, including an optional avatar upload. Project contacts show up as recipients when you send an invoice.',
+      body: 'Client-side contacts for invoicing and communication. Each one is a person in People — use New person or Add to create or pick them, then Save project to refresh name, email, and photo from their profile. Open in People on the row menu to edit details or upload a photo. They appear as invoice recipients when you send.',
     },
     {
       heading: 'Asana configuration',
@@ -302,7 +302,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Adding a person',
-        body: 'New Person asks for a name and email, and optionally an organization (with their role there) and tags.',
+        body: 'New Person asks for first and last name, email and title, optional photo, and optionally an organization (with their role there) and tags.',
       },
       {
         heading: 'Tags',
@@ -318,6 +318,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     title: 'Person',
     intro: 'One person, their organizations, tags and everything you\'ve logged with them.',
     sections: [
+      {
+        heading: 'Profile',
+        body: 'First and last name, email and title on one form; phone below. Drag a photo onto the small photo panel or click to browse, then Save.',
+      },
       {
         heading: 'Email addresses',
         body: 'Mail from any of these addresses is matched to this person. Add every address they use so their emails file themselves.',

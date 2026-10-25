@@ -263,6 +263,7 @@ export class CommunicationsApi {
     firstName: string;
     lastName?: string;
     email?: string;
+    title?: string;
     clientId?: string;
     role?: string;
     tags?: string[];

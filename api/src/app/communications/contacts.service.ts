@@ -106,6 +106,7 @@ export class ContactsService {
         ...(dto.title !== undefined ? { title: dto.title } : {}),
         ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         ...(dto.autoCreated !== undefined ? { autoCreated: dto.autoCreated } : {}),
       },

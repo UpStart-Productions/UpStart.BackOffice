@@ -4,6 +4,7 @@ import { IsArray, IsEmail, IsInt, IsOptional, IsString, ValidateNested } from 'c
 
 export class ProjectContactInputDto {
   @ApiPropertyOptional() @IsString() @IsOptional() id?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() contactId?: string | null;
   @ApiPropertyOptional() @IsString() @IsOptional() firstName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() lastName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;

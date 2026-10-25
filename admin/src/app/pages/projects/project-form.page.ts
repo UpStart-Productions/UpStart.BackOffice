@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -15,8 +15,9 @@ import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
-import { resolveAssetUrl } from '../../core/asset-url.util';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { ContactSummary } from '../../core/communications.api';
+import { CreatePersonModalComponent } from '../../ui/create-person-modal/create-person-modal.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -42,19 +43,14 @@ type AsanaStatus = { configured: boolean; connected: boolean };
 
 type ProjectContactDraft = {
   id?: string;
+  contactId?: string | null;
   firstName: string;
   lastName: string;
   phone: string;
   email: string;
   sortOrder: number;
   avatarUrl?: string | null;
-  pendingAvatarFile?: File | null;
-  avatarPreviewUrl?: string | null;
-  removeAvatar?: boolean;
 };
-
-const CONTACT_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-const CONTACT_AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 type ProjectResponse = {
   id: string;
@@ -98,6 +94,7 @@ type ProjectResponse = {
     TmAvatarComponent,
     PageComponent,
     ArtifactsPanelComponent,
+    CreatePersonModalComponent,
   ],
   templateUrl: './project-form.page.html',
   styleUrl: './project-form.page.scss',
@@ -108,6 +105,7 @@ export class ProjectFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly createPersonModal = viewChild.required(CreatePersonModalComponent);
 
   id = signal<string | null>(null);
   loading = signal(true);
@@ -131,19 +129,6 @@ export class ProjectFormPage implements OnInit {
   asanaSectionsError = signal<string | null>(null);
   asanaSectionValidationError = signal<string | null>(null);
   accordionOpenPanels: string[] = [];
-
-  readonly contactModalVisible = signal(false);
-  readonly contactEditIndex = signal<number | null>(null);
-  contactDraft: Pick<ProjectContactDraft, 'firstName' | 'lastName' | 'phone' | 'email'> = {
-    firstName: '',
-    lastName: '',
-    phone: '',
-    email: '',
-  };
-  readonly contactAvatarPreview = signal<string | null>(null);
-  contactSelectedAvatarFile: File | null = null;
-  contactRemoveAvatar = false;
-  contactModalExistingAvatarUrl: string | null = null;
 
   readonly taskModalVisible = signal(false);
   readonly taskEditIndex = signal<number | null>(null);
@@ -243,13 +228,22 @@ export class ProjectFormPage implements OnInit {
   async loadDirectoryOptions() {
     this.directoryLoading.set(true);
     try {
-      const params = new URLSearchParams({ limit: '250' });
+      const params = new URLSearchParams({ limit: '250', crmOnly: 'true' });
       const projectId = this.id();
       if (projectId) params.set('excludeProjectId', projectId);
       const rows = await this.api
         .get<PeopleDirectoryEntry[]>(`/search/people?${params}`)
         .catch(() => [] as PeopleDirectoryEntry[]);
-      this.directoryOptions.set(toDirectoryOptions(rows));
+      const onProject = new Set(
+        this.contactRows()
+          .map((r) => r.contactId)
+          .filter((id): id is string => !!id),
+      );
+      const available = rows.filter((row) => {
+        const id = row.id.startsWith('contact:') ? row.id.slice('contact:'.length) : null;
+        return !id || !onProject.has(id);
+      });
+      this.directoryOptions.set(toDirectoryOptions(available));
     } finally {
       this.directoryLoading.set(false);
     }
@@ -412,6 +406,7 @@ export class ProjectFormPage implements OnInit {
   private mapContacts(contacts: ProjectContactDraft[]): ProjectContactDraft[] {
     return contacts.map((contact, index) => ({
       id: contact.id,
+      contactId: contact.contactId ?? null,
       firstName: contact.firstName ?? '',
       lastName: contact.lastName ?? '',
       phone: contact.phone ?? '',
@@ -424,247 +419,128 @@ export class ProjectFormPage implements OnInit {
   contactRowPerson(contact: ProjectContactDraft): Person {
     const name = this.contactDisplayName(contact) || contact.email || 'Contact';
     return {
-      id: contact.id ?? contact.email ?? name,
+      id: contact.contactId ?? contact.id ?? contact.email ?? name,
       name,
       email: contact.email || name,
       firstName: contact.firstName || null,
       lastName: contact.lastName || null,
-      avatarUrl: contact.avatarPreviewUrl ?? contact.avatarUrl ?? null,
+      avatarUrl: contact.avatarUrl ?? null,
       role: 'USER',
       isGuest: false,
     };
   }
 
-  openContactModal(index: number | null = null) {
-    this.contactEditIndex.set(index);
-    this.contactSelectedAvatarFile = null;
-    this.contactRemoveAvatar = false;
-    this.contactAvatarPreview.set(null);
-    if (index === null) {
-      this.contactDraft = { firstName: '', lastName: '', phone: '', email: '' };
-      this.contactModalExistingAvatarUrl = null;
-    } else {
-      const contact = this.contactRows()[index];
-      this.contactDraft = {
-        firstName: contact.firstName,
-        lastName: contact.lastName,
-        phone: contact.phone,
-        email: contact.email,
-      };
-      this.contactModalExistingAvatarUrl = contact.avatarPreviewUrl ?? contact.avatarUrl ?? null;
-    }
-    this.contactModalVisible.set(true);
+  async openNewPersonForProject() {
+    const clientId = this.form.clientId || null;
+    const created = await this.createPersonModal().open({ clientId });
+    if (created) this.addCrmContactFromSummary(created);
   }
 
-  onContactModalVisible(visible: boolean) {
-    this.contactModalVisible.set(visible);
-    if (!visible) {
-      this.resetContactAvatarDraft();
-    }
+  private crmContactIdFromEntry(entry: PeopleDirectoryEntry): string | null {
+    if (entry.source !== 'CONTACT') return null;
+    return entry.id.startsWith('contact:') ? entry.id.slice('contact:'.length) : null;
   }
 
-  private resetContactAvatarDraft() {
-    this.contactAvatarPreview.set(null);
-    this.contactSelectedAvatarFile = null;
-    this.contactRemoveAvatar = false;
-    this.contactModalExistingAvatarUrl = null;
-  }
-
-  contactModalPhoto(): string | null {
-    if (this.contactAvatarPreview()) return this.contactAvatarPreview();
-    if (this.contactRemoveAvatar) return null;
-    return resolveAssetUrl(this.contactModalExistingAvatarUrl);
-  }
-
-  onContactAvatarSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    if (!CONTACT_AVATAR_MIMES.includes(file.type)) {
-      this.toast.add({
-        severity: 'warn',
-        summary: 'Invalid file',
-        detail: 'Use PNG, JPEG, GIF, or WebP.',
-      });
-      return;
-    }
-    if (file.size > CONTACT_AVATAR_MAX_BYTES) {
-      this.toast.add({
-        severity: 'warn',
-        summary: 'File too large',
-        detail: 'Image must be less than 5MB.',
-      });
-      return;
-    }
-    this.contactSelectedAvatarFile = file;
-    this.contactRemoveAvatar = false;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.contactAvatarPreview.set(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  clearContactAvatar() {
-    this.contactSelectedAvatarFile = null;
-    this.contactAvatarPreview.set(null);
-    if (this.contactEditIndex() !== null || this.contactModalExistingAvatarUrl) {
-      this.contactRemoveAvatar = true;
-    }
-    const input = document.getElementById('projectContactAvatarInput') as HTMLInputElement | null;
-    if (input) input.value = '';
-  }
-
-  triggerContactAvatarUpload() {
-    document.getElementById('projectContactAvatarInput')?.click();
-  }
-
-  async saveContactModal() {
-    const trim = (value: string) => value.trim();
-    const draft = {
-      firstName: trim(this.contactDraft.firstName),
-      lastName: trim(this.contactDraft.lastName),
-      phone: trim(this.contactDraft.phone),
-      email: trim(this.contactDraft.email),
-    };
-    if (!draft.firstName && !draft.lastName && !draft.phone && !draft.email) {
-      this.toast.add({
-        severity: 'warn',
-        summary: 'Contact required',
-        detail: 'Enter at least a name, phone, or email.',
-      });
-      return;
-    }
-    const index = this.contactEditIndex();
-    const avatarExtras = {
-      pendingAvatarFile: this.contactSelectedAvatarFile,
-      avatarPreviewUrl: this.contactAvatarPreview(),
-      removeAvatar: this.contactRemoveAvatar,
-    };
-
-    let savedIndex: number;
-    if (index === null) {
-      savedIndex = this.contactRows().length;
-      this.contactRows.update((rows) => [
-        ...rows,
-        {
-          ...draft,
-          sortOrder: rows.length,
-          avatarUrl: null,
-          ...avatarExtras,
-        },
-      ]);
-    } else {
-      savedIndex = index;
-      this.contactRows.update((rows) =>
-        rows.map((row, i) =>
-          i === index
-            ? {
-                ...row,
-                ...draft,
-                ...avatarExtras,
-                avatarUrl: this.contactRemoveAvatar ? null : (row.avatarUrl ?? null),
-              }
-            : row,
-        ),
-      );
-    }
-
-    const rowAfter = this.contactRows()[savedIndex];
-    const projectId = this.id();
-    if (projectId && rowAfter?.id) {
-      try {
-        if (avatarExtras.pendingAvatarFile) {
-          const { url } = await this.api.uploadAvatar<{ url: string }>(
-            `/projects/${projectId}/contacts/${rowAfter.id}/avatar`,
-            avatarExtras.pendingAvatarFile,
-          );
-          this.contactRows.update((rows) =>
-            rows.map((row, i) =>
-              i === savedIndex
-                ? {
-                    ...row,
-                    avatarUrl: url,
-                    pendingAvatarFile: null,
-                    avatarPreviewUrl: null,
-                    removeAvatar: false,
-                  }
-                : row,
-            ),
-          );
-        } else if (avatarExtras.removeAvatar) {
-          await this.api.put(`/projects/${projectId}/contacts`, {
-            contacts: this.contactPayload(),
-          });
-          this.contactRows.update((rows) =>
-            rows.map((row, i) =>
-              i === savedIndex
-                ? { ...row, removeAvatar: false, avatarUrl: null, avatarPreviewUrl: null }
-                : row,
-            ),
-          );
-        }
-      } catch (err) {
-        this.toast.add({
-          severity: 'error',
-          summary: 'Avatar failed',
-          detail: err instanceof Error ? err.message : 'Could not save avatar.',
-        });
-      }
-    }
-
-    this.contactModalVisible.set(false);
-    this.resetContactAvatarDraft();
-  }
-
-  contactRowActions(index: number): RowActionItem[] {
-    return [
-      {
-        id: 'edit',
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => this.openContactModal(index),
-      },
-      {
-        id: 'delete',
-        label: 'Delete',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        command: () => this.confirmRemoveContact(index),
-      },
-    ];
-  }
-
-  addContactFromDirectory(entry: PeopleDirectoryEntry) {
-    const email = entry.email.trim().toLowerCase();
-    if (
-      email &&
-      this.contactRows().some((c) => c.email.trim().toLowerCase() === email)
-    ) {
+  private addCrmContactRow(fields: {
+    contactId: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    avatarUrl: string | null;
+    displayName: string;
+  }) {
+    if (this.contactRows().some((c) => c.contactId === fields.contactId)) {
       this.toast.add({
         severity: 'info',
         summary: 'Already on this project',
-        detail: `${entry.displayName} is already listed as a contact.`,
+        detail: `${fields.displayName} is already listed as a contact.`,
+      });
+      return;
+    }
+    const email = fields.email.trim().toLowerCase();
+    if (email && this.contactRows().some((c) => c.email.trim().toLowerCase() === email)) {
+      this.toast.add({
+        severity: 'info',
+        summary: 'Already on this project',
+        detail: `${fields.displayName} is already listed as a contact.`,
       });
       return;
     }
     this.contactRows.update((rows) => [
       ...rows,
       {
-        firstName: entry.firstName,
-        lastName: entry.lastName,
-        phone: entry.phone,
-        email: entry.email,
-        avatarUrl: entry.avatarUrl,
+        contactId: fields.contactId,
+        firstName: fields.firstName,
+        lastName: fields.lastName,
+        phone: fields.phone,
+        email: fields.email,
+        avatarUrl: fields.avatarUrl,
         sortOrder: rows.length,
       },
     ]);
     this.openAccordionPanel('contact');
+    void this.loadDirectoryOptions();
     this.toast.add({
       severity: 'success',
       summary: 'Contact added',
-      detail: entry.displayName,
+      detail: fields.displayName,
     });
+  }
+
+  addCrmContactFromSummary(c: ContactSummary) {
+    const primaryEmail = c.emails.find((e) => e.isPrimary)?.email ?? c.emails[0]?.email ?? '';
+    this.addCrmContactRow({
+      contactId: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName ?? '',
+      phone: c.phone ?? '',
+      email: primaryEmail,
+      avatarUrl: c.avatarUrl ?? null,
+      displayName: [c.firstName, c.lastName].filter(Boolean).join(' ') || primaryEmail || 'Person',
+    });
+  }
+
+  addContactFromDirectory(entry: PeopleDirectoryEntry) {
+    const contactId = this.crmContactIdFromEntry(entry);
+    if (!contactId) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'People only',
+        detail: 'Choose someone from the People directory. Edit their profile under People.',
+      });
+      return;
+    }
+    this.addCrmContactRow({
+      contactId,
+      firstName: entry.firstName,
+      lastName: entry.lastName,
+      phone: entry.phone,
+      email: entry.email,
+      avatarUrl: entry.avatarUrl,
+      displayName: entry.displayName,
+    });
+  }
+
+  contactRowActions(index: number): RowActionItem[] {
+    const contact = this.contactRows()[index];
+    const actions: RowActionItem[] = [];
+    if (contact.contactId) {
+      actions.push({
+        id: 'open',
+        label: 'Open in People',
+        icon: 'pi pi-user',
+        command: () => void this.router.navigate(['/people', contact.contactId!]),
+      });
+    }
+    actions.push({
+      id: 'delete',
+      label: 'Delete',
+      icon: 'pi pi-trash',
+      severity: 'danger',
+      command: () => this.confirmRemoveContact(index),
+    });
+    return actions;
   }
 
   contactDisplayName(contact: Pick<ProjectContactDraft, 'firstName' | 'lastName'>): string {
@@ -685,78 +561,25 @@ export class ProjectFormPage implements OnInit {
     });
   }
 
-  private matchSavedContact(
-    row: ProjectContactDraft,
-    saved: ProjectContactDraft[],
-  ): ProjectContactDraft | undefined {
-    if (row.id) return saved.find((c) => c.id === row.id);
-    const email = row.email.trim().toLowerCase();
-    if (email) return saved.find((c) => c.email?.trim().toLowerCase() === email);
-    return saved.find(
-      (c) =>
-        c.firstName === row.firstName &&
-        c.lastName === row.lastName &&
-        c.phone === row.phone,
-    );
-  }
-
-  private async uploadPendingContactAvatars(projectId: string) {
-    const pending = this.contactRows()
-      .map((row, index) => ({ row, index }))
-      .filter(({ row }) => !!row.pendingAvatarFile);
-    if (pending.length === 0) return;
-
-    const project = await this.api.get<ProjectResponse>(`/projects/${projectId}`);
-    const saved = this.mapContacts(project.contacts ?? []);
-
-    for (const { row, index } of pending) {
-      const match = this.matchSavedContact(row, saved);
-      const file = row.pendingAvatarFile;
-      if (!match?.id || !file) continue;
-      try {
-        const { url } = await this.api.uploadAvatar<{ url: string }>(
-          `/projects/${projectId}/contacts/${match.id}/avatar`,
-          file,
-        );
-        this.contactRows.update((rows) =>
-          rows.map((r, i) =>
-            i === index
-              ? {
-                  ...r,
-                  id: match.id,
-                  avatarUrl: url,
-                  pendingAvatarFile: null,
-                  avatarPreviewUrl: null,
-                  removeAvatar: false,
-                }
-              : r,
-          ),
-        );
-      } catch (err) {
-        this.toast.add({
-          severity: 'error',
-          summary: 'Avatar failed',
-          detail: err instanceof Error ? err.message : 'Could not upload contact avatar.',
-        });
-      }
-    }
-  }
-
   private contactPayload() {
     const trim = (value: string) => value.trim() || undefined;
     return this.contactRows()
       .map((contact, index) => ({
         id: contact.id,
+        contactId: contact.contactId ?? undefined,
         firstName: trim(contact.firstName),
         lastName: trim(contact.lastName),
         phone: trim(contact.phone),
         email: trim(contact.email),
         sortOrder: index,
-        ...(contact.removeAvatar ? { avatarUrl: null as null } : {}),
       }))
       .filter(
         (contact) =>
-          contact.firstName || contact.lastName || contact.phone || contact.email,
+          contact.contactId ||
+          contact.firstName ||
+          contact.lastName ||
+          contact.phone ||
+          contact.email,
       );
   }
 
@@ -1018,8 +841,6 @@ export class ProjectFormPage implements OnInit {
       await this.api.put(`/projects/${projectId}/contacts`, {
         contacts: this.contactPayload(),
       });
-
-      await this.uploadPendingContactAvatars(projectId!);
 
       if (this.asanaTasks().length > 0) {
         await this.api.patch(`/projects/${projectId}/asana-tasks`, {

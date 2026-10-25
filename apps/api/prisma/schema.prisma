@@ -508,14 +508,17 @@ model ProjectContact {
   phone     String?
   email     String?
   avatarUrl String?
+  contactId String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([tenantId])
+  @@index([contactId])
 }
 
 model ProjectTask {
@@ -1506,9 +1509,10 @@ model Contact {
   tenant       Tenant                   @relation(fields: [tenantId], references: [id])
   emails       ContactEmail[]
   accountLinks ContactAccount[]
-  participants InteractionParticipant[]
-  leads        Lead[]
-  tags         ContactTag[]
+  participants     InteractionParticipant[]
+  leads            Lead[]
+  tags             ContactTag[]
+  projectContacts  ProjectContact[]
 
   @@index([tenantId, lastName, firstName])
 }

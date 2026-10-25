@@ -97,11 +97,58 @@ function mergeEntries(entries: PeopleDirectoryEntry[], limit: number): PeopleDir
 export class PeopleDirectoryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async search(qRaw: string | undefined, excludeProjectId?: string, limit = DEFAULT_LIMIT): Promise<PeopleDirectoryEntry[]> {
+  async search(
+    qRaw: string | undefined,
+    excludeProjectId?: string,
+    limit = DEFAULT_LIMIT,
+    crmOnly = false,
+  ): Promise<PeopleDirectoryEntry[]> {
     const q = (qRaw ?? '').trim();
     const cap = Math.min(Math.max(limit, 1), MAX_LIMIT);
     const take = q.length >= 2 ? SEARCH_PER_SOURCE : BROWSE_PER_SOURCE;
     const textFilter = q.length >= 2;
+
+    if (crmOnly) {
+      const contactWhere = textFilter
+        ? {
+            OR: [
+              { emails: { some: { email: contains(q) } } },
+              { firstName: contains(q) },
+              { lastName: contains(q) },
+              { phone: contains(q) },
+              { accountLinks: { some: { client: { name: contains(q) } } } },
+            ],
+          }
+        : {};
+      const crmContacts = await this.prisma.contact.findMany({
+        where: contactWhere,
+        include: {
+          emails: { select: { email: true, isPrimary: true }, orderBy: { isPrimary: 'desc' } },
+          accountLinks: { select: { client: { select: { name: true } } }, take: 1 },
+        },
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        take: cap,
+      });
+      const entries: PeopleDirectoryEntry[] = crmContacts.map((c) => {
+        const firstName = trimOrEmpty(c.firstName);
+        const lastName = trimOrEmpty(c.lastName);
+        const email = trimOrEmpty(c.emails[0]?.email);
+        const phone = trimOrEmpty(c.phone);
+        const accountName = c.accountLinks[0]?.client.name;
+        return {
+          id: `contact:${c.id}`,
+          source: 'CONTACT' as const,
+          sourceLabel: accountName ? `Contact · ${accountName}` : 'Contact',
+          firstName,
+          lastName,
+          email,
+          phone,
+          displayName: displayName(firstName, lastName, email),
+          avatarUrl: c.avatarUrl,
+        };
+      });
+      return sortByLastName(entries).slice(0, cap);
+    }
 
     const userWhere = textFilter
       ? {
