@@ -61,7 +61,7 @@ Configure in **us-west-2** (or update region consistently in code and env):
 | **SES** | Invoice email — see [ses-setup.md](ses-setup.md) |
 | **S3** | File storage — see [storage-and-s3.md](storage-and-s3.md) |
 
-Upload branded templates from `email-templates/` in the Cognito console (invitation, forgot password).
+Cognito never sends email. Invites, password-reset codes and all other mail go out from the API through SES. In the user pool set **Account recovery** to admin-only (no self-service recovery) so the pool can't send its own forgot-password email. The files in `email-templates/` are no longer used.
 
 ## 4. CORS and integrations
 

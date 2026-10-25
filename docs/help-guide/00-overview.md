@@ -31,4 +31,6 @@ People (team members and contacts) are shown with their photo, or colored initia
 
 ## Super users
 
+People who belong to more than one organization (the same email added in each, possibly with a different role in each) see an organization dropdown in the top bar, and **Switch to …** entries in the user menu on narrow screens. Switching reloads the app with your role and access in that organization. Your last choice is remembered on that browser.
+
 Platform operators can switch **tenant** from the top bar, open **Tenants** and **Guide setup**, and impersonate users from **Users**. When impersonating, a red banner appears at the bottom of the screen.

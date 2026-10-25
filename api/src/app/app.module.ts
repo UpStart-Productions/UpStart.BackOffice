@@ -30,6 +30,7 @@ import { PayModule } from './pay/pay.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TaskManagerModule } from './task-manager/task-manager.module';
 import { InvitesModule } from './invites/invites.module';
+import { PasswordResetModule } from './password-reset/password-reset.module';
 import { CommunicationsModule } from './communications/communications.module';
 import { HelpAgentModule } from './help-agent/help-agent.module';
 import { SupportModule } from './support/support.module';
@@ -71,6 +72,7 @@ import { HealthController } from './health.controller';
     NotificationsModule,
     TaskManagerModule,
     InvitesModule,
+    PasswordResetModule,
     CommunicationsModule,
     HelpAgentModule,
     SupportModule,

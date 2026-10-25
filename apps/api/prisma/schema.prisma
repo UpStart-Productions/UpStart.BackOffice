@@ -176,7 +176,10 @@ model User {
   tenant     Tenant?  @relation(fields: [tenantId], references: [id])
   /// Platform operator: can switch between tenants. Regular users belong to exactly one tenant.
   isSuper    Boolean  @default(false)
-  email      String   @unique
+  /// One row per person per tenant (the row is their membership: role, rate, active flag). The same
+  /// email may have rows in several tenants; sign-in is one Cognito login per email. Platform
+  /// operators (tenantId null) are kept unique by a partial index in the migration.
+  email      String
   firstName  String?
   lastName   String?
   name       String?
@@ -217,6 +220,8 @@ model User {
   clientAssignments         ClientAssignment[]          @relation("ClientAssignmentUser")
   helpAgentSettingsUpdates  HelpAgentSettings[]         @relation("HelpAgentSettingsUpdatedBy")
 
+  @@unique([tenantId, email])
+  @@index([email])
   @@index([tenantId])
   @@index([roleId])
 }
@@ -1679,4 +1684,18 @@ model HelpAgentSettings {
   updatedAt       DateTime   @updatedAt
 
   updatedByUser User? @relation("HelpAgentSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+}
+
+/// Emailed password-reset codes. Global (not per tenant): the login is one per email. Only a hash of
+/// the code is stored; a code expires, can be tried a limited number of times, and works once.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  email     String
+  codeHash  String
+  attempts  Int       @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, createdAt])
 }

@@ -18,7 +18,7 @@ export class AuthStoreService {
     else localStorage.removeItem(KEYS.baseEmail);
   }
 
-  /** Tenant a super user is working in. Sent as x-tenant-slug; ignored by the API for regular users. */
+  /** Tenant the person is working in (super users, or people in several tenants). Sent as x-tenant-slug; the API only honors a tenant they belong to. */
   get tenantSlug(): string { return localStorage.getItem(KEYS.tenantSlug) ?? ''; }
   set tenantSlug(v: string) {
     if (v?.trim()) localStorage.setItem(KEYS.tenantSlug, v.trim());
@@ -41,7 +41,7 @@ export class AuthStoreService {
   clear() {
     this.stopImpersonating();
     localStorage.removeItem(KEYS.baseEmail);
-    localStorage.removeItem(KEYS.tenantSlug);
+    // tenantSlug is kept on purpose: it is the last-used tenant, and the API ignores one that isn't theirs.
   }
 
   async getHeaders(options?: RequestInit): Promise<RequestInit> {

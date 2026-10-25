@@ -115,7 +115,7 @@ See **[docs/deployment.md](docs/deployment.md)** for hosting the admin SPA, API,
 ├── scripts/         # Dev env generation, port cleanup
 ├── tools/           # CLI utilities (seed, invites, SES test)
 ├── docs/            # Production deployment guides (SES, S3, hosting)
-├── email-templates/ # Cognito HTML email templates
+├── email-templates/ # Unused: Cognito never sends email (the API sends all mail via SES)
 └── docker-compose.yml  # Local PostgreSQL
 ```
 

@@ -701,7 +701,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Users tab',
-        body: 'Add User creates the user and sends a sign-in invite. Each user has a role and an optional hourly rate, used on invoices when a project has no rate of its own. Use the ⋮ menu on a row to edit, resend the invite, disable or delete. After fixing someone\'s email, send them a new sign-in invite. You can\'t change your own email.',
+        body: 'Add User creates the user and sends a sign-in invite. Each user has a role and an optional hourly rate, used on invoices when a project has no rate of its own. Use the ⋮ menu on a row to edit, resend the invite, disable or delete. After fixing someone\'s email, send them a new sign-in invite. You can\'t change your own email. The same email can be a user in more than one organization, each with its own role; if they already have a sign-in they keep their password and just get a notice.',
       },
       {
         heading: 'Roles tab',

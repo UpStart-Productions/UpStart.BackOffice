@@ -150,8 +150,9 @@ export class LoginPage implements OnInit {
     this.forgotSuccess = '';
     this.loading = true;
     try {
-      await this.cognito.requestPasswordReset(this.email);
-      this.forgotSuccess = 'Check your email for the reset code.';
+      // The API emails the code (through SES); Cognito never sends email.
+      await this.api.post('/password-reset/request', { email: this.email.trim() });
+      this.forgotSuccess = 'If that email has an account, we sent a reset code. It expires in 15 minutes.';
       this.cognitoMode = 'forgot-confirm';
       this.resetCode = '';
       this.newPassword = '';
@@ -167,7 +168,11 @@ export class LoginPage implements OnInit {
     this.resetError = '';
     this.loading = true;
     try {
-      await this.cognito.confirmPasswordReset(this.email, this.resetCode, this.newPassword);
+      await this.api.post('/password-reset/confirm', {
+        email: this.email.trim(),
+        code: this.resetCode.trim(),
+        password: this.newPassword,
+      });
       this.forgotSuccess = 'Password reset. You can now sign in.';
       this.cognitoMode = 'login';
       this.password = '';

@@ -315,7 +315,7 @@ async function main() {
     process.exit(1);
   }
 
-  const user = await prisma.user.findUnique({ where: { email: userEmail.trim() } });
+  const user = await prisma.user.findFirst({ where: { email: userEmail.trim() } });
   if (!user) throw new Error(`User not found: ${userEmail}`);
 
   const projects = await loadProjects();

@@ -332,7 +332,7 @@ export class AppTopbarComponent implements OnInit {
       return roleLabel(m.role);
     })();
 
-    if (m.isSuper) {
+    if (m.isSuper || this.tenant.canSwitch()) {
       const slug = this.tenant.currentSlug();
       const tenantName = this.tenant.tenants().find((t) => t.slug === slug)?.name;
       if (tenantName) return `${rolePart} · ${tenantName}`;
@@ -349,6 +349,16 @@ export class AppTopbarComponent implements OnInit {
         icon: 'pi pi-fw pi-undo',
         command: () => this.returnToMyAccount(),
       });
+    }
+    // Also reachable from the menu because the top-bar switcher is hidden on narrow screens.
+    if (this.tenant.canSwitch() && !this.session.me()?.isSuper && !this.isImpersonating()) {
+      for (const t of this.tenant.tenants().filter((x) => x.slug !== this.tenant.currentSlug())) {
+        items.push({
+          label: `Switch to ${t.name}`,
+          icon: 'pi pi-fw pi-building',
+          command: () => this.tenant.switchTo(t.slug),
+        });
+      }
     }
     items.push({
       label: 'Sign out',

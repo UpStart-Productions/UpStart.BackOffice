@@ -25,7 +25,7 @@ import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
-import { runUnscoped, tryTenantId } from '../tenancy/tenant-context';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateUserDto, SetUserActiveDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
@@ -181,7 +181,7 @@ export class UsersController {
     } catch (err) {
       // Backstop for a race between the check above and the insert.
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new ConflictException('This email is already in use. Use a different email.');
+        throw new ConflictException('A user with this email already exists.');
       }
       throw err;
     }
@@ -313,25 +313,26 @@ export class UsersController {
   }
 
   /**
-   * Emails are unique across the whole app (one login per email), but the Prisma tenant scope only
-   * sees the current tenant, so look across all tenants and say which case it is.
+   * An email is unique within a tenant, but the same person may be a user in several tenants (one
+   * row each, with its own role). Platform operators' emails are reserved: their row would win at
+   * sign-in and hide any tenant row.
    */
   private async assertEmailAvailable(email: string, excludeUserId?: string): Promise<void> {
-    const found = await runUnscoped(() =>
-      this.prisma.user.findFirst({
-        where: { email, ...(excludeUserId ? { id: { not: excludeUserId } } : {}) },
-        select: { tenantId: true },
-      }),
-    );
-    if (!found) return;
-    if (found.tenantId === tryTenantId()) {
+    const duplicate = await this.prisma.user.findFirst({
+      where: { email, ...(excludeUserId ? { id: { not: excludeUserId } } : {}) },
+      select: { id: true },
+    });
+    if (duplicate) {
       throw new ConflictException(
         excludeUserId ? 'Another user already has this email.' : 'A user with this email already exists.',
       );
     }
-    throw new ConflictException(
-      'This email is already used by a user in another tenant. Each email can belong to only one tenant, so use a different email.',
+    const operator = await runUnscoped(() =>
+      this.prisma.user.findFirst({ where: { email, isSuper: true }, select: { id: true } }),
     );
+    if (operator) {
+      throw new ConflictException('This email belongs to a platform admin and cannot be added to a tenant.');
+    }
   }
 
   /** Admins have no tenant role. Users must be given one that exists in this tenant. */

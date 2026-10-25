@@ -6,6 +6,7 @@ import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { currentTenantId, runUnscoped } from '../tenancy/tenant-context';
 import { personName } from '../task-manager/task-people.util';
 import { hashInviteToken, INVITE_TTL_DAYS, inviteExpiry, newInviteToken } from './invite-token.util';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
@@ -63,6 +64,54 @@ export class InvitesService {
     return new Set(guests.map((g) => g.id).filter((id) => !acceptedIds.has(id)));
   }
 
+  /**
+   * True when this email already has a working login, so the new tenant adds them with a "you've been
+   * added" email and a sign-in link instead of a set-password link (which would overwrite their
+   * password). Cognito is the source of truth; if it isn't configured (local dev without it) or can't
+   * be reached, fall back to "someone with this email accepted an invite in another tenant".
+   */
+  private async hasExistingLogin(email: string): Promise<boolean> {
+    const inCognito = await this.cognito.hasPassword(email);
+    if (inCognito !== null) return inCognito;
+    const accepted = await runUnscoped(() =>
+      this.prisma.userInvite.count({ where: { acceptedAt: { not: null }, user: { email } } }),
+    );
+    return accepted > 0;
+  }
+
+  /** Display name of the organization (tenant) the invite is for, so every email says where they're being added. */
+  private async orgName(): Promise<string> {
+    const tenant = await this.prisma.tenant.findUnique({ where: { id: currentTenantId() }, select: { name: true } });
+    return tenant?.name?.trim() || 'UpStart Back Office';
+  }
+
+  /** Record the new row as already accepted (so it never shows as a pending invite) and send the notice. */
+  private async sendAddedNotice(params: {
+    user: { id: string; email: string; firstName: string | null };
+    invitedBy: UserContext;
+    title: (inviter: string, org: string) => string;
+    intro: (inviter: string, org: string) => string;
+  }): Promise<{ emailed: boolean; error?: string }> {
+    const { user, invitedBy } = params;
+    const { hash } = newInviteToken();
+    await this.prisma.userInvite.create({
+      data: { userId: user.id, invitedById: invitedBy.id, projectId: null, tokenHash: hash, expiresAt: inviteExpiry(), acceptedAt: new Date() },
+    });
+    const org = await this.orgName();
+    const inviter = personName(invitedBy);
+    const link = adminAppBaseUrl();
+    const html = wrapClientEmail({
+      title: params.title(inviter, org),
+      greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
+      intro: params.intro(inviter, org),
+      action: { href: link, label: 'Sign in' },
+      actionNote: 'Sign in with the same email and password you already use. Use the tenant switcher at the top of the page to move between organizations.',
+    });
+    const result = await this.mail.sendRaw({ to: user.email, subject: params.title(inviter, org), html });
+    if (!result.sent) this.logger.warn(`Added-to-tenant email to ${user.email} failed: ${result.error}`);
+    return { emailed: result.sent, error: result.error };
+  }
+
   /** Create the Cognito user (silently), a fresh token, and email the branded invite. */
   async sendInvite(params: {
     user: { id: string; email: string; firstName: string | null };
@@ -71,6 +120,15 @@ export class InvitesService {
     role: ProjectMemberRole;
   }): Promise<{ emailed: boolean }> {
     const { user, invitedBy, project, role } = params;
+    if (await this.hasExistingLogin(user.email)) {
+      return this.sendAddedNotice({
+        user,
+        invitedBy,
+        title: (inviter, org) => `${inviter} shared “${project.name}” with you in ${org}`,
+        intro: (inviter, org) => `${inviter} invited you to collaborate on the project “${project.name}” at ${org} as ${ROLE_LABEL[role]}. You already have an UpStart login, so there is no new password to set: sign in as usual and switch to ${org}.`,
+      });
+    }
+    const org = await this.orgName();
     await this.cognito.createUserSilently(user.email);
     const { token, hash } = newInviteToken();
     await this.prisma.userInvite.create({
@@ -87,7 +145,7 @@ export class InvitesService {
     const html = wrapClientEmail({
       title: `${inviter} shared “${project.name}” with you`,
       greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
-      intro: `${inviter} invited you to collaborate on ${project.name} in UpStart Tasks as ${ROLE_LABEL[role]}. Click below to set your password and open the project.`,
+      intro: `${inviter} invited you to collaborate on the project “${project.name}” at ${org} as ${ROLE_LABEL[role]}. Click below to set your password and open the project.`,
       action: { href: link, label: 'Accept invitation' },
       actionNote: `This link expires in ${INVITE_TTL_DAYS} days. If you weren't expecting this, you can ignore this email.`,
       extraHtml: `<p style="margin:16px 0 0;font-size:12px;color:#8a8a8a;word-break:break-all;">Or paste this link into your browser: ${escapeHtml(link)}</p>`,
@@ -98,7 +156,7 @@ export class InvitesService {
     }
     const result = await this.mail.sendRaw({
       to: user.email,
-      subject: `${inviter} shared “${project.name}” with you`,
+      subject: `${inviter} shared “${project.name}” with you at ${org}`,
       html,
     });
     if (!result.sent) this.logger.warn(`Invite email to ${user.email} failed: ${result.error}`);
@@ -115,6 +173,16 @@ export class InvitesService {
     invitedBy: UserContext;
   }): Promise<{ emailed: boolean; link?: string; error?: string }> {
     const { user, invitedBy } = params;
+    if (await this.hasExistingLogin(user.email)) {
+      const sent = await this.sendAddedNotice({
+        user,
+        invitedBy,
+        title: (inviter, org) => `${inviter} added you to ${org}`,
+        intro: (inviter, org) => `${inviter} added you as a user of ${org} on UpStart Back Office. You already have an UpStart login, so there is no new password to set: sign in as usual and ${org} will be in your organization switcher.`,
+      });
+      return sent.emailed ? { emailed: true } : { emailed: false, error: sent.error };
+    }
+    const org = await this.orgName();
     await this.cognito.createUserSilently(user.email);
     const { token, hash } = newInviteToken();
     await this.prisma.userInvite.create({
@@ -123,16 +191,16 @@ export class InvitesService {
     const link = `${adminAppBaseUrl()}/accept-invite?token=${encodeURIComponent(token)}`;
     const inviter = personName(invitedBy);
     const html = wrapClientEmail({
-      title: `${inviter} invited you to UpStart Back Office`,
+      title: `${inviter} invited you to ${org}`,
       greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
-      intro: `${inviter} added you to UpStart Back Office. Click below to ${this.cognito.isConfigured ? 'set your password and ' : ''}get started.`,
+      intro: `${inviter} added you as a user of ${org} on UpStart Back Office. Click below to ${this.cognito.isConfigured ? 'set your password and ' : ''}get started.`,
       action: { href: link, label: 'Accept invitation' },
       actionNote: `This link expires in ${INVITE_TTL_DAYS} days. If you weren't expecting this, you can ignore this email.`,
       extraHtml: `<p style="margin:16px 0 0;font-size:12px;color:#8a8a8a;word-break:break-all;">Or paste this link into your browser: ${escapeHtml(link)}</p>`,
     });
     const result = await this.mail.sendRaw({
       to: user.email,
-      subject: `${inviter} invited you to UpStart Back Office`,
+      subject: `${inviter} invited you to ${org} on UpStart Back Office`,
       html,
     });
     if (result.sent) return { emailed: true };

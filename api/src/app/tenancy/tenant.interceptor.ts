@@ -15,7 +15,9 @@ export const TENANT_SLUG_HEADER = 'x-tenant-slug';
 
 /**
  * Puts the request's tenant into context so the Prisma extension can scope every query.
- *  - Regular users: their own tenant (User.tenantId). The header is ignored.
+ *  - Regular users: the tenant of the user row the auth guard picked (User.tenantId). A person with
+ *    rows in several tenants chooses among them via the header, which the guard validates against
+ *    their rows (resolveUserForRequest); here it is ignored.
  *  - Super users (platform operators): the tenant named by x-tenant-slug.
  *  - Service key / portal session: the tenant their guard put on the request.
  *  - Anonymous public routes (booking, forms): x-tenant-slug header, else the default tenant.

@@ -1,11 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Amplify } from 'aws-amplify';
 import {
-  confirmResetPassword,
   confirmSignIn,
   fetchAuthSession,
   fetchUserAttributes,
-  resetPassword,
   signIn,
   signOut,
 } from 'aws-amplify/auth';
@@ -172,27 +170,6 @@ export class CognitoAuthService {
     } catch {
       return null;
     }
-  }
-
-  async requestPasswordReset(username: string): Promise<{ deliveryMedium: string }> {
-    if (!this.useCognito) throw new Error('Cognito not configured');
-    const result = await resetPassword({ username: username.trim() });
-    return {
-      deliveryMedium: result.nextStep?.codeDeliveryDetails?.deliveryMedium ?? 'EMAIL',
-    };
-  }
-
-  async confirmPasswordReset(
-    username: string,
-    confirmationCode: string,
-    newPassword: string,
-  ): Promise<void> {
-    if (!this.useCognito) return;
-    await confirmResetPassword({
-      username: username.trim(),
-      confirmationCode: confirmationCode.trim(),
-      newPassword,
-    });
   }
 
   /** Clear Cognito session locally without an OAuth redirect (sign-out from the app). */

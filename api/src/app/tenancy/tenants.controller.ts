@@ -28,15 +28,31 @@ export class UpdateTenantDto {
 export class TenantsController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Tenants the caller may act in: all of them for a super user, otherwise just their own. */
+  /**
+   * Tenants the caller may act in: all of them for a super user, otherwise every tenant where their
+   * email has an active user row (one person can belong to several). While a platform operator is
+   * acting as someone, just that person's current tenant: switching would not change whose row is used.
+   */
   @Get('mine')
   async mine(@Req() req: Request) {
     const user = req.user as UserContext;
     const select = { id: true, name: true, slug: true } as const;
     if (user.isSuper) return this.prisma.tenant.findMany({ select, orderBy: { name: 'asc' } });
     if (!user.tenantId) return [];
-    const own = await this.prisma.tenant.findUnique({ where: { id: user.tenantId }, select });
-    return own ? [own] : [];
+    if (req.impersonatedBy) {
+      const own = await this.prisma.tenant.findUnique({ where: { id: user.tenantId }, select });
+      return own ? [own] : [];
+    }
+    const rows = await runUnscoped(() =>
+      this.prisma.user.findMany({
+        where: { email: user.email, isActive: true, tenantId: { not: null } },
+        select: { tenant: { select } },
+      }),
+    );
+    return rows
+      .map((r) => r.tenant)
+      .filter((t): t is NonNullable<typeof t> => !!t)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /** Every tenant with details (platform admin page). */

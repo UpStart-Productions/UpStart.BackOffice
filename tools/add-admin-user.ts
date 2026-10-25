@@ -15,23 +15,18 @@ async function main() {
   const lastName = await ask('Last name: ');
   rl.close();
 
-  const user = await prisma.user.upsert({
-    where: { email: email.trim() },
-    update: {
-      role: 'ADMIN',
-      isActive: true,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      clientId: null,
-    },
-    create: {
-      email: email.trim(),
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      role: 'ADMIN',
-      isActive: true,
-    },
-  });
+  // prisma is scoped to the tenant, so this finds only this tenant's row for the email.
+  const data = {
+    role: 'ADMIN' as const,
+    isActive: true,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    clientId: null,
+  };
+  const existing = await prisma.user.findFirst({ where: { email: email.trim() } });
+  const user = existing
+    ? await prisma.user.update({ where: { id: existing.id }, data })
+    : await prisma.user.create({ data: { email: email.trim(), ...data } });
 
   console.log(`Admin user created/updated: ${user.email} (id: ${user.id})`);
 }
