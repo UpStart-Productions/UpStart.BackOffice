@@ -18,7 +18,7 @@ import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
-import { PeopleCardComponent } from '../../ui/people-card/people-card.component';
+import { PeopleComponent } from '../../ui/people/people.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
 import type { AccountJourney, ClientDto } from '@upstart/back-office/shared';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
@@ -67,7 +67,7 @@ type ClientForm = {
     PageComponent,
     ArtifactsPanelComponent,
     ActivityTimelineComponent,
-    PeopleCardComponent,
+    PeopleComponent,
     CrmTagInputComponent,
   ],
   templateUrl: './client-form.page.html',

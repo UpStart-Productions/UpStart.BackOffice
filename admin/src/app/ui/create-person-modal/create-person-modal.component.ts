@@ -100,12 +100,12 @@ export type CreatePersonModalOptions = {
               appendTo="body"
             />
           </div>
-          @if (form.clientId) {
-            <div class="form-field">
-              <label for="nRole">Role at organization</label>
-              <input pInputText id="nRole" [(ngModel)]="form.role" class="w-full" placeholder="e.g. Board member" />
-            </div>
-          }
+        }
+        @if (form.clientId) {
+          <div class="form-field">
+            <label for="nRole">Role at organization</label>
+            <input pInputText id="nRole" [(ngModel)]="form.role" class="w-full" placeholder="e.g. Board member" />
+          </div>
         }
         <div class="form-field">
           <label for="nTags">Tags (optional)</label>
@@ -117,7 +117,7 @@ export type CreatePersonModalOptions = {
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="close(null)" />
-        <p-button label="Create" icon="pi pi-check" [loading]="saving()" (onClick)="save()" />
+        <p-button label="Create" icon="pi pi-check" [loading]="saving()" (onClick)="saveNew()" />
       </ng-template>
     </p-dialog>
   `,
@@ -202,7 +202,7 @@ export class CreatePersonModalComponent {
     this.resolve = null;
   }
 
-  async save() {
+  async saveNew() {
     if (!this.form.firstName.trim()) {
       this.formError.set('First name is required.');
       return;
@@ -239,7 +239,6 @@ export class CreatePersonModalComponent {
   }
 }
 
-/** For list avatars after create — same as person component. */
 export function contactAvatarUrl(c: ContactSummary): string | null {
   return resolveAssetUrl(c.avatarUrl ?? null);
 }

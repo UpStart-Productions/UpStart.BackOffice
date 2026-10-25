@@ -65,7 +65,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'People',
-      body: 'The people at this organization, each with their role. People are added automatically when you file an email from them, or click Add person.',
+      body: 'The people at this organization, each with their role. People are added automatically when you file an email from them, or use Add person to create someone new or link someone who already exists in Back Office.',
     },
     {
       heading: 'Activity',
@@ -168,8 +168,8 @@ const PROJECT_FORM: HelpArticle = {
       body: 'Hourly Rate overrides the user\'s rate for time on this project; leave it blank to use each user\'s rate (set on Users). Only billable time is pulled onto invoices by Generate from time.',
     },
     {
-      heading: 'Contact people',
-      body: 'Client-side contacts for invoicing and communication. Each one is a person in People — use New person or Add to create or pick them, then Save project to refresh name, email, and photo from their profile. Open in People on the row menu to edit details or upload a photo. They appear as invoice recipients when you send.',
+      heading: 'People',
+      body: 'Same People panel as on a client: Add existing person (search) or Add person (new). Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send.',
     },
     {
       heading: 'Asana configuration',
@@ -466,7 +466,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Customize',
-        body: 'Add custom fields for anything tasks need to track. Members controls who can see the project; Share invites people, including guests who only see this project.',
+        body: 'Add custom fields for anything tasks need to track. Members controls who can see the project; Share picks someone from People or your team, or you can type an email — guests only see projects shared with them.',
       },
       {
         heading: 'Forms',

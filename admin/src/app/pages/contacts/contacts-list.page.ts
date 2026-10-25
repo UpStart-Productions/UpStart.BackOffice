@@ -209,12 +209,6 @@ export class ContactsListPage implements OnInit {
     void this.crmTags.load();
     this.tag = this.route.snapshot.queryParamMap.get('tag');
     await this.load();
-    // "Add person" on a client page links here with ?newForClient=<clientId>.
-    const forClient = this.route.snapshot.queryParamMap.get('newForClient');
-    if (forClient) {
-      const created = await this.createPersonModal().open({ clientId: forClient });
-      if (created) await this.router.navigate(['/people', created.id]);
-    }
   }
 
   onSearch(value: string) {

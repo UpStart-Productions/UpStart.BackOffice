@@ -6,6 +6,23 @@
   align-items: center;
 }
 
+.tm-share-add-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.tm-share-people-picker {
+  width: 100%;
+}
+
+.tm-share-or-label {
+  font-size: var(--fs-sm);
+  color: var(--tm-muted);
+  margin: 0.15rem 0;
+}
+
 .tm-share-hint {
   font-size: var(--fs-sm);
   color: var(--tm-muted);

@@ -1,0 +1,38 @@
+---
+description: RRY — one UI control, one abstraction; never copy-paste a second implementation
+alwaysApply: true
+---
+
+# RRY (UI and interaction controls)
+
+**RRY** = **Reuse**, **Refactor early**, **Yield one implementation**.
+
+Before adding or changing any user-facing control (picker, modal, form block, table action, upload zone, etc.):
+
+1. **Reuse** — Search the admin app (`admin/src/app/ui/`, `grep` for similar labels/placeholders, read `.cursor/rules/*.mdc`). If the same interaction exists twice, there must be **one** shared component or directive, not a third inline copy.
+2. **Refactor early** — The **second** time the same control appears (even with small visual differences), extract the shared piece **in that same change**. Do not “match later,” “standardize in a follow-up,” or leave one-off `p-select` / dialog markup because the screen is slightly different.
+3. **Yield one implementation** — One component for presentation, one loader/service for data if needed, one set of styles (component + shared panel class). Callers pass inputs; they do not reimplement row templates, filter fields, or API merge logic.
+
+## Anti-patterns (do not do this)
+
+- Same picker/modal pattern copy-pasted across feature folders with tweaked CSS or subtitle text.
+- “I'll consolidate when the user asks” after already shipping duplicates.
+- Separate visual implementations that only differ by an extra metadata line — use an **input** on the shared control instead.
+
+## When adding a new surface
+
+- Prefer extending an existing `app-*` component with an optional input.
+- If nothing fits, add **one** new component under `admin/src/app/ui/` and wire **all** call sites to it in the same task.
+- Update the relevant `.cursor/rules/` entry (e.g. combo-search-select, people picker) so the next agent finds the canonical control.
+
+## People panel (canonical — rubber stamp)
+
+- **Panel:** `app-people` (`admin/src/app/ui/people/people.component.ts`)
+  - `mode="organization"` + `clientId` on client/org pages
+  - `mode="project"` + `projectContacts` / `projectContactsChange` on projects
+  - Includes: **People** title, **Add person** button (new-only modal), **Add existing person** picker, list
+- **Picker control:** `app-people-select` — the **only** searchable person dropdown (label: **Add existing person**, placeholder: **Search and select…**). Used in `app-people`, Task Share, nowhere else.
+- **Data:** `PeoplePickerLoader` (`admin/src/app/core/people-picker.loader.ts`)
+- **New person modal:** `app-create-person-modal` (create only — no “existing person” tab)
+
+Do not add another people side panel, `people-card`, or inline pickers on feature pages.

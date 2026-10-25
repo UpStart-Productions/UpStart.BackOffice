@@ -18,12 +18,13 @@ When the user needs to **pick one record from a list** (people, tasks, clients, 
 | Use case | Where to copy |
 |----------|----------------|
 | Task picker on a form | `admin/src/app/pages/time-entry/time-entry-modal.component.ts` — Work task `p-select` |
-| Person from across Back Office | `admin/src/app/pages/projects/project-form.page.html` — “Add from Back Office” + `GET /search/people` |
+| **Person** (CRM / team, avatar rows) | **`app-people-select`** + `PeoplePickerLoader` — Add person (existing tab), project contacts, Task Share. Do not hand-roll another people `p-select`. |
+| Person / static lists (simple label only) | `project-form.page.html` — Client `p-select` (no avatar) |
 | Static / already-loaded lists | `admin/src/app/pages/projects/project-form.page.html` — Client `p-select` |
 
 ## Rich rows (avatar, subtitle)
 
-Use `#item` (and `#selectedItem` if needed) templates inside `p-select`. Reuse `app-tm-avatar` for people when appropriate.
+For **people**, use **`app-people-select`** (see `ui-reuse-RRY.mdc`). For other entities, use `#item` / `#selectedItem` on `p-select` once; if a second screen needs the same row layout, extract a shared component first (RRY).
 
 ```html
 <p-select

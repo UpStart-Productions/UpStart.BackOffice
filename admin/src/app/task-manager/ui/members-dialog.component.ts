@@ -6,6 +6,9 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
+import { PeoplePickerLoader } from '../../core/people-picker.loader';
+import { PeopleDirectoryOption } from '../../pages/projects/people-directory.util';
+import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
@@ -13,36 +16,61 @@ import { MemberRole, ProjectMember, TmProject } from '../core/tm.types';
 import { TmAvatarComponent } from './tm-avatar.component';
 
 /**
- * Share dialog: type an email, pick a role, Invite. New emails become guests and get an
- * invite link to set their password; existing people are added right away.
+ * Share dialog: pick someone from the tenant (team + People) or type an email, then Invite.
+ * New emails become guests and get an invite link to set their password; existing people are added right away.
  */
 @Component({
   selector: 'app-tm-members-dialog',
   standalone: true,
-  imports: [FormsModule, AppDialogModule, ButtonModule, InputTextModule, SelectModule, MessageModule, TmAvatarComponent],
+  imports: [
+    FormsModule,
+    AppDialogModule,
+    ButtonModule,
+    InputTextModule,
+    SelectModule,
+    MessageModule,
+    TmAvatarComponent,
+    PeopleSelectComponent,
+  ],
   template: `
     <p-dialog [header]="'Share ' + project().name" [(visible)]="visible" [modal]="true" [style]="{ width: '36rem' }" (onShow)="onShow()" [draggable]="false">
       @if (project().permissions.canManage) {
-        <form class="tm-share-add" (ngSubmit)="invite()">
-          <input
-            pInputText
-            id="tm-share-email"
-            name="email"
-            type="email"
-            [(ngModel)]="email"
-            placeholder="Email address"
-            autocomplete="off"
-            class="flex-1"
-            aria-label="Email address to share with"
-          />
-          <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [(ngModel)]="role" name="role" appendTo="body" aria-label="Role" />
-          <button type="submit" pButton label="Invite" [loading]="busy()" [disabled]="!email.trim() || busy()"></button>
+        <form class="tm-share-add-stack" (ngSubmit)="invite()">
+          <div class="form-field tm-share-people-picker">
+            <label for="tm-share-person">Add existing person</label>
+            <app-people-select
+              inputId="tm-share-person"
+              [(pickId)]="personPickId"
+              (pickIdChange)="onPersonPicked($event)"
+              [options]="sharePeopleOptions()"
+              [loading]="sharePeopleLoading()"
+              placeholder="Search and select…"
+              ariaLabel="Add existing person"
+            />
+          </div>
+          <span class="tm-share-or-label">Or enter an email address</span>
+          <div class="tm-share-add">
+            <input
+              pInputText
+              id="tm-share-email"
+              name="email"
+              type="email"
+              [(ngModel)]="email"
+              (ngModelChange)="onEmailTyped()"
+              placeholder="Email address"
+              autocomplete="off"
+              class="flex-1"
+              aria-label="Email address to share with"
+            />
+            <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [(ngModel)]="role" name="role" appendTo="body" aria-label="Role" />
+            <button type="submit" pButton label="Invite" [loading]="busy()" [disabled]="!email.trim() || busy()"></button>
+          </div>
         </form>
         @if (error()) {
           <p-message severity="error" [text]="error()!" styleClass="mt-2" />
         }
         <p class="tm-share-hint">
-          New people get an email to set a password and only see projects shared with them. People whose role has Tasks at All can always see every project.
+          Team members and People in Back Office appear in the list when they have an email. New addresses become guests and get an email to set a password. People whose role has Tasks at All can always see every project.
         </p>
       }
 
@@ -88,6 +116,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
 })
 export class TmMembersDialogComponent {
   private readonly api = inject(TmApiService);
+  private readonly peoplePicker = inject(PeoplePickerLoader);
   private readonly store = inject(TmStoreService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(MessageService);
@@ -99,6 +128,9 @@ export class TmMembersDialogComponent {
   busy = signal(false);
   resending = signal<string | null>(null);
   error = signal<string | null>(null);
+  sharePeopleLoading = signal(false);
+  sharePeopleOptions = signal<PeopleDirectoryOption[]>([]);
+  personPickId: string | null = null;
   email = '';
   role: MemberRole = 'EDITOR';
   readonly roleOptions = [
@@ -107,12 +139,44 @@ export class TmMembersDialogComponent {
     { label: 'Commenter', value: 'COMMENTER' },
   ];
   readonly meId = computed(() => this.session.me()?.id);
-
   onShow() {
     this.email = '';
+    this.personPickId = null;
     this.role = 'EDITOR';
     this.error.set(null);
-    setTimeout(() => document.getElementById('tm-share-email')?.focus(), 50);
+    void this.loadSharePeople();
+    setTimeout(() => document.getElementById('tm-share-person')?.focus(), 50);
+  }
+
+  onPersonPicked(id: string | null | undefined) {
+    if (!id) return;
+    const option = this.sharePeopleOptions().find((o) => o.id === id);
+    if (option?.email) {
+      this.email = option.email;
+      this.error.set(null);
+    } else {
+      this.error.set('That person has no email on file. Add an email on their People profile or type an address below.');
+    }
+  }
+
+  onEmailTyped() {
+    const typed = this.email.trim().toLowerCase();
+    const match = this.sharePeopleOptions().find((o) => o.email.trim().toLowerCase() === typed);
+    this.personPickId = match?.id ?? null;
+  }
+
+  private async loadSharePeople() {
+    this.sharePeopleLoading.set(true);
+    try {
+      this.sharePeopleOptions.set(
+        await this.peoplePicker.loadTeamAndCrm({
+          tmProjectId: this.project().id,
+          excludeEmails: this.project().members.map((m) => m.email),
+        }),
+      );
+    } finally {
+      this.sharePeopleLoading.set(false);
+    }
   }
 
   roleLabel(role: MemberRole) {
@@ -131,8 +195,10 @@ export class TmMembersDialogComponent {
     try {
       const res = await this.api.invite(this.project().id, email, this.role);
       this.email = '';
+      this.personPickId = null;
       this.store.invalidatePeople(res.project.id);
       this.updated.emit(res.project);
+      void this.loadSharePeople();
       this.toast.add({
         severity: 'success',
         summary: res.invited ? 'Invitation sent' : 'Added to project',
@@ -185,6 +251,7 @@ export class TmMembersDialogComponent {
         return;
       }
       this.updated.emit(await this.api.getProject(this.project().id));
+      void this.loadSharePeople();
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not remove member', detail: this.message(err) });
     }

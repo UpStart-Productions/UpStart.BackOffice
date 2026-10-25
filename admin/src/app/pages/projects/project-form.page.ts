@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -16,9 +16,8 @@ import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { ContactSummary } from '../../core/communications.api';
-import { CreatePersonModalComponent } from '../../ui/create-person-modal/create-person-modal.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { PeopleComponent } from '../../ui/people/people.component';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -27,14 +26,6 @@ import {
   ProjectTaskDraft,
   SUGGESTED_PROJECT_TASKS,
 } from '../time-entry/time-entry.types';
-import { PeopleDirectoryEntry } from './people-directory.types';
-import {
-  PeopleDirectoryOption,
-  toDirectoryAvatarPerson,
-  toDirectoryOptions,
-} from './people-directory.util';
-import { Person } from '../../task-manager/core/tm.types';
-import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type Client = { id: string; name: string };
@@ -91,10 +82,9 @@ type ProjectResponse = {
     QuillModule,
     AppDialogModule,
     RowActionsMenuComponent,
-    TmAvatarComponent,
     PageComponent,
     ArtifactsPanelComponent,
-    CreatePersonModalComponent,
+    PeopleComponent,
   ],
   templateUrl: './project-form.page.html',
   styleUrl: './project-form.page.scss',
@@ -105,7 +95,6 @@ export class ProjectFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
-  private readonly createPersonModal = viewChild.required(CreatePersonModalComponent);
 
   id = signal<string | null>(null);
   loading = signal(true);
@@ -114,10 +103,6 @@ export class ProjectFormPage implements OnInit {
   error = signal<string | null>(null);
   clients = signal<Client[]>([]);
   contactRows = signal<ProjectContactDraft[]>([]);
-  directoryOptions = signal<PeopleDirectoryOption[]>([]);
-  directoryLoading = signal(false);
-  directoryPickId: string | null = null;
-  readonly directoryAvatarPerson = toDirectoryAvatarPerson;
   manualTasks = signal<ProjectTaskDraft[]>([]);
   asanaTasks = signal<ProjectTaskDraft[]>([]);
 
@@ -197,7 +182,6 @@ export class ProjectFormPage implements OnInit {
       const clientId = this.route.snapshot.queryParamMap.get('clientId');
       if (clientId) this.form.clientId = clientId;
     }
-    void this.loadDirectoryOptions();
     this.loading.set(false);
   }
 
@@ -222,40 +206,6 @@ export class ProjectFormPage implements OnInit {
       this.ensureAsanaSectionOptions(sectionGids, project.asanaSectionName);
     }
     this.splitTasks(project.tasks ?? [], project.isBillable);
-    void this.loadDirectoryOptions();
-  }
-
-  async loadDirectoryOptions() {
-    this.directoryLoading.set(true);
-    try {
-      const params = new URLSearchParams({ limit: '250', crmOnly: 'true' });
-      const projectId = this.id();
-      if (projectId) params.set('excludeProjectId', projectId);
-      const rows = await this.api
-        .get<PeopleDirectoryEntry[]>(`/search/people?${params}`)
-        .catch(() => [] as PeopleDirectoryEntry[]);
-      const onProject = new Set(
-        this.contactRows()
-          .map((r) => r.contactId)
-          .filter((id): id is string => !!id),
-      );
-      const available = rows.filter((row) => {
-        const id = row.id.startsWith('contact:') ? row.id.slice('contact:'.length) : null;
-        return !id || !onProject.has(id);
-      });
-      this.directoryOptions.set(toDirectoryOptions(available));
-    } finally {
-      this.directoryLoading.set(false);
-    }
-  }
-
-  onDirectoryPickId(id: string | null | undefined) {
-    if (!id) return;
-    const entry = this.directoryOptions().find((o) => o.id === id);
-    if (entry) this.addContactFromDirectory(entry);
-    setTimeout(() => {
-      this.directoryPickId = null;
-    });
   }
 
   private splitTasks(tasks: ProjectTaskDraft[], projectBillable = this.form.isBillable) {
@@ -397,7 +347,7 @@ export class ProjectFormPage implements OnInit {
     }
   }
 
-  private openAccordionPanel(panel: string) {
+  openAccordionPanel(panel: string) {
     if (!this.accordionOpenPanels.includes(panel)) {
       this.accordionOpenPanels = [...this.accordionOpenPanels, panel];
     }
@@ -416,149 +366,11 @@ export class ProjectFormPage implements OnInit {
     }));
   }
 
-  contactRowPerson(contact: ProjectContactDraft): Person {
-    const name = this.contactDisplayName(contact) || contact.email || 'Contact';
-    return {
-      id: contact.contactId ?? contact.id ?? contact.email ?? name,
-      name,
-      email: contact.email || name,
-      firstName: contact.firstName || null,
-      lastName: contact.lastName || null,
-      avatarUrl: contact.avatarUrl ?? null,
-      role: 'USER',
-      isGuest: false,
-    };
-  }
-
-  async openNewPersonForProject() {
-    const clientId = this.form.clientId || null;
-    const created = await this.createPersonModal().open({ clientId });
-    if (created) this.addCrmContactFromSummary(created);
-  }
-
-  private crmContactIdFromEntry(entry: PeopleDirectoryEntry): string | null {
-    if (entry.source !== 'CONTACT') return null;
-    return entry.id.startsWith('contact:') ? entry.id.slice('contact:'.length) : null;
-  }
-
-  private addCrmContactRow(fields: {
-    contactId: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-    avatarUrl: string | null;
-    displayName: string;
-  }) {
-    if (this.contactRows().some((c) => c.contactId === fields.contactId)) {
-      this.toast.add({
-        severity: 'info',
-        summary: 'Already on this project',
-        detail: `${fields.displayName} is already listed as a contact.`,
-      });
-      return;
-    }
-    const email = fields.email.trim().toLowerCase();
-    if (email && this.contactRows().some((c) => c.email.trim().toLowerCase() === email)) {
-      this.toast.add({
-        severity: 'info',
-        summary: 'Already on this project',
-        detail: `${fields.displayName} is already listed as a contact.`,
-      });
-      return;
-    }
-    this.contactRows.update((rows) => [
-      ...rows,
-      {
-        contactId: fields.contactId,
-        firstName: fields.firstName,
-        lastName: fields.lastName,
-        phone: fields.phone,
-        email: fields.email,
-        avatarUrl: fields.avatarUrl,
-        sortOrder: rows.length,
-      },
-    ]);
-    this.openAccordionPanel('contact');
-    void this.loadDirectoryOptions();
-    this.toast.add({
-      severity: 'success',
-      summary: 'Contact added',
-      detail: fields.displayName,
-    });
-  }
-
-  addCrmContactFromSummary(c: ContactSummary) {
-    const primaryEmail = c.emails.find((e) => e.isPrimary)?.email ?? c.emails[0]?.email ?? '';
-    this.addCrmContactRow({
-      contactId: c.id,
-      firstName: c.firstName,
-      lastName: c.lastName ?? '',
-      phone: c.phone ?? '',
-      email: primaryEmail,
-      avatarUrl: c.avatarUrl ?? null,
-      displayName: [c.firstName, c.lastName].filter(Boolean).join(' ') || primaryEmail || 'Person',
-    });
-  }
-
-  addContactFromDirectory(entry: PeopleDirectoryEntry) {
-    const contactId = this.crmContactIdFromEntry(entry);
-    if (!contactId) {
-      this.toast.add({
-        severity: 'warn',
-        summary: 'People only',
-        detail: 'Choose someone from the People directory. Edit their profile under People.',
-      });
-      return;
-    }
-    this.addCrmContactRow({
-      contactId,
-      firstName: entry.firstName,
-      lastName: entry.lastName,
-      phone: entry.phone,
-      email: entry.email,
-      avatarUrl: entry.avatarUrl,
-      displayName: entry.displayName,
-    });
-  }
-
-  contactRowActions(index: number): RowActionItem[] {
-    const contact = this.contactRows()[index];
-    const actions: RowActionItem[] = [];
-    if (contact.contactId) {
-      actions.push({
-        id: 'open',
-        label: 'Open in People',
-        icon: 'pi pi-user',
-        command: () => void this.router.navigate(['/people', contact.contactId!]),
-      });
-    }
-    actions.push({
-      id: 'delete',
-      label: 'Delete',
-      icon: 'pi pi-trash',
-      severity: 'danger',
-      command: () => this.confirmRemoveContact(index),
-    });
-    return actions;
-  }
-
   contactDisplayName(contact: Pick<ProjectContactDraft, 'firstName' | 'lastName'>): string {
     return [contact.firstName, contact.lastName]
       .map((part) => part.trim())
       .filter(Boolean)
       .join(' ');
-  }
-
-  confirmRemoveContact(index: number) {
-    const contact = this.contactRows()[index];
-    const label = this.contactDisplayName(contact) || 'this contact';
-    this.deleteConfirm.confirm({
-      message: `Remove contact "${label}"?`,
-      accept: () => {
-        this.contactRows.update((rows) => rows.filter((_, i) => i !== index));
-      },
-    });
   }
 
   private contactPayload() {

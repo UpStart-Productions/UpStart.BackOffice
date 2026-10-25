@@ -8,7 +8,7 @@
 
 **Projects** lists billable work tied to clients. **New Project** creates one. Open a project to edit details, contacts, and tasks.
 
-On a project, **Contact people** are client-side contacts for invoicing and communication. Each contact is a record in **People** — use **New person** or **Add from People** to add them, then **Save** the project to refresh their name, email, and photo from People. Use **Open in People** on a contact row to edit their profile or photo. Older project-only contacts (without a People link) should be removed and re-added from People.
+On a project, the **People** panel matches the client page: **Add existing person** or **Add person**, then **Save** the project to sync details from People. Use **Open in People** on a row to edit someone. Legacy project-only contacts should be removed and re-added from People.
 
 ## Tasks
 

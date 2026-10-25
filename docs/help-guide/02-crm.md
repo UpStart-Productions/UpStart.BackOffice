@@ -32,7 +32,7 @@ Every organization has a **Status**: Prospect, Client, Past client or Other.
 - **Client** turns on projects, time and invoices.
 - **Partner** adds the Partner tag and stays off the pipeline.
 
-On an organization's page: Status (Prospect, Client, or Past client), Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files.
+On an organization's page: Status (Prospect, Client, or Past client), Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files. **Add person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page.
 
 ## Clients
 

@@ -7,6 +7,30 @@ import { Person } from '../core/tm.types';
 @Component({
   selector: 'app-tm-avatar',
   standalone: true,
+  styles: `
+    :host {
+      display: inline-flex;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .tm-avatar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      object-fit: cover;
+      flex-shrink: 0;
+      user-select: none;
+      line-height: 1;
+    }
+    .tm-avatar--empty {
+      border: 1px dashed color-mix(in srgb, var(--text-color-secondary, #6b7280) 70%, transparent);
+      color: var(--text-color-secondary, #6b7280);
+      background: transparent;
+    }
+  `,
   template: `
     @if (person(); as p) {
       @if (photo()) {
