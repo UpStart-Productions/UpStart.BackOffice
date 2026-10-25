@@ -184,11 +184,15 @@ export class CognitoAuthService {
     }
   }
 
+  /**
+   * Sign out this browser only. Deliberately NOT global: a global sign-out revokes the refresh tokens
+   * on every device, so one stray 401 (or one sign-out) would log the person out everywhere.
+   */
   async clearLocalSession(): Promise<void> {
     if (!this.useCognito) return;
     this.cachedIdToken = null;
     try {
-      await signOut({ global: true });
+      await signOut();
     } catch {
       /* ignore */
     }
