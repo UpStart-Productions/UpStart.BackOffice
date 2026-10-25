@@ -31,7 +31,7 @@ type ClientProject = {
   hourlyRate?: number | null;
 };
 
-type NewOrgType = 'prospect' | 'client' | 'partner' | 'other';
+type NewOrgType = 'prospect' | 'client' | 'partner';
 
 type ClientForm = {
   name: string;
@@ -83,17 +83,18 @@ export class ClientFormPage implements OnInit {
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
 
   readonly usStates = US_STATES;
-  readonly journeyOptions = (Object.keys(ACCOUNT_JOURNEY_LABELS) as AccountJourney[]).map((value) => ({
-    value,
-    label: ACCOUNT_JOURNEY_LABELS[value],
-  }));
+  readonly journeyOptions = (Object.keys(ACCOUNT_JOURNEY_LABELS) as AccountJourney[])
+    .filter((value) => value !== 'NONE')
+    .map((value) => ({
+      value,
+      label: ACCOUNT_JOURNEY_LABELS[value],
+    }));
 
   /** What a new organization is. Partner is status Other plus the Partner tag; Prospect also gets a pipeline card. */
   readonly typeOptions: { value: NewOrgType; label: string }[] = [
     { value: 'prospect', label: 'Prospect' },
     { value: 'client', label: 'Client' },
     { value: 'partner', label: 'Partner' },
-    { value: 'other', label: 'Other' },
   ];
   newType: NewOrgType = 'prospect';
   /** Where Back and Cancel go: Clients when opened from there, else Organizations. */
@@ -127,6 +128,11 @@ export class ClientFormPage implements OnInit {
 
   get isNew() {
     return !this.id();
+  }
+
+  /** New or edit under Office → Clients (not CRM → Organizations). */
+  get isClientFlow(): boolean {
+    return this.backLink === '/clients';
   }
 
   private str(v: string | null | undefined): string {
@@ -178,17 +184,24 @@ export class ClientFormPage implements OnInit {
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     const params = this.route.snapshot.queryParamMap;
-    if (params.get('from') === 'clients') this.backLink = '/clients';
+    if (params.get('from') === 'clients' || this.router.url.startsWith('/clients/')) {
+      this.backLink = '/clients';
+    }
     if (!id) {
-      const type = params.get('type') as NewOrgType | null;
-      const journey = params.get('journey');
-      this.setNewType(
-        type && ['prospect', 'client', 'partner', 'other'].includes(type)
-          ? type
-          : journey === 'CLIENT'
-            ? 'client'
-            : 'prospect',
-      );
+      if (this.isClientFlow) {
+        this.form.journey = 'CLIENT';
+        this.newType = 'client';
+      } else {
+        const type = params.get('type') as NewOrgType | null;
+        const journey = params.get('journey');
+        this.setNewType(
+          type && ['prospect', 'client', 'partner'].includes(type)
+            ? type
+            : journey === 'CLIENT'
+              ? 'client'
+              : 'prospect',
+        );
+      }
     }
     if (id) {
       this.id.set(id);
@@ -238,10 +251,8 @@ export class ClientFormPage implements OnInit {
               ? `${created.name} added, with a card in the first lane of the pipeline.`
               : `${created.name} added.`,
         });
-        await this.router.navigate(['/organizations', created.id], {
-          replaceUrl: true,
-          queryParams: this.backLink === '/clients' ? { from: 'clients' } : {},
-        });
+        const detailPath = this.backLink === '/clients' ? '/clients' : '/organizations';
+        await this.router.navigate([detailPath, created.id], { replaceUrl: true });
       } else {
         await this.api.put(`/clients/${this.id()}`, payload);
         this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.form.name} saved.` });

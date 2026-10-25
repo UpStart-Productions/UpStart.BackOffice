@@ -16,6 +16,7 @@ export async function syncProjectContacts(
       lastName: trim(contact.lastName),
       phone: trim(contact.phone),
       email: trim(contact.email),
+      avatarUrl: contact.avatarUrl,
       sortOrder: contact.sortOrder ?? index,
     }))
     .filter(
@@ -46,6 +47,7 @@ export async function syncProjectContacts(
       phone: row.phone,
       email: row.email,
       sortOrder: row.sortOrder,
+      ...(row.avatarUrl !== undefined ? { avatarUrl: row.avatarUrl } : {}),
     };
 
     if (row.id && existing.some((contact) => contact.id === row.id)) {

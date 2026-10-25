@@ -24,16 +24,15 @@ Every organization has a **Status**: Prospect, Client, Past client or Other.
 
 ## Organizations
 
-**Organizations** (CRM menu) lists every organization. Filter with the status buttons (**All, Prospects, Clients, Past clients, Other**) and the tag list (for example **Partner**). The row menu has **Make client**, **Edit** and **Delete**.
+**Organizations** (CRM menu) lists every organization. Filter with the **type** dropdown (**Any Type**, Prospects, Clients, Past clients, Other) and the tag list (for example **Partner**). The row menu has **Make client**, **Edit** and **Delete**.
 
 **New Organization** asks for a **Type**:
 
 - **Prospect** also adds a card to the first lane of the pipeline.
 - **Client** turns on projects, time and invoices.
 - **Partner** adds the Partner tag and stays off the pipeline.
-- **Other** stays off the pipeline; use tags to say what it is.
 
-On an organization's page: Status, Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files.
+On an organization's page: Status (Prospect, Client, or Past client), Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files.
 
 ## Clients
 

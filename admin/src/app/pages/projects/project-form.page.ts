@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -14,9 +15,12 @@ import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { PageComponent } from '../../ui/layout/page.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import {
   ProjectTaskDraft,
@@ -28,6 +32,7 @@ import {
   toDirectoryAvatarPerson,
   toDirectoryOptions,
 } from './people-directory.util';
+import { Person } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
@@ -42,7 +47,14 @@ type ProjectContactDraft = {
   phone: string;
   email: string;
   sortOrder: number;
+  avatarUrl?: string | null;
+  pendingAvatarFile?: File | null;
+  avatarPreviewUrl?: string | null;
+  removeAvatar?: boolean;
 };
+
+const CONTACT_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const CONTACT_AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 type ProjectResponse = {
   id: string;
@@ -65,7 +77,9 @@ type ProjectResponse = {
 @Component({
   selector: 'app-project-form-page',
   standalone: true,
-  imports: [HelpTextComponent, 
+  imports: [
+    NgTemplateOutlet,
+    HelpTextComponent,
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -79,6 +93,8 @@ type ProjectResponse = {
     InputNumberModule,
     AccordionModule,
     QuillModule,
+    AppDialogModule,
+    RowActionsMenuComponent,
     TmAvatarComponent,
     PageComponent,
     ArtifactsPanelComponent,
@@ -115,6 +131,26 @@ export class ProjectFormPage implements OnInit {
   asanaSectionsError = signal<string | null>(null);
   asanaSectionValidationError = signal<string | null>(null);
   accordionOpenPanels: string[] = [];
+
+  readonly contactModalVisible = signal(false);
+  readonly contactEditIndex = signal<number | null>(null);
+  contactDraft: Pick<ProjectContactDraft, 'firstName' | 'lastName' | 'phone' | 'email'> = {
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+  };
+  readonly contactAvatarPreview = signal<string | null>(null);
+  contactSelectedAvatarFile: File | null = null;
+  contactRemoveAvatar = false;
+  contactModalExistingAvatarUrl: string | null = null;
+
+  readonly taskModalVisible = signal(false);
+  readonly taskEditIndex = signal<number | null>(null);
+  taskDraft: Pick<ProjectTaskDraft, 'name' | 'isBillable'> = {
+    name: '',
+    isBillable: true,
+  };
 
   asanaLink = {
     projectGid: null as string | null,
@@ -380,22 +416,223 @@ export class ProjectFormPage implements OnInit {
       lastName: contact.lastName ?? '',
       phone: contact.phone ?? '',
       email: contact.email ?? '',
+      avatarUrl: contact.avatarUrl ?? null,
       sortOrder: contact.sortOrder ?? index,
     }));
   }
 
-  addContact() {
-    this.contactRows.update((rows) => [
-      ...rows,
+  contactRowPerson(contact: ProjectContactDraft): Person {
+    const name = this.contactDisplayName(contact) || contact.email || 'Contact';
+    return {
+      id: contact.id ?? contact.email ?? name,
+      name,
+      email: contact.email || name,
+      firstName: contact.firstName || null,
+      lastName: contact.lastName || null,
+      avatarUrl: contact.avatarPreviewUrl ?? contact.avatarUrl ?? null,
+      role: 'USER',
+      isGuest: false,
+    };
+  }
+
+  openContactModal(index: number | null = null) {
+    this.contactEditIndex.set(index);
+    this.contactSelectedAvatarFile = null;
+    this.contactRemoveAvatar = false;
+    this.contactAvatarPreview.set(null);
+    if (index === null) {
+      this.contactDraft = { firstName: '', lastName: '', phone: '', email: '' };
+      this.contactModalExistingAvatarUrl = null;
+    } else {
+      const contact = this.contactRows()[index];
+      this.contactDraft = {
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        phone: contact.phone,
+        email: contact.email,
+      };
+      this.contactModalExistingAvatarUrl = contact.avatarPreviewUrl ?? contact.avatarUrl ?? null;
+    }
+    this.contactModalVisible.set(true);
+  }
+
+  onContactModalVisible(visible: boolean) {
+    this.contactModalVisible.set(visible);
+    if (!visible) {
+      this.resetContactAvatarDraft();
+    }
+  }
+
+  private resetContactAvatarDraft() {
+    this.contactAvatarPreview.set(null);
+    this.contactSelectedAvatarFile = null;
+    this.contactRemoveAvatar = false;
+    this.contactModalExistingAvatarUrl = null;
+  }
+
+  contactModalPhoto(): string | null {
+    if (this.contactAvatarPreview()) return this.contactAvatarPreview();
+    if (this.contactRemoveAvatar) return null;
+    return resolveAssetUrl(this.contactModalExistingAvatarUrl);
+  }
+
+  onContactAvatarSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!CONTACT_AVATAR_MIMES.includes(file.type)) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Invalid file',
+        detail: 'Use PNG, JPEG, GIF, or WebP.',
+      });
+      return;
+    }
+    if (file.size > CONTACT_AVATAR_MAX_BYTES) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'File too large',
+        detail: 'Image must be less than 5MB.',
+      });
+      return;
+    }
+    this.contactSelectedAvatarFile = file;
+    this.contactRemoveAvatar = false;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.contactAvatarPreview.set(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearContactAvatar() {
+    this.contactSelectedAvatarFile = null;
+    this.contactAvatarPreview.set(null);
+    if (this.contactEditIndex() !== null || this.contactModalExistingAvatarUrl) {
+      this.contactRemoveAvatar = true;
+    }
+    const input = document.getElementById('projectContactAvatarInput') as HTMLInputElement | null;
+    if (input) input.value = '';
+  }
+
+  triggerContactAvatarUpload() {
+    document.getElementById('projectContactAvatarInput')?.click();
+  }
+
+  async saveContactModal() {
+    const trim = (value: string) => value.trim();
+    const draft = {
+      firstName: trim(this.contactDraft.firstName),
+      lastName: trim(this.contactDraft.lastName),
+      phone: trim(this.contactDraft.phone),
+      email: trim(this.contactDraft.email),
+    };
+    if (!draft.firstName && !draft.lastName && !draft.phone && !draft.email) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Contact required',
+        detail: 'Enter at least a name, phone, or email.',
+      });
+      return;
+    }
+    const index = this.contactEditIndex();
+    const avatarExtras = {
+      pendingAvatarFile: this.contactSelectedAvatarFile,
+      avatarPreviewUrl: this.contactAvatarPreview(),
+      removeAvatar: this.contactRemoveAvatar,
+    };
+
+    let savedIndex: number;
+    if (index === null) {
+      savedIndex = this.contactRows().length;
+      this.contactRows.update((rows) => [
+        ...rows,
+        {
+          ...draft,
+          sortOrder: rows.length,
+          avatarUrl: null,
+          ...avatarExtras,
+        },
+      ]);
+    } else {
+      savedIndex = index;
+      this.contactRows.update((rows) =>
+        rows.map((row, i) =>
+          i === index
+            ? {
+                ...row,
+                ...draft,
+                ...avatarExtras,
+                avatarUrl: this.contactRemoveAvatar ? null : (row.avatarUrl ?? null),
+              }
+            : row,
+        ),
+      );
+    }
+
+    const rowAfter = this.contactRows()[savedIndex];
+    const projectId = this.id();
+    if (projectId && rowAfter?.id) {
+      try {
+        if (avatarExtras.pendingAvatarFile) {
+          const { url } = await this.api.uploadAvatar<{ url: string }>(
+            `/projects/${projectId}/contacts/${rowAfter.id}/avatar`,
+            avatarExtras.pendingAvatarFile,
+          );
+          this.contactRows.update((rows) =>
+            rows.map((row, i) =>
+              i === savedIndex
+                ? {
+                    ...row,
+                    avatarUrl: url,
+                    pendingAvatarFile: null,
+                    avatarPreviewUrl: null,
+                    removeAvatar: false,
+                  }
+                : row,
+            ),
+          );
+        } else if (avatarExtras.removeAvatar) {
+          await this.api.put(`/projects/${projectId}/contacts`, {
+            contacts: this.contactPayload(),
+          });
+          this.contactRows.update((rows) =>
+            rows.map((row, i) =>
+              i === savedIndex
+                ? { ...row, removeAvatar: false, avatarUrl: null, avatarPreviewUrl: null }
+                : row,
+            ),
+          );
+        }
+      } catch (err) {
+        this.toast.add({
+          severity: 'error',
+          summary: 'Avatar failed',
+          detail: err instanceof Error ? err.message : 'Could not save avatar.',
+        });
+      }
+    }
+
+    this.contactModalVisible.set(false);
+    this.resetContactAvatarDraft();
+  }
+
+  contactRowActions(index: number): RowActionItem[] {
+    return [
       {
-        firstName: '',
-        lastName: '',
-        phone: '',
-        email: '',
-        sortOrder: rows.length,
+        id: 'edit',
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => this.openContactModal(index),
       },
-    ]);
-    this.openAccordionPanel('contact');
+      {
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmRemoveContact(index),
+      },
+    ];
   }
 
   addContactFromDirectory(entry: PeopleDirectoryEntry) {
@@ -418,6 +655,7 @@ export class ProjectFormPage implements OnInit {
         lastName: entry.lastName,
         phone: entry.phone,
         email: entry.email,
+        avatarUrl: entry.avatarUrl,
         sortOrder: rows.length,
       },
     ]);
@@ -447,6 +685,63 @@ export class ProjectFormPage implements OnInit {
     });
   }
 
+  private matchSavedContact(
+    row: ProjectContactDraft,
+    saved: ProjectContactDraft[],
+  ): ProjectContactDraft | undefined {
+    if (row.id) return saved.find((c) => c.id === row.id);
+    const email = row.email.trim().toLowerCase();
+    if (email) return saved.find((c) => c.email?.trim().toLowerCase() === email);
+    return saved.find(
+      (c) =>
+        c.firstName === row.firstName &&
+        c.lastName === row.lastName &&
+        c.phone === row.phone,
+    );
+  }
+
+  private async uploadPendingContactAvatars(projectId: string) {
+    const pending = this.contactRows()
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => !!row.pendingAvatarFile);
+    if (pending.length === 0) return;
+
+    const project = await this.api.get<ProjectResponse>(`/projects/${projectId}`);
+    const saved = this.mapContacts(project.contacts ?? []);
+
+    for (const { row, index } of pending) {
+      const match = this.matchSavedContact(row, saved);
+      const file = row.pendingAvatarFile;
+      if (!match?.id || !file) continue;
+      try {
+        const { url } = await this.api.uploadAvatar<{ url: string }>(
+          `/projects/${projectId}/contacts/${match.id}/avatar`,
+          file,
+        );
+        this.contactRows.update((rows) =>
+          rows.map((r, i) =>
+            i === index
+              ? {
+                  ...r,
+                  id: match.id,
+                  avatarUrl: url,
+                  pendingAvatarFile: null,
+                  avatarPreviewUrl: null,
+                  removeAvatar: false,
+                }
+              : r,
+          ),
+        );
+      } catch (err) {
+        this.toast.add({
+          severity: 'error',
+          summary: 'Avatar failed',
+          detail: err instanceof Error ? err.message : 'Could not upload contact avatar.',
+        });
+      }
+    }
+  }
+
   private contactPayload() {
     const trim = (value: string) => value.trim() || undefined;
     return this.contactRows()
@@ -457,6 +752,7 @@ export class ProjectFormPage implements OnInit {
         phone: trim(contact.phone),
         email: trim(contact.email),
         sortOrder: index,
+        ...(contact.removeAvatar ? { avatarUrl: null as null } : {}),
       }))
       .filter(
         (contact) =>
@@ -464,21 +760,86 @@ export class ProjectFormPage implements OnInit {
       );
   }
 
-  addTask() {
-    this.manualTasks.update((list) => [
-      ...list,
-      {
-        name: '',
-        isBillable: this.form.isBillable,
-        sortOrder: list.length,
-        isActive: true,
-        source: 'MANUAL',
-      },
-    ]);
+  openTaskModal(index: number | null = null) {
+    this.taskEditIndex.set(index);
+    if (index === null) {
+      this.taskDraft = { name: '', isBillable: this.form.isBillable };
+    } else {
+      const task = this.manualTasks()[index];
+      this.taskDraft = { name: task.name, isBillable: task.isBillable };
+    }
+    this.taskModalVisible.set(true);
   }
 
-  removeTask(index: number) {
-    this.manualTasks.update((list) => list.filter((_, i) => i !== index));
+  onTaskModalVisible(visible: boolean) {
+    this.taskModalVisible.set(visible);
+  }
+
+  saveTaskModal() {
+    const name = this.taskDraft.name.trim();
+    if (!name) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Task name required',
+        detail: 'Enter a name for this task.',
+      });
+      return;
+    }
+    const index = this.taskEditIndex();
+    if (index === null) {
+      this.manualTasks.update((list) => [
+        ...list,
+        {
+          name,
+          isBillable: this.form.isBillable ? this.taskDraft.isBillable : false,
+          sortOrder: list.length,
+          isActive: true,
+          source: 'MANUAL' as const,
+        },
+      ]);
+    } else {
+      this.manualTasks.update((list) =>
+        list.map((task, i) =>
+          i === index
+            ? {
+                ...task,
+                name,
+                isBillable: this.form.isBillable ? this.taskDraft.isBillable : false,
+              }
+            : task,
+        ),
+      );
+    }
+    this.taskModalVisible.set(false);
+  }
+
+  taskRowActions(index: number): RowActionItem[] {
+    return [
+      {
+        id: 'edit',
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => this.openTaskModal(index),
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmRemoveTask(index),
+      },
+    ];
+  }
+
+  confirmRemoveTask(index: number) {
+    const task = this.manualTasks()[index];
+    const label = task.name.trim() || 'this task';
+    this.deleteConfirm.confirm({
+      message: `Remove task "${label}"?`,
+      accept: () => {
+        this.manualTasks.update((list) => list.filter((_, i) => i !== index));
+      },
+    });
   }
 
   confirmUnlinkAsana() {
@@ -657,6 +1018,8 @@ export class ProjectFormPage implements OnInit {
       await this.api.put(`/projects/${projectId}/contacts`, {
         contacts: this.contactPayload(),
       });
+
+      await this.uploadPendingContactAvatars(projectId!);
 
       if (this.asanaTasks().length > 0) {
         await this.api.patch(`/projects/${projectId}/asana-tasks`, {

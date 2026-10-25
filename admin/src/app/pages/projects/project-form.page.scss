@@ -31,6 +31,63 @@
   max-width: 36rem;
 }
 
+.project-side-card .project-contact-directory {
+  max-width: none;
+}
+
+.side-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--surface-border);
+}
+
+.project-side-card .card-header + .text-color-secondary + .side-row,
+.project-side-card .card-header + .form-field + .side-row,
+.project-side-card .card-header + .side-row:first-of-type,
+.project-sections-accordion .side-row:first-of-type {
+  border-top: 0;
+}
+
+.side-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.side-row-title {
+  font-weight: 600;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.side-row--with-avatar .side-row-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.project-contact-avatar-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.project-contact-avatar-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+
+  img {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+}
+
 .project-directory-option {
   display: flex;
   align-items: center;

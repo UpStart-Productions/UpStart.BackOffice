@@ -8,6 +8,7 @@ export class ProjectContactInputDto {
   @ApiPropertyOptional() @IsString() @IsOptional() lastName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
   @ApiPropertyOptional() @IsEmail() @IsOptional() email?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() avatarUrl?: string | null;
   @ApiPropertyOptional() @IsInt() @IsOptional() sortOrder?: number;
 }
 

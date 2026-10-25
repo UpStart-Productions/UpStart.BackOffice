@@ -88,7 +88,7 @@ const NEW_ORG: HelpArticle = {
   sections: [
     {
       heading: 'Type',
-      body: 'Prospect also puts a card in the first lane of the pipeline. Client turns on projects, time and invoices. Partner adds the Partner tag and stays off the pipeline. Other is for anyone else, such as a vendor; use tags to say what it is.',
+      body: 'Prospect also puts a card in the first lane of the pipeline. Client turns on projects, time and invoices. Partner adds the Partner tag and stays off the pipeline.',
     },
     {
       heading: 'Tags',
@@ -169,7 +169,7 @@ const PROJECT_FORM: HelpArticle = {
     },
     {
       heading: 'Contact people',
-      body: 'Client-side contacts for invoicing and communication. Add from Back Office picks an existing contact, or add one manually. Project contacts show up as recipients when you send an invoice.',
+      body: 'Client-side contacts for invoicing and communication. Add from Back Office picks an existing contact (their photo comes along when they have one). Use Add or the row menu to add or edit someone in a dialog, including an optional avatar upload. Project contacts show up as recipients when you send an invoice.',
     },
     {
       heading: 'Asana configuration',
@@ -177,7 +177,7 @@ const PROJECT_FORM: HelpArticle = {
     },
     {
       heading: 'Manual tasks',
-      body: 'Tasks you can pick when tracking time on this project, billable or not. Use these when the work isn\'t in Asana.',
+      body: 'Tasks you can pick when tracking time on this project, billable or not. Use Add or the row menu to create or edit a task in a dialog. Use these when the work isn\'t in Asana.',
     },
   ],
 };
@@ -261,7 +261,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Filters',
-        body: 'Status buttons show All, Prospects, Clients, Past clients or Other. The tag list narrows to one tag, such as Partner. Filters stay in the page address, so you can bookmark a view.',
+        body: 'The type dropdown defaults to Any Type, or choose Prospects, Clients, Past clients or Other. The tag list narrows to one tag, such as Partner. Filters stay in the page address, so you can bookmark a view.',
       },
       {
         heading: 'Status',
@@ -294,6 +294,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
     ],
   },
+  'clients/:id': ORG_DETAIL,
 
   people: {
     title: 'People',

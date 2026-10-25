@@ -1,6 +1,19 @@
 import {
-  Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param,
-  Patch, Post, Put, Query, Req, UseGuards,
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Inject,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -18,6 +31,13 @@ import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
+import { ImageResizeService } from '../storage/image-resize.service';
+import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
+import { UploadAvatarDto } from '../users/dto/user.dto';
+
+const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 
 @ApiTags('projects')
 @ApiBearerAuth()
@@ -30,6 +50,8 @@ export class ProjectsController {
     private readonly storageFolders: StorageFoldersService,
     private readonly asanaSync: AsanaSyncService,
     private readonly access: AccessService,
+    private readonly imageResize: ImageResizeService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
   /** A project the user may reach, or 404 (same answer as a missing project). */
@@ -223,6 +245,68 @@ export class ProjectsController {
       where: { id },
       include: projectInclude,
     });
+  }
+
+  @Action('edit')
+  @Post(':id/contacts/:contactId/avatar')
+  async uploadProjectContactAvatar(
+    @Req() req: Request,
+    @Param('id') projectId: string,
+    @Param('contactId') contactId: string,
+    @Body() dto: UploadAvatarDto,
+  ) {
+    await this.reachable(req, projectId);
+    const contact = await this.prisma.projectContact.findFirst({
+      where: { id: contactId, projectId },
+    });
+    if (!contact) throw new NotFoundException('Contact not found');
+
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(dto.fileBase64, 'base64');
+    } catch {
+      throw new BadRequestException('Invalid file data');
+    }
+    if (!buffer.length) {
+      throw new BadRequestException('No file uploaded');
+    }
+    if (buffer.length > AVATAR_MAX_BYTES) {
+      throw new BadRequestException('Image must be less than 5MB');
+    }
+    if (!ALLOWED_AVATAR_MIMES.includes(dto.mimeType)) {
+      throw new BadRequestException('Invalid file type. Allowed: PNG, JPEG, GIF, WebP');
+    }
+
+    const processed = await this.imageResize.process(buffer, dto.mimeType, 'avatar');
+    const filename = `${contactId}-${Date.now()}${processed.ext}`;
+    const key = `project-contacts/${projectId}/${filename}`;
+    const url = await this.storage.upload({
+      buffer: processed.buffer,
+      key,
+      mimeType: processed.mimeType,
+    });
+
+    if (contact.avatarUrl) {
+      await this.deleteStoredAvatar(contact.avatarUrl);
+    }
+
+    await this.prisma.projectContact.update({
+      where: { id: contactId },
+      data: { avatarUrl: url },
+    });
+
+    return { url: toPublicAssetUrl(url) ?? url };
+  }
+
+  private async deleteStoredAvatar(avatarUrl: string): Promise<void> {
+    try {
+      const key = this.storage.keyFromUrl(avatarUrl);
+      if (key && !key.startsWith('http')) {
+        await this.storage.delete(key);
+      }
+    } catch {
+      /* best-effort cleanup */
+    }
   }
 
   @Delete(':id')

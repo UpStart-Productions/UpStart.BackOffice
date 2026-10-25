@@ -56,6 +56,7 @@ export type ProjectContactDto = {
   lastName?: string | null;
   phone?: string | null;
   email?: string | null;
+  avatarUrl?: string | null;
   sortOrder: number;
 };
 

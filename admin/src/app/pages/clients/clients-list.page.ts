@@ -127,7 +127,7 @@ export class ClientsListPage implements OnInit {
         id: 'edit',
         label: this.canEdit() ? 'Edit' : 'Open',
         icon: this.canEdit() ? 'pi pi-pencil' : 'pi pi-arrow-right',
-        command: () => this.router.navigate(['/organizations', client.id], { queryParams: { from: 'clients' } }),
+        command: () => this.router.navigate(['/clients', client.id]),
       },
     ];
     if (this.canDelete()) {

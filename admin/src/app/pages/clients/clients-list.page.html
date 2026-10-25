@@ -47,7 +47,7 @@
         <tr>
           <td><app-row-actions-menu [items]="getRowActions(client)" ariaLabel="Client actions" /></td>
           <td>
-            <a [routerLink]="['/organizations', client.id]" [queryParams]="{ from: 'clients' }" class="text-primary">{{ client.name }}</a>
+            <a [routerLink]="['/clients', client.id]" class="text-primary">{{ client.name }}</a>
           </td>
           <td>@if (client.code) { <code>{{ client.code }}</code> }</td>
           <td><app-copy-email [email]="client.email" /></td>

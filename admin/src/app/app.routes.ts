@@ -96,8 +96,7 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/accounting/accounting-reports.page').then((m) => m.AccountingReportsPage),
       },
-      // ── CRM: organizations and people. Clients (under Office) is the working list of current clients;
-      // every organization, client or not, opens at /organizations/:id.
+      // ── CRM: organizations and people. Client detail uses /clients/:id (same page) so nav stays on Clients.
       {
         path: 'organizations',
         loadComponent: () =>
@@ -124,7 +123,11 @@ export const appRoutes: Route[] = [
         pathMatch: 'full',
         redirectTo: () => inject(Router).parseUrl('/organizations/new?journey=CLIENT&from=clients'),
       },
-      { path: 'clients/:id', redirectTo: 'organizations/:id' },
+      {
+        path: 'clients/:id',
+        loadComponent: () =>
+          import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
+      },
       {
         path: 'inbox',
         loadComponent: () =>

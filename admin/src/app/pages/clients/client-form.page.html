@@ -36,48 +36,49 @@
             <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
             <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
           </div>
-          <div class="showcase-row">
-            <div class="form-field showcase-half">
-              @if (isNew) {
-                <label for="orgType">Type</label>
-                <p-selectbutton
-                  inputId="orgType"
-                  name="orgType"
-                  [options]="typeOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  [ngModel]="newType"
-                  (ngModelChange)="setNewType($event)"
-                  [allowEmpty]="false"
-                />
-                <small class="text-muted block mt-1">
-                  @switch (newType) {
-                    @case ('prospect') { Also adds a card to the first lane of the pipeline. }
-                    @case ('client') { Turns on projects, time and invoices. }
-                    @case ('partner') { Tagged Partner. Not on the pipeline. }
-                    @default { Not on the pipeline. Use tags to say what it is. }
-                  }
-                </small>
-              } @else {
-                <label for="journey">Status</label>
-                <p-selectbutton
-                  inputId="journey"
-                  name="journey"
-                  [options]="journeyOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  [(ngModel)]="form.journey"
-                  [allowEmpty]="false"
-                />
-                <small class="text-muted block mt-1">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
-              }
+          @if (!isClientFlow) {
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                @if (isNew) {
+                  <label for="orgType">Type</label>
+                  <p-selectbutton
+                    inputId="orgType"
+                    name="orgType"
+                    [options]="typeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="newType"
+                    (ngModelChange)="setNewType($event)"
+                    [allowEmpty]="false"
+                  />
+                  <small class="text-muted block mt-1">
+                    @switch (newType) {
+                      @case ('prospect') { Also adds a card to the first lane of the pipeline. }
+                      @case ('client') { Turns on projects, time and invoices. }
+                      @case ('partner') { Tagged Partner. Not on the pipeline. }
+                    }
+                  </small>
+                } @else {
+                  <label for="journey">Status</label>
+                  <p-selectbutton
+                    inputId="journey"
+                    name="journey"
+                    [options]="journeyOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [(ngModel)]="form.journey"
+                    [allowEmpty]="false"
+                  />
+                  <small class="text-muted block mt-1">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
+                }
+              </div>
+              <div class="form-field showcase-half">
+                <label for="orgTags">Tags</label>
+                <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
+                <small class="text-muted block mt-1">Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.</small>
+              </div>
             </div>
-            <div class="form-field showcase-half">
-              <label for="orgTags">Tags</label>
-              <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
-              <small class="text-muted block mt-1">Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.</small>
-            </div>
-          </div>
+          }
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="code">Invoice Code</label>
@@ -150,6 +151,13 @@
               [styles]="{ 'min-height': '140px' }"
             ></quill-editor>
           </div>
+          @if (isClientFlow) {
+            <div class="form-field showcase-full">
+              <label for="clientTags">Tags</label>
+              <app-crm-tag-input [(tags)]="form.tags" inputId="clientTags" />
+              <small class="text-muted block mt-1">Partner, Vendor, Referral source… Press Enter to add.</small>
+            </div>
+          }
         </div>
 
         <div class="form-actions">

@@ -9,7 +9,6 @@ import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
@@ -36,7 +35,6 @@ type StatusFilter = 'all' | AccountJourney;
     InputTextModule,
     MessageModule,
     SelectModule,
-    SelectButtonModule,
     TableModule,
     TagModule,
     PageComponent,
@@ -61,8 +59,11 @@ type StatusFilter = 'all' | AccountJourney;
         line-height: 1.2;
         color: var(--color-text-secondary);
       }
+      .org-type-filter,
       .org-tag-filter {
-        min-width: 11rem;
+        width: 8.25rem;
+        max-width: 8.25rem;
+        flex: 0 0 8.25rem;
       }
     `,
   ],
@@ -77,21 +78,23 @@ type StatusFilter = 'all' | AccountJourney;
           @if (canCreate()) {
             <a pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
           }
-          <p-selectbutton
-            [options]="statusOptions"
+          <p-select
+            [options]="typeFilterOptions"
             optionLabel="label"
             optionValue="value"
-            [ngModel]="status()"
-            (ngModelChange)="setFilter({ status: $event })"
-            [allowEmpty]="false"
-            ariaLabel="Filter by status"
+            [ngModel]="status() === 'all' ? null : status()"
+            (ngModelChange)="onTypeFilter($event)"
+            [showClear]="true"
+            placeholder="Any Type"
+            ariaLabel="Filter by type"
+            styleClass="org-type-filter"
           />
           <p-select
             [options]="tagOptions()"
             [ngModel]="tag()"
             (ngModelChange)="setFilter({ tag: $event })"
             [showClear]="true"
-            placeholder="Any tag"
+            placeholder="Any Tag"
             ariaLabel="Filter by tag"
             styleClass="org-tag-filter"
           />
@@ -162,13 +165,14 @@ export class OrganizationsListPage implements OnInit {
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
   readonly canDelete = computed(() => this.session.can('clients', 'delete'));
 
-  readonly statusOptions: { value: StatusFilter; label: string }[] = [
-    { value: 'all', label: 'All' },
+  readonly typeFilterOptions: { value: AccountJourney; label: string }[] = [
     { value: 'PROSPECT', label: 'Prospects' },
     { value: 'CLIENT', label: 'Clients' },
     { value: 'PAST_CLIENT', label: 'Past clients' },
     { value: 'NONE', label: 'Other' },
   ];
+
+  private readonly validStatusFilters = new Set<StatusFilter>(['all', ...this.typeFilterOptions.map((o) => o.value)]);
   readonly tagOptions = computed(() => this.crmTags.tags().map((t) => t.name));
 
   orgs = signal<OrganizationRow[]>([]);
@@ -192,10 +196,14 @@ export class OrganizationsListPage implements OnInit {
     // Filters live in the URL (?status=PROSPECT&tag=Partner) so views can be bookmarked and linked.
     this.route.queryParamMap.subscribe((params) => {
       const s = params.get('status') as StatusFilter | null;
-      this.status.set(s && this.statusOptions.some((o) => o.value === s) ? s : 'all');
+      this.status.set(s && this.validStatusFilters.has(s) ? s : 'all');
       this.tag.set(params.get('tag'));
       void this.load();
     });
+  }
+
+  onTypeFilter(value: AccountJourney | null) {
+    this.setFilter({ status: value ?? 'all' });
   }
 
   setFilter(change: { status?: StatusFilter; tag?: string | null }) {

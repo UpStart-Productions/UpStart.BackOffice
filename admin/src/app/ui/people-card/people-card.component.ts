@@ -4,11 +4,11 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
-import { CommunicationsApi, contactName, ContactSummary, relativeTime } from '../../core/communications.api';
+import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
 import { PersonComponent } from '../person/person.component';
 
-/** The people linked to one client (Account), with their role there and when we last heard from them. */
+/** The people linked to one client (Account), with their role there. */
 @Component({
   selector: 'app-people-card',
   standalone: true,
@@ -62,25 +62,19 @@ import { PersonComponent } from '../person/person.component';
             }
           </div>
           <div class="person-email"><app-copy-email [email]="c.emails[0]?.email" [muted]="true" /></div>
-          <div class="person-last" [title]="c.lastContactAt ?? ''">
-            {{ c.lastContactAt ? rel(c.lastContactAt) : 'No contact yet' }}
-          </div>
         </div>
       }
     </div>
   `,
   styles: `
-    .person-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) 8rem; gap: 1rem; align-items: center; padding: 0.6rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
+    .person-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr); gap: 1rem; align-items: center; padding: 0.6rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .person-row:first-of-type { border-top: 0; }
     .person-main { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; min-width: 0; }
     .person-role { font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); }
-    .person-last { font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); text-align: right; }
     /* Side-panel layout: one person per block, details stacked under the name. */
     .people--compact .person-row { grid-template-columns: minmax(0, 1fr); gap: 0.25rem; }
-    .people--compact .person-last { text-align: left; }
     @media (max-width: 40rem) {
       .person-row { grid-template-columns: 1fr; gap: 0.25rem; }
-      .person-last { text-align: left; }
     }
   `,
 })
@@ -97,7 +91,6 @@ export class PeopleCardComponent {
   readonly skeletonRows = [1, 2];
 
   name = contactName;
-  rel = relativeTime;
 
   constructor() {
     effect(() => {
@@ -115,13 +108,7 @@ export class PeopleCardComponent {
     this.error.set(null);
     try {
       const list = await this.comms.contacts({ clientId });
-      // Most recently heard from first; people we have never heard from last.
-      list.sort((a, b) => {
-        if (a.lastContactAt && b.lastContactAt) return b.lastContactAt.localeCompare(a.lastContactAt);
-        if (a.lastContactAt) return -1;
-        if (b.lastContactAt) return 1;
-        return contactName(a).localeCompare(contactName(b));
-      });
+      list.sort((a, b) => contactName(a).localeCompare(contactName(b)));
       this.people.set(list);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load people');
