@@ -127,6 +127,8 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly colorMenu = viewChild.required<Popover>('colorMenu');
   private readonly projectMenu = viewChild.required<Popover>('projectMenu');
   private readonly bulkSectionPop = viewChild.required<Popover>('bulkSectionPop');
+  private readonly rowSectionPop = viewChild.required<Popover>('rowSectionPop');
+  rowMoveTask = signal<TaskSummary | null>(null);
   private pickerTask: TaskSummary | null = null;
   private bulkPickerIds: string[] | null = null;
   menuSection: TmSection | null = null;
@@ -253,8 +255,50 @@ export class ProjectTasksPage implements OnDestroy {
   /** Title column click (not the name field): select/open, or Shift/Ctrl/Cmd multi-select. */
   onTitleColumnClick(task: TaskSummary, event: MouseEvent) {
     const target = event.target;
-    if (target instanceof Element && target.closest('button, input, .tm-drag-handle')) return;
+    if (target instanceof Element && target.closest('button, input, .tm-drag-handle, .tm-row-section-move')) return;
     this.onRowClick(task, event);
+  }
+
+  /** Sections this task can move to (excludes its current section). */
+  otherSectionsForTask(task: TaskSummary): { id: string | null; name: string }[] {
+    const current = task.sectionId ?? null;
+    const out: { id: string | null; name: string }[] = [];
+    if (current !== null) out.push({ id: null, name: 'Untitled section' });
+    for (const s of this.sortedSections()) {
+      if (s.id !== current) out.push({ id: s.id, name: s.name });
+    }
+    return out;
+  }
+
+  openRowSectionMove(event: Event, task: TaskSummary) {
+    event.stopPropagation();
+    event.preventDefault();
+    this.rowMoveTask.set(task);
+    this.rowSectionPop().toggle(event, event.currentTarget as HTMLElement);
+  }
+
+  async moveRowToSection(sectionId: string | null) {
+    const task = this.rowMoveTask();
+    this.rowSectionPop().hide();
+    this.rowMoveTask.set(null);
+    if (!task) return;
+    const targetGroup = this.groups().find((g) => (g.section?.id ?? null) === sectionId);
+    const siblings = (targetGroup?.tasks ?? []).filter((t) => t.id !== task.id);
+    const after = siblings.length ? siblings[siblings.length - 1] : null;
+    const lo = after?.sortOrder ?? 0;
+    const hi = lo + 2048;
+    this.patchLocal(task.id, { sectionId, sortOrder: (lo + hi) / 2 });
+    try {
+      const updated = await this.api.moveTask(task.id, {
+        sectionId,
+        afterTaskId: after?.id ?? null,
+        fromProjectId: this.projectId(),
+      });
+      this.patchLocal(task.id, updated);
+    } catch (err) {
+      this.fail(err);
+      void this.load(this.projectId(), true);
+    }
   }
 
   /** Title field click: open/select, then focus for inline rename. */

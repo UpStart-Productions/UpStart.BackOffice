@@ -151,6 +151,18 @@
                 >
                   <div class="tm-grid-cell tm-row-main" role="gridcell" (click)="onTitleColumnClick(t, $event)">
                     <span class="tm-row-index" aria-hidden="true">{{ i + 1 }}</span>
+                    @if (canEdit() && otherSectionsForTask(t).length) {
+                      <button
+                        type="button"
+                        class="tm-row-section-move"
+                        (click)="openRowSectionMove($event, t)"
+                        aria-label="Move to another section"
+                        pTooltip="Move to section"
+                        tooltipPosition="bottom"
+                      >
+                        <i class="pi pi-chevron-down" aria-hidden="true"></i>
+                      </button>
+                    }
                     @if (canEdit()) {
                       <span class="tm-drag-handle" cdkDragHandle (click)="$event.stopPropagation()" aria-hidden="true"><i class="pi pi-bars"></i></span>
                     }
@@ -315,6 +327,23 @@
       }
     </div>
     <nmp-lucide-icon-picker-panel (iconSelected)="setIcon($event)" />
+  </div>
+</p-popover>
+
+<p-popover #rowSectionPop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
+  <div class="tm-picker">
+    <div class="tm-menu-label">Move to section</div>
+    <ul class="tm-picker-list">
+      @if (rowMoveTask(); as moveTask) {
+        @for (dest of otherSectionsForTask(moveTask); track dest.id ?? 'untitled') {
+          <li>
+            <button type="button" class="tm-picker-item" (click)="moveRowToSection(dest.id)">
+              <span>{{ dest.name }}</span>
+            </button>
+          </li>
+        }
+      }
+    </ul>
   </div>
 </p-popover>
 

@@ -117,6 +117,17 @@ export class TmTaskDetailComponent implements OnDestroy {
     return this.showActivity() ? t.comments : t.comments.filter((c) => c.kind === 'COMMENT');
   });
   readonly activityCount = computed(() => this.task()?.comments.filter((c) => c.kind === 'SYSTEM').length ?? 0);
+  /** Alternate stripe on user comments only (even index = plain, odd = tinted). */
+  readonly commentStripeAlt = computed(() => {
+    const alt = new Set<string>();
+    let n = 0;
+    for (const c of this.visibleComments()) {
+      if (c.kind !== 'COMMENT') continue;
+      if (n % 2 === 1) alt.add(c.id);
+      n++;
+    }
+    return alt;
+  });
   readonly mentionModules = computed(() => {
     const projectId = this.task()?.projectId;
     return mentionQuillModules(() => (projectId ? this.store.people(projectId) : Promise.resolve([])));

@@ -18,6 +18,8 @@ When the project is in **Task Manager**, a **Tasks** card appears above **Manual
 
 In a task’s detail panel, you can **edit** or **delete your own comment** for **1 hour** after you post it. **Admins** can **delete** anyone’s comment at any time (not edit others’ comments).
 
+On a project task list, hover a row and use the **down arrow** (before the drag handle) to **move the task to another section** without dragging.
+
 ## Time
 
 **Time** (Time entry) lists time entries. Add time from the list or related modals; tie entries to projects and tasks when applicable.

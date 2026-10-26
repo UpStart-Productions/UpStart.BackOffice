@@ -474,7 +474,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Moving and bulk actions',
-        body: 'Drag tasks to reorder or move between sections. Select several to change them together. A task can also be in another project.',
+        body: 'Drag tasks to reorder or move between sections. Hover a task row and use the down arrow (left of the drag handle) to move it to another section. Select several to change them together. A task can also be in another project.',
       },
       {
         heading: 'Customize',

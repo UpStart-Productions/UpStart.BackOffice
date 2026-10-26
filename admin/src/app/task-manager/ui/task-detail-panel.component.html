@@ -94,7 +94,8 @@
     } @else if (task(); as t) {
       @if (t.parent) {
         <button type="button" class="tm-detail-parent" (click)="openTask.emit(t.parent.id)">
-          <i class="pi pi-arrow-up"></i> {{ t.parent.name }}
+          <i class="pi pi-arrow-left" aria-hidden="true"></i>
+          <span class="tm-detail-parent-name">{{ t.parent.name }}</span>
         </button>
       }
 
@@ -174,7 +175,7 @@
       </dl>
 
       <section class="tm-detail-section">
-        <h3 class="tm-detail-heading">Description</h3>
+        <h3 class="tm-detail-heading tm-detail-heading--caps">Description</h3>
         @if (canEdit()) {
           <quill-editor
             class="tm-description-editor"
@@ -194,9 +195,11 @@
       </section>
 
       <section class="tm-detail-section">
-        <h3 class="tm-detail-heading">
+        <h3 class="tm-detail-heading tm-detail-heading--caps">
           Subtasks
-          @if (t.subtaskCount) { <span class="tm-muted">{{ t.completedSubtaskCount }}/{{ t.subtaskCount }}</span> }
+          @if (t.subtaskCount) {
+            <span class="tm-muted tm-detail-heading-meta">{{ t.completedSubtaskCount }}/{{ t.subtaskCount }}</span>
+          }
         </h3>
         <ul class="tm-subtasks">
           @for (s of t.subtasks; track s.id) {
@@ -271,7 +274,7 @@
 
       <section class="tm-detail-section tm-activity">
         <div class="tm-activity-header">
-          <h3 class="tm-detail-heading">Comments</h3>
+          <h3 class="tm-detail-heading tm-detail-heading--caps">Comments</h3>
           @if (activityCount()) {
             <button type="button" class="tm-link-btn" (click)="showActivity.set(!showActivity())">
               {{ showActivity() ? 'Hide activity' : 'Show all activity (' + activityCount() + ')' }}
@@ -287,7 +290,7 @@
                 <span class="tm-muted">· {{ relativeTime(c.createdAt) }}</span>
               </li>
             } @else {
-              <li class="tm-comment">
+              <li class="tm-comment" [class.tm-comment--alt]="commentStripeAlt().has(c.id)">
                 <app-tm-avatar [person]="c.author" [size]="28" />
                 <div class="tm-comment-main">
                   <div class="tm-comment-meta">
