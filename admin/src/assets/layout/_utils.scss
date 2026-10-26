@@ -22,6 +22,38 @@
   color: var(--text-color-secondary);
 }
 
+.text-accent-violet {
+  color: var(--color-accent-violet);
+}
+
+.text-accent-blue {
+  color: var(--color-accent-blue);
+}
+
+.text-accent-green {
+  color: var(--color-accent-green);
+}
+
+.text-accent-lime {
+  color: var(--color-accent-lime);
+}
+
+.bg-surface-violet {
+  background: var(--color-surface-violet);
+}
+
+.bg-surface-blue {
+  background: var(--color-surface-blue);
+}
+
+.bg-surface-mint {
+  background: var(--color-surface-mint);
+}
+
+.bg-surface-lime {
+  background: var(--color-surface-lime);
+}
+
 .uppercase {
   text-transform: uppercase;
 }

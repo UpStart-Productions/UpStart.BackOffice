@@ -1,33 +1,106 @@
+// UpStart palette — aligned with heyupstart.com (violet, blue, lime, mint, cream, ink).
+// Use semantic tokens (--color-text, --color-severity-*) in UI; reach for accent/data tokens for variety.
+
 :root {
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
+  /* ── Neutrals & surfaces ── */
   --color-background: #fcfcfb;
   --color-surface: #fefefd;
+  --color-surface-cream: #f9f9f7;
+  --color-surface-muted: #f1f5f3;
   --color-text: #1a2b40;
   --color-text-secondary: #374151;
-  /* AA-friendly muted on cream / white surfaces */
   --color-text-muted: #5f6b7a;
   --color-border: #e5e7eb;
-  --color-text-link: var(--brand-primary);
-  --color-text-link-hover: var(--brand-primary-hover);
+  --color-border-soft: #e5ede9;
 
+  /* ── Brand violet (primary) ── */
   --brand-primary: #7c3aed;
   --brand-primary-hover: #6d28d9;
+  --brand-violet-50: #faf5ff;
+  --brand-violet-100: #f5f2ff;
+  --brand-violet-200: #e9d5ff;
+  --brand-violet-400: #a855f7;
+  --brand-violet-500: #8b5cf6;
+  --brand-violet-600: #7c3aed;
+  --brand-violet-700: #6d28d9;
+  --brand-violet-800: #5b21b6;
+  --brand-violet-900: #4c1d95;
+
+  /* ── Brand blue (secondary / links / info) ── */
+  --brand-blue-50: #eff6ff;
+  --brand-blue-100: #dbeafe;
+  --brand-blue-200: #c7d2fe;
+  --brand-blue-500: #667eea;
+  --brand-blue-600: #2563eb;
+  --brand-blue-700: #1d4ed8;
+  --brand-blue-900: #1e3a8a;
+
+  /* ── Brand lime (highlights, CTAs on dark) ── */
   --brand-lime: #c4f547;
   --brand-lime-hover: #b8e840;
-  --sidebar-bg: #1d2b36;
-  --color-primary: var(--p-primary-600);
-  --color-primary-hover: var(--p-primary-700);
-  --color-error: #d32f2f;
-  --color-loading: #1976d2;
+  --brand-lime-50: #f7fee7;
+  --brand-lime-600: #84cc16;
+  --brand-lime-700: #65a30d;
 
-  --color-severity-success-bg: #e8f5e9;
-  --color-severity-success-text: #2e7d32;
-  --color-severity-info-bg: #e3f2fd;
-  --color-severity-info-text: #1565c0;
-  --color-severity-primary-text: var(--brand-primary);
-  --color-severity-warning-bg: #fff8e1;
-  --color-severity-warning-text: #f57c00;
+  /* ── Brand green (growth, totals, success-adjacent) ── */
+  --brand-green-50: #ecfdf5;
+  --brand-green-100: #d1fae5;
+  --brand-green-600: #00a544;
+  --brand-green-700: #19352c;
+  --brand-green-ink: #19352c;
+
+  /* ── Brand gradient (marketing hero — sparingly in app) ── */
+  --brand-gradient-from: #667eea;
+  --brand-gradient-to: #764ba2;
+
+  /* ── Ink (sidebar, dark chrome) ── */
+  --brand-ink: #1a1828;
+  --sidebar-bg: #1d2b36;
+
+  /* ── Links ── */
+  --color-text-link: var(--brand-blue-600);
+  --color-text-link-hover: var(--brand-blue-700);
+
+  /* Prime / legacy aliases */
+  --color-primary: var(--brand-violet-600);
+  --color-primary-hover: var(--brand-violet-700);
+  --color-error: #d32f2f;
+  --color-loading: var(--brand-blue-600);
+
+  /* ── Surface tints (cards, wells, empty states) ── */
+  --color-surface-violet: var(--brand-violet-50);
+  --color-surface-blue: var(--brand-blue-50);
+  --color-surface-mint: var(--brand-green-50);
+  --color-surface-lime: var(--brand-lime-50);
+  --color-surface-amber: #fffbeb;
+
+  /* ── Accent text (stats, badges, emphasis without new components) ── */
+  --color-accent-violet: var(--brand-violet-600);
+  --color-accent-blue: var(--brand-blue-600);
+  --color-accent-lime: var(--brand-lime-700);
+  --color-accent-green: var(--brand-green-600);
+  --color-accent-indigo: var(--brand-blue-500);
+  --color-accent-plum: #764ba2;
+
+  /* ── Data / chart series (ordered for contrast on light UI) ── */
+  --color-data-1: var(--brand-violet-600);
+  --color-data-2: var(--brand-blue-600);
+  --color-data-3: var(--brand-green-600);
+  --color-data-4: var(--brand-lime-600);
+  --color-data-5: var(--brand-blue-500);
+  --color-data-6: var(--color-accent-plum);
+
+  /* ── Severity (mapped to brand where it fits) ── */
+  --color-severity-success-bg: var(--brand-green-50);
+  --color-severity-success-text: var(--brand-green-600);
+  --color-severity-info-bg: var(--brand-blue-50);
+  --color-severity-info-text: var(--brand-blue-700);
+  --color-severity-primary-bg: var(--brand-violet-100);
+  --color-severity-primary-text: var(--brand-violet-700);
+  --color-severity-warning-bg: var(--color-surface-amber);
+  --color-severity-warning-text: #b45309;
   --color-severity-danger-bg: #fdecea;
   --color-severity-danger-text: #c62828;
 }

@@ -116,9 +116,10 @@
           </span>
         </button>
       }
-      <div class="week-total">
-        <span class="week-total-label">Week total</span>
-        <span class="week-total-value">{{ formatMin(weekTotalMin()) }}</span>
+      <div class="week-total" [attr.aria-label]="'Week total ' + formatMin(weekTotalMin()) + ' hours'">
+        <span class="week-total-value" aria-hidden="true">
+          {{ formatMin(weekTotalMin()) }}<span class="week-total-suffix">hrs</span>
+        </span>
       </div>
     </div>
 

@@ -2,12 +2,19 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
+import { Popover } from 'primeng/popover';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { formatDurationMin, parseDurationInput, sanitizeDurationInput } from './timesheet.utils';
+import {
+  formatDayHeading,
+  formatDurationMin,
+  parseDurationInput,
+  sanitizeDurationInput,
+} from './timesheet.utils';
 import type { ClientOption, Project, TimeEntry, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
 
 function tmTaskLabel(task: { name: string; parent?: { name: string } | null }): string {
@@ -19,7 +26,15 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 @Component({
   selector: 'app-time-entry-modal',
   standalone: true,
-  imports: [FormsModule, AppDialogModule, ButtonModule, TextareaModule, SelectModule, DatePickerModule],
+  imports: [
+    FormsModule,
+    AppDialogModule,
+    AppPopoverModule,
+    ButtonModule,
+    TextareaModule,
+    SelectModule,
+    DatePickerModule,
+  ],
   template: `
     <p-dialog
       [(visible)]="visible"
@@ -30,18 +45,33 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
     >
       <ng-template pTemplate="header">
         <div class="entry-dialog-header">
-          <span>{{ isEdit() ? 'Edit time entry for' : 'New time entry for' }}</span>
-          <p-datepicker
-            [ngModel]="entryDay()"
-            (ngModelChange)="onEntryDayChange($event)"
-            dateFormat="DD, dd M"
-            [showIcon]="true"
-            iconDisplay="input"
+          <span class="p-dialog-title entry-dialog-header-title">{{
+            isEdit() ? 'Edit time entry for' : 'New time entry for'
+          }}</span>
+          <button
+            type="button"
+            class="entry-day-trigger"
+            (click)="entryDayPopover.toggle($event)"
+            aria-haspopup="dialog"
+            [attr.aria-label]="'Entry date, ' + entryDayLabel()"
+          >
+            <i class="pi pi-calendar" aria-hidden="true"></i>
+            <span>{{ entryDayLabel() }}</span>
+          </button>
+          <p-popover
+            #entryDayPopover
             appendTo="body"
-            styleClass="entry-day-picker"
-            inputStyleClass="entry-day-picker-input"
-            ariaLabel="Entry date"
-          />
+            appCenterPopoverCaret
+            styleClass="entry-day-popover"
+            [dismissable]="true"
+          >
+            <p-datepicker
+              [inline]="true"
+              [ngModel]="entryDay()"
+              [defaultDate]="entryDay()"
+              (onSelect)="pickEntryDay($event, entryDayPopover)"
+            />
+          </p-popover>
         </div>
       </ng-template>
       <div class="entry-form">
@@ -121,48 +151,44 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
           </div>
         }
 
-        @if (projectId()) {
+        @if (showWorkTaskField()) {
           <div class="form-field">
             <label for="entry-work-task">Work task</label>
-            @if (loadingTmTasks()) {
-              <p class="sync-hint">Loading tasks…</p>
-            } @else {
-              <p-select
-                inputId="entry-work-task"
-                [options]="tmTaskOptions()"
-                optionLabel="label"
-                optionValue="id"
-                [ngModel]="tmTaskId()"
-                (ngModelChange)="tmTaskId.set($event ?? '')"
-                [filter]="true"
-                filterBy="label,name"
-                filterPlaceholder="Search tasks…"
-                [showClear]="true"
-                placeholder="Select a task"
-                styleClass="w-full entry-work-task-select"
-                panelStyleClass="entry-work-task-select-panel"
-                appendTo="body"
-              >
-                <ng-template #selectedItem let-option>
-                  @if (option) {
-                    <span class="entry-work-task-option">
-                      <span class="entry-work-task-name">{{ option.name }}</span>
-                      @if (option.parent?.name) {
-                        <span class="entry-work-task-parent">{{ option.parent.name }}</span>
-                      }
-                    </span>
-                  }
-                </ng-template>
-                <ng-template #item let-option>
+            <p-select
+              inputId="entry-work-task"
+              [options]="tmTaskOptions()"
+              optionLabel="label"
+              optionValue="id"
+              [ngModel]="tmTaskId()"
+              (ngModelChange)="onTmTaskChange($event)"
+              [filter]="true"
+              filterBy="label,name"
+              filterPlaceholder="Search tasks…"
+              [showClear]="true"
+              placeholder="Select a task"
+              styleClass="w-full entry-work-task-select"
+              panelStyleClass="entry-work-task-select-panel"
+              appendTo="body"
+            >
+              <ng-template #selectedItem let-option>
+                @if (option) {
                   <span class="entry-work-task-option">
                     <span class="entry-work-task-name">{{ option.name }}</span>
                     @if (option.parent?.name) {
                       <span class="entry-work-task-parent">{{ option.parent.name }}</span>
                     }
                   </span>
-                </ng-template>
-              </p-select>
-            }
+                }
+              </ng-template>
+              <ng-template #item let-option>
+                <span class="entry-work-task-option">
+                  <span class="entry-work-task-name">{{ option.name }}</span>
+                  @if (option.parent?.name) {
+                    <span class="entry-work-task-parent">{{ option.parent.name }}</span>
+                  }
+                </span>
+              </ng-template>
+            </p-select>
           </div>
         }
 
@@ -286,34 +312,42 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 0.35rem 0.5rem;
-      font-size: var(--fs-md);
-      font-weight: 600;
-      color: #2d2d2d;
+      gap: 0.25rem 0.375rem;
     }
 
-    :host ::ng-deep .entry-day-picker.p-datepicker,
-    :host ::ng-deep .entry-day-picker {
-      width: auto;
+    .entry-dialog-header-title {
+      flex: 0 0 auto;
     }
 
-    :host ::ng-deep .entry-day-picker-input,
-    :host ::ng-deep .entry-day-picker .p-inputtext {
-      width: auto;
-      min-width: 12.5rem;
-      border: none;
+    .entry-day-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      margin: 0;
+      padding: 0.125rem 0.375rem;
+      border: 1px solid transparent;
+      border-radius: 0.375rem;
       background: transparent;
-      padding: 0.15rem 1.75rem 0.15rem 0.15rem;
-      font-size: var(--fs-md);
+      cursor: pointer;
+      font: inherit;
       font-weight: 600;
       color: #7c3aed;
-      box-shadow: none;
-      cursor: pointer;
+      line-height: 1.25;
     }
 
-    :host ::ng-deep .entry-day-picker .p-datepicker-input-icon-container,
-    :host ::ng-deep .entry-day-picker .p-datepicker-dropdown {
-      color: #7c3aed;
+    .entry-day-trigger:hover {
+      background: #f5f3ff;
+      border-color: #ede9fe;
+    }
+
+    .entry-day-trigger:focus-visible {
+      outline: 2px solid #7c3aed;
+      outline-offset: 2px;
+    }
+
+    .entry-day-trigger .pi {
+      font-size: 1em;
+      line-height: 1;
     }
 
     .entry-form {
@@ -465,11 +499,14 @@ export class TimeEntryModalComponent {
   );
 
   readonly requiresTask = computed(
-    () => this.manualTasks().length > 0 || this.showAsanaTaskPicker(),
+    () =>
+      this.manualTasks().length > 0 ||
+      this.showAsanaTaskPicker() ||
+      (!!this.projectId() && this.tmTaskOptions().length > 0),
   );
 
   readonly hasSelectedTask = computed(
-    () => !!(this.manualTaskId() || this.asanaTaskId()),
+    () => !!(this.manualTaskId() || this.asanaTaskId() || this.tmTaskId()),
   );
 
   readonly canSubmit = computed(() => {
@@ -491,6 +528,12 @@ export class TimeEntryModalComponent {
       clientName: (p.client?.name ?? 'Personal'),
     })),
   );
+
+  readonly showWorkTaskField = computed(
+    () => !!this.projectId() && this.tmTaskOptions().length > 0,
+  );
+
+  readonly entryDayLabel = computed(() => formatDayHeading(this.entryDay()));
 
   readonly canSave = computed(() => {
     const parsed = parseDurationInput(this.durationInput());
@@ -643,7 +686,19 @@ export class TimeEntryModalComponent {
 
   onManualTaskChange(taskId: string) {
     this.manualTaskId.set(taskId);
-    if (taskId) this.asanaTaskId.set('');
+    if (taskId) {
+      this.asanaTaskId.set('');
+      this.tmTaskId.set('');
+    }
+  }
+
+  onTmTaskChange(taskId: string | null) {
+    const id = taskId ?? '';
+    this.tmTaskId.set(id);
+    if (id) {
+      this.manualTaskId.set('');
+      this.asanaTaskId.set('');
+    }
   }
 
   async syncAsanaTasksIfNeeded(projectId: string) {
@@ -714,7 +769,10 @@ export class TimeEntryModalComponent {
 
   async onAsanaTaskChange(taskId: string) {
     this.asanaTaskId.set(taskId);
-    if (taskId) this.manualTaskId.set('');
+    if (taskId) {
+      this.manualTaskId.set('');
+      this.tmTaskId.set('');
+    }
 
     if (!taskId) return;
 
@@ -774,6 +832,11 @@ export class TimeEntryModalComponent {
     this.entryDay.set(next);
   }
 
+  pickEntryDay(date: Date, popover: Popover) {
+    this.onEntryDayChange(date);
+    popover.hide();
+  }
+
   onDialogHide() {
     this.error.set(null);
   }
@@ -831,6 +894,14 @@ export class TimeEntryModalComponent {
     }
   }
 
+  private assertTaskSelectedForSave(): boolean {
+    if (this.requiresTask() && !this.hasSelectedTask()) {
+      this.error.set('Choose a task, work task, or Asana task.');
+      return false;
+    }
+    return true;
+  }
+
   private entryPayload(projectId: string) {
     const payload: Record<string, unknown> = {
       projectId: projectId || null,
@@ -845,10 +916,7 @@ export class TimeEntryModalComponent {
 
   async saveEntry() {
     const projectId = this.projectId();
-    if (this.requiresTask() && !this.hasSelectedTask()) {
-      this.error.set('Choose a task or Asana task.');
-      return;
-    }
+    if (!this.assertTaskSelectedForSave()) return;
 
     const existing = this.editingEntry();
     let durationMin: number;
@@ -904,10 +972,7 @@ export class TimeEntryModalComponent {
 
   async startTimer() {
     const projectId = this.projectId();
-    if (this.requiresTask() && !this.hasSelectedTask()) {
-      this.error.set('Choose a task or Asana task.');
-      return;
-    }
+    if (!this.assertTaskSelectedForSave()) return;
 
     this.saving.set(true);
     this.error.set(null);
