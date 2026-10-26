@@ -65,7 +65,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'People',
-        body: 'The people at this organization. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add new person to create someone new or link someone who already exists in Back Office.',
+        body: 'The people at this organization. Click a name to open their People profile. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add existing person / Add new person. The red trash control on the right removes them from this organization only; they stay in People.',
     },
     {
       heading: 'Activity',
@@ -174,6 +174,10 @@ const PROJECT_FORM: HelpArticle = {
     {
       heading: 'Asana configuration',
       body: 'Link an Asana board and one or more sections. Incomplete tasks from those sections appear on timesheets. Use Refresh from Asana to pull new tasks. Asana must be connected in Settings first.',
+    },
+    {
+      heading: 'Tasks (Task Manager)',
+      body: 'When this project is in Task Manager, the Tasks card shows up to five open tasks sorted by due date. Click a task name to open it in Task Manager, or use Open in Tasks for the full board.',
     },
     {
       heading: 'Manual tasks',

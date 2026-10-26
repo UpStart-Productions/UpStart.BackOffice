@@ -29,6 +29,7 @@ import {
   SUGGESTED_PROJECT_TASKS,
 } from '../time-entry/time-entry.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { ProjectWorkTasksPreviewComponent } from '../../ui/project-work-tasks-preview/project-work-tasks-preview.component';
 
 type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
@@ -53,6 +54,7 @@ type ProjectResponse = {
   hourlyRate?: number | null;
   isBillable: boolean;
   isActive: boolean;
+  inTaskManager?: boolean;
   asanaProjectGid?: string | null;
   asanaProjectGids?: string[] | null;
   asanaProjectName?: string | null;
@@ -87,6 +89,7 @@ type ProjectResponse = {
     PageComponent,
     ArtifactsPanelComponent,
     PeopleComponent,
+    ProjectWorkTasksPreviewComponent,
   ],
   templateUrl: './project-form.page.html',
   styleUrl: './project-form.page.scss',
@@ -99,6 +102,7 @@ export class ProjectFormPage implements OnInit {
   private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   id = signal<string | null>(null);
+  inTaskManager = signal(false);
   loading = signal(true);
   saving = signal(false);
   syncingAsana = signal(false);
@@ -188,6 +192,7 @@ export class ProjectFormPage implements OnInit {
   }
 
   private async applyProject(project: ProjectResponse) {
+    this.inTaskManager.set(project.inTaskManager === true);
     this.form = {
       clientId: project.clientId ?? '',
       name: project.name,

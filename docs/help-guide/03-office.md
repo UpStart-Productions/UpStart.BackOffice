@@ -10,6 +10,8 @@
 
 On a project, the **People** panel matches the client page: **Add existing person** or **Add new person**, then **Save** the project to sync details from People. Use **Open in People** on a row to edit someone. Legacy project-only contacts should be removed and re-added from People.
 
+When the project is in **Task Manager**, a **Tasks** card appears above **Manual tasks**: up to five open tasks by due date; click a task name or **Open in Tasks** for the full project. **Manual tasks** are still the list used on timesheets (including Asana-synced names when configured).
+
 ## Tasks
 
 **Tasks** opens Task Manager: my tasks, inbox, and projects. Tasks-only users live here exclusively. On a project, the **⋯** menu in the header includes **Project contacts** — the same client-side contact list as on the Projects page.

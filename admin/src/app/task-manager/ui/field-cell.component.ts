@@ -93,7 +93,7 @@ import { FieldOption, TmField } from '../core/tm.types';
       </ul>
     </p-popover>
 
-    <p-popover #datePop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
+    <p-popover #datePop appendTo="body" appCenterPopoverCaret styleClass="tm-popover tm-popover-date">
       <p-datepicker [inline]="true" [ngModel]="dateValue()" (ngModelChange)="pickDate($event)" />
       @if (value()) {
         <button type="button" class="tm-picker-item tm-picker-clear" (click)="clear(); datePop.hide()">Clear</button>

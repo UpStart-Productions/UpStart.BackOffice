@@ -107,31 +107,41 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         @for (c of orgPeople(); track c.id) {
           <div class="people-panel-org-row">
             <div class="people-panel-org-main">
-              <app-person
-                [name]="contactName(c)"
-                [firstName]="c.firstName"
-                [lastName]="c.lastName"
-                [email]="c.emails[0]?.email"
-                [avatarUrl]="c.avatarUrl"
-                [personId]="c.id"
-                [link]="['/people', c.id]"
-              />
-              @if (c.autoCreated) {
-                <p-tag value="New" severity="info" />
-              }
-              @if (!c.isActive) {
-                <p-tag value="Inactive" severity="secondary" />
-              }
+              <div class="people-panel-org-name-line">
+                <app-person
+                  [name]="contactName(c)"
+                  [firstName]="c.firstName"
+                  [lastName]="c.lastName"
+                  [email]="c.emails[0]?.email"
+                  [avatarUrl]="c.avatarUrl"
+                  [personId]="c.id"
+                  [link]="['/people', c.id]"
+                />
+                @if (c.autoCreated) {
+                  <p-tag value="New" severity="info" />
+                }
+                @if (!c.isActive) {
+                  <p-tag value="Inactive" severity="secondary" />
+                }
+              </div>
               @if (orgRole(c); as role) {
                 <span class="people-panel-meta">{{ role }}</span>
               } @else if (c.title) {
                 <span class="people-panel-meta">{{ c.title }}</span>
               }
+              <app-copy-email [email]="c.emails[0]?.email" [muted]="true" [block]="true" />
             </div>
-            <div class="people-panel-org-email">
-              <app-copy-email [email]="c.emails[0]?.email" [muted]="true" />
-            </div>
-            <app-row-actions-menu [items]="orgRowActions(c)" ariaLabel="Person actions" />
+            @if (clientId()) {
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                severity="danger"
+                size="small"
+                class="people-panel-org-remove"
+                [attr.aria-label]="'Remove ' + contactName(c) + ' from organization'"
+                (onClick)="confirmUnlinkFromOrg(c)"
+              />
+            }
           </div>
         }
       } @else {
@@ -196,10 +206,9 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       margin-bottom: 1rem;
     }
     .people-panel-org-row {
-      display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto;
-      gap: 1rem;
-      align-items: center;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
       padding: 0.6rem 0;
       border-top: 1px solid var(--surface-border, #e5e7eb);
     }
@@ -207,11 +216,22 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       border-top: 0;
     }
     .people-panel-org-main {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .people-panel-org-name-line {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 0.5rem;
       min-width: 0;
+    }
+    .people-panel-org-remove {
+      flex-shrink: 0;
+      margin-top: 0.1rem;
     }
     .people-panel-meta {
       font-size: var(--fs-sm);
@@ -259,16 +279,6 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       margin: 0;
       background: transparent;
       box-shadow: none;
-    }
-    .people-panel--compact .people-panel-org-row {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0.25rem;
-    }
-    @media (max-width: 40rem) {
-      .people-panel-org-row {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
-      }
     }
   `,
 })
@@ -502,29 +512,6 @@ export class PeopleComponent {
       role: 'USER',
       isGuest: false,
     };
-  }
-
-  orgRowActions(c: ContactSummary): RowActionItem[] {
-    const clientId = this.clientId();
-    return [
-      {
-        id: 'open',
-        label: 'Open in People',
-        icon: 'pi pi-user',
-        command: () => void this.router.navigate(['/people', c.id]),
-      },
-      ...(clientId
-        ? [
-            {
-              id: 'unlink',
-              label: 'Remove from organization',
-              icon: 'pi pi-trash',
-              severity: 'danger' as const,
-              command: () => this.confirmUnlinkFromOrg(c),
-            },
-          ]
-        : []),
-    ];
   }
 
   confirmUnlinkFromOrg(c: ContactSummary) {

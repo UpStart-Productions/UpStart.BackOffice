@@ -25,6 +25,15 @@ import { QuillImageUploadService } from './core/quill-image-upload.service';
 import { quillImageUploadInitializer } from './core/quill-image-upload.initializer';
 
 const UpStartPreset = definePreset(Aura, {
+  components: {
+    datepicker: {
+      date: { width: '1.625rem', height: '1.625rem', padding: '0' },
+      weekDay: { padding: '0.125rem 0' },
+      dayView: { margin: '0.25rem 0 0 0' },
+      header: { padding: '0 0 0.35rem 0' },
+      panel: { padding: '0.4rem 0.5rem' },
+    },
+  },
   semantic: {
     iconSize: '1rem',
     formField: {

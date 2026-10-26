@@ -12,7 +12,7 @@ import { addDaysKey, todayKey } from '../core/tm-format.util';
   standalone: true,
   imports: [FormsModule, AppPopoverModule, DatePickerModule],
   template: `
-    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
+    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover tm-popover-date">
       <div class="tm-date-picker">
         <div class="tm-date-quick">
           <button type="button" (click)="pick(today())">Today</button>

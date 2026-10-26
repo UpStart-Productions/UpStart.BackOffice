@@ -31,6 +31,10 @@
           <div class="stack span-1">
             <ng-container *ngTemplateOutlet="projectPeoplePanel" />
 
+            @if (inTaskManager()) {
+              <app-project-work-tasks-preview [projectId]="id()!" [inTaskManager]="inTaskManager()" />
+            }
+
             <div class="card card--side project-side-card">
               <div class="card-header">
                 <h3 class="card-title">Manual tasks</h3>

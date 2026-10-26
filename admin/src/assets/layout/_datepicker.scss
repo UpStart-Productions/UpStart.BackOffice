@@ -1,0 +1,51 @@
+// Compact PrimeNG DatePicker — day grid and header (not popover width; see task-manager _popovers).
+
+.p-datepicker-panel:not(.p-datepicker-panel-inline) {
+  padding: 0.4rem 0.5rem;
+}
+
+.p-datepicker-panel-inline {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+.p-datepicker-header {
+  padding: 0 0 0.35rem;
+}
+
+.p-datepicker-title {
+  font-size: 0.8125rem;
+}
+
+.p-datepicker-prev-button,
+.p-datepicker-next-button {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.p-datepicker-day-view {
+  font-size: 0.8125rem;
+  margin: 0.25rem 0 0;
+}
+
+.p-datepicker-weekday-cell {
+  padding: 0.125rem 0;
+}
+
+.p-datepicker-weekday {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.p-datepicker-day-cell {
+  padding: 0.0625rem;
+}
+
+.p-datepicker-day {
+  width: 1.625rem;
+  height: 1.625rem;
+  font-size: 0.8125rem;
+  padding: 0;
+}
