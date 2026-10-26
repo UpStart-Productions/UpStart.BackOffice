@@ -345,7 +345,28 @@ export class TaskProjectsService {
   async removeMember(user: UserContext, projectId: string, userId: string) {
     // Anyone may leave a project; removing others requires manage.
     if (userId !== user.id) await this.access.assertProject(user, projectId, 'manage');
+    const project = await this.prisma.project.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { name: true, tenantId: true },
+    });
     await this.prisma.projectMember.deleteMany({ where: { projectId, userId } });
+    if (userId !== user.id) {
+      await this.delivery.deliver({
+        userId,
+        tenantId: project.tenantId,
+        type: 'project_removed',
+        title: `${personName(user)} removed you from ${project.name}`,
+        meta: {
+          entityType: 'project',
+          entityId: projectId,
+          route: projectRoute(projectId),
+          actorUserId: user.id,
+          actorLabel: personName(user),
+          projectId,
+          projectName: project.name,
+        },
+      });
+    }
     return { removed: true };
   }
 

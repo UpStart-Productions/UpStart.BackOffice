@@ -9,6 +9,7 @@ import { projectRootPrefix } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { AddTaskProjectDto, CreateTaskDto, MoveTaskDto, UpdateTaskDto } from './dto/task-manager.dto';
 import { TaskAccessService } from './task-access.service';
+import type { NotificationType } from '../notifications/notification.types';
 import { TaskEventsService } from './task-events.service';
 import { coerceFieldValue, FieldOption, FieldType } from './task-fields.util';
 import {
@@ -322,6 +323,19 @@ export class TasksService {
     if (task.assigneeId && task.assigneeId !== user.id) {
       await this.events.notify(task, user, 'task_assigned', [task.assigneeId], `${personName(user)} assigned you: ${task.name}`);
     }
+    if (parentTaskId) {
+      const parent = await this.prisma.task.findUniqueOrThrow({
+        where: { id: parentTaskId },
+        include: { project: { select: { name: true } } },
+      });
+      await this.notifyWatchers(
+        parent,
+        user,
+        'task_subtask_added',
+        `${personName(user)} added a subtask to ${parent.name}`,
+        task.name,
+      );
+    }
     if (dto.description) await this.notifyMentions(task, user, dto.description, []);
     return toTaskSummary(task);
   }
@@ -392,9 +406,28 @@ export class TasksService {
 
     for (const line of activity) await this.events.activity(taskId, user, line);
 
+    if (dto.assigneeId !== undefined && existing.assigneeId && existing.assigneeId !== dto.assigneeId) {
+      await this.events.notify(
+        updated,
+        user,
+        'task_unassigned',
+        [existing.assigneeId],
+        `${personName(user)} unassigned you from: ${updated.name}`,
+      );
+    }
     if (data.assigneeId) {
       await this.events.follow(taskId, [data.assigneeId as string]);
       await this.events.notify(updated, user, 'task_assigned', [data.assigneeId as string], `${personName(user)} assigned you: ${updated.name}`);
+    }
+    if ('dueOn' in data) {
+      const due = updated.dueOn;
+      await this.notifyWatchers(
+        updated,
+        user,
+        'task_due_date_changed',
+        `${personName(user)} updated the due date on ${updated.name}`,
+        due ? `Due ${fmtDate(due)}` : 'Due date removed',
+      );
     }
     if (typeof data.description === 'string') {
       await this.notifyMentions(updated, user, data.description, extractMentionedUserIds(existing.description));
@@ -458,6 +491,17 @@ export class TasksService {
         }),
       ]);
       await this.events.activity(taskId, user, `moved this task from ${from.name} to ${to.name}`);
+      const moved = await this.prisma.task.findUniqueOrThrow({
+        where: { id: taskId },
+        include: { project: { select: { name: true } } },
+      });
+      await this.notifyWatchers(
+        moved,
+        user,
+        'task_moved',
+        `${personName(user)} moved ${moved.name}`,
+        `${from.name} → ${to.name}`,
+      );
       return this.summary(taskId);
     }
 
@@ -470,6 +514,17 @@ export class TasksService {
     if (sectionId !== currentSection && sectionId) {
       const section = await this.prisma.taskSection.findUnique({ where: { id: sectionId }, select: { name: true } });
       await this.events.activity(taskId, user, `moved this task to “${section?.name}”`);
+      const moved = await this.prisma.task.findUniqueOrThrow({
+        where: { id: taskId },
+        include: { project: { select: { name: true } } },
+      });
+      await this.notifyWatchers(
+        moved,
+        user,
+        'task_moved',
+        `${personName(user)} moved ${moved.name}`,
+        section?.name ? `Section: ${section.name}` : null,
+      );
     }
     return this.summary(taskId);
   }
@@ -586,7 +641,10 @@ export class TasksService {
   async addComment(user: UserContext, taskId: string, body: string) {
     await this.access.assertTask(user, taskId, 'comment');
     if (!htmlToPlainText(body, 10000).trim() && !/<img\b/i.test(body)) throw new BadRequestException('Comment is empty');
-    const task = await this.prisma.task.findUniqueOrThrow({ where: { id: taskId }, include: { project: { select: { name: true } } } });
+    const task = await this.prisma.task.findUniqueOrThrow({
+      where: { id: taskId },
+      include: { project: { select: { name: true } } },
+    });
     const comment = await this.prisma.taskComment.create({
       data: { taskId, authorId: user.id, body },
       include: commentInclude,
@@ -638,6 +696,10 @@ export class TasksService {
     if (file.size > MAX_ATTACHMENT_BYTES) throw new BadRequestException('File is larger than 25 MB');
     const projectId = await this.access.assertTask(user, taskId, 'comment');
     const project = await this.prisma.project.findUniqueOrThrow({ where: { id: projectId }, select: { clientId: true } });
+    const task = await this.prisma.task.findUniqueOrThrow({
+      where: { id: taskId },
+      include: { project: { select: { name: true } } },
+    });
     const key = `${projectRootPrefix(project.clientId, projectId)}/tasks/${taskId}/${randomUUID()}${extname(file.originalname)}`;
     await this.storage.upload({ buffer: file.buffer, key, mimeType: file.mimetype });
     const row = await this.prisma.taskAttachment.create({
@@ -652,6 +714,13 @@ export class TasksService {
       include: { uploadedBy: { select: personSelect } },
     });
     await this.events.activity(taskId, user, `attached ${file.originalname}`);
+    await this.notifyWatchers(
+      task,
+      user,
+      'task_attachment',
+      `${personName(user)} attached a file to ${task.name}`,
+      file.originalname,
+    );
     return toAttachment(row);
   }
 
@@ -669,6 +738,19 @@ export class TasksService {
   private async summary(taskId: string) {
     const row = await this.prisma.task.findUniqueOrThrow({ where: { id: taskId }, include: taskSummaryInclude });
     return toTaskSummary(row);
+  }
+
+  /** Task followers plus assignee (deduped); actor is excluded in TaskEventsService.notify. */
+  private async notifyWatchers(
+    task: { id: string; name: string; projectId: string; project?: { name: string } | null; assigneeId?: string | null },
+    actor: UserContext,
+    type: NotificationType,
+    title: string,
+    body?: string | null,
+  ): Promise<void> {
+    const followers = await this.events.followerIds(task.id);
+    const userIds = [...new Set([...followers, task.assigneeId].filter((id): id is string => !!id))];
+    await this.events.notify(task, actor, type, userIds, title, body);
   }
 
   private async notifyMentions(

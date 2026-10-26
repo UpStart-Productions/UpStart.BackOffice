@@ -1,6 +1,5 @@
 # Known gaps and limitations
 
-- **Notifications** bell in the top bar is not yet wired to live notifications.
 - **JD** (the Back Office guide) does not read live data from the database — it only knows what is in this help guide. For “how many invoices are overdue?” use the Invoices page, not the guide chat.
 - **Client portal** users are not Back Office users; this guide is for staff on the admin app only.
 - **Pipeline lanes**: lane colors can't be changed, and pipelines can't be reordered.

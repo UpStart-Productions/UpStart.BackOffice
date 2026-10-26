@@ -1,6 +1,21 @@
 # In-app notifications (top-bar bell)
 
-Per-user inbox stored in `UserNotification`. Task Manager already delivers several types via `NotificationDeliveryService` (in-app row + optional email).
+Per-user inbox stored in `UserNotification`. Task Manager delivers via `NotificationDeliveryService` (in-app row + optional email when `TASK_EMAIL_NOTIFICATIONS` is not `off`):
+
+| Type | When |
+|------|------|
+| `task_assigned` | Create/update assigns someone |
+| `task_unassigned` | Assignee removed or reassigned |
+| `task_mention` | @mention in description or comment |
+| `task_comment` | New comment (non-system) |
+| `task_completed` | Task marked complete |
+| `task_due_date_changed` | Due date set or cleared |
+| `task_attachment` | File attached |
+| `task_moved` | Project or section move |
+| `task_subtask_added` | Subtask created on a followed parent |
+| `project_added` | Added to a Task Manager project |
+| `project_removed` | Removed from a project by someone else |
+| `task_form_submission` | Public task form submitted |
 
 ## Add a new notification type
 

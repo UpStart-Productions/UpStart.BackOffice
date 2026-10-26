@@ -1,19 +1,31 @@
 /** In-app notification types (bell). Add new types here, then wire delivery + optional UI registry. */
 export type NotificationType =
   | 'task_assigned'
+  | 'task_unassigned'
   | 'task_mention'
   | 'task_comment'
   | 'task_completed'
+  | 'task_due_date_changed'
+  | 'task_attachment'
+  | 'task_moved'
+  | 'task_subtask_added'
   | 'project_added'
+  | 'project_removed'
   | 'task_form_submission'
   | 'activity_forwarded';
 
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'task_assigned',
+  'task_unassigned',
   'task_mention',
   'task_comment',
   'task_completed',
+  'task_due_date_changed',
+  'task_attachment',
+  'task_moved',
+  'task_subtask_added',
   'project_added',
+  'project_removed',
   'task_form_submission',
   'activity_forwarded',
 ];
