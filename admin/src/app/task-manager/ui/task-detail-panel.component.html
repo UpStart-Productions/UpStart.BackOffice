@@ -145,6 +145,7 @@
             (onBlur)="saveDescription()"
             placeholder="What is this task about?"
             [styles]="{ 'min-height': '90px' }"
+            (onEditorCreated)="onDescriptionEditor($event)"
           ></quill-editor>
         } @else if (t.description) {
           <div class="ql-editor tm-rich" [innerHTML]="t.description"></div>

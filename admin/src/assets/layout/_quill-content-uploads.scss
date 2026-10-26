@@ -1,0 +1,52 @@
+// Quill image + file attachment toolbar (ported from KC.SPP.WebApp)
+
+quill-editor {
+  .ql-editor {
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0.5rem 0;
+    }
+
+    .ql-content-file {
+      display: inline;
+    }
+
+    .ql-content-file a {
+      color: var(--primary-color, #7c3aed);
+      text-decoration: underline;
+    }
+  }
+
+  .ql-toolbar .ql-contentFile {
+    width: 28px !important;
+    padding: 3px 5px !important;
+  }
+
+  .ql-toolbar .ql-contentFile::before {
+    font-family: 'primeicons';
+    content: '\e97b';
+    font-size: 1rem;
+    line-height: 1;
+    font-style: normal;
+    font-weight: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.quill-html-content,
+.artifact-note-content {
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0.5rem 0;
+  }
+
+  .ql-content-file a {
+    color: var(--primary-color, #7c3aed);
+    text-decoration: underline;
+  }
+}

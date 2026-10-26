@@ -1,5 +1,7 @@
 @use './assets/layout/layout';
 @use './assets/layout/quill-mentions';
+@use './assets/layout/quill-person-card';
+@use './assets/layout/quill-content-uploads';
 
 @import 'primeicons/primeicons.css';
 @import '@angular/cdk/overlay-prebuilt.css';

@@ -9,6 +9,8 @@ import { TagModule } from 'primeng/tag';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
@@ -98,6 +100,7 @@ import { OrganizationLinksComponent } from '../../ui/organization-links/organiza
                     [(ngModel)]="form.notes"
                     placeholder="Notes…"
                     [styles]="{ 'min-height': '140px' }"
+                    (onEditorCreated)="onNotesEditor($event)"
                   ></quill-editor>
                 </div>
                 <div class="form-field showcase-full">
@@ -417,6 +420,13 @@ export class ContactDetailPage implements OnInit {
           this.fail(err, 'Delete failed');
         }
       },
+    });
+  }
+
+  onNotesEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const contactId = this.contact()?.id;
+      return contactId ? { type: 'contact', contactId } : { type: 'crm' };
     });
   }
 

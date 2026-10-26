@@ -15,6 +15,8 @@ import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
@@ -373,5 +375,12 @@ export class ClientFormPage implements OnInit {
         detail: 'Select and copy the link manually.',
       });
     }
+  }
+
+  onNotesEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const clientId = this.id();
+      return clientId ? { type: 'client', clientId } : { type: 'crm' };
+    });
   }
 }

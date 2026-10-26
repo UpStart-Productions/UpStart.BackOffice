@@ -156,6 +156,7 @@
               [(ngModel)]="form.notes"
               placeholder="Notes…"
               [styles]="{ 'min-height': '140px' }"
+              (onEditorCreated)="onNotesEditor($event)"
             ></quill-editor>
           </div>
           @if (isClientFlow) {

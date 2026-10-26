@@ -6,6 +6,7 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideQuillConfig } from 'ngx-quill/config';
+import { QuillService } from 'ngx-quill';
 import { provideRouter, withEnabledBlockingInitialNavigation } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
@@ -18,6 +19,10 @@ import { AuthStoreService } from './core/auth-store.service';
 import { CognitoAuthService } from './core/cognito-auth.service';
 import { QuillBootstrapService } from './core/quill-bootstrap.service';
 import { rememberQuillIconInjector } from './core/quill-icon-injector';
+import { QuillFileUploadService } from './core/quill-file-upload.service';
+import { quillFileUploadInitializer } from './core/quill-file-upload.initializer';
+import { QuillImageUploadService } from './core/quill-image-upload.service';
+import { quillImageUploadInitializer } from './core/quill-image-upload.initializer';
 
 const UpStartPreset = definePreset(Aura, {
   semantic: {
@@ -73,6 +78,18 @@ export const appConfig: ApplicationConfig = {
       },
       deps: [QuillBootstrapService],
     },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: quillImageUploadInitializer,
+      deps: [QuillImageUploadService, QuillService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: quillFileUploadInitializer,
+      deps: [QuillFileUploadService, QuillService],
+      multi: true,
+    },
     provideQuillConfig({
       theme: 'snow',
       // @mentions (Task Manager). Observables are awaited before any editor renders, keeping Quill lazy.
@@ -81,13 +98,13 @@ export const appConfig: ApplicationConfig = {
         { path: 'modules/mention', implementation: defer(() => import('quill-mention').then((m) => m.Mention)) },
         // Lucide "insert icon" embed + toolbar button (ported from GrovLink).
         { path: 'formats/lucideIcon', implementation: defer(() => import('./core/quill-lucide-icons').then((m) => m.loadLucideIconBlot())) },
+        { path: 'formats/personCard', implementation: defer(() => import('./core/quill-person-card').then((m) => m.loadPersonCardBlot())) },
       ],
       modules: {
         toolbar: [
           ['bold', 'italic', 'underline'],
           [{ list: 'ordered' }, { list: 'bullet' }],
-          ['link', 'lucideIcon'],
-          ['clean'],
+          ['link', 'image', 'contentFile', 'lucideIcon', 'personCard'],
         ],
       },
     }),

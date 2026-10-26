@@ -8,6 +8,8 @@ import { MessageModule } from 'primeng/message';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 
 type Artifact = {
   id: string;
@@ -189,6 +191,7 @@ const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
                 [(ngModel)]="newNoteContent"
                 placeholder="Write your note..."
                 [styles]="{ 'min-height': '140px' }"
+                (onEditorCreated)="onNoteEditor($event)"
               ></quill-editor>
               <button pButton label="Add Note" icon="pi pi-plus" severity="secondary" (click)="addNote()" [disabled]="!newNoteTitle || !newNoteContent"></button>
             </div>
@@ -253,6 +256,14 @@ export class ArtifactsPanelComponent {
 
   sanitizeHtml(html?: string): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+  }
+
+  onNoteEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const clientId = this.clientId()?.trim();
+      if (clientId) return { type: 'client', clientId };
+      return { type: 'crm' };
+    });
   }
 
   private fileExtension(a: Artifact): string {

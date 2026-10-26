@@ -19,6 +19,8 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { richTextOrUndefined } from '../../core/rich-text.util';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
@@ -689,5 +691,13 @@ export class ProjectFormPage implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  onDescriptionEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => ({
+      type: 'project',
+      clientId: this.form.clientId?.trim() || null,
+      draftContacts: () => this.contactRows(),
+    }));
   }
 }

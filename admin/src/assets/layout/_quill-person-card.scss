@@ -1,0 +1,121 @@
+// Quill person card embed + toolbar picker overlay
+
+.ql-toolbar .ql-personCard {
+  width: 26px !important;
+  padding: 2px 3px !important;
+}
+
+.ql-toolbar .ql-personCard::before {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='5'/%3E%3Cpath d='M20 21a8 8 0 1 0-16 0'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='5'/%3E%3Cpath d='M20 21a8 8 0 1 0-16 0'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.quill-person-card-picker-panel {
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  z-index: 10001;
+}
+
+// Inline embed (span) — inline-block so it does not stretch to full editor width.
+.ql-editor span.bo-person-card,
+.ql-editor div.bo-person-card {
+  display: inline-block;
+  width: auto;
+  max-width: min(16rem, 100%);
+  margin: 0.25rem 0;
+  vertical-align: top;
+  line-height: 1.25;
+  white-space: normal;
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--surface-card, #fff);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  font-size: 0.8125rem;
+}
+
+.ql-editor span.bo-person-card > span[contenteditable='false'] {
+  display: block;
+}
+
+.bo-person-card__inner {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  align-items: center;
+}
+
+.bo-person-card__avatar {
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-100, #f3f4f6);
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.bo-person-card__initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.bo-person-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bo-person-card__name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.bo-person-card__role {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--text-color-secondary, #6b7280);
+  margin-top: 0.1rem;
+}
+
+.bo-person-card__line {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}
+
+.bo-person-card__link {
+  color: var(--brand-primary, #7c3aed);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

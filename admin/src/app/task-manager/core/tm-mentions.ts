@@ -56,7 +56,7 @@ export function mentionQuillModules(people: () => Promise<Person[]>, options: { 
   return {
     toolbar: options.toolbar === false
       ? false
-      : [['bold', 'italic', 'underline', 'strike'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'code-block', 'lucideIcon'], ['clean']],
+      : [['bold', 'italic', 'underline', 'strike'], [{ list: 'ordered' }, { list: 'bullet' }], ['link', 'image', 'contentFile', 'code-block', 'lucideIcon', 'personCard']],
     mention: {
       positioningStrategy: 'fixed',
       allowedChars: /^[A-Za-z\sÀ-ÿ.'-]*$/,
@@ -87,6 +87,6 @@ export function mentionQuillModules(people: () => Promise<Person[]>, options: { 
 /** True when Quill HTML has no visible content. */
 export function isBlankHtml(html: string | null | undefined): boolean {
   if (!html) return true;
-  if (/<img\b|class="mention"/i.test(html)) return false;
+  if (/<img\b|class="mention"|bo-person-card|ql-person-card|ql-content-file/i.test(html)) return false;
   return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim().length === 0;
 }

@@ -14,6 +14,8 @@ import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 import { PageComponent } from '../../ui/layout/page.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
@@ -475,5 +477,12 @@ export class InvoiceFormPage implements OnInit {
       });
       await this.router.navigate(['/invoices', id]);
     }
+  }
+
+  onNotesEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const clientId = this.form.clientId?.trim();
+      return clientId ? { type: 'client', clientId } : { type: 'crm' };
+    });
   }
 }

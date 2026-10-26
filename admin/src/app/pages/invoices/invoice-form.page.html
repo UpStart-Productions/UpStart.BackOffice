@@ -124,6 +124,7 @@
               [(ngModel)]="form.notes"
               placeholder="Invoice notes…"
               [styles]="{ 'min-height': '120px' }"
+              (onEditorCreated)="onNotesEditor($event)"
             ></quill-editor>
           </div>
         </div>

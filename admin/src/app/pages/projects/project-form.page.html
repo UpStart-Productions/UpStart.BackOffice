@@ -138,6 +138,7 @@
           [(ngModel)]="form.description"
           placeholder="Project description…"
           [styles]="{ 'min-height': '140px' }"
+          (onEditorCreated)="onDescriptionEditor($event)"
         ></quill-editor>
       </div>
 

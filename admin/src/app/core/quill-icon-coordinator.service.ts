@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Dialog } from '@angular/cdk/dialog';
 import type Quill from 'quill';
 import { LucideIconPickerDialogComponent } from '@upstart/back-office/lucide-icons';
+import { EditorOverlayDismissGuard } from './editor-overlay-dismiss-guard.service';
 
 /**
  * Opens the shared Lucide icon picker (same component the standalone form control uses, see
@@ -11,6 +12,7 @@ import { LucideIconPickerDialogComponent } from '@upstart/back-office/lucide-ico
 @Injectable({ providedIn: 'root' })
 export class QuillIconCoordinator {
   private readonly dialog = inject(Dialog);
+  private readonly dismissGuard = inject(EditorOverlayDismissGuard);
 
   handleToolbarClick(quill: Quill): void {
     let range = quill.getSelection(true);
@@ -22,12 +24,14 @@ export class QuillIconCoordinator {
     }
 
     const index = range.index;
+    this.dismissGuard.suppressParentPaneDismissal();
     const ref = this.dialog.open<string | undefined>(LucideIconPickerDialogComponent, {
       disableClose: false,
       panelClass: 'nmp-quill-icon-dialog-panel',
     });
 
     ref.closed.subscribe((name) => {
+      this.dismissGuard.suppressParentPaneDismissal();
       if (!name) return;
       quill.insertEmbed(index, 'lucideIcon', { name }, 'user');
       quill.setSelection(index + 1, 0, 'silent');

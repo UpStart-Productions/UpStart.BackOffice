@@ -14,6 +14,9 @@ import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
 import { isBlankHtml, mentionQuillModules } from '../core/tm-mentions';
+import { EditorOverlayDismissGuard } from '../../core/editor-overlay-dismiss-guard.service';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 import { TmStoreService } from '../core/tm-store.service';
 import { Person, TaskComment, TaskDetail, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from './due-date-picker.component';
@@ -67,6 +70,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   private readonly router = inject(Router);
   private readonly confirm = inject(ConfirmationService);
   private readonly toast = inject(MessageService);
+  private readonly editorOverlayDismissGuard = inject(EditorOverlayDismissGuard);
 
   taskId = input.required<string>();
   closed = output<void>();
@@ -149,12 +153,13 @@ export class TmTaskDetailComponent implements OnDestroy {
   /** Clicking the page behind the pane closes it. A task row switches tasks instead, and menus opened from the pane stay up. */
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
+    if (this.editorOverlayDismissGuard.shouldSuppressParentPaneDismissal()) return;
     const node = event.target;
     if (!(node instanceof Node) || this.host.nativeElement.contains(node)) return;
     const el = node instanceof Element ? node : node.parentElement;
     if (
       el?.closest(
-        '.tm-row, .p-popover, .p-dialog, .p-dialog-mask, .p-select-overlay, .p-multiselect-overlay, .p-datepicker-panel, .mention-suggest-container, .ql-tooltip',
+        '.tm-row, .p-popover, .p-dialog, .p-dialog-mask, .p-select-overlay, .p-multiselect-overlay, .p-datepicker-panel, .mention-suggest-container, .ql-tooltip, .cdk-overlay-container, .cdk-dialog-container, .cdk-overlay-backdrop, .nmp-quill-icon-dialog-panel, .nmp-licon-dialog, nmp-lucide-icon-picker-dialog, .quill-person-card-picker-panel, .quill-person-card-picker',
       )
     ) {
       return;
@@ -579,5 +584,12 @@ export class TmTaskDetailComponent implements OnDestroy {
 
   isMine(c: TaskComment): boolean {
     return !!c.author && c.author.id === this.meId();
+  }
+
+  onDescriptionEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const projectId = this.task()?.project.id;
+      return projectId ? { type: 'tmProject', projectId } : { type: 'crm' };
+    });
   }
 }

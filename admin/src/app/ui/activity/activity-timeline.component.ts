@@ -15,6 +15,8 @@ import { QuillModule } from 'ngx-quill';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
+import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import type Quill from 'quill';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
 import { Person, TmProjectListItem, TmSection } from '../../task-manager/core/tm.types';
 import {
@@ -299,6 +301,7 @@ function nowForInput(): string {
               [(ngModel)]="logBody"
               placeholder="Notes, next steps…"
               [styles]="{ 'min-height': '140px' }"
+              (onEditorCreated)="onLogBodyEditor($event)"
             />
           }
         </div>
@@ -732,6 +735,14 @@ export class ActivityTimelineComponent {
     if (this.logType === 'MEETING') return 'e.g. Discovery meeting';
     if (this.logType === 'NOTE') return 'e.g. Follow-up';
     return 'e.g. Intake call';
+  }
+
+  onLogBodyEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const clientId = this.clientId()?.trim();
+      if (clientId) return { type: 'client', clientId };
+      return { type: 'crm' };
+    });
   }
 
   icon = (i: Interaction) => interactionIcon(i.type);
