@@ -31,9 +31,9 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
     >
       <i class="pi pi-bell"></i>
       @if (unreadCount() > 0) {
-        <span class="notifications-bell-badge" [attr.aria-label]="unreadCount() + ' unread'">{{
+        <span class="notifications-bell-badge" [attr.aria-label]="unreadCount() + ' unread'"><span class="notifications-bell-badge-count">{{
           unreadCount() > 99 ? '99+' : unreadCount()
-        }}</span>
+        }}</span></span>
       }
     </button>
     <p-popover
@@ -112,21 +112,25 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
       }
       .notifications-bell-badge {
         position: absolute;
-        top: -1px;
-        right: 1px;
+        top: 2px;
+        right: 4px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 1.125rem;
-        height: 1.125rem;
+        min-width: calc(1.125rem - 4px);
+        height: calc(1.125rem - 4px);
         padding: 0 0.2rem;
-        font-size: var(--fs-sm);
+        font-size: var(--fs-xs);
         font-weight: 700;
         line-height: 1;
         background: var(--color-error, #d32f2f);
         color: white;
         border-radius: 999px;
         box-sizing: border-box;
+      }
+      .notifications-bell-badge-count {
+        position: relative;
+        top: 1px;
       }
       .notifications-panel-header {
         padding: 0.75rem 1rem;

@@ -127,18 +127,6 @@ import { LayoutService } from './layout.service';
         </a>
       </div>
       <div class="layout-topbar-actions">
-        @if (tenant.canSwitch()) {
-          <p-select
-            [options]="tenant.tenants()"
-            optionLabel="name"
-            optionValue="slug"
-            [ngModel]="tenant.currentSlug()"
-            (onChange)="tenant.switchTo($event.value)"
-            ariaLabel="Switch tenant"
-            size="small"
-            styleClass="topbar-tenant-select topbar-action-mobile-hidden"
-          />
-        }
         <app-global-search (opened)="onGlobalSearchOpened()" />
         @defer (when helpRequested()) {
           <app-help-drawer />
@@ -153,6 +141,18 @@ import { LayoutService } from './layout.service';
           <i class="pi pi-question-circle"></i>
         </button>
         <app-notifications-bell (opened)="onNotificationsOpened()" />
+        @if (tenant.canSwitch()) {
+          <p-select
+            [options]="tenant.tenants()"
+            optionLabel="name"
+            optionValue="slug"
+            [ngModel]="tenant.currentSlug()"
+            (onChange)="tenant.switchTo($event.value)"
+            ariaLabel="Switch tenant"
+            size="small"
+            styleClass="topbar-tenant-select topbar-action-mobile-hidden"
+          />
+        }
         <div class="layout-topbar-action-wrap">
           <button
             type="button"

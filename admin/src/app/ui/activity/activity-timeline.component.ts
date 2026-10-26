@@ -9,19 +9,24 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
-import { TagModule } from 'primeng/tag';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 import { QuillModule } from 'ngx-quill';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
+import { TmApiService } from '../../task-manager/core/tm-api.service';
+import { Person, TmProjectListItem, TmSection } from '../../task-manager/core/tm.types';
 import {
   CommunicationsApi,
   contactName,
   ContactSummary,
-  directionLabel,
   Interaction,
+  InteractionParticipant,
   interactionIcon,
   InteractionType,
   LogInteractionPayload,
+  TeamMember,
   participantLine,
   senderAndRecipients,
   relativeTime,
@@ -29,8 +34,61 @@ import {
 } from '../../core/communications.api';
 import { MessageBodyComponent } from '../message-body/message-body.component';
 import { PersonComponent } from '../person/person.component';
+import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 
 type TypeFilter = 'ALL' | InteractionType;
+
+type InvolvedOption = {
+  id: string;
+  label: string;
+  firstName: string;
+  lastName: string | null;
+  avatarUrl: string | null;
+};
+
+function byLastName(a: InvolvedOption, b: InvolvedOption): number {
+  const last = (a.lastName || a.firstName || a.label).localeCompare(b.lastName || b.firstName || b.label, undefined, { sensitivity: 'base' });
+  if (last !== 0) return last;
+  return a.firstName.localeCompare(b.firstName, undefined, { sensitivity: 'base' });
+}
+
+function escapePlain(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Notes from the activity, kept on the new task. */
+function taskNotes(item: Interaction): string | undefined {
+  const chunks: string[] = [];
+  if (item.location?.trim()) chunks.push(`<p>Where: ${escapePlain(item.location.trim())}</p>`);
+  const body = item.bodyText?.trim();
+  if (body) chunks.push(/<\/?[a-z][^>]*>/i.test(body) ? body : `<p>${escapePlain(body)}</p>`);
+  return chunks.length ? chunks.join('') : undefined;
+}
+
+function idsPrefixed(ids: string[], kind: 'user' | 'contact'): string[] | undefined {
+  const prefix = `${kind}:`;
+  const picked = ids.filter((id) => id.startsWith(prefix)).map((id) => id.slice(prefix.length));
+  return picked.length ? picked : undefined;
+}
+
+function activityHaystack(item: Interaction): string {
+  const bits = [
+    item.subject,
+    item.location,
+    item.snippet,
+    item.bodyText,
+    item.loggedBy?.name,
+    item.loggedBy?.firstName,
+    item.loggedBy?.lastName,
+    ...item.participants.flatMap((p) => [p.name, p.email]),
+    ...item.captures.map((c) => c.capturedByEmail),
+  ];
+  return bits
+    .filter((bit) => !!bit)
+    .join(' ')
+    .replace(/<[^>]+>/g, ' ')
+    .toLowerCase();
+}
 
 /** `datetime-local` wants local time without a zone, e.g. 2026-10-17T14:30. */
 function nowForInput(): string {
@@ -57,9 +115,11 @@ function nowForInput(): string {
     SelectModule,
     SelectButtonModule,
     SkeletonModule,
-    TagModule,
+    IconFieldModule,
+    InputIconModule,
     QuillModule,
     MessageBodyComponent,
+    RowActionsMenuComponent,
   ],
   template: `
     <div class="card">
@@ -78,17 +138,40 @@ function nowForInput(): string {
 
       @if (!(loading() && items().length === 0)) {
         <div class="activity-filter">
-          <p-selectbutton
+          <p-select
             [options]="filterOptions"
             optionLabel="label"
             optionValue="value"
             [ngModel]="filter()"
             (ngModelChange)="filter.set($event)"
-            [allowEmpty]="false"
-            size="small"
-            ariaLabelledBy="activityFilterLabel"
-          />
-          <span id="activityFilterLabel" class="sr-only">Filter activity by type</span>
+            appendTo="body"
+            styleClass="activity-type-select"
+            ariaLabel="Activity type"
+          >
+            <ng-template #item let-option>
+              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
+            </ng-template>
+            <ng-template #selectedItem let-option>
+              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
+            </ng-template>
+          </p-select>
+          <div class="activity-search">
+            <p-iconfield iconPosition="left" class="w-full">
+              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
+              <input
+                pInputText
+                type="text"
+                class="w-full"
+                [placeholder]="searchPlaceholder()"
+                aria-label="Search activity"
+                [ngModel]="query()"
+                (ngModelChange)="query.set($event)"
+              />
+            </p-iconfield>
+            @if (query().trim()) {
+              <button type="button" pButton icon="pi pi-times" [text]="true" (click)="query.set('')" aria-label="Clear search"></button>
+            }
+          </div>
         </div>
       }
 
@@ -111,8 +194,8 @@ function nowForInput(): string {
         </div>
       } @else if (visible().length === 0) {
         <div class="empty-state">
-          <i class="pi pi-filter" aria-hidden="true"></i>
-          <p>No {{ filterName() }} in the activity loaded so far.{{ nextBefore() ? ' Try loading older activity.' : '' }}</p>
+          <i class="pi" [class.pi-search]="query().trim()" [class.pi-filter]="!query().trim()" aria-hidden="true"></i>
+          <p>{{ emptyFilterMessage() }}</p>
         </div>
       }
 
@@ -124,43 +207,32 @@ function nowForInput(): string {
           <div class="activity-body">
             <div class="activity-head">
               <strong>{{ item.subject || '(no subject)' }}</strong>
-              <span class="activity-date" [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
+              <span class="activity-when">
+                @if (logger(item); as who) {
+                  <app-person [name]="who.name" [firstName]="who.firstName" [lastName]="who.lastName" [avatarUrl]="who.avatarUrl" [personId]="who.id" [size]="20" />
+                }
+                <span class="activity-date" [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
+                <app-row-actions-menu [items]="entryActions(item)" ariaLabel="Activity actions" />
+              </span>
             </div>
             <div class="activity-meta">
-              <p-tag [value]="directionLabel(item)" severity="secondary" />
               @if (item.location) {
                 <span>{{ item.location }}</span>
               }
               @let ppl = people(item);
-              @if (ppl.from) {
-                <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" [size]="20" />
-                @if (ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
-              }
-              @for (p of ppl.to; track p.email) {
+              @for (p of ppl.from; track p.userId ?? p.contactId ?? p.email) {
                 <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="20" />
               }
-              @if (item.loggedBy?.name) {
-                <span class="activity-logged-by">· logged by</span>
-                <app-person [name]="item.loggedBy!.name" [firstName]="item.loggedBy!.firstName" [lastName]="item.loggedBy!.lastName" [avatarUrl]="item.loggedBy!.avatarUrl" [personId]="item.loggedBy!.id" [size]="20" />
-              } @else if (item.captures.length) {
+              @if (ppl.from.length && ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
+              @for (p of ppl.to; track p.userId ?? p.contactId ?? p.email) {
+                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="20" />
+              }
+              @if (!logger(item) && item.captures.length) {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
               }
             </div>
 
             <app-message-body [item]="item" />
-
-            @if (item.status === 'FILED' && item.type === 'EMAIL' && !contactId()) {
-              <div class="activity-footer">
-                <p-button
-                  label="Move to Unfiled"
-                  icon="pi pi-inbox"
-                  size="small"
-                  severity="secondary"
-                  [text]="true"
-                  (onClick)="unfile(item)"
-                />
-              </div>
-            }
           </div>
         </div>
       }
@@ -230,18 +302,27 @@ function nowForInput(): string {
             />
           }
         </div>
-        @if (clientId() && contactOptions().length) {
+        @if (involvedGroups().length || involvedLoading()) {
           <div class="form-field">
             <label for="logContacts">Who was involved</label>
             <p-multiselect
               inputId="logContacts"
-              [options]="contactOptions()"
+              [options]="involvedGroups()"
+              [group]="true"
+              optionGroupLabel="label"
+              optionGroupChildren="items"
               optionLabel="label"
               optionValue="id"
-              [(ngModel)]="logContactIds"
-              placeholder="Select contacts"
+              [(ngModel)]="involvedIds"
+              [filter]="true"
+              filterBy="label,firstName,lastName"
+              filterPlaceHolder="Search…"
+              [showToggleAll]="false"
+              placeholder="Search and select…"
+              [loading]="involvedLoading()"
               appendTo="body"
               styleClass="w-full involved-select"
+              panelStyleClass="involved-panel"
             >
               <ng-template #item let-option>
                 <app-person
@@ -288,11 +369,159 @@ function nowForInput(): string {
         <p-button label="Save" icon="pi pi-check" [loading]="saving()" (onClick)="saveLog()" />
       </ng-template>
     </p-dialog>
+
+    <p-dialog
+      header="Forward activity"
+      [(visible)]="forwardVisible"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="!forwarding()"
+      [style]="{ width: 'min(36rem, 96vw)' }"
+    >
+      <div class="log-form">
+        <p>Email this activity to the people you pick. Teammates also get a notification.</p>
+        <div class="form-field">
+          <label for="forwardPeople">People</label>
+          <p-multiselect
+            inputId="forwardPeople"
+            [options]="involvedGroups()"
+            [group]="true"
+            optionGroupLabel="label"
+            optionGroupChildren="items"
+            optionLabel="label"
+            optionValue="id"
+            [(ngModel)]="forwardIds"
+            [filter]="true"
+            filterBy="label,firstName,lastName"
+            filterPlaceHolder="Search…"
+            [showToggleAll]="false"
+            placeholder="Search and select…"
+            [loading]="involvedLoading()"
+            appendTo="body"
+            styleClass="w-full involved-select"
+            panelStyleClass="involved-panel"
+          >
+            <ng-template #item let-option>
+              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+            </ng-template>
+            <ng-template #selecteditems let-options let-removeChip="removeChip">
+              @for (option of options ?? []; track option.id) {
+                <span class="involved-chip">
+                  <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="26" />
+                  <button type="button" class="involved-chip-remove" [attr.aria-label]="'Remove ' + option.label" (click)="removeChip(option.id, $event)">
+                    <svg viewBox="0 0 16 16" aria-hidden="true">
+                      <path fill="currentColor" fill-rule="evenodd" d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16ZM5.1 4.2 8 7.1l2.9-2.9 0.9 0.9L8.9 8l2.9 2.9-0.9 0.9L8 8.9l-2.9 2.9-0.9-0.9L7.1 8 4.2 5.1l0.9-0.9Z" />
+                    </svg>
+                  </button>
+                </span>
+              }
+            </ng-template>
+          </p-multiselect>
+        </div>
+        @if (forwardError()) {
+          <p-message severity="error" [text]="forwardError()!" />
+        }
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="forwarding()" (onClick)="forwardVisible = false" />
+        <p-button label="Send" icon="pi pi-send" [loading]="forwarding()" (onClick)="sendForward()" />
+      </ng-template>
+    </p-dialog>
+
+    <p-dialog
+      header="Create task"
+      [(visible)]="taskVisible"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="!taskSaving()"
+      [style]="{ width: 'min(36rem, 96vw)' }"
+    >
+      <div class="log-form">
+        <p>The notes from this activity are included on the task.</p>
+        <div class="form-field">
+          <label for="taskProject">Project</label>
+          <p-select
+            inputId="taskProject"
+            [options]="taskProjects()"
+            optionLabel="name"
+            optionValue="id"
+            [ngModel]="taskProjectId"
+            (ngModelChange)="onTaskProject($event)"
+            [filter]="true"
+            filterBy="name"
+            filterPlaceholder="Search…"
+            [showClear]="true"
+            [loading]="taskLoading()"
+            placeholder="Search and select…"
+            appendTo="body"
+            styleClass="w-full"
+          />
+        </div>
+        @if (taskSections().length) {
+          <div class="form-field">
+            <label for="taskSection">Section</label>
+            <p-select
+              inputId="taskSection"
+              [options]="taskSections()"
+              optionLabel="name"
+              optionValue="id"
+              [(ngModel)]="taskSectionId"
+              [filter]="true"
+              filterBy="name"
+              filterPlaceholder="Search…"
+              appendTo="body"
+              styleClass="w-full"
+            />
+          </div>
+        }
+        <div class="form-field">
+          <label for="taskTitle">Title</label>
+          <input pInputText id="taskTitle" [(ngModel)]="taskTitle" class="w-full" placeholder="Task title" />
+        </div>
+        <div class="form-field">
+          <label for="taskAssignee">Assign to</label>
+          <p-select
+            inputId="taskAssignee"
+            [options]="taskAssignees()"
+            optionLabel="name"
+            optionValue="id"
+            [(ngModel)]="taskAssigneeId"
+            [filter]="true"
+            filterBy="name,email,firstName,lastName"
+            filterPlaceholder="Search…"
+            [showClear]="true"
+            [disabled]="!taskProjectId"
+            placeholder="Search and select…"
+            appendTo="body"
+            styleClass="w-full"
+          >
+            <ng-template #item let-option>
+              <app-person [name]="option.name" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+            </ng-template>
+            <ng-template #selectedItem let-option>
+              <app-person [name]="option.name" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+            </ng-template>
+          </p-select>
+        </div>
+        @if (taskError()) {
+          <p-message severity="error" [text]="taskError()!" />
+        }
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="taskSaving()" (onClick)="taskVisible = false" />
+        <p-button label="Create task" icon="pi pi-check" [loading]="taskSaving()" (onClick)="saveTask()" />
+      </ng-template>
+    </p-dialog>
   `,
   styles: `
     .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
-    .activity-filter { margin-bottom: 0.5rem; }
+    .activity-filter { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .activity-search { flex: 1; display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
+    .activity-type-option { display: inline-flex; align-items: center; gap: 0.5rem; }
+    :host ::ng-deep .activity-type-select { width: 12.5rem; flex: 0 0 auto; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .activity-item { display: flex; gap: 0.85rem; padding: 0.9rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .activity-item:first-of-type { border-top: 0; }
@@ -302,11 +531,32 @@ function nowForInput(): string {
     .activity-icon--MEETING { --c: #7c3aed; }
     .activity-icon--NOTE { --c: #d97706; }
     .activity-body { flex: 1; min-width: 0; }
-    .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
-    .activity-date { white-space: nowrap; font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); cursor: default; }
+    .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+    .activity-head strong { min-width: 0; }
+    .activity-when { display: inline-flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
+    .activity-date {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      line-height: 1;
+      white-space: nowrap;
+      font-size: var(--fs-sm);
+      color: var(--text-color-secondary, #6b7280);
+      cursor: default;
+    }
+    :host ::ng-deep .activity-when .row-actions-trigger {
+      width: 1.75rem;
+      height: 1.75rem;
+      padding: 0 !important;
+    }
+    :host ::ng-deep .activity-when .person-name {
+      display: inline-flex;
+      align-items: center;
+      height: 20px;
+      line-height: 1;
+    }
     .activity-arrow { font-size: var(--fs-sm); color: var(--text-color-secondary); }
     .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); }
-    .activity-footer { margin-top: 0.25rem; margin-left: -0.5rem; }
     .activity-more { text-align: center; margin-top: 0.5rem; }
     .log-form { display: flex; flex-direction: column; gap: 1rem; }
     .involved-chip {
@@ -351,15 +601,24 @@ function nowForInput(): string {
       height: 0.85rem;
       display: block;
     }
+    :host ::ng-deep .involved-panel .p-multiselect-option-group {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-color-secondary, #6b7280);
+    }
   `,
 })
 export class ActivityTimelineComponent {
   private readonly comms = inject(CommunicationsApi);
+  private readonly tasks = inject(TmApiService);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
 
   clientId = input<string>();
   leadId = input<string>();
   contactId = input<string>();
+  /** Second group heading: the organization these people belong to. */
+  organizationName = input<string>();
 
   readonly target = computed<TimelineTarget | null>(() => {
     const c = this.clientId();
@@ -377,12 +636,25 @@ export class ActivityTimelineComponent {
   loading = signal(false);
   error = signal<string | null>(null);
   filter = signal<TypeFilter>('ALL');
+  query = signal('');
   readonly skeletonRows = [1, 2, 3];
   readonly visible = computed(() => {
     const f = this.filter();
-    return f === 'ALL' ? this.items() : this.items().filter((i) => i.type === f);
+    const q = this.query().trim().toLowerCase();
+    const typed = f === 'ALL' ? this.items() : this.items().filter((i) => i.type === f);
+    if (!q) return typed;
+    return typed.filter((i) => activityHaystack(i).includes(q));
   });
   readonly filterName = computed(() => this.filterOptions.find((o) => o.value === this.filter())?.label.toLowerCase() ?? 'activity');
+  readonly searchPlaceholder = computed(() => (this.filter() === 'ALL' ? 'Search activity…' : `Search ${this.filterName()}…`));
+
+  emptyFilterMessage(): string {
+    const older = this.nextBefore() ? ' Try loading older activity.' : '';
+    const q = this.query().trim();
+    if (!q) return `No ${this.filterName()} in the activity loaded so far.${older}`;
+    if (this.filter() === 'ALL') return `No activity matches "${q}".${older}`;
+    return `No ${this.filterName()} match "${q}".${older}`;
+  }
   readonly emptyMessage = computed(() =>
     this.canLog()
       ? 'No activity yet. Use Log activity to record a call, meeting, or note.'
@@ -399,15 +671,44 @@ export class ActivityTimelineComponent {
   logWhere = '';
   logSubject = '';
   logBody = '';
-  logContactIds: string[] = [];
-  contactOptions = signal<{ id: string; label: string; firstName: string; lastName: string | null; avatarUrl: string | null }[]>([]);
+  involvedIds: string[] = [];
+  involvedLoading = signal(false);
 
-  readonly filterOptions: { label: string; value: TypeFilter }[] = [
-    { label: 'All', value: 'ALL' },
-    { label: 'Emails', value: 'EMAIL' },
-    { label: 'Calls', value: 'CALL' },
-    { label: 'Meetings', value: 'MEETING' },
-    { label: 'Notes', value: 'NOTE' },
+  forwardVisible = false;
+  forwarding = signal(false);
+  forwardError = signal<string | null>(null);
+  forwardIds: string[] = [];
+  private forwardItem: Interaction | null = null;
+
+  taskVisible = false;
+  taskSaving = signal(false);
+  taskLoading = signal(false);
+  taskError = signal<string | null>(null);
+  taskProjects = signal<TmProjectListItem[]>([]);
+  taskSections = signal<TmSection[]>([]);
+  taskAssignees = signal<Person[]>([]);
+  taskProjectId: string | null = null;
+  taskSectionId: string | null = null;
+  taskAssigneeId: string | null = null;
+  taskTitle = '';
+  private taskItem: Interaction | null = null;
+  teamOptions = signal<InvolvedOption[]>([]);
+  contactOptions = signal<InvolvedOption[]>([]);
+  readonly involvedGroups = computed(() => {
+    const groups: { label: string; items: InvolvedOption[] }[] = [];
+    const team = this.teamOptions();
+    if (team.length) groups.push({ label: 'Our team', items: team });
+    const people = this.contactOptions();
+    if (people.length) groups.push({ label: this.organizationName()?.trim() || 'Their people', items: people });
+    return groups;
+  });
+
+  readonly filterOptions: { label: string; value: TypeFilter; icon: string }[] = [
+    { label: 'All', value: 'ALL', icon: 'pi-list' },
+    { label: 'Emails', value: 'EMAIL', icon: 'pi-envelope' },
+    { label: 'Calls', value: 'CALL', icon: 'pi-phone' },
+    { label: 'Meetings', value: 'MEETING', icon: 'pi-calendar' },
+    { label: 'Notes', value: 'NOTE', icon: 'pi-file-edit' },
   ];
   readonly typeOptions = [
     { label: 'Call', value: 'CALL' },
@@ -434,9 +735,51 @@ export class ActivityTimelineComponent {
   }
 
   icon = (i: Interaction) => interactionIcon(i.type);
+  /**
+   * Emails: sender, then recipients.
+   * Calls: who placed the call, then who answered. The person who logged it is on the calling
+   * side for We called and Internal, and on the answering side for They called.
+   */
+  people(item: Interaction): { from: InteractionParticipant[]; to: InteractionParticipant[] } {
+    const row = senderAndRecipients(item);
+    const loggerId = item.loggedBy?.id;
+    const isLogger = (p: { userId: string | null }) => !!loggerId && p.userId === loggerId;
+    if (item.type !== 'CALL') {
+      return {
+        from: row.from && !isLogger(row.from) ? [row.from] : [],
+        to: row.to.filter((p) => !isLogger(p)),
+      };
+    }
+    const others = item.participants.filter((p) => !isLogger(p));
+    const ours = others.filter((p) => p.userId);
+    const theirs = others.filter((p) => !p.userId);
+    const caller = this.loggerParticipant(item);
+    if (item.direction === 'INBOUND') return { from: theirs, to: [...(caller ? [caller] : []), ...ours] };
+    if (item.direction === 'INTERNAL') return { from: caller ? [caller] : ours, to: caller ? ours : [] };
+    return { from: [...(caller ? [caller] : []), ...ours], to: theirs };
+  }
+  /** The person who logged a call, shown with their name rather than the stored email. */
+  private loggerParticipant(item: Interaction): InteractionParticipant | null {
+    const who = item.loggedBy;
+    if (!who) return null;
+    const saved = item.participants.find((p) => p.userId === who.id);
+    const name = [who.firstName, who.lastName].filter(Boolean).join(' ').trim() || who.name?.trim() || saved?.name || null;
+    return {
+      email: saved?.email ?? '',
+      name,
+      role: 'ATTENDEE',
+      contactId: null,
+      userId: who.id,
+      avatarUrl: who.avatarUrl ?? saved?.avatarUrl ?? null,
+    };
+  }
+  logger(item: Interaction): Interaction['loggedBy'] {
+    const who = item.loggedBy;
+    if (!who) return null;
+    if (who.name?.trim() || who.firstName?.trim() || who.lastName?.trim()) return who;
+    return null;
+  }
   participants = (i: Interaction) => participantLine(i);
-  readonly people = senderAndRecipients;
-  directionLabel = directionLabel;
   rel = relativeTime;
 
   async load(more: boolean) {
@@ -455,15 +798,12 @@ export class ActivityTimelineComponent {
     }
   }
 
-  async unfile(item: Interaction) {
-    try {
-      await this.comms.unfile(item.id);
-      this.items.set(this.items().filter((i) => i.id !== item.id));
-      void this.comms.refreshUnfiledCount();
-      this.toast.add({ severity: 'success', summary: 'Moved', detail: 'Moved back to the Unfiled inbox.' });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to move');
-    }
+  entryActions(item: Interaction): RowActionItem[] {
+    return [
+      { id: 'forward', label: 'Forward', icon: 'pi pi-send', command: () => void this.openForward(item) },
+      { id: 'task', label: 'Create task', icon: 'pi pi-check-square', command: () => void this.openTask(item) },
+      { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove(item) },
+    ];
   }
 
   async openLog() {
@@ -473,25 +813,49 @@ export class ActivityTimelineComponent {
     this.logWhere = '';
     this.logSubject = '';
     this.logBody = '';
-    this.logContactIds = [];
+    this.involvedIds = [];
     this.logError.set(null);
     this.logVisible = true;
-    const clientId = this.clientId();
-    if (clientId && this.contactOptions().length === 0) {
-      try {
-        const contacts: ContactSummary[] = await this.comms.contacts({ clientId });
-        this.contactOptions.set(
-          contacts.map((c) => ({
-            id: c.id,
+    await this.loadPeople();
+  }
+
+  private async loadPeople(forClientId?: string | null) {
+    this.involvedLoading.set(true);
+    const clientId = forClientId === undefined ? this.clientId() : forClientId;
+    try {
+      const [team, contacts] = await Promise.all([
+        this.comms.team().catch(() => [] as TeamMember[]),
+        clientId ? this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]) : Promise.resolve([] as ContactSummary[]),
+      ]);
+      const teamEmails = new Set(team.map((u) => u.email.trim().toLowerCase()).filter(Boolean));
+      this.teamOptions.set(
+        team
+          .map((u) => ({
+            id: `user:${u.id}`,
+            label: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email,
+            firstName: u.firstName ?? '',
+            lastName: u.lastName,
+            avatarUrl: u.avatarUrl,
+          }))
+          .sort(byLastName),
+      );
+      this.contactOptions.set(
+        contacts
+          .filter((c) => {
+            const email = (c.emails.find((e) => e.isPrimary) ?? c.emails[0])?.email?.trim().toLowerCase();
+            return !email || !teamEmails.has(email);
+          })
+          .map((c) => ({
+            id: `contact:${c.id}`,
             label: contactName(c),
             firstName: c.firstName,
             lastName: c.lastName,
             avatarUrl: c.avatarUrl ?? null,
-          })),
-        );
-      } catch {
-        this.contactOptions.set([]);
-      }
+          }))
+          .sort(byLastName),
+      );
+    } finally {
+      this.involvedLoading.set(false);
     }
   }
 
@@ -513,7 +877,8 @@ export class ActivityTimelineComponent {
         bodyText: notes,
         location: this.logType === 'MEETING' ? this.logWhere.trim() || undefined : undefined,
         direction: this.logType === 'CALL' ? this.logDirection : this.logType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
-        contactIds: this.logContactIds.length ? this.logContactIds : undefined,
+        contactIds: idsPrefixed(this.involvedIds, 'contact'),
+        userIds: idsPrefixed(this.involvedIds, 'user'),
       };
       await this.comms.log(payload);
       this.logVisible = false;
@@ -524,5 +889,138 @@ export class ActivityTimelineComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  async openForward(item: Interaction) {
+    this.forwardItem = item;
+    this.forwardIds = [];
+    this.forwardError.set(null);
+    this.forwardVisible = true;
+    await this.loadPeople(item.clientId ?? this.clientId());
+  }
+
+  async sendForward() {
+    const item = this.forwardItem;
+    if (!item) return;
+    if (!this.forwardIds.length) {
+      this.forwardError.set('Choose at least one person.');
+      return;
+    }
+    this.forwarding.set(true);
+    this.forwardError.set(null);
+    try {
+      const result = await this.comms.forward(item.id, {
+        userIds: idsPrefixed(this.forwardIds, 'user'),
+        contactIds: idsPrefixed(this.forwardIds, 'contact'),
+      });
+      if (!result.emailed) {
+        this.forwardError.set(result.notified ? 'Could not send the email. Teammates were still notified.' : 'Could not send the email.');
+        return;
+      }
+      this.forwardVisible = false;
+      const notified = result.notified ? ` ${result.notified} ${result.notified === 1 ? 'teammate was' : 'teammates were'} notified.` : '';
+      const missed = result.failed ? ` ${result.failed} could not be emailed.` : '';
+      this.toast.add({
+        severity: result.failed ? 'warn' : 'success',
+        summary: 'Forwarded',
+        detail: `Emailed ${result.emailed}.${notified}${missed}`,
+      });
+    } catch (err) {
+      this.forwardError.set(err instanceof Error ? err.message : 'Could not forward this activity');
+    } finally {
+      this.forwarding.set(false);
+    }
+  }
+
+  async openTask(item: Interaction) {
+    this.taskItem = item;
+    this.taskTitle = item.subject?.trim() || '';
+    this.taskProjectId = null;
+    this.taskSectionId = null;
+    this.taskAssigneeId = null;
+    this.taskSections.set([]);
+    this.taskAssignees.set([]);
+    this.taskError.set(null);
+    this.taskVisible = true;
+    this.taskLoading.set(true);
+    try {
+      const projects = await this.tasks.listProjects();
+      this.taskProjects.set(projects.filter((p) => p.isActive));
+      if (!this.taskProjects().length) this.taskError.set('No task projects yet.');
+    } catch (err) {
+      this.taskError.set(err instanceof Error ? err.message : 'Could not load projects');
+    } finally {
+      this.taskLoading.set(false);
+    }
+  }
+
+  async onTaskProject(projectId: string | null) {
+    this.taskProjectId = projectId;
+    this.taskSectionId = null;
+    this.taskAssigneeId = null;
+    this.taskSections.set([]);
+    this.taskAssignees.set([]);
+    if (!projectId) return;
+    this.taskLoading.set(true);
+    this.taskError.set(null);
+    try {
+      const [project, people] = await Promise.all([this.tasks.getProject(projectId), this.tasks.people(projectId)]);
+      const sections = [...project.sections].sort((a, b) => a.sortOrder - b.sortOrder);
+      this.taskSections.set(sections);
+      this.taskSectionId = sections[0]?.id ?? null;
+      this.taskAssignees.set(
+        [...people].sort((a, b) => (a.lastName || a.name || '').localeCompare(b.lastName || b.name || '', undefined, { sensitivity: 'base' })),
+      );
+    } catch (err) {
+      this.taskError.set(err instanceof Error ? err.message : 'Could not load that project');
+    } finally {
+      this.taskLoading.set(false);
+    }
+  }
+
+  async saveTask() {
+    const item = this.taskItem;
+    if (!item) return;
+    if (!this.taskProjectId) {
+      this.taskError.set('Choose a project.');
+      return;
+    }
+    if (!this.taskTitle.trim()) {
+      this.taskError.set('Add a title.');
+      return;
+    }
+    this.taskSaving.set(true);
+    this.taskError.set(null);
+    try {
+      await this.tasks.createTask({
+        projectId: this.taskProjectId,
+        sectionId: this.taskSectionId,
+        name: this.taskTitle.trim(),
+        assigneeId: this.taskAssigneeId,
+        description: taskNotes(item),
+      });
+      this.taskVisible = false;
+      this.toast.add({ severity: 'success', summary: 'Task created', detail: 'The activity notes are on the task.' });
+    } catch (err) {
+      this.taskError.set(err instanceof Error ? err.message : 'Could not create the task');
+    } finally {
+      this.taskSaving.set(false);
+    }
+  }
+
+  confirmRemove(item: Interaction) {
+    const label = item.subject?.trim() || 'this activity';
+    this.confirmDelete.confirm({
+      message: `Delete "${label}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.comms.remove(item.id);
+          this.items.update((list) => list.filter((row) => row.id !== item.id));
+          this.toast.add({ severity: 'success', summary: 'Deleted', detail: 'Activity removed.' });
+        } catch (err) {
+          this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : 'Delete failed' });
+        }
+      },
+    });
   }
 }

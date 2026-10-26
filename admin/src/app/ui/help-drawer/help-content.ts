@@ -69,7 +69,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Activity',
-      body: 'Emails, calls, meetings and notes for this organization. Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. On a meeting, Where is the place or link. Notes / next steps is a formatted note. All, Emails, Calls, Meetings and Notes filters the list. Emails appear when UBO is CC\'d on the thread.',
+      body: 'Emails, calls, meetings and notes for this organization. Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when UBO is CC\'d on the thread.',
     },
     {
       heading: 'Files, links and notes',
@@ -123,7 +123,7 @@ const LEAD_DETAIL: HelpArticle = {
     },
     {
       heading: 'Activity and files',
-      body: 'Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Filter the list with All, Emails, Calls, Meetings and Notes. Filed emails show here too, along with files, links and notes.',
+      body: 'Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Filed emails show here too, along with files, links and notes.',
     },
   ],
 };
@@ -340,7 +340,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Activity',
-        body: 'Emails, calls, meetings and notes involving this person, across all their organizations. Record a call, meeting, or note with Log activity on the organization or pipeline card.',
+        body: 'Emails, calls, meetings and notes involving this person, across all their organizations. Record a call, meeting, or note with Log activity on the organization or pipeline card. The menu on an entry can Forward it, Create task, or Delete it after you confirm.',
       },
     ],
   },

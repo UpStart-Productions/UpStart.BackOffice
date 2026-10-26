@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ServiceKeysModule } from '../service-keys/service-keys.module';
 import { CaptureSettingsController } from './capture-settings.controller';
 import { CaptureSettingsService } from './capture-settings.service';
@@ -13,7 +14,7 @@ import { InteractionsService } from './interactions.service';
 
 // PrismaModule and StorageModule are @Global, so they need no import here.
 @Module({
-  imports: [ServiceKeysModule],
+  imports: [ServiceKeysModule, NotificationsModule],
   controllers: [
     CommunicationsIngestController,
     CommunicationsController,

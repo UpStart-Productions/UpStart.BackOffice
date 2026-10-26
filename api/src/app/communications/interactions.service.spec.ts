@@ -14,13 +14,16 @@ const row = (id: string, d: number, extra: Record<string, unknown> = {}) => ({
 
 function make() {
   const prisma = {
-    interaction: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn(), create: vi.fn(), count: vi.fn() },
+    interaction: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn(), create: vi.fn(), delete: vi.fn(), count: vi.fn() },
     client: { findUnique: vi.fn(), updateMany: vi.fn() },
     lead: { findUnique: vi.fn(), updateMany: vi.fn() },
     contact: { findMany: vi.fn(), updateMany: vi.fn() },
     contactAccount: { createMany: vi.fn() },
+    user: { findMany: vi.fn() },
   };
-  return { prisma, svc: new InteractionsService(prisma as never) };
+  const mail = { sendRaw: vi.fn().mockResolvedValue({ sent: true }) };
+  const notifications = { create: vi.fn().mockResolvedValue({}) };
+  return { prisma, mail, notifications, svc: new InteractionsService(prisma as never, mail as never, notifications as never) };
 }
 
 describe('helpers', () => {
@@ -52,7 +55,9 @@ describe('InteractionsService', () => {
     const args = h.prisma.interaction.findMany.mock.calls[0][0];
     expect(args.where).toMatchObject({ tenantId: 'default', status: 'FILED', clientId: 'c1' });
     expect(args.take).toBe(3);
-    expect(page.items[0]).not.toHaveProperty('bodyText');
+    expect(page.items[0].bodyText).toBe('hello   world\n\nbody');
+    expect(page.items[0].quoted).toBe(false);
+    expect(page.items[0]).not.toHaveProperty('fullText');
     expect(page.items[0].snippet).toBe('hello world body');
     expect(page.items[0]).not.toHaveProperty('rawKey');
     expect(page.items[0].hasRaw).toBe(true);
@@ -143,7 +148,8 @@ describe('InteractionsService', () => {
     const quoted = 'Friday works.\n\nOn Tue, Oct 13, 2026 at 10:30 AM Lori <l@x.test> wrote:\n> old schedule';
     h.prisma.interaction.findMany.mockResolvedValue([row('a', 5, { bodyText: quoted })]);
     const page = await h.svc.timeline({ clientId: 'c1' });
-    expect(page.items[0].snippet).toBe('Friday works.');
+    expect(page.items[0]).toMatchObject({ snippet: 'Friday works.', bodyText: 'Friday works.', quoted: true });
+    expect(page.items[0]).not.toHaveProperty('fullText');
     h.prisma.interaction.findFirst.mockResolvedValue(row('a', 5, { bodyText: quoted }));
     const one = await h.svc.get('a');
     expect(one).toMatchObject({ bodyText: 'Friday works.', fullText: quoted });
@@ -210,6 +216,23 @@ describe('InteractionsService', () => {
       expect(h.prisma.contact.updateMany).toHaveBeenCalled();
     });
 
+    it('logs a teammate alongside the person who saved it', async () => {
+      h.prisma.client.findUnique.mockResolvedValue({ id: 'c1' });
+      h.prisma.user.findMany.mockResolvedValue([
+        { id: 'u2', email: 'Devin@Example.com', firstName: 'Devin', lastName: 'Lee', name: null },
+      ]);
+      h.prisma.interaction.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+        ...row('new', 1), ...data, participants: [], captures: [], loggedBy: null,
+      }));
+      await h.svc.log({ type: 'CALL', clientId: 'c1', subject: 'Check in', userIds: ['u2', 'u1'] }, user);
+      const data = h.prisma.interaction.create.mock.calls[0][0].data;
+      expect(data.participants.create).toEqual([
+        { email: 'jeff@example.com', role: 'ATTENDEE', userId: 'u1' },
+        { email: 'devin@example.com', name: 'Devin Lee', role: 'ATTENDEE', userId: 'u2' },
+      ]);
+      expect(h.prisma.contact.updateMany).not.toHaveBeenCalled();
+    });
+
     it('logging to a lead also files to the lead\'s Account and bumps its last contact', async () => {
       h.prisma.lead.findUnique.mockResolvedValue({ id: 'l1', clientId: 'acct1' });
       h.prisma.interaction.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...row('n', 1), ...data }));
@@ -233,6 +256,45 @@ describe('InteractionsService', () => {
       await expect(h.svc.log({ type: 'NOTE', leadId: 'l1', bodyText: 'x', contactIds: ['ghost'] }, user))
         .rejects.toBeInstanceOf(BadRequestException);
     });
+  });
+
+  it('forwards an activity by email and notifies every teammate picked, including the sender', async () => {
+    h.prisma.interaction.findFirst.mockResolvedValue(row('a', 1, { subject: 'Intake call', type: 'CALL', direction: 'OUTBOUND' }));
+    h.prisma.user.findMany.mockResolvedValue([
+      { id: 'u1', email: 'jeff@heyupstart.com', firstName: 'Jeff' },
+      { id: 'u2', email: 'devin@heyupstart.com', firstName: 'Devin' },
+    ]);
+    h.prisma.contact.findMany.mockResolvedValue([
+      { id: 'c1', firstName: 'Phil', emails: [{ email: 'phil@client.com', isPrimary: true }] },
+    ]);
+    const result = await h.svc.forward(
+      'a',
+      { userIds: ['u1', 'u2'], contactIds: ['c1'] },
+      { id: 'u1', email: 'jeff@heyupstart.com', firstName: 'Jeff', lastName: 'Denton' },
+    );
+    expect(result).toEqual({ emailed: 3, notified: 2, failed: 0 });
+    expect(h.mail.sendRaw).toHaveBeenCalledTimes(3);
+    expect(h.mail.sendRaw.mock.calls[0][0].subject).toBe('Fwd: Intake call');
+    expect(h.notifications.create).toHaveBeenCalledTimes(2);
+    expect(h.notifications.create.mock.calls.map((call) => call[0].userId)).toEqual(['u1', 'u2']);
+    expect(h.notifications.create.mock.calls[0][0]).toMatchObject({
+      userId: 'u1',
+      type: 'activity_forwarded',
+      title: 'Jeff Denton forwarded an activity',
+      meta: { entityType: 'interaction', entityId: 'a', route: ['clients', 'c1'] },
+    });
+  });
+
+  it('rejects a forward with nobody picked, and a delete of a missing entry', async () => {
+    await expect(h.svc.forward('a', {}, { id: 'u1', email: 'a@b.com' })).rejects.toBeInstanceOf(BadRequestException);
+    h.prisma.interaction.findFirst.mockResolvedValue(null);
+    await expect(h.svc.remove('missing')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('deletes an activity entry', async () => {
+    h.prisma.interaction.findFirst.mockResolvedValue({ id: 'a' });
+    await expect(h.svc.remove('a')).resolves.toEqual({ deleted: true });
+    expect(h.prisma.interaction.delete).toHaveBeenCalledWith({ where: { id: 'a' } });
   });
 });
 

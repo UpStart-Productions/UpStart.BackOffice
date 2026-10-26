@@ -127,6 +127,7 @@ export class TmApiService {
     afterTaskId?: string | null;
     assigneeId?: string | null;
     dueOn?: string | null;
+    description?: string | null;
   }) {
     return this.api.post<TaskSummary>('/tm/tasks', body);
   }

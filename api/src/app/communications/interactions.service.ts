@@ -1,12 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { DEFAULT_TENANT_ID } from './communications.constants';
-import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
-import { stripQuotedText } from './quoted-text.util';
+import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
+import { MailService } from '../mail/mail.service';
+import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
+import { DEFAULT_TENANT_ID } from './communications.constants';
+import { FileInteractionDto, ForwardInteractionDto, LogInteractionDto } from './dto/communications.dto';
+import { stripQuotedText } from './quoted-text.util';
 
 const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's tenant.
 const SNIPPET_LENGTH = 300;
+/** Built-in Guest role key. Kept as a literal so this service does not pull in the shared package. */
+const GUEST_ROLE_KEY = 'guest';
 
 const listInclude = {
   participants: {
@@ -47,6 +53,7 @@ type InteractionRow = {
   direction: string;
   occurredAt: Date;
   subject: string | null;
+  location?: string | null;
   bodyText: string | null;
   rawKey: string | null;
   source: string;
@@ -97,7 +104,10 @@ export function toInteractionView(row: InteractionRow, withBody: boolean) {
     ...(loggedBy ? { loggedBy: { ...loggedBy, avatarUrl: toPublicAssetUrl(loggedBy.avatarUrl ?? null) } } : {}),
     hasRaw: !!rawKey,
     snippet: snippetOf(body),
-    ...(withBody ? { bodyText: body, fullText: quoted ? bodyText : null } : {}),
+    /** New text only. The list includes it so Activity can show the note without a second request. */
+    bodyText: body,
+    quoted,
+    ...(withBody ? { fullText: quoted ? bodyText : null } : {}),
   };
 }
 
@@ -113,9 +123,16 @@ export interface TimelinePage<T> {
   nextBefore: string | null;
 }
 
+const ACTIVITY_KIND: Record<string, string> = { EMAIL: 'Email', CALL: 'Call', MEETING: 'Meeting', NOTE: 'Note' };
+const CALL_WAY: Record<string, string> = { INBOUND: 'They called', OUTBOUND: 'We called', INTERNAL: 'Internal' };
+
 @Injectable()
 export class InteractionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Filed interactions for one client (account) or lead, newest first. */
   async timeline(
@@ -270,6 +287,20 @@ export class InteractionsService {
     return { id, status: 'UNFILED' as const };
   }
 
+  /** Active staff, not guests or client-portal logins. For the Who was involved list. */
+  async team() {
+    const users = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        role: { in: ['ADMIN', 'USER'] },
+        NOT: { tenantRole: { key: GUEST_ROLE_KEY } },
+      },
+      select: { id: true, firstName: true, lastName: true, name: true, email: true, avatarUrl: true },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }, { email: 'asc' }],
+    });
+    return users.map((u) => ({ ...u, avatarUrl: toPublicAssetUrl(u.avatarUrl) }));
+  }
+
   /** Log a call, meeting or note by hand. */
   async log(dto: LogInteractionDto, user: { id: string; email: string }) {
     if (!!dto.clientId === !!dto.leadId) {
@@ -298,6 +329,20 @@ export class InteractionsService {
       : [];
     if (contacts.length !== contactIds.length) throw new BadRequestException('Unknown contact in contactIds.');
 
+    const userIds = [...new Set(dto.userIds ?? [])].filter((id) => id !== user.id);
+    const teammates = userIds.length
+      ? await this.prisma.user.findMany({
+          where: {
+            id: { in: userIds },
+            isActive: true,
+            role: { in: ['ADMIN', 'USER'] },
+            NOT: { tenantRole: { key: GUEST_ROLE_KEY } },
+          },
+          select: { id: true, email: true, firstName: true, lastName: true, name: true },
+        })
+      : [];
+    if (teammates.length !== userIds.length) throw new BadRequestException('Unknown teammate in userIds.');
+
     const created = await this.prisma.interaction.create({
       data: {
         tenantId: TENANT,
@@ -315,6 +360,12 @@ export class InteractionsService {
         participants: {
           create: [
             { email: user.email.toLowerCase(), role: 'ATTENDEE' as const, userId: user.id },
+            ...teammates.map((u) => ({
+              email: u.email.toLowerCase(),
+              name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email,
+              role: 'ATTENDEE' as const,
+              userId: u.id,
+            })),
             ...contacts.map((c) => {
               const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
               return {
@@ -344,6 +395,119 @@ export class InteractionsService {
     }
     if (logClientId) await this.bumpAccountContact(logClientId, occurredAt);
     return toInteractionView(created as InteractionRow, true);
+  }
+
+  /** Email one activity to the people picked. Teammates also get a bell notification. */
+  async forward(id: string, dto: ForwardInteractionDto, actor: { id: string; email: string; name?: string | null; firstName?: string | null; lastName?: string | null }) {
+    const userIds = [...new Set(dto.userIds ?? [])].filter(Boolean);
+    const contactIds = [...new Set(dto.contactIds ?? [])].filter(Boolean);
+    if (!userIds.length && !contactIds.length) throw new BadRequestException('Choose at least one person.');
+
+    const row = await this.prisma.interaction.findFirst({
+      where: { id, tenantId: TENANT },
+      include: listInclude,
+    });
+    if (!row) throw new NotFoundException('Interaction not found.');
+
+    const users = userIds.length
+      ? await this.prisma.user.findMany({
+          where: {
+            id: { in: userIds },
+            isActive: true,
+            role: { in: ['ADMIN', 'USER'] },
+            NOT: { tenantRole: { key: GUEST_ROLE_KEY } },
+          },
+          select: { id: true, email: true, firstName: true },
+        })
+      : [];
+    if (users.length !== userIds.length) throw new BadRequestException('One of those teammates is not available.');
+
+    const contacts = contactIds.length
+      ? await this.prisma.contact.findMany({
+          where: { tenantId: TENANT, id: { in: contactIds }, isActive: true },
+          select: { id: true, firstName: true, emails: { select: { email: true, isPrimary: true } } },
+        })
+      : [];
+    if (contacts.length !== contactIds.length) throw new BadRequestException('One of those people is not available.');
+
+    const recipients = new Map<string, { email: string; firstName: string | null }>();
+    for (const user of users) {
+      const email = user.email.trim();
+      if (!email) continue;
+      recipients.set(email.toLowerCase(), { email, firstName: user.firstName });
+    }
+    for (const contact of contacts) {
+      const chosen = contact.emails.find((e) => e.isPrimary) ?? contact.emails[0];
+      const email = chosen?.email?.trim();
+      if (!email) throw new BadRequestException('One of those people has no email address.');
+      const key = email.toLowerCase();
+      if (!recipients.has(key)) recipients.set(key, { email, firstName: contact.firstName });
+    }
+    if (!recipients.size) throw new BadRequestException('None of those people have an email address.');
+
+    const view = toInteractionView(row as InteractionRow, true);
+    const actorName = [actor.firstName, actor.lastName].filter(Boolean).join(' ').trim() || actor.name?.trim() || actor.email;
+    const kind = ACTIVITY_KIND[view.type] ?? 'Activity';
+    const title = view.subject?.trim() || kind;
+    const when = new Date(view.occurredAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const facts = [
+      { label: 'When', value: when },
+      ...(view.type === 'CALL' && view.direction ? [{ label: 'Who called', value: CALL_WAY[view.direction] ?? view.direction }] : []),
+      ...(view.location ? [{ label: 'Where', value: String(view.location) }] : []),
+    ];
+    const notes = plainText(view.bodyText);
+    const route = view.clientId ? ['clients', view.clientId] : view.leadId ? ['pipeline', view.leadId] : undefined;
+    const href = route ? `${adminAppBaseUrl()}/${route.join('/')}` : undefined;
+    const subject = `Fwd: ${title}`;
+
+    let emailed = 0;
+    let failed = 0;
+    for (const person of recipients.values()) {
+      const html = wrapClientEmail({
+        title,
+        subtitle: kind,
+        greeting: person.firstName ? `Hi ${person.firstName},` : undefined,
+        intro: `${actorName} forwarded this activity to you.`,
+        facts,
+        extraHtml: notes
+          ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.55;color:#2d2d2d;white-space:pre-line;">${escapeHtml(notes)}</p>`
+          : undefined,
+        action: href ? { href, label: 'Open in Back Office' } : undefined,
+      });
+      try {
+        const result = await this.mail.sendRaw({ to: person.email, subject, html });
+        if (result.sent) emailed += 1;
+        else failed += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+
+    const notifyIds = users.map((u) => u.id);
+    for (const userId of notifyIds) {
+      await this.notifications.create({
+        userId,
+        type: 'activity_forwarded',
+        title: `${actorName} forwarded an activity`,
+        body: title,
+        meta: {
+          entityType: 'interaction',
+          entityId: id,
+          ...(route ? { route } : {}),
+          actorUserId: actor.id,
+          actorLabel: actorName,
+        },
+      });
+    }
+
+    return { emailed, notified: notifyIds.length, failed };
+  }
+
+  async remove(id: string) {
+    const existing = await this.prisma.interaction.findFirst({ where: { id, tenantId: TENANT }, select: { id: true } });
+    if (!existing) throw new NotFoundException('Interaction not found.');
+    await this.prisma.interaction.delete({ where: { id } });
+    return { deleted: true };
   }
 
   /** Move "last contacted" forward on an Account and its pipeline items. */

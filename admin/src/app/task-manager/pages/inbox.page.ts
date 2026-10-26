@@ -18,6 +18,7 @@ const TYPE_ICON: Record<string, string> = {
   task_completed: 'pi-check-circle',
   project_added: 'pi-users',
   task_form_submission: 'pi-inbox',
+  activity_forwarded: 'pi-send',
 };
 
 /** Notification inbox (Asana-style): activity / archive, mark read, email settings. */

@@ -5,7 +5,8 @@ export type NotificationType =
   | 'task_comment'
   | 'task_completed'
   | 'project_added'
-  | 'task_form_submission';
+  | 'task_form_submission'
+  | 'activity_forwarded';
 
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'task_assigned',
@@ -14,6 +15,7 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'task_completed',
   'project_added',
   'task_form_submission',
+  'activity_forwarded',
 ];
 
 /** Deep-link and display metadata stored as JSON on each notification row. */

@@ -1,9 +1,9 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { UserContext } from '../common/app.types';
 import { CaptureSettingsService } from './capture-settings.service';
-import { FileInteractionDto, LogInteractionDto } from './dto/communications.dto';
+import { FileInteractionDto, ForwardInteractionDto, LogInteractionDto } from './dto/communications.dto';
 import { InteractionsService } from './interactions.service';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
@@ -57,6 +57,13 @@ export class CommunicationsController {
     return this.interactions.get(id);
   }
 
+  /** Staff for Who was involved. Anyone who can open Activity on an organization or pipeline card. */
+  @Get('team')
+  @Area('inbox', 'clients', 'contacts', 'pipeline')
+  team() {
+    return this.interactions.team();
+  }
+
   @Post('interactions')
   log(@Body() dto: LogInteractionDto, @Req() req: Request) {
     const user = req.user as UserContext;
@@ -73,5 +80,21 @@ export class CommunicationsController {
   @Post('interactions/:id/unfile')
   unfile(@Param('id') id: string) {
     return this.interactions.unfile(id);
+  }
+
+  /** Email the activity to the people picked, and notify teammates. */
+  @Action('edit')
+  @Area('inbox', 'clients', 'contacts', 'pipeline')
+  @Post('interactions/:id/forward')
+  forward(@Param('id') id: string, @Body() dto: ForwardInteractionDto, @Req() req: Request) {
+    return this.interactions.forward(id, dto, req.user as UserContext);
+  }
+
+  /** Remove one activity entry. Edit, not the role's Delete checkbox, so staff who keep the timeline can remove an entry. */
+  @Action('edit')
+  @Area('inbox', 'clients', 'contacts', 'pipeline')
+  @Delete('interactions/:id')
+  remove(@Param('id') id: string) {
+    return this.interactions.remove(id);
   }
 }

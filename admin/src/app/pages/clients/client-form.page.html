@@ -167,7 +167,7 @@
       </form>
 
         @if (!isNew) {
-          <app-activity-timeline [clientId]="id()!" />
+          <app-activity-timeline [clientId]="id()!" [organizationName]="form.name" />
 
           <app-artifacts-panel [clientId]="id()!" />
         }

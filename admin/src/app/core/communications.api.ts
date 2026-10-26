@@ -23,8 +23,10 @@ export interface Interaction {
   /** Where a meeting took place. */
   location?: string | null;
   snippet: string | null;
-  /** Only present on the single-item endpoint. New text only (quoted history removed). */
+  /** New text only (quoted history removed). */
   bodyText?: string | null;
+  /** The email has quoted history that is not in bodyText. */
+  quoted?: boolean;
   /** Only on the single-item endpoint, when quoted history was removed: the whole message. */
   fullText?: string | null;
   hasRaw: boolean;
@@ -92,6 +94,17 @@ export interface LogInteractionPayload {
   bodyText?: string;
   direction?: InteractionDirection;
   contactIds?: string[];
+  /** Team members besides the person logging the activity. */
+  userIds?: string[];
+}
+
+export interface TeamMember {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
 }
 
 export function contactName(c: Pick<ContactSummary, 'firstName' | 'lastName'>): string {
@@ -242,6 +255,11 @@ export class CommunicationsApi {
     return this.api.post('/communications/interactions', payload);
   }
 
+  /** Active staff for Who was involved. */
+  team(): Promise<TeamMember[]> {
+    return this.api.get('/communications/team');
+  }
+
   file(id: string, target: { clientId?: string; leadId?: string; learn?: boolean }) {
     return this.api.post<{ contactsLinked: number; threadItemsFiled: number }>(
       `/communications/interactions/${id}/file`,
@@ -251,6 +269,15 @@ export class CommunicationsApi {
 
   unfile(id: string) {
     return this.api.post(`/communications/interactions/${id}/unfile`, {});
+  }
+
+  /** Email this activity to the people picked. Teammates also get a notification. */
+  forward(id: string, body: { userIds?: string[]; contactIds?: string[] }) {
+    return this.api.post<{ emailed: number; notified: number; failed: number }>(`/communications/interactions/${id}/forward`, body);
+  }
+
+  remove(id: string) {
+    return this.api.delete<{ deleted: boolean }>(`/communications/interactions/${id}`);
   }
 
   contacts(opts: { q?: string; clientId?: string; review?: boolean; tag?: string | null } = {}): Promise<ContactSummary[]> {

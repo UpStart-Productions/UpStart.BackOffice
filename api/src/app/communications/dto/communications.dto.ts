@@ -26,6 +26,15 @@ export class LogInteractionDto {
   @IsIn(['INBOUND', 'OUTBOUND', 'INTERNAL']) @IsOptional() direction?: 'INBOUND' | 'OUTBOUND' | 'INTERNAL';
   @ApiPropertyOptional({ description: 'Contacts who took part.' })
   @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() contactIds?: string[];
+  @ApiPropertyOptional({ description: 'Team members who took part, besides the person logging it.' })
+  @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() userIds?: string[];
+}
+
+export class ForwardInteractionDto {
+  @ApiPropertyOptional({ description: 'Team members to email and notify.' })
+  @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() userIds?: string[];
+  @ApiPropertyOptional({ description: 'Organization people to email.' })
+  @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() contactIds?: string[];
 }
 
 export class CreateContactDto {
