@@ -15,6 +15,12 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, map } from 'rxjs';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
+import {
+  loadTmProjectBoardPrefs,
+  saveTmProjectBoardPrefs,
+  type TmProjectBoardCompletedFilter,
+} from '../core/tm-board-prefs.storage';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, dueLabel, dueTone, PROJECT_COLORS } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
@@ -31,7 +37,7 @@ import { TmAvatarComponent } from '../ui/tm-avatar.component';
 import { TagPick, TmTagPickerComponent } from '../ui/tag-picker.component';
 import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
 
-type CompletedFilter = 'incomplete' | 'all' | 'completed';
+type CompletedFilter = TmProjectBoardCompletedFilter;
 type Group = { section: TmSection | null; tasks: TaskSummary[] };
 
 const NO_SECTION = '__none__';
@@ -77,6 +83,7 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly confirm = inject(ConfirmationService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
+  private readonly session = inject(SessionService);
 
   readonly projectId = toSignal(this.route.paramMap.pipe(map((p) => p.get('projectId')!)), {
     initialValue: this.route.snapshot.paramMap.get('projectId')!,
@@ -97,6 +104,8 @@ export class ProjectTasksPage implements OnDestroy {
   completedFilter = signal<CompletedFilter>('incomplete');
   search = signal('');
   tagFilter = signal<string[]>([]);
+  /** Per-user collapsed sections (localStorage); not shared via API. */
+  collapsedSectionIds = signal<Set<string>>(new Set());
   membersOpen = signal(false);
   contactsOpen = signal(false);
   fieldsOpen = signal(false);
@@ -133,6 +142,8 @@ export class ProjectTasksPage implements OnDestroy {
   private bulkPickerIds: string[] | null = null;
   menuSection: TmSection | null = null;
   private loadSeq = 0;
+  private boardPrefsKey: string | null = null;
+  private boardPrefsProjectId: string | null = null;
 
   readonly canEdit = computed(() => !!this.project()?.permissions.canEdit);
   readonly fields = computed(() => this.project()?.customFields ?? []);
@@ -184,9 +195,14 @@ export class ProjectTasksPage implements OnDestroy {
   constructor() {
     effect(() => {
       const id = this.projectId();
-      untracked(() => void this.load(id));
+      const userId = this.session.me()?.id;
+      untracked(() => {
+        this.restoreBoardPrefs(id, userId);
+        void this.load(id);
+      });
     });
     void this.store.loadTags();
+    void this.session.getReady();
   }
 
   ngOnDestroy() {
@@ -225,8 +241,48 @@ export class ProjectTasksPage implements OnDestroy {
 
   setFilter(value: CompletedFilter) {
     this.completedFilter.set(value);
+    this.persistBoardPrefs();
     this.clearSelection();
     void this.load(this.projectId(), true);
+  }
+
+  setTagFilter(value: string[] | null) {
+    this.tagFilter.set(value ?? []);
+    this.persistBoardPrefs();
+  }
+
+  sectionCollapsed(sectionId: string): boolean {
+    return this.collapsedSectionIds().has(sectionId);
+  }
+
+  private restoreBoardPrefs(projectId: string, userId: string | undefined) {
+    if (this.boardPrefsProjectId !== projectId) {
+      this.boardPrefsProjectId = projectId;
+      this.boardPrefsKey = null;
+      this.completedFilter.set('incomplete');
+      this.tagFilter.set([]);
+      this.collapsedSectionIds.set(new Set());
+    }
+    const key = userId ? `${userId}:${projectId}` : null;
+    if (!key || this.boardPrefsKey === key) return;
+    this.boardPrefsKey = key;
+    const prefs = loadTmProjectBoardPrefs(userId, projectId);
+    if (!prefs) return;
+    if (prefs.completedFilter) this.completedFilter.set(prefs.completedFilter);
+    if (prefs.tagFilter) this.tagFilter.set(prefs.tagFilter);
+    if (prefs.collapsedSectionIds?.length) {
+      this.collapsedSectionIds.set(new Set(prefs.collapsedSectionIds));
+    }
+  }
+
+  private persistBoardPrefs() {
+    const userId = this.session.me()?.id;
+    const projectId = this.projectId();
+    saveTmProjectBoardPrefs(userId, projectId, {
+      completedFilter: this.completedFilter(),
+      tagFilter: this.tagFilter(),
+      collapsedSectionIds: [...this.collapsedSectionIds()],
+    });
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -740,14 +796,12 @@ export class ProjectTasksPage implements OnDestroy {
 
   // ── Sections ────────────────────────────────────────────────────────────
 
-  async toggleCollapse(section: TmSection) {
-    const next = !section.isCollapsed;
-    this.patchSection(section.id, { isCollapsed: next });
-    try {
-      await this.api.updateSection(section.id, { isCollapsed: next });
-    } catch {
-      /* collapse state is cosmetic */
-    }
+  toggleCollapse(section: TmSection) {
+    const next = new Set(this.collapsedSectionIds());
+    if (next.has(section.id)) next.delete(section.id);
+    else next.add(section.id);
+    this.collapsedSectionIds.set(next);
+    this.persistBoardPrefs();
   }
 
   private patchSection(id: string, patch: Partial<TmSection>) {

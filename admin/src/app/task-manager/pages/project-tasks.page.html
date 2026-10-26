@@ -63,7 +63,7 @@
         optionLabel="name"
         optionValue="id"
         [ngModel]="tagFilter()"
-        (ngModelChange)="tagFilter.set($event ?? [])"
+        (ngModelChange)="setTagFilter($event)"
         placeholder="Tags"
         [filter]="true"
         [showClear]="true"
@@ -99,8 +99,8 @@
         <div class="tm-section" role="rowgroup">
           <div class="tm-section-header" role="row">
             @if (g.section; as s) {
-              <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="toggleCollapse(s)" [attr.aria-expanded]="!s.isCollapsed" [attr.aria-label]="(s.isCollapsed ? 'Expand ' : 'Collapse ') + s.name">
-                <i class="pi" [class.pi-chevron-down]="!s.isCollapsed" [class.pi-chevron-right]="s.isCollapsed"></i>
+              <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="toggleCollapse(s)" [attr.aria-expanded]="!sectionCollapsed(s.id)" [attr.aria-label]="(sectionCollapsed(s.id) ? 'Expand ' : 'Collapse ') + s.name">
+                <i class="pi" [class.pi-chevron-down]="!sectionCollapsed(s.id)" [class.pi-chevron-right]="sectionCollapsed(s.id)"></i>
               </button>
               @if (editingSectionId() === s.id) {
                 <input
@@ -126,7 +126,7 @@
             }
           </div>
 
-          <div class="tm-section-collapse" [class.is-collapsed]="!!g.section?.isCollapsed">
+          <div class="tm-section-collapse" [class.is-collapsed]="!!g.section && sectionCollapsed(g.section.id)">
             <div class="tm-section-collapse-inner">
             <div
               class="tm-section-rows"
