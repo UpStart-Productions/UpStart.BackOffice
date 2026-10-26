@@ -1,5 +1,6 @@
 import { Component, input, output, viewChild } from '@angular/core';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { ButtonModule } from 'primeng/button';
 
 export type RowActionSeverity = 'danger' | 'warn';
@@ -16,13 +17,13 @@ export interface RowActionItem {
 @Component({
   selector: 'app-row-actions-menu',
   standalone: true,
-  imports: [PopoverModule, ButtonModule],
+  imports: [AppPopoverModule, ButtonModule],
   template: `
     <div class="row-actions-wrap">
       <button
         type="button"
         class="row-actions-trigger p-button p-button-text p-button-rounded p-button-plain"
-        (click)="popover.toggle($event)"
+        (click)="popover.toggle($event, $event.currentTarget)"
         [attr.aria-label]="ariaLabel()"
         aria-haspopup="true"
       >
@@ -31,6 +32,7 @@ export interface RowActionItem {
       <p-popover
         #popover
         appendTo="body"
+        appCenterPopoverCaret
         styleClass="row-actions-popover"
         [dismissable]="true"
         (onHide)="onPopoverHide()"

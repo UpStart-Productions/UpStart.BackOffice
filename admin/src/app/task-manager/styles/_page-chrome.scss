@@ -94,6 +94,26 @@
   border: 1px solid var(--tm-border);
   color: var(--text-color);
 
+  &:is(a) {
+    text-decoration: none !important;
+    cursor: pointer;
+    color: var(--text-color);
+
+    &:hover,
+    &:focus,
+    &:focus-visible,
+    &:visited,
+    &:active {
+      color: var(--text-color);
+      text-decoration: none !important;
+    }
+
+    &:hover {
+      background: var(--tm-hover);
+      border-color: color-mix(in srgb, var(--tm-border) 70%, var(--text-color));
+    }
+  }
+
   &--personal {
     background: color-mix(in srgb, #0891b2 10%, transparent);
     color: #0e7490;

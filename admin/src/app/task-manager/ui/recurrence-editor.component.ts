@@ -2,7 +2,8 @@ import { Component, output, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputNumberModule } from 'primeng/inputnumber';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { SelectModule } from 'primeng/select';
 import { Recurrence, RecurrenceFreq } from '../core/tm.types';
 
@@ -10,9 +11,9 @@ import { Recurrence, RecurrenceFreq } from '../core/tm.types';
 @Component({
   selector: 'app-tm-recurrence-editor',
   standalone: true,
-  imports: [FormsModule, PopoverModule, SelectModule, InputNumberModule, ButtonModule],
+  imports: [FormsModule, AppPopoverModule, SelectModule, InputNumberModule, ButtonModule],
   template: `
-    <p-popover #pop appendTo="body" styleClass="tm-popover">
+    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
       <div class="tm-recurrence">
         <div class="tm-recurrence-row">
           <label for="tm-rec-freq">Repeat</label>

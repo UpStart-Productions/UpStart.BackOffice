@@ -1,0 +1,26 @@
+# Popover caret (center on trigger)
+
+PrimeNG `p-popover` aims the caret at the **left edge** of the toggle. Product standard: caret points at the **horizontal center** of the trigger.
+
+## Required pattern
+
+- Import **`AppPopoverModule`** (not bare `PopoverModule`).
+- `appendTo="body"` on the popover.
+- Add **`appCenterPopoverCaret`** on every `p-popover`.
+
+```html
+<p-popover #menu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
+```
+
+- Toggle with an explicit target when the click can land on a child (e.g. icon):
+
+```typescript
+popover.toggle(event, event.currentTarget as HTMLElement);
+```
+
+Implementation: `admin/src/app/core/popover-center.util.ts` + `CenterPopoverCaretDirective`.
+
+## Do not
+
+- One-off `onShow` nudges or CSS `transform` on `::before`/`::after` (detaches the caret).
+- Import `PopoverModule` alone for body-appended menus.

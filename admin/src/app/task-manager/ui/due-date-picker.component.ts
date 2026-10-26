@@ -1,7 +1,8 @@
 import { Component, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { dateKey, parseDateKey } from '../../core/date.util';
 import { addDaysKey, todayKey } from '../core/tm-format.util';
 
@@ -9,9 +10,9 @@ import { addDaysKey, todayKey } from '../core/tm-format.util';
 @Component({
   selector: 'app-tm-due-date-picker',
   standalone: true,
-  imports: [FormsModule, PopoverModule, DatePickerModule],
+  imports: [FormsModule, AppPopoverModule, DatePickerModule],
   template: `
-    <p-popover #pop appendTo="body" styleClass="tm-popover">
+    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
       <div class="tm-date-picker">
         <div class="tm-date-quick">
           <button type="button" (click)="pick(today())">Today</button>

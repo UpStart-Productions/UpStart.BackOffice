@@ -17,7 +17,8 @@ import { SessionService } from '../../core/session.service';
 import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
 import type { ClientOption, Project, TimeEntry } from './time-entry.types';
@@ -43,7 +44,7 @@ import {
     DatePickerModule,
     FormsModule,
     PageComponent,
-    PopoverModule,
+    AppPopoverModule,
     SelectModule,
     TimeEntryModalComponent,
   ],

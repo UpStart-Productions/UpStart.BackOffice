@@ -65,7 +65,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'People',
-        body: 'The people at this organization. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add person to create someone new or link someone who already exists in Back Office.',
+        body: 'The people at this organization. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add new person to create someone new or link someone who already exists in Back Office.',
     },
     {
       heading: 'Activity',
@@ -169,7 +169,7 @@ const PROJECT_FORM: HelpArticle = {
     },
     {
       heading: 'People',
-      body: 'Same People panel as on a client: Add existing person (search) or Add person (new). Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send.',
+      body: 'Same People panel as on a client: Add existing person (search) or Add new person. Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send.',
     },
     {
       heading: 'Asana configuration',

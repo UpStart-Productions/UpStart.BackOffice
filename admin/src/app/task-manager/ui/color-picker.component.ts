@@ -1,13 +1,14 @@
 import { Component, forwardRef, input, signal, viewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { PROJECT_COLORS } from '../core/tm-format.util';
 
 /** Grey square trigger; opens the shared task-manager color popover. Supports `ngModel`. */
 @Component({
   selector: 'app-tm-color-picker',
   standalone: true,
-  imports: [PopoverModule],
+  imports: [AppPopoverModule],
   template: `
     <div class="tm-color-picker">
       <button
@@ -19,7 +20,7 @@ import { PROJECT_COLORS } from '../core/tm-format.util';
         aria-label="Choose color"
         (click)="toggle($event)"
       ></button>
-      <p-popover #pop appendTo="body" styleClass="tm-popover">
+      <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
         <div class="tm-appearance tm-color-picker-popover">
           <div class="tm-appearance-label">Color</div>
           <div class="tm-color-swatches tm-color-swatches--row">
@@ -79,7 +80,7 @@ export class TmColorPickerComponent implements ControlValueAccessor {
   toggle(event: Event) {
     event.stopPropagation();
     if (this.disabled()) return;
-    this.pop().toggle(event);
+    this.pop().toggle(event, event.currentTarget as HTMLElement);
     this.onTouched();
   }
 

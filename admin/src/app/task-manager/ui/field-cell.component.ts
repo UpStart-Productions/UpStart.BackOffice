@@ -1,7 +1,8 @@
 import { Component, computed, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { dateKey, parseDateKey } from '../../core/date.util';
 import { dueLabel, fieldOptionChipColors } from '../core/tm-format.util';
 import { FieldOption, TmField } from '../core/tm.types';
@@ -10,7 +11,7 @@ import { FieldOption, TmField } from '../core/tm.types';
 @Component({
   selector: 'app-tm-field-cell',
   standalone: true,
-  imports: [FormsModule, PopoverModule, DatePickerModule],
+  imports: [FormsModule, AppPopoverModule, DatePickerModule],
   host: { class: 'tm-field-cell-host' },
   template: `
     @switch (field().type) {
@@ -72,7 +73,7 @@ import { FieldOption, TmField } from '../core/tm.types';
       }
     }
 
-    <p-popover #optionsPop appendTo="body" styleClass="tm-popover">
+    <p-popover #optionsPop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
       <ul class="tm-picker-list tm-option-list">
         @for (o of field().options; track o.id) {
           <li>
@@ -92,7 +93,7 @@ import { FieldOption, TmField } from '../core/tm.types';
       </ul>
     </p-popover>
 
-    <p-popover #datePop appendTo="body" styleClass="tm-popover">
+    <p-popover #datePop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
       <p-datepicker [inline]="true" [ngModel]="dateValue()" (ngModelChange)="pickDate($event)" />
       @if (value()) {
         <button type="button" class="tm-picker-item tm-picker-clear" (click)="clear(); datePop.hide()">Clear</button>

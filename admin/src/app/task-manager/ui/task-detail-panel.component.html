@@ -331,7 +331,7 @@
 
 <app-tm-tag-picker #tagPicker (picked)="addTag($event)" />
 
-<p-popover #moreMenu appendTo="body" styleClass="tm-popover">
+<p-popover #moreMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
   <div class="tm-menu">
     <button type="button" class="tm-picker-item tm-danger" (click)="deleteTask()"><i class="pi pi-trash"></i> Delete task</button>
   </div>

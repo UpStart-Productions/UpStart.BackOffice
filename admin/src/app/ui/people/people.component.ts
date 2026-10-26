@@ -43,18 +43,30 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
     CreatePersonModalComponent,
   ],
   template: `
-    <div class="card people-panel" [class.card--side]="compact()" [class.people-panel--compact]="compact()">
-      <div class="card-header">
-        <h3 class="card-title">People</h3>
-        <p-button
-          type="button"
-          label="Add person"
-          icon="pi pi-plus"
-          size="small"
-          severity="secondary"
-          (onClick)="openNewPerson()"
-        />
-      </div>
+    <div
+      class="people-panel"
+      [class.card]="!embeddedInDialog()"
+      [class.card--side]="compact() && !embeddedInDialog()"
+      [class.people-panel--compact]="compact()"
+      [class.people-panel--embedded]="embeddedInDialog()"
+    >
+      @if (showPanelTitle() || (!controlsAfterList() && mode() === 'project')) {
+        <div class="card-header">
+          @if (showPanelTitle()) {
+            <h3 class="card-title">People</h3>
+          }
+          @if (!controlsAfterList()) {
+            <p-button
+              type="button"
+              label="Add new person"
+              icon="pi pi-plus"
+              size="small"
+              severity="secondary"
+              (onClick)="openNewPerson()"
+            />
+          }
+        </div>
+      }
 
       @if (panelError()) {
         <p-message severity="error" [text]="panelError()!" class="mb-3" />
@@ -64,18 +76,20 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         <p class="text-color-secondary mt-0 mb-3 text-sm">{{ hintText() }}</p>
       }
 
-      <div class="form-field people-panel-picker">
-        <label [attr.for]="pickerInputId">Add existing person</label>
-        <app-people-select
-          [inputId]="pickerInputId"
-          [(pickId)]="pickId"
-          (pickIdChange)="onExistingPicked($event)"
-          [options]="pickerOptions()"
-          [loading]="pickerLoading()"
-          placeholder="Search and select…"
-          ariaLabel="Add existing person"
-        />
-      </div>
+      @if (!controlsAfterList()) {
+        <div class="form-field people-panel-picker">
+          <label [attr.for]="pickerInputId">Add existing person</label>
+          <app-people-select
+            [inputId]="pickerInputId"
+            [(pickId)]="pickId"
+            (pickIdChange)="onExistingPicked($event)"
+            [options]="pickerOptions()"
+            [loading]="pickerLoading()"
+            placeholder="Search and select…"
+            ariaLabel="Add existing person"
+          />
+        </div>
+      }
 
       @if (mode() === 'organization') {
         @if (orgLoading() && orgPeople().length === 0) {
@@ -128,16 +142,47 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               <span class="people-panel-project-name">{{ projectDisplayName(contact) || 'Unnamed' }}</span>
               @if (!contact.contactId) {
                 <span class="people-panel-meta">Legacy contact — remove and add from People</span>
-              } @else if (contact.email) {
-                <span class="people-panel-meta">{{ contact.email }}</span>
-              } @else if (contact.phone) {
-                <span class="people-panel-meta">{{ contact.phone }}</span>
               }
+              <div class="people-panel-project-details">
+                @if (contact.phone) {
+                  <span class="people-panel-meta">{{ contact.phone }}</span>
+                }
+                @if (contact.email) {
+                  <app-copy-email [email]="contact.email" [muted]="true" />
+                }
+              </div>
             </div>
-            <app-row-actions-menu [items]="projectRowActions(rowIndex)" ariaLabel="Contact actions" />
+            @if (!embeddedInDialog()) {
+              <app-row-actions-menu [items]="projectRowActions(rowIndex)" ariaLabel="Contact actions" />
+            }
           </div>
         } @empty {
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
+        }
+
+        @if (controlsAfterList()) {
+          <div class="people-panel-add-block">
+            <div class="form-field people-panel-picker">
+              <label [attr.for]="pickerInputId">Add existing person</label>
+              <app-people-select
+                [inputId]="pickerInputId"
+                [(pickId)]="pickId"
+                (pickIdChange)="onExistingPicked($event)"
+                [options]="pickerOptions()"
+                [loading]="pickerLoading()"
+                placeholder="Search and select…"
+                ariaLabel="Add existing person"
+              />
+            </div>
+            <p-button
+              type="button"
+              label="Add new person"
+              icon="pi pi-plus"
+              size="small"
+              severity="secondary"
+              (onClick)="openNewPerson()"
+            />
+          </div>
         }
       }
     </div>
@@ -193,6 +238,28 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       font-weight: 600;
       line-height: 1.25;
     }
+    .people-panel-project-details {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+    .people-panel-add-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--surface-border);
+    }
+    .people-panel-add-block .people-panel-picker {
+      margin-bottom: 0;
+    }
+    .people-panel--embedded {
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      box-shadow: none;
+    }
     .people-panel--compact .people-panel-org-row {
       grid-template-columns: minmax(0, 1fr);
       gap: 0.25rem;
@@ -225,6 +292,12 @@ export class PeopleComponent {
   hint = input<string | null>(null);
   /** When picking on a project, omit people already on this project. */
   projectId = input<string | null>(null);
+  /** Hide the “People” heading (e.g. inside Project contacts dialog). */
+  showPanelTitle = input(true);
+  /** Project mode: list contacts first, then add-existing + Add person (Tasks dialog). */
+  controlsAfterList = input(false);
+  /** Inside a dialog: skip outer `.card` padding (modal already provides chrome). */
+  embeddedInDialog = input(false);
   /** `modal` opens the new-person dialog; `delegate` emits addPersonRequested for the host to show inline UI. */
   addPersonFlow = input<'modal' | 'delegate'>('modal');
   addPersonRequested = output<void>();
@@ -248,9 +321,6 @@ export class PeopleComponent {
   readonly hintText = () => {
     const custom = this.hint();
     if (custom !== null) return custom;
-    if (this.mode() === 'project') {
-      return 'Client-side contacts for invoicing and communication. Each person lives in People; save the project to refresh their details from the profile.';
-    }
     return null;
   };
 

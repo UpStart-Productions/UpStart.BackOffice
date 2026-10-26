@@ -11,7 +11,8 @@ import {
 import { RouterLink } from '@angular/router';
 import { notificationDisplayBody, type UserNotificationDto } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { NotificationsApiService } from '../../core/notifications-api.service';
 import { SessionService } from '../../core/session.service';
 import { NotificationRelativeTimeComponent } from './notification-relative-time.component';
@@ -20,12 +21,12 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
 @Component({
   selector: 'app-notifications-bell',
   standalone: true,
-  imports: [PopoverModule, ButtonModule, RouterLink, NotificationRelativeTimeComponent],
+  imports: [AppPopoverModule, ButtonModule, RouterLink, NotificationRelativeTimeComponent],
   template: `
     <button
       type="button"
       class="layout-topbar-action notifications-bell-btn"
-      (click)="popover.toggle($event)"
+      (click)="popover.toggle($event, $event.currentTarget)"
       aria-label="Notifications"
       aria-haspopup="true"
     >
@@ -39,6 +40,7 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
     <p-popover
       #popover
       appendTo="body"
+      appCenterPopoverCaret
       styleClass="notifications-panel"
       [style]="{ width: 'calc(22rem + 100px)', minWidth: 'calc(22rem + 100px)' }"
       (onShow)="onPanelShow()"

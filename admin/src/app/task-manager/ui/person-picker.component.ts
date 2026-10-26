@@ -1,6 +1,7 @@
 import { Component, computed, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { Person } from '../core/tm.types';
 import { TmAvatarComponent } from './tm-avatar.component';
 
@@ -8,9 +9,9 @@ import { TmAvatarComponent } from './tm-avatar.component';
 @Component({
   selector: 'app-tm-person-picker',
   standalone: true,
-  imports: [FormsModule, PopoverModule, TmAvatarComponent],
+  imports: [FormsModule, AppPopoverModule, TmAvatarComponent],
   template: `
-    <p-popover #pop appendTo="body" styleClass="tm-popover" (onHide)="query.set('')">
+    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover" (onHide)="query.set('')">
       <div class="tm-picker">
         <input
           #search

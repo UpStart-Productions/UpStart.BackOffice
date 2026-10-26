@@ -2,7 +2,8 @@ import { Component, computed, inject, input, output, signal, viewChild } from '@
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { TooltipModule } from 'primeng/tooltip';
 import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
@@ -19,7 +20,7 @@ type Mode = 'section' | 'move' | 'add';
 @Component({
   selector: 'app-tm-task-projects',
   standalone: true,
-  imports: [FormsModule, RouterLink, PopoverModule, TooltipModule, TmProjectIconComponent],
+  imports: [FormsModule, RouterLink, AppPopoverModule, TooltipModule, TmProjectIconComponent],
   template: `
     <div class="tm-memberships">
       @for (m of projects(); track m.id) {
@@ -51,7 +52,7 @@ type Mode = 'section' | 'move' | 'add';
       }
     </div>
 
-    <p-popover #pop appendTo="body" styleClass="tm-popover" (onHide)="reset()">
+    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover" (onHide)="reset()">
       <div class="tm-picker">
         @if (step() === 'project') {
           <div class="tm-menu-label">{{ mode() === 'add' ? 'Add to project' : 'Move to project' }}</div>
@@ -142,7 +143,7 @@ export class TmTaskProjectsComponent {
     this.step.set('section');
     this.current.set(m);
     this.target.set(m);
-    this.pop().toggle(event);
+    this.pop().toggle(event, event.currentTarget as HTMLElement);
     await this.loadSections(m.id);
   }
 
@@ -150,7 +151,7 @@ export class TmTaskProjectsComponent {
     this.mode.set('add');
     this.step.set('project');
     this.current.set(null);
-    this.pop().toggle(event);
+    this.pop().toggle(event, event.currentTarget as HTMLElement);
     if (!this.store.projectsLoaded()) await this.store.loadProjects();
   }
 

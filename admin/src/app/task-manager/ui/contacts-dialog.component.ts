@@ -37,10 +37,13 @@ type ContactsView = 'list' | 'newPerson';
       (onShow)="reset()"
       [draggable]="false"
       [closable]="view() === 'list'"
+      styleClass="tm-contacts-dialog"
     >
       <ng-template pTemplate="header">
-        <div class="tm-contacts-dialog-header">
-          @if (view() === 'newPerson') {
+        @if (view() === 'list') {
+          <span class="tm-contacts-dialog-title">Project contacts</span>
+        } @else {
+          <div class="tm-contacts-dialog-header">
             <button
               type="button"
               class="tm-icon-btn"
@@ -50,16 +53,11 @@ type ContactsView = 'list' | 'newPerson';
               <i class="pi pi-arrow-left"></i>
             </button>
             <span class="tm-contacts-dialog-title">New person</span>
-          } @else {
-            <span class="tm-contacts-dialog-title">Project contacts</span>
-          }
-        </div>
+          </div>
+        }
       </ng-template>
 
       @if (view() === 'list') {
-        <p class="tm-share-hint mt-0">
-          Client-side contacts for invoicing and communication. Each person lives in People; details refresh from their profile when you save.
-        </p>
         @if (error()) {
           <p-message severity="error" [text]="error()!" styleClass="mb-3" />
         }
@@ -72,6 +70,9 @@ type ContactsView = 'list' | 'newPerson';
             [clientId]="project().client?.id ?? null"
             [projectId]="project().id"
             [compact]="true"
+            [showPanelTitle]="false"
+            [controlsAfterList]="true"
+            [embeddedInDialog]="true"
             [projectContacts]="rows()"
             (projectContactsChange)="rows.set($event)"
           />
@@ -89,10 +90,11 @@ type ContactsView = 'list' | 'newPerson';
                   } @else {
                     <span class="tm-contact-name">{{ displayName(c) || 'Unnamed' }}</span>
                   }
+                  @if (c.phone) {
+                    <span class="tm-muted text-sm">{{ c.phone }}</span>
+                  }
                   @if (c.email) {
                     <app-copy-email [email]="c.email" [muted]="true" />
-                  } @else if (c.phone) {
-                    <span class="tm-muted text-sm">{{ c.phone }}</span>
                   }
                 </div>
               </li>

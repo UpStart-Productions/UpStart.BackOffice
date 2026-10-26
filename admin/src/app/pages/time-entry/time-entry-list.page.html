@@ -23,7 +23,7 @@
           <button
             type="button"
             class="calendar-btn"
-            (click)="datePopover.toggle($event)"
+            (click)="datePopover.toggle($event, $event.currentTarget)"
             aria-label="Jump to date"
             aria-haspopup="dialog"
           >
@@ -32,6 +32,7 @@
           <p-popover
             #datePopover
             appendTo="body"
+            appCenterPopoverCaret
             styleClass="timesheet-date-popover"
             [dismissable]="true"
           >

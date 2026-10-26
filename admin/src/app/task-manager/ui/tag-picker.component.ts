@@ -1,6 +1,7 @@
 import { Component, computed, ElementRef, inject, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { chipColors } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmTag } from '../core/tm.types';
@@ -11,9 +12,9 @@ export type TagPick = { tagId: string } | { name: string };
 @Component({
   selector: 'app-tm-tag-picker',
   standalone: true,
-  imports: [FormsModule, PopoverModule],
+  imports: [FormsModule, AppPopoverModule],
   template: `
-    <p-popover #pop appendTo="body" styleClass="tm-popover" (onShow)="focus()" (onHide)="query.set('')">
+    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover" (onShow)="focus()" (onHide)="query.set('')">
       <div class="tm-picker">
         <input
           #search
@@ -76,7 +77,7 @@ export class TmTagPickerComponent {
   open(event: Event, current: TmTag[]) {
     this.selected.set(new Set(current.map((t) => t.id)));
     void this.store.loadTags();
-    this.pop().toggle(event);
+    this.pop().toggle(event, event.currentTarget as HTMLElement);
   }
 
   focus() {

@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { QuillModule } from 'ngx-quill';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { Popover, PopoverModule } from 'primeng/popover';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
@@ -33,7 +34,7 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     FormsModule,
     QuillModule,
     ButtonModule,
-    PopoverModule,
+    AppPopoverModule,
     SelectModule,
     TooltipModule,
     TmAvatarComponent,
@@ -233,7 +234,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   }
 
   openMore(event: Event) {
-    this.moreMenu().toggle(event);
+    this.moreMenu().toggle(event, event.currentTarget as HTMLElement);
   }
 
   async onProjectsChanged() {

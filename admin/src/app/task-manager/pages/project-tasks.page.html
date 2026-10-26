@@ -17,7 +17,7 @@
           <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
         </button>
         @if (p.client) {
-          <span class="tm-client-chip"><i class="pi pi-building"></i> {{ p.client.name }}</span>
+          <a class="tm-client-chip" [routerLink]="['/clients', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
         } @else {
           <span class="tm-client-chip tm-client-chip--personal">Personal</span>
         }
@@ -37,13 +37,7 @@
           @if (canEdit()) {
             <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
           }
-          <button
-            #projectMenuTrigger
-            type="button"
-            class="tm-icon-btn"
-            (click)="openProjectMenu($event)"
-            aria-label="Project actions"
-          >
+          <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions">
             <i class="pi pi-ellipsis-h"></i>
           </button>
         </div>
@@ -295,7 +289,7 @@
 <app-tm-due-date-picker #duePicker (picked)="setDue($event)" />
 <app-tm-tag-picker #tagPicker (picked)="addTag($event)" />
 
-<p-popover #sectionMenu appendTo="body" styleClass="tm-popover">
+<p-popover #sectionMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
   <div class="tm-menu">
     <button type="button" class="tm-picker-item" (click)="startRenameSection()"><i class="pi pi-pencil"></i> Rename section</button>
     <button type="button" class="tm-picker-item" (click)="addSectionBelow()"><i class="pi pi-plus"></i> Add section below</button>
@@ -306,7 +300,7 @@
   </div>
 </p-popover>
 
-<p-popover #colorMenu appendTo="body" styleClass="tm-popover">
+<p-popover #colorMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
   <div class="tm-appearance">
     <div class="tm-appearance-label">Color</div>
     <div class="tm-color-swatches tm-color-swatches--row">
@@ -324,7 +318,7 @@
   </div>
 </p-popover>
 
-<p-popover #bulkSectionPop appendTo="body" styleClass="tm-popover">
+<p-popover #bulkSectionPop appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
   <div class="tm-picker">
     <div class="tm-menu-label">Move to section</div>
     <ul class="tm-picker-list">
@@ -344,7 +338,7 @@
   </div>
 </p-popover>
 
-<p-popover #projectMenu appendTo="body" styleClass="tm-popover" (onShow)="centerProjectMenuPopover()">
+<p-popover #projectMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
   <div class="tm-menu">
     @if (project()?.permissions?.seesAllProjects) {
       <a class="tm-picker-item" [routerLink]="['/projects', projectId()]"><i class="pi pi-external-link"></i> Open in Projects</a>
