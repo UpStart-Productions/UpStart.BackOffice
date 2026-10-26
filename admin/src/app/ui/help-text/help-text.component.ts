@@ -18,8 +18,16 @@ import { HelpTextService } from '../../core/help-text.service';
   `,
   styles: [
     `
+      :host {
+        display: inline-flex;
+        align-items: center;
+        vertical-align: middle;
+        line-height: 1;
+      }
       .help-icon {
         cursor: help;
+        font-size: 0.92em;
+        line-height: 1;
       }
     `,
   ],

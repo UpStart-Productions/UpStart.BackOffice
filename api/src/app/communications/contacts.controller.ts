@@ -116,6 +116,21 @@ export class ContactsController {
   }
 
   @Action('edit')
+  @Delete(':id/avatar')
+  async removeAvatar(@Param('id') id: string) {
+    const existing = await this.contacts.get(id);
+    if (existing.avatarUrl) {
+      try {
+        const oldKey = this.storage.keyFromUrl(existing.avatarUrl);
+        if (oldKey && !oldKey.startsWith('http')) await this.storage.delete(oldKey);
+      } catch {
+        /* best-effort */
+      }
+    }
+    return this.contacts.update(id, { avatarUrl: null });
+  }
+
+  @Action('edit')
   @Post(':id/emails')
   addEmail(@Param('id') id: string, @Body() dto: AddContactEmailDto) {
     return this.contacts.addEmail(id, dto);

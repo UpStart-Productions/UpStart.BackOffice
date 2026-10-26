@@ -5,8 +5,6 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
@@ -18,7 +16,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
-import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
+import { OrganizationLinksComponent } from '../../ui/organization-links/organization-links.component';
 
 @Component({
   selector: 'app-contact-detail-page',
@@ -29,14 +27,13 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
     ButtonModule,
     InputTextModule,
     MessageModule,
-    SelectModule,
-    TableModule,
     TagModule,
     QuillModule,
     PageComponent,
     ActivityTimelineComponent,
     CrmTagInputComponent,
     AvatarDropzoneComponent,
+    OrganizationLinksComponent,
   ],
   template: `
     <app-page title="Person" [skipTitle]="true">
@@ -59,21 +56,15 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
               </div>
 
               @if (c.autoCreated) {
-                <p-message severity="info" class="block mb-3">
-                  <div class="flex align-items-center flex-wrap gap-3">
+                <p-message severity="info" styleClass="review-message" class="block mb-3">
+                  <div class="review-banner">
                     <span>Created automatically from an email. Check the details, then mark it reviewed.</span>
-                    <p-button label="Mark as reviewed" size="small" severity="secondary" (onClick)="markReviewed()" />
+                    <p-button label="Mark reviewed" size="small" (onClick)="markReviewed()" />
                   </div>
                 </p-message>
               }
 
               <div class="person-profile-form">
-                <app-avatar-dropzone
-                  #avatarDropzone
-                  [existingUrl]="c.avatarUrl"
-                  (fileChange)="onAvatarFile($event)"
-                  (invalidFile)="onAvatarError($event)"
-                />
                 <div class="form-row">
                   <div class="form-field">
                     <label for="firstName">First name</label>
@@ -118,10 +109,20 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
               </div>
             </div>
 
-            <app-activity-timeline [contactId]="c.id" [emailTo]="c.emails[0]?.email" />
+            <app-activity-timeline [contactId]="c.id" />
           </div>
 
           <div class="stack span-1">
+            <div class="card card--side">
+              <app-avatar-dropzone
+                #avatarDropzone
+                [panel]="true"
+                [existingUrl]="c.avatarUrl"
+                (fileChange)="onAvatarFile($event)"
+                (invalidFile)="onAvatarError($event)"
+              />
+            </div>
+
             <div class="card card--side">
               <div class="card-header">
                 <h3 class="card-title">Email addresses</h3>
@@ -130,68 +131,42 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
               @for (e of c.emails; track e.id) {
                 <div class="side-row-line">
                   <span class="side-row-line-main">{{ e.email }}</span>
-                  @if (e.isPrimary) { <p-tag value="Primary" severity="info" /> }
-                  <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="confirmRemoveEmail(e.email)" aria-label="Remove email" />
+                  @if (e.isPrimary) {
+                    <p-tag value="Primary" severity="info" />
+                  } @else {
+                    <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="confirmRemoveEmail(e.email)" aria-label="Remove email" />
+                  }
                 </div>
               }
               <div class="side-row-line side-row-line--add">
                 <input pInputText type="email" [(ngModel)]="newEmail" placeholder="Add an email address" class="w-full" />
-                <p-button label="Add" icon="pi pi-plus" severity="secondary" [disabled]="!newEmail.trim()" (onClick)="addEmail()" />
+                <p-button label="Add" icon="pi pi-plus" severity="secondary" size="small" [disabled]="!newEmail.trim()" (onClick)="addEmail()" />
               </div>
             </div>
 
-            <div class="card card--side">
-              <div class="card-header">
-                <h3 class="card-title">Organizations</h3>
-              </div>
-              @for (l of c.accountLinks; track l.clientId) {
-                <div class="side-row-line side-row-line--org">
-                  <div class="side-row-line-org">
-                    <a [routerLink]="orgLink(l.client)" class="text-primary">{{ l.client.name }}</a>
-                    @if (l.role) { <span class="text-color-secondary text-sm">{{ l.role }}</span> }
-                  </div>
-                  <div class="side-row-line-actions">
-                    @if (l.client.journey === 'CLIENT') {
-                      <p-tag value="Client" severity="success" />
-                    } @else {
-                      <p-tag [value]="journeyLabels[l.client.journey]" severity="secondary" />
-                      <p-button label="Make client" size="small" severity="success" [text]="true" (onClick)="makeClient(l.clientId)" />
-                    }
-                    <p-button icon="pi pi-times" severity="secondary" [text]="true" size="small" (onClick)="unlink(l.clientId)" aria-label="Unlink organization" />
-                  </div>
-                </div>
-              } @empty {
-                <p class="text-color-secondary mt-0 mb-3">Not linked to any organization. That's fine for an individual.</p>
-                <p-button label="Make client from this person" icon="pi pi-user-plus" size="small" severity="success" (onClick)="createClientFromContact()" />
-              }
-              <div class="form-field mt-3 mb-2">
-                <label for="linkOrg">Link to an organization</label>
-                <p-select
-                  inputId="linkOrg"
-                  [options]="clients()"
-                  optionLabel="name"
-                  optionValue="id"
-                  [(ngModel)]="linkClientId"
-                  [filter]="true"
-                  filterBy="name"
-                  filterPlaceholder="Search…"
-                  [showClear]="true"
-                  placeholder="Search and select…"
-                  styleClass="w-full"
-                  appendTo="body"
-                />
-              </div>
-              <div class="side-row-line side-row-line--add">
-                <input pInputText [(ngModel)]="linkRole" placeholder="Role (optional)" class="w-full" />
-                <p-button label="Link" icon="pi pi-link" severity="secondary" [disabled]="!linkClientId" (onClick)="link()" />
-              </div>
-            </div>
+            <app-organization-links [contact]="c" (contactChange)="apply($event)" />
           </div>
         </div>
       }
     </app-page>
   `,
   styles: `
+    :host ::ng-deep .review-message .p-message-text {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .review-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      font-size: var(--fs-sm);
+      line-height: 1.35;
+    }
+    .review-banner p-button {
+      margin-left: auto;
+      flex-shrink: 0;
+    }
     .person-header-text {
       display: flex;
       flex-direction: column;
@@ -236,23 +211,6 @@ import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
       border-top: 0;
       padding-top: 0.75rem;
     }
-    .side-row-line--org {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.35rem;
-    }
-    .side-row-line-org {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-      min-width: 0;
-    }
-    .side-row-line-actions {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.35rem;
-    }
   `,
 })
 export class ContactDetailPage implements OnInit {
@@ -264,7 +222,6 @@ export class ContactDetailPage implements OnInit {
   private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
 
   contact = signal<ContactSummary | null>(null);
-  clients = signal<{ id: string; name: string }[]>([]);
   error = signal<string | null>(null);
   saving = signal(false);
 
@@ -278,65 +235,21 @@ export class ContactDetailPage implements OnInit {
     isActive: true,
     tags: [] as string[],
   };
-  private pendingAvatarFile: File | null = null;
-  private avatarDirty = false;
   newEmail = '';
-  linkClientId: string | null = null;
-  linkRole = '';
 
   name = contactName;
-  readonly journeyLabels = ACCOUNT_JOURNEY_LABELS;
-
-  orgLink(client: { id: string; journey: string }): string[] {
-    return client.journey === 'CLIENT' || client.journey === 'PAST_CLIENT'
-      ? ['/clients', client.id]
-      : ['/organizations', client.id];
-  }
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
     try {
       this.apply(await this.comms.contact(id));
-      this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load person');
     }
   }
 
-  /** Flip a linked prospect or past client to Client. */
-  async makeClient(clientId: string) {
-    const c = this.contact();
-    if (!c) return;
-    try {
-      await this.api.put(`/clients/${clientId}`, { journey: 'CLIENT' });
-      this.apply(await this.comms.contact(c.id));
-      this.toast.add({ severity: 'success', summary: 'Now a client', detail: 'Projects, time and invoices are available.' });
-    } catch (err) {
-      this.fail(err, 'Could not update');
-    }
-  }
-
-  /** For a person with no organization (an individual client): make an organization named after them and link it. */
-  async createClientFromContact() {
-    const c = this.contact();
-    if (!c) return;
-    try {
-      const created = await this.api.post<{ id: string }>('/clients', {
-        name: contactName(c),
-        journey: 'CLIENT',
-        email: c.emails[0]?.email,
-        phone: c.phone ?? undefined,
-      });
-      this.apply(await this.comms.linkAccount(c.id, created.id));
-      this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
-      this.toast.add({ severity: 'success', summary: 'Client created', detail: 'Linked to this person.' });
-    } catch (err) {
-      this.fail(err, 'Could not create client');
-    }
-  }
-
-  private apply(c: ContactSummary) {
+  apply(c: ContactSummary) {
     this.contact.set(c);
     const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
     this.form = {
@@ -349,14 +262,34 @@ export class ContactDetailPage implements OnInit {
       isActive: c.isActive,
       tags: [...(c.tags ?? [])],
     };
-    this.pendingAvatarFile = null;
-    this.avatarDirty = false;
     this.avatarDropzone()?.reset();
   }
 
-  onAvatarFile(file: File | null) {
-    this.pendingAvatarFile = file;
-    this.avatarDirty = true;
+  async onAvatarFile(file: File | null) {
+    const c = this.contact();
+    if (!c) return;
+    if (!file) {
+      if (!c.avatarUrl) return;
+      this.confirm.confirm({
+        header: 'Remove photo',
+        message: 'Remove this photo?',
+        accept: async () => {
+          try {
+            this.apply(await this.comms.removeAvatar(c.id));
+          } catch (err) {
+            this.fail(err, 'Could not remove photo');
+          }
+        },
+      });
+      return;
+    }
+    try {
+      await this.api.uploadAvatar(`/contacts/${c.id}/avatar`, file);
+      this.apply(await this.comms.contact(c.id));
+    } catch (err) {
+      this.avatarDropzone()?.reset();
+      this.fail(err, 'Could not save photo');
+    }
   }
 
   onAvatarError(message: string) {
@@ -381,8 +314,7 @@ export class ContactDetailPage implements OnInit {
       f.phone !== (c.phone ?? '') ||
       f.notes !== (c.notes ?? '') ||
       f.isActive !== c.isActive ||
-      f.tags.join('\n') !== (c.tags ?? []).join('\n') ||
-      this.avatarDirty
+      f.tags.join('\n') !== (c.tags ?? []).join('\n')
     );
   }
 
@@ -417,10 +349,6 @@ export class ContactDetailPage implements OnInit {
           updated = await this.comms.addEmail(updated.id, nextEmail, true);
         }
       }
-      if (this.pendingAvatarFile) {
-        await this.api.uploadAvatar<{ url: string }>(`/contacts/${updated.id}/avatar`, this.pendingAvatarFile);
-        updated = await this.comms.contact(updated.id);
-      }
       this.apply(updated);
       this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Person saved.' });
     } catch (err) {
@@ -452,6 +380,8 @@ export class ContactDetailPage implements OnInit {
   }
 
   confirmRemoveEmail(email: string) {
+    const c = this.contact();
+    if (c?.emails.some((e) => e.isPrimary && e.email === email)) return;
     this.confirm.confirm({
       header: 'Remove email',
       message: `Remove ${email}? Mail from this address will no longer match this person.`,
@@ -467,25 +397,4 @@ export class ContactDetailPage implements OnInit {
     });
   }
 
-  async link() {
-    const c = this.contact();
-    if (!c || !this.linkClientId) return;
-    try {
-      this.apply(await this.comms.linkAccount(c.id, this.linkClientId, this.linkRole.trim()));
-      this.linkClientId = null;
-      this.linkRole = '';
-    } catch (err) {
-      this.fail(err, 'Could not link account');
-    }
-  }
-
-  async unlink(clientId: string) {
-    const c = this.contact();
-    if (!c) return;
-    try {
-      this.apply(await this.comms.unlinkAccount(c.id, clientId));
-    } catch (err) {
-      this.fail(err, 'Could not unlink account');
-    }
-  }
 }

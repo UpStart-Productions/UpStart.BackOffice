@@ -35,6 +35,8 @@ describe('helpers', () => {
     expect(snippetOf('a  b\n c')).toBe('a b c');
     expect(snippetOf(null)).toBeNull();
     expect(snippetOf('x'.repeat(400))).toHaveLength(301);
+    expect(snippetOf('<p>Hello <strong>there</strong></p><p>Next</p>')).toBe('Hello there Next');
+    expect(snippetOf('<p><br></p>')).toBeNull();
   });
 });
 

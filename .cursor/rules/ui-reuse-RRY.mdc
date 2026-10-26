@@ -36,3 +36,9 @@ Before adding or changing any user-facing control (picker, modal, form block, ta
 - **New person modal:** `app-create-person-modal` (create only — no “existing person” tab)
 
 Do not add another people side panel, `people-card`, or inline pickers on feature pages.
+
+## Organization links panel (canonical)
+
+- **Panel:** `app-organization-links` (`admin/src/app/ui/organization-links/organization-links.component.ts`)
+- Used on the person page. Shows linked organizations (name and role), unlink, and link-to-an-organization with Role.
+- Callers pass the person and handle `contactChange`. Do not copy this card onto another page.

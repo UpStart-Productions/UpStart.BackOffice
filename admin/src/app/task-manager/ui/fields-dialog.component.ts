@@ -54,7 +54,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
                 }
               </div>
               <button type="button" class="tm-icon-btn" (click)="startEdit(f)" [attr.aria-label]="'Edit ' + f.name"><i class="pi pi-pencil"></i></button>
-              <button type="button" class="tm-icon-btn" (click)="remove(f)" [attr.aria-label]="'Delete ' + f.name"><i class="pi pi-trash"></i></button>
+              <button type="button" class="tm-icon-btn tm-icon-btn--danger" (click)="remove(f)" [attr.aria-label]="'Delete ' + f.name"><i class="pi pi-trash"></i></button>
             }
           </li>
         } @empty {
@@ -85,7 +85,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
             <div class="tm-option-row">
               <app-tm-color-picker [ngModel]="o.color" (ngModelChange)="setOptionColor($index, $event)" />
               <input pInputText [ngModel]="o.label" (ngModelChange)="setOptionLabel($index, $event)" aria-label="Option label" class="flex-1" />
-              <button type="button" class="tm-icon-btn" (click)="removeOption($index)" aria-label="Remove option"><i class="pi pi-times"></i></button>
+              <button type="button" class="tm-icon-btn tm-icon-btn--danger" (click)="removeOption($index)" aria-label="Remove option"><i class="pi pi-trash"></i></button>
             </div>
           }
           <button type="button" class="tm-link-btn" (click)="addOption()"><i class="pi pi-plus"></i> Add option</button>

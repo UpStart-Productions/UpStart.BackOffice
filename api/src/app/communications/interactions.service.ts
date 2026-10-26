@@ -59,9 +59,26 @@ type InteractionRow = {
   loggedBy?: unknown;
 };
 
+/** Visible text, with Quill/HTML tags removed so a formatted note previews as a sentence. */
+export function plainText(value: string | null | undefined): string {
+  if (!value) return '';
+  const stripped = /<\/?[a-z][^>]*>/i.test(value)
+    ? value
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<\/(p|div|li|h[1-6]|tr|blockquote)>/gi, ' ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;|&#160;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+    : value;
+  return stripped.replace(/\s+/g, ' ').trim();
+}
+
 export function snippetOf(text: string | null | undefined): string | null {
-  if (!text) return null;
-  const flat = text.replace(/\s+/g, ' ').trim();
+  const flat = plainText(text);
+  if (!flat) return null;
   return flat.length > SNIPPET_LENGTH ? `${flat.slice(0, SNIPPET_LENGTH)}…` : flat;
 }
 
@@ -267,7 +284,7 @@ export class InteractionsService {
       if (!lead) throw new NotFoundException('Lead not found.');
       logClientId = lead.clientId;
     }
-    if (!dto.subject?.trim() && !dto.bodyText?.trim()) {
+    if (!dto.subject?.trim() && !plainText(dto.bodyText)) {
       throw new BadRequestException('Add a subject or some notes.');
     }
 
@@ -288,7 +305,8 @@ export class InteractionsService {
         direction: dto.direction ?? (dto.type === 'NOTE' ? 'INTERNAL' : 'OUTBOUND'),
         occurredAt,
         subject: dto.subject?.trim() || null,
-        bodyText: dto.bodyText?.trim() || null,
+        location: dto.type === 'MEETING' ? dto.location?.trim() || null : null,
+        bodyText: plainText(dto.bodyText) ? dto.bodyText!.trim() : null,
         source: 'MANUAL',
         status: 'FILED',
         clientId: logClientId,

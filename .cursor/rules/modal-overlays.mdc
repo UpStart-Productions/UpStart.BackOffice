@@ -1,0 +1,23 @@
+---
+description: Dropdowns and calendars inside modals must overlay the dialog, not get clipped by it
+globs: admin/**/*.{html,ts}
+alwaysApply: false
+---
+
+# Overlays inside modals
+
+PrimeNG dialogs clip overlays. A `p-select`, `p-multiselect`, `p-datepicker`, `p-autocomplete`, or `p-menu` inside `p-dialog` draws its panel inside the dialog, and the dialog’s overflow cuts it off at the bottom.
+
+Attach the panel to the document:
+
+```html
+<p-multiselect
+  [options]="options"
+  appendTo="body"
+  styleClass="w-full"
+/>
+```
+
+Same attribute on `p-select`, `p-datepicker`, `p-autocomplete`, and `p-menu`.
+
+Do not set the dialog content to `overflow: visible` to work around this. The dialog still needs to scroll. `appendTo="body"` is the fix.

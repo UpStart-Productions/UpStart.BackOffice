@@ -3,8 +3,9 @@ import { currentTenantId } from '../tenancy/tenant-context';
 import {
   BadGatewayException,
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -20,6 +21,14 @@ import { UpdateAsanaConfigDto } from './dto/update-asana-config.dto';
 
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+
+/**
+ * Asana not being connected is not a Back Office sign-in failure.
+ * 401 is reserved for the person's session; the admin app signs out on any 401.
+ */
+function asanaUnavailable(message: string): HttpException {
+  return new HttpException(message, HttpStatus.FAILED_DEPENDENCY);
+}
 
 export type AsanaStatusDto = {
   connected: boolean;
@@ -168,7 +177,7 @@ export class AsanaService {
   async getApiClient(): Promise<AsanaApiClient> {
     const row = await this.ensureIntegrationRow();
     if (!row.accessTokenEnc || !row.refreshTokenEnc) {
-      throw new UnauthorizedException('Asana is not connected');
+      throw asanaUnavailable('Asana is not connected');
     }
 
     const config = await this.resolveOAuthConfig();
@@ -178,7 +187,7 @@ export class AsanaService {
       accessToken = decryptSecret(row.accessTokenEnc);
       refreshToken = decryptSecret(row.refreshTokenEnc);
     } catch {
-      throw new UnauthorizedException(
+      throw asanaUnavailable(
         'Asana credentials could not be read — disconnect and connect again in Settings',
       );
     }
@@ -189,7 +198,7 @@ export class AsanaService {
     if (needsRefresh) {
       const refreshed = await refreshAsanaToken(config, refreshToken);
       if (!refreshed.access_token) {
-        throw new UnauthorizedException(
+        throw asanaUnavailable(
           'Asana token refresh failed — disconnect and connect again in Settings',
         );
       }
@@ -213,7 +222,7 @@ export class AsanaService {
   async listProjects() {
     const row = await this.ensureIntegrationRow();
     if (!row.workspaceGid) {
-      throw new UnauthorizedException('Asana is not connected');
+      throw asanaUnavailable('Asana is not connected');
     }
     const client = await this.getApiClient();
     return client.listProjects(row.workspaceGid);

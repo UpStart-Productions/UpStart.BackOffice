@@ -38,4 +38,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
 
   // Invoices
   'invoice.billToEmail': 'Where Send emails this invoice by default. You can pick a different address when sending.',
+
+  // People
+  'person.orgRole':
+    'How this person relates to this organization, such as board member, case manager, or family. Title is their job, and it stays the same if they belong to more than one organization.',
 };

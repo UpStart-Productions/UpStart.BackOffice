@@ -24,6 +24,15 @@
   }
 }
 
+.tm-icon-btn--danger {
+  color: var(--color-severity-danger-text, #c62828);
+
+  &:hover:not(:disabled) {
+    color: var(--color-severity-danger-text, #c62828);
+    background: var(--color-severity-danger-bg, #fdecea);
+  }
+}
+
 .tm-icon-btn-sm {
   width: 1.6rem;
   height: 1.6rem;

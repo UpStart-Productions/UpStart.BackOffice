@@ -13,7 +13,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
-import { ApiService } from '../../core/api.service';
+import { ApiError, ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -540,7 +540,7 @@ export class PipelineBoardPage implements OnInit {
       await this.loadLeads();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not remove lane';
-      if (msg.includes('API error 409')) {
+      if (err instanceof ApiError && err.status === 409) {
         // It holds archived cards: ask where they go.
         this.removeNeedsTarget.set(true);
       } else {

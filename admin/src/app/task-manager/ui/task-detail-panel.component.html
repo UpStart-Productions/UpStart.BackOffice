@@ -221,7 +221,7 @@
                 <a [href]="resolveAssetUrl(a.url)" target="_blank" rel="noopener">{{ a.fileName }}</a>
                 <span class="tm-muted">{{ fileSizeLabel(a.fileSize) }}</span>
                 @if (canEdit()) {
-                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="removeAttachment(a.id)" aria-label="Remove attachment"><i class="pi pi-trash"></i></button>
+                  <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-icon-btn--danger" (click)="removeAttachment(a.id)" aria-label="Remove attachment"><i class="pi pi-trash"></i></button>
                 }
               </li>
             }

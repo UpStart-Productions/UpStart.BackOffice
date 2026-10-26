@@ -247,7 +247,7 @@ export class ContactsListPage implements OnInit {
       { id: 'open', label: 'Open', icon: 'pi pi-pencil', command: () => this.router.navigate(['/people', c.id]) },
     ];
     if (c.autoCreated) {
-      items.push({ id: 'reviewed', label: 'Mark as reviewed', icon: 'pi pi-check', command: () => void this.markReviewed(c) });
+      items.push({ id: 'reviewed', label: 'Mark reviewed', icon: 'pi pi-check', command: () => void this.markReviewed(c) });
     }
     return items;
   }

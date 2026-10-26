@@ -15,7 +15,7 @@ Everything about one organization (people, emails, files, pipeline cards, projec
 Every organization has a **Status**: Prospect, Client, Past client or Other.
 
 - A pipeline card makes its organization a **Prospect** automatically.
-- **Make client** (on a pipeline card, an organization, or a person) makes it a **Client**, and any open pipeline card for it is archived, because the opportunity is won.
+- **Make client** (on a pipeline card or an organization) makes it a **Client**, and any open pipeline card for it is archived, because the opportunity is won.
 - **Past client** is set by hand on the organization's page when the work ends.
 - **Other** is anyone not in a sales relationship, such as a partner or vendor.
 - Client turns on projects, time and invoices.
@@ -34,15 +34,17 @@ Every organization has a **Status**: Prospect, Client, Past client or Other.
 
 On an organization's page: Status (Prospect, Client, or Past client), Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files. **Add person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page.
 
+**Activity** lists emails, calls, meetings and notes. **Log activity** records a call, meeting, or note (pick the type at the top of the dialog). On a call, **Who called** is We called, They called, or Internal. On a meeting, **Where** is the place or link, such as Zoom or their office. **Notes / next steps** is a formatted note: bold, lists, and links. **All**, **Emails**, **Calls**, **Meetings** and **Notes** filter the list, including when nothing is logged yet. Emails appear when UBO is CC'd on the thread. The same panel is on a pipeline card. On a person's page, Activity shows what involves that person; log the call, meeting, or note on their organization or pipeline card.
+
 ## Clients
 
 **Clients** (Office menu) shows organizations with status Client. **Include past clients** adds past clients. **New Client** adds an organization as a client straight away. Prospects are not here; they are on the Pipeline.
 
 ## People
 
-**People** lists every person, with their organizations and tags. Filter by tag with the tag list. **New Person** asks for first and last name, email and title (optional photo), and optionally an organization (with their role there) and tags. **Needs review** shows people created automatically from email; the People menu item shows how many are waiting.
+**People** lists every person, with their organizations and tags. Filter by tag with the tag list. **New Person** asks for first and last name, email and title (optional photo), and optionally an organization (with their role there) and tags. **Role** is how they relate to that organization, such as board member, case manager, or family. **Title** is their job, and it stays the same if they belong to more than one organization. **Needs review** shows people created automatically from email; the People menu item shows how many are waiting.
 
-On a person's page: name, email, title, phone, optional photo (drag or click), **Tags**, notes, **Email addresses** for any extra addresses (mail from any of them is matched to this person), **Organizations** (link or unlink, with a role), and Activity. A person with no organization (an individual client) can become a client with **Make client from this person**.
+On a person's page: name, email, title, phone, **Tags**, notes, and Activity. On the right: a photo (drag or click to add one; the trash can on the photo removes it), **Email addresses** for any extra addresses (mail from any of them is matched to this person; the primary address cannot be removed), and **Organizations** (link or unlink, with a role). A person with no organization (an individual client) can become a client with **Make client from this person**.
 
 ## Pipeline
 

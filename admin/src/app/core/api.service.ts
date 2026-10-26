@@ -14,10 +14,23 @@ const FRIENDLY: Record<number, string> = {
 
 const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please sign in again.';
 
+/** Shown in toasts and form errors. The message is the server's wording, never the status code. */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 function extractMessage(status: number, bodyText: string): string {
   try {
-    const body = JSON.parse(bodyText) as { message?: string };
-    if (typeof body.message === 'string' && body.message.trim()) return body.message.trim();
+    const body = JSON.parse(bodyText) as { message?: string | string[] };
+    const raw = body.message;
+    const text = Array.isArray(raw) ? raw.filter((m) => typeof m === 'string').join(' ') : raw;
+    if (typeof text === 'string' && text.trim()) return text.trim();
   } catch { /* ignore */ }
   return FRIENDLY[status] ?? 'Request failed';
 }
@@ -50,20 +63,30 @@ export class ApiService {
     const text = await res.text();
 
     if (!res.ok) {
-      if (res.status === 401) {
-        if (!retriedAfterRefresh && this.cognito.useCognito) {
-          const refreshed = await this.cognito.refreshSession();
-          if (refreshed) {
-            return this.request<T>(method, path, body, true);
-          }
-        }
-        await this.redirectToLoginOnAuthFailure();
+      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+        return this.request<T>(method, path, body, true);
       }
-      throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
+      throw new ApiError(res.status, extractMessage(res.status, text));
     }
 
     if (!text) return undefined as T;
     try { return JSON.parse(text) as T; } catch { return text as unknown as T; }
+  }
+
+  /**
+   * Returns true when the call should be retried with a fresh session token.
+   * Signs out only when the session itself cannot be refreshed.
+   * A 401 that remains after a successful refresh is the endpoint rejecting the
+   * request (an integration that is not connected, for example), not a dead login.
+   */
+  private async recoverFromUnauthorized(retriedAfterRefresh: boolean): Promise<boolean> {
+    if (retriedAfterRefresh) return false;
+    if (this.cognito.useCognito) {
+      const refreshed = await this.cognito.refreshSession();
+      if (refreshed) return true;
+    }
+    await this.redirectToLoginOnAuthFailure();
+    return false;
   }
 
   /**
@@ -130,16 +153,10 @@ export class ApiService {
     const text = await res.text();
 
     if (!res.ok) {
-      if (res.status === 401) {
-        if (!retriedAfterRefresh && this.cognito.useCognito) {
-          const refreshed = await this.cognito.refreshSession();
-          if (refreshed) {
-            return this.uploadFile<T>(path, file, fieldName, true);
-          }
-        }
-        await this.redirectToLoginOnAuthFailure();
+      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+        return this.uploadFile<T>(path, file, fieldName, true);
       }
-      throw new Error(`API error ${res.status}: ${extractMessage(res.status, text)}`);
+      throw new ApiError(res.status, extractMessage(res.status, text));
     }
 
     if (!text) return undefined as T;
@@ -157,13 +174,10 @@ export class ApiService {
     const res = await fetch(`${this.base}${path}`, options);
     const text = await res.text();
     if (!res.ok) {
-      if (res.status === 401) {
-        if (!retriedAfterRefresh && this.cognito.useCognito && (await this.cognito.refreshSession())) {
-          return this.postFormData<T>(path, formData, true);
-        }
-        await this.redirectToLoginOnAuthFailure();
+      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+        return this.postFormData<T>(path, formData, true);
       }
-      throw new Error(extractMessage(res.status, text));
+      throw new ApiError(res.status, extractMessage(res.status, text));
     }
     if (!text) return undefined as T;
     try {
@@ -177,16 +191,10 @@ export class ApiService {
     const options = await this.auth.getHeaders({ method: 'GET' });
     const res = await fetch(`${this.base}${path}`, options);
     if (!res.ok) {
-      if (res.status === 401) {
-        if (!retriedAfterRefresh && this.cognito.useCognito) {
-          const refreshed = await this.cognito.refreshSession();
-          if (refreshed) {
-            return this.fetchPdfBlob(path, true);
-          }
-        }
-        await this.redirectToLoginOnAuthFailure();
+      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+        return this.fetchPdfBlob(path, true);
       }
-      throw new Error(`PDF load failed: ${res.status}`);
+      throw new ApiError(res.status, 'Could not load the PDF.');
     }
     return res.blob();
   }

@@ -95,7 +95,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
             </div>
             @if (project().permissions.canManage) {
               <p-select [options]="roleOptions" optionLabel="label" optionValue="value" [ngModel]="m.memberRole" (ngModelChange)="setRole(m, $event)" appendTo="body" [attr.aria-label]="'Role for ' + m.email" />
-              <button type="button" class="tm-icon-btn" (click)="remove(m)" [attr.aria-label]="'Remove ' + m.email" title="Remove from project"><i class="pi pi-times"></i></button>
+              <button type="button" class="tm-icon-btn tm-icon-btn--danger" (click)="remove(m)" [attr.aria-label]="'Remove ' + m.email" title="Remove from project"><i class="pi pi-trash"></i></button>
             } @else {
               <span class="tm-muted">{{ roleLabel(m.memberRole) }}</span>
               @if (m.id === meId()) {

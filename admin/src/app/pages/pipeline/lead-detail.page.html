@@ -143,9 +143,9 @@
 
     @if (!isNew) {
       @if (account(); as acct) {
-        <app-activity-timeline [clientId]="acct.id" [emailTo]="form.email" />
+        <app-activity-timeline [clientId]="acct.id" />
       } @else {
-        <app-activity-timeline [leadId]="id()!" [emailTo]="form.email" />
+        <app-activity-timeline [leadId]="id()!" />
       }
 
       <app-artifacts-panel [leadId]="id()!" />

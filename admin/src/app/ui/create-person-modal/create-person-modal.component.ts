@@ -11,6 +11,7 @@ import { CommunicationsApi, ContactSummary } from '../../core/communications.api
 import { CrmTagInputComponent } from '../crm-tags/crm-tag-input.component';
 import { CrmTagsApi } from '../../core/crm-tags.api';
 import { AvatarDropzoneComponent } from '../avatar-dropzone/avatar-dropzone.component';
+import { HelpTextComponent } from '../help-text/help-text.component';
 
 export type CreatePersonModalOptions = {
   clientId?: string | null;
@@ -29,6 +30,7 @@ export type CreatePersonModalOptions = {
     SelectModule,
     CrmTagInputComponent,
     AvatarDropzoneComponent,
+    HelpTextComponent,
   ],
   styles: `
     .new-form {
@@ -103,7 +105,7 @@ export type CreatePersonModalOptions = {
         }
         @if (form.clientId) {
           <div class="form-field">
-            <label for="nRole">Role at organization</label>
+            <label for="nRole">Role at organization <app-help-text key="person.orgRole" /></label>
             <input pInputText id="nRole" [(ngModel)]="form.role" class="w-full" placeholder="e.g. Board member" />
           </div>
         }

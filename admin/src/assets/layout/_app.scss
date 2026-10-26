@@ -339,15 +339,29 @@ p-sorticon svg {
   color: var(--brand-primary);
 }
 
-.p-button.p-button-text:not(:disabled),
+.p-button.p-button-text:not(:disabled):not(.p-button-danger),
 .p-button.p-button-link:not(:disabled) {
   color: var(--brand-primary);
 }
 
-.p-button.p-button-text:not(:disabled):hover,
+.p-button.p-button-text:not(:disabled):not(.p-button-danger):hover,
 .p-button.p-button-link:not(:disabled):hover {
   color: var(--brand-primary-hover);
   background: rgba(124, 58, 237, 0.06);
+}
+
+.p-button.p-button-text.p-button-danger:not(:disabled),
+.p-button.p-button-text.p-button-danger:not(:disabled) .p-button-icon {
+  color: var(--color-severity-danger-text, #c62828);
+}
+
+.p-button.p-button-text.p-button-danger:not(:disabled):hover {
+  color: var(--color-severity-danger-text, #c62828);
+  background: var(--color-severity-danger-bg, #fdecea);
+}
+
+.p-button.p-button-text.p-button-danger:not(:disabled):hover .p-button-icon {
+  color: var(--color-severity-danger-text, #c62828);
 }
 
 /* Dashboard: 3-column grid for widgets */

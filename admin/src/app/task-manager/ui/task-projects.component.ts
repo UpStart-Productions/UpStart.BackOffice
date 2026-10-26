@@ -34,8 +34,8 @@ type Mode = 'section' | 'move' | 'add';
               @if (canEdit()) { <i class="pi pi-chevron-down"></i> }
             </button>
             @if (canEdit() && projects().length > 1) {
-              <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-membership-remove" (click)="remove(m)" [pTooltip]="'Remove from ' + m.name" [attr.aria-label]="'Remove from ' + m.name">
-                <i class="pi pi-times"></i>
+              <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-icon-btn--danger tm-membership-remove" (click)="remove(m)" [pTooltip]="'Remove from ' + m.name" [attr.aria-label]="'Remove from ' + m.name">
+                <i class="pi pi-trash"></i>
               </button>
             }
           }

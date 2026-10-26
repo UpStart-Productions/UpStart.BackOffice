@@ -202,7 +202,9 @@ export class ProjectFormPage implements OnInit {
     };
     if (project.asanaProjectGid) {
       this.ensureAsanaProjectOption(project.asanaProjectGid, project.asanaProjectName);
-      await this.loadAsanaSections(project.asanaProjectGid);
+      if (this.asanaConnected()) {
+        await this.loadAsanaSections(project.asanaProjectGid);
+      }
       this.ensureAsanaSectionOptions(sectionGids, project.asanaSectionName);
     }
     this.splitTasks(project.tasks ?? [], project.isBillable);

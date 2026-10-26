@@ -19,6 +19,8 @@ export class LogInteractionDto {
   @ApiPropertyOptional() @IsString() @IsOptional() leadId?: string;
   @ApiPropertyOptional({ description: 'Defaults to now.' }) @IsISO8601() @IsOptional() occurredAt?: string;
   @ApiPropertyOptional() @IsString() @MaxLength(300) @IsOptional() subject?: string;
+  @ApiPropertyOptional({ description: 'Where a meeting took place.' })
+  @IsString() @MaxLength(300) @IsOptional() location?: string;
   @ApiPropertyOptional() @IsString() @MaxLength(20000) @IsOptional() bodyText?: string;
   @ApiPropertyOptional({ enum: ['INBOUND', 'OUTBOUND', 'INTERNAL'] })
   @IsIn(['INBOUND', 'OUTBOUND', 'INTERNAL']) @IsOptional() direction?: 'INBOUND' | 'OUTBOUND' | 'INTERNAL';

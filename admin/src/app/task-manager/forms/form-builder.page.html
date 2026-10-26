@@ -22,7 +22,7 @@
               <p-button label="Discard" severity="secondary" [text]="true" (onClick)="discard()" />
             }
             <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty() || saving()" (onClick)="save()" />
-            <button type="button" class="tm-icon-btn" (click)="remove()" pTooltip="Delete form" aria-label="Delete form"><i class="pi pi-trash"></i></button>
+            <button type="button" class="tm-icon-btn tm-icon-btn--danger" (click)="remove()" pTooltip="Delete form" aria-label="Delete form"><i class="pi pi-trash"></i></button>
           }
         </div>
       </div>
@@ -84,7 +84,7 @@
                 @if (canEdit()) {
                   <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="moveQuestion(i, -1)" [disabled]="i === 0" aria-label="Move up"><i class="pi pi-arrow-up"></i></button>
                   <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="moveQuestion(i, 1)" [disabled]="last" aria-label="Move down"><i class="pi pi-arrow-down"></i></button>
-                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="removeQuestion(i)" [disabled]="q.target === 'NAME'" pTooltip="Delete question" aria-label="Delete question"><i class="pi pi-trash"></i></button>
+                  <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-icon-btn--danger" (click)="removeQuestion(i)" [disabled]="q.target === 'NAME'" pTooltip="Delete question" aria-label="Delete question"><i class="pi pi-trash"></i></button>
                 }
               </span>
             </div>

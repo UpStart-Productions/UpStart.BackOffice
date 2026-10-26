@@ -65,11 +65,11 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'People',
-      body: 'The people at this organization, each with their role. People are added automatically when you file an email from them, or use Add person to create someone new or link someone who already exists in Back Office.',
+        body: 'The people at this organization. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add person to create someone new or link someone who already exists in Back Office.',
     },
     {
       heading: 'Activity',
-      body: 'Emails, calls, meetings and notes for this organization. Use the Email button so UBO is CC\'d and the thread is logged, or Log call / note for anything that happened off email.',
+      body: 'Emails, calls, meetings and notes for this organization. Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. On a meeting, Where is the place or link. Notes / next steps is a formatted note. All, Emails, Calls, Meetings and Notes filters the list. Emails appear when UBO is CC\'d on the thread.',
     },
     {
       heading: 'Files, links and notes',
@@ -123,7 +123,7 @@ const LEAD_DETAIL: HelpArticle = {
     },
     {
       heading: 'Activity and files',
-      body: 'Log calls and notes, see filed emails, and attach files, links and notes.',
+      body: 'Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Filter the list with All, Emails, Calls, Meetings and Notes. Filed emails show here too, along with files, links and notes.',
     },
   ],
 };
@@ -302,7 +302,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Adding a person',
-        body: 'New Person asks for first and last name, email and title, optional photo, and optionally an organization (with their role there) and tags.',
+        body: 'New Person asks for first and last name, email and title, optional photo, and optionally an organization and tags. Role is how they relate to that organization (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one organization.',
       },
       {
         heading: 'Tags',
@@ -310,7 +310,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Needs review',
-        body: 'People created automatically from email. Check the details and Mark as reviewed. The People menu item shows how many are waiting.',
+        body: 'People created automatically from email. Check the details and Mark reviewed. The People menu item shows how many are waiting.',
       },
     ],
   },
@@ -320,11 +320,15 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Profile',
-        body: 'First and last name, email and title on one form; phone below. Drag a photo onto the small photo panel or click to browse, then Save.',
+        body: 'First and last name, email and title on one form; phone below. Save stores the profile.',
+      },
+      {
+        heading: 'Photo',
+        body: 'The top panel on the right. Drop an image or click to browse. The trash can on the photo removes it.',
       },
       {
         heading: 'Email addresses',
-        body: 'Mail from any of these addresses is matched to this person. Add every address they use so their emails file themselves.',
+        body: 'Mail from any of these addresses is matched to this person. Add every address they use so their emails file themselves. Extra addresses can be removed. The primary address stays.',
       },
       {
         heading: 'Tags',
@@ -332,11 +336,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Organizations',
-        body: 'Link to an organization with an optional role. Unlink removes the link without deleting anything. Someone with no organization (an individual client) can become a client with Make client from this person.',
+        body: 'Link to an organization with an optional role: how they relate to it, such as board member or case manager. Title on the profile is their job. Unlink removes the link without deleting anything. Someone with no organization (an individual client) can become a client with Make client from this person.',
       },
       {
         heading: 'Activity',
-        body: 'Emails, calls, meetings and notes involving this person, across all their organizations.',
+        body: 'Emails, calls, meetings and notes involving this person, across all their organizations. Record a call, meeting, or note with Log activity on the organization or pipeline card.',
       },
     ],
   },

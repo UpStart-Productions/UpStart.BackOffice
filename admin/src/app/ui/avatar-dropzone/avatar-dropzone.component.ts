@@ -59,57 +59,121 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
       flex-shrink: 0;
       margin-left: auto;
     }
+    .avatar-dropzone--fill {
+      max-width: none;
+      width: 100%;
+    }
+    .avatar-panel-photo {
+      position: relative;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    .avatar-panel-photo img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .avatar-panel-photo--active {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .avatar-panel-remove {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--color-severity-danger-text, #c62828);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .avatar-panel-remove .pi {
+      font-size: 0.8rem;
+    }
   `,
   template: `
-    <div
-      class="avatar-dropzone"
-      [class.avatar-dropzone--active]="dragOver()"
-      role="button"
-      tabindex="0"
-      (click)="onZoneClick()"
-      (keydown.enter)="onZoneClick()"
-      (keydown.space)="onZoneClick(); $event.preventDefault()"
-      (dragover)="onDragOver($event)"
-      (dragleave)="onDragLeave($event)"
-      (drop)="onDrop($event)"
-    >
-      @if (displayUrl()) {
-        <img class="avatar-dropzone-thumb" [src]="displayUrl()!" alt="" />
-        <span class="avatar-dropzone-copy">
-          <strong>Photo</strong>
-          Drop or click to replace
-        </span>
-        <p-button
-          class="avatar-dropzone-remove"
-          type="button"
-          icon="pi pi-trash"
-          severity="danger"
-          [text]="true"
-          size="small"
-          aria-label="Remove photo"
-          (click)="onRemoveClick($event)"
-        />
-      } @else {
-        <i class="pi pi-user avatar-dropzone-icon" aria-hidden="true"></i>
-        <span class="avatar-dropzone-copy">
-          <strong>Photo (optional)</strong>
-          Drop image or click to browse
-        </span>
-      }
-      <input
-        #fileInput
-        type="file"
-        accept="image/png,image/jpeg,image/gif,image/webp"
-        hidden
-        (change)="onFileInput($event)"
-        (click)="$event.stopPropagation()"
-      />
-    </div>
+    @if (panel() && displayUrl()) {
+      <div
+        class="avatar-panel-photo"
+        [class.avatar-panel-photo--active]="dragOver()"
+        role="button"
+        tabindex="0"
+        aria-label="Replace photo"
+        (click)="onZoneClick()"
+        (keydown.enter)="onZoneClick()"
+        (keydown.space)="onZoneClick(); $event.preventDefault()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <img [src]="displayUrl()!" alt="" />
+        <button type="button" class="avatar-panel-remove" aria-label="Remove photo" (click)="onRemoveClick($event)">
+          <i class="pi pi-trash" aria-hidden="true"></i>
+        </button>
+      </div>
+    } @else {
+      <div
+        class="avatar-dropzone"
+        [class.avatar-dropzone--fill]="panel()"
+        [class.avatar-dropzone--active]="dragOver()"
+        role="button"
+        tabindex="0"
+        (click)="onZoneClick()"
+        (keydown.enter)="onZoneClick()"
+        (keydown.space)="onZoneClick(); $event.preventDefault()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        @if (displayUrl()) {
+          <img class="avatar-dropzone-thumb" [src]="displayUrl()!" alt="" />
+          <span class="avatar-dropzone-copy">
+            <strong>Photo</strong>
+            Drop or click to replace
+          </span>
+          <p-button
+            class="avatar-dropzone-remove"
+            type="button"
+            icon="pi pi-trash"
+            severity="danger"
+            [text]="true"
+            size="small"
+            aria-label="Remove photo"
+            (click)="onRemoveClick($event)"
+          />
+        } @else {
+          <i class="pi pi-user avatar-dropzone-icon" aria-hidden="true"></i>
+          <span class="avatar-dropzone-copy">
+            <strong>Photo (optional)</strong>
+            Drop image or click to browse
+          </span>
+        }
+      </div>
+    }
+    <input
+      #fileInput
+      type="file"
+      accept="image/png,image/jpeg,image/gif,image/webp"
+      hidden
+      (change)="onFileInput($event)"
+      (click)="$event.stopPropagation()"
+    />
   `,
 })
 export class AvatarDropzoneComponent {
   /** Existing saved avatar URL (contact profile). */
   existingUrl = input<string | null | undefined>(null);
+  /** Person page: large photo, or the upload control when there is none. */
+  panel = input(false);
 
   fileChange = output<File | null>();
   invalidFile = output<string>();

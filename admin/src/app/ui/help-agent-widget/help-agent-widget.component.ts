@@ -56,7 +56,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                 </button>
                 <button
                   type="button"
-                  class="help-agent-panel-icon-btn"
+                  class="help-agent-panel-icon-btn help-agent-panel-icon-btn--danger"
                   (click)="clearChat()"
                   [disabled]="!chatMessages().length"
                   title="Clear conversation"
@@ -424,6 +424,14 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 
       .help-agent-panel-icon-btn:hover:not(:disabled) {
         color: var(--color-text, #2d2d2d);
+      }
+
+      .help-agent-panel-icon-btn--danger {
+        color: var(--color-severity-danger-text, #c62828);
+      }
+
+      .help-agent-panel-icon-btn--danger:hover:not(:disabled) {
+        color: var(--color-severity-danger-text, #c62828);
       }
 
       .help-agent-panel-icon-btn:disabled {

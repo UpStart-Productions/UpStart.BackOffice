@@ -1566,6 +1566,8 @@ model Interaction {
   direction      InteractionDirection @default(INBOUND)
   occurredAt     DateTime
   subject        String?
+  /// Where a meeting took place: a room, an address, or a link.
+  location       String?
   bodyText       String?              @db.Text
   /// Storage keys for sanitized HTML and the raw MIME message.
   bodyHtmlKey    String?

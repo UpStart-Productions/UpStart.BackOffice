@@ -20,6 +20,8 @@ export interface Interaction {
   direction: InteractionDirection;
   occurredAt: string;
   subject: string | null;
+  /** Where a meeting took place. */
+  location?: string | null;
   snippet: string | null;
   /** Only present on the single-item endpoint. New text only (quoted history removed). */
   bodyText?: string | null;
@@ -86,6 +88,7 @@ export interface LogInteractionPayload {
   leadId?: string;
   occurredAt?: string;
   subject?: string;
+  location?: string;
   bodyText?: string;
   direction?: InteractionDirection;
   contactIds?: string[];
@@ -128,8 +131,13 @@ export function participantParts(i: Pick<Interaction, 'participants'>): { from: 
 
 export const DIRECTION_LABEL = { INBOUND: 'Incoming', OUTBOUND: 'Outgoing', INTERNAL: 'Internal' } as const;
 
+const CALL_LABEL = { INBOUND: 'They called', OUTBOUND: 'We called', INTERNAL: 'Internal' } as const;
+
 export function directionLabel(i: Pick<Interaction, 'type' | 'direction'>): string {
-  return i.type === 'NOTE' ? 'Note' : DIRECTION_LABEL[i.direction];
+  if (i.type === 'NOTE') return 'Note';
+  if (i.type === 'MEETING') return 'Meeting';
+  if (i.type === 'CALL') return CALL_LABEL[i.direction];
+  return DIRECTION_LABEL[i.direction];
 }
 
 /** "5m ago", "Yesterday", "Mar 3" (adds the year when it is not this year). */
@@ -273,6 +281,10 @@ export class CommunicationsApi {
 
   updateContact(id: string, body: Partial<Pick<ContactSummary, 'firstName' | 'lastName' | 'title' | 'phone' | 'notes' | 'isActive' | 'autoCreated' | 'tags'>>) {
     return this.api.patch<ContactSummary>(`/contacts/${id}`, body);
+  }
+
+  removeAvatar(id: string) {
+    return this.api.delete<ContactSummary>(`/contacts/${id}/avatar`);
   }
 
   addEmail(id: string, email: string, isPrimary = false) {
