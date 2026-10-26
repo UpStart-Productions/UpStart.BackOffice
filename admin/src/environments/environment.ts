@@ -1,5 +1,6 @@
 export const environment = {
   apiBaseUrl: '/api',
+  mcpPublicUrl: 'http://localhost:8788',
   useCognito: false,
   cognitoGoogleSignIn: false,
   cognito: null as {

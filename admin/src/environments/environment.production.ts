@@ -1,5 +1,6 @@
 export const environment = {
   apiBaseUrl: 'https://api.example.com/api',
+  mcpPublicUrl: 'https://mcp.heyupstart.com',
   useCognito: true,
   cognitoGoogleSignIn: false,
   cognito: {

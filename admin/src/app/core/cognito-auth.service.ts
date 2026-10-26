@@ -219,6 +219,20 @@ export class CognitoAuthService {
     return this.cachedIdToken;
   }
 
+  /** Best-effort refresh token from Amplify's Cognito storage (not on the public session API). */
+  getRefreshToken(): string | undefined {
+    if (!this.useCognito || typeof localStorage === 'undefined') return undefined;
+    const clientId = environment.cognito?.userPoolClientId;
+    if (!clientId) return undefined;
+    try {
+      const lastUser = localStorage.getItem(`CognitoIdentityServiceProvider.${clientId}.LastAuthUser`);
+      if (!lastUser) return undefined;
+      return localStorage.getItem(`CognitoIdentityServiceProvider.${clientId}.${lastUser}.refreshToken`) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   async getIdToken(): Promise<string | null> {
     if (!this.useCognito) return null;
     try {

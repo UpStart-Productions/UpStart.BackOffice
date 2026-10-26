@@ -1,0 +1,46 @@
+<div class="login-page">
+  <div class="login-card card">
+    <div class="login-header">
+      <img
+        src="/images/upstart-logo-dark.svg"
+        alt="UpStart"
+        class="login-logo"
+        width="200"
+        height="62"
+      />
+      <p>Back Office</p>
+    </div>
+
+    @if (error && !state) {
+      <p-message severity="warn" styleClass="w-full" [text]="error" />
+    } @else {
+      <p class="connect-copy">
+        {{ clientName }} wants to use Back Office
+        @if (email) {
+          as <strong>{{ email }}</strong>
+        }
+        .
+      </p>
+      @if (error) {
+        <p class="login-error mb-3">{{ error }}</p>
+      }
+      <div class="connect-actions">
+        <p-button
+          label="Allow"
+          styleClass="w-full"
+          [loading]="loading"
+          [disabled]="!state || loading"
+          (onClick)="allow()"
+        />
+        <p-button
+          label="Cancel"
+          styleClass="w-full"
+          severity="secondary"
+          [outlined]="true"
+          [disabled]="loading"
+          (onClick)="cancel()"
+        />
+      </div>
+    }
+  </div>
+</div>

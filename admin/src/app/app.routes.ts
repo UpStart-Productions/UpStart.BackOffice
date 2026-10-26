@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { Route, Router } from '@angular/router';
-import { authGuard, loginGuard } from './core/auth.guard';
+import { authGuard, loginGuard, mcpConnectGuard } from './core/auth.guard';
 import { sessionGuard, adminGuard, platformAdminGuard, areaGuard, actionGuard } from './core/session.guard';
 import { ShellComponent } from './layout/shell.component';
 
@@ -9,6 +9,13 @@ export const appRoutes: Route[] = [
     path: 'login',
     loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPage),
     canActivate: [loginGuard],
+  },
+  {
+    // Claude / MCP connector: branded sign-in, then Allow to hand the session back.
+    path: 'mcp-connect',
+    loadComponent: () =>
+      import('./pages/mcp-connect/mcp-connect.page').then((m) => m.McpConnectPage),
+    canActivate: [mcpConnectGuard],
   },
   {
     // Public: emailed Task Manager invitations (set password, then sign in).
