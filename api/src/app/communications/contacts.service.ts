@@ -161,6 +161,12 @@ export class ContactsService {
     return this.get(id);
   }
 
+  async remove(id: string) {
+    await this.get(id);
+    await this.prisma.contact.delete({ where: { id } });
+    return { deleted: true as const };
+  }
+
   private async assertClient(clientId: string) {
     const client = await this.prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
     if (!client) throw new NotFoundException('Client not found.');

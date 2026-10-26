@@ -77,6 +77,21 @@ export class ContactsController {
     return this.contacts.update(id, dto);
   }
 
+  @Action('delete')
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    const existing = await this.contacts.get(id);
+    if (existing.avatarUrl) {
+      try {
+        const oldKey = this.storage.keyFromUrl(existing.avatarUrl);
+        if (oldKey && !oldKey.startsWith('http')) await this.storage.delete(oldKey);
+      } catch {
+        /* best-effort */
+      }
+    }
+    return this.contacts.remove(id);
+  }
+
   @Action('edit')
   @Post(':id/avatar')
   async uploadAvatar(@Param('id') id: string, @Body() dto: UploadAvatarDto) {

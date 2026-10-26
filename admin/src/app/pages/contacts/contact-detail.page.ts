@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -11,6 +11,7 @@ import { ApiService } from '../../core/api.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
@@ -106,6 +107,9 @@ import { OrganizationLinksComponent } from '../../ui/organization-links/organiza
               </div>
               <div class="form-actions">
                 <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
+                @if (canDelete()) {
+                  <p-button label="Delete person" icon="pi pi-trash" severity="danger" [text]="true" (onClick)="confirmDeletePerson()" />
+                }
               </div>
             </div>
 
@@ -215,10 +219,13 @@ import { OrganizationLinksComponent } from '../../ui/organization-links/organiza
 })
 export class ContactDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
+  readonly canDelete = () => this.session.can('contacts', 'delete');
   private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
 
   contact = signal<ContactSummary | null>(null);
@@ -392,6 +399,22 @@ export class ContactDetailPage implements OnInit {
           this.apply(await this.comms.removeEmail(c.id, email));
         } catch (err) {
           this.fail(err, 'Could not remove email');
+        }
+      },
+    });
+  }
+
+  confirmDeletePerson() {
+    const c = this.contact();
+    if (!c) return;
+    this.confirm.confirm({
+      message: `Delete "${contactName(c)}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.comms.deleteContact(c.id);
+          await this.router.navigate(['/people']);
+        } catch (err) {
+          this.fail(err, 'Delete failed');
         }
       },
     });

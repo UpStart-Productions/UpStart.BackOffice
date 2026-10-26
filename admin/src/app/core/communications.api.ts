@@ -310,6 +310,10 @@ export class CommunicationsApi {
     return this.api.patch<ContactSummary>(`/contacts/${id}`, body);
   }
 
+  deleteContact(id: string) {
+    return this.api.delete<{ deleted: boolean }>(`/contacts/${id}`);
+  }
+
   removeAvatar(id: string) {
     return this.api.delete<ContactSummary>(`/contacts/${id}/avatar`);
   }

@@ -117,6 +117,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
             <div class="people-panel-org-email">
               <app-copy-email [email]="c.emails[0]?.email" [muted]="true" />
             </div>
+            <app-row-actions-menu [items]="orgRowActions(c)" ariaLabel="Person actions" />
           </div>
         }
       } @else {
@@ -149,7 +150,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
     }
     .people-panel-org-row {
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(0, 2fr);
+      grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto;
       gap: 1rem;
       align-items: center;
       padding: 0.6rem 0;
@@ -422,6 +423,46 @@ export class PeopleComponent {
       role: 'USER',
       isGuest: false,
     };
+  }
+
+  orgRowActions(c: ContactSummary): RowActionItem[] {
+    const clientId = this.clientId();
+    return [
+      {
+        id: 'open',
+        label: 'Open in People',
+        icon: 'pi pi-user',
+        command: () => void this.router.navigate(['/people', c.id]),
+      },
+      ...(clientId
+        ? [
+            {
+              id: 'unlink',
+              label: 'Remove from organization',
+              icon: 'pi pi-trash',
+              severity: 'danger' as const,
+              command: () => this.confirmUnlinkFromOrg(c),
+            },
+          ]
+        : []),
+    ];
+  }
+
+  confirmUnlinkFromOrg(c: ContactSummary) {
+    const clientId = this.clientId();
+    if (!clientId) return;
+    this.confirmDelete.confirm({
+      message: `Remove "${contactName(c)}" from this organization? The person stays in People.`,
+      accept: async () => {
+        try {
+          await this.comms.unlinkAccount(c.id, clientId);
+          await this.loadOrganizationPeople(clientId);
+          void this.reloadPickerOptions();
+        } catch (err) {
+          this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
+        }
+      },
+    });
   }
 
   projectRowActions(index: number): RowActionItem[] {

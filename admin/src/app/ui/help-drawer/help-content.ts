@@ -312,6 +312,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         heading: 'Needs review',
         body: 'People created automatically from email. Check the details and Mark reviewed. The People menu item shows how many are waiting.',
       },
+      {
+        heading: 'Delete',
+        body: 'When your role allows it, open the row menu (⋯) and choose Delete. That removes the person from Back Office after you confirm.',
+      },
     ],
   },
   'people/:id': {
@@ -320,7 +324,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Profile',
-        body: 'First and last name, email and title on one form; phone below. Save stores the profile.',
+        body: 'First and last name, email and title on one form; phone below. Save stores the profile. When your role allows it, Delete person removes them from Back Office after you confirm.',
       },
       {
         heading: 'Photo',

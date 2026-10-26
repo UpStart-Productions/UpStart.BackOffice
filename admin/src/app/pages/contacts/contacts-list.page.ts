@@ -18,6 +18,8 @@ import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { CrmTagsApi } from '../../core/crm-tags.api';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
 
 @Component({
   selector: 'app-contacts-list-page',
@@ -178,7 +180,10 @@ export class ContactsListPage implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly crmTags = inject(CrmTagsApi);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
   readonly tagOptions = () => this.crmTags.tags().map((t) => t.name);
+  readonly canDelete = () => this.session.can('contacts', 'delete');
 
   contacts = signal<ContactSummary[]>([]);
   loading = signal(true);
@@ -249,7 +254,30 @@ export class ContactsListPage implements OnInit {
     if (c.autoCreated) {
       items.push({ id: 'reviewed', label: 'Mark reviewed', icon: 'pi pi-check', command: () => void this.markReviewed(c) });
     }
+    if (this.canDelete()) {
+      items.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeletePerson(c),
+      });
+    }
     return items;
+  }
+
+  confirmDeletePerson(c: ContactSummary) {
+    this.confirmDelete.confirm({
+      message: `Delete "${this.name(c)}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.comms.deleteContact(c.id);
+          await this.load();
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Delete failed');
+        }
+      },
+    });
   }
 
   async markReviewed(c: ContactSummary) {
