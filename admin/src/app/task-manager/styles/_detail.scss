@@ -3,6 +3,8 @@
 // ── Detail pane ────────────────────────────────────────────────────────────
 
 .tm-detail-host {
+  display: flex;
+  flex-direction: column;
   position: fixed;
   top: 4.5rem;
   right: 0;
@@ -29,6 +31,8 @@
 .tm-detail {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   height: 100%;
 }
 
@@ -36,43 +40,94 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--tm-border);
+  min-height: 3rem;
+}
+
+.tm-detail-toolbar-origin {
+  flex: 1;
+  min-width: 0;
+}
+
+.tm-detail-created-by {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: 1.5rem;
+  color: var(--text-color);
+}
+
+.tm-detail-created-by--form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.35rem;
+}
+
+.tm-detail-created-by-kicker {
+  color: var(--tm-muted);
+  font-weight: 500;
+}
+
+.tm-detail-created-by-form {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.tm-detail-created-by-sub {
+  color: var(--text-color);
+}
+
+.tm-detail-created-by-person {
+  font-weight: 600;
+  color: var(--brand-primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.tm-detail-created-by-date {
+  color: var(--tm-muted);
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.tm-detail-created-by--date-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .tm-detail-toolbar-actions {
   display: flex;
   align-items: center;
   gap: 0.15rem;
+  flex-shrink: 0;
 }
 
-.tm-complete-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--tm-border);
-  background: transparent;
-  border-radius: 6px;
-  padding: 0.35rem 0.75rem;
-  font: inherit;
-  font-size: var(--fs-base);
-  cursor: pointer;
+.tm-complete-circle {
+  border-radius: 999px;
 
-  &:hover:not(:disabled) {
-    border-color: var(--tm-today);
-    color: var(--tm-today);
+  .pi {
+    font-size: var(--fs-md);
+    line-height: 1;
   }
 
   &.done {
-    background: color-mix(in srgb, var(--tm-today) 12%, transparent);
-    border-color: var(--tm-today);
-    color: var(--tm-today);
+    color: var(--tm-check-done);
+
+    &:hover:not(:disabled) {
+      color: var(--tm-check-done);
+    }
   }
 }
 
 .tm-detail-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 1rem 1.5rem 1.5rem;
 }
@@ -218,6 +273,7 @@
 .tm-comment-editor {
   display: block;
   width: 100%;
+  min-height: 2.75rem;
 
   .ql-container,
   .ql-toolbar {
@@ -240,6 +296,15 @@
 .tm-comment-editor .ql-container.ql-snow {
   border-radius: 6px;
   border-top: 1px solid var(--tm-border);
+}
+
+.tm-comment-editor .ql-editor {
+  min-height: 2.75rem;
+}
+
+.tm-comment-composer-panel:not([hidden]) {
+  display: block;
+  width: 100%;
 }
 
 .tm-rich {
@@ -352,7 +417,13 @@
 
 .tm-comment {
   display: flex;
+  align-items: flex-start;
   gap: 0.6rem;
+
+  > app-tm-avatar {
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
 }
 
 .tm-comment-main {
@@ -362,10 +433,23 @@
 
 .tm-comment-meta {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
   font-size: var(--fs-sm);
+  line-height: 1.5rem;
   margin-bottom: 0.15rem;
+
+  strong {
+    font-size: inherit;
+    font-weight: 600;
+    line-height: inherit;
+  }
+
+  .tm-muted {
+    font-size: inherit;
+    line-height: inherit;
+  }
 }
 
 .tm-activity-line {
@@ -399,9 +483,29 @@
 }
 
 .tm-detail-composer {
+  flex-shrink: 0;
   border-top: 1px solid var(--tm-border);
   padding: 0.75rem 1rem;
   background: var(--surface-ground);
+}
+
+.tm-comment-composer-trigger {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--tm-border);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  background: var(--surface-card);
+  color: var(--tm-muted);
+  font: inherit;
+  font-size: var(--fs-base);
+  cursor: text;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--brand-primary) 35%, var(--tm-border));
+    color: var(--text-color);
+  }
 }
 
 .tm-composer-row {

@@ -4,3 +4,4 @@ export * from './lib/us-states';
 export * from './lib/permissions';
 export * from './lib/notifications';
 export * from './lib/support-feedback';
+export * from './lib/task-comments';

@@ -1,0 +1,35 @@
+---
+description: Align primary + secondary text on the same row (avatar, name, date, meta)
+globs: admin/**/*.{html,scss,ts}
+alwaysApply: false
+---
+
+# Inline meta row (primary + secondary on one line)
+
+When a row shows **avatar/icon + primary label + secondary text** (name + date, title + status, assignee + time):
+
+## Do
+
+- One horizontal flex container: **`tm-inline-meta`** (Task Manager — `admin/src/app/task-manager/styles/_shared.scss`).
+- **`tm-inline-meta-primary`** for the main label; **`tm-inline-meta-secondary`** for muted/date/meta.
+- **`align-items: center`** on the row; **same `font-size` and `line-height`** on primary and secondary (usually `var(--fs-base)` / `1.5rem`). Muted = color only, not a smaller font.
+- Keep avatar in the same flex row, not on a separate line from the name.
+
+```html
+<span class="tm-inline-meta">
+  <app-tm-avatar [person]="person" [size]="24" />
+  <span class="tm-inline-meta-primary">{{ person.name }}</span>
+  <span class="tm-inline-meta-secondary">{{ relativeTime(createdAt) }}</span>
+</span>
+```
+
+## Do not
+
+- Split primary and secondary into **sibling blocks** with different typography utilities (`text-sm` on one only, `font-weight: 600` on name without matching line-height).
+- Use **`align-items: baseline`** for name + date on the same row (causes visible vertical drift).
+- Rely on **`contains()`** alone on click-outside handlers after the click target node was removed in the same event — use **`event.composedPath()`** for pane dismiss (see task detail panel).
+
+## Reference
+
+- Task detail **Created by**: `task-detail-panel.component.html`
+- Comment header meta: `.tm-comment-meta` in `_detail.scss`

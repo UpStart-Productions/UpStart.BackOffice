@@ -16,6 +16,8 @@ When the project is in **Task Manager**, a **Tasks** card appears above **Manual
 
 **Tasks** opens Task Manager: my tasks, inbox, and projects. Tasks-only users live here exclusively. On a project, the **⋯** menu in the header includes **Project contacts** — the same client-side contact list as on the Projects page.
 
+In a task’s detail panel, you can **edit** or **delete your own comment** for **1 hour** after you post it. **Admins** can **delete** anyone’s comment at any time (not edit others’ comments).
+
 ## Time
 
 **Time** (Time entry) lists time entries. Add time from the list or related modals; tie entries to projects and tasks when applicable.

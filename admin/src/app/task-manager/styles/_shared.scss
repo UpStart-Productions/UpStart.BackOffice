@@ -157,3 +157,33 @@ span.tm-check {
   }
 }
 
+// Avatar + primary label + muted secondary on one row (field grid, headers, lists).
+.tm-inline-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+  font-size: var(--fs-base);
+  line-height: 1.5rem;
+  min-width: 0;
+
+  app-tm-avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+}
+
+.tm-inline-meta-primary {
+  color: var(--text-color);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.tm-inline-meta-secondary {
+  color: var(--tm-muted);
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+

@@ -536,14 +536,18 @@ function nowForInput(): string {
     .activity-body { flex: 1; min-width: 0; }
     .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
     .activity-head strong { min-width: 0; }
-    .activity-when { display: inline-flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; }
-    .activity-date {
+    .activity-when {
       display: inline-flex;
       align-items: center;
-      height: 20px;
-      line-height: 1;
+      gap: 0.4rem;
+      flex: 0 0 auto;
+      font-size: var(--fs-base);
+      line-height: 1.5rem;
+    }
+    .activity-date {
       white-space: nowrap;
-      font-size: var(--fs-sm);
+      font-size: inherit;
+      line-height: inherit;
       color: var(--text-color-secondary, #6b7280);
       cursor: default;
     }
@@ -555,8 +559,8 @@ function nowForInput(): string {
     :host ::ng-deep .activity-when .person-name {
       display: inline-flex;
       align-items: center;
-      height: 20px;
-      line-height: 1;
+      font-size: inherit;
+      line-height: inherit;
     }
     .activity-arrow { font-size: var(--fs-sm); color: var(--text-color-secondary); }
     .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); }

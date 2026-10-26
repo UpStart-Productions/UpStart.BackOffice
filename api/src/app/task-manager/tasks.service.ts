@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
-import { isAdminRole } from '@upstart/back-office/shared';
+import { isAdminRole, withinTaskCommentAuthorGrace } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { projectRootPrefix } from '../storage/storage-keys.util';
@@ -670,6 +670,9 @@ export class TasksService {
     if (!comment || comment.kind !== 'COMMENT') throw new NotFoundException('Comment not found');
     await this.access.assertTask(user, comment.taskId, 'comment');
     if (comment.authorId !== user.id) throw new ForbiddenException('You can only edit your own comments');
+    if (!withinTaskCommentAuthorGrace(comment.createdAt)) {
+      throw new ForbiddenException('Comments can only be edited for 1 hour after posting');
+    }
     const updated = await this.prisma.taskComment.update({
       where: { id: commentId },
       data: { body, editedAt: new Date() },
@@ -684,7 +687,11 @@ export class TasksService {
     const comment = await this.prisma.taskComment.findUnique({ where: { id: commentId } });
     if (!comment || comment.kind !== 'COMMENT') throw new NotFoundException('Comment not found');
     await this.access.assertTask(user, comment.taskId, 'comment');
-    if (comment.authorId !== user.id && !isAdminRole(user.role)) throw new ForbiddenException('You can only delete your own comments');
+    const isAdmin = isAdminRole(user.role);
+    if (comment.authorId !== user.id && !isAdmin) throw new ForbiddenException('You can only delete your own comments');
+    if (comment.authorId === user.id && !isAdmin && !withinTaskCommentAuthorGrace(comment.createdAt)) {
+      throw new ForbiddenException('Comments can only be deleted for 1 hour after posting');
+    }
     await this.prisma.taskComment.delete({ where: { id: commentId } });
     return { deleted: true };
   }

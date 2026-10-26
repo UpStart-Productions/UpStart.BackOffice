@@ -1,17 +1,49 @@
 <div class="tm-detail" role="complementary" aria-label="Task details">
   <header class="tm-detail-toolbar">
     @if (task(); as t) {
-      <button
-        type="button"
-        class="tm-complete-btn"
-        [class.done]="t.isCompleted"
-        [disabled]="!canEdit()"
-        (click)="toggleComplete()"
-      >
-        <i class="pi pi-check"></i>
-        <span>{{ t.isCompleted ? 'Completed' : 'Mark complete' }}</span>
-      </button>
+      <div class="tm-detail-toolbar-origin">
+        @if (t.form) {
+          <p class="tm-detail-created-by tm-detail-created-by--form">
+            <span class="tm-detail-created-by-kicker">Created by</span>
+            <strong class="tm-detail-created-by-form">{{ t.form.name }}</strong>
+            @if (t.submitter?.name || t.submitter?.email) {
+              <span class="tm-detail-created-by-sub">
+                by
+                @if (t.submitter?.email) {
+                  <a class="tm-detail-created-by-person" [href]="'mailto:' + t.submitter.email">{{ t.submitter.name || t.submitter.email }}</a>
+                } @else {
+                  <span class="tm-detail-created-by-person">{{ t.submitter!.name }}</span>
+                }
+              </span>
+            }
+            <span class="tm-detail-created-by-date">on {{ createdOnLabel(t.createdAt) }}</span>
+          </p>
+        } @else if (t.createdBy) {
+          <span class="tm-inline-meta tm-detail-created-by">
+            <app-tm-avatar [person]="t.createdBy" [size]="24" />
+            <span class="tm-inline-meta-primary">{{ t.createdBy.name }}</span>
+            <span class="tm-inline-meta-secondary">{{ createdOnLabel(t.createdAt) }}</span>
+          </span>
+        } @else {
+          <span class="tm-detail-created-by tm-detail-created-by--date-only">
+            <span class="tm-detail-created-by-kicker">Created</span>
+            <span class="tm-inline-meta-secondary">{{ createdOnLabel(t.createdAt) }}</span>
+          </span>
+        }
+      </div>
       <div class="tm-detail-toolbar-actions">
+        <button
+          type="button"
+          class="tm-icon-btn tm-complete-circle"
+          [class.done]="t.isCompleted"
+          [disabled]="!canEdit()"
+          (click)="toggleComplete()"
+          [pTooltip]="t.isCompleted ? 'Mark incomplete' : 'Mark complete'"
+          tooltipPosition="bottom"
+          [attr.aria-label]="t.isCompleted ? 'Mark incomplete' : 'Mark complete'"
+        >
+          <i class="pi pi-check-circle"></i>
+        </button>
         @if (canEdit()) {
           <button type="button" class="tm-icon-btn" (click)="startSubtask()" pTooltip="Add subtask" tooltipPosition="bottom" aria-label="Add subtask">
             <i class="pi pi-sitemap"></i>
@@ -30,8 +62,15 @@
           <i class="pi pi-link"></i>
         </button>
         @if (canEdit()) {
-          <button type="button" class="tm-icon-btn" (click)="openMore($event)" aria-label="More actions">
-            <i class="pi pi-ellipsis-h"></i>
+          <button
+            type="button"
+            class="tm-icon-btn tm-icon-btn--danger"
+            (click)="deleteTask()"
+            pTooltip="Delete task"
+            tooltipPosition="bottom"
+            aria-label="Delete task"
+          >
+            <i class="pi pi-trash"></i>
           </button>
         }
         <button type="button" class="tm-icon-btn" (click)="closed.emit()" pTooltip="Close" tooltipPosition="bottom" aria-label="Close details">
@@ -254,10 +293,10 @@
                   <div class="tm-comment-meta">
                     <strong>{{ authorName(c) }}</strong>
                     <span class="tm-muted">{{ relativeTime(c.createdAt) }}@if (c.editedAt) { · edited }</span>
-                    @if (isMine(c) && editingCommentId() !== c.id) {
+                    @if (canEditComment(c) && editingCommentId() !== c.id) {
                       <button type="button" class="tm-link-btn" (click)="startEditComment(c)">Edit</button>
                     }
-                    @if (isMine(c) || session.me()?.role === 'ADMIN') {
+                    @if (canDeleteComment(c)) {
                       <button type="button" class="tm-link-btn" (click)="deleteComment(c)">Delete</button>
                     }
                   </div>
@@ -279,46 +318,48 @@
         </ul>
       </section>
 
-      <section class="tm-detail-meta">
-        @if (t.form) {
-          <span>
-            Submitted via the “{{ t.form.name }}” form
-            @if (t.submitter && !t.createdBy) {
-              by {{ t.submitter.name || t.submitter.email }}@if (t.submitter.name && t.submitter.email) { (<a [href]="'mailto:' + t.submitter.email">{{ t.submitter.email }}</a>)} @else if (t.submitter.email) { (<a [href]="'mailto:' + t.submitter.email">email</a>)}
-            }
-            · {{ relativeTime(t.createdAt) }}
-          </span>
-        }
-        @if (t.createdBy) {
-          <span>Created by {{ t.createdBy.name }} · {{ relativeTime(t.createdAt) }}</span>
-        }
-        @if (t.isCompleted && t.completedBy) {
+      @if (t.isCompleted && t.completedBy) {
+        <section class="tm-detail-meta">
           <span>Completed by {{ t.completedBy.name }}</span>
-        }
-      </section>
+        </section>
+      }
     }
   </div>
 
   @if (task(); as t) {
     @if (canComment()) {
-      <footer class="tm-detail-composer" (keydown)="onCommentKey($event)">
-        <quill-editor
-          class="tm-comment-editor"
-          [modules]="commentModules()"
-          [(ngModel)]="commentDraft"
-          placeholder="Add a comment — type @ to mention someone"
-          [styles]="{ 'min-height': '44px', 'max-height': '200px' }"
-        ></quill-editor>
-        <div class="tm-composer-row">
-          <div class="tm-followers">
-            <span class="tm-muted">Followers</span>
-            @for (f of t.followers.slice(0, 6); track f.id) {
-              <app-tm-avatar [person]="f" [size]="22" />
-            }
-            @if (t.followers.length > 6) { <span class="tm-muted">+{{ t.followers.length - 6 }}</span> }
+      <footer
+        class="tm-detail-composer"
+        (mousedown)="$event.stopPropagation()"
+        (keydown)="onCommentKey($event)"
+      >
+        @if (!commentComposerOpen()) {
+          <button type="button" class="tm-comment-composer-trigger" (click)="openCommentComposer($event)">
+            Add a comment — type &#64; to mention someone
+          </button>
+        } @else {
+          @for (composerKey of [taskId()]; track composerKey) {
+            <quill-editor
+              #commentEditor
+              class="tm-description-editor tm-comment-editor"
+              [modules]="mentionModules()"
+              [(ngModel)]="commentDraft"
+              placeholder="Add a comment — type @ to mention someone"
+              [styles]="{ 'min-height': '44px', 'max-height': '200px' }"
+              (onEditorCreated)="onCommentComposerEditor($event)"
+            ></quill-editor>
+          }
+          <div class="tm-composer-row">
+            <div class="tm-followers">
+              <span class="tm-muted">Followers</span>
+              @for (f of t.followers.slice(0, 6); track f.id) {
+                <app-tm-avatar [person]="f" [size]="22" />
+              }
+              @if (t.followers.length > 6) { <span class="tm-muted">+{{ t.followers.length - 6 }}</span> }
+            </div>
+            <p-button label="Comment" size="small" [loading]="posting()" (onClick)="postComment()" [disabled]="posting()" />
           </div>
-          <p-button label="Comment" size="small" [loading]="posting()" (onClick)="postComment()" [disabled]="posting()" />
-        </div>
+        }
       </footer>
     }
   }
@@ -331,9 +372,3 @@
 <app-tm-due-date-picker #subtaskDuePicker (picked)="setSubtaskDue($event)" />
 
 <app-tm-tag-picker #tagPicker (picked)="addTag($event)" />
-
-<p-popover #moreMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
-  <div class="tm-menu">
-    <button type="button" class="tm-picker-item tm-danger" (click)="deleteTask()"><i class="pi pi-trash"></i> Delete task</button>
-  </div>
-</p-popover>

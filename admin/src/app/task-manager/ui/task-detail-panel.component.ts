@@ -5,19 +5,18 @@ import { Router } from '@angular/router';
 import { QuillModule } from 'ngx-quill';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { Popover } from 'primeng/popover';
-import { AppPopoverModule } from '../../core/app-popover.module';
 import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
-import { chipColors, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
+import { chipColors, createdOnLabel, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
 import { isBlankHtml, mentionQuillModules } from '../core/tm-mentions';
 import { EditorOverlayDismissGuard } from '../../core/editor-overlay-dismiss-guard.service';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
 import { TmStoreService } from '../core/tm-store.service';
+import { isAdminRole, withinTaskCommentAuthorGrace } from '@upstart/back-office/shared';
 import { Person, TaskComment, TaskDetail, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from './due-date-picker.component';
 import { TmFieldCellComponent } from './field-cell.component';
@@ -37,7 +36,6 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     FormsModule,
     QuillModule,
     ButtonModule,
-    AppPopoverModule,
     SelectModule,
     TooltipModule,
     TmAvatarComponent,
@@ -97,17 +95,18 @@ export class TmTaskDetailComponent implements OnDestroy {
   editingCommentId = signal<string | null>(null);
   editCommentDraft = '';
   uploading = signal(false);
-
+  commentComposerOpen = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
   private readonly duePicker = viewChild.required<TmDueDatePickerComponent>('duePicker');
   private readonly recurrenceEditor = viewChild.required<TmRecurrenceEditorComponent>('recurrenceEditor');
   private readonly subtaskDuePicker = viewChild.required<TmDueDatePickerComponent>('subtaskDuePicker');
   private readonly subtaskAssigneePicker = viewChild.required<TmPersonPickerComponent>('subtaskAssigneePicker');
-  private readonly moreMenu = viewChild.required<Popover>('moreMenu');
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
   private subtaskTarget: TaskSummary | null = null;
   private loadSeq = 0;
+  private loadedTaskId: string | null = null;
+  private readonly commentEditor = viewChild<{ quillEditor: Quill }>('commentEditor');
 
   readonly meId = computed(() => this.session.me()?.id ?? null);
   readonly canEdit = computed(() => !!this.task()?.permissions.canEdit);
@@ -131,6 +130,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   readonly dueTone = dueTone;
   readonly recurrenceLabel = recurrenceLabel;
   readonly relativeTime = relativeTime;
+  readonly createdOnLabel = createdOnLabel;
   readonly fileSizeLabel = fileSizeLabel;
   readonly resolveAssetUrl = resolveAssetUrl;
   readonly chipColors = chipColors;
@@ -154,12 +154,14 @@ export class TmTaskDetailComponent implements OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     if (this.editorOverlayDismissGuard.shouldSuppressParentPaneDismissal()) return;
-    const node = event.target;
-    if (!(node instanceof Node) || this.host.nativeElement.contains(node)) return;
-    const el = node instanceof Element ? node : node.parentElement;
+    const path = event.composedPath();
+    if (path.some((node) => node === this.host.nativeElement)) return;
+    const target = event.target;
+    if (target instanceof Node && this.host.nativeElement.contains(target)) return;
+    const el = target instanceof Element ? target : target instanceof Node ? target.parentElement : null;
     if (
       el?.closest(
-        '.tm-row, .p-popover, .p-dialog, .p-dialog-mask, .p-select-overlay, .p-multiselect-overlay, .p-datepicker-panel, .mention-suggest-container, .ql-tooltip, .cdk-overlay-container, .cdk-dialog-container, .cdk-overlay-backdrop, .nmp-quill-icon-dialog-panel, .nmp-licon-dialog, nmp-lucide-icon-picker-dialog, .quill-person-card-picker-panel, .quill-person-card-picker',
+        '.tm-row, .tm-detail-composer, .p-popover, .p-dialog, .p-dialog-mask, .p-select-overlay, .p-multiselect-overlay, .p-datepicker-panel, .mention-suggest-container, .ql-tooltip, .cdk-overlay-container, .cdk-dialog-container, .cdk-overlay-backdrop, .nmp-quill-icon-dialog-panel, .nmp-licon-dialog, nmp-lucide-icon-picker-dialog, .quill-person-card-picker-panel, .quill-person-card-picker',
       )
     ) {
       return;
@@ -172,6 +174,11 @@ export class TmTaskDetailComponent implements OnDestroy {
     if (!quiet) {
       this.loading.set(true);
       this.error.set(null);
+    }
+    if (id !== this.loadedTaskId) {
+      this.loadedTaskId = id;
+      this.commentDraft = '';
+      this.commentComposerOpen.set(false);
     }
     try {
       const task = await this.api.getTask(id);
@@ -238,10 +245,6 @@ export class TmTaskDetailComponent implements OnDestroy {
     }
   }
 
-  openMore(event: Event) {
-    this.moreMenu().toggle(event, event.currentTarget as HTMLElement);
-  }
-
   async onProjectsChanged() {
     const t = this.task();
     if (!t) return;
@@ -286,7 +289,6 @@ export class TmTaskDetailComponent implements OnDestroy {
   deleteTask() {
     const t = this.task();
     if (!t) return;
-    this.moreMenu().hide();
     this.confirm.confirm({
       header: 'Delete task?',
       message: `“${t.name}”${t.subtaskCount ? ` and its ${t.subtaskCount} subtask(s)` : ''} will be permanently deleted.`,
@@ -517,6 +519,14 @@ export class TmTaskDetailComponent implements OnDestroy {
 
   // ── Comments ────────────────────────────────────────────────────────────
 
+  openCommentComposer(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.editorOverlayDismissGuard.suppressParentPaneDismissal(400);
+    this.commentComposerOpen.set(true);
+    setTimeout(() => this.commentEditor()?.quillEditor?.focus(), 0);
+  }
+
   async postComment() {
     const t = this.task();
     if (!t || isBlankHtml(this.commentDraft) || this.posting()) return;
@@ -524,6 +534,7 @@ export class TmTaskDetailComponent implements OnDestroy {
     try {
       const comment = await this.api.addComment(t.id, this.commentDraft);
       this.commentDraft = '';
+      this.commentComposerOpen.set(false);
       this.task.set({ ...t, comments: [...t.comments, comment], commentCount: t.commentCount + 1 });
       void this.load(t.id, true);
       this.changed.emit({ ...t, commentCount: t.commentCount + 1 });
@@ -586,10 +597,31 @@ export class TmTaskDetailComponent implements OnDestroy {
     return !!c.author && c.author.id === this.meId();
   }
 
+  canEditComment(c: TaskComment): boolean {
+    return c.kind === 'COMMENT' && this.isMine(c) && withinTaskCommentAuthorGrace(c.createdAt);
+  }
+
+  canDeleteComment(c: TaskComment): boolean {
+    if (c.kind !== 'COMMENT') return false;
+    const role = this.session.me()?.role;
+    if (role && isAdminRole(role)) return true;
+    return this.isMine(c) && withinTaskCommentAuthorGrace(c.createdAt);
+  }
+
   onDescriptionEditor(quill: Quill) {
     bindQuillPersonCardScope(quill, () => {
       const projectId = this.task()?.project.id;
       return projectId ? { type: 'tmProject', projectId } : { type: 'crm' };
     });
+  }
+
+  onCommentComposerEditor(quill: Quill) {
+    bindQuillPersonCardScope(quill, () => {
+      const projectId = this.task()?.project.id;
+      return projectId ? { type: 'tmProject', projectId } : { type: 'crm' };
+    });
+    if (this.commentComposerOpen()) {
+      quill.focus();
+    }
   }
 }

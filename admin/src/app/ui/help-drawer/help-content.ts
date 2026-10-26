@@ -470,7 +470,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Task details',
-        body: 'Click a task to open the side panel: assignee, due date, repeats, tags, description, subtasks, attachments and comments. Type @ in a comment to mention someone. Copy task link shares it.',
+        body: 'Click a task to open the side panel: assignee, due date, repeats, tags, description, subtasks, attachments and comments. Type @ in a comment to mention someone. You can edit or delete your own comment for 1 hour after posting; admins can delete any comment anytime. Copy task link shares it.',
       },
       {
         heading: 'Moving and bulk actions',

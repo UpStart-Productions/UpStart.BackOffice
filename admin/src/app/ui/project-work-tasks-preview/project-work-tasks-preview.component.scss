@@ -27,8 +27,9 @@
 }
 
 .project-work-task-title {
+  font-size: var(--fs-base, 0.875rem);
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.5rem;
   word-break: break-word;
   text-decoration: none;
   color: inherit;
@@ -53,8 +54,8 @@
   text-align: right;
   white-space: nowrap;
   color: var(--text-color-secondary);
-  font-size: var(--fs-sm, 0.875rem);
-  line-height: 1.2;
+  font-size: var(--fs-base, 0.875rem);
+  line-height: 1.5rem;
 
   &--overdue {
     color: var(--p-red-500);

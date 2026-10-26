@@ -114,6 +114,13 @@ export function recurrenceLabel(rule: Recurrence | null): string {
   return `${every}${days}${rule.mode === 'ON_COMPLETE' ? ' after completion' : ''}`;
 }
 
+/** Calendar date for “Created … on Oct 6” (adds year when not current year). */
+export function createdOnLabel(iso: string): string {
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
+}
+
 export function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   const secs = Math.round((Date.now() - then) / 1000);
