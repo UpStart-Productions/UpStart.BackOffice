@@ -22,7 +22,7 @@ import type { OrganizationRow } from '../clients/clients-list.page';
 
 type StatusFilter = 'all' | AccountJourney;
 
-/** Every organization (prospects, clients, past clients, partners and others), filtered by status and tag. */
+/** Every organization (prospects, clients, partners and others), filtered by status and tag. */
 @Component({
   selector: 'app-organizations-list-page',
   standalone: true,
@@ -168,7 +168,6 @@ export class OrganizationsListPage implements OnInit {
   readonly typeFilterOptions: { value: AccountJourney; label: string }[] = [
     { value: 'PROSPECT', label: 'Prospects' },
     { value: 'CLIENT', label: 'Clients' },
-    { value: 'PAST_CLIENT', label: 'Past clients' },
     { value: 'NONE', label: 'Other' },
   ];
 

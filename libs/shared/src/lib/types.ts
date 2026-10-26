@@ -3,12 +3,11 @@
 /** ADMIN: everything. USER: what their tenant role grants. CLIENT: client portal login only. */
 export type UserRole = 'ADMIN' | 'USER' | 'CLIENT';
 
-export type AccountJourney = 'PROSPECT' | 'CLIENT' | 'PAST_CLIENT' | 'NONE';
+export type AccountJourney = 'PROSPECT' | 'CLIENT' | 'NONE';
 
 export const ACCOUNT_JOURNEY_LABELS: Record<AccountJourney, string> = {
   PROSPECT: 'Prospect',
   CLIENT: 'Client',
-  PAST_CLIENT: 'Past client',
   NONE: 'Other',
 };
 

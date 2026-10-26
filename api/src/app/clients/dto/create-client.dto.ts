@@ -5,7 +5,7 @@ import { Transform } from 'class-transformer';
 const emptyToUndefined = ({ value }: { value: unknown }) =>
   typeof value === 'string' && value.trim() === '' ? undefined : value;
 
-export const ACCOUNT_JOURNEYS = ['PROSPECT', 'CLIENT', 'PAST_CLIENT', 'NONE'] as const;
+export const ACCOUNT_JOURNEYS = ['PROSPECT', 'CLIENT', 'NONE'] as const;
 export type AccountJourneyValue = (typeof ACCOUNT_JOURNEYS)[number];
 
 export class CreateClientDto {
@@ -14,7 +14,7 @@ export class CreateClientDto {
   @Transform(emptyToUndefined)
   @IsString() @Length(1, 8) @IsOptional() code?: string;
 
-  @ApiPropertyOptional({ enum: ACCOUNT_JOURNEYS, description: 'Where the account is: prospect, client or past client' })
+  @ApiPropertyOptional({ enum: ACCOUNT_JOURNEYS, description: 'Where the account is: prospect, client or other' })
   @IsIn(ACCOUNT_JOURNEYS) @IsOptional() journey?: AccountJourneyValue;
 
   @ApiPropertyOptional({ type: [String], description: 'CRM tags such as Partner, Referral source, Vendor' })

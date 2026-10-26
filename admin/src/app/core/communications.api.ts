@@ -62,7 +62,7 @@ export interface ContactSummary {
     clientId: string;
     role: string | null;
     isPrimary: boolean;
-    client: { id: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'PAST_CLIENT' | 'NONE' };
+    client: { id: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'NONE' };
   }[];
 }
 

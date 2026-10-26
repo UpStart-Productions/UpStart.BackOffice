@@ -115,8 +115,9 @@ describe.skipIf(!SQL || !pglite || !socket)('pipelines (real Postgres)', () => {
     expect(first).toMatchObject({ pipelineId: p.id, stageId: p.stages[0].id });
     const disc = await inT(() => laneForLegacy(prisma, 'DISCOVERY'));
     expect(disc.legacyKey).toBe('DISCOVERY');
-    // A legacy stage the tenant no longer has falls back to the first lane.
-    const gone = await inT(() => laneForLegacy(prisma, 'ACTIVE_CLIENT'));
+    // When no lane carries that legacy key, fall back to the first lane.
+    await inT(() => prisma.pipelineStage.updateMany({ where: { legacyKey: 'ON_HOLD' }, data: { legacyKey: null } }));
+    const gone = await inT(() => laneForLegacy(prisma, 'ON_HOLD'));
     expect(gone.stageId).toBe(p.stages[0].id);
     expect(laneFields({ pipelineId: 'p', stageId: 's', legacyKey: null })).toEqual({ pipelineId: 'p', stageId: 's' });
   });

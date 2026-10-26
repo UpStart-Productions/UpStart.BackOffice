@@ -10,10 +10,6 @@
       @if (canCreate()) {
         <a pButton label="New Client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client', from: 'clients' }"></a>
       }
-      <label class="flex align-items-center gap-2" for="includePast">
-        <p-toggleswitch inputId="includePast" [ngModel]="includePast()" (ngModelChange)="onIncludePast($event)" />
-        <span>Include past clients</span>
-      </label>
       <div class="toolbar-search">
         <p-iconfield iconPosition="left" class="toolbar-search-field">
           <p-inputicon><i class="pi pi-search"></i></p-inputicon>
@@ -53,11 +49,7 @@
           <td><app-copy-email [email]="client.email" /></td>
           <td>{{ lastContactLabel(client.lastContactAt) }}</td>
           <td>
-            @if (client.journey === 'PAST_CLIENT') {
-              <p-tag value="Past client" severity="secondary" />
-            } @else {
-              <p-tag [value]="client.isActive ? 'Active' : 'Inactive'" [severity]="client.isActive ? 'success' : 'secondary'" />
-            }
+            <p-tag [value]="client.isActive ? 'Active' : 'Inactive'" [severity]="client.isActive ? 'success' : 'secondary'" />
           </td>
         </tr>
       </ng-template>

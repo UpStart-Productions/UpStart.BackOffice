@@ -132,7 +132,7 @@ export class OrganizationLinksComponent implements OnInit {
   }
 
   orgLink(client: { id: string; journey: string }): string[] {
-    return client.journey === 'CLIENT' || client.journey === 'PAST_CLIENT'
+    return client.journey === 'CLIENT'
       ? ['/clients', client.id]
       : ['/organizations', client.id];
   }

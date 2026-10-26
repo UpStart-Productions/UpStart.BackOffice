@@ -2,7 +2,7 @@
 
 How the pieces fit:
 
-- **Organizations** are every organization you deal with: prospects, clients, past clients, partners and anyone else.
+- **Organizations** are every organization you deal with: prospects, clients, partners and anyone else.
 - **People** are every person. A person can belong to one or more organizations, or none.
 - **Pipeline** holds opportunities: organizations you are trying to win. Current clients are not on it.
 - **Clients** (under **Office**) is the working list of organizations you are doing work for. It is the same records as Organizations, limited to clients.
@@ -12,11 +12,11 @@ Everything about one organization (people, emails, files, pipeline cards, projec
 
 ## Status and tags
 
-Every organization has a **Status**: Prospect, Client, Past client or Other.
+Every organization has a **Status**: Prospect, Client or Other.
 
 - A pipeline card makes its organization a **Prospect** automatically.
 - **Make client** (on a pipeline card or an organization) makes it a **Client**, and any open pipeline card for it is archived, because the opportunity is won.
-- **Past client** is set by hand on the organization's page when the work ends.
+- When status is **Client**, **Active** or **Inactive** says whether you are still working together. Set Inactive on the organization page when the work ends; projects and history stay.
 - **Other** is anyone not in a sales relationship, such as a partner or vendor.
 - Client turns on projects, time and invoices.
 
@@ -24,7 +24,7 @@ Every organization has a **Status**: Prospect, Client, Past client or Other.
 
 ## Organizations
 
-**Organizations** (CRM menu) lists every organization. Filter with the **type** dropdown (**Any Type**, Prospects, Clients, Past clients, Other) and the tag list (for example **Partner**). The row menu has **Make client**, **Edit** and **Delete**.
+**Organizations** (CRM menu) lists every organization. Filter with the **type** dropdown (**Any Type**, Prospects, Clients, Other) and the tag list (for example **Partner**). The row menu has **Make client**, **Edit** and **Delete**.
 
 **New Organization** asks for a **Type**:
 
@@ -32,13 +32,13 @@ Every organization has a **Status**: Prospect, Client, Past client or Other.
 - **Client** turns on projects, time and invoices.
 - **Partner** adds the Partner tag and stays off the pipeline.
 
-On an organization's page: Status (Prospect, Client, or Past client), Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files. **Add person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page.
+On an organization's page: Status (Prospect, Client, or Other), Active or Inactive when status is Client, Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files. **Add person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page.
 
 **Activity** lists emails, calls, meetings and notes. **Log activity** records a call, meeting, or note (pick the type at the top of the dialog). On a call, **Who called** is We called, They called, or Internal. The activity shows the caller, then an arrow, then who was called. On a meeting, **Where** is the place or link, such as Zoom or their office. **Notes / next steps** is a formatted note: bold, lists, and links. **Who was involved** lists **Our team** and that organization's people, so you can record who on your side talked with whom. **All**, **Emails**, **Calls**, **Meetings** and **Notes** is a menu above the list, with Search beside it. Search looks only at the type you picked, including when nothing is logged yet. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when UBO is CC'd on the thread. The same panel is on a pipeline card. On a person's page, Activity shows what involves that person; log the call, meeting, or note on their organization or pipeline card.
 
 ## Clients
 
-**Clients** (Office menu) shows organizations with status Client. **Include past clients** adds past clients. **New Client** adds an organization as a client straight away. Prospects are not here; they are on the Pipeline.
+**Clients** (Office menu) shows organizations with status Client. The **Status** column is Active or Inactive. **New Client** adds an organization as a client straight away. Prospects are not here; they are on the Pipeline.
 
 ## People
 

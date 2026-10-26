@@ -272,9 +272,9 @@ export class ClientFormPage implements OnInit {
     this.form.tags = type === 'partner' ? ['Partner', ...others] : others;
   }
 
-  /** Projects and Client portal show only for clients (and past clients, who keep their projects). */
+  /** Projects and Client portal show only for clients. */
   get isClient(): boolean {
-    return this.form.journey === 'CLIENT' || this.form.journey === 'PAST_CLIENT';
+    return this.form.journey === 'CLIENT';
   }
 
   /** Page title. */
@@ -283,7 +283,7 @@ export class ClientFormPage implements OnInit {
     return this.newType === 'client' ? 'New client' : 'New organization';
   }
 
-  /** Flip a prospect or past client to Client. Copies nothing; reversible from the Journey field. */
+  /** Flip a prospect or other organization to Client. Copies nothing; reversible from the Status field. */
   async makeClient() {
     const id = this.id();
     if (!id || this.saving()) return;

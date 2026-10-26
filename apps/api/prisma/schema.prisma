@@ -59,7 +59,6 @@ enum PayableStatus {
 enum AccountJourney {
   PROSPECT
   CLIENT
-  PAST_CLIENT
   /// Not in a sales journey (partners, referral sources, vendors). Tags say what they are.
   NONE
 }
@@ -68,8 +67,6 @@ enum LeadStage {
   NEW_LEAD
   DISCOVERY
   PROPOSAL_SENT
-  ACTIVE_CLIENT
-  PAST_CLIENT
   ON_HOLD
 }
 

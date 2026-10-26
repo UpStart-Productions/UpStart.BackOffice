@@ -2,7 +2,7 @@
  * Read-only report: which Accounts marked Client look like they are not doing work with you yet?
  *   npx tsx tools/review-clients.ts [--tenant <slug>]
  * An Account is a "likely not a client" when it has no projects, no time entries, no invoices and no
- * assigned users. Fix each one in the app from its Status field (Prospect, Past client, Other).
+ * assigned users. Fix each one in the app from its Status field (Prospect, Client, Other) and Active or Inactive when status is Client.
  * Nothing is changed by this tool.
  */
 import { disconnect, prisma, runForTenant } from './lib/tenant-prisma';

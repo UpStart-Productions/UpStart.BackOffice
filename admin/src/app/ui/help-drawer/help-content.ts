@@ -49,7 +49,7 @@ const ORG_DETAIL: HelpArticle = {
   sections: [
     {
       heading: 'Status',
-      body: 'Prospect, Client, Past client or Other. It changes on its own: a pipeline card makes an organization a Prospect, and Make client makes it a Client. Past client you set yourself when the work ends. Client turns on projects, time and invoices.',
+      body: 'Prospect, Client or Other. A pipeline card makes an organization a Prospect, and Make client makes it a Client. When status is Client, Active or Inactive says whether you are still working together. Client turns on projects, time and invoices.',
     },
     {
       heading: 'Tags',
@@ -57,7 +57,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Make client',
-      body: 'Turns a prospect, past client or other organization into a client. Any open pipeline card for it is archived, since the opportunity is won. Nothing is copied.',
+      body: 'Turns a prospect or other organization into a client. Any open pipeline card for it is archived, since the opportunity is won. Nothing is copied.',
     },
     {
       heading: 'Invoice Code',
@@ -257,15 +257,15 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   organizations: {
     title: 'Organizations',
-    intro: 'Every organization you deal with: prospects, clients, past clients, partners and anyone else.',
+    intro: 'Every organization you deal with: prospects, clients, partners and anyone else.',
     sections: [
       {
         heading: 'Filters',
-        body: 'The type dropdown defaults to Any Type, or choose Prospects, Clients, Past clients or Other. The tag list narrows to one tag, such as Partner. Filters stay in the page address, so you can bookmark a view.',
+        body: 'The type dropdown defaults to Any Type, or choose Prospects, Clients or Other. The tag list narrows to one tag, such as Partner. Filters stay in the page address, so you can bookmark a view.',
       },
       {
         heading: 'Status',
-        body: 'Set for you: a pipeline card makes an organization a Prospect, and Make client makes it a Client. Set Past client yourself on the organization\'s page.',
+        body: 'Set for you: a pipeline card makes an organization a Prospect, and Make client makes it a Client. Mark a client Inactive on the organization page when the work ends.',
       },
       {
         heading: 'New Organization',
@@ -282,7 +282,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Who shows here',
-        body: 'Organizations with status Client. Turn on Include past clients to see past ones too. Prospects are on the Pipeline, and everyone else is under CRM → Organizations.',
+        body: 'Organizations with status Client. Active and Inactive show in the Status column. Prospects are on the Pipeline, and everyone else is under CRM → Organizations.',
       },
       {
         heading: 'New Client',

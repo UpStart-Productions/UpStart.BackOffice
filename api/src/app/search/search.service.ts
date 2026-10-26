@@ -31,8 +31,6 @@ const LEAD_STAGE_LABELS: Record<string, string> = {
   DISCOVERY: 'Discovery',
   PROPOSAL_SENT: 'Proposal Sent',
   ON_HOLD: 'On Hold',
-  ACTIVE_CLIENT: 'Active Client',
-  PAST_CLIENT: 'Past Client',
 };
 
 function contains(q: string) {

@@ -159,7 +159,7 @@ export class ProjectFormPage implements OnInit {
 
   async ngOnInit() {
     const [clientsData, asanaStatus] = await Promise.all([
-      this.api.get<Client[]>('/clients?journey=CLIENT,PAST_CLIENT').catch(() => [] as Client[]),
+      this.api.get<Client[]>('/clients?journey=CLIENT').catch(() => [] as Client[]),
       this.api.get<AsanaStatus>('/asana/status').catch(() => null),
     ]);
     this.clients.set(clientsData);

@@ -9,7 +9,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
@@ -32,7 +31,7 @@ export type OrganizationRow = {
 
 /**
  * Clients (under Office): the organizations you're working for. Same records as Organizations,
- * limited to status Client; "Include past clients" adds Past client.
+ * limited to status Client. Active and Inactive come from each client record.
  */
 @Component({
   selector: 'app-clients-list-page',
@@ -47,7 +46,6 @@ export type OrganizationRow = {
     TableModule,
     MessageModule,
     TagModule,
-    ToggleSwitchModule,
     PageComponent,
     RowActionsMenuComponent,
     CopyEmailComponent,
@@ -67,7 +65,6 @@ export class ClientsListPage implements OnInit {
   clients = signal<OrganizationRow[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
-  includePast = signal(false);
   searchQuery = '';
   searchDebounced = signal('');
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -89,11 +86,6 @@ export class ClientsListPage implements OnInit {
     void this.load();
   }
 
-  onIncludePast(value: boolean) {
-    this.includePast.set(value);
-    void this.load();
-  }
-
   onSearchInput(value: string) {
     this.searchQuery = value;
     if (this.searchTimer) clearTimeout(this.searchTimer);
@@ -111,8 +103,7 @@ export class ClientsListPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const journey = this.includePast() ? 'CLIENT,PAST_CLIENT' : 'CLIENT';
-      this.clients.set(await this.api.get<OrganizationRow[]>(`/clients?journey=${journey}`));
+      this.clients.set(await this.api.get<OrganizationRow[]>(`/clients?journey=CLIENT`));
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load clients');

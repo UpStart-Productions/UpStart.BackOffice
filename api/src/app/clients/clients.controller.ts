@@ -59,7 +59,7 @@ export class ClientsController {
     if (ids !== null && !ids.includes(id)) throw new NotFoundException('Client not found');
   }
 
-  /** Organizations. ?journey=CLIENT,PAST_CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */
+  /** Organizations. ?journey=CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */
   @Get()
   async list(
     @Req() req: Request,

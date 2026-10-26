@@ -70,6 +70,13 @@
                     [allowEmpty]="false"
                   />
                   <small class="text-muted block mt-1">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
+                  @if (form.journey === 'CLIENT') {
+                    <label class="flex align-items-center gap-2 mt-2" for="clientActive">
+                      <p-toggleswitch inputId="clientActive" name="isActive" [(ngModel)]="form.isActive" />
+                      <span>{{ form.isActive ? 'Active client' : 'Inactive client' }}</span>
+                    </label>
+                    <small class="text-muted block mt-1">Inactive keeps projects and history; use it when you are not actively working together.</small>
+                  }
                 }
               </div>
               <div class="form-field showcase-half">
