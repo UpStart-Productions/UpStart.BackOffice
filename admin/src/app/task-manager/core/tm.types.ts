@@ -30,6 +30,18 @@ export type TmProjectListItem = {
 
 export type TmSection = { id: string; name: string; sortOrder: number; isCollapsed: boolean };
 
+/** Client-side contact on a project (invoicing / comms), synced from People when linked. */
+export type TmProjectContact = {
+  id: string;
+  contactId: string | null;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  avatarUrl: string | null;
+  sortOrder: number;
+};
+
 export type FieldType = 'TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX';
 export type FieldOption = { id: string; label: string; color?: string };
 export type TmField = { id: string; projectId: string; name: string; type: FieldType; options: FieldOption[]; sortOrder: number };
@@ -47,6 +59,7 @@ export type TmProject = {
   sections: TmSection[];
   customFields: TmField[];
   members: ProjectMember[];
+  contacts: TmProjectContact[];
   permissions: { canEdit: boolean; canComment: boolean; canManage: boolean; seesAllProjects: boolean };
 };
 

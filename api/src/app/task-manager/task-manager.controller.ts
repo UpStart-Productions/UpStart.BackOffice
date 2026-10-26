@@ -47,6 +47,7 @@ import {
   UpdateTaskDto,
   UpdateTmProjectDto,
 } from './dto/task-manager.dto';
+import { SyncProjectContactsDto } from '../projects/dto/project-contact.dto';
 import { TaskProjectsService } from './task-projects.service';
 import { TaskTagsService } from './task-tags.service';
 import { FORM_MAX_FILE_BYTES, FORM_MAX_FILES, TaskFormsService } from './task-forms.service';
@@ -127,6 +128,13 @@ export class TaskManagerController {
   @Get('projects/:id/people')
   projectPeople(@Req() req: Request, @Param('id') id: string) {
     return this.projects.people(me(req), id);
+  }
+
+  /** Client-side project contacts (same list as on the Projects page). */
+  @Action('edit')
+  @Put('projects/:id/contacts')
+  syncProjectContacts(@Req() req: Request, @Param('id') id: string, @Body() dto: SyncProjectContactsDto) {
+    return this.projects.syncContacts(me(req), id, dto.contacts);
   }
 
   @Get('people')

@@ -64,6 +64,9 @@ export class TmApiService {
   people(projectId?: string) {
     return this.api.get<Person[]>(projectId ? `/tm/projects/${projectId}/people` : '/tm/people');
   }
+  syncProjectContacts(projectId: string, contacts: Record<string, unknown>[]) {
+    return this.api.put<TmProject>(`/tm/projects/${projectId}/contacts`, { contacts });
+  }
   addMember(projectId: string, userId: string, role: MemberRole) {
     return this.api.post<TmProject>(`/tm/projects/${projectId}/members`, { userId, role });
   }

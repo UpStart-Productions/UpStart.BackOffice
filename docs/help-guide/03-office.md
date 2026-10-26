@@ -12,7 +12,7 @@ On a project, the **People** panel matches the client page: **Add existing perso
 
 ## Tasks
 
-**Tasks** opens Task Manager: my tasks, inbox, and projects. Tasks-only users live here exclusively.
+**Tasks** opens Task Manager: my tasks, inbox, and projects. Tasks-only users live here exclusively. On a project, the **⋯** menu in the header includes **Project contacts** — the same client-side contact list as on the Projects page.
 
 ## Time
 

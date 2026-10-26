@@ -142,7 +142,9 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       }
     </div>
 
-    <app-create-person-modal />
+    @if (addPersonFlow() === 'modal') {
+      <app-create-person-modal />
+    }
   `,
   styles: `
     .people-panel-picker {
@@ -209,7 +211,7 @@ export class PeopleComponent {
   private readonly toast = inject(MessageService);
   private readonly router = inject(Router);
   private readonly confirmDelete = inject(ConfirmDeleteService);
-  private readonly createPersonModal = viewChild.required(CreatePersonModalComponent);
+  private readonly createPersonModal = viewChild(CreatePersonModalComponent);
 
   readonly contactName = contactName;
 
@@ -223,6 +225,9 @@ export class PeopleComponent {
   hint = input<string | null>(null);
   /** When picking on a project, omit people already on this project. */
   projectId = input<string | null>(null);
+  /** `modal` opens the new-person dialog; `delegate` emits addPersonRequested for the host to show inline UI. */
+  addPersonFlow = input<'modal' | 'delegate'>('modal');
+  addPersonRequested = output<void>();
 
   /** Project mode only — current contact rows. */
   projectContacts = input<PeopleProjectContact[]>([]);
@@ -273,8 +278,12 @@ export class PeopleComponent {
   }
 
   async openNewPerson() {
+    if (this.addPersonFlow() === 'delegate') {
+      this.addPersonRequested.emit();
+      return;
+    }
     const clientId = this.clientId();
-    const created = await this.createPersonModal().open({ clientId: clientId ?? undefined });
+    const created = await this.createPersonModal()!.open({ clientId: clientId ?? undefined });
     if (!created) return;
     if (this.mode() === 'organization' && clientId) {
       await this.loadOrganizationPeople(clientId);

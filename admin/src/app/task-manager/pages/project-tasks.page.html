@@ -37,7 +37,15 @@
           @if (canEdit()) {
             <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
           }
-          <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions"><i class="pi pi-ellipsis-h"></i></button>
+          <button
+            #projectMenuTrigger
+            type="button"
+            class="tm-icon-btn"
+            (click)="openProjectMenu($event)"
+            aria-label="Project actions"
+          >
+            <i class="pi pi-ellipsis-h"></i>
+          </button>
         </div>
       </div>
     </header>
@@ -278,6 +286,7 @@
     }
 
     <app-tm-members-dialog [(visible)]="membersOpen" [project]="p" (updated)="onProjectUpdated($event)" />
+    <app-tm-contacts-dialog [(visible)]="contactsOpen" [project]="p" (updated)="onProjectUpdated($event)" />
     <app-tm-fields-dialog [(visible)]="fieldsOpen" [project]="p" (changed)="onFieldsChanged()" />
   }
 </div>
@@ -335,12 +344,13 @@
   </div>
 </p-popover>
 
-<p-popover #projectMenu appendTo="body" styleClass="tm-popover">
+<p-popover #projectMenu appendTo="body" styleClass="tm-popover" (onShow)="centerProjectMenuPopover()">
   <div class="tm-menu">
     @if (project()?.permissions?.seesAllProjects) {
       <a class="tm-picker-item" [routerLink]="['/projects', projectId()]"><i class="pi pi-external-link"></i> Open in Projects</a>
     }
     <button type="button" class="tm-picker-item" (click)="membersOpen.set(true); projectMenu.hide()"><i class="pi pi-users"></i> Members</button>
+    <button type="button" class="tm-picker-item" (click)="contactsOpen.set(true); projectMenu.hide()"><i class="pi pi-id-card"></i> Project contacts</button>
     @if (canEdit()) {
       <button type="button" class="tm-picker-item" (click)="fieldsOpen.set(true); projectMenu.hide()"><i class="pi pi-sliders-h"></i> Custom fields</button>
     }

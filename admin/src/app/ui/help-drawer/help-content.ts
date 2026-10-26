@@ -474,7 +474,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Customize',
-        body: 'Add custom fields for anything tasks need to track. Members controls who can see the project; Share picks someone from People or your team, or you can type an email — guests only see projects shared with them.',
+        body: 'Add custom fields for anything tasks need to track. Members controls who can see the project; Share picks someone from People or your team, or you can type an email — guests only see projects shared with them. Project contacts (⋯ menu) lists client-side contacts from the Projects page; editors can add people from People there.',
       },
       {
         heading: 'Forms',

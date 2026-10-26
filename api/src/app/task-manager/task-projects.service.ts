@@ -22,6 +22,9 @@ import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
 import { personName, personSelect } from './task-people.util';
 import { usersWithArea, AccessService } from '../access/access.service';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
+import { ProjectContactInputDto } from '../projects/dto/project-contact.dto';
+import { syncProjectContacts } from '../projects/project-contacts.util';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 export const DEFAULT_SECTIONS = ['To do', 'Doing', 'Done'];
 export const PROJECT_COLORS = ['#7c3aed', '#2563eb', '#0891b2', '#059669', '#65a30d', '#d97706', '#ea580c', '#dc2626', '#db2777', '#64748b'];
@@ -85,6 +88,7 @@ export class TaskProjectsService {
         sections: { orderBy: { sortOrder: 'asc' } },
         customFields: { orderBy: { sortOrder: 'asc' } },
         members: { include: { user: { select: personSelect } }, orderBy: { createdAt: 'asc' } },
+        contacts: { orderBy: { sortOrder: 'asc' } },
         stars: { where: { userId: user.id }, select: { id: true } },
       },
     });
@@ -112,8 +116,24 @@ export class TaskProjectsService {
       })),
       customFields: project.customFields.map(toField),
       members: project.members.map((m) => ({ ...person(m.user), memberRole: m.role, invitePending: pending.has(m.userId) })),
+      contacts: project.contacts.map((c) => ({
+        id: c.id,
+        contactId: c.contactId,
+        firstName: c.firstName ?? '',
+        lastName: c.lastName ?? '',
+        phone: c.phone ?? '',
+        email: c.email ?? '',
+        avatarUrl: toPublicAssetUrl(c.avatarUrl),
+        sortOrder: c.sortOrder,
+      })),
       permissions: { canEdit, canComment, canManage, seesAllProjects: this.access.seesAllProjects(user) },
     };
+  }
+
+  async syncContacts(user: UserContext, projectId: string, contacts: ProjectContactInputDto[]) {
+    await this.access.assertProject(user, projectId, 'edit');
+    await syncProjectContacts(this.prisma, projectId, contacts);
+    return this.get(user, projectId);
   }
 
   /** Active projects (from the Projects page) not yet added to Tasks. Only for people who see every project. */

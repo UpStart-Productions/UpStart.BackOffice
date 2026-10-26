@@ -1,5 +1,16 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { Component, computed, effect, HostListener, inject, OnDestroy, signal, untracked, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  HostListener,
+  inject,
+  OnDestroy,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
@@ -22,6 +33,7 @@ import { TmBulkActionsComponent } from '../ui/bulk-actions.component';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmFieldCellComponent } from '../ui/field-cell.component';
 import { TmFieldsDialogComponent } from '../ui/fields-dialog.component';
+import { TmContactsDialogComponent } from '../ui/contacts-dialog.component';
 import { TmMembersDialogComponent } from '../ui/members-dialog.component';
 import { TmPersonPickerComponent } from '../ui/person-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
@@ -61,6 +73,7 @@ const NO_SECTION = '__none__';
     TmFieldCellComponent,
     TmTaskDetailComponent,
     TmMembersDialogComponent,
+    TmContactsDialogComponent,
     TmFieldsDialogComponent,
     TmBulkActionsComponent,
   ],
@@ -95,6 +108,7 @@ export class ProjectTasksPage implements OnDestroy {
   search = signal('');
   tagFilter = signal<string[]>([]);
   membersOpen = signal(false);
+  contactsOpen = signal(false);
   fieldsOpen = signal(false);
   addingIn = signal<string | null>(null);
   newTaskName = '';
@@ -122,6 +136,7 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly sectionMenu = viewChild.required<Popover>('sectionMenu');
   private readonly colorMenu = viewChild.required<Popover>('colorMenu');
   private readonly projectMenu = viewChild.required<Popover>('projectMenu');
+  private readonly projectMenuTrigger = viewChild.required<ElementRef<HTMLButtonElement>>('projectMenuTrigger');
   private readonly bulkSectionPop = viewChild.required<Popover>('bulkSectionPop');
   private pickerTask: TaskSummary | null = null;
   private bulkPickerIds: string[] | null = null;
@@ -844,7 +859,60 @@ export class ProjectTasksPage implements OnDestroy {
   }
 
   openProjectMenu(event: Event) {
-    this.projectMenu().toggle(event);
+    this.projectMenu().toggle(event, this.projectMenuTrigger().nativeElement);
+  }
+
+  /** Prime’s default anchor + caret don’t match our header ⋮ — place panel and caret on the button center. */
+  centerProjectMenuPopover() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.layoutProjectMenuPopover());
+    });
+  }
+
+  private layoutProjectMenuPopover() {
+    const container = this.projectMenu().container as HTMLElement | undefined;
+    const trigger = this.projectMenuTrigger().nativeElement;
+    if (!container || !trigger) return;
+
+    const tr = trigger.getBoundingClientRect();
+    const targetCenterX = tr.left + tr.width / 2;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const vw = document.documentElement.clientWidth;
+
+    const panelW = container.offsetWidth;
+    const gutter =
+      parseFloat(getComputedStyle(container).getPropertyValue('--p-popover-gutter')) ||
+      parseFloat(getComputedStyle(container).getPropertyValue('--p-anchor-gutter')) ||
+      10;
+
+    const top = tr.bottom + scrollY + gutter;
+    let left = targetCenterX + scrollX - panelW / 2;
+    const pad = 8;
+    left = Math.min(scrollX + vw - panelW - pad, Math.max(scrollX + pad, left));
+
+    container.style.top = `${top}px`;
+    container.style.left = `${left}px`;
+    container.style.marginTop = '0';
+    container.classList.remove('p-popover-flipped');
+    container.removeAttribute('data-p-popover-flipped');
+
+    const panelLeft = container.getBoundingClientRect().left;
+    const radius = parseFloat(getComputedStyle(container).borderRadius) || 0;
+    const arrowLeft = targetCenterX - panelLeft - radius * 2;
+    const inset = 16;
+    this.setPopoverArrowLeft(container, Math.max(inset, Math.min(panelW - inset, arrowLeft)));
+  }
+
+  private setPopoverArrowLeft(container: HTMLElement, px: number) {
+    for (let i = 0; i < container.style.length; i++) {
+      const name = container.style[i];
+      if (name.includes('arrow') && name.includes('left')) {
+        container.style.setProperty(name, `${px}px`);
+        return;
+      }
+    }
+    container.style.setProperty('--p-popover-arrow-left', `${px}px`);
   }
 
   /** Hide this project from Tasks (its tasks are kept if it's added back later). */
