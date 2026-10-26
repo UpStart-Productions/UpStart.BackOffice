@@ -1,7 +1,7 @@
 node_modules
 dist
 .env
-uploads/
+/uploads/
 tmp
 .nx/cache
 .nx/workspace-data
