@@ -18,6 +18,7 @@ import { TaskManagerStyleHostComponent } from '../task-manager/ui/task-manager-s
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
+import { AppUpdateService } from '../core/app-update.service';
 
 /** Routes rendered in Task Manager mode (icon rail + task sidebar). */
 export function isTaskManagerUrl(url: string): boolean {
@@ -49,6 +50,7 @@ export class ShellComponent implements OnInit {
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly comms = inject(CommunicationsApi);
+  private readonly appUpdate = inject(AppUpdateService);
   readonly layout = inject(LayoutService);
 
   private readonly currentUrl = toSignal(
@@ -137,6 +139,7 @@ export class ShellComponent implements OnInit {
 
   async ngOnInit() {
     await this.session.getReady();
+    this.appUpdate.showPostReloadToast();
   }
 
   onMaskClick() {

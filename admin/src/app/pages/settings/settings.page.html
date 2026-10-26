@@ -170,6 +170,19 @@
         </p-accordion-content>
       </p-accordion-panel>
 
+      <p-accordion-panel value="mcp">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            <i class="pi pi-sparkles settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
+            <span class="settings-accordion-title">MCP server</span>
+            <span class="settings-accordion-meta">Connect Claude, ChatGPT, and other AI apps</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <app-mcp-settings />
+        </p-accordion-content>
+      </p-accordion-panel>
+
       <p-accordion-panel value="api-keys">
         <p-accordion-header>
           <span class="settings-accordion-header">
@@ -184,7 +197,7 @@
         </p-accordion-header>
         <p-accordion-content>
           <p class="text-color-secondary mt-0 mb-3">
-            Grant external services access to UBO. Each key is shown once on creation — store it securely.
+            Grant external services access to UpStart Back Office. Each key is shown once on creation — store it securely.
           </p>
 
           <div class="toolbar">
@@ -233,7 +246,7 @@
           <span class="settings-accordion-header">
             <i class="pi pi-inbox settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
             <span class="settings-accordion-title">Email capture</span>
-            <span class="settings-accordion-meta">CC UBO to log an email</span>
+            <span class="settings-accordion-meta">CC capture address to log email</span>
           </span>
         </p-accordion-header>
         <p-accordion-content>

@@ -1,9 +1,9 @@
 # Inbound email capture: AWS setup
 
-How client email gets into UBO. Staff CC their workspace's capture address (for example `upstart@in.heyupstart.com`) on any email they want logged, and reply-all keeps it on the thread. The pieces below turn that address into timeline entries.
+How client email gets into UpStart Back Office. Staff CC their workspace's capture address (for example `upstart@in.heyupstart.com`) on any email they want logged, and reply-all keeps it on the thread. The pieces below turn that address into timeline entries.
 
 ```
-Email with UBO on CC -> upstart@<INBOUND_DOMAIN>
+Email with capture address on CC -> upstart@<INBOUND_DOMAIN>
    -> SES receipt rule (MX record points the domain at SES)
         1. S3 action:     raw message saved to s3://<bucket>/inbound/<messageId>
         2. Lambda action: ubo-inbound-email
@@ -17,7 +17,7 @@ Nothing here is app configuration. The inbound domain is a constant in the code 
 
 ## One-time setup
 
-You need: the AWS CLI signed in to the account you want (us-west-2), a domain or subdomain you control, and a UBO service key (Settings, service keys).
+You need: the AWS CLI signed in to the account you want (us-west-2), a domain or subdomain you control, and a service key (Settings → API Keys).
 
 ```bash
 INBOUND_DOMAIN=in.heyupstart.com UBO_SERVICE_KEY=<key> \
@@ -38,21 +38,21 @@ If the account already has an **active SES rule set** (GrovLink, SPP), the scrip
 Then do the three manual steps the script prints:
 
 1. **DNS.** Add `MX 10 inbound-smtp.us-west-2.amazonaws.com` for the inbound domain. Use a dedicated subdomain. Never repoint the MX of a domain that already receives real mail.
-2. **Team domains.** In UBO Settings, Email capture, list your team's email domains.
+2. **Team domains.** In UpStart Back Office Settings → Email capture, list your team's email domains.
 3. **Let the API read the bucket.** Give its AWS credentials `s3:GetObject` on `arn:aws:s3:::<bucket>/inbound/*`. Passing `API_IAM_USER=<user>` to the script does this for you.
 
 ## Check it works
 
 1. `dig MX in.heyupstart.com` shows the SES endpoint.
 2. Send an email to someone outside with `upstart@in.heyupstart.com` on CC.
-3. Within a minute it appears in UBO's Unfiled inbox. If it doesn't, see below.
+3. Within a minute it appears in the Unfiled inbox. If it doesn't, see below.
 
 ## Troubleshooting
 
 | Symptom | Look at |
 |---------|---------|
 | Nothing arrives | MX record (propagation can take a while); that the SES rule set is the *active* one (`aws ses describe-active-receipt-rule-set`) |
-| Object appears in S3 but not in UBO | CloudWatch log group `/aws/lambda/ubo-inbound-email`. An HTTP 401 means the service key in the Lambda is wrong or revoked; a connection error means `INGEST_BACKEND_URL` is wrong |
+| Object appears in S3 but not in UpStart Back Office | CloudWatch log group `/aws/lambda/ubo-inbound-email`. An HTTP 401 means the service key in the Lambda is wrong or revoked; a connection error means `INGEST_BACKEND_URL` is wrong |
 | Lambda logs `ingested` with status `dropped_unknown_alias` | The address's local part isn't a known alias. Check Settings, Email capture |
 | API log: S3 `AccessDenied` | Step 3 above |
 

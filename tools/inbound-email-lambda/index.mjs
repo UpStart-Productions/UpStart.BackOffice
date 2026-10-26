@@ -1,8 +1,8 @@
-// SES receipt rule -> (S3 action stores the raw message) -> this Lambda -> UBO API.
+// SES receipt rule -> (S3 action stores the raw message) -> this Lambda -> Back Office API.
 // No dependencies: Node 22 has fetch built in, so the deployment is just this file.
 //
 // The only environment variable is the secret:
-//   INGEST_API_KEY   a UBO service key (Settings > API Keys), sent as x-api-key
+//   INGEST_API_KEY   a UpStart Back Office service key (Settings → API Keys), sent as x-api-key
 // Everything else is fixed infrastructure, so it lives here.
 
 export const INGEST_URL = 'https://api.heyupstart.com/api/communications/ingest-email';

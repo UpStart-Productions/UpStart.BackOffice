@@ -56,7 +56,7 @@ type Option = { id: string; label: string };
       <div class="card">
         <h2 class="page-title page-title-in-card">Unfiled inbox</h2>
         <p class="text-color-secondary mb-3">
-          Emails CC'd to UBO that we couldn't match to a client or lead. File one and the rest of its thread
+          Emails CC'd to your capture address that we couldn't match to a client or lead. File one and the rest of its thread
           follows, and we remember the people on it so their next email files itself.
         </p>
 

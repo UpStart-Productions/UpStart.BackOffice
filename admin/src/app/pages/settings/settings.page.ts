@@ -19,6 +19,7 @@ import { TenantBrandingService } from '../../core/tenant-branding.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { EmailCaptureSettingsComponent } from '../../ui/email-capture/email-capture-settings.component';
+import { McpSettingsComponent } from '../../ui/mcp-settings/mcp-settings.component';
 
 interface ServiceKey {
   id:         string;
@@ -106,6 +107,7 @@ interface SettingsStatusIcon {
     AccordionModule,
     RowActionsMenuComponent,
     EmailCaptureSettingsComponent,
+    McpSettingsComponent,
   ],
   templateUrl: './settings.page.html',
   styles: [

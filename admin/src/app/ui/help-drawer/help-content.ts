@@ -69,7 +69,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Activity',
-      body: 'Emails, calls, meetings and notes for this organization. Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when UBO is CC\'d on the thread.',
+      body: 'Emails, calls, meetings and notes for this organization. Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
     },
     {
       heading: 'Files, links and notes',
@@ -209,11 +209,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── CRM ────────────────────────────────────────────────
   inbox: {
     title: 'Inbox',
-    intro: 'Emails UBO received but couldn\'t match to an organization or pipeline card.',
+    intro: 'Emails UpStart Back Office received but couldn\'t match to an organization or pipeline card.',
     sections: [
       {
         heading: 'How email gets here',
-        body: 'When someone CCs your UBO address (see Settings → Email capture), UBO files the email to the organization the people belong to. Anything it can\'t match lands here.',
+        body: 'When someone CCs your capture address (see Settings → Email capture), UpStart Back Office files the email to the organization the people belong to. Anything it can\'t match lands here.',
       },
       {
         heading: 'Filing an email',
@@ -687,7 +687,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Categorizing',
-        body: 'Pick a category account for each transaction and click Post. UBO remembers your choices and pre-fills matching transactions next time ("Learned from previous categorization").',
+        body: 'Pick a category account for each transaction and click Post. UpStart Back Office remembers your choices and pre-fills matching transactions next time ("Learned from previous categorization").',
       },
     ],
   },
@@ -739,11 +739,16 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Email capture',
-        body: 'Your UBO address. CC it on an email to log it; reply-all keeps it on the thread. UBO only sees messages this address is on. List your team\'s email domains so team members aren\'t created as contacts.',
+        body: 'Your capture address. CC it on an email to log it; reply-all keeps it on the thread. UpStart Back Office only sees messages this address is on. List your team\'s email domains so team members aren\'t created as contacts.',
+      },
+      {
+        heading: 'MCP server',
+        body:
+          'Connect desktop AI apps (Claude, ChatGPT, Codex, Cursor, and others) to UpStart Back Office. Server URL: https://mcp.heyupstart.com/mcp — copy it under MCP server → Server URL. Sub-accordions list what the AI can do and connect steps for each app (organizations, people, tasks, time, expenses, invoices, and more — limited by your role). Sign in with the same account as this app and click Allow when the connect page opens.',
       },
       {
         heading: 'API Keys',
-        body: 'Give an outside service access to UBO. Each key is shown once when you generate it, so store it right away.',
+        body: 'Give an outside service access to UpStart Back Office. Each key is shown once when you generate it, so store it right away.',
       },
       {
         heading: 'Asana',

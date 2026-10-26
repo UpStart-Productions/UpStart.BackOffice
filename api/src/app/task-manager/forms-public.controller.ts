@@ -24,7 +24,7 @@ function clientIp(req: Request): string {
 }
 
 /**
- * Public form endpoints (no UBO session):
+ * Public form endpoints (no UpStart Back Office session):
  * - OPEN forms: anyone; submitter email required; rate-limited per IP.
  * - API_KEY forms: requests carry the form's key (server-to-server, e.g. GrovLink).
  * Collaborator-only forms use the signed-in /tm/f/:slug routes instead.

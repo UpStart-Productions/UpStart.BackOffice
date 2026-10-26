@@ -188,7 +188,7 @@ export class CommunicationsApi {
 
   private captureAddressRequest: Promise<string | null> | null = null;
 
-  /** The address to CC so an email is logged in UBO. Cached for the session; null if not set up. */
+  /** The address to CC so an email is logged in UpStart Back Office. Cached for the session; null if not set up. */
   captureAddress(): Promise<string | null> {
     this.captureAddressRequest ??= this.api
       .get<{ address: string | null }>('/communications/capture-address')

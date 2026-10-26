@@ -18,7 +18,11 @@ Super users can impersonate a user from row actions (viewing as that user).
 
 ## Settings (Admin only)
 
-**Settings** accordion sections include business profile, integrations (Asana, Google Calendar, email capture), service keys, and related tenant configuration. Expand a section to edit; save within each area.
+**Settings** accordion sections include business profile, **MCP server** (connect desktop AI apps to UpStart Back Office), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area.
+
+### MCP server
+
+Admins use **MCP server** to connect tools like Claude, ChatGPT, OpenAI Codex, or Cursor to UpStart Back Office. The server URL is **https://mcp.heyupstart.com/mcp** (copy it from Settings → MCP server → Server URL). Open **What the MCP server can do** first, then the connect steps for each app. Add the URL as a Streamable HTTP connector in the AI app, sign in with your normal account, and click **Allow** on the connect page. Access follows your role in UpStart Back Office.
 
 ### Business
 

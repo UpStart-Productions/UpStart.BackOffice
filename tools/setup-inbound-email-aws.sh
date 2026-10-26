@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-time (and re-runnable) AWS setup for UBO inbound email capture:
-#   SES receives mail for INBOUND_DOMAIN -> raw message saved to S3 -> Lambda -> UBO API.
+# One-time (and re-runnable) AWS setup for UpStart Back Office inbound email capture:
+#   SES receives mail for INBOUND_DOMAIN -> raw message saved to S3 -> Lambda -> Back Office API.
 #
 #   INBOUND_DOMAIN=in.heyupstart.com UBO_SERVICE_KEY=<key from Settings> \
 #   (INBOUND_DOMAIN must match INBOUND_EMAIL_DOMAIN in api/src/app/communications/communications.constants.ts)
@@ -30,7 +30,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ZIP="$ROOT/tools/inbound-email-lambda/function.zip"
 
 if [[ -z "$DRY_RUN" && -z "${UBO_SERVICE_KEY:-}" ]]; then
-  echo "Set UBO_SERVICE_KEY (create one in UBO Settings > service keys)." >&2
+  echo "Set UBO_SERVICE_KEY (create one in UpStart Back Office Settings → API Keys)." >&2
   exit 1
 fi
 SERVICE_KEY="${UBO_SERVICE_KEY:-dry-run-key}"
@@ -193,7 +193,7 @@ echo "1. DNS: add this MX record where $INBOUND_DOMAIN is managed:"
 echo "     $INBOUND_DOMAIN   MX   10   inbound-smtp.$REGION.amazonaws.com"
 echo "   Use a subdomain; never repoint the MX of a domain that already receives real mail."
 echo
-echo "2. In UBO Settings > Email capture, list your team's email domains."
+echo "2. In UpStart Back Office Settings → Email capture, list your team's email domains."
 echo
 if [[ -n "${API_IAM_USER:-}" ]]; then
   echo "3. API bucket access: already granted to IAM user $API_IAM_USER."

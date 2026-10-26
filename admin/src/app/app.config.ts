@@ -15,6 +15,7 @@ import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
 import { appRoutes } from './app.routes';
+import { AppUpdateService } from './core/app-update.service';
 import { AuthStoreService } from './core/auth-store.service';
 import { CognitoAuthService } from './core/cognito-auth.service';
 import { QuillBootstrapService } from './core/quill-bootstrap.service';
@@ -61,6 +62,14 @@ const UpStartPreset = definePreset(Aura, {
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    {
+      provide: APP_INITIALIZER,
+      multi: true,
+      useFactory: (updates: AppUpdateService) => () => {
+        updates.install();
+      },
+      deps: [AppUpdateService],
+    },
     {
       provide: APP_INITIALIZER,
       useFactory: (cognito: CognitoAuthService, auth: AuthStoreService) => async () => {

@@ -1,11 +1,11 @@
-# UBO CRM & Communications — Spec (draft v0.1)
+# UpStart Back Office CRM & Communications — Spec (draft v0.1)
 
 Date: 2026-10-17 · Author: Jeff + Claude · Status: draft for review, not yet sized
 
 ## 1. TL;DR
 
-- **Goal:** let The Purple Nest (TPN) replace HubSpot (and Asana) with UBO. The make-or-break feature is a **shared communication timeline per client**: who talked to whom, when, and what the next step is.
-- **Email capture:** CC the tenant's UBO address on any email to log. Reply-all keeps UBO on the thread in both directions, and UBO files it to the right Account's timeline. No mailbox connection, no mail filters, no admin rules.
+- **Goal:** let The Purple Nest (TPN) replace HubSpot (and Asana) with UpStart Back Office. The make-or-break feature is a **shared communication timeline per client**: who talked to whom, when, and what the next step is.
+- **Email capture:** CC the tenant's capture address on any email to log. Reply-all keeps the capture address on the thread in both directions, and UpStart Back Office files it to the right Account's timeline. No mailbox connection, no mail filters, no admin rules.
 - **Model:** add **Contact** (people). Promote today's **Client** into the single **Account** record (absorbing Network companies and Lead organizations). **Leads** become pipeline items attached to an Account. **Network** becomes a tag + saved view. **Tenant** is the multi-tenancy boundary.
 - **Order of work:** (1) email spike, (2) tenancy + roles, (3) CRM consolidation, (4) follow-ups/notifications, (5) calendar + timesheet extras.
 - **Open:** HIPAA stance, TPN's real workflow (who is invoiced, pipeline stages, people types).
@@ -15,7 +15,7 @@ Date: 2026-10-17 · Author: Jeff + Claude · Status: draft for review, not yet s
 1. Contact is a peer layer, **not** the root of projects/invoices/time. Money and work stay on Client/Account.
 2. Client is promoted to the one organization-like record ("Account"). No separate Organization table.
 3. Network goes away as its own concept: Network contacts = Contacts tagged "Network"; Network companies = Accounts tagged "Network"/"Partner"; the Network page becomes a saved filter.
-4. v1 email capture is **capture-only** (no sending from UBO).
+4. v1 email capture is **capture-only** (no sending from UpStart Back Office).
 5. Terminology: **Tenant** = multi-tenancy boundary (UpStart, TPN). **Account** = organization/family record in the CRM.
 6. Capture is by deliberate CC only (2026-10-18). Rejected: full mailbox connection (Google/Microsoft review and access), forward-everything filters (too much junk to triage), and server-side Bcc rules (nobody wants to touch Microsoft 365 / Workspace admin). Accepted trade-off: people must remember to CC; reply-all carries it from there.
 7. Multi-tenancy (2026-10-23, revised 2026-10-25): a person can belong to several tenants. There is one `User` row per person per tenant (`@@unique([tenantId, email])`), and that row is the membership (role, rate, active flag). Sign-in is one Cognito login per email; the auth guard picks the row from `x-tenant-slug` among the rows for that email (`resolveUserForRequest`), and anyone with 2+ active rows gets the topbar switcher. Platform operators are `User.isSuper` and switch tenants from the topbar (`x-tenant-slug` header), as in GrovLink admin. Roles are untouched for now. Isolation is enforced centrally by a Prisma extension plus an AsyncLocalStorage tenant context, not by each service (see "Tenancy" below).
@@ -133,7 +133,7 @@ BCC/CC to the address takes the same path. Parsing in the API (not the Lambda) k
 | 3. CRM consolidation | Fold Network/Lead orgs into Account, tags, configurable pipelines/stages, Contacts on leads, drag-to-won creates the Account. | One directory and one pipeline model; Network is a tag + view. |
 | 4. Follow-ups and watching | Tasks from interactions, next step, `AccountFollow`, `client_activity` notifications, dashboard widgets, stale-client alerts. Digests need a scheduled job. | A partner not on a thread sees the activity. |
 | 5. Calendar and invoicing extras | Per-tenant/per-user calendar connection, meetings logged as interactions, calendar → timesheet suggestions, per-person breakdown on invoices (internal), QuickBooks-friendly totals. | Meetings appear automatically; invoice shows who contributed what. |
-| Later | Send from UBO, portal messaging, SMS, open/click tracking, sequences. | — |
+| Later | Send from UpStart Back Office, portal messaging, SMS, open/click tracking, sequences. | — |
 
 Sizing: not done. From the 10/14 meeting, Jeff's own estimate for tenancy + roles was "a couple of weeks".
 
@@ -158,7 +158,7 @@ TPN needs phases 1, 2 and the tag/stage part of 3 before go-live.
 
 **For Jeff**
 - HIPAA stance: accept PHI (AWS BAA, audit log, 2FA, your liability) or contractually exclude it. Message bodies and pipeline notes may describe a person's health situation.
-- Inbound domain for UBO (new MX + SES verification) or reuse GrovLink's.
+- Inbound domain for UpStart Back Office (new MX + SES verification) or reuse GrovLink's.
 - Where is the GrovLink SES-receiving Lambda? (Not in the repo.)
 - What, if anything, reads the Network public-site fields?
 - Is there a scheduler for digests/stale alerts?
@@ -167,12 +167,12 @@ TPN needs phases 1, 2 and the tag/stage part of 3 before go-live.
 
 ## 10. To verify before building
 
-- SES inbound availability in the region used (UBO defaults to us-west-2).
+- SES inbound availability in the region used (UpStart Back Office defaults to us-west-2).
 - Gmail forwarding-address confirmation mechanics (whether the code/link can be reliably extracted).
 - Whether forwarded mail preserves original headers well enough for matching in all cases.
 - Whether the capture filter approach is acceptable to TPN's partners on mixed domains.
-- Habit risk: will TPN reliably CC UBO on the first message of a thread? The model depends on it.
+- Habit risk: will TPN reliably CC the capture address on the first message of a thread? The model depends on it.
 
 ## 11. Out of scope for v1
 
-Open/click tracking, sequences/templates, sending from UBO, HubSpot-style marketing automation, a mobile app, a HIPAA compliance program (separate decision).
+Open/click tracking, sequences/templates, sending from UpStart Back Office, HubSpot-style marketing automation, a mobile app, a HIPAA compliance program (separate decision).

@@ -37,7 +37,7 @@ async function main() {
   }
   const key = process.env.UBO_SERVICE_KEY;
   if (!key) {
-    console.error('Set UBO_SERVICE_KEY to a service key created in the admin app.');
+    console.error('Set UBO_SERVICE_KEY to a service key created in UpStart Back Office (Settings → API Keys).');
     process.exit(1);
   }
   const api = (arg('--api') ?? process.env.API_URL ?? 'http://localhost:3001').replace(/\/$/, '');

@@ -17,10 +17,10 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
     }
 
     @if (settings(); as s) {
-      <h4 class="mt-0 mb-2">UBO address</h4>
+      <h4 class="mt-0 mb-2">Capture address</h4>
       @if (s.address) {
         <div class="capture-row">
-          <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="UBO address" />
+          <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="Capture address" />
           <p-button label="Copy" icon="pi pi-copy" severity="secondary" (onClick)="copy(s.address)" />
         </div>
       } @else {
@@ -52,23 +52,23 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
       <ol class="steps">
         <li>
           <span class="step-num" aria-hidden="true">1</span>
-          <div><strong>CC this address</strong> on any email you want in UBO. It lands on the matching client's or lead's Activity.</div>
+          <div><strong>CC this address</strong> on any email you want in UpStart Back Office. It lands on the matching client's or lead's Activity.</div>
         </li>
         <li>
           <span class="step-num" aria-hidden="true">2</span>
-          <div><strong>Reply-all keeps it logged.</strong> Everyone who replies-all, including clients, keeps UBO on the thread.</div>
+          <div><strong>Reply-all keeps it logged.</strong> Everyone who replies-all, including clients, keeps this address on the thread.</div>
         </li>
         <li>
           <span class="step-num" aria-hidden="true">3</span>
-          <div>Anything UBO can't match goes to the <strong>Inbox</strong>. File it once; the rest of the thread follows, and the people on it are remembered.</div>
+          <div>Anything UpStart Back Office can't match goes to the <strong>Inbox</strong>. File it once; the rest of the thread follows, and the people on it are remembered.</div>
         </li>
       </ol>
       <ul class="how">
-        <li><strong>Got an email without UBO on it?</strong> Reply-all and add this address. The earlier message is kept in the quoted text.</li>
+        <li><strong>Got an email without this address on it?</strong> Reply-all and add the capture address. The earlier message is kept in the quoted text.</li>
         <li>The <strong>Email</strong> button on clients, leads and contacts opens your mail app with this address already on CC.</li>
       </ul>
       <p class="text-color-secondary text-sm">
-        UBO only sees messages this address is on. Nothing else in anyone's mailbox is read.
+        UpStart Back Office only sees messages this address is on. Nothing else in anyone's mailbox is read.
       </p>
 
       <h4 class="mt-4 mb-2">Your team's email domains</h4>
