@@ -3,9 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { areaLevel } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { SessionService } from '../../core/session.service';
@@ -13,13 +10,14 @@ import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { TmProject, TmProjectListItem } from '../core/tm.types';
 import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
 
 /** Projects that have been added to Tasks: browse, star, add existing projects; archived toggle. */
 @Component({
   selector: 'app-tm-projects-browser-page',
   standalone: true,
-  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, IconFieldModule, InputIconModule, InputTextModule, TmAddProjectDialogComponent],
+  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, ToolbarSearchFieldComponent, TmAddProjectDialogComponent],
   template: `
     <div class="tm-page">
       <header class="tm-project-header">
@@ -27,10 +25,14 @@ import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
           <span class="tm-page-icon"><i class="pi pi-th-large"></i></span>
           <h1 class="tm-project-title">Projects</h1>
           <div class="tm-project-header-actions">
-            <p-iconfield iconPosition="left" class="tm-toolbar-search">
-              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-              <input pInputText type="text" class="w-full" placeholder="Search projects or clients" [ngModel]="query()" (ngModelChange)="query.set($event)" aria-label="Search projects" />
-            </p-iconfield>
+            <div class="tm-toolbar-search">
+              <app-toolbar-search-field
+                placeholder="Search projects or clients"
+                ariaLabel="Search projects"
+                [ngModel]="query()"
+                (ngModelChange)="query.set($event)"
+              />
+            </div>
             <label class="tm-toggle-label">
               <p-toggleswitch [ngModel]="showArchived()" (ngModelChange)="setArchived($event)" />
               Inactive

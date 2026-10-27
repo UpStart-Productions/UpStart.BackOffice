@@ -9,27 +9,12 @@
     <div class="toolbar">
       <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
       <div class="toolbar-search">
-        <p-iconfield iconPosition="left" class="toolbar-search-field">
-          <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-          <input
-            pInputText
-            type="text"
-            class="w-full"
-            placeholder="Search by number, bill to, status…"
-            [ngModel]="searchQuery"
-            (ngModelChange)="onSearchInput($event)"
-          />
-        </p-iconfield>
-        @if (searchQuery) {
-          <button
-            type="button"
-            pButton
-            icon="pi pi-times"
-            [text]="true"
-            (click)="clearSearch()"
-            aria-label="Clear search"
-          ></button>
-        }
+        <app-toolbar-search-field
+          placeholder="Search by number, bill to, status…"
+          ariaLabel="Search invoices"
+          [ngModel]="searchQuery"
+          (ngModelChange)="onSearchInput($event)"
+        />
       </div>
     </div>
     @if (overdueCount() > 0) {

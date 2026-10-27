@@ -2,9 +2,6 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { MessageModule } from 'primeng/message';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -12,6 +9,7 @@ import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import {
   RowActionsMenuComponent,
   RowActionItem,
@@ -45,9 +43,7 @@ type Invoice = {
     FormsModule,
     RouterLink,
     ButtonModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
+    ToolbarSearchFieldComponent,
     TableModule,
     MessageModule,
     TagModule,

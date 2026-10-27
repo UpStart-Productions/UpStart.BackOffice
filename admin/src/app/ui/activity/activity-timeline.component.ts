@@ -9,8 +9,6 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
 import { QuillModule } from 'ngx-quill';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -37,6 +35,7 @@ import {
 import { MessageBodyComponent } from '../message-body/message-body.component';
 import { PersonComponent } from '../person/person.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
+import { ToolbarSearchFieldComponent } from '../toolbar-search-field/toolbar-search-field.component';
 
 type TypeFilter = 'ALL' | InteractionType;
 
@@ -117,8 +116,7 @@ function nowForInput(): string {
     SelectModule,
     SelectButtonModule,
     SkeletonModule,
-    IconFieldModule,
-    InputIconModule,
+    ToolbarSearchFieldComponent,
     QuillModule,
     MessageBodyComponent,
     RowActionsMenuComponent,
@@ -158,21 +156,13 @@ function nowForInput(): string {
             </ng-template>
           </p-select>
           <div class="activity-search">
-            <p-iconfield iconPosition="left" class="w-full">
-              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-              <input
-                pInputText
-                type="text"
-                class="w-full"
-                [placeholder]="searchPlaceholder()"
-                aria-label="Search activity"
-                [ngModel]="query()"
-                (ngModelChange)="query.set($event)"
-              />
-            </p-iconfield>
-            @if (query().trim()) {
-              <button type="button" pButton icon="pi pi-times" [text]="true" (click)="query.set('')" aria-label="Clear search"></button>
-            }
+            <app-toolbar-search-field
+              class="w-full"
+              [placeholder]="searchPlaceholder()"
+              ariaLabel="Search activity"
+              [ngModel]="query()"
+              (ngModelChange)="query.set($event)"
+            />
           </div>
         </div>
       }
@@ -522,7 +512,16 @@ function nowForInput(): string {
     .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
     .activity-filter { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-    .activity-search { flex: 1; display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
+    .activity-search {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex;
+    }
+    .activity-search .toolbar-search-field-host {
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+    }
     .activity-type-option { display: inline-flex; align-items: center; gap: 0.5rem; }
     :host ::ng-deep .activity-type-select { width: 12.5rem; flex: 0 0 auto; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

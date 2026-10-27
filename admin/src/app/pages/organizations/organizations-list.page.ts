@@ -4,9 +4,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { AccountJourney } from '@upstart/back-office/shared';
 import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -17,6 +14,7 @@ import { CrmTagsApi } from '../../core/crm-tags.api';
 import { SessionService } from '../../core/session.service';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import type { OrganizationRow } from '../clients/clients-list.page';
 
@@ -30,9 +28,7 @@ type StatusFilter = 'all' | AccountJourney;
     FormsModule,
     RouterLink,
     ButtonModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
+    ToolbarSearchFieldComponent,
     MessageModule,
     SelectModule,
     TableModule,
@@ -99,21 +95,12 @@ type StatusFilter = 'all' | AccountJourney;
             styleClass="org-tag-filter"
           />
           <div class="toolbar-search">
-            <p-iconfield iconPosition="left" class="toolbar-search-field">
-              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-              <input
-                pInputText
-                type="text"
-                class="w-full"
-                placeholder="Search by name, email…"
-                aria-label="Search organizations"
-                [ngModel]="searchQuery"
-                (ngModelChange)="onSearchInput($event)"
-              />
-            </p-iconfield>
-            @if (searchQuery) {
-              <button type="button" pButton icon="pi pi-times" [text]="true" (click)="onSearchInput('')" aria-label="Clear search"></button>
-            }
+            <app-toolbar-search-field
+              placeholder="Search by name, email…"
+              ariaLabel="Search organizations"
+              [ngModel]="searchQuery"
+              (ngModelChange)="onSearchInput($event)"
+            />
           </div>
         </div>
         <p-table [value]="filtered()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="table-bordered"

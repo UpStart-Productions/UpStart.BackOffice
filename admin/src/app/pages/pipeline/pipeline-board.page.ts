@@ -3,8 +3,6 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
@@ -17,6 +15,7 @@ import { ApiError, ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PipelineLane, PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -69,8 +68,7 @@ type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
     DragDropModule,
     RouterLink,
     ButtonModule,
-    IconFieldModule,
-    InputIconModule,
+    ToolbarSearchFieldComponent,
     InputTextModule,
     TagModule,
     MessageModule,

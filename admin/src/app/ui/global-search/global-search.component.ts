@@ -107,7 +107,16 @@ type SearchResultGroup = {
             (click)="clearQuery($event)"
             aria-label="Clear search"
           >
-            <i class="pi pi-times"></i>
+            <svg class="search-clear-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="12" fill="currentColor" />
+              <path
+                d="M8.25 8.25l7.5 7.5M15.75 8.25l-7.5 7.5"
+                fill="none"
+                stroke="#fff"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
           </button>
         }
       </div>

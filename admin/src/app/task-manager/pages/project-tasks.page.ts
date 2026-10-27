@@ -5,8 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
@@ -36,6 +34,7 @@ import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
 import { TmAvatarComponent } from '../ui/tm-avatar.component';
 import { TagPick, TmTagPickerComponent } from '../ui/tag-picker.component';
 import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 
 type CompletedFilter = TmProjectBoardCompletedFilter;
 type Group = { section: TmSection | null; tasks: TaskSummary[] };
@@ -50,9 +49,8 @@ const NO_SECTION = '__none__';
     FormsModule,
     RouterLink,
     ButtonModule,
-    IconFieldModule,
-    InputIconModule,
     InputTextModule,
+    ToolbarSearchFieldComponent,
     AppPopoverModule,
     SelectButtonModule,
     MultiSelectModule,

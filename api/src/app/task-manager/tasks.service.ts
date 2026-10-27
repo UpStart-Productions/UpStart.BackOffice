@@ -132,20 +132,41 @@ export class TasksService {
   }
 
   /** Task picker search. With `projectId` and no query, returns the project's open tasks (for select dropdowns). */
-  async search(user: UserContext, q?: string, projectId?: string, limit = 25) {
+  async search(user: UserContext, q?: string, projectId?: string, sectionId?: string, limit = 25) {
     const term = q?.trim() ?? '';
-    if (!term && !projectId) return [];
+    if (!term && !projectId && !sectionId) return [];
 
-    if (projectId) {
+    let scopedProjectId = projectId;
+    if (sectionId) {
+      const section = await this.prisma.taskSection.findUnique({
+        where: { id: sectionId },
+        select: { projectId: true },
+      });
+      if (!section) return [];
+      if (projectId && projectId !== section.projectId) {
+        throw new BadRequestException('Section is not in this project');
+      }
+      scopedProjectId = projectId ?? section.projectId;
+      await this.access.assertProject(user, scopedProjectId, 'view');
+    } else if (projectId) {
       await this.access.assertProject(user, projectId, 'view');
     }
 
     const visible = await this.access.visibleProjectIds(user);
-    const projectScope = projectId
-      ? { OR: [{ projectId }, { projectLinks: { some: { projectId } } }] }
+    const projectScope = scopedProjectId
+      ? { OR: [{ projectId: scopedProjectId }, { projectLinks: { some: { projectId: scopedProjectId } } }] }
       : visible
         ? { OR: [{ projectId: { in: visible } }, { projectLinks: { some: { projectId: { in: visible } } } }] }
         : {};
+
+    const sectionScope = sectionId && scopedProjectId
+      ? {
+          OR: [
+            { projectId: scopedProjectId, sectionId },
+            { projectLinks: { some: { projectId: scopedProjectId, sectionId } } },
+          ],
+        }
+      : {};
 
     const rows = await this.prisma.task.findMany({
       where: {
@@ -153,18 +174,46 @@ export class TasksService {
         project: { inTaskManager: true },
         ...(term ? { name: { contains: term, mode: 'insensitive' } } : {}),
         ...projectScope,
+        ...sectionScope,
       },
       select: {
         id: true,
         name: true,
+        projectId: true,
+        sectionId: true,
+        section: { select: { id: true, name: true } },
         project: { select: { id: true, name: true } },
         parent: { select: { id: true, name: true } },
+        projectLinks: scopedProjectId
+          ? { where: { projectId: scopedProjectId }, select: { sectionId: true, section: { select: { id: true, name: true } } } }
+          : undefined,
       },
       orderBy: [{ name: 'asc' }, { createdAt: 'asc' }],
       take: Math.min(Math.max(limit, 1), 100),
     });
 
-    return rows;
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      project: row.project,
+      parent: row.parent,
+      section: this.sectionInProject(row, scopedProjectId),
+    }));
+  }
+
+  /** Section placement for a task within one project (home row or a project link). */
+  private sectionInProject(
+    row: {
+      projectId: string;
+      sectionId: string | null;
+      section: { id: string; name: string } | null;
+      projectLinks?: { sectionId: string | null; section: { id: string; name: string } | null }[];
+    },
+    projectId?: string,
+  ): { id: string; name: string } | null {
+    if (!projectId || row.projectId === projectId) return row.section;
+    const link = row.projectLinks?.[0];
+    return link?.section ?? null;
   }
 
   /** Task counts and lists for the Reports page (new, completed, overdue in a date range). */

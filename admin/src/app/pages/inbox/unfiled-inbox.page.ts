@@ -4,9 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -24,6 +21,7 @@ import { senderAndRecipients,
   relativeTime,
 } from '../../core/communications.api';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { PersonComponent } from '../../ui/person/person.component';
@@ -38,9 +36,7 @@ type Option = { id: string; label: string };
     AppDialogModule,
     ButtonModule,
     CheckboxModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
+    ToolbarSearchFieldComponent,
     MessageModule,
     SelectModule,
     SelectButtonModule,
@@ -69,21 +65,12 @@ type Option = { id: string; label: string };
             <span class="text-muted" aria-live="polite">{{ countLabel() }}</span>
           </div>
           <div class="toolbar-search">
-            <p-iconfield iconPosition="left" class="toolbar-search-field">
-              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-              <input
-                pInputText
-                type="text"
-                class="w-full"
-                placeholder="Search subject or people…"
-                aria-label="Search the inbox"
-                [ngModel]="query()"
-                (ngModelChange)="query.set($event)"
-              />
-            </p-iconfield>
-            @if (query()) {
-              <p-button icon="pi pi-times" [text]="true" severity="secondary" aria-label="Clear search" (onClick)="query.set('')" />
-            }
+            <app-toolbar-search-field
+              placeholder="Search subject or people…"
+              ariaLabel="Search the inbox"
+              [ngModel]="query()"
+              (ngModelChange)="query.set($event)"
+            />
           </div>
         </div>
 

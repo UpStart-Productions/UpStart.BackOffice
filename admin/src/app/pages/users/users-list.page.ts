@@ -3,9 +3,6 @@ import { inviteToast } from './invite-toast';
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -18,6 +15,7 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import {
   RowActionsMenuComponent,
   RowActionItem,
@@ -41,9 +39,7 @@ type SortBy = 'name' | 'email' | 'role';
     TableModule,
     ButtonModule,
     MessageModule,
-    InputTextModule,
-    IconFieldModule,
-    InputIconModule,
+    ToolbarSearchFieldComponent,
     SelectModule,
     TagModule,
     TabsModule,

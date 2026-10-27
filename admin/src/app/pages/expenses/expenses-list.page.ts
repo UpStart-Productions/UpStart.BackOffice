@@ -2,14 +2,12 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { ExpenseModalComponent } from './expense-modal.component';
 import { Expense, ExpenseProject } from './expense.types';
 import { PersonComponent } from '../../ui/person/person.component';
@@ -23,9 +21,7 @@ type ProjectListItem = { id: string; name: string; isActive?: boolean; client: {
     DatePipe,
     FormsModule,
     ButtonModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
+    ToolbarSearchFieldComponent,
     MessageModule,
     TableModule,
     TagModule,

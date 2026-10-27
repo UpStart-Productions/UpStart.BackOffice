@@ -136,6 +136,7 @@ export class TaskListQueryDto {
 export class TaskSearchQueryDto {
   @ApiPropertyOptional() @IsOptional() @Transform(trim) @IsString() @MaxLength(200) q?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() projectId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() sectionId?: string;
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsNumber() @Min(1) @Max(100) limit?: number;
 }
 

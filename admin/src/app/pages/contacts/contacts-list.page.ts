@@ -4,9 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
-import { IconFieldModule } from 'primeng/iconfield';
-import { InputIconModule } from 'primeng/inputicon';
-import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -16,6 +13,7 @@ import { resolveAssetUrl } from '../../core/asset-url.util';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { CrmTagsApi } from '../../core/crm-tags.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -30,9 +28,7 @@ import { SessionService } from '../../core/session.service';
     CreatePersonModalComponent,
     ButtonModule,
     CheckboxModule,
-    IconFieldModule,
-    InputIconModule,
-    InputTextModule,
+    ToolbarSearchFieldComponent,
     MessageModule,
     SelectModule,
     TableModule,
@@ -69,21 +65,12 @@ import { SessionService } from '../../core/session.service';
             </div>
           </div>
           <div class="toolbar-search">
-            <p-iconfield iconPosition="left" class="toolbar-search-field">
-              <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-              <input
-                pInputText
-                type="text"
-                class="w-full"
-                placeholder="Search by name or email…"
-                [ngModel]="query"
-                (ngModelChange)="onSearch($event)"
-                aria-label="Search people"
-              />
-            </p-iconfield>
-            @if (query) {
-              <p-button icon="pi pi-times" [text]="true" severity="secondary" aria-label="Clear search" (onClick)="onSearch('')" />
-            }
+            <app-toolbar-search-field
+              placeholder="Search by name or email…"
+              ariaLabel="Search people"
+              [ngModel]="query"
+              (ngModelChange)="onSearch($event)"
+            />
           </div>
         </div>
 

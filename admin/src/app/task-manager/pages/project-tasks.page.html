@@ -73,10 +73,14 @@
         styleClass="tm-toolbar-tags"
         aria-label="Filter by tag"
       />
-      <p-iconfield iconPosition="left" class="tm-toolbar-search">
-        <p-inputicon><i class="pi pi-search"></i></p-inputicon>
-        <input pInputText type="text" class="w-full" placeholder="Filter tasks" [ngModel]="search()" (ngModelChange)="search.set($event)" aria-label="Filter tasks by name" />
-      </p-iconfield>
+      <div class="tm-toolbar-search">
+        <app-toolbar-search-field
+          placeholder="Filter tasks"
+          ariaLabel="Filter tasks by name"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+        />
+      </div>
     </div>
 
     <div class="tm-grid" [style.--tm-grid-min-width]="gridMinWidth() + 'px'" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>
