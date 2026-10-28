@@ -34,7 +34,6 @@ import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-
 import { PeopleDirectoryOption } from '../projects/people-directory.util';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
-import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 import { NextStepComponent } from '../../ui/next-step/next-step.component';
@@ -108,7 +107,6 @@ function endOfDayIso(key: string): string | null {
     TabsModule,
     TagModule,
     PageComponent,
-    HelpTextComponent,
     ActivityTimelineComponent,
     DateInputComponent,
     MessageBodyComponent,
@@ -119,12 +117,11 @@ function endOfDayIso(key: string): string | null {
     RowActionsMenuComponent,
   ],
   template: `
-    <app-page title="Activity" [skipTitle]="true">
+    <app-page title="Activity" helpKey="activity.page">
       <div class="grid" [class.grid-3]="hasContext()" [class.grid-1]="!hasContext()">
       <div class="stack" [class.span-2]="hasContext()">
       <div class="card">
         <div class="activity-page-head">
-          <h2 class="page-title page-title-in-card mb-0">Activity <app-help-text key="activity.page" /></h2>
           <div class="activity-page-filters">
             <div class="form-field activity-filter-field">
               <label for="activityOrg">Organization</label>

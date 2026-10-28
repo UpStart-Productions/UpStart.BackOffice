@@ -180,6 +180,17 @@ export class InvoiceFormPage implements OnInit {
 
   get isNew() { return !this.id(); }
   get isDraftEdit() { return !!this.id(); }
+
+  /** Draft as last loaded or saved; Save stays off until something differs. */
+  private savedSnapshot = '';
+
+  private snapshot() {
+    return JSON.stringify({ form: this.form, lines: this.lineItems() });
+  }
+
+  isDirty() {
+    return this.snapshot() !== this.savedSnapshot;
+  }
   get canEditLines() { return this.isNew || this.isDraftEdit; }
   /** Hide per-row project when Generate from time already filters to one project. */
   get hideLineProjectColumn() { return !!this.generate.projectId; }
@@ -253,6 +264,7 @@ export class InvoiceFormPage implements OnInit {
           })),
         );
         this.onClientChange();
+        this.savedSnapshot = this.snapshot();
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load invoice');
       }
@@ -443,6 +455,7 @@ export class InvoiceFormPage implements OnInit {
           taxRate: this.form.taxRate ?? undefined,
           lineItems,
         });
+        this.savedSnapshot = this.snapshot();
         this.toast.add({
           severity: 'success',
           summary: 'Saved',

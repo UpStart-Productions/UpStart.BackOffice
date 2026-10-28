@@ -12,37 +12,34 @@ import { TmProject, TmProjectListItem } from '../core/tm.types';
 import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
+import { PageComponent } from '../../ui/layout/page.component';
 
 /** Projects that have been added to Tasks: browse, star, add existing projects; archived toggle. */
 @Component({
   selector: 'app-tm-projects-browser-page',
   standalone: true,
-  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, ToolbarSearchFieldComponent, TmAddProjectDialogComponent],
+  imports: [PageComponent, TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, TableModule, ToggleSwitchModule, ToolbarSearchFieldComponent, TmAddProjectDialogComponent],
   template: `
     <div class="tm-page">
-      <header class="tm-project-header">
-        <div class="tm-project-title-row">
-          <span class="tm-page-icon"><i class="pi pi-th-large"></i></span>
-          <h1 class="tm-project-title">Projects</h1>
-          <div class="tm-project-header-actions">
-            <div class="tm-toolbar-search">
-              <app-toolbar-search-field
-                placeholder="Search projects or clients"
-                ariaLabel="Search projects"
-                [ngModel]="query()"
-                (ngModelChange)="query.set($event)"
-              />
-            </div>
-            <label class="tm-toggle-label">
-              <p-toggleswitch [ngModel]="showArchived()" (ngModelChange)="setArchived($event)" />
-              Inactive
-            </label>
-            @if (seesAllProjects()) {
-              <p-button label="Add project" icon="pi pi-plus" (onClick)="newOpen.set(true)" />
-            }
-          </div>
+      <app-page title="Projects">
+
+      @if (seesAllProjects()) {
+        <p-button pageActions label="Add project" icon="pi pi-plus" (onClick)="newOpen.set(true)" />
+      }
+      <div class="toolbar">
+        <label class="tm-toggle-label">
+          <p-toggleswitch [ngModel]="showArchived()" (ngModelChange)="setArchived($event)" />
+          Inactive
+        </label>
+        <div class="toolbar-search">
+          <app-toolbar-search-field
+            placeholder="Search projects or clients"
+            ariaLabel="Search projects"
+            [ngModel]="query()"
+            (ngModelChange)="query.set($event)"
+          />
         </div>
-      </header>
+      </div>
 
       <div class="card tm-card-flush">
         <p-table [value]="filtered()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="table-bordered" [rowHover]="true">
@@ -82,6 +79,7 @@ import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
           </ng-template>
         </p-table>
       </div>
+      </app-page>
     </div>
     <app-tm-add-project-dialog [(visible)]="newOpen" (added)="onCreated($event)" />
   `,

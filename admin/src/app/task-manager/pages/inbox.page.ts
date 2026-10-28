@@ -11,6 +11,7 @@ import { relativeTime } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { AppNotification, EmailPrefs } from '../core/tm.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { PageComponent } from '../../ui/layout/page.component';
 
 const TYPE_ICON: Record<string, string> = {
   task_assigned: 'pi-user-plus',
@@ -27,22 +28,20 @@ const TYPE_ICON: Record<string, string> = {
 @Component({
   selector: 'app-tm-inbox-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, AppDialogModule, SelectButtonModule, ToggleSwitchModule, HelpTextComponent],
+  imports: [PageComponent, FormsModule, ButtonModule, AppDialogModule, SelectButtonModule, ToggleSwitchModule, HelpTextComponent],
   template: `
     <div class="tm-page tm-inbox">
-      <header class="tm-project-header">
-        <div class="tm-project-title-row">
-          <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
-          <h1 class="tm-project-title">Inbox</h1>
-          <div class="tm-project-header-actions">
-            <p-selectButton [options]="tabs" optionLabel="label" optionValue="value" [ngModel]="tab()" (ngModelChange)="setTab($event)" [allowEmpty]="false" />
-            @if (tab() === 'activity' && unread() > 0) {
-              <p-button label="Mark all read" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="markAllRead()" />
-            }
-            <button type="button" class="tm-icon-btn" (click)="openPrefs()" aria-label="Notification settings"><i class="pi pi-cog"></i></button>
-          </div>
-        </div>
-      </header>
+      <app-page title="Inbox">
+
+      <ng-container ngProjectAs="[pageActions]">
+        <button type="button" class="tm-icon-btn" (click)="openPrefs()" aria-label="Notification settings"><i class="pi pi-cog"></i></button>
+        @if (tab() === 'activity' && unread() > 0) {
+          <p-button label="Mark all read" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="markAllRead()" />
+        }
+      </ng-container>
+      <div class="toolbar">
+        <p-selectButton [options]="tabs" optionLabel="label" optionValue="value" [ngModel]="tab()" (ngModelChange)="setTab($event)" [allowEmpty]="false" />
+      </div>
 
       @if (loading() && !items().length) {
         <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
@@ -76,6 +75,7 @@ const TYPE_ICON: Record<string, string> = {
           }
         </ul>
       }
+      </app-page>
     </div>
 
     <p-dialog [(visible)]="prefsOpen" [modal]="true" [style]="{ width: '26rem' }" [draggable]="false">

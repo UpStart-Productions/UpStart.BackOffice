@@ -40,7 +40,20 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
     HelpTextComponent,
   ],
   template: `
-    <app-page title="Person" [skipTitle]="true">
+    <app-page
+      [title]="contact() ? name(contact()!) : 'Person'"
+      backLink="/people"
+      backLabel="Back to People"
+    >
+      @if (contact(); as c) {
+        <app-person pageLead [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
+      }
+      @if (contact()) {
+        <p-button pageActions label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
+      }
+      @if (form.title.trim()) {
+        <p pageSubtitle class="page-header-subtitle">{{ form.title }}</p>
+      }
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
@@ -48,17 +61,6 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
         <div class="grid grid-3">
           <div class="stack span-2">
             <div class="card">
-              <div class="page-header-with-back">
-                <p-button icon="pi pi-arrow-left" [rounded]="true" [text]="true" severity="secondary" routerLink="/people" aria-label="Back to People" />
-                <app-person [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
-                <div class="person-header-text">
-                  <h2 class="page-title page-title-in-card mb-0">{{ name(c) }}</h2>
-                  @if (form.title.trim()) {
-                    <span class="text-color-secondary text-sm">{{ form.title }}</span>
-                  }
-                </div>
-              </div>
-
               @if (c.autoCreated) {
                 <p-message severity="info" styleClass="review-message" class="block mb-3">
                   <div class="review-banner">
@@ -108,9 +110,6 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
                   <label for="personTags">Tags</label>
                   <app-crm-tag-input [(tags)]="form.tags" inputId="personTags" />
                 </div>
-              </div>
-              <div class="form-actions">
-                <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
               </div>
             </div>
 
@@ -170,12 +169,6 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
     .review-banner p-button {
       margin-left: auto;
       flex-shrink: 0;
-    }
-    .person-header-text {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-      min-width: 0;
     }
     .person-profile-form {
       display: flex;

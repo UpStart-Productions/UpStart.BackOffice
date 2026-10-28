@@ -1,4 +1,7 @@
 <app-page title="Bookings">
+  @if (isAdmin() && activeTab() === 'types') {
+    <a pageActions pButton routerLink="/bookings/types/new" label="New booking type" icon="pi pi-plus"></a>
+  }
   <div class="card">
     <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
       <p-tablist>

@@ -1,4 +1,22 @@
-<app-page [title]="id() ? 'Edit Booking Type' : 'New Booking Type'" [skipTitle]="true">
+<app-page
+  [title]="id() ? 'Edit Booking Type' : 'New Booking Type'"
+  backLink="/bookings/types"
+  backLabel="Back to booking types"
+>
+  <ng-container ngProjectAs="[pageActions]">
+    @if (!loading()) {
+      @if (id() && bookingCount() === 0) {
+        <app-row-actions-menu [items]="headerActions" ariaLabel="Booking type actions" />
+      }
+      <p-button
+        label="Save"
+        icon="pi pi-check"
+        [loading]="saving()"
+        [disabled]="!!id() && !isDirty()"
+        (click)="save()"
+      />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card mb-3">
       <p-message severity="error" [text]="error()!" />
@@ -10,23 +28,8 @@
       <p class="text-color-secondary mb-0">Loading…</p>
     </div>
   } @else {
-    <div class="page-header-with-back mb-3">
-      <p-button
-        icon="pi pi-arrow-left"
-        [rounded]="true"
-        [text]="true"
-        severity="secondary"
-        type="button"
-        routerLink="/bookings/types"
-        aria-label="Back to booking types"
-      />
-      <h2 class="page-title page-title-in-card mb-0">
-        {{ id() ? 'Edit Booking Type' : 'New Booking Type' }}
-      </h2>
-    </div>
-
     <div class="card mb-3">
-      <h2 class="page-title page-title-in-card">Basics</h2>
+      <h2 class="card-title mb-3">Basics</h2>
       <div class="showcase-flex-col">
         <div class="form-field showcase-full">
           <label for="btName">Name</label>
@@ -65,7 +68,7 @@
     </div>
 
     <div class="card mb-3">
-      <h2 class="page-title page-title-in-card">Schedule</h2>
+      <h2 class="card-title mb-3">Schedule</h2>
       <div class="form-fields-4 mb-4">
         <div class="form-field">
           <label for="btDuration">Duration (minutes)</label>
@@ -120,7 +123,7 @@
     </div>
 
     <div class="card mb-3">
-      <h2 class="page-title page-title-in-card">Public page &amp; calendar</h2>
+      <h2 class="card-title mb-3">Public page &amp; calendar</h2>
       <div class="showcase-flex">
         <div class="form-field showcase-half">
           <label for="btPublicUrl">Public booking page URL <app-help-text key="bookingType.publicPageUrl" /></label>
@@ -134,7 +137,7 @@
     </div>
 
     <div class="card mb-3">
-      <h2 class="page-title page-title-in-card">Pipeline</h2>
+      <h2 class="card-title mb-3">Pipeline</h2>
       <div class="showcase-flex-col">
         <div class="form-field flex align-items-center gap-2">
           <p-toggleSwitch [(ngModel)]="form.createLead" name="btCreateLead" inputId="btCreateLead" />
@@ -170,7 +173,7 @@
     </div>
 
     <div class="card mb-3">
-      <h2 class="page-title page-title-in-card">Pricing <app-help-text key="bookingType.pricing" /></h2>
+      <h2 class="card-title mb-3">Pricing <app-help-text key="bookingType.pricing" /></h2>
       <div class="form-field project-rate-row">
         <label for="btPrice">Price</label>
         <div class="project-rate-controls">
@@ -206,21 +209,5 @@
       </div>
     </div>
 
-    <div class="form-actions">
-      @if (id() && bookingCount() === 0) {
-        <button
-          type="button"
-          pButton
-          label="Delete"
-          icon="pi pi-trash"
-          severity="danger"
-          [text]="true"
-          class="form-actions-leading"
-          (click)="confirmDeleteType()"
-        ></button>
-      }
-      <a routerLink="/bookings/types" pButton label="Cancel" class="p-button-secondary"></a>
-      <button type="button" pButton label="Save" [loading]="saving()" (click)="save()"></button>
-    </div>
   }
 </app-page>

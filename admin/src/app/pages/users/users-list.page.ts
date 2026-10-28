@@ -73,6 +73,8 @@ export class UsersListPage {
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   addEditModalRef = viewChild<AddEditUserModalComponent>('addEditModal');
+  /** Roles tab, so the header's Add role button can open its dialog. */
+  rolesTab = viewChild(RolesTabComponent);
 
   ngOnInit() {
     void this.load();

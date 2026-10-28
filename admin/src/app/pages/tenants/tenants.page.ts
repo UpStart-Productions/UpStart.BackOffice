@@ -23,16 +23,13 @@ const slugify = (s: string) =>
   standalone: true,
   imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule, RowActionsMenuComponent, HelpTextComponent],
   template: `
-    <app-page title="Tenants" [skipTitle]="true">
+    <app-page title="Tenants" helpKey="tenant.overview">
+      <p-button pageActions label="Add tenant" icon="pi pi-plus" (onClick)="openAdd()" />
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
       <div class="card">
-        <h2 class="page-title page-title-in-card">Tenants <app-help-text key="tenant.overview" /></h2>
-        <div class="toolbar">
-          <button pButton label="Add tenant" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
-        </div>
-        <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered mt-3">
+        <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered">
           <ng-template pTemplate="header">
             <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th></tr>
           </ng-template>

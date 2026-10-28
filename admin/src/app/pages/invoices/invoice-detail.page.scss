@@ -1,17 +1,9 @@
-.invoice-detail-header {
-  .invoice-detail-title-block {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-}
 
 .invoice-detail-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem 2rem;
-  margin-top: 1rem;
+  margin-top: 0.25rem;
   color: var(--text-color-secondary);
 }
 
@@ -25,12 +17,6 @@
   font-weight: 600;
 }
 
-.invoice-detail-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
 
 .invoice-pdf-card {
   padding: 0;

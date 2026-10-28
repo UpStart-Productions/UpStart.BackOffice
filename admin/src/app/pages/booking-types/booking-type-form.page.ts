@@ -13,6 +13,7 @@ import { ApiService } from '../../core/api.service';
 import { PipelinesApi } from '../../core/pipelines.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type BookingTypeDto = {
@@ -77,7 +78,7 @@ const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 @Component({
   selector: 'app-booking-type-form-page',
   standalone: true,
-  imports: [HelpTextComponent, 
+  imports: [HelpTextComponent, RowActionsMenuComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -141,6 +142,22 @@ export class BookingTypeFormPage implements OnInit {
     endTime: '17:00',
   }));
 
+  /** Form as last loaded; Save stays off until something differs. */
+  private savedSnapshot = '';
+
+  private snapshot() {
+    return JSON.stringify({ form: this.form, days: this.days });
+  }
+
+  isDirty() {
+    return this.snapshot() !== this.savedSnapshot;
+  }
+
+  /** Header ⋮ menu: Delete (only while no bookings use this type). */
+  readonly headerActions: RowActionItem[] = [
+    { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteType() },
+  ];
+
   async ngOnInit() {
     const paramId = this.route.snapshot.paramMap.get('id');
     if (paramId && paramId !== 'new') {
@@ -188,6 +205,7 @@ export class BookingTypeFormPage implements OnInit {
     try {
       const data = await this.api.get<BookingTypeDto>(`/booking/admin/types/${this.id()}`);
       this.applyDto(data);
+      this.savedSnapshot = this.snapshot();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load booking type');
     } finally {

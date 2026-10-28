@@ -15,6 +15,7 @@ import { MyTask, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
 import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
+import { PageComponent } from '../../ui/layout/page.component';
 
 type Bucket = { key: string; label: string; tasks: MyTask[] };
 
@@ -22,36 +23,32 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
 @Component({
   selector: 'app-tm-my-tasks-page',
   standalone: true,
-  imports: [TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, MultiSelectModule, TmTaskDetailComponent, TmDueDatePickerComponent],
+  imports: [PageComponent, TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, MultiSelectModule, TmTaskDetailComponent, TmDueDatePickerComponent],
   template: `
     <div class="tm-page" [class.tm-with-detail]="!!taskId()">
-      <header class="tm-project-header">
-        <div class="tm-project-title-row">
-          <span class="tm-page-icon"><i class="pi pi-check-circle"></i></span>
-          <h1 class="tm-project-title">My tasks</h1>
-          <div class="tm-project-header-actions">
-            <p-multiselect
-              [options]="store.tags()"
-              optionLabel="name"
-              optionValue="id"
-              [ngModel]="tagFilter()"
-              (ngModelChange)="tagFilter.set($event ?? [])"
-              placeholder="Tags"
-              [filter]="true"
-              [showClear]="true"
-              [maxSelectedLabels]="2"
-              selectedItemsLabel="{0} tags"
-              appendTo="body"
-              styleClass="tm-toolbar-tags"
-              aria-label="Filter by tag"
-            />
-            <label class="tm-toggle-label">
-              <p-toggleswitch [ngModel]="showCompleted()" (ngModelChange)="setShowCompleted($event)" />
-              Show recently completed
-            </label>
-          </div>
-        </div>
-      </header>
+      <app-page title="My tasks">
+
+      <div class="toolbar">
+        <p-multiselect
+          [options]="store.tags()"
+          optionLabel="name"
+          optionValue="id"
+          [ngModel]="tagFilter()"
+          (ngModelChange)="tagFilter.set($event ?? [])"
+          placeholder="Tags"
+          [filter]="true"
+          [showClear]="true"
+          [maxSelectedLabels]="2"
+          selectedItemsLabel="{0} tags"
+          appendTo="body"
+          styleClass="tm-toolbar-tags"
+          aria-label="Filter by tag"
+        />
+        <label class="tm-toggle-label">
+          <p-toggleswitch [ngModel]="showCompleted()" (ngModelChange)="setShowCompleted($event)" />
+          Show recently completed
+        </label>
+      </div>
 
       @if (loading() && !tasks().length) {
         <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
@@ -125,6 +122,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
           (openTask)="open({ id: $event })"
         />
       }
+      </app-page>
     </div>
     <app-tm-due-date-picker #duePicker (picked)="setDue($event)" />
   `,

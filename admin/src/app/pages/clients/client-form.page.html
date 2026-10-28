@@ -1,4 +1,30 @@
-<app-page [title]="pageTitle" [skipTitle]="true">
+<app-page
+  [title]="pageTitle"
+  [backLink]="backLink"
+  [backLabel]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
+>
+  @if (!loading() && !error()) {
+    <ng-container ngProjectAs="[pageActions]">
+      @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
+        <p-button
+          label="Make client"
+          icon="pi pi-check"
+          type="button"
+          severity="secondary"
+          [outlined]="true"
+          [disabled]="saving()"
+          (onClick)="makeClient()"
+        />
+      }
+      <p-button
+        label="Save"
+        icon="pi pi-check"
+        [loading]="saving()"
+        [disabled]="!isNew && !isDirty()"
+        (onClick)="save()"
+      />
+    </ng-container>
+  }
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -7,29 +33,6 @@
     <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">
       <div class="stack" [class.span-2]="!isNew">
       <form class="card" (ngSubmit)="save()">
-        <div class="page-header-with-back">
-          <p-button
-            icon="pi pi-arrow-left"
-            [rounded]="true"
-            [text]="true"
-            severity="secondary"
-            type="button"
-            [routerLink]="backLink"
-            [attr.aria-label]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
-          />
-          <h2 class="page-title page-title-in-card mb-0">{{ pageTitle }}</h2>
-          @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
-            <p-button
-              label="Make client"
-              icon="pi pi-check"
-              type="button"
-              severity="success"
-              size="small"
-              [loading]="saving()"
-              (onClick)="makeClient()"
-            />
-          }
-        </div>
         @if (!isNew) {
           <app-next-step [clientId]="id()!" [canEdit]="canEdit()" class="client-next-step" />
         }
@@ -159,10 +162,6 @@
           }
         </div>
 
-        <div class="form-actions">
-          <a pButton label="Cancel" class="p-button-secondary" [routerLink]="backLink"></a>
-          <button pButton type="submit" label="Save" [loading]="saving()"></button>
-        </div>
       </form>
 
         @if (!isNew) {

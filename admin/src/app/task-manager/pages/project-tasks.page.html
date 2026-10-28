@@ -1,4 +1,48 @@
 <div class="tm-page tm-project-page" [class.tm-with-detail]="!!taskId()">
+  <app-page [title]="project()?.name ?? 'Project'">
+  <ng-container ngProjectAs="[pageLead]">
+    @if (project(); as p) {
+      <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color and icon" [pTooltip]="canEdit() ? 'Color & icon' : undefined" tooltipPosition="bottom">
+        @if (p.icon) { <nmp-lucide-icon [name]="p.icon" size="1.05rem" /> }
+      </button>
+    }
+  </ng-container>
+  <ng-container ngProjectAs="[pageMeta]">
+    @if (project(); as p) {
+      <button type="button" class="tm-icon-btn tm-star" [class.starred]="p.isStarred" (click)="toggleStar()" [attr.aria-label]="p.isStarred ? 'Unstar project' : 'Star project'" [pTooltip]="p.isStarred ? 'Remove from starred' : 'Add to starred'" tooltipPosition="bottom">
+        <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
+      </button>
+      @if (p.client) {
+        <a class="tm-client-chip" [routerLink]="['/clients', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
+      } @else {
+        <span class="tm-client-chip tm-client-chip--personal">Personal</span>
+      }
+      @if (!p.isActive) {
+        <span class="tm-client-chip tm-client-chip--archived">Inactive</span>
+      }
+    }
+  </ng-container>
+  <ng-container ngProjectAs="[pageActions]">
+    @if (project(); as p) {
+      <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions">
+        <i class="pi pi-ellipsis-h"></i>
+      </button>
+      <button type="button" class="tm-member-stack" (click)="membersOpen.set(true)" aria-label="Project members">
+        @for (m of p.members.slice(0, 4); track m.id) {
+          <app-tm-avatar [person]="m" [size]="26" />
+        }
+        @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
+      </button>
+      @if (p.permissions.canManage) {
+        <p-button label="Share" icon="pi pi-user-plus" severity="secondary" [outlined]="true" (onClick)="membersOpen.set(true)" />
+      }
+      @if (canEdit()) {
+        <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
+        <p-button label="Add task" icon="pi pi-plus" (onClick)="addTaskTop()" />
+      }
+    }
+  </ng-container>
+
   @if (loading() && !project()) {
     <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
   } @else if (error()) {
@@ -7,47 +51,9 @@
       <a pButton routerLink="/tasks/projects" label="Back to projects" [text]="true"></a>
     </div>
   } @else if (project(); as p) {
-    <header class="tm-project-header">
-      <div class="tm-project-title-row">
-        <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color and icon" [pTooltip]="canEdit() ? 'Color & icon' : undefined" tooltipPosition="bottom">
-          @if (p.icon) { <nmp-lucide-icon [name]="p.icon" size="1.05rem" /> }
-        </button>
-        <h1 class="tm-project-title">{{ p.name }}</h1>
-        <button type="button" class="tm-icon-btn tm-star" [class.starred]="p.isStarred" (click)="toggleStar()" [attr.aria-label]="p.isStarred ? 'Unstar project' : 'Star project'" [pTooltip]="p.isStarred ? 'Remove from starred' : 'Add to starred'" tooltipPosition="bottom">
-          <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
-        </button>
-        @if (p.client) {
-          <a class="tm-client-chip" [routerLink]="['/clients', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
-        } @else {
-          <span class="tm-client-chip tm-client-chip--personal">Personal</span>
-        }
-        @if (!p.isActive) {
-          <span class="tm-client-chip tm-client-chip--archived">Inactive</span>
-        }
-        <div class="tm-project-header-actions">
-          <button type="button" class="tm-member-stack" (click)="membersOpen.set(true)" aria-label="Project members">
-            @for (m of p.members.slice(0, 4); track m.id) {
-              <app-tm-avatar [person]="m" [size]="26" />
-            }
-            @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
-          </button>
-          @if (p.permissions.canManage) {
-            <p-button label="Share" icon="pi pi-user-plus" severity="secondary" [outlined]="true" (onClick)="membersOpen.set(true)" />
-          }
-          @if (canEdit()) {
-            <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
-          }
-          <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions">
-            <i class="pi pi-ellipsis-h"></i>
-          </button>
-        </div>
-      </div>
-    </header>
+
 
     <div class="tm-toolbar">
-      @if (canEdit()) {
-        <p-button label="Add task" icon="pi pi-plus" (onClick)="addTaskTop()" />
-      }
       <p-selectButton
         [options]="filterOptions"
         optionLabel="label"
@@ -299,6 +305,7 @@
     <app-tm-contacts-dialog [(visible)]="contactsOpen" [project]="p" (updated)="onProjectUpdated($event)" />
     <app-tm-fields-dialog [(visible)]="fieldsOpen" [project]="p" (changed)="onFieldsChanged()" />
   }
+  </app-page>
 </div>
 
 <app-tm-person-picker #assigneePicker (picked)="setAssignee($event)" />

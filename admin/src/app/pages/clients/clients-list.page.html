@@ -1,15 +1,14 @@
-<app-page title="Clients" [skipTitle]="true">
+<app-page title="Clients">
+  @if (canCreate()) {
+    <a pageActions pButton label="New Client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client', from: 'clients' }"></a>
+  }
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
   <div class="card">
-    <h2 class="page-title page-title-in-card">Clients</h2>
     <div class="toolbar">
-      @if (canCreate()) {
-        <a pButton label="New Client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client', from: 'clients' }"></a>
-      }
       <div class="toolbar-search">
         <app-toolbar-search-field
           placeholder="Search by name, code, email…"

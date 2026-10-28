@@ -1,5 +1,6 @@
+import { ButtonModule } from 'primeng/button';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 import { TabsModule } from 'primeng/tabs';
 import { SessionService } from '../../core/session.service';
@@ -13,6 +14,8 @@ type BookingsTab = 'bookings' | 'types';
   selector: 'app-bookings-page',
   standalone: true,
   imports: [
+    RouterLink,
+    ButtonModule,
     TabsModule,
     PageComponent,
     BookingsListPanelComponent,

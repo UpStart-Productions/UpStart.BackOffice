@@ -1,4 +1,12 @@
-<app-page title="Users" [skipTitle]="true">
+<app-page title="Users" [helpKey]="tab === 'roles' ? 'roles.overview' : null">
+<ng-container ngProjectAs="[pageActions]">
+  @if (tab === 'users') {
+    <p-button label="Add User" icon="pi pi-plus" (onClick)="openAdd()" />
+  } @else {
+    <p-button label="Add role" icon="pi pi-plus" (onClick)="rolesTab()?.openAdd()" />
+  }
+</ng-container>
+<div class="card">
 <p-tabs [(value)]="tab">
   <p-tablist>
     <p-tab value="users">Users</p-tab>
@@ -7,17 +15,12 @@
   <p-tabpanels>
   <p-tabpanel value="users">
   @if (error()) {
-    <div class="card">
-      <p-message severity="error" [text]="error()!" />
-    </div>
+    <p-message severity="error" [text]="error()!" styleClass="mb-3" />
   }
 
-  <div class="card">
-    <h2 class="page-title page-title-in-card">Users</h2>
-
+  <div>
     <div class="toolbar">
       <div class="toolbar-start">
-        <button pButton label="Add User" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
         <p-select
           [(ngModel)]="sortBy"
           [options]="sortOptions"
@@ -96,6 +99,7 @@
   </p-tabpanel>
   </p-tabpanels>
 </p-tabs>
+</div>
 
   <app-add-edit-user-modal #addEditModal />
 </app-page>

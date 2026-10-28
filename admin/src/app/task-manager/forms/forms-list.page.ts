@@ -12,33 +12,27 @@ import { map } from 'rxjs';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { TmApiService } from '../core/tm-api.service';
 import { FormAccess, TmForm, TmProject } from '../core/tm.types';
-import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from './form-links';
+import { PageComponent } from '../../ui/layout/page.component';
 
 /** A project's intake forms. Each form creates tasks in the project. */
 @Component({
   selector: 'app-tm-forms-list-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, TmProjectIconComponent, HelpTextComponent],
+  imports: [PageComponent, FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, HelpTextComponent],
   template: `
     <div class="tm-page">
-      <header class="tm-project-header">
-        @if (project(); as p) {
-          <a class="tm-back-link" [routerLink]="['/tasks/projects', p.id]">
-            <app-tm-project-icon [color]="p.color" [icon]="p.icon" /> {{ p.name }}
-          </a>
-        }
-        <div class="tm-project-title-row">
-          <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
-          <h1 class="tm-project-title">Forms <app-help-text key="tm.forms.intro" /></h1>
-          <div class="tm-project-header-actions">
-            @if (canEdit()) {
-              <p-button label="New form" icon="pi pi-plus" (onClick)="openNew()" />
-            }
-          </div>
-        </div>
-      </header>
+      <app-page
+        title="Forms"
+        helpKey="tm.forms.intro"
+        [backLink]="project() ? ['/tasks/projects', project()!.id] : null"
+        [backLabel]="'Back to ' + (project()?.name ?? 'project')"
+      >
+
+      @if (canEdit()) {
+        <p-button pageActions label="New form" icon="pi pi-plus" (onClick)="openNew()" />
+      }
 
       <div class="card tm-card-flush">
         <p-table [value]="forms()" [loading]="loading()" styleClass="table-bordered" [rowHover]="true">
@@ -75,6 +69,7 @@ import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from
           </ng-template>
         </p-table>
       </div>
+      </app-page>
     </div>
 
     <p-dialog header="New form" [(visible)]="newOpen" [modal]="true" [style]="{ width: '28rem' }" [draggable]="false">

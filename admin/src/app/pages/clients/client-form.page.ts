@@ -136,6 +136,17 @@ export class ClientFormPage implements OnInit {
     return !this.id();
   }
 
+  /** Form as last loaded or saved; Save stays off until something differs. */
+  private savedSnapshot = '';
+
+  private snapshot() {
+    return JSON.stringify(this.form);
+  }
+
+  isDirty() {
+    return this.snapshot() !== this.savedSnapshot;
+  }
+
   /** New or edit under Office → Clients (not CRM → Organizations). */
   get isClientFlow(): boolean {
     return this.backLink === '/clients';
@@ -214,6 +225,7 @@ export class ClientFormPage implements OnInit {
       try {
         const client = await this.api.get<ClientDto>(`/clients/${id}`);
         this.patchForm(client);
+        this.savedSnapshot = this.snapshot();
         this.applyPortal(client);
         await this.loadProjects();
       } catch (err) {
@@ -261,6 +273,7 @@ export class ClientFormPage implements OnInit {
         await this.router.navigate([detailPath, created.id], { replaceUrl: true });
       } else {
         await this.api.put(`/clients/${this.id()}`, payload);
+        this.savedSnapshot = this.snapshot();
         this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.form.name} saved.` });
       }
     } catch (err) {
@@ -298,6 +311,10 @@ export class ClientFormPage implements OnInit {
     try {
       await this.api.put(`/clients/${id}`, { journey: 'CLIENT' });
       this.form.journey = 'CLIENT';
+      // Already saved: keep Save off for this change only.
+      if (this.savedSnapshot) {
+        this.savedSnapshot = JSON.stringify({ ...JSON.parse(this.savedSnapshot), journey: 'CLIENT' });
+      }
       this.toast.add({
         severity: 'success',
         summary: 'Now a client',

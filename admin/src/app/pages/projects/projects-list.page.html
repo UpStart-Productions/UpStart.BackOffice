@@ -1,13 +1,12 @@
-<app-page title="Projects" [skipTitle]="true">
+<app-page title="Projects">
+  <a pageActions pButton label="New Project" icon="pi pi-plus" routerLink="/projects/new"></a>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
   <div class="card">
-    <h2 class="page-title page-title-in-card">Projects</h2>
     <div class="toolbar">
-      <a pButton label="New Project" icon="pi pi-plus" routerLink="/projects/new"></a>
       <div class="toolbar-search">
         <app-toolbar-search-field
           placeholder="Search by project, client…"

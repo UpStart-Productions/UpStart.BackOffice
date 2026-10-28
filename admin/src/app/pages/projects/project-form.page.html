@@ -1,4 +1,18 @@
-<app-page [title]="isNew ? 'New Project' : 'Edit Project'" [skipTitle]="true">
+<app-page
+  [title]="isNew ? 'New Project' : 'Edit Project'"
+  backLink="/projects"
+  backLabel="Back to Projects"
+>
+  @if (!loading() && !error()) {
+    <p-button
+      pageActions
+      label="Save"
+      icon="pi pi-check"
+      [loading]="saving()"
+      [disabled]="!isNew && !isDirty()"
+      (onClick)="save()"
+    />
+  }
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -9,7 +23,6 @@
         <div class="grid grid-3">
           <div class="stack span-2">
             <div class="card">
-              <ng-container *ngTemplateOutlet="projectFormHeader" />
               <ng-container *ngTemplateOutlet="projectFormFields" />
 
               <p-accordion
@@ -23,7 +36,6 @@
                 <ng-container *ngTemplateOutlet="projectAsanaTasksAccordionPanel" />
               </p-accordion>
 
-              <ng-container *ngTemplateOutlet="projectFormActions" />
             </div>
             <app-artifacts-panel [projectId]="id()!" />
           </div>
@@ -53,7 +65,6 @@
         </div>
       } @else {
         <div class="card">
-          <ng-container *ngTemplateOutlet="projectFormHeader" />
           <ng-container *ngTemplateOutlet="projectFormFields" />
 
           <p-accordion
@@ -91,28 +102,10 @@
             </p-accordion-panel>
           </p-accordion>
 
-          <ng-container *ngTemplateOutlet="projectFormActions" />
         </div>
       }
     </form>
   }
-
-  <ng-template #projectFormHeader>
-    <div class="page-header-with-back">
-      <p-button
-        icon="pi pi-arrow-left"
-        [rounded]="true"
-        [text]="true"
-        severity="secondary"
-        type="button"
-        routerLink="/projects"
-        aria-label="Back to Projects"
-      />
-      <h2 class="page-title page-title-in-card mb-0">
-        {{ isNew ? 'New Project' : 'Edit Project' }}
-      </h2>
-    </div>
-  </ng-template>
 
   <ng-template #projectFormFields>
     <div class="showcase-flex-col">
@@ -380,13 +373,6 @@
         </p-accordion-content>
       </p-accordion-panel>
     }
-  </ng-template>
-
-  <ng-template #projectFormActions>
-    <div class="form-actions">
-      <a pButton label="Cancel" class="p-button-secondary" routerLink="/projects"></a>
-      <button pButton type="submit" label="Save" [loading]="saving()"></button>
-    </div>
   </ng-template>
 
   <p-dialog

@@ -14,9 +14,10 @@ import { map } from 'rxjs';
 import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { FormAccess, FormQuestion, FormQuestionType, Person, TmForm, TmProject } from '../core/tm.types';
-import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ACCESS_OPTIONS, formApiUrl, formPageUrl } from './form-links';
+import { PageComponent } from '../../ui/layout/page.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 const TYPE_OPTIONS: { value: FormQuestionType; label: string }[] = [
   { value: 'SHORT_TEXT', label: 'Short text' },
@@ -56,7 +57,7 @@ type Draft = {
 @Component({
   selector: 'app-tm-form-builder-page',
   standalone: true,
-  imports: [
+  imports: [PageComponent, RowActionsMenuComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -66,7 +67,6 @@ type Draft = {
     TextareaModule,
     ToggleSwitchModule,
     TooltipModule,
-    TmProjectIconComponent,
     HelpTextComponent,
   ],
   templateUrl: './form-builder.page.html',
@@ -290,6 +290,11 @@ export class FormBuilderPage {
     const f = this.form();
     if (f) this.setForm(f);
   }
+
+  /** Header ⋮ menu: Delete form. */
+  readonly headerActions: RowActionItem[] = [
+    { id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.remove() },
+  ];
 
   remove() {
     const f = this.form();

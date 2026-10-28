@@ -59,13 +59,9 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
   imports: [HelpTextComponent, PersonComponent, FormsModule, TableModule, ButtonModule, InputTextModule, MessageModule, SelectButtonModule, CheckboxModule, TooltipModule, LucideIconComponent, AppDialogModule, RowActionsMenuComponent],
   template: `
     @if (error()) {
-      <div class="card"><p-message severity="error" [text]="error()!" /></div>
+      <p-message severity="error" [text]="error()!" styleClass="mb-3" />
     }
-    <div class="card">
-      <h2 class="page-title page-title-in-card">Roles <app-help-text key="roles.overview" /></h2>
-      <div class="toolbar">
-        <button pButton label="Add role" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
-      </div>
+    <div>
       <div class="legend" aria-hidden="true">
         @for (a of allActions; track a) {
           <span><i [class]="'pi ' + actionIcon(a)"></i> {{ actionLabel(a) }}</span>

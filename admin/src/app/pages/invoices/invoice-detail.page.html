@@ -1,66 +1,60 @@
-<app-page title="Invoice" [skipTitle]="true">
+<app-page
+  [title]="invoice()?.displayNumber || 'Invoice'"
+  backLink="/invoices"
+  backLabel="Back to Invoices"
+>
+  <ng-container ngProjectAs="[pageMeta]">
+    @if (!error() && !loading() && invoice(); as inv) {
+      <p-tag [value]="statusLabel(inv)" [severity]="statusSeverity(inv.status)" />
+      @if (dueFlagLabel(inv); as label) {
+        <p-tag [value]="label" [severity]="dueFlagSeverity(inv)" />
+      }
+    }
+  </ng-container>
+  <ng-container ngProjectAs="[pageActions]">
+    @if (!error() && !loading() && invoice()) {
+      <p-button
+        label="Download PDF"
+        icon="pi pi-download"
+        severity="secondary"
+        [outlined]="true"
+        (click)="downloadPdf()"
+      />
+      @if (canResend) {
+        <p-button
+          label="Resend"
+          icon="pi pi-replay"
+          [severity]="canMarkPaid ? 'secondary' : undefined"
+          [outlined]="canMarkPaid"
+          (click)="resend()"
+        />
+      }
+      @if (canMarkPaid) {
+        <p-button label="Mark as paid" icon="pi pi-check" (click)="markPaid()" />
+      }
+    }
+  </ng-container>
+  @if (!error() && !loading() && invoice(); as inv) {
+    <div pageSubtitle class="invoice-detail-meta page-header-subtitle">
+      <span><strong>Bill to:</strong> {{ inv.billToName || inv.client?.name }}</span>
+      <span><strong>Issue date:</strong> {{ formatDate(inv.issueDate) }}</span>
+      @if (inv.dueDate) {
+        <span class="invoice-detail-due" [class.invoice-detail-due--overdue]="dueFlag(inv) === 'overdue'" [class.invoice-detail-due--due]="dueFlag(inv) === 'due'">
+          <strong>Due:</strong> {{ formatDate(inv.dueDate) }}
+        </span>
+      }
+      <span><strong>Total:</strong> {{ formatAmount(inv.total) }}</span>
+      @if (inv.status === 'PAID' && inv.amountPaid != null && inv.amountPaid !== inv.total) {
+        <span><strong>Paid:</strong> {{ formatAmount(inv.amountPaid) }}</span>
+      }
+    </div>
+  }
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   } @else if (!loading() && invoice(); as inv) {
     <div class="showcase-flex-col">
-      <div class="card invoice-detail-header">
-        <div class="page-header-with-back">
-          <p-button
-            icon="pi pi-arrow-left"
-            [rounded]="true"
-            [text]="true"
-            severity="secondary"
-            type="button"
-            routerLink="/invoices"
-            aria-label="Back to Invoices"
-          />
-          <div class="invoice-detail-title-block">
-            <h2 class="page-title page-title-in-card mb-0">{{ inv.displayNumber }}</h2>
-            <p-tag [value]="statusLabel(inv)" [severity]="statusSeverity(inv.status)" />
-            @if (dueFlagLabel(inv); as label) {
-              <p-tag [value]="label" [severity]="dueFlagSeverity(inv)" />
-            }
-          </div>
-        </div>
-        <div class="invoice-detail-meta text-sm">
-          <span><strong>Bill to:</strong> {{ inv.billToName || inv.client?.name }}</span>
-          <span><strong>Issue date:</strong> {{ formatDate(inv.issueDate) }}</span>
-          @if (inv.dueDate) {
-            <span class="invoice-detail-due" [class.invoice-detail-due--overdue]="dueFlag(inv) === 'overdue'" [class.invoice-detail-due--due]="dueFlag(inv) === 'due'">
-              <strong>Due:</strong> {{ formatDate(inv.dueDate) }}
-            </span>
-          }
-          <span><strong>Total:</strong> {{ formatAmount(inv.total) }}</span>
-          @if (inv.status === 'PAID' && inv.amountPaid != null && inv.amountPaid !== inv.total) {
-            <span><strong>Paid:</strong> {{ formatAmount(inv.amountPaid) }}</span>
-          }
-        </div>
-        <div class="invoice-detail-actions">
-          <p-button
-            label="Download PDF"
-            icon="pi pi-download"
-            severity="secondary"
-            (click)="downloadPdf()"
-          />
-          @if (canMarkPaid) {
-            <p-button
-              label="Mark as paid"
-              icon="pi pi-check"
-              (click)="markPaid()"
-            />
-          }
-          @if (canResend) {
-            <p-button
-              label="Resend"
-              icon="pi pi-replay"
-              (click)="resend()"
-            />
-          }
-        </div>
-      </div>
-
       <div class="card invoice-pdf-card">
         @if (pdfUrl()) {
           <iframe [src]="pdfUrl()!" class="invoice-pdf-frame" [title]="inv.displayNumber + ' PDF'"></iframe>

@@ -38,15 +38,14 @@ import { SessionService } from '../../core/session.service';
     RowActionsMenuComponent,
   ],
   template: `
-    <app-page title="People" [skipTitle]="true">
+    <app-page title="People">
+      <p-button pageActions label="New Person" icon="pi pi-plus" (onClick)="openNew()" />
+      @if (error()) {
+        <div class="card"><p-message severity="error" [text]="error()!" /></div>
+      }
       <div class="card">
-        <h2 class="page-title page-title-in-card">People</h2>
-        @if (error()) {
-          <p-message severity="error" [text]="error()!" class="mb-3" />
-        }
         <div class="toolbar">
           <div class="toolbar-start">
-            <p-button label="New Person" icon="pi pi-plus" (onClick)="openNew()" />
             <p-select
               [options]="tagOptions()"
               [ngModel]="tag"

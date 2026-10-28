@@ -1,22 +1,15 @@
-<app-page title="Invoices" [skipTitle]="true">
+<app-page title="Invoices">
+  <ng-container ngProjectAs="[pageActions]">
+    <p-button label="Export" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="openExport()" />
+    <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
   <div class="card">
-    <h2 class="page-title page-title-in-card">Invoices</h2>
     <div class="toolbar">
-      <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
-      <button
-        type="button"
-        pButton
-        label="Export"
-        icon="pi pi-download"
-        severity="secondary"
-        [outlined]="true"
-        (click)="openExport()"
-      ></button>
       <div class="toolbar-search">
         <app-toolbar-search-field
           placeholder="Search by number, bill to, status…"

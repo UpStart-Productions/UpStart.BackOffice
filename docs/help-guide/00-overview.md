@@ -20,6 +20,16 @@ People (team members and contacts) are shown with their photo, or colored initia
 
 **Regular users** see only areas their tenant role grants (Organizations, Time, etc.) — if a menu item is missing, they do not have access; do not tell them to use Admin-only screens.
 
+## Page layout
+
+Every page has the same header above its content:
+
+- The page title on the left, with a back arrow before it on pages you open from a list (for example a client, a pipeline card or an invoice). Status tags, such as **Client**, **Archived** or **Overdue**, sit next to the title.
+- The page's buttons on the right. The main action, such as **New Client**, **Track time** or **Save**, is the purple button on the far right.
+- Less common actions, such as **Archive**, **Restore** or **Delete**, are in the ⋮ menu at the start of the buttons.
+- On pages where you edit something, **Save** is in the header and turns on once you change something.
+- Search, filters and tabs are at the top of the white panel below the header.
+
 ## Top bar
 
 - **Search** (magnifying glass): expands to search clients, projects, invoices, leads

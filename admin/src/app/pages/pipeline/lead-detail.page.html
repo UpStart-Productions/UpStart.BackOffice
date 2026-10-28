@@ -1,4 +1,42 @@
-<app-page [title]="isNew ? 'New Lead' : form.organization" [skipTitle]="true">
+<app-page
+  [title]="isNew ? 'New Lead' : (form.organization || 'Lead')"
+  backLink="/pipeline"
+  backLabel="Back to Pipeline"
+>
+  <ng-container ngProjectAs="[pageMeta]">
+    @if (isConverted) {
+      <p-tag value="Client" severity="success" />
+    }
+    @if (!isNew && archivedAt()) {
+      <p-tag value="Archived" severity="secondary" />
+    }
+    @if (contactId(); as cid) {
+      <app-person
+        [name]="form.primaryContact"
+        [email]="form.email"
+        [avatarUrl]="contactAvatarUrl()"
+        [personId]="cid"
+        [link]="['/people', cid]"
+      />
+    }
+    @if (account(); as acct) {
+      <a [routerLink]="['/organizations', acct.id]" class="text-primary">Open organization</a>
+    }
+  </ng-container>
+  <ng-container ngProjectAs="[pageActions]">
+    @if (!loading() && !error()) {
+      @if (!isNew && canEdit()) {
+        <app-row-actions-menu [items]="headerActions()" ariaLabel="Lead actions" />
+      }
+      @if (!isNew && !isConverted && canEdit()) {
+        <p-button label="Make client" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="showConvertDialog.set(true)" />
+      }
+      @if (isNew || canEdit()) {
+        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isNew && !isDirty()" (onClick)="save()" />
+      }
+    }
+  </ng-container>
+
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -6,47 +44,6 @@
   } @else if (!loading()) {
 
     <form class="card" (ngSubmit)="save()">
-      <div class="page-header-with-back">
-        <p-button
-          icon="pi pi-arrow-left"
-          [rounded]="true"
-          [text]="true"
-          severity="secondary"
-          type="button"
-          routerLink="/pipeline"
-          aria-label="Back to Pipeline"
-        />
-        <h2 class="page-title page-title-in-card mb-0">
-          {{ isNew ? 'New Lead' : form.organization }}
-        </h2>
-        <span style="flex: 1"></span>
-        @if (account(); as acct) {
-          <a [routerLink]="['/organizations', acct.id]" class="text-primary mr-2">Open organization</a>
-        }
-        @if (contactId(); as cid) {
-          <app-person
-            class="mr-3"
-            [name]="form.primaryContact"
-            [email]="form.email"
-            [avatarUrl]="contactAvatarUrl()"
-            [personId]="cid"
-            [link]="['/people', cid]"
-          />
-        }
-        @if (!isNew && !isConverted && canEdit()) {
-          <button pButton type="button" label="Make client" icon="pi pi-check" (click)="showConvertDialog.set(true)"></button>
-        }
-        @if (isConverted) {
-          <p-tag value="Client" severity="success" />
-        }
-        @if (!isNew) {
-          @if (archivedAt()) { <p-tag value="Archived" severity="secondary" /> }
-        }
-        @if (!isNew && canEdit()) {
-          <button pButton type="button" [label]="archivedAt() ? 'Restore' : 'Archive'" [icon]="archivedAt() ? 'pi pi-replay' : 'pi pi-inbox'" class="p-button-secondary p-button-text" (click)="toggleArchive()"></button>
-        }
-      </div>
-
       <div class="showcase-flex-col">
         <div class="showcase-row">
           <div class="form-field showcase-half">
@@ -135,10 +132,6 @@
 
       </div>
 
-      <div class="form-actions">
-        <a pButton label="Cancel" class="p-button-secondary" routerLink="/pipeline"></a>
-        <button pButton type="submit" label="Save" [loading]="saving()"></button>
-      </div>
     </form>
 
     @if (!isNew) {

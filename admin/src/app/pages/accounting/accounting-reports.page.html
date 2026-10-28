@@ -1,11 +1,10 @@
-<app-page title="Accounting Reports" [skipTitle]="true">
+<app-page title="Accounting Reports">
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
   <div class="card">
-    <h2 class="page-title page-title-in-card">Accounting Reports</h2>
 
     <div class="showcase-row">
       <div class="form-field">

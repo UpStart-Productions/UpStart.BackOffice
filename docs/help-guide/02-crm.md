@@ -64,7 +64,7 @@ Each card leads with the **next step**: what you plan to do next and its due dat
 
 **Archived:** switch **Board / Archived** at the top to see won and archived cards. **Restore** puts a card back on the board. **Delete** removes the card for good.
 
-On a card's page, **Lane** changes its lane, **Open organization** goes to the organization, and **Make client** / **Archive** / **Restore** are next to the title.
+On a card's page, **Lane** changes its lane and **Open organization** (beside the title) goes to the organization. **Make client** and **Save** are at the top right; **Save** turns on once something has changed. **Archive** / **Restore** are in the ⋮ menu beside them.
 
 ## Bookings
 

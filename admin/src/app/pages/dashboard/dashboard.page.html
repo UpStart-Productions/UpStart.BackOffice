@@ -1,4 +1,4 @@
-<app-page title="Dashboard" [skipTitle]="true">
+<app-page title="Dashboard">
   @if (loading() && timeLoading() && pipelineLoading()) {
     <p class="text-muted">Loading dashboard…</p>
   } @else if (error()) {

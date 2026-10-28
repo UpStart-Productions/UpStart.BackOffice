@@ -64,16 +64,15 @@ type StatusFilter = 'all' | AccountJourney;
     `,
   ],
   template: `
-    <app-page title="Organizations" [skipTitle]="true">
+    <app-page title="Organizations">
+      @if (canCreate()) {
+        <a pageActions pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
+      }
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
       <div class="card">
-        <h2 class="page-title page-title-in-card">Organizations</h2>
         <div class="toolbar">
-          @if (canCreate()) {
-            <a pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
-          }
           <p-select
             [options]="typeFilterOptions"
             optionLabel="label"

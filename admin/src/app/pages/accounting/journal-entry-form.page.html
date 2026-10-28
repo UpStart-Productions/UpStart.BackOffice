@@ -1,4 +1,7 @@
-<app-page title="New Journal Entry" [skipTitle]="true">
+<app-page title="New Journal Entry" backLink="/accounting/journal" backLabel="Back to Journal">
+  @if (!loading() && !error()) {
+    <p-button pageActions label="Save Entry" icon="pi pi-check" [loading]="saving()" [disabled]="!isBalanced()" (click)="save()" />
+  }
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -6,20 +9,7 @@
   } @else if (!loading()) {
     <div class="showcase-flex-col">
       <div class="card">
-        <div class="page-header-with-back">
-          <p-button
-            icon="pi pi-arrow-left"
-            [rounded]="true"
-            [text]="true"
-            severity="secondary"
-            type="button"
-            routerLink="/accounting/journal"
-            aria-label="Back to Journal"
-          />
-          <h2 class="page-title page-title-in-card mb-0">New Journal Entry</h2>
-        </div>
-
-        <div class="showcase-row mt-3">
+        <div class="showcase-row">
           <div class="form-field showcase-half">
             <label for="date">Date</label>
             <app-date-input inputId="date" [(ngModel)]="date" />
@@ -101,10 +91,6 @@
         </div>
       </div>
 
-      <div class="form-actions" style="margin-top: 0;">
-        <a pButton label="Cancel" class="p-button-secondary" routerLink="/accounting/journal"></a>
-        <button pButton type="button" label="Save Entry" [loading]="saving()" [disabled]="!isBalanced()" (click)="save()"></button>
-      </div>
     </div>
   }
 </app-page>

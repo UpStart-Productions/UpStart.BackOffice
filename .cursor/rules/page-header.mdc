@@ -1,0 +1,51 @@
+---
+description: Every page uses the one shared header from app-page — title left, one purple action right, above the content panels
+globs: admin/src/app/**/*.{html,ts}
+alwaysApply: false
+---
+
+# Page header (canonical)
+
+Every back-office page has the same header, rendered by `app-page`
+(`admin/src/app/ui/layout/page.component.ts`). It sits **above** the white content panels.
+
+```
+[← back]  Title (ⓘ)  [status tags, related chips]  ..........  [⋮] [secondary…] [Primary]
+[optional one-line details]
+┌ card ─────────────────────────────────────────────┐
+│ tabs → filters / search toolbar → content          │
+└────────────────────────────────────────────────────┘
+```
+
+## Inputs and slots
+
+- `title` (required), `backLink` + `backLabel` (shows the back arrow), `helpKey` (ⓘ after the title).
+- `pageLead` slot: an avatar or color tile shown just before the title (person page, Task Manager project).
+- `pageMeta` slot: status tags (`p-tag`), related-record chips/links (person, Open organization).
+- `pageActions` slot: buttons, right-aligned.
+- `pageSubtitle` slot: an optional one-line details row (use class `page-header-subtitle`).
+- With more than one element in a slot, wrap them: `<ng-container ngProjectAs="[pageActions]">` with any `@if` blocks *inside* it. An `@if` holding more than one element is not routed to a slot (its contents fall into the page body).
+
+```html
+<app-page title="Clients">
+  @if (canCreate()) {
+    <a pageActions pButton label="New Client" icon="pi pi-plus" routerLink="/organizations/new"></a>
+  }
+  <div class="card">
+    <div class="toolbar"> … filters … <div class="toolbar-search">…</div></div>
+    <p-table …/>
+  </div>
+</app-page>
+```
+
+## Rules
+
+1. **Never** put a page title inside a card (`page-title-in-card` is legacy) and never hand-build a header (`page-header-with-back`, `tm-project-header` are legacy).
+2. **At most one purple (primary) button**, and it is the **last** (rightmost) item in `pageActions`. Every other button is `severity="secondary"` `[outlined]="true"`.
+3. Rare or destructive actions (Archive, Restore, Delete) go in `app-row-actions-menu` as the **first** item in `pageActions`.
+4. **Search, filters and tabs never go in the header.** They go at the top of the content card (`.toolbar`, search in `.toolbar-search` on the right).
+5. **Edit pages: Save is the primary in the header**, disabled until something changes (compare against a snapshot taken on load and after save). No Save/Cancel row at the bottom of the form; the back arrow is the cancel.
+6. Errors show in a card directly under the header, not inside the content card.
+7. Back navigation is always the header back arrow (`backLink`), never a breadcrumb text link.
+
+`skipTitle` exists only for pages not yet moved to this header. Do not use it on new pages.

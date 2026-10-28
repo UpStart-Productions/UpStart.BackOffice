@@ -1,21 +1,18 @@
-<app-page title="Chart of Accounts" [skipTitle]="true">
+<app-page title="Chart of Accounts">
+  <p-button
+    pageActions
+    [label]="showAddForm() ? 'Cancel' : 'New Account'"
+    [icon]="showAddForm() ? 'pi pi-times' : 'pi pi-plus'"
+    [severity]="showAddForm() ? 'secondary' : undefined"
+    [outlined]="showAddForm()"
+    (click)="toggleAddForm()"
+  />
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
   <div class="card">
-    <div class="toolbar">
-      <h2 class="page-title page-title-in-card mb-0">Chart of Accounts</h2>
-      <p-button
-        [label]="showAddForm() ? 'Cancel' : 'New Account'"
-        [icon]="showAddForm() ? 'pi pi-times' : 'pi pi-plus'"
-        severity="secondary"
-        [outlined]="showAddForm()"
-        (click)="toggleAddForm()"
-      />
-    </div>
-
     @if (showAddForm()) {
       <div class="showcase-row mt-3 mb-3">
         <div class="form-field" style="width: 120px">

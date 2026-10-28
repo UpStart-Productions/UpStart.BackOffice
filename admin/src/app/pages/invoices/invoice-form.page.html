@@ -1,4 +1,35 @@
-<app-page [title]="isNew ? 'New Invoice' : 'Edit Invoice'" [skipTitle]="true">
+<app-page
+  [title]="isNew ? 'New Invoice' : 'Edit draft ' + (displayNumber() ?? '')"
+  backLink="/invoices"
+  backLabel="Back to Invoices"
+>
+  <ng-container ngProjectAs="[pageActions]">
+    @if (!loading() && !error()) {
+      @if (isDraftEdit) {
+        <p-button
+          label="Download PDF"
+          icon="pi pi-download"
+          severity="secondary"
+          [outlined]="true"
+          (click)="downloadPdf()"
+        />
+        <p-button
+          label="Send"
+          icon="pi pi-send"
+          severity="secondary"
+          [outlined]="true"
+          (click)="sendToClient()"
+        />
+      }
+      <p-button
+        label="Save Invoice"
+        icon="pi pi-check"
+        [loading]="saving()"
+        [disabled]="!isNew && !isDirty()"
+        (click)="save()"
+      />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -6,43 +37,6 @@
   } @else if (!loading()) {
     <div class="showcase-flex-col">
       <div class="card">
-        <div class="invoice-form-header">
-          <div class="page-header-with-back">
-            <p-button
-              icon="pi pi-arrow-left"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              type="button"
-              routerLink="/invoices"
-              aria-label="Back to Invoices"
-            />
-            <h2 class="page-title page-title-in-card mb-0">
-              @if (isNew) {
-                New Invoice
-              } @else {
-                Edit draft {{ displayNumber() }}
-              }
-            </h2>
-          </div>
-          @if (isDraftEdit) {
-            <div class="invoice-form-header-actions">
-              <p-button
-                label="Download PDF"
-                icon="pi pi-download"
-                severity="secondary"
-                [outlined]="true"
-                (click)="downloadPdf()"
-              />
-              <p-button
-                label="Send"
-                icon="pi pi-send"
-                (click)="sendToClient()"
-              />
-            </div>
-          }
-        </div>
-
         <div class="showcase-flex-col">
           <div class="form-field showcase-full">
             <label for="billTo">Bill to</label>
@@ -359,10 +353,6 @@
         </div>
       }
 
-      <div class="form-actions" style="margin-top: 0;">
-        <a pButton label="Cancel" class="p-button-secondary" routerLink="/invoices"></a>
-        <button pButton type="button" label="Save Invoice" [loading]="saving()" (click)="save()"></button>
-      </div>
     </div>
   }
 </app-page>

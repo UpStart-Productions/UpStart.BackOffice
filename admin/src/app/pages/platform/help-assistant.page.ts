@@ -6,7 +6,6 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
-import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 interface HelpAgentSettingsView {
   configured: boolean;
@@ -20,17 +19,24 @@ interface HelpAgentSettingsView {
 @Component({
   selector: 'app-help-assistant-page',
   standalone: true,
-  imports: [ReactiveFormsModule, PageComponent, ButtonModule, InputTextModule, MessageModule, SelectModule, HelpTextComponent],
+  imports: [ReactiveFormsModule, PageComponent, ButtonModule, InputTextModule, MessageModule, SelectModule],
   template: `
-    <app-page title="Guide setup" [skipTitle]="true">
+    <app-page title="Back Office Guide" helpKey="platform.guideSetup">
+      <p-button
+        pageActions
+        label="Save & test connection"
+        icon="pi pi-check"
+        [loading]="saving()"
+        [disabled]="form.invalid || saving()"
+        (onClick)="save()"
+      />
+      @if (error()) {
+        <div class="card"><p-message severity="error" [text]="error()!" /></div>
+      }
+      @if (saved()) {
+        <div class="card"><p-message severity="success" text="Saved and connection verified." /></div>
+      }
       <div class="card">
-        <h2 class="page-title page-title-in-card">Back Office Guide <app-help-text key="platform.guideSetup" /></h2>
-        @if (error()) {
-          <p-message severity="error" [text]="error()!" styleClass="mb-3 w-full" />
-        }
-        @if (saved()) {
-          <p-message severity="success" text="Saved and connection verified." styleClass="mb-3 w-full" />
-        }
         <form [formGroup]="form" class="form-stack" (ngSubmit)="save()">
           <div class="showcase-flex-col">
             <div class="showcase-row">
@@ -70,15 +76,6 @@ interface HelpAgentSettingsView {
                 autocomplete="off"
               />
             </div>
-          </div>
-          <div class="mt-3">
-            <button
-              pButton
-              type="submit"
-              label="Save & test connection"
-              [loading]="saving()"
-              [disabled]="form.invalid || saving()"
-            ></button>
           </div>
         </form>
       </div>

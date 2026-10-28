@@ -1,16 +1,12 @@
-<app-page title="Journal" [skipTitle]="true">
+<app-page title="Journal">
+  <a pageActions pButton label="New Entry" icon="pi pi-plus" routerLink="/accounting/journal/new"></a>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   }
   <div class="card">
-    <div class="toolbar">
-      <h2 class="page-title page-title-in-card mb-0">Journal</h2>
-      <a pButton label="New Entry" icon="pi pi-plus" routerLink="/accounting/journal/new"></a>
-    </div>
-
-    <p-table [value]="entries()" [loading]="loading()" styleClass="table-bordered mt-3">
+    <p-table [value]="entries()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 110px">Date</th>

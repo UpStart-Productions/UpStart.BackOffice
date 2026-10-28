@@ -35,6 +35,7 @@ import { TmAvatarComponent } from '../ui/tm-avatar.component';
 import { TagPick, TmTagPickerComponent } from '../ui/tag-picker.component';
 import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
+import { PageComponent } from '../../ui/layout/page.component';
 
 type CompletedFilter = TmProjectBoardCompletedFilter;
 type Group = { section: TmSection | null; tasks: TaskSummary[] };
@@ -45,7 +46,7 @@ const NO_SECTION = '__none__';
 @Component({
   selector: 'app-tm-project-tasks-page',
   standalone: true,
-  imports: [LucideIconComponent, LucideIconPickerPanelComponent, 
+  imports: [PageComponent, LucideIconComponent, LucideIconPickerPanelComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,

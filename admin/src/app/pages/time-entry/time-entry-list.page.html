@@ -1,4 +1,17 @@
-<app-page title="Timesheet" [skipTitle]="true">
+<app-page title="Timesheet">
+  @if (viewingSelf()) {
+    <ng-container ngProjectAs="[pageActions]">
+      <p-button
+        label="Import CSV"
+        icon="pi pi-upload"
+        severity="secondary"
+        [outlined]="true"
+        [loading]="importing()"
+        (onClick)="triggerCsvPicker()"
+      />
+      <p-button label="Track time" icon="pi pi-plus" (onClick)="openTrackTimeModal()" />
+    </ng-container>
+  }
   @if (error()) {
     <div class="card">
       <div class="error-banner" role="alert">{{ error() }}</div>
@@ -6,7 +19,6 @@
   }
 
   <div class="card harvest-timesheet">
-    <h2 class="page-title page-title-in-card timesheet-title">Timesheet</h2>
 
     <div class="timesheet-controls">
       <div class="date-nav">
@@ -73,17 +85,6 @@
             appendTo="body"
           />
         }
-        @if (viewingSelf()) {
-        <button
-          type="button"
-          pButton
-          label="Import CSV"
-          icon="pi pi-upload"
-          severity="secondary"
-          [outlined]="true"
-          [loading]="importing()"
-          (click)="triggerCsvPicker()"
-        ></button>
         <input
           #csvFileInput
           type="file"
@@ -91,8 +92,6 @@
           hidden
           (change)="onCsvSelected($event)"
         />
-        <button type="button" pButton label="+ Track time" (click)="openTrackTimeModal()"></button>
-        }
       </div>
     </div>
 

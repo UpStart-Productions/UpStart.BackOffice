@@ -18,6 +18,7 @@ import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { PersonComponent } from '../../ui/person/person.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 const SOURCES = [
   { label: 'Warm Outreach', value: 'WARM_OUTREACH' },
@@ -53,7 +54,7 @@ const SERVICE_OPTIONS = [
 @Component({
   selector: 'app-lead-detail-page',
   standalone: true,
-  imports: [HelpTextComponent, PersonComponent, 
+  imports: [HelpTextComponent, PersonComponent, RowActionsMenuComponent,
     FormsModule, RouterLink,
     ButtonModule, InputTextModule, MessageModule, TextareaModule,
     SelectModule, AppDialogModule, TagModule,
@@ -111,7 +112,25 @@ export class LeadDetailPage implements OnInit {
     lastContactDate: '',
   };
 
+  /** Form state as last loaded or saved; Save stays off until something differs. */
+  private savedSnapshot = '';
+
   get isNew() { return !this.id(); }
+
+  private snapshot() {
+    return JSON.stringify({ form: this.form, services: this.serviceInterests() });
+  }
+
+  isDirty() {
+    return this.snapshot() !== this.savedSnapshot;
+  }
+
+  /** Header ⋯ menu: the rarely used actions. */
+  readonly headerActions = computed<RowActionItem[]>(() => [
+    this.archivedAt()
+      ? { id: 'restore', label: 'Restore', icon: 'pi pi-replay', command: () => this.toggleArchive() }
+      : { id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.toggleArchive() },
+  ]);
   get isConverted() { return this.account()?.journey === 'CLIENT'; }
 
   private patchForm(lead: Record<string, unknown>) {
@@ -176,6 +195,7 @@ export class LeadDetailPage implements OnInit {
       try {
         const lead = await this.api.get<Record<string, unknown>>(`/leads/${id}`);
         this.patchForm(lead);
+        this.savedSnapshot = this.snapshot();
         if (this.route.snapshot.queryParamMap.get('convert') === '1') {
           this.showConvertDialog.set(true);
         }
@@ -209,6 +229,7 @@ export class LeadDetailPage implements OnInit {
         await this.router.navigate(['/pipeline', lead.id], { replaceUrl: true });
       } else {
         await this.api.put(`/leads/${this.id()}`, this.buildPayload());
+        this.savedSnapshot = this.snapshot();
         this.toast.add({
           severity: 'success',
           summary: 'Saved',

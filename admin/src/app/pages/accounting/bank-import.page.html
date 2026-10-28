@@ -1,4 +1,17 @@
-<app-page title="Bank Import" [skipTitle]="true">
+<app-page title="Bank Import" helpKey="bankImport.overview">
+  <ng-container ngProjectAs="[pageActions]">
+    @if (suggestedCount() > 0) {
+      <p-button
+        [label]="'Post ' + suggestedCount() + ' suggested'"
+        icon="pi pi-bolt"
+        severity="secondary"
+        [outlined]="true"
+        [loading]="postingAllSuggested()"
+        (click)="postAllSuggested()"
+      />
+    }
+    <p-button label="Import CSV" icon="pi pi-upload" [loading]="importing()" (click)="triggerFilePicker()" />
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -6,7 +19,6 @@
   }
   <div class="card">
     <div class="toolbar">
-      <h2 class="page-title page-title-in-card mb-0">Bank Import <app-help-text key="bankImport.overview" /></h2>
       <div class="flex gap-2">
         <button
           type="button"
@@ -17,21 +29,10 @@
           severity="secondary"
           (click)="toggleUncategorizedOnly()"
         ></button>
-        @if (suggestedCount() > 0) {
-          <p-button
-            [label]="'Post ' + suggestedCount() + ' suggested'"
-            icon="pi pi-bolt"
-            severity="success"
-            [outlined]="true"
-            [loading]="postingAllSuggested()"
-            (click)="postAllSuggested()"
-          />
-        }
-        <p-button label="Import CSV" icon="pi pi-upload" [loading]="importing()" (click)="triggerFilePicker()" />
         <input #fileInput type="file" accept=".csv" hidden (change)="onFileSelected($event)" />
       </div>
     </div>
-    <p-table [value]="transactions()" [loading]="loading()" styleClass="table-bordered mt-3">
+    <p-table [value]="transactions()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 110px">Date</th>

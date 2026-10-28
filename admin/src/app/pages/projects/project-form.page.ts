@@ -158,6 +158,23 @@ export class ProjectFormPage implements OnInit {
     return !this.id();
   }
 
+  /** Everything Save writes, as last loaded or saved; Save stays off until something differs. */
+  private savedSnapshot = '';
+
+  private snapshot() {
+    return JSON.stringify({
+      form: this.form,
+      asana: this.asanaLink,
+      manual: this.manualTasks(),
+      asanaTasks: this.asanaTasks(),
+      contacts: this.contactRows(),
+    });
+  }
+
+  isDirty() {
+    return this.snapshot() !== this.savedSnapshot;
+  }
+
   contactSummary(): string {
     const names = this.contactRows()
       .map((contact) => [contact.firstName, contact.lastName].map((part) => part.trim()).filter(Boolean).join(' '))
@@ -184,6 +201,7 @@ export class ProjectFormPage implements OnInit {
       this.id.set(id);
       try {
         await this.applyProject(await this.api.get<ProjectResponse>(`/projects/${id}`));
+        this.savedSnapshot = this.snapshot();
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load project');
       }
@@ -705,6 +723,7 @@ export class ProjectFormPage implements OnInit {
         });
         await this.router.navigate(['/projects', projectId], { replaceUrl: true });
       } else {
+        this.savedSnapshot = this.snapshot();
         this.toast.add({
           severity: 'success',
           summary: 'Saved',
