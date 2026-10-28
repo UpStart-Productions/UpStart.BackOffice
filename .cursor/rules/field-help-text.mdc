@@ -1,0 +1,34 @@
+---
+description: Field help via ? tooltips only — no inline instructions in the UI
+alwaysApply: true
+---
+
+# Field help (? icon)
+
+Do **not** put how-to or explanatory copy under labels, in muted `<small>` / `<p>` blocks, or in form intros.
+
+Use **`app-help-text`** next to the **label or section title** and register the copy in **`admin/src/app/core/help-text.registry.ts`**.
+
+```html
+<label for="code">Invoice code <app-help-text key="organization.invoiceCode" /></label>
+```
+
+## Do not
+
+- `<small class="text-color-secondary">…</small>` (or `text-muted`) under a field to explain it
+- Section `<p class="text-color-secondary">…</p>` that teaches how a feature works
+- Duplicate the same copy in the help drawer and under the field — pick the ? registry for field/section tooltips; page-level narrative stays in `ui/help-drawer/help-content.ts`
+
+## OK to keep visible
+
+- Empty states (`No expenses yet`), loading text, validation errors, live computed values (e.g. mileage × rate = total)
+- User-authored content (form intro text, task-form question help from the builder)
+- Short placeholders in inputs when they are examples, not instructions
+
+## Dollar amount fields
+
+Use **`app-money-input`** (`admin/src/app/ui/money-input/`) for USD amounts. Do not use `p-inputNumber` with `mode="currency"` or `prefix="$"` — PrimeNG rewrites keystrokes and breaks sub-$1 values.
+
+## New or changed fields
+
+Add or update a registry key in the same change. Key format: `area.field` (e.g. `settings.business.mileageRate`).

@@ -22,7 +22,7 @@
     <div class="showcase-row">
       @if (isMileage()) {
         <div class="form-field showcase-half">
-          <label for="expense-miles">Miles</label>
+          <label for="expense-miles">Miles <app-help-text key="expense.miles" /></label>
           <p-inputNumber
             inputId="expense-miles"
             mode="decimal"
@@ -36,18 +36,13 @@
           />
           @if (mileageRate() != null) {
             <small class="text-color-secondary">× {{ formatRate(mileageRate()) }}/mi = {{ formatMoney(mileageAmount()) }}</small>
-          } @else {
-            <small class="text-color-secondary">Set a mileage rate in Settings → Business first.</small>
           }
         </div>
       } @else {
         <div class="form-field showcase-half">
           <label for="expense-amount">Amount</label>
-          <p-inputNumber
+          <app-money-input
             inputId="expense-amount"
-            mode="decimal"
-            prefix="$"
-            locale="en-US"
             [min]="0"
             [minFractionDigits]="2"
             [maxFractionDigits]="2"
@@ -69,21 +64,22 @@
     </div>
 
     <div class="form-field">
-      <label for="expense-category">Category (optional)</label>
-      <input
-        pInputText
-        id="expense-category"
-        list="expense-category-options"
-        placeholder="e.g. Software, Travel, Supplies…"
-        [ngModel]="category()"
-        (ngModelChange)="onCategoryChange($event)"
-        class="w-full"
+      <label for="expense-category">Category (optional) <app-help-text key="expense.category" /></label>
+      <p-select
+        inputId="expense-category"
+        [options]="categorySelectOptions()"
+        optionLabel="name"
+        optionValue="name"
+        [ngModel]="category() || null"
+        (ngModelChange)="onCategoryChange($event ?? '')"
+        placeholder="Search and select…"
+        [filter]="true"
+        filterBy="name"
+        filterPlaceholder="Search…"
+        [showClear]="true"
+        styleClass="w-full"
+        appendTo="body"
       />
-      <datalist id="expense-category-options">
-        @for (c of categoryOptions; track c) {
-          <option [value]="c"></option>
-        }
-      </datalist>
     </div>
 
     <div class="form-field">
@@ -150,16 +146,19 @@
     </div>
 
     <div class="form-field">
-      <label for="expense-receipt">Receipt (optional)</label>
-      @if (existingReceiptUrl(); as url) {
-        <a [href]="url" target="_blank" rel="noopener noreferrer" class="text-primary receipt-link">
-          <i class="pi pi-file"></i> View current receipt
-        </a>
-      }
-      <input id="expense-receipt" type="file" accept="image/*,.pdf" (change)="onReceiptSelected($event)" />
-      @if (receiptPreviewName(); as name) {
-        <span class="text-color-secondary receipt-filename">{{ name }}</span>
-      }
+      <label>Receipt (optional)</label>
+      <app-single-file-dropzone
+        #receiptDropzone
+        [fill]="true"
+        [existingUrl]="editingExpense()?.receiptUrl"
+        accept="image/*,.pdf,application/pdf"
+        emptyTitle="Receipt (optional)"
+        emptyHint="Drop image or PDF, or click to browse"
+        selectedTitle="Receipt"
+        replaceHint="Drop or click to replace"
+        (fileChange)="onReceiptFile($event)"
+        (invalidFile)="error.set($event)"
+      />
     </div>
 
     @if (error()) {

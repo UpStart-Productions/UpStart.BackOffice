@@ -9,6 +9,7 @@ import { MessageModule } from 'primeng/message';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
+import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { environment } from '../../../environments/environment';
 import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
@@ -39,6 +40,7 @@ function dateKey(d: Date): string {
     MultiSelectModule,
     SelectModule,
     TextareaModule,
+    SingleFileDropzoneComponent,
   ],
   styleUrls: ['../login/login.page.scss', './task-form.page.scss'],
   templateUrl: './task-form.page.html',
@@ -129,13 +131,8 @@ export class TaskFormPage implements OnInit {
     this.submitError.set(null);
   }
 
-  onFiles(q: Question, event: Event) {
-    const input = event.target as HTMLInputElement;
-    this.files[q.key] = Array.from(input.files ?? []);
-  }
-
-  fileNames(q: Question): string {
-    return (this.files[q.key] ?? []).map((f) => f.name).join(', ');
+  onDropzoneFiles(q: Question, files: File[]) {
+    this.files[q.key] = files;
   }
 
   async submit() {

@@ -10,6 +10,7 @@ import { TmApiService } from '../core/tm-api.service';
 import { relativeTime } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { AppNotification, EmailPrefs } from '../core/tm.types';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 const TYPE_ICON: Record<string, string> = {
   task_assigned: 'pi-user-plus',
@@ -25,7 +26,7 @@ const TYPE_ICON: Record<string, string> = {
 @Component({
   selector: 'app-tm-inbox-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, AppDialogModule, SelectButtonModule, ToggleSwitchModule],
+  imports: [FormsModule, ButtonModule, AppDialogModule, SelectButtonModule, ToggleSwitchModule, HelpTextComponent],
   template: `
     <div class="tm-page tm-inbox">
       <header class="tm-project-header">
@@ -76,9 +77,11 @@ const TYPE_ICON: Record<string, string> = {
       }
     </div>
 
-    <p-dialog header="Email notifications" [(visible)]="prefsOpen" [modal]="true" [style]="{ width: '26rem' }" [draggable]="false">
+    <p-dialog [(visible)]="prefsOpen" [modal]="true" [style]="{ width: '26rem' }" [draggable]="false">
+      <ng-template pTemplate="header">
+        <span>Email notifications <app-help-text key="tm.notificationsEmailPrefs" /></span>
+      </ng-template>
       @if (prefs(); as p) {
-        <p class="tm-muted">In-app notifications always appear here. Choose which ones also send an email.</p>
         <ul class="tm-pref-list">
           @for (row of prefRows; track row.key) {
             <li>

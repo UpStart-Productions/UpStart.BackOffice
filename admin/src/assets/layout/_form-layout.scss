@@ -144,12 +144,18 @@
   flex-wrap: wrap;
 }
 
+/* Short money fields (project hourly rate, mileage rate): at most a quarter of the row. */
+.input-quarter,
 .project-rate-input {
-  flex: 0 0 25%;
+  display: inline-flex;
+  flex: 0 1 25%;
+  width: 25%;
   max-width: 25%;
-  min-width: 10rem;
+  min-width: 8rem;
 }
 
+.input-quarter .p-inputtext,
+.input-quarter-field,
 .project-rate-input-field {
   text-align: right;
   width: 100%;
@@ -163,8 +169,10 @@
 }
 
 @media (max-width: 768px) {
+  .input-quarter,
   .project-rate-input {
     flex: 1 1 100%;
+    width: 100%;
     max-width: 100%;
   }
 }

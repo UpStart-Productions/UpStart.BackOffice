@@ -1,0 +1,14 @@
+---
+description: Never restart the dev server or log in to the app
+alwaysApply: true
+---
+
+# Do not restart the server or log in
+
+The user runs the app themselves. Do not touch their session.
+
+- Do **not** restart, stop, or start `npm run dev` or any other dev server.
+- Do **not** open the login page, fill credentials, or sign in.
+- Do **not** use the browser to reach a page that redirects to login.
+
+Verify UI another way (code review, unit checks) and say what you could not check in the running app.

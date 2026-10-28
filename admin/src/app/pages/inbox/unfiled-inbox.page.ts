@@ -21,6 +21,7 @@ import { senderAndRecipients,
   relativeTime,
 } from '../../core/communications.api';
 import { PageComponent } from '../../ui/layout/page.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -46,15 +47,12 @@ type Option = { id: string; label: string };
     PageComponent,
     MessageBodyComponent,
     RowActionsMenuComponent,
+    HelpTextComponent,
   ],
   template: `
     <app-page title="Inbox" [skipTitle]="true">
       <div class="card">
-        <h2 class="page-title page-title-in-card">Unfiled inbox</h2>
-        <p class="text-color-secondary mb-3">
-          Emails CC'd to your capture address that we couldn't match to a client or lead. File one and the rest of its thread
-          follows, and we remember the people on it so their next email files itself.
-        </p>
+        <h2 class="page-title page-title-in-card">Unfiled inbox <app-help-text key="inbox.unfiled" /></h2>
 
         @if (error()) {
           <p-message severity="error" [text]="error()!" class="mb-3" />

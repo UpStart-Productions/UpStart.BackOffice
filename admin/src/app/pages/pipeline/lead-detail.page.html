@@ -154,21 +154,17 @@
 </app-page>
 
 <p-dialog
-  header="Make client"
   [(visible)]="showConvertDialog"
   [modal]="true"
   [style]="{ width: '400px' }"
 >
-  <p class="mb-3">
-    <strong>{{ account()?.name ?? form.organization }}</strong> becomes a client, so projects, time and invoices
-    become available, and this card leaves the board (it's archived, not deleted). Nothing is copied: its people,
-    emails and files stay on the organization.
-  </p>
+  <ng-template pTemplate="header">
+    <span>Make client <app-help-text key="lead.makeClient" /></span>
+  </ng-template>
   <div class="form-field">
-    <label for="convertCode">Invoice Code</label>
+    <label for="convertCode">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
     <input pInputText id="convertCode" [(ngModel)]="convertCode" class="w-full"
       placeholder="e.g. LOVN" maxlength="8" style="text-transform:uppercase" />
-    <small class="text-muted">Optional for now. Prepended to invoice numbers, e.g. LOVN-0001.</small>
   </div>
   <ng-template pTemplate="footer">
     <p-button label="Cancel" severity="secondary" (onClick)="showConvertDialog.set(false)" />

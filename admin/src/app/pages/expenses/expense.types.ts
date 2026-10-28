@@ -20,6 +20,19 @@ export type Expense = {
   project?: ExpenseProject | null;
 };
 
+export type ExpenseCategory = {
+  id: string;
+  slug: string | null;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  expenseCount?: number;
+};
+
+/** Stable slug for the mileage category (display name is tenant-configurable). */
+export const MILEAGE_CATEGORY_SLUG = 'mileage';
+
+/** @deprecated Use tenant categories from the API; kept for tests and fallbacks. */
 export const SUGGESTED_EXPENSE_CATEGORIES = [
   'Software',
   'Travel',
@@ -31,9 +44,13 @@ export const SUGGESTED_EXPENSE_CATEGORIES = [
   'Other',
 ];
 
-/** Category that turns an expense into miles x the organization's mileage rate. */
-export const MILEAGE_CATEGORY = 'Mileage';
-
-export function isMileageCategory(category: string | null | undefined): boolean {
-  return (category ?? '').trim().toLowerCase() === MILEAGE_CATEGORY.toLowerCase();
+export function isMileageCategory(
+  category: string | null | undefined,
+  categories: Pick<ExpenseCategory, 'slug' | 'name' | 'isActive'>[] = [],
+): boolean {
+  const value = (category ?? '').trim();
+  if (!value) return false;
+  const mileage = categories.find((c) => c.slug === MILEAGE_CATEGORY_SLUG && c.isActive);
+  if (mileage && value.toLowerCase() === mileage.name.toLowerCase()) return true;
+  return value.toLowerCase() === 'mileage';
 }

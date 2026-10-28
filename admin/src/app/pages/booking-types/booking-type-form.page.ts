@@ -6,7 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
@@ -82,7 +82,7 @@ const DEFAULT_TIMEZONE = 'America/Los_Angeles';
     RouterLink,
     ButtonModule,
     InputTextModule,
-    InputNumberModule,
+    MoneyInputComponent,
     MessageModule,
     SelectModule,
     TableModule,

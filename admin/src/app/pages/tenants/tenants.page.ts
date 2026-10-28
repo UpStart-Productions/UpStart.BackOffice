@@ -10,6 +10,7 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { TenantService } from '../../core/tenant.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; createdAt: string };
 
@@ -20,18 +21,14 @@ const slugify = (s: string) =>
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule, RowActionsMenuComponent],
+  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule, RowActionsMenuComponent, HelpTextComponent],
   template: `
     <app-page title="Tenants" [skipTitle]="true">
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
       <div class="card">
-        <h2 class="page-title page-title-in-card">Tenants</h2>
-        <p class="text-color-secondary">
-          Each tenant is a separate organization with its own data. After adding one, switch into it and add its
-          first admin from Users.
-        </p>
+        <h2 class="page-title page-title-in-card">Tenants <app-help-text key="tenant.overview" /></h2>
         <div class="toolbar">
           <button pButton label="Add tenant" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
         </div>
@@ -65,12 +62,10 @@ const slugify = (s: string) =>
         <div class="form">
           <label for="t-name">Name</label>
           <input pInputText id="t-name" [ngModel]="name" (ngModelChange)="onName($event)" placeholder="The Purple Nest" class="w-full" />
-          <label for="t-slug">Slug</label>
+          <label for="t-slug">Slug <app-help-text key="tenant.slug" /></label>
           <input pInputText id="t-slug" [(ngModel)]="slug" (ngModelChange)="slugEdited = true" placeholder="purplenest" class="w-full" />
-          <small class="text-color-secondary">Lowercase letters, numbers and dashes. Also their email capture address (slug&#64;in.…).</small>
-          <label for="t-domains">Internal email domains (optional)</label>
+          <label for="t-domains">Internal email domains (optional) <app-help-text key="tenant.internalDomains" /></label>
           <input pInputText id="t-domains" [(ngModel)]="domains" placeholder="thepurplenest.org, example.com" class="w-full" />
-          <small class="text-color-secondary">Comma separated. Email from these domains is treated as the team, not contacts.</small>
           @if (formError()) { <p-message severity="error" [text]="formError()!" /> }
         </div>
         <ng-template pTemplate="footer">

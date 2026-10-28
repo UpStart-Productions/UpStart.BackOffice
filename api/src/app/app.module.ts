@@ -13,6 +13,7 @@ import { RolesModule } from './roles/roles.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
 import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -56,6 +57,7 @@ import { HealthController } from './health.controller';
     ProjectsModule,
     TimeEntriesModule,
     ExpensesModule,
+    ExpenseCategoriesModule,
     InvoicesModule,
     LeadsModule,
     PipelinesModule,

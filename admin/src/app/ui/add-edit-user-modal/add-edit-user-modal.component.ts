@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild } from '@angular/core';
 import {
   FormControl,
   FormGroup,
@@ -7,13 +7,12 @@ import {
 } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { MoneyInputComponent } from '../money-input/money-input.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
-import { resolveAssetUrl } from '../../core/asset-url.util';
 import { SessionService } from '../../core/session.service';
 import type { UserListDto } from '@upstart/back-office/shared';
 
@@ -23,11 +22,9 @@ const ADMIN_CHOICE = 'ADMIN';
 
 type RoleOption = { label: string; value: string };
 
-const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
-const AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
-
 import { inviteToast } from '../../pages/users/invite-toast';
 import { HelpTextComponent } from '../help-text/help-text.component';
+import { AvatarDropzoneComponent } from '../avatar-dropzone/avatar-dropzone.component';
 
 @Component({
   selector: 'app-add-edit-user-modal',
@@ -36,29 +33,12 @@ import { HelpTextComponent } from '../help-text/help-text.component';
     ReactiveFormsModule,
     AppDialogModule,
     InputTextModule,
-    InputNumberModule,
+    MoneyInputComponent,
     ButtonModule,
     MessageModule,
     SelectModule,
+    AvatarDropzoneComponent,
   ],
-  styles: `
-    .avatar-upload-section {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-    .avatar-preview {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-    .avatar-preview img {
-      width: 4rem;
-      height: 4rem;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-  `,
   template: `
     <p-dialog
       [header]="isEdit() ? 'Edit User' : 'Add User'"
@@ -71,41 +51,12 @@ import { HelpTextComponent } from '../help-text/help-text.component';
       <form [formGroup]="form" (ngSubmit)="save()">
         <div class="form-field mb-3">
           <label>Avatar</label>
-          <div class="avatar-upload-section">
-            @if (avatarPreview() || (isEdit() && user()?.avatarUrl && !removeAvatar)) {
-              <div class="avatar-preview">
-                <img
-                  [src]="avatarPreview() || resolveAssetUrl(user()?.avatarUrl)"
-                  alt="Avatar preview"
-                />
-                <button
-                  type="button"
-                  pButton
-                  icon="pi pi-trash"
-                  severity="danger"
-                  [text]="true"
-                  [rounded]="true"
-                  (click)="clearAvatar()"
-                  aria-label="Remove avatar"
-                ></button>
-              </div>
-            }
-            <input
-              type="file"
-              accept="image/*"
-              (change)="onAvatarSelected($event)"
-              id="userAvatarInput"
-              style="display: none;"
-            />
-            <button
-              type="button"
-              pButton
-              label="Choose Image"
-              icon="pi pi-upload"
-              severity="secondary"
-              (click)="triggerAvatarUpload()"
-            ></button>
-          </div>
+          <app-avatar-dropzone
+            #avatarDropzone
+            [existingUrl]="removeAvatar ? null : user()?.avatarUrl"
+            (fileChange)="onAvatarFile($event)"
+            (invalidFile)="error.set($event)"
+          />
         </div>
         <div class="showcase-row mb-3">
           <div class="showcase-half form-field">
@@ -136,13 +87,12 @@ import { HelpTextComponent } from '../help-text/help-text.component';
           </div>
           <div class="showcase-half form-field">
             <label for="user-hourlyRate">Hourly rate (optional) <app-help-text key="user.hourlyRate" /></label>
-            <p-inputNumber
-              id="user-hourlyRate"
+            <app-money-input
+              inputId="user-hourlyRate"
               formControlName="hourlyRate"
-              mode="currency"
-              currency="USD"
-              locale="en-US"
+              [min]="0"
               styleClass="w-full"
+              inputStyleClass="w-full"
             />
           </div>
         </div>
@@ -164,7 +114,6 @@ import { HelpTextComponent } from '../help-text/help-text.component';
   `,
 })
 export class AddEditUserModalComponent {
-  readonly resolveAssetUrl = resolveAssetUrl;
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(MessageService);
@@ -174,9 +123,10 @@ export class AddEditUserModalComponent {
   error = signal<string | null>(null);
   isEdit = signal(false);
   user = signal<UserRow | null>(null);
-  avatarPreview = signal<string | null>(null);
   removeAvatar = false;
   selectedAvatarFile: File | null = null;
+
+  private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
   /** Admin, plus the tenant's own roles. Loaded each time the dialog opens. */
   roleOptions = signal<RoleOption[]>([{ label: 'Admin', value: ADMIN_CHOICE }]);
 
@@ -207,9 +157,9 @@ export class AddEditUserModalComponent {
       this.isEdit.set(!!existing);
       this.visible = true;
       this.error.set(null);
-      this.avatarPreview.set(null);
       this.selectedAvatarFile = null;
       this.removeAvatar = false;
+      this.avatarDropzone()?.reset();
       this.form.reset({
         firstName: existing?.firstName ?? '',
         lastName: existing?.lastName ?? '',
@@ -230,45 +180,19 @@ export class AddEditUserModalComponent {
   onDialogHide() {
     this.form.reset();
     this.error.set(null);
-    this.avatarPreview.set(null);
     this.selectedAvatarFile = null;
     this.removeAvatar = false;
+    this.avatarDropzone()?.reset();
   }
 
-  onAvatarSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    if (!AVATAR_MIMES.includes(file.type)) {
-      this.error.set('Invalid file type. Use PNG, JPEG, GIF, or WebP.');
-      return;
-    }
-    if (file.size > AVATAR_MAX_BYTES) {
-      this.error.set('Image must be less than 5MB.');
-      return;
-    }
+  onAvatarFile(file: File | null) {
     this.error.set(null);
     this.selectedAvatarFile = file;
-    this.removeAvatar = false;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.avatarPreview.set(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  clearAvatar() {
-    this.selectedAvatarFile = null;
-    this.avatarPreview.set(null);
-    if (this.isEdit()) {
-      this.removeAvatar = true;
+    if (file) {
+      this.removeAvatar = false;
+      return;
     }
-    const input = document.getElementById('userAvatarInput') as HTMLInputElement | null;
-    if (input) input.value = '';
-  }
-
-  triggerAvatarUpload() {
-    document.getElementById('userAvatarInput')?.click();
+    if (this.isEdit()) this.removeAvatar = true;
   }
 
   cancel() {

@@ -6,6 +6,7 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 interface HelpAgentSettingsView {
   configured: boolean;
@@ -19,17 +20,11 @@ interface HelpAgentSettingsView {
 @Component({
   selector: 'app-help-assistant-page',
   standalone: true,
-  imports: [ReactiveFormsModule, PageComponent, ButtonModule, InputTextModule, MessageModule, SelectModule],
+  imports: [ReactiveFormsModule, PageComponent, ButtonModule, InputTextModule, MessageModule, SelectModule, HelpTextComponent],
   template: `
     <app-page title="Guide setup" [skipTitle]="true">
       <div class="card">
-        <h2 class="page-title page-title-in-card">Back Office Guide</h2>
-        <p class="text-color-secondary mt-0 mb-3">
-          The Guide answers “where do I click?” questions from the maintained help files in
-          <code>docs/help-guide/</code>.           Every signed-in back-office user sees <strong>JD</strong> (the guide avatar) in the
-          <strong>bottom-left</strong> once this is configured. The API key is encrypted at rest and never
-          shown again after saving.
-        </p>
+        <h2 class="page-title page-title-in-card">Back Office Guide <app-help-text key="platform.guideSetup" /></h2>
         @if (error()) {
           <p-message severity="error" [text]="error()!" styleClass="mb-3 w-full" />
         }

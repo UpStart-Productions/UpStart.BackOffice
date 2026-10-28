@@ -62,15 +62,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
       <div class="card"><p-message severity="error" [text]="error()!" /></div>
     }
     <div class="card">
-      <h2 class="page-title page-title-in-card">Roles</h2>
-      <p class="text-color-secondary">
-        A role decides which parts of the app a user can use and what they can do there. Admins can do everything.
-        For each area, <strong>View</strong> sets what they see: <strong>None</strong>, <strong>Own</strong> (only their own
-        records, or clients they are assigned to) or <strong>All</strong>. The checkboxes set what they can do with what they see:
-        <strong>Create</strong>, <strong>Edit</strong>, <strong>Delete</strong>, and <strong>Setup</strong> (change how the area is
-        configured, such as pipeline lanes or booking types). Built-in roles start the same for every organization; edit them
-        freely or reset them.
-      </p>
+      <h2 class="page-title page-title-in-card">Roles <app-help-text key="roles.overview" /></h2>
       <div class="toolbar">
         <button pButton label="Add role" icon="pi pi-plus" class="p-button-sm" (click)="openAdd()"></button>
       </div>

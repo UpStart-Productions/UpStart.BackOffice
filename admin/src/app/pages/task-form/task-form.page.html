@@ -81,8 +81,15 @@
                 @if (q.helpText) { <small class="task-form-help">{{ q.helpText }}</small> }
               }
               @case ('FILE') {
-                <input [id]="'tf-' + q.id" type="file" class="task-form-file" multiple (change)="onFiles(q, $event)" />
-                @if (fileNames(q)) { <small class="text-color-secondary">{{ fileNames(q) }}</small> }
+                <app-single-file-dropzone
+                  [fill]="true"
+                  [multiple]="true"
+                  [emptyTitle]="q.label + (q.required ? '' : ' (optional)')"
+                  emptyHint="Drop files or click to browse"
+                  selectedTitle="Attachments"
+                  (filesChange)="onDropzoneFiles(q, $event)"
+                  (invalidFile)="submitError.set($event)"
+                />
               }
               @default {
                 <input pInputText [id]="'tf-' + q.id" [name]="q.key" class="w-full" [(ngModel)]="answers[q.key]" [required]="q.required" />

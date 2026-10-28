@@ -24,14 +24,10 @@
           </span>
         </p-accordion-header>
         <p-accordion-content>
-          <p class="text-color-secondary mt-0 mb-3">
-            Address and phone appear on invoices under your logo.
-          </p>
-
           <div class="settings-business-form mb-3">
             <div class="showcase-row">
               <div class="form-field showcase-half">
-                <label for="businessCompanyName">Company name</label>
+                <label for="businessCompanyName">Company name <app-help-text key="settings.business.profile" /></label>
                 <input
                   pInputText
                   id="businessCompanyName"
@@ -42,44 +38,20 @@
                 />
               </div>
               <div class="form-field showcase-half">
-                <label>Logo</label>
-                <div class="business-logo-upload">
-                  @if (logoPreviewUrl() || businessForm.logoUrl) {
-                    <div class="business-logo-preview">
-                      <img
-                        [src]="logoPreviewUrl() || resolveAssetUrl(businessForm.logoUrl)"
-                        alt="Company logo preview"
-                      />
-                      <button
-                        type="button"
-                        pButton
-                        icon="pi pi-trash"
-                        severity="danger"
-                        [text]="true"
-                        size="small"
-                        aria-label="Remove logo"
-                        (click)="confirmRemoveLogo()"
-                      ></button>
-                    </div>
-                  }
-                  <input
-                    #logoFileInput
-                    type="file"
-                    accept="image/png,image/jpeg,image/gif,image/webp"
-                    hidden
-                    (change)="onLogoSelected($event)"
-                  />
-                  <button
-                    type="button"
-                    pButton
-                    [label]="businessForm.logoUrl || logoPreviewUrl() ? 'Replace logo' : 'Upload logo'"
-                    icon="pi pi-upload"
-                    severity="secondary"
-                    [loading]="logoUploading()"
-                    (click)="logoFileInput.click()"
-                  ></button>
-                  <small class="text-color-secondary">PNG, JPEG, GIF, or WebP. Max 5 MB.</small>
-                </div>
+                <label>Logo <app-help-text key="settings.business.logo" /></label>
+                <app-avatar-dropzone
+                  #logoDropzone
+                  [fill]="true"
+                  [existingUrl]="businessForm.logoUrl"
+                  thumbShape="square"
+                  emptyTitle="Logo"
+                  emptyHint="Drop image or click to browse"
+                  selectedTitle="Logo"
+                  emptyIcon="pi-image"
+                  [class.settings-logo-dropzone--busy]="logoUploading()"
+                  (fileChange)="onLogoDropzone($event)"
+                  (invalidFile)="error.set($event)"
+                />
               </div>
             </div>
             <div class="form-field">
@@ -145,7 +117,7 @@
                 />
               </div>
               <div class="form-field showcase-half">
-                <label for="businessBillingEmail">Billing email</label>
+                <label for="businessBillingEmail">Billing email <app-help-text key="settings.business.billingEmail" /></label>
                 <input
                   pInputText
                   id="businessBillingEmail"
@@ -154,26 +126,6 @@
                   class="w-full"
                   [(ngModel)]="businessForm.billingEmail"
                 />
-                <small class="text-color-secondary">Where invoices addressed to your organization are sent by default.</small>
-              </div>
-            </div>
-            <div class="showcase-row">
-              <div class="form-field showcase-half">
-                <label for="businessMileageRate">Mileage rate (per mile)</label>
-                <p-inputNumber
-                  inputId="businessMileageRate"
-                  name="businessMileageRate"
-                  mode="decimal"
-                  prefix="$"
-                  locale="en-US"
-                  [min]="0"
-                  [minFractionDigits]="2"
-                  [maxFractionDigits]="4"
-                  [(ngModel)]="businessForm.mileageRate"
-                  styleClass="w-full"
-                  inputStyleClass="w-full"
-                />
-                <small class="text-color-secondary">Mileage expenses are miles times this rate. A saved expense keeps the rate it was entered with.</small>
               </div>
             </div>
             <div class="form-actions">
@@ -186,6 +138,19 @@
               ></button>
             </div>
           </div>
+        </p-accordion-content>
+      </p-accordion-panel>
+
+      <p-accordion-panel value="expenses-invoicing">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            <i class="pi pi-wallet settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
+            <span class="settings-accordion-title">Expenses and Invoicing</span>
+            <span class="settings-accordion-meta">Mileage rate and expense categories</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <app-expenses-invoicing-settings />
         </p-accordion-content>
       </p-accordion-panel>
 
@@ -215,11 +180,8 @@
           </span>
         </p-accordion-header>
         <p-accordion-content>
-          <p class="text-color-secondary mt-0 mb-3">
-            Grant external services access to UpStart Back Office. Each key is shown once on creation — store it securely.
-          </p>
-
           <div class="toolbar">
+            <span class="font-medium mr-1">Keys <app-help-text key="settings.apiKeys" /></span>
             <button pButton label="Generate Key" icon="pi pi-plus" class="p-button-sm" (click)="openGenerate()"></button>
           </div>
 
@@ -288,15 +250,9 @@
           </span>
         </p-accordion-header>
         <p-accordion-content>
-          <p class="text-color-secondary mt-0 mb-3 text-sm">
-            In the Asana app under <strong>OAuth → Permission scopes</strong>: turn off Full permissions, then enable
-            <code>projects:read</code>, <code>tasks:read</code>, <code>users:read</code>, and <code>workspaces:read</code>.
-            Under <strong>Manage distribution</strong>, allow your workspace to use the app.
-          </p>
-
           <div class="showcase-flex-col mb-4">
             <div class="form-field showcase-full">
-              <label for="asanaClientId">Client ID</label>
+              <label for="asanaClientId">Client ID <app-help-text key="settings.asana.setup" /></label>
               <input
                 pInputText
                 id="asanaClientId"
@@ -320,7 +276,7 @@
               />
             </div>
             <div class="form-field showcase-full">
-              <label for="asanaRedirectUri">Redirect URI</label>
+              <label for="asanaRedirectUri">Redirect URI <app-help-text key="settings.asana.redirectUri" /></label>
               <input
                 pInputText
                 id="asanaRedirectUri"
@@ -330,8 +286,7 @@
                 autocomplete="off"
               />
               @if (asanaSuggestedRedirectUri()) {
-                <p class="text-color-secondary text-sm mt-2 mb-0">
-                  Add this exact URL in the Asana app:
+                <p class="text-sm mt-2 mb-0">
                   <code class="text-sm">{{ asanaSuggestedRedirectUri() }}</code>
                   <button
                     type="button"
@@ -385,11 +340,6 @@
                 [disabled]="!status.configured"
                 (click)="connectAsana()"
               ></button>
-              @if (!status.configured) {
-                <p class="text-color-secondary text-sm mt-2 mb-0">
-                  Save your app credentials above before connecting.
-                </p>
-              }
             }
           }
         </p-accordion-content>
@@ -410,18 +360,9 @@
           </span>
         </p-accordion-header>
         <p-accordion-content>
-          <p class="text-color-secondary mt-0 mb-3 text-sm">
-            Connect Google Calendar for discovery chat booking. Busy times on <strong>all</strong> of your
-            Google calendars block available slots; confirmed bookings create events on the calendar you
-            select below.
-            Create OAuth credentials in
-            <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a>
-            (Web application) and enable the Google Calendar API.
-          </p>
-
           <div class="showcase-flex-col mb-4">
             <div class="form-field showcase-full">
-              <label for="googleClientId">Client ID</label>
+              <label for="googleClientId">Client ID <app-help-text key="settings.googleCalendar.setup" /></label>
               <input
                 pInputText
                 id="googleClientId"
@@ -445,7 +386,7 @@
               />
             </div>
             <div class="form-field showcase-full">
-              <label for="googleRedirectUri">Redirect URI</label>
+              <label for="googleRedirectUri">Redirect URI <app-help-text key="settings.googleCalendar.redirectUri" /></label>
               <input
                 pInputText
                 id="googleRedirectUri"
@@ -455,8 +396,7 @@
                 autocomplete="off"
               />
               @if (googleCalendarSuggestedRedirectUri()) {
-                <p class="text-color-secondary text-sm mt-2 mb-0">
-                  Add this exact URL in Google Cloud Console:
+                <p class="text-sm mt-2 mb-0">
                   <code class="text-sm">{{ googleCalendarSuggestedRedirectUri() }}</code>
                   <button
                     type="button"
@@ -496,7 +436,7 @@
 
               @if (googleCalendarOptions().length) {
                 <div class="google-calendar-row mb-3">
-                  <label for="googleCalendarSelect" class="google-calendar-label">Calendar for bookings</label>
+                  <label for="googleCalendarSelect" class="google-calendar-label">Calendar for bookings <app-help-text key="settings.googleCalendar.bookingCalendar" /></label>
                   <div class="flex flex-wrap align-items-center gap-3">
                     <div class="google-calendar-select-field">
                       <p-select
@@ -552,11 +492,6 @@
                 [disabled]="!gStatus.configured"
                 (click)="connectGoogleCalendar()"
               ></button>
-              @if (!gStatus.configured) {
-                <p class="text-color-secondary text-sm mt-2 mb-0">
-                  Save your app credentials above before connecting.
-                </p>
-              }
             }
           }
         </p-accordion-content>
@@ -574,7 +509,7 @@
 >
   @if (!newKey()) {
     <div class="form-field pt-2">
-      <label for="keyName">Service Name</label>
+      <label for="keyName">Service Name <app-help-text key="settings.apiKey.name" /></label>
       <input
         pInputText
         id="keyName"

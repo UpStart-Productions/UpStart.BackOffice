@@ -12,20 +12,6 @@
   color: #2d2d2d;
 }
 
-.receipt-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.5rem;
-  font-size: var(--fs-sm);
-}
-
-.receipt-filename {
-  display: block;
-  font-size: var(--fs-sm);
-  margin-top: 0.35rem;
-}
-
 .error-text {
   color: #a94442;
   font-size: var(--fs-sm);

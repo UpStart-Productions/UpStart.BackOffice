@@ -9,6 +9,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type InviteInfo = {
   status: 'valid' | 'expired' | 'accepted';
@@ -24,7 +25,7 @@ type InviteInfo = {
 @Component({
   selector: 'app-accept-invite-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, MessageModule, PasswordModule],
+  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, MessageModule, PasswordModule, HelpTextComponent],
   styleUrl: '../login/login.page.scss',
   template: `
     <div class="login-page">
@@ -72,7 +73,7 @@ type InviteInfo = {
               </div>
               @if (i.usesPassword) {
                 <div class="form-field mb-3">
-                  <label for="invite-password">Password</label>
+                  <label for="invite-password">Password <app-help-text key="auth.invitePassword" /></label>
                   <p-password
                     inputId="invite-password"
                     name="password"
@@ -83,7 +84,6 @@ type InviteInfo = {
                     inputStyleClass="w-full"
                     autocomplete="new-password"
                   />
-                  <small class="text-color-secondary">At least 8 characters, with upper and lower case letters, a number and a symbol.</small>
                 </div>
                 <div class="form-field mb-3">
                   <label for="invite-confirm">Confirm password</label>

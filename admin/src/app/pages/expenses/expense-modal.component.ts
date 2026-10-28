@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, viewChild } from '@angular/core';
 import { inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -10,10 +10,11 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { resolveAssetUrl } from '../../core/asset-url.util';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
-import { Expense, ExpenseProject, isMileageCategory, SUGGESTED_EXPENSE_CATEGORIES } from './expense.types';
+import { Expense, ExpenseCategory, ExpenseProject, isMileageCategory } from './expense.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
+import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 
 export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
 
@@ -30,6 +31,8 @@ export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
     SelectModule,
     ToggleSwitchModule,
     DateInputComponent,
+    MoneyInputComponent,
+    SingleFileDropzoneComponent,
   ],
   templateUrl: './expense-modal.component.html',
   styleUrl: './expense-modal.component.scss',
@@ -59,9 +62,20 @@ export class ExpenseModalComponent {
   mileageRate = signal<number | null>(null);
 
   receiptFile: File | null = null;
-  receiptPreviewName = signal<string | null>(null);
 
-  readonly categoryOptions = SUGGESTED_EXPENSE_CATEGORIES;
+  private readonly receiptDropzone = viewChild<SingleFileDropzoneComponent>('receiptDropzone');
+
+  categories = signal<ExpenseCategory[]>([]);
+
+  readonly categorySelectOptions = computed(() => {
+    const list = this.categories();
+    const current = this.category().trim();
+    if (!current || list.some((c) => c.name.toLowerCase() === current.toLowerCase())) return list;
+    return [
+      ...list,
+      { id: '_legacy', slug: null, name: current, sortOrder: 999, isActive: true },
+    ] satisfies ExpenseCategory[];
+  });
 
   readonly projectOptions = computed(() =>
     this.projects().map((p) => ({ id: p.id, projectName: p.name, clientName: (p.client?.name ?? 'Personal') })),
@@ -69,7 +83,11 @@ export class ExpenseModalComponent {
 
   readonly dialogTitle = computed(() => (this.isEdit() ? 'Edit expense' : 'New expense'));
 
-  readonly isMileage = computed(() => isMileageCategory(this.category()));
+  readonly isMileage = computed(() => {
+    const e = this.editingExpense();
+    if (e?.miles != null) return true;
+    return isMileageCategory(this.category(), this.categories());
+  });
 
   /** Miles x rate, shown read-only for mileage. */
   readonly mileageAmount = computed(() => {
@@ -84,11 +102,6 @@ export class ExpenseModalComponent {
     return !!this.amount() && this.amount()! > 0;
   });
 
-  readonly existingReceiptUrl = computed(() => {
-    const url = this.editingExpense()?.receiptUrl;
-    return url ? resolveAssetUrl(url) : null;
-  });
-
   private resolve: ((result: ExpenseModalResult) => void) | null = null;
 
   open(options: { projects: ExpenseProject[]; expense?: Expense }): Promise<ExpenseModalResult> {
@@ -99,7 +112,7 @@ export class ExpenseModalComponent {
       this.isEdit.set(!!options.expense);
       this.error.set(null);
       this.receiptFile = null;
-      this.receiptPreviewName.set(null);
+      this.receiptDropzone()?.reset();
 
       const e = options.expense;
       this.description.set(e?.description ?? '');
@@ -114,9 +127,18 @@ export class ExpenseModalComponent {
       this.miles.set(e?.miles != null ? Number(e.miles) : null);
       this.mileageRate.set(e?.mileageRate != null ? Number(e.mileageRate) : null);
       if (e?.mileageRate == null) void this.loadMileageRate();
+      void this.loadCategories();
 
       this.visible = true;
     });
+  }
+
+  private async loadCategories() {
+    try {
+      this.categories.set(await this.api.get<ExpenseCategory[]>('/expense-categories'));
+    } catch {
+      this.categories.set([]);
+    }
   }
 
   private async loadMileageRate() {
@@ -135,11 +157,8 @@ export class ExpenseModalComponent {
     if (!wasMileage && this.isMileage() && !this.isEdit()) this.isReimbursable.set(true);
   }
 
-  onReceiptSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+  onReceiptFile(file: File | null) {
     this.receiptFile = file;
-    this.receiptPreviewName.set(file?.name ?? null);
   }
 
   onDialogHide() {
@@ -172,7 +191,7 @@ export class ExpenseModalComponent {
       this.error.set(
         this.isMileage()
           ? this.mileageRate() == null
-            ? 'Set a mileage rate in Settings → Business before adding mileage.'
+            ? 'Set a mileage rate in Settings → Expenses and Invoicing before adding mileage.'
             : 'Description and miles are required.'
           : 'Description and a positive amount are required.',
       );

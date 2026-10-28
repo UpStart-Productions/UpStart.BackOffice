@@ -20,6 +20,7 @@ import { PersonComponent } from '../../ui/person/person.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 import { OrganizationLinksComponent } from '../../ui/organization-links/organization-links.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 @Component({
   selector: 'app-contact-detail-page',
@@ -37,6 +38,7 @@ import { OrganizationLinksComponent } from '../../ui/organization-links/organiza
     CrmTagInputComponent,
     AvatarDropzoneComponent,
     OrganizationLinksComponent,
+    HelpTextComponent,
   ],
   template: `
     <app-page title="Person" [skipTitle]="true">
@@ -132,9 +134,8 @@ import { OrganizationLinksComponent } from '../../ui/organization-links/organiza
 
             <div class="card card--side">
               <div class="card-header">
-                <h3 class="card-title">Email addresses</h3>
+                <h3 class="card-title">Email addresses <app-help-text key="contact.emailAddresses" /></h3>
               </div>
-              <p class="text-color-secondary mt-0 mb-3 text-sm">Mail from any of these addresses is matched to this person.</p>
               @for (e of c.emails; track e.id) {
                 <div class="side-row-line">
                   <span class="side-row-line-main">{{ e.email }}</span>

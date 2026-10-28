@@ -93,7 +93,6 @@
   </div>
 
   <p-dialog
-    header="Export invoices to your organization"
     [(visible)]="exportVisible"
     [modal]="true"
     [closable]="!exporting()"
@@ -101,9 +100,9 @@
     [resizable]="false"
     [style]="{ width: 'min(32rem, 96vw)' }"
   >
-    <p class="mt-0 mb-3">
-      A CSV of Sent and Paid invoices addressed to your organization, issued in this date range: who submitted each one, hours, time, reimbursements and total. Use it for payroll or accounting.
-    </p>
+    <ng-template pTemplate="header">
+      <span>Export invoices to your organization <app-help-text key="invoice.exportToOrganization" /></span>
+    </ng-template>
     <div class="showcase-row">
       <div class="form-field showcase-half">
         <label for="exportFrom">From</label>

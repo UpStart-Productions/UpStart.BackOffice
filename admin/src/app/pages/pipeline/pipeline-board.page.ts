@@ -23,6 +23,7 @@ import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { daysSince, isOverdue, lastContactLabel } from '../../core/staleness.util';
 import { AutofocusDirective } from '../../ui/autofocus.directive';
 import { PersonComponent } from '../../ui/person/person.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 export type Lead = {
   id: string;
@@ -63,7 +64,9 @@ type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
 @Component({
   selector: 'app-pipeline-board-page',
   standalone: true,
-  imports: [PersonComponent, 
+  imports: [
+    PersonComponent,
+    HelpTextComponent,
     FormsModule,
     DragDropModule,
     RouterLink,

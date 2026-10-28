@@ -1,10 +1,9 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageModule } from 'primeng/message';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
@@ -21,6 +20,9 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { EmailCaptureSettingsComponent } from '../../ui/email-capture/email-capture-settings.component';
 import { McpSettingsComponent } from '../../ui/mcp-settings/mcp-settings.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/expenses-invoicing-settings.component';
+import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 
 interface ServiceKey {
   id:         string;
@@ -78,12 +80,7 @@ interface OrganizationProfile {
   phone: string;
   /** Where invoices billed to the organization (e.g. by caregivers) are sent by default. */
   billingEmail?: string;
-  /** Reimbursement per mile for Mileage expenses. */
-  mileageRate?: number | null;
 }
-
-const LOGO_MAX_BYTES = 5 * 1024 * 1024;
-const LOGO_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 type SettingsSectionStatus = 'connected' | 'disconnected' | 'error' | 'neutral';
 
@@ -103,7 +100,6 @@ interface SettingsStatusIcon {
     ButtonModule,
     AppDialogModule,
     InputTextModule,
-    InputNumberModule,
     MessageModule,
     TagModule,
     TooltipModule,
@@ -112,6 +108,9 @@ interface SettingsStatusIcon {
     RowActionsMenuComponent,
     EmailCaptureSettingsComponent,
     McpSettingsComponent,
+    HelpTextComponent,
+    ExpensesInvoicingSettingsComponent,
+    AvatarDropzoneComponent,
   ],
   templateUrl: './settings.page.html',
   styles: [
@@ -218,29 +217,9 @@ interface SettingsStatusIcon {
         gap: 1rem;
       }
 
-      .business-logo-upload {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-      }
-
-      .business-logo-preview {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.25rem;
-      }
-
-      .business-logo-preview img {
-        max-height: 3.25rem;
-        max-width: 12rem;
-        width: auto;
-        object-fit: contain;
-        display: block;
-        border: 1px solid var(--surface-border);
-        border-radius: var(--content-border-radius);
-        padding: 0.25rem;
-        background: var(--surface-card);
+      .settings-logo-dropzone--busy {
+        opacity: 0.65;
+        pointer-events: none;
       }
     `,
   ],
@@ -297,12 +276,12 @@ export class SettingsPage implements OnInit {
     zip: '',
     phone: '',
     billingEmail: '',
-    mileageRate: null,
   };
   businessSaving = signal(false);
   businessLoaded = signal(false);
   logoUploading = signal(false);
-  logoPreviewUrl = signal<string | null>(null);
+
+  private readonly logoDropzone = viewChild<AvatarDropzoneComponent>('logoDropzone');
 
   readonly resolveAssetUrl = resolveAssetUrl;
 
@@ -416,9 +395,8 @@ export class SettingsPage implements OnInit {
       zip: profile.zip ?? '',
       phone: profile.phone ?? '',
       billingEmail: profile.billingEmail ?? '',
-      mileageRate: profile.mileageRate ?? null,
     };
-    this.logoPreviewUrl.set(null);
+    this.logoDropzone()?.reset();
     this.tenantBranding.apply({
       companyName: this.businessForm.companyName,
       logoUrl: this.businessForm.logoUrl,
@@ -437,7 +415,6 @@ export class SettingsPage implements OnInit {
         zip: this.businessForm.zip.trim(),
         phone: this.businessForm.phone.trim(),
         billingEmail: (this.businessForm.billingEmail ?? '').trim(),
-        mileageRate: this.businessForm.mileageRate ?? null,
       });
       this.applyBusinessProfile(saved);
       this.toast.add({
@@ -453,17 +430,9 @@ export class SettingsPage implements OnInit {
     }
   }
 
-  async onLogoSelected(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    if (!LOGO_MIMES.includes(file.type)) {
-      this.error.set('Logo must be PNG, JPEG, GIF, or WebP.');
-      return;
-    }
-    if (file.size > LOGO_MAX_BYTES) {
-      this.error.set('Logo must be less than 5 MB.');
+  async onLogoDropzone(file: File | null): Promise<void> {
+    if (!file) {
+      this.confirmRemoveLogo();
       return;
     }
     this.logoUploading.set(true);
@@ -471,7 +440,7 @@ export class SettingsPage implements OnInit {
     try {
       const result = await this.api.uploadAvatar<{ logoUrl: string }>('/organization-profile/logo', file);
       this.businessForm.logoUrl = result.logoUrl;
-      this.logoPreviewUrl.set(null);
+      this.logoDropzone()?.reset();
       this.tenantBranding.apply({
         companyName: this.businessForm.companyName,
         logoUrl: result.logoUrl,
@@ -484,6 +453,7 @@ export class SettingsPage implements OnInit {
       });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to upload logo');
+      this.logoDropzone()?.reset();
     } finally {
       this.logoUploading.set(false);
     }

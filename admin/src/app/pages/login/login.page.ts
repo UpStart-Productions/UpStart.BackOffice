@@ -5,6 +5,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
@@ -15,7 +16,7 @@ type CognitoFormMode = 'login' | 'forgot-request' | 'forgot-confirm' | 'new-pass
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, PasswordModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, PasswordModule, HelpTextComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })

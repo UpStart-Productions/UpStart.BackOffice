@@ -31,8 +31,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { currentTenantId } from '../tenancy/tenant-context';
-
-export const MILEAGE_CATEGORY = 'Mileage';
+import { ExpenseCategoriesService } from '../expense-categories/expense-categories.service';
 
 const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -56,6 +55,7 @@ export class ExpensesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
+    private readonly expenseCategories: ExpenseCategoriesService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -79,7 +79,7 @@ export class ExpensesController {
     if (!project) throw new NotFoundException('Project not found');
   }
 
-  /** The organization's mileage rate per mile (Settings → Business), or null when not set. */
+  /** The organization's mileage rate per mile (Settings → Expenses and Invoicing), or null when not set. */
   @Get('mileage-rate')
   async mileageRate() {
     return { rate: await this.currentMileageRate() };
@@ -112,13 +112,13 @@ export class ExpensesController {
     }
     const rate = existing?.mileageRate != null ? Number(existing.mileageRate) : await this.currentMileageRate();
     if (rate == null) {
-      throw new BadRequestException('Set a mileage rate in Settings → Business before adding mileage');
+      throw new BadRequestException('Set a mileage rate in Settings → Expenses and Invoicing before adding mileage');
     }
     return {
       miles: dto.miles,
       mileageRate: rate,
       amount: Math.round(dto.miles * rate * 100) / 100,
-      category: MILEAGE_CATEGORY,
+      category: await this.expenseCategories.mileageCategoryName(),
     };
   }
 

@@ -22,6 +22,7 @@ import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.comp
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import type { AccountJourney, ClientDto } from '@upstart/back-office/shared';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
@@ -71,6 +72,7 @@ type ClientForm = {
     ActivityTimelineComponent,
     PeopleComponent,
     CrmTagInputComponent,
+    HelpTextComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',

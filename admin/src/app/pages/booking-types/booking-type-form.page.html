@@ -33,7 +33,7 @@
           <input pInputText id="btName" class="w-full" [(ngModel)]="form.name" name="btName" />
         </div>
         <div class="form-field showcase-full">
-          <label for="btSlug">Slug</label>
+          <label for="btSlug">Slug <app-help-text key="bookingType.slug" /></label>
           <input
             pInputText
             id="btSlug"
@@ -43,9 +43,6 @@
             placeholder="upstart-discovery"
             [disabled]="!!id() && bookingCount() > 0"
           />
-          <p class="text-color-secondary text-sm mt-2 mb-0">
-            Used in the public API: <code class="text-sm">/booking/{{ form.slug || 'your-slug' }}/slots</code>
-          </p>
         </div>
         <div class="form-field showcase-full">
           <label for="btBrand">Brand (optional) <app-help-text key="bookingType.brand" /></label>
@@ -126,9 +123,8 @@
       <h2 class="page-title page-title-in-card">Public page &amp; calendar</h2>
       <div class="showcase-flex">
         <div class="form-field showcase-half">
-          <label for="btPublicUrl">Public booking page URL</label>
+          <label for="btPublicUrl">Public booking page URL <app-help-text key="bookingType.publicPageUrl" /></label>
           <input pInputText id="btPublicUrl" type="url" class="w-full" [(ngModel)]="form.publicPageUrl" name="btPublicUrl" />
-          <p class="text-color-secondary text-sm mt-2 mb-0">Used for cancel links in confirmation emails.</p>
         </div>
         <div class="form-field showcase-half">
           <label for="btEventTitle">Google Calendar event title</label>
@@ -174,8 +170,7 @@
     </div>
 
     <div class="card mb-3">
-      <h2 class="page-title page-title-in-card">Pricing</h2>
-      <p class="text-color-secondary mt-0 mb-3 text-sm">Payment collection is not yet implemented — use these fields to display price and prepare for Stripe later.</p>
+      <h2 class="page-title page-title-in-card">Pricing <app-help-text key="bookingType.pricing" /></h2>
       <div class="form-field project-rate-row">
         <label for="btPrice">Price</label>
         <div class="project-rate-controls">
@@ -190,17 +185,14 @@
               <label for="btBillable">Billable</label>
             </div>
           </div>
-          <p-inputNumber
+          <app-money-input
             inputId="btPrice"
             name="btPrice"
             [(ngModel)]="form.priceDollars"
-            mode="decimal"
-            prefix="$"
-            locale="en-US"
             [min]="0"
             [minFractionDigits]="2"
             [maxFractionDigits]="2"
-            [readonly]="!form.isBillable"
+            [disabled]="!form.isBillable"
             styleClass="project-rate-input"
             inputStyleClass="project-rate-input-field"
           />

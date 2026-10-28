@@ -685,6 +685,25 @@ model Expense {
   @@index([tenantId])
 }
 
+/// Tenant-configurable expense categories. Built-ins keep a stable slug (software, mileage, …).
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  /// Stable id for seeded categories; null for tenant-created rows.
+  slug      String?
+  name      String
+  nameKey   String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@unique([tenantId, nameKey])
+  @@index([tenantId])
+}
+
 model Invoice {
   id            String        @id @default(cuid())
   tenantId      String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
@@ -1466,6 +1485,7 @@ model Tenant {
   organizationProfiles        OrganizationProfile[]
   timeEntrys                  TimeEntry[]
   expenses                    Expense[]
+  expenseCategories           ExpenseCategory[]
   invoices                    Invoice[]
   payables                    Payable[]
   serviceKeys                 ServiceKey[]

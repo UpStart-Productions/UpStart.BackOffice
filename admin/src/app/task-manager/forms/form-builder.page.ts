@@ -15,6 +15,7 @@ import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { FormAccess, FormQuestion, FormQuestionType, Person, TmForm, TmProject } from '../core/tm.types';
 import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ACCESS_OPTIONS, formApiUrl, formPageUrl } from './form-links';
 
 const TYPE_OPTIONS: { value: FormQuestionType; label: string }[] = [
@@ -66,6 +67,7 @@ type Draft = {
     ToggleSwitchModule,
     TooltipModule,
     TmProjectIconComponent,
+    HelpTextComponent,
   ],
   templateUrl: './form-builder.page.html',
 })

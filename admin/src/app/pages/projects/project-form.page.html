@@ -149,13 +149,10 @@
       <div class="form-field project-rate-row">
         <label for="hourlyRate">Hourly Rate (optional override) <app-help-text key="project.hourlyRate" /></label>
         <div class="project-rate-controls">
-          <p-inputNumber
+          <app-money-input
             inputId="hourlyRate"
             name="hourlyRate"
             [(ngModel)]="form.hourlyRate"
-            mode="decimal"
-            prefix="$"
-            locale="en-US"
             [min]="0"
             [minFractionDigits]="2"
             [maxFractionDigits]="2"
@@ -191,9 +188,7 @@
   </ng-template>
 
   <ng-template #projectManualTasksSection>
-    <p class="text-color-secondary mt-0 mb-3 text-sm">
-      Billable and non-billable tasks for timesheet entries on this project.
-    </p>
+    <h4 class="showcase-section-title mt-0">Manual tasks <app-help-text key="project.manualTasks" /></h4>
 
     @for (task of manualTasks(); track $index; let rowIndex = $index) {
       <div class="side-row">
@@ -226,17 +221,13 @@
     <p-accordion-panel value="asana">
       <p-accordion-header>
         <span class="project-accordion-header">
-          <span class="project-accordion-title">Asana configuration</span>
+          <span class="project-accordion-title">Asana configuration <app-help-text key="project.asanaConfig" /></span>
           @if (asanaLinked()) {
             <i class="pi pi-check-circle project-accordion-check" aria-label="Configured"></i>
           }
         </span>
       </p-accordion-header>
       <p-accordion-content>
-        <p class="text-color-secondary mt-0 mb-3 text-sm">
-          Link an Asana board and one or more sections. Incomplete tasks from those sections appear on timesheets.
-        </p>
-
         <div class="showcase-flex-col">
           <div class="asana-link-row">
             <div class="form-field">
@@ -329,19 +320,15 @@
       <p-accordion-panel value="asana-tasks">
         <p-accordion-header>
           <span class="project-accordion-header">
-            <span class="project-accordion-title">Asana tasks</span>
+            <span class="project-accordion-title">Asana tasks <app-help-text [key]="asanaLinked() ? 'project.asanaTasksSynced' : 'project.asanaTasksUnlinked'" /></span>
             <span class="project-accordion-meta">({{ asanaTaskCount() }})</span>
           </span>
         </p-accordion-header>
         <p-accordion-content>
           @if (asanaLinked()) {
-            <p class="text-color-secondary mt-0 mb-3 text-sm">
-              Synced from {{ asanaProjectLabel() }} · {{ asanaSectionLabel() }}. Names are read-only.
-            </p>
+            <p class="text-sm text-muted mt-0 mb-3">{{ asanaProjectLabel() }} · {{ asanaSectionLabel() }}</p>
           } @else {
-            <p class="text-color-secondary mt-0 mb-3 text-sm">
-              Link a board and section in Asana configuration, then refresh to sync tasks.
-            </p>
+            <p class="text-sm text-muted mt-0 mb-3">Not linked</p>
           }
 
           @if (asanaTasks().length > 0) {

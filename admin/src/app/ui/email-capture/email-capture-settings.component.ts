@@ -5,19 +5,20 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { CaptureSettings, CommunicationsApi } from '../../core/communications.api';
+import { HelpTextComponent } from '../help-text/help-text.component';
 
 /** Settings > Email capture: the address to CC and how logging works. */
 @Component({
   selector: 'app-email-capture-settings',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, HelpTextComponent],
   template: `
     @if (error()) {
       <p-message severity="error" [text]="error()!" class="mb-3 block" />
     }
 
     @if (settings(); as s) {
-      <h4 class="mt-0 mb-2">Capture address</h4>
+      <h4 class="mt-0 mb-2">Capture address <app-help-text key="emailCapture.address" /></h4>
       @if (s.address) {
         <div class="capture-row">
           <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="Capture address" />
@@ -38,7 +39,7 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
         }
       </div>
       @if (s.aliases.length > 1) {
-        <p class="text-color-secondary text-sm mt-2 mb-0">
+        <p class="text-sm mt-2 mb-0">
           Older addresses still work:
           @for (a of s.aliases; track a.alias) {
             @if (!a.isPrimary) {
@@ -48,34 +49,9 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
         </p>
       }
 
-      <h4 class="mt-4 mb-2">How to log email</h4>
-      <ol class="steps">
-        <li>
-          <span class="step-num" aria-hidden="true">1</span>
-          <div><strong>CC this address</strong> on any email you want in UpStart Back Office. It lands on the matching client's or lead's Activity.</div>
-        </li>
-        <li>
-          <span class="step-num" aria-hidden="true">2</span>
-          <div><strong>Reply-all keeps it logged.</strong> Everyone who replies-all, including clients, keeps this address on the thread.</div>
-        </li>
-        <li>
-          <span class="step-num" aria-hidden="true">3</span>
-          <div>Anything UpStart Back Office can't match goes to the <strong>Inbox</strong>. File it once; the rest of the thread follows, and the people on it are remembered.</div>
-        </li>
-      </ol>
-      <ul class="how">
-        <li><strong>Got an email without this address on it?</strong> Reply-all and add the capture address. The earlier message is kept in the quoted text.</li>
-        <li>The <strong>Email</strong> button on clients, leads and contacts opens your mail app with this address already on CC.</li>
-      </ul>
-      <p class="text-color-secondary text-sm">
-        UpStart Back Office only sees messages this address is on. Nothing else in anyone's mailbox is read.
-      </p>
+      <h4 class="mt-4 mb-2">How to log email <app-help-text key="emailCapture.howToLog" /></h4>
 
-      <h4 class="mt-4 mb-2">Your team's email domains</h4>
-      <p class="text-color-secondary mt-0">
-        Addresses at these domains count as your team (your users always do), so they're never
-        treated as clients.
-      </p>
+      <h4 class="mt-4 mb-2">Your team's email domains <app-help-text key="emailCapture.teamDomains" /></h4>
       <div class="capture-row">
         <input
           pInputText
@@ -92,11 +68,7 @@ import { CaptureSettings, CommunicationsApi } from '../../core/communications.ap
   `,
   styles: `
     .capture-row { display: flex; align-items: center; gap: 0.5rem; }
-    .how { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; margin: 0 0 0.75rem; }
     .capture-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .steps { list-style: none; padding: 0; margin: 0 0 0.75rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    .steps li { display: flex; gap: 0.75rem; align-items: flex-start; }
-    .step-num { flex: 0 0 1.5rem; height: 1.5rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-sm); font-weight: 600; color: var(--brand-primary); background: color-mix(in srgb, var(--brand-primary) 14%, transparent); }
   `,
 })
 export class EmailCaptureSettingsComponent implements OnInit {
@@ -134,19 +106,6 @@ export class EmailCaptureSettingsComponent implements OnInit {
     this.domainsText = s.internalDomains.join(', ');
   }
 
-  async saveDomains() {
-    this.savingDomains.set(true);
-    try {
-      const domains = this.domainsText.split(/[\s,;]+/).filter(Boolean);
-      this.apply(await this.comms.setInternalDomains(domains));
-      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Team domains saved.' });
-    } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Error', detail: err instanceof Error ? err.message : 'Save failed' });
-    } finally {
-      this.savingDomains.set(false);
-    }
-  }
-
   startEdit(s: CaptureSettings) {
     this.newAlias = s.primaryAlias ?? '';
     this.editing = true;
@@ -165,12 +124,25 @@ export class EmailCaptureSettingsComponent implements OnInit {
     }
   }
 
+  async saveDomains() {
+    this.savingDomains.set(true);
+    try {
+      const domains = this.domainsText.split(/[\s,;]+/).filter(Boolean);
+      this.apply(await this.comms.setInternalDomains(domains));
+      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Team domains saved.' });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Error', detail: err instanceof Error ? err.message : 'Save failed' });
+    } finally {
+      this.savingDomains.set(false);
+    }
+  }
+
   async copy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
       this.toast.add({ severity: 'success', summary: 'Copied', detail: text });
     } catch {
-      this.toast.add({ severity: 'warn', summary: 'Copy failed', detail: 'Select and copy it manually.' });
+      this.toast.add({ severity: 'warn', summary: 'Copy failed', detail: 'Select and copy manually.' });
     }
   }
 }

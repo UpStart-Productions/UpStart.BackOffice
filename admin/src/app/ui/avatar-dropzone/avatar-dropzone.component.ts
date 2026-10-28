@@ -34,6 +34,12 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
       object-fit: cover;
       flex-shrink: 0;
     }
+    .avatar-dropzone-thumb--square {
+      border-radius: 6px;
+      object-fit: contain;
+      background: var(--surface-card);
+      border: 1px solid var(--surface-border);
+    }
     .avatar-dropzone-copy {
       flex: 1 1 auto;
       min-width: 0;
@@ -123,7 +129,7 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
     } @else {
       <div
         class="avatar-dropzone"
-        [class.avatar-dropzone--fill]="panel()"
+        [class.avatar-dropzone--fill]="panel() || fill()"
         [class.avatar-dropzone--active]="dragOver()"
         role="button"
         tabindex="0"
@@ -135,10 +141,15 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
         (drop)="onDrop($event)"
       >
         @if (displayUrl()) {
-          <img class="avatar-dropzone-thumb" [src]="displayUrl()!" alt="" />
+          <img
+            class="avatar-dropzone-thumb"
+            [class.avatar-dropzone-thumb--square]="thumbShape() === 'square'"
+            [src]="displayUrl()!"
+            alt=""
+          />
           <span class="avatar-dropzone-copy">
-            <strong>Photo</strong>
-            Drop or click to replace
+            <strong>{{ selectedTitle() }}</strong>
+            {{ replaceHint() }}
           </span>
           <p-button
             class="avatar-dropzone-remove"
@@ -151,10 +162,10 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
             (click)="onRemoveClick($event)"
           />
         } @else {
-          <i class="pi pi-user avatar-dropzone-icon" aria-hidden="true"></i>
+          <i class="pi {{ emptyIcon() }} avatar-dropzone-icon" aria-hidden="true"></i>
           <span class="avatar-dropzone-copy">
-            <strong>Photo (optional)</strong>
-            Drop image or click to browse
+            <strong>{{ emptyTitle() }}</strong>
+            {{ emptyHint() }}
           </span>
         }
       </div>
@@ -174,6 +185,15 @@ export class AvatarDropzoneComponent {
   existingUrl = input<string | null | undefined>(null);
   /** Person page: large photo, or the upload control when there is none. */
   panel = input(false);
+  /** Stretch compact dropzone to full container width. */
+  fill = input(false);
+  emptyTitle = input('Photo (optional)');
+  emptyHint = input('Drop image or click to browse');
+  selectedTitle = input('Photo');
+  replaceHint = input('Drop or click to replace');
+  emptyIcon = input('pi-user');
+  /** Square thumb for logos; circle for people. */
+  thumbShape = input<'circle' | 'square'>('circle');
 
   fileChange = output<File | null>();
   invalidFile = output<string>();

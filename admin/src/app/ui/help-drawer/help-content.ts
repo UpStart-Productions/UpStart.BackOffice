@@ -568,7 +568,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Mileage',
-        body: 'Set Category to Mileage and enter Miles instead of Amount. The amount is miles times the mileage rate in Settings → Business. New mileage starts as Reimbursable. A saved mileage expense keeps its original rate.',
+        body: 'Choose the Mileage category and enter Miles instead of Amount. The amount is miles times the mileage rate in Settings → Expenses and Invoicing. New mileage starts as Reimbursable. A saved mileage expense keeps its original rate.',
+      },
+      {
+        heading: 'Categories',
+        body: 'Admins manage the list under Settings → Expenses and Invoicing. Pick a category from the dropdown when logging an expense.',
       },
       {
         heading: 'Filtering and totals',
@@ -743,7 +747,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Business',
-        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your organization are sent. Mileage rate is what a Mileage expense pays per mile.',
+        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your organization are sent.',
+      },
+      {
+        heading: 'Expenses and Invoicing',
+        body: 'Mileage rate (per mile) for Mileage expenses, plus the category list on the Expenses page. Rename or hide built-in categories; Mileage cannot be removed. Add custom categories anytime.',
       },
       {
         heading: 'Email capture',

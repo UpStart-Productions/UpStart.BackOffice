@@ -1,0 +1,27 @@
+# File upload (compact dropzone)
+
+For **single-file** pickers in forms (receipts, attachments on one field), use **`app-single-file-dropzone`** (`admin/src/app/ui/single-file-dropzone/`).
+
+For **profile or logo images** (PNG/JPEG/GIF/WebP), use **`app-avatar-dropzone`** (`admin/src/app/ui/avatar-dropzone/`).
+
+## Do not
+
+- Visible native `<input type="file">` on admin forms
+- One-off “Choose file” / “Upload” buttons with a hidden file input when the compact dropzone fits
+
+## OK to keep hidden file inputs
+
+- **Large multi-file zones** (e.g. `app-artifacts-panel` dropzone)
+- **Toolbar actions** (Import CSV on time entry or bank import) where upload is a primary action, not a labeled form field
+- **Icon-only attach** in task detail header (paperclip)
+
+## Reference
+
+| Use case | Control |
+|----------|---------|
+| Person / user avatar | `app-avatar-dropzone` |
+| Company logo (Settings) | `app-avatar-dropzone` with `thumbShape="square"`, `fill`, custom titles |
+| Expense receipt (image/PDF) | `app-single-file-dropzone` with `fill` |
+| Public task form FILE question | `app-single-file-dropzone` with `[multiple]="true"` |
+
+Pass `(invalidFile)` to surface validation; call `reset()` on the dropzone when the parent dialog reopens.

@@ -65,10 +65,9 @@
           </form>
         }
         @case ('new-password-required') {
-          <p class="mb-3">Your account uses a temporary password. Set a new password to continue.</p>
           <form (ngSubmit)="submitNewPassword()" class="login-form">
             <div class="form-field mb-3">
-              <label for="newPasswordLogin">New password</label>
+              <label for="newPasswordLogin">New password <app-help-text key="login.tempPassword" /></label>
               <p-password
                 id="newPasswordLogin"
                 [(ngModel)]="newPassword"
@@ -108,9 +107,8 @@
         }
         @case ('forgot-request') {
           <form (ngSubmit)="requestResetCode()" class="login-form">
-            <p class="mb-3">Enter your email and we'll send you a code to reset your password.</p>
             <div class="form-field mb-3">
-              <label for="forgotEmail">Email</label>
+              <label for="forgotEmail">Email <app-help-text key="login.resetRequest" /></label>
               <input
                 pInputText
                 id="forgotEmail"
@@ -144,9 +142,8 @@
         }
         @case ('forgot-confirm') {
           <form (ngSubmit)="confirmResetPassword()" class="login-form">
-            <p class="mb-3">Enter the code from your email and your new password.</p>
             <div class="form-field mb-3">
-              <label for="resetCode">Verification code</label>
+              <label for="resetCode">Verification code <app-help-text key="login.resetConfirm" /></label>
               <input
                 pInputText
                 id="resetCode"

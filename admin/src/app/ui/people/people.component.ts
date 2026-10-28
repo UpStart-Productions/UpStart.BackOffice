@@ -20,6 +20,7 @@ import { CopyEmailComponent } from '../copy-email/copy-email.component';
 import { CreatePersonModalComponent } from '../create-person-modal/create-person-modal.component';
 import { PersonComponent } from '../person/person.component';
 import { PeopleSelectComponent } from '../people-select/people-select.component';
+import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 import { PeoplePanelMode, PeopleProjectContact } from './people.types';
 
@@ -41,6 +42,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
     RowActionsMenuComponent,
     PeopleSelectComponent,
     CreatePersonModalComponent,
+    HelpTextComponent,
   ],
   template: `
     <div
@@ -53,7 +55,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       @if (showPanelTitle() || (!controlsAfterList() && mode() === 'project')) {
         <div class="card-header">
           @if (showPanelTitle()) {
-            <h3 class="card-title">People</h3>
+            <h3 class="card-title">People @if (hintKey()) { <app-help-text [key]="hintKey()!" /> }</h3>
           }
           @if (!controlsAfterList()) {
             <p-button
@@ -70,10 +72,6 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
 
       @if (panelError()) {
         <p-message severity="error" [text]="panelError()!" class="mb-3" />
-      }
-
-      @if (hintText()) {
-        <p class="text-color-secondary mt-0 mb-3 text-sm">{{ hintText() }}</p>
       }
 
       @if (!controlsAfterList()) {
@@ -298,8 +296,8 @@ export class PeopleComponent {
   clientId = input<string | null>(null);
   /** Side-panel layout (narrow column). */
   compact = input(false);
-  /** Override default hint; omit for built-in copy. */
-  hint = input<string | null>(null);
+  /** Optional registry key for panel help (? icon on the title). */
+  hintKey = input<string | null>(null);
   /** When picking on a project, omit people already on this project. */
   projectId = input<string | null>(null);
   /** Hide the “People” heading (e.g. inside Project contacts dialog). */
@@ -327,12 +325,6 @@ export class PeopleComponent {
   orgPeople = signal<ContactSummary[]>([]);
   orgLoading = signal(false);
   readonly skeletonRows = [1, 2];
-
-  readonly hintText = () => {
-    const custom = this.hint();
-    if (custom !== null) return custom;
-    return null;
-  };
 
   constructor() {
     effect(() => {

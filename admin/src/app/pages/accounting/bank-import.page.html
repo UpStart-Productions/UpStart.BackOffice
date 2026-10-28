@@ -6,7 +6,7 @@
   }
   <div class="card">
     <div class="toolbar">
-      <h2 class="page-title page-title-in-card mb-0">Bank Import</h2>
+      <h2 class="page-title page-title-in-card mb-0">Bank Import <app-help-text key="bankImport.overview" /></h2>
       <div class="flex gap-2">
         <button
           type="button"
@@ -31,12 +31,6 @@
         <input #fileInput type="file" accept=".csv" hidden (change)="onFileSelected($event)" />
       </div>
     </div>
-    <p class="text-sm text-color-secondary mt-2 mb-0">
-      Upload a CSV export from your bank. Rows are deduplicated automatically, so re-uploading the same
-      file is safe. Categories are remembered — once you've categorized a merchant once, matching
-      transactions are pre-filled automatically, and "Post suggested" posts all of them in one click.
-    </p>
-
     <p-table [value]="transactions()" [loading]="loading()" styleClass="table-bordered mt-3">
       <ng-template pTemplate="header">
         <tr>

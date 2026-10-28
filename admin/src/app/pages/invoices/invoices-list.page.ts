@@ -11,6 +11,7 @@ import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import {
   RowActionsMenuComponent,
@@ -53,6 +54,7 @@ type Invoice = {
     RowActionsMenuComponent,
     AppDialogModule,
     DateInputComponent,
+    HelpTextComponent,
   ],
   templateUrl: './invoices-list.page.html',
   styles: [

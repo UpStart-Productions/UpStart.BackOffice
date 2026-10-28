@@ -271,7 +271,7 @@
 >
   @if (nameDialog(); as dlg) {
     <div class="form-field">
-      <label for="pipelineName">Name</label>
+      <label for="pipelineName">Name @if (dlg.mode === 'new') { <app-help-text key="pipeline.newBoard" /> }</label>
       <input
         pInputText
         id="pipelineName"
@@ -281,9 +281,6 @@
         (keydown.enter)="saveNameDialog()"
         appAutofocus
       />
-      @if (dlg.mode === 'new') {
-        <small class="text-muted">Starts with New Lead, Discovery, Proposal Sent and On Hold. Change them on the board.</small>
-      }
     </div>
   }
   <ng-template pTemplate="footer">

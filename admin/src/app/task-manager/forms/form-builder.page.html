@@ -12,7 +12,7 @@
       }
       <div class="tm-project-title-row">
         <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
-        <h1 class="tm-project-title">{{ d.name || 'Untitled form' }}</h1>
+        <h1 class="tm-project-title">{{ d.name || 'Untitled form' }} <app-help-text key="tm.forms.intro" /></h1>
         <div class="tm-project-header-actions">
           @if (form()?.access !== 'API_KEY') {
             <a pButton [href]="pageUrl()" target="_blank" rel="noopener" label="Open form" icon="pi pi-external-link" severity="secondary" [outlined]="true"></a>
@@ -26,7 +26,9 @@
           }
         </div>
       </div>
-      <p class="tm-muted tm-page-intro">{{ form()?.submissionCount }} submission{{ form()?.submissionCount === 1 ? '' : 's' }} so far · each one becomes a task in {{ project()?.name }}.</p>
+      @if (form()?.submissionCount != null) {
+        <p class="tm-muted tm-page-intro">{{ form()?.submissionCount }} submission{{ form()?.submissionCount === 1 ? '' : 's' }} so far</p>
+      }
     </header>
 
     <div class="tm-form-builder-grid">
@@ -126,10 +128,10 @@
             <textarea pTextarea id="fb-desc" class="w-full" rows="3" [ngModel]="d.description" (ngModelChange)="set('description', $event)" [disabled]="!canEdit()" placeholder="Shown at the top of the form"></textarea>
           </div>
           <div class="form-field mb-3">
-            <label for="fb-access">Who can submit</label>
+            <label for="fb-access">Who can submit <app-help-text key="tmForm.access" /></label>
             <p-select inputId="fb-access" [options]="accessOptions" optionLabel="label" optionValue="value" [ngModel]="d.access" (ngModelChange)="set('access', $event)" [disabled]="!canEdit()" styleClass="w-full" appendTo="body">
               <ng-template #item let-o>
-                <div class="tm-access-option"><span><i class="pi" [class]="o.icon"></i> {{ o.label }}</span><small class="tm-muted">{{ o.hint }}</small></div>
+                <div class="tm-access-option"><span><i class="pi" [class]="o.icon"></i> {{ o.label }}</span></div>
               </ng-template>
             </p-select>
           </div>
@@ -165,10 +167,8 @@
 
         @if (form()?.access === 'API_KEY' || d.access === 'API_KEY') {
           <div class="card">
-            <h2 class="tm-fb-heading">API</h2>
-            @if (form()?.access !== 'API_KEY') {
-              <p class="tm-muted">Save the form to switch it to API-key access.</p>
-            } @else {
+            <h2 class="tm-fb-heading">API <app-help-text key="tmForm.apiSubmit" /></h2>
+            @if (form()?.access === 'API_KEY') {
               <div class="form-field mb-3">
                 <label>Endpoint</label>
                 <div class="tm-fb-slug">
@@ -177,13 +177,12 @@
                 </div>
               </div>
               <div class="form-field mb-3">
-                <label>Key</label>
+                <label>Key <app-help-text key="tmForm.apiKey" /></label>
                 @if (newKey(); as key) {
                   <div class="tm-fb-newkey">
                     <code>{{ key }}</code>
                     <button type="button" class="tm-icon-btn" (click)="copy(key, 'Key copied')" aria-label="Copy key"><i class="pi pi-copy"></i></button>
                   </div>
-                  <small class="tm-muted">Copy it now — it won't be shown again.</small>
                 } @else if (form()?.hasApiKey) {
                   <div><code>{{ form()?.apiKeyHint }}</code></div>
                 } @else {
@@ -198,12 +197,6 @@
               <details class="tm-fb-example">
                 <summary>Example request</summary>
                 <pre>{{ curlExample() }}</pre>
-                <p class="tm-muted">
-                  Send the key as <code>X-Form-Key</code> (or <code>Authorization: Bearer …</code>). <code>answers</code> uses the question keys;
-                  <code>submitter</code> and <code>context</code> are optional and show up in the task. For files, post
-                  <code>multipart/form-data</code> with <code>answers</code> as a JSON string and up to 5 <code>files</code>.
-                  <code>GET</code> the same URL without <code>/submit</code> to read the questions.
-                </p>
               </details>
             }
           </div>

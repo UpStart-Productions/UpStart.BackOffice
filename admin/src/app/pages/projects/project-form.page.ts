@@ -10,7 +10,7 @@ import { TagModule } from 'primeng/tag';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
@@ -81,7 +81,7 @@ type ProjectResponse = {
     ToggleSwitchModule,
     SelectModule,
     MultiSelectModule,
-    InputNumberModule,
+    MoneyInputComponent,
     AccordionModule,
     QuillModule,
     AppDialogModule,

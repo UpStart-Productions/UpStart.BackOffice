@@ -41,7 +41,6 @@ import { HelpTextComponent } from '../help-text/help-text.component';
           />
         </div>
       } @empty {
-        <p class="text-color-secondary mt-0 mb-3">Not linked to any organization. That's fine for an individual.</p>
         <p-button
           label="Make client from this person"
           icon="pi pi-user-plus"
@@ -51,7 +50,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
         />
       }
       <div class="form-field mt-3 mb-2">
-        <label for="linkOrg">Link to an organization</label>
+        <label for="linkOrg">Link to an organization <app-help-text key="person.organizationLinks" /></label>
         <p-select
           inputId="linkOrg"
           [options]="clients()"

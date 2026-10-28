@@ -13,13 +13,14 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { TmApiService } from '../core/tm-api.service';
 import { FormAccess, TmForm, TmProject } from '../core/tm.types';
 import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from './form-links';
 
 /** A project's intake forms. Each form creates tasks in the project. */
 @Component({
   selector: 'app-tm-forms-list-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, TmProjectIconComponent],
+  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, TmProjectIconComponent, HelpTextComponent],
   template: `
     <div class="tm-page">
       <header class="tm-project-header">
@@ -30,14 +31,13 @@ import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from
         }
         <div class="tm-project-title-row">
           <span class="tm-page-icon"><i class="pi pi-inbox"></i></span>
-          <h1 class="tm-project-title">Forms</h1>
+          <h1 class="tm-project-title">Forms <app-help-text key="tm.forms.intro" /></h1>
           <div class="tm-project-header-actions">
             @if (canEdit()) {
               <p-button label="New form" icon="pi pi-plus" (onClick)="openNew()" />
             }
           </div>
         </div>
-        <p class="tm-muted tm-page-intro">Each submission becomes a task in this project.</p>
       </header>
 
       <div class="card tm-card-flush">
@@ -84,10 +84,10 @@ import { ACCESS_OPTIONS, accessIcon, accessLabel, formApiUrl, formPageUrl } from
           <input pInputText id="tm-form-name" name="name" class="w-full" [(ngModel)]="newName" placeholder="e.g. GrovLink bugs" autofocus />
         </div>
         <div class="form-field mb-3">
-          <label for="tm-form-access">Who can submit</label>
+          <label for="tm-form-access">Who can submit <app-help-text key="tmForm.access" /></label>
           <p-select inputId="tm-form-access" name="access" [options]="accessOptions" optionLabel="label" optionValue="value" [(ngModel)]="newAccess" styleClass="w-full" appendTo="body">
             <ng-template #item let-o>
-              <div class="tm-access-option"><span><i class="pi" [class]="o.icon"></i> {{ o.label }}</span><small class="tm-muted">{{ o.hint }}</small></div>
+              <div class="tm-access-option"><span><i class="pi" [class]="o.icon"></i> {{ o.label }}</span></div>
             </ng-template>
           </p-select>
         </div>

@@ -9,6 +9,7 @@ import { TmApiService } from '../core/tm-api.service';
 import { PROJECT_COLORS } from '../core/tm-format.util';
 import { TmProject } from '../core/tm.types';
 import { LucideIconPickerComponent } from '@upstart/back-office/lucide-icons';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type Available = { id: string; name: string; client: { id: string; name: string } | null; label: string };
 
@@ -16,12 +17,12 @@ type Available = { id: string; name: string; client: { id: string; name: string 
 @Component({
   selector: 'app-tm-add-project-dialog',
   standalone: true,
-  imports: [LucideIconPickerComponent, FormsModule, RouterLink, AppDialogModule, ButtonModule, SelectModule, MessageModule],
+  imports: [LucideIconPickerComponent, FormsModule, RouterLink, AppDialogModule, ButtonModule, SelectModule, MessageModule, HelpTextComponent],
   template: `
     <p-dialog header="Add project to Tasks" [(visible)]="visible" [modal]="true" [style]="{ width: '30rem' }" (onShow)="onShow()" [draggable]="false">
       <form (ngSubmit)="add()">
         <div class="form-field mb-3">
-          <label for="tm-add-project">Project</label>
+          <label for="tm-add-project">Project <app-help-text key="tm.addProjectToTasks" /></label>
           <p-select
             inputId="tm-add-project"
             name="projectId"
@@ -37,10 +38,6 @@ type Available = { id: string; name: string; client: { id: string; name: string 
             styleClass="w-full"
             appendTo="body"
           />
-          <small class="tm-muted tm-field-hint">
-            Only existing projects can be added. Create new ones on the
-            <a routerLink="/projects" (click)="visible.set(false)">Projects</a> page.
-          </small>
         </div>
         <div class="form-field mb-3">
           <label>Color</label>

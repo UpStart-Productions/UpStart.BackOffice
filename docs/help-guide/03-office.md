@@ -28,7 +28,9 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 **Expenses** lists expenses. **New Expense** on the left; **Total** shows filtered total next to it; search on the far right.
 
-**Mileage:** set **Category** to **Mileage** and the **Amount** field becomes **Miles**. The amount is miles times your organization's mileage rate (Settings → Business), shown under the field. A new mileage expense starts as **Reimbursable**. A saved mileage expense keeps the rate it was entered with, even if the rate changes later. If no rate is set yet, mileage can't be saved until an admin sets one.
+**Categories:** pick from the dropdown (admins manage the list under **Settings → Expenses and Invoicing**).
+
+**Mileage:** choose the **Mileage** category and the **Amount** field becomes **Miles**. The amount is miles times your organization's mileage rate (**Settings → Expenses and Invoicing**), shown under the field. A new mileage expense starts as **Reimbursable**. A saved mileage expense keeps the rate it was entered with, even if the rate changes later. If no rate is set yet, mileage can't be saved until an admin sets one.
 
 ## Invoices
 

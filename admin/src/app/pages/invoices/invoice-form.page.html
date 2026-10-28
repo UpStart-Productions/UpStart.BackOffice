@@ -132,14 +132,10 @@
 
       @if (canEditLines) {
         <div class="card invoice-generate-card">
-          <h4 class="showcase-section-title">Generate from time</h4>
-          <p class="invoice-generate-hint text-sm text-muted mb-3">
-            @if (billingTenant) {
-              Pull your uninvoiced time and reimbursable expenses (including mileage) for the selected period. Time entries must fall entirely within the period.
-            } @else {
-              Pull uninvoiced billable time for the selected period. Entries must fall entirely within the period.
-            }
-          </p>
+          <h4 class="showcase-section-title">
+            Generate from time
+            <app-help-text [key]="billingTenant ? 'invoice.generateFromTime.tenant' : 'invoice.generateFromTime.client'" />
+          </h4>
 
           <div class="showcase-flex-col">
             <div class="form-field showcase-full">
@@ -268,7 +264,7 @@
 
         <div class="card">
           <div class="invoice-lines-header">
-            <h4 class="showcase-section-title mb-0">Line items</h4>
+            <h4 class="showcase-section-title mb-0">Line items <app-help-text key="invoice.lineItems" /></h4>
             <p-button
               label="Add line"
               icon="pi pi-plus"
@@ -279,13 +275,7 @@
           </div>
 
           @if (lineItems().length === 0) {
-            <p class="text-sm text-muted mt-3">
-              @if (isNew) {
-                Generate from time or add lines manually.
-              } @else {
-                Add lines manually or generate from time above.
-              }
-            </p>
+            <p class="text-sm text-muted mt-3">No line items yet.</p>
           } @else {
             <p-table [value]="lineItemRows()" styleClass="table-bordered mt-3">
               <ng-template pTemplate="header">

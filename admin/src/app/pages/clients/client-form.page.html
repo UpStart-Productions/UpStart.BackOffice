@@ -40,7 +40,7 @@
             <div class="showcase-row">
               <div class="form-field showcase-half">
                 @if (isNew) {
-                  <label for="orgType">Type</label>
+                  <label for="orgType">Type <app-help-text key="organization.newType" /></label>
                   <p-selectbutton
                     inputId="orgType"
                     name="orgType"
@@ -51,15 +51,8 @@
                     (ngModelChange)="setNewType($event)"
                     [allowEmpty]="false"
                   />
-                  <small class="text-muted block mt-1">
-                    @switch (newType) {
-                      @case ('prospect') { Also adds a card to the first lane of the pipeline. }
-                      @case ('client') { Turns on projects, time and invoices. }
-                      @case ('partner') { Tagged Partner. Not on the pipeline. }
-                    }
-                  </small>
                 } @else {
-                  <label for="journey">Status</label>
+                  <label for="journey">Status <app-help-text key="organization.journey" /></label>
                   <p-selectbutton
                     inputId="journey"
                     name="journey"
@@ -69,26 +62,23 @@
                     [(ngModel)]="form.journey"
                     [allowEmpty]="false"
                   />
-                  <small class="text-muted block mt-1">Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.</small>
                   @if (form.journey === 'CLIENT') {
                     <label class="flex align-items-center gap-2 mt-2" for="clientActive">
                       <p-toggleswitch inputId="clientActive" name="isActive" [(ngModel)]="form.isActive" />
-                      <span>{{ form.isActive ? 'Active client' : 'Inactive client' }}</span>
+                      <span>{{ form.isActive ? 'Active client' : 'Inactive client' }} <app-help-text key="organization.clientActive" /></span>
                     </label>
-                    <small class="text-muted block mt-1">Inactive keeps projects and history; use it when you are not actively working together.</small>
                   }
                 }
               </div>
               <div class="form-field showcase-half">
-                <label for="orgTags">Tags</label>
+                <label for="orgTags">Tags <app-help-text key="organization.tags" /></label>
                 <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
-                <small class="text-muted block mt-1">Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.</small>
               </div>
             </div>
           }
           <div class="showcase-row">
             <div class="form-field showcase-half">
-              <label for="code">Invoice Code</label>
+              <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
               <input
                 pInputText
                 id="code"
@@ -99,7 +89,6 @@
                 maxlength="8"
                 style="text-transform: uppercase"
               />
-              <small class="text-muted block mt-1">Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.</small>
             </div>
             <div class="form-field showcase-half">
               <label for="email">Email</label>
@@ -161,9 +150,8 @@
           </div>
           @if (isClientFlow) {
             <div class="form-field showcase-full">
-              <label for="clientTags">Tags</label>
+              <label for="clientTags">Tags <app-help-text key="organization.tags" /></label>
               <app-crm-tag-input [(tags)]="form.tags" inputId="clientTags" />
-              <small class="text-muted block mt-1">Partner, Vendor, Referral source… Press Enter to add.</small>
             </div>
           }
         </div>
@@ -226,9 +214,6 @@
               <div class="card-header">
                 <h3 class="card-title">Client portal</h3>
               </div>
-              <p class="text-color-secondary mt-0 mb-3">
-                A bookmarkable link for your client. No login or password.
-              </p>
               <div class="flex align-items-center gap-2 mb-3">
                 <p-toggleSwitch
                   inputId="portalEnabled"
@@ -236,7 +221,7 @@
                   (ngModelChange)="onPortalToggle($event)"
                   [disabled]="portalBusy()"
                 />
-                <label for="portalEnabled">Portal enabled</label>
+                <label for="portalEnabled">Portal enabled <app-help-text key="organization.clientPortal" /></label>
               </div>
               @if (portalEnabled() && portalUrl()) {
                 <div class="form-field">

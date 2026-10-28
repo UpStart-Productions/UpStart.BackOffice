@@ -9,6 +9,7 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 type Account = { id: string; code: string; name: string; type: string };
 
@@ -28,7 +29,7 @@ type BankTransaction = {
   selector: 'app-bank-import-page',
   standalone: true,
   imports: [
-    FormsModule, ButtonModule, MessageModule, SelectModule, TableModule, TagModule, PageComponent,
+    FormsModule, ButtonModule, MessageModule, SelectModule, TableModule, TagModule, PageComponent, HelpTextComponent,
   ],
   templateUrl: './bank-import.page.html',
 })
