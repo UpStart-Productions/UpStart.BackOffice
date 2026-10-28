@@ -20,6 +20,7 @@ import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { ImportTimesheetDto } from './dto/import-timesheet.dto';
 import { UpdateTimeEntryDto } from './dto/update-time-entry.dto';
@@ -151,15 +152,16 @@ export class TimeEntriesController {
   @Get('people')
   async people(@Req() req: Request) {
     const user = req.user as UserContext;
-    const select = { id: true, firstName: true, lastName: true, email: true } as const;
-    if (this.access.level(user, 'time') !== 'all') {
-      return this.prisma.user.findMany({ where: { id: user.id }, select });
-    }
-    return this.prisma.user.findMany({
-      where: { isActive: true, role: { in: ['ADMIN', 'USER'] } },
-      select,
-      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
-    });
+    const select = { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } as const;
+    const rows =
+      this.access.level(user, 'time') !== 'all'
+        ? await this.prisma.user.findMany({ where: { id: user.id }, select })
+        : await this.prisma.user.findMany({
+            where: { isActive: true, role: { in: ['ADMIN', 'USER'] } },
+            select,
+            orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
+          });
+    return rows.map((u) => ({ ...u, avatarUrl: toPublicAssetUrl(u.avatarUrl) }));
   }
 
   @Get('days')

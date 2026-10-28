@@ -67,6 +67,12 @@
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+
+  app-people-select {
+    display: block;
+    min-width: 16rem;
+    max-width: min(20rem, 42vw);
+  }
 }
 
 .date-picker-group {

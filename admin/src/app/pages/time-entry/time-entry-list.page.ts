@@ -14,12 +14,13 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
-import { SelectModule } from 'primeng/select';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
+import { PeopleDirectoryOption, toDirectoryOptions } from '../projects/people-directory.util';
+import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
 import type { ClientOption, Project, TimeEntry } from './time-entry.types';
 import {
@@ -45,7 +46,7 @@ import {
     FormsModule,
     PageComponent,
     AppPopoverModule,
-    SelectModule,
+    PeopleSelectComponent,
     TimeEntryModalComponent,
   ],
   templateUrl: './time-entry-list.page.html',
@@ -66,7 +67,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   projects = signal<Project[]>([]);
   clients = signal<ClientOption[]>([]);
   /** People whose timesheet this user can view (only themselves unless their role has Time at All). */
-  people = signal<{ id: string; label: string }[]>([]);
+  people = signal<PeopleDirectoryOption[]>([]);
   /** Whose timesheet is shown; defaults to the signed-in user. */
   viewUserId = signal<string>('');
   readonly viewingSelf = computed(() => !this.viewUserId() || this.viewUserId() === this.session.me()?.id);
@@ -196,11 +197,27 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   async loadPeople() {
     try {
-      const rows = await this.api.get<{ id: string; firstName?: string | null; lastName?: string | null; email: string }[]>(
-        '/time-entries/people',
-      );
+      const rows = await this.api.get<
+        { id: string; firstName?: string | null; lastName?: string | null; email: string; avatarUrl?: string | null }[]
+      >('/time-entries/people');
       this.people.set(
-        rows.map((u) => ({ id: u.id, label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email })),
+        toDirectoryOptions(
+          rows.map((u) => {
+            const firstName = u.firstName?.trim() ?? '';
+            const lastName = u.lastName?.trim() ?? '';
+            return {
+              id: u.id,
+              source: 'USER',
+              sourceLabel: 'Team member',
+              firstName,
+              lastName,
+              email: u.email,
+              phone: '',
+              displayName: [firstName, lastName].filter(Boolean).join(' ') || u.email,
+              avatarUrl: u.avatarUrl ?? null,
+            };
+          }),
+        ),
       );
     } catch {
       this.people.set([]);

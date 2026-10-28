@@ -72,17 +72,15 @@
       </div>
       <div class="timesheet-actions">
         @if (people().length > 1) {
-          <p-select
+          <app-people-select
+            inputId="timesheet-user"
             [options]="people()"
-            optionLabel="label"
-            optionValue="id"
-            [ngModel]="viewUserId()"
-            (ngModelChange)="onViewUserChange($event)"
-            [filter]="people().length > 8"
-            filterBy="label"
+            [pickId]="viewUserId()"
+            (pickIdChange)="onViewUserChange($event)"
+            placeholder="Whose timesheet"
+            filterPlaceholder="Search team…"
             ariaLabel="Whose timesheet"
-            styleClass="timesheet-person-select"
-            appendTo="body"
+            styleClass="timesheet-person-select w-full"
           />
         }
         <input
