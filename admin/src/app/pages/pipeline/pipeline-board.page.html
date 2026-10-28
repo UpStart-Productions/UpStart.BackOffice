@@ -10,6 +10,14 @@
 
   <div class="card">
     <div class="toolbar">
+      <p-selectbutton
+        [options]="viewOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="view()"
+        (ngModelChange)="setView($event)"
+        [allowEmpty]="false"
+      />
       <div class="pipeline-switcher">
         @if (pipelines().length > 1) {
           <p-select
@@ -23,18 +31,7 @@
         } @else if (current(); as p) {
           <span class="pipeline-name">{{ p.name }}</span>
         }
-        @if (canSetup()) {
-          <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
-        }
       </div>
-      <p-selectbutton
-        [options]="viewOptions"
-        optionLabel="label"
-        optionValue="value"
-        [ngModel]="view()"
-        (ngModelChange)="setView($event)"
-        [allowEmpty]="false"
-      />
       <div class="toolbar-search">
         <app-toolbar-search-field
           placeholder="Search by organization, contact, email…"
@@ -43,6 +40,9 @@
           (ngModelChange)="onSearchInput($event)"
         />
       </div>
+      @if (canSetup()) {
+        <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
+      }
     </div>
 
     @if (loading()) {

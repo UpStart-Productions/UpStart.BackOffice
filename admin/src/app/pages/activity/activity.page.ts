@@ -118,43 +118,43 @@ function endOfDayIso(key: string): string | null {
   ],
   template: `
     <app-page title="Activity" helpKey="activity.page">
+      <ng-container ngProjectAs="[pageActions]">
+        <div class="activity-header-filters">
+          <div class="form-field activity-header-filter">
+            <label for="activityOrg">Organization</label>
+            <p-select
+              inputId="activityOrg"
+              [options]="orgs()"
+              optionLabel="name"
+              optionValue="id"
+              [ngModel]="orgId()"
+              (ngModelChange)="setOrg($event)"
+              [filter]="true"
+              filterBy="name"
+              filterPlaceholder="Search…"
+              [showClear]="true"
+              placeholder="All organizations"
+              appendTo="body"
+              [fluid]="true"
+              styleClass="w-full"
+            />
+          </div>
+          <div class="form-field activity-header-filter">
+            <label for="activityPerson">Person</label>
+            <app-people-select
+              inputId="activityPerson"
+              [options]="peopleOptions()"
+              [loading]="peopleLoading()"
+              [pickId]="personPickId()"
+              (pickIdChange)="setPerson($event)"
+              placeholder="All people"
+            />
+          </div>
+        </div>
+      </ng-container>
       <div class="grid" [class.grid-3]="hasContext()" [class.grid-1]="!hasContext()">
       <div class="stack" [class.span-2]="hasContext()">
       <div class="card">
-        <div class="activity-page-head">
-          <div class="activity-page-filters">
-            <div class="form-field activity-filter-field">
-              <label for="activityOrg">Organization</label>
-              <p-select
-                inputId="activityOrg"
-                [options]="orgs()"
-                optionLabel="name"
-                optionValue="id"
-                [ngModel]="orgId()"
-                (ngModelChange)="setOrg($event)"
-                [filter]="true"
-                filterBy="name"
-                filterPlaceholder="Search…"
-                [showClear]="true"
-                placeholder="All organizations"
-                appendTo="body"
-                styleClass="w-full"
-              />
-            </div>
-            <div class="form-field activity-filter-field">
-              <label for="activityPerson">Person</label>
-              <app-people-select
-                inputId="activityPerson"
-                [options]="peopleOptions()"
-                [loading]="peopleLoading()"
-                [pickId]="personPickId()"
-                (pickIdChange)="setPerson($event)"
-                placeholder="All people"
-              />
-            </div>
-          </div>
-        </div>
-
         <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="activity-tabs">
           <p-tablist>
             <p-tab value="todo">To do @if (todoTotal()) { <span class="activity-count">{{ todoTotal() }}</span> }</p-tab>
@@ -467,10 +467,8 @@ function endOfDayIso(key: string): string | null {
     </app-page>
   `,
   styles: `
-    /* Tab content flush left with the page title and filters (PrimeNG pads tab panels on every side). */
+    /* Tab content flush left with the page title (PrimeNG pads tab panels on every side). */
     :host ::ng-deep .activity-tabs .p-tabpanels { padding: 1rem 0 0; }
-    .activity-page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-    .activity-page-filters { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     /* Logged by, From and To share one row; they stack only on a phone. */
     .all-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
     .all-filters .activity-filter-field { width: auto; }

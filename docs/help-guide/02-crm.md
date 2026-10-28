@@ -60,9 +60,9 @@ Each card leads with the **next step**: what you plan to do next and its due dat
 - **Reorder**: drag a lane by its header.
 - **Remove**: the lane's menu (⋮) > **Remove lane**. If it has cards (archived ones count), choose a lane to move them to. A pipeline always keeps at least one lane.
 
-**Pipelines:** the menu (⋮) next to the pipeline name has **New pipeline**, **Rename pipeline** and **Delete pipeline** (only an empty pipeline can be deleted). With more than one pipeline, pick which one to view from the list at the top. A second pipeline can track partners you are recruiting.
+**Pipelines:** the **⋮** menu at the top right has **New pipeline**, **Rename pipeline** and **Delete pipeline** (only an empty pipeline can be deleted). With more than one pipeline, pick which one to view from the list beside **Board / Archived**. A second pipeline can track partners you are recruiting.
 
-**Archived:** switch **Board / Archived** at the top to see won and archived cards. **Restore** puts a card back on the board. **Delete** removes the card for good.
+**Archived:** switch **Board / Archived** on the left to see won and archived cards. **Restore** puts a card back on the board. **Delete** removes the card for good.
 
 On a card's page, **Lane** changes its lane and **Open organization** (beside the title) goes to the organization. **Make client** and **Save** are at the top right; **Save** turns on once something has changed. **Archive** / **Restore** are in the ⋮ menu beside them.
 
@@ -85,7 +85,7 @@ On a card's page, **Lane** changes its lane and **Open organization** (beside th
 
 **All activity** is every email, call, meeting and note, newest first, with the organization each belongs to. Filter by **Logged by**, **From** and **To** dates, type, or search.
 
-Pick an **Organization** or **Person** at the top to narrow both tabs to them. Panels on the right then show, for an organization, its **Next step**, **Details** (status, tags, phone, email, website, address, last contact, notes) and **People** (view only; add or remove people on the organization's page); for a person, their **Details** and **Organizations**, each with its next step. The quick log files to that organization or person. Click the name in Details to open their page. **Open full view** on an organization's or person's Activity panel opens this page for them.
+Pick an **Organization** or **Person** to the right of the page title to narrow both tabs to them. Panels on the right then show, for an organization, its **Next step**, **Details** (status, tags, phone, email, website, address, last contact, notes) and **People** (view only; add or remove people on the organization's page); for a person, their **Details** and **Organizations**, each with its next step. The quick log files to that organization or person. Click the name in Details to open their page. **Open full view** on an organization's or person's Activity panel opens this page for them.
 
 ## Next step
 

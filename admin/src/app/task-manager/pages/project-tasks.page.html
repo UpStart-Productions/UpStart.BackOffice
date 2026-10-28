@@ -29,7 +29,17 @@
       </button>
       <button type="button" class="tm-member-stack" (click)="membersOpen.set(true)" aria-label="Project members">
         @for (m of p.members.slice(0, 4); track m.id) {
-          <app-tm-avatar [person]="m" [size]="26" />
+          <span
+            class="tm-member-stack-item"
+            [pTooltip]="memberDisplayName(m)"
+            [tooltipDisabled]="!memberDisplayName(m)"
+            tooltipPosition="bottom"
+            tooltipStyleClass="tm-member-tooltip"
+            appendTo="body"
+            [attr.aria-label]="memberDisplayName(m) || 'Project member'"
+          >
+            <app-tm-avatar [person]="m" [size]="26" [showTitle]="false" />
+          </span>
         }
         @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
       </button>

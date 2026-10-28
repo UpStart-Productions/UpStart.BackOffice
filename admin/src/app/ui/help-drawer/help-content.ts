@@ -229,7 +229,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'One organization or person',
-        body: 'Pick an organization or person at the top, or use Open full view on their page. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the quick log and timeline. Click the name in Details to open their page.',
+        body: 'Pick an organization or person to the right of the page title, or use Open full view on their page. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the quick log and timeline. Click the name in Details to open their page.',
       },
     ],
   },
@@ -256,11 +256,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'More than one pipeline',
-        body: 'The menu next to the pipeline name has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). For example, a second pipeline can track partners you\'re recruiting.',
+        body: 'The ⋮ menu at the top right has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). With more than one pipeline, pick which board to view from the list beside Board / Archived. For example, a second pipeline can track partners you\'re recruiting.',
       },
       {
         heading: 'Archived',
-        body: 'Switch to Archived at the top to see won and archived cards. Restore puts a card back on the board. Delete removes it for good.',
+        body: 'Use Board / Archived on the left to see won and archived cards. Restore puts a card back on the board. Delete removes it for good.',
       },
     ],
   },

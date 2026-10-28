@@ -7,8 +7,7 @@
   padding-bottom: 0.5rem;
 }
 
-// The detail pane narrows the list enough to overflow the columns. Keep sideways
-// scrolling, but don't show the bar along the bottom of the grid.
+// When the detail pane covers the right edge, hide the grid's horizontal scrollbar.
 .tm-page.tm-with-detail .tm-grid {
   scrollbar-width: none;
 

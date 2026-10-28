@@ -11,6 +11,7 @@ import { PeopleDirectoryOption } from '../../pages/projects/people-directory.uti
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
+import { personDisplayName } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { MemberRole, ProjectMember, TmProject } from '../core/tm.types';
 import { TmAvatarComponent } from './tm-avatar.component';
@@ -80,12 +81,12 @@ import { TmAvatarComponent } from './tm-avatar.component';
             <app-tm-avatar [person]="m" [size]="32" />
             <div class="tm-member-main">
               <strong>
-                {{ m.firstName || m.lastName ? m.name : m.email }}
+                {{ memberLabel(m) }}
                 @if (m.invitePending) { <span class="tm-chip tm-chip-invited">Invited</span> }
               </strong>
               <span class="tm-muted">
-                @if (m.firstName || m.lastName) { {{ m.email }} }
-                @if (m.isGuest) { {{ m.firstName || m.lastName ? '·' : '' }} Guest }
+                @if (memberLabel(m) !== m.email) { {{ m.email }} }
+                @if (m.isGuest) { {{ memberLabel(m) !== m.email ? '·' : '' }} Guest }
                 @if (m.invitePending && project().permissions.canManage) {
                   · <button type="button" class="tm-link-btn" (click)="resend(m)" [disabled]="resending() === m.id">
                     {{ resending() === m.id ? 'Sending…' : 'Resend invite' }}
@@ -139,6 +140,11 @@ export class TmMembersDialogComponent {
     { label: 'Commenter', value: 'COMMENTER' },
   ];
   readonly meId = computed(() => this.session.me()?.id);
+
+  memberLabel(m: ProjectMember): string {
+    return personDisplayName(m) || m.email;
+  }
+
   onShow() {
     this.email = '';
     this.personPickId = null;
@@ -188,7 +194,29 @@ export class TmMembersDialogComponent {
   }
 
   async invite() {
+    const pick = this.personPickId?.trim();
     const email = this.email.trim();
+    if (pick?.startsWith('user:')) {
+      const userId = pick.slice('user:'.length);
+      if (!userId) return;
+      this.busy.set(true);
+      this.error.set(null);
+      try {
+        const project = await this.api.addMember(this.project().id, userId, this.role);
+        this.email = '';
+        this.personPickId = null;
+        this.store.invalidatePeople(project.id);
+        this.updated.emit(project);
+        void this.loadSharePeople();
+        const label = this.sharePeopleOptions().find((o) => o.id === pick)?.label ?? 'They';
+        this.toast.add({ severity: 'success', summary: 'Added to project', detail: `${label} now has access.`, life: 4000 });
+      } catch (err) {
+        this.error.set(this.message(err));
+      } finally {
+        this.busy.set(false);
+      }
+      return;
+    }
     if (!email) return;
     this.busy.set(true);
     this.error.set(null);
@@ -199,14 +227,22 @@ export class TmMembersDialogComponent {
       this.store.invalidatePeople(res.project.id);
       this.updated.emit(res.project);
       void this.loadSharePeople();
+      const picked = this.sharePeopleOptions().find((o) => o.email.trim().toLowerCase() === email.toLowerCase());
+      const label =
+        personDisplayName({
+          firstName: picked?.firstName ?? null,
+          lastName: picked?.lastName ?? null,
+          name: picked?.displayName ?? '',
+          email,
+        }) || email;
       this.toast.add({
         severity: 'success',
         summary: res.invited ? 'Invitation sent' : 'Added to project',
         detail: res.invited
           ? res.emailed
-            ? `${email} will get an email to set a password.`
-            : `${email} was added, but the email could not be sent. Try Resend invite.`
-          : `${email} now has access.`,
+            ? `${label} will get an email to set a password.`
+            : `${label} was added, but the email could not be sent. Try Resend invite.`
+          : `${label} now has access.`,
         life: 4000,
       });
     } catch (err) {

@@ -187,3 +187,21 @@ span.tm-check {
   line-height: inherit;
 }
 
+// Dark hover label (member avatars in project header, etc.)
+.p-tooltip.tm-member-tooltip {
+  .p-tooltip-text {
+    background: #0f172a;
+    color: #fff;
+    padding: 0.35rem 0.65rem;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    line-height: 1.25;
+    border-radius: 6px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28);
+  }
+
+  .p-tooltip-arrow {
+    display: none;
+  }
+}
+

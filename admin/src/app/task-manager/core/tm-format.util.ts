@@ -81,6 +81,15 @@ export function dueTone(dueOn: string | null, isCompleted = false): DueTone {
   return 'normal';
 }
 
+/** Person's name for UI labels — never falls back to email. */
+export function personDisplayName(p: Pick<Person, 'firstName' | 'lastName' | 'name' | 'email'>): string {
+  const fromParts = [p.firstName, p.lastName].filter(Boolean).join(' ').trim();
+  if (fromParts) return fromParts;
+  const name = p.name?.trim();
+  if (name && name !== p.email) return name;
+  return '';
+}
+
 export function initials(p: Pick<Person, 'firstName' | 'lastName' | 'name' | 'email'>): string {
   const first = p.firstName?.trim()?.[0] ?? '';
   const last = p.lastName?.trim()?.[0] ?? '';

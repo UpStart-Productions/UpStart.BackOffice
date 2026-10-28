@@ -105,6 +105,31 @@
   &:empty {
     display: none;
   }
+
+  /* Activity: Organization + Person filters in the header (standard form-field + p-select). */
+  .activity-header-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .activity-header-filter {
+    width: 16rem;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* Outlined secondaries sit on the page chrome, not a card — keep them readable. */
+  .p-button.p-button-outlined:not(:disabled),
+  .p-button.p-button-outlined:not(:disabled):hover,
+  .p-button.p-button-outlined:not(:disabled):active {
+    background: var(--surface-card, #fff);
+  }
+}
+
+.page-header-row:has(.activity-header-filters) {
+  align-items: flex-end;
 }
 
 .page-header-subtitle {

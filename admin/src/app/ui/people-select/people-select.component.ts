@@ -63,6 +63,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
       [loading]="loading()"
       [placeholder]="placeholder()"
       [styleClass]="styleClass()"
+      [fluid]="true"
       panelStyleClass="people-select-panel"
       appendTo="body"
       [attr.aria-label]="ariaLabel()"

@@ -20,7 +20,7 @@ import {
   type TmProjectBoardCompletedFilter,
 } from '../core/tm-board-prefs.storage';
 import { TmApiService } from '../core/tm-api.service';
-import { chipColors, dueLabel, dueTone, PROJECT_COLORS } from '../core/tm-format.util';
+import { chipColors, dueLabel, dueTone, personDisplayName, PROJECT_COLORS } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { Person, TaskSummary, TmProject, TmSection } from '../core/tm.types';
 import { TmBulkActionsComponent } from '../ui/bulk-actions.component';
@@ -75,6 +75,8 @@ const NO_SECTION = '__none__';
   templateUrl: './project-tasks.page.html',
 })
 export class ProjectTasksPage implements OnDestroy {
+  readonly memberDisplayName = personDisplayName;
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly api = inject(TmApiService);

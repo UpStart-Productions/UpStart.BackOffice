@@ -281,9 +281,18 @@ export class TaskProjectsService {
         where: { projectId_userId: { projectId, userId: target.id } },
       });
       if (existing) throw new ConflictException(`${target.email} is already on this project`);
+      await this.applyContactProfileToUser(target.id, project.tenantId, email);
     } else {
+      const fromContact = await this.profileFromContactEmail(project.tenantId, email);
       target = await this.prisma.user.create({
-        data: { email, role: 'USER', roleId: await this.roles.guestRoleId() },
+        data: {
+          email,
+          role: 'USER',
+          roleId: await this.roles.guestRoleId(),
+          ...(fromContact?.firstName?.trim() && { firstName: fromContact.firstName.trim() }),
+          ...(fromContact?.lastName?.trim() && { lastName: fromContact.lastName.trim() }),
+          ...(fromContact?.avatarUrl?.trim() && { avatarUrl: fromContact.avatarUrl.trim() }),
+        },
         select: { id: true, email: true, firstName: true, role: true, isActive: true, tenantRole: { select: { key: true } } },
       });
     }
@@ -519,5 +528,31 @@ export class TaskProjectsService {
     await this.access.assertProject(user, field.projectId, 'edit');
     await this.prisma.taskCustomField.delete({ where: { id: fieldId } });
     return { deleted: true };
+  }
+
+  /** CRM People row for this email (Share picker shows their name; User row may not have it yet). */
+  private async profileFromContactEmail(tenantId: string, email: string) {
+    const row = await this.prisma.contactEmail.findFirst({
+      where: { tenantId, email: normalizeEmail(email) },
+      include: { contact: { select: { firstName: true, lastName: true, avatarUrl: true } } },
+    });
+    return row?.contact ?? null;
+  }
+
+  private async applyContactProfileToUser(userId: string, tenantId: string, email: string) {
+    const contact = await this.profileFromContactEmail(tenantId, email);
+    if (!contact) return;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true, avatarUrl: true },
+    });
+    if (!user) return;
+    const data: Prisma.UserUpdateInput = {};
+    if (!user.firstName?.trim() && contact.firstName?.trim()) data.firstName = contact.firstName.trim();
+    if (!user.lastName?.trim() && contact.lastName?.trim()) data.lastName = contact.lastName.trim();
+    if (!user.avatarUrl?.trim() && contact.avatarUrl?.trim()) data.avatarUrl = contact.avatarUrl.trim();
+    if (Object.keys(data).length > 0) {
+      await this.prisma.user.update({ where: { id: userId }, data });
+    }
   }
 }
