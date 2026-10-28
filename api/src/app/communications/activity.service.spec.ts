@@ -122,15 +122,20 @@ describe('ActivityService.queues', () => {
     expect((await h.svc.queues(admin, { mine: false })).reply).toHaveLength(1);
   });
 
-  it('Next steps: missing ones first, then by due date', async () => {
+  it('Next steps: only ones that are set, soonest first, overdue flagged', async () => {
+    const later = new Date(Date.now() + 5 * DAY);
     h.prisma.client.findMany
       .mockResolvedValueOnce([
-        { id: 'o1', name: 'Due', nextAction: 'Call', nextActionDate: ago(2), nextActionOwner: null },
-        { id: 'o2', name: 'None', nextAction: null, nextActionDate: null, nextActionOwner: null },
+        { id: 'o3', name: 'Later', nextAction: 'Check in', nextActionDate: later, nextActionOwner: null },
+        { id: 'o1', name: 'Late', nextAction: 'Call', nextActionDate: ago(2), nextActionOwner: null },
+        { id: 'o4', name: 'Undated', nextAction: 'Someday', nextActionDate: null, nextActionOwner: null },
       ])
       .mockResolvedValueOnce([]);
     const r = await h.svc.queues(admin, {});
-    expect(r.nextStep.map((x) => [x.refKey, x.missing, x.overdue])).toEqual([['o2', true, false], ['o1', false, true]]);
+    expect(r.nextStep.map((x) => [x.refKey, x.overdue])).toEqual([['o1', true], ['o3', false], ['o4', false]]);
+    expect(r.counts.nextStepDue).toBe(1);
+    const where = h.prisma.client.findMany.mock.calls[0][0].where;
+    expect(where.AND).toContainEqual({ nextAction: { not: null } });
   });
 });
 

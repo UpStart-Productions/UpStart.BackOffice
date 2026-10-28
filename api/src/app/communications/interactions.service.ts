@@ -126,6 +126,16 @@ export interface TimelinePage<T> {
   nextBefore: string | null;
 }
 
+/** @mentions in a logged note: quill-mention spans carry data-id="user:<id>" or data-id="contact:<id>". */
+export function mentionedIds(html: string | null | undefined): { userIds: string[]; contactIds: string[] } {
+  const userIds = new Set<string>();
+  const contactIds = new Set<string>();
+  for (const m of (html ?? '').matchAll(/data-id="(user|contact):([^"]+)"/g)) {
+    (m[1] === 'user' ? userIds : contactIds).add(m[2]);
+  }
+  return { userIds: [...userIds], contactIds: [...contactIds] };
+}
+
 const ACTIVITY_KIND: Record<string, string> = { EMAIL: 'Email', CALL: 'Call', MEETING: 'Meeting', NOTE: 'Note' };
 const CALL_WAY: Record<string, string> = { INBOUND: 'They called', OUTBOUND: 'We called', INTERNAL: 'Internal' };
 
@@ -341,7 +351,9 @@ export class InteractionsService {
     }
 
     const occurredAt = dto.occurredAt ? new Date(dto.occurredAt) : new Date();
-    const contactIds = [...new Set(dto.contactIds ?? [])];
+    // Anyone @mentioned in the notes took part too.
+    const mentioned = mentionedIds(dto.bodyText);
+    const contactIds = [...new Set([...(dto.contactIds ?? []), ...mentioned.contactIds])];
     const contacts = contactIds.length
       ? await this.prisma.contact.findMany({
           where: { tenantId: TENANT, id: { in: contactIds } },
@@ -350,7 +362,7 @@ export class InteractionsService {
       : [];
     if (contacts.length !== contactIds.length) throw new BadRequestException('Unknown contact in contactIds.');
 
-    const userIds = [...new Set(dto.userIds ?? [])].filter((id) => id !== user.id);
+    const userIds = [...new Set([...(dto.userIds ?? []), ...mentioned.userIds])].filter((id) => id !== user.id);
     const teammates = userIds.length
       ? await this.prisma.user.findMany({
           where: {
@@ -415,6 +427,36 @@ export class InteractionsService {
       });
     }
     if (logClientId) await this.bumpAccountContact(logClientId, occurredAt);
+
+    // Teammates @mentioned get a bell notification pointing at where it was logged.
+    const mentionedTeammates = teammates.filter((t) => mentioned.userIds.includes(t.id));
+    if (mentionedTeammates.length) {
+      const me = await this.prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true, name: true, email: true } });
+      const actorName = [me?.firstName, me?.lastName].filter(Boolean).join(' ').trim() || me?.name?.trim() || user.email;
+      const route = logClientId
+        ? ['organizations', logClientId]
+        : dto.leadId
+          ? ['pipeline', dto.leadId]
+          : dto.contactId
+            ? ['people', dto.contactId]
+            : undefined;
+      const kind = ACTIVITY_KIND[dto.type] ?? 'Activity';
+      for (const t of mentionedTeammates) {
+        await this.notifications.create({
+          userId: t.id,
+          type: 'activity_mention',
+          title: `${actorName} mentioned you in a ${kind.toLowerCase()}`,
+          body: dto.subject?.trim() || snippetOf(dto.bodyText) || kind,
+          meta: {
+            entityType: 'interaction',
+            entityId: created.id,
+            ...(route ? { route } : {}),
+            actorUserId: user.id,
+            actorLabel: actorName,
+          },
+        });
+      }
+    }
     return toInteractionView(created as InteractionRow, true);
   }
 

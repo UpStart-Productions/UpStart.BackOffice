@@ -39,6 +39,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
+import { PeopleComponent } from '../../ui/people/people.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
@@ -46,12 +47,29 @@ type Tab = 'todo' | 'all';
 type QueueKey = 'reply' | 'nextStep' | 'quiet' | 'unfiled';
 type Org = { id: string; name: string; journey?: 'PROSPECT' | 'CLIENT' | 'NONE'; isActive?: boolean };
 type Option = { id: string; label: string };
+type OrgDetail = {
+  id: string;
+  name: string;
+  code: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  website: string | null;
+  notes: string | null;
+  journey: 'PROSPECT' | 'CLIENT' | 'NONE';
+  isActive: boolean;
+  lastContactAt: string | null;
+  tags?: string[];
+};
 
 const DAY = 24 * 60 * 60 * 1000;
 
 const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['thresholds']) => string }> = {
   reply: { label: 'Needs reply', help: (t) => `They wrote last and nobody has answered in ${t.needsReplyDays}+ day${t.needsReplyDays === 1 ? '' : 's'}.` },
-  nextStep: { label: 'Next steps', help: () => 'Overdue or due today, or a prospect or active client with none set.' },
+  nextStep: { label: 'Next steps', help: () => 'Every next step that is set, soonest first. Overdue ones are tagged.' },
   quiet: { label: 'Gone quiet', help: (t) => `Active clients with no contact in ${t.goneQuietDays}+ days.` },
   unfiled: { label: 'Unfiled', help: () => "Captured email that couldn't be matched to one organization." },
 };
@@ -96,11 +114,14 @@ function endOfDayIso(key: string): string | null {
     MessageBodyComponent,
     NextStepComponent,
     PeopleSelectComponent,
+    PeopleComponent,
     PersonComponent,
     RowActionsMenuComponent,
   ],
   template: `
     <app-page title="Activity" [skipTitle]="true">
+      <div class="grid" [class.grid-3]="hasContext()" [class.grid-1]="!hasContext()">
+      <div class="stack" [class.span-2]="hasContext()">
       <div class="card">
         <div class="activity-page-head">
           <h2 class="page-title page-title-in-card mb-0">Activity <app-help-text key="activity.page" /></h2>
@@ -137,43 +158,7 @@ function endOfDayIso(key: string): string | null {
           </div>
         </div>
 
-        @if (org(); as o) {
-          <div class="activity-context">
-            <div class="activity-context-title">
-              <a [routerLink]="['/organizations', o.id]" class="activity-context-name">{{ o.name }}</a>
-              @if (o.journey === 'CLIENT') {
-                <p-tag [value]="o.isActive === false ? 'Client · Inactive' : 'Client · Active'" [severity]="o.isActive === false ? 'secondary' : 'success'" />
-              } @else if (o.journey === 'PROSPECT') {
-                <p-tag value="Prospect" severity="info" />
-              }
-              <a [routerLink]="['/organizations', o.id]" class="activity-context-back"><i class="pi pi-arrow-left" aria-hidden="true"></i> Back to the organization</a>
-            </div>
-            <app-next-step [clientId]="o.id" />
-            @if (orgPeople().length) {
-              <div class="activity-context-people">
-                @for (p of orgPeople(); track p.id) {
-                  <app-person [firstName]="p.firstName" [lastName]="p.lastName" [avatarUrl]="p.avatarUrl" [personId]="p.id" [link]="['/people', p.id]" [size]="24" />
-                }
-              </div>
-            }
-          </div>
-        } @else if (person(); as p) {
-          <div class="activity-context">
-            <div class="activity-context-title">
-              <a [routerLink]="['/people', p.id]" class="activity-context-name">{{ personLabel(p) }}</a>
-              <a [routerLink]="['/people', p.id]" class="activity-context-back"><i class="pi pi-arrow-left" aria-hidden="true"></i> Back to the person</a>
-            </div>
-            @if (p.accountLinks.length) {
-              <div class="activity-context-people">
-                @for (l of p.accountLinks; track l.clientId) {
-                  <a [routerLink]="['/organizations', l.clientId]">{{ l.client.name }}</a>
-                }
-              </div>
-            }
-          </div>
-        }
-
-        <p-tabs [value]="tab()" (valueChange)="setTab($event)">
+        <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="activity-tabs">
           <p-tablist>
             <p-tab value="todo">To do @if (todoTotal()) { <span class="activity-count">{{ todoTotal() }}</span> }</p-tab>
             <p-tab value="all">All activity</p-tab>
@@ -289,10 +274,10 @@ function endOfDayIso(key: string): string | null {
                       </td>
                       <td>
                         <div>{{ row.title }}</div>
-                        @if (row.missing) {
-                          <p-tag value="Missing" severity="warn" />
-                        } @else if (row.overdue) {
+                        @if (row.overdue) {
                           <p-tag value="Overdue" severity="danger" />
+                        } @else if (row.dueToday) {
+                          <p-tag value="Due today" severity="warn" />
                         }
                       </td>
                       <td><span [class.text-overdue]="row.overdue">{{ whenLabel(row) }}</span></td>
@@ -349,6 +334,84 @@ function endOfDayIso(key: string): string | null {
             </p-tabpanel>
           </p-tabpanels>
         </p-tabs>
+      </div>
+      </div>
+
+      @if (hasContext()) {
+        <aside class="stack" aria-label="Details">
+          @if (org(); as o) {
+            <div class="card card--side">
+              <div class="card-header">
+                <h3 class="card-title">Next step</h3>
+              </div>
+              <app-next-step [clientId]="o.id" variant="panel" />
+            </div>
+
+            <div class="card card--side">
+              <div class="card-header">
+                <h3 class="card-title">Details</h3>
+              </div>
+              <div class="side-name">
+                <a [routerLink]="['/organizations', o.id]">{{ orgDetail()?.name ?? o.name }}</a>
+                @if (orgDetail(); as d) {
+                  @if (d.journey === 'CLIENT') {
+                    <p-tag [value]="d.isActive === false ? 'Client · Inactive' : 'Client · Active'" [severity]="d.isActive === false ? 'secondary' : 'success'" />
+                  } @else if (d.journey === 'PROSPECT') {
+                    <p-tag value="Prospect" severity="info" />
+                  }
+                }
+              </div>
+              @if (orgDetail(); as d) {
+                <dl class="side-details">
+                  @if (d.tags?.length) { <div><dt>Tags</dt><dd>{{ d.tags!.join(', ') }}</dd></div> }
+                  @if (d.phone) { <div><dt>Phone</dt><dd><a [href]="'tel:' + d.phone">{{ d.phone }}</a></dd></div> }
+                  @if (d.email) { <div><dt>Email</dt><dd><a [href]="'mailto:' + d.email">{{ d.email }}</a></dd></div> }
+                  @if (d.website) { <div><dd><a [href]="websiteHref(d.website)" target="_blank" rel="noopener">{{ d.website }}</a></dd></div> }
+                  @if (addressOf(d); as addr) { <div><dt>Address</dt><dd class="pre-line">{{ addr }}</dd></div> }
+                  <div class="side-inline"><dt>Last contact:</dt><dd>{{ d.lastContactAt ? rel(d.lastContactAt) : 'None logged' }}</dd></div>
+                </dl>
+                @if (d.notes) {
+                  <div class="side-notes">{{ plain(d.notes) }}</div>
+                }
+              }
+            </div>
+
+            <app-people mode="organization" [clientId]="o.id" [compact]="true" [readOnly]="true" />
+          } @else if (person(); as p) {
+            <div class="card card--side">
+              <div class="card-header">
+                <h3 class="card-title">Details</h3>
+              </div>
+              <div class="side-name"><a [routerLink]="['/people', p.id]">{{ personLabel(p) }}</a></div>
+              <dl class="side-details">
+                @if (p.title) { <div><dt>Title</dt><dd>{{ p.title }}</dd></div> }
+                @for (e of p.emails; track e.id) { <div><dt>{{ e.isPrimary ? 'Email' : 'Other email' }}</dt><dd><a [href]="'mailto:' + e.email">{{ e.email }}</a></dd></div> }
+                @if (p.phone) { <div><dt>Phone</dt><dd><a [href]="'tel:' + p.phone">{{ p.phone }}</a></dd></div> }
+                @if (p.tags.length) { <div><dt>Tags</dt><dd>{{ p.tags.join(', ') }}</dd></div> }
+                <div class="side-inline"><dt>Last contact:</dt><dd>{{ p.lastContactAt ? rel(p.lastContactAt) : 'None logged' }}</dd></div>
+              </dl>
+              @if (p.notes) {
+                <div class="side-notes">{{ plain(p.notes) }}</div>
+              }
+            </div>
+
+            <div class="card card--side">
+              <div class="card-header">
+                <h3 class="card-title">Organizations</h3>
+              </div>
+              @for (l of p.accountLinks; track l.clientId) {
+                <div class="side-row">
+                  <a [routerLink]="['/organizations', l.clientId]">{{ l.client.name }}</a>
+                  @if (l.role) { <div class="text-color-secondary">{{ l.role }}</div> }
+                </div>
+                <app-next-step [clientId]="l.clientId" variant="panel" class="side-next-step" />
+              } @empty {
+                <p class="text-color-secondary mb-0">Not linked to an organization.</p>
+              }
+            </div>
+          }
+        </aside>
+      }
       </div>
 
       <p-dialog
@@ -407,15 +470,25 @@ function endOfDayIso(key: string): string | null {
     </app-page>
   `,
   styles: `
+    /* Tab content flush left with the page title and filters (PrimeNG pads tab panels on every side). */
+    :host ::ng-deep .activity-tabs .p-tabpanels { padding: 1rem 0 0; }
     .activity-page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-    .activity-page-filters, .all-filters { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-    .all-filters { margin-bottom: 1rem; }
+    .activity-page-filters { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    /* Logged by, From and To share one row; they stack only on a phone. */
+    .all-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+    .all-filters .activity-filter-field { width: auto; }
+    @media (max-width: 600px) { .all-filters { grid-template-columns: minmax(0, 1fr); } }
     .activity-filter-field { width: 16rem; max-width: 100%; margin: 0; }
-    .activity-context { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 1rem; border: 1px solid var(--surface-border, #e5e7eb); border-radius: 0.5rem; }
-    .activity-context-title { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
-    .activity-context-name { font-size: 1.15rem; font-weight: 600; text-decoration: none; }
-    .activity-context-back { margin-left: auto; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; }
-    .activity-context-people { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .side-name { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; }
+    .side-name a { text-decoration: none; }
+    .side-details { margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+    .side-details dt { color: var(--text-color-secondary, #6b7280); }
+    .side-details dd { margin: 0; overflow-wrap: anywhere; }
+    .side-inline { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .side-notes { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--surface-border, #e5e7eb); white-space: pre-line; }
+    .side-row { padding: 0.4rem 0; }
+    .side-next-step { display: block; margin: 0.25rem 0 0.6rem; }
+    .pre-line { white-space: pre-line; }
     .activity-count { display: inline-block; min-width: 1.25rem; margin-left: 0.4rem; padding: 0 0.4rem; border-radius: 0.75rem; background: #fee2e2; color: #991b1b; font-weight: 600; text-align: center; }
     .todo-toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
     .queue-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
@@ -475,6 +548,8 @@ export class ActivityPage implements OnInit {
     return id ? this.orgs().find((o) => o.id === id) ?? { id, name: 'Organization' } : null;
   });
   orgPeople = signal<ContactSummary[]>([]);
+  orgDetail = signal<OrgDetail | null>(null);
+  readonly hasContext = computed(() => !!this.orgId() || !!this.personId());
   person = signal<ContactSummary | null>(null);
 
   mine = signal(true);
@@ -491,7 +566,7 @@ export class ActivityPage implements OnInit {
   });
   readonly todoTotal = computed(() => {
     const c = this.queues()?.counts;
-    return c ? c.reply + c.nextStep + c.unfiled : 0;
+    return c ? c.reply + c.nextStepDue + c.unfiled : 0;
   });
 
   loggedBy = signal<string | null>(null);
@@ -610,7 +685,40 @@ export class ActivityPage implements OnInit {
   }
 
   private async loadOrgPeople(clientId: string | null) {
-    this.orgPeople.set(clientId ? await this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]) : []);
+    if (!clientId) {
+      this.orgPeople.set([]);
+      this.orgDetail.set(null);
+      return;
+    }
+    const [people, detail] = await Promise.all([
+      this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]),
+      this.api.get<OrgDetail>(`/clients/${clientId}`).catch(() => null),
+    ]);
+    this.orgPeople.set(people);
+    this.orgDetail.set(detail);
+  }
+
+  addressOf(d: OrgDetail): string | null {
+    const cityLine = [[d.city, d.state].filter(Boolean).join(', '), d.zip].filter(Boolean).join(' ');
+    return [d.address, cityLine].filter(Boolean).join('\n') || null;
+  }
+
+  websiteHref(url: string): string {
+    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  }
+
+  /** Notes may be formatted (Quill); show them as plain text here. */
+  plain(value: string): string {
+    return value
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   private async loadPerson(contactId: string | null) {

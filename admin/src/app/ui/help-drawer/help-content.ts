@@ -69,11 +69,11 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Next step',
-      body: 'Under the name: what happens next, when, and who owns it. Set next step or Edit to change it. Done records "Done: …" on the timeline, clears it and asks for the next one. Missing or overdue next steps show on Activity → To do.',
+      body: 'Under the name: what happens next, when, and who owns it. Set next step or Edit to change it. Done records "Done: …" on the timeline, clears it and asks for the next one. Next steps show on Activity → To do, overdue ones in red.',
     },
     {
       heading: 'Activity',
-      body: 'Emails, calls, meetings and notes for this organization. The box at the top logs a Note, Call or Meeting in one line; tick Set the next step to set it at the same time; More details… opens the full form. Include people\'s activity also shows activity logged on this organization\'s people that isn\'t filed to any organization ("From [name]\'s activity"). Email filed to another organization never shows here. Email threads show their newest message; expand for earlier ones. Open full view opens Activity for this organization. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
+      body: 'Emails, calls, meetings and notes for this organization. The box at the top logs a Note, Call or Meeting in one line (type @ to mention a teammate or one of their people; teammates get a notification); tick Set the next step to set it at the same time; More details… opens the full form. Include people\'s activity also shows activity logged on this organization\'s people that isn\'t filed to any organization ("From [name]\'s activity"). Email filed to another organization never shows here. Email threads show their newest message; expand for earlier ones. Open full view opens Activity for this organization. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
     },
     {
       heading: 'Files, links and notes',
@@ -217,7 +217,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'To do',
-        body: 'Needs reply: the latest email on a thread came from outside and nobody has answered. Next steps: overdue or due today, or a prospect or active client with none set. Gone quiet: active clients nobody has contacted in a while. Unfiled: captured email that could not be matched. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that organization here with its next step), snooze it, or mark No reply needed. How many days count is in Settings → Activity.',
+        body: 'Needs reply: the latest email on a thread came from outside and nobody has answered. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Unfiled: captured email that could not be matched. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that organization here with its next step), snooze it, or mark No reply needed. How many days count is in Settings → Activity.',
       },
       {
         heading: 'Filing unfiled email',
@@ -229,7 +229,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'One organization or person',
-        body: 'Pick an organization or person at the top, or use Open full view on their page. You get their next step, people, quick log and timeline in one place. Back to the organization returns to its page.',
+        body: 'Pick an organization or person at the top, or use Open full view on their page. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the quick log and timeline. Click the name in Details to open their page.',
       },
     ],
   },

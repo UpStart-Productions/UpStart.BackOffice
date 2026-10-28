@@ -137,14 +137,15 @@ export interface QueueRow {
   person: string | null;
   title: string;
   at: string | null;
-  missing?: boolean;
   overdue?: boolean;
+  dueToday?: boolean;
   owner?: string | null;
   interactionId?: string | null;
 }
 
 export interface ActivityQueues {
-  counts: { reply: number; nextStep: number; quiet: number; unfiled: number };
+  /** nextStepDue: next steps overdue or due today. */
+  counts: { reply: number; nextStep: number; nextStepDue: number; quiet: number; unfiled: number };
   thresholds: { needsReplyDays: number; goneQuietDays: number };
   reply: QueueRow[];
   nextStep: QueueRow[];

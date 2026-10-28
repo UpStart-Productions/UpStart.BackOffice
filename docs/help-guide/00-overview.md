@@ -7,7 +7,7 @@ This guide powers **JD**, the in-app Back Office guide (avatar in the bottom-lef
 Sections appear based on role. **Admins** see:
 
 - **Dashboard**
-- **CRM**: Pipeline, Organizations, People, Activity, Bookings (partners are organizations tagged Partner)
+- **CRM**: Activity, Pipeline, Organizations, People, Bookings (partners are organizations tagged Partner)
 - **Office**: Clients, Projects, Tasks, Time, Expenses, Invoices
 - **Reports**
 - **Accounting** (Admin only): Chart of Accounts, Journal, Bank Import, Accounting Reports

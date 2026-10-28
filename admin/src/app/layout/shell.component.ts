@@ -93,10 +93,10 @@ export class ShellComponent implements OnInit {
       // CRM is relationships: opportunities (Pipeline), every organization and person, bookings and the
       // unfiled-email queue. Office is the work: Clients (current clients), projects, time and billing.
       ...section('CRM', [
+        { area: 'inbox', label: 'Activity', icon: 'pi-comments', route: '/activity', badge: this.comms.activityCount() },
         { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
         { area: 'clients', label: 'Organizations', icon: 'pi-building', route: '/organizations' },
         { area: 'contacts', label: 'People', icon: 'pi-address-book', route: '/people', badge: this.comms.reviewCount() },
-        { area: 'inbox', label: 'Activity', icon: 'pi-comments', route: '/activity', badge: this.comms.activityCount() },
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       ]),
       ...section('Office', [

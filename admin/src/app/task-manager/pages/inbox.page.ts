@@ -20,6 +20,7 @@ const TYPE_ICON: Record<string, string> = {
   project_added: 'pi-users',
   task_form_submission: 'pi-inbox',
   activity_forwarded: 'pi-send',
+  activity_mention: 'pi-at',
 };
 
 /** Notification inbox (Asana-style): activity / archive, mark read, email settings. */

@@ -149,7 +149,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'tenant.internalDomains':
     'Comma separated. Email from these domains is treated as the team, not contacts.',
   'activity.page':
-    "To do lists what needs someone: emails waiting for a reply, next steps due or missing, quiet clients and unfiled email. All activity is every email, call, meeting and note. Pick an organization or person to narrow both.",
+    "To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. All activity is every email, call, meeting and note. Pick an organization or person to narrow both.",
   'settings.activity.needsReplyDays':
     'An email shows under Needs reply when the latest message on its thread came from outside and has waited this many days.',
   'settings.activity.goneQuietDays':

@@ -24,16 +24,23 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
   standalone: true,
   imports: [FormsModule, AppDialogModule, ButtonModule, InputTextModule, MessageModule, SelectModule, TagModule, DateInputComponent, PersonComponent],
   template: `
-    <div class="next-step" [class.next-step--overdue]="step()?.overdue" [class.next-step--missing]="loaded() && !step()?.text">
-      <i class="pi pi-flag next-step-icon" aria-hidden="true"></i>
+    <div
+      class="next-step"
+      [class.next-step--line]="variant() === 'line'"
+      [class.next-step--overdue]="variant() === 'line' && step()?.overdue"
+    >
+      @if (variant() === 'line') {
+        <i class="pi pi-flag next-step-icon" aria-hidden="true"></i>
+      }
       @if (step()?.text; as text) {
-        <span class="next-step-label">Next step:</span>
+        @if (variant() === 'line') {
+          <span class="next-step-label">Next step:</span>
+        }
         <span class="next-step-text">{{ text }}</span>
         @if (step()?.date) {
-          <span class="next-step-meta">· {{ dateLabel() }}</span>
+          <span class="next-step-meta">{{ dateLabel() }}</span>
         }
         @if (step()?.owner; as o) {
-          <span class="next-step-meta">·</span>
           <app-person [firstName]="o.firstName" [lastName]="o.lastName" [name]="o.name" [email]="o.email" [avatarUrl]="o.avatarUrl" [personId]="o.id" [size]="20" />
         }
         @if (step()?.overdue) {
@@ -43,12 +50,11 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
         }
         @if (canEdit()) {
           <span class="next-step-actions">
-            <p-button label="Done" icon="pi pi-check" size="small" [loading]="busy()" (onClick)="done()" />
             <p-button label="Edit" severity="secondary" [text]="true" size="small" (onClick)="openEdit()" />
+            <p-button label="Done" icon="pi pi-check" size="small" [loading]="busy()" (onClick)="done()" />
           </span>
         }
       } @else if (loaded()) {
-        <span class="next-step-none">No next step set</span>
         @if (canEdit()) {
           <span class="next-step-actions">
             <p-button label="Set next step" icon="pi pi-plus" size="small" (onClick)="openEdit()" />
@@ -120,6 +126,8 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
       flex-wrap: wrap;
       align-items: center;
       gap: 0.5rem;
+    }
+    .next-step--line {
       padding: 0.5rem 0.75rem;
       border: 1px solid var(--surface-border, #e5e7eb);
       border-radius: 0.5rem;
@@ -127,13 +135,11 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
       min-height: 2.75rem;
     }
     .next-step--overdue { border-color: #fecaca; background: #fef2f2; }
-    .next-step--missing { border-style: dashed; }
     .next-step-icon { color: #2563eb; }
     .next-step--overdue .next-step-icon { color: #b91c1c; }
     .next-step-label { font-weight: 600; }
     .next-step-text { min-width: 0; overflow-wrap: anywhere; }
     .next-step-meta { color: var(--text-color-secondary, #6b7280); }
-    .next-step-none { color: var(--text-color-secondary, #6b7280); }
     .next-step-actions { display: inline-flex; gap: 0.25rem; margin-left: auto; }
     .next-step-form { display: flex; flex-direction: column; gap: 1rem; }
   `,
@@ -144,6 +150,8 @@ export class NextStepComponent {
 
   clientId = input.required<string>();
   canEdit = input(true);
+  /** line: boxed one-liner with a flag (page header). panel: plain, inside a card titled Next step. */
+  variant = input<'line' | 'panel'>('line');
 
   step = signal<NextStep | null>(null);
   loaded = signal(false);

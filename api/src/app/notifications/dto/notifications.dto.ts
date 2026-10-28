@@ -31,4 +31,5 @@ export class EmailPreferencesDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() project_removed?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() task_form_submission?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() activity_forwarded?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() activity_mention?: boolean;
 }

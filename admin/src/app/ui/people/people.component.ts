@@ -57,7 +57,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
           @if (showPanelTitle()) {
             <h3 class="card-title">People @if (hintKey()) { <app-help-text [key]="hintKey()!" /> }</h3>
           }
-          @if (!controlsAfterList()) {
+          @if (!controlsAfterList() && !readOnly()) {
             <p-button
               type="button"
               label="Add new person"
@@ -74,7 +74,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         <p-message severity="error" [text]="panelError()!" class="mb-3" />
       }
 
-      @if (!controlsAfterList()) {
+      @if (!controlsAfterList() && !readOnly()) {
         <div class="form-field people-panel-picker">
           <label [attr.for]="pickerInputId">Add existing person</label>
           <app-people-select
@@ -129,7 +129,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               }
               <app-copy-email [email]="c.emails[0]?.email" [muted]="true" [block]="true" />
             </div>
-            @if (clientId()) {
+            @if (clientId() && !readOnly()) {
               <p-button
                 icon="pi pi-trash"
                 [text]="true"
@@ -160,7 +160,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
                 }
               </div>
             </div>
-            @if (!embeddedInDialog()) {
+            @if (!embeddedInDialog() && !readOnly()) {
               <app-row-actions-menu [items]="projectRowActions(rowIndex)" ariaLabel="Contact actions" />
             }
           </div>
@@ -168,7 +168,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
         }
 
-        @if (controlsAfterList()) {
+        @if (controlsAfterList() && !readOnly()) {
           <div class="people-panel-add-block">
             <div class="form-field people-panel-picker">
               <label [attr.for]="pickerInputId">Add existing person</label>
@@ -302,6 +302,8 @@ export class PeopleComponent {
   projectId = input<string | null>(null);
   /** Hide the “People” heading (e.g. inside Project contacts dialog). */
   showPanelTitle = input(true);
+  /** View only: no Add new person, Add existing person, or remove (e.g. the Activity page side panel). */
+  readOnly = input(false);
   /** Project mode: list contacts first, then add-existing + Add person (Tasks dialog). */
   controlsAfterList = input(false);
   /** Inside a dialog: skip outer `.card` padding (modal already provides chrome). */
@@ -339,6 +341,8 @@ export class PeopleComponent {
       this.projectId();
       this.projectContacts();
       this.orgPeople();
+      // Read-only panels have no picker, so skip loading its options.
+      if (this.readOnly()) return;
       void this.reloadPickerOptions();
     });
   }

@@ -319,3 +319,12 @@ describe('participant avatars', () => {
     expect(view.loggedBy.avatarUrl).toBe('/api/uploads/b.png');
   });
 });
+
+describe('mentionedIds', () => {
+  it('reads @mentions of teammates and contacts from note HTML', async () => {
+    const { mentionedIds } = await import('./interactions.service');
+    const html = '<p>Call <span class="mention" data-id="contact:k1" data-value="Ann">@Ann</span> with <span class="mention" data-id="user:u2">@Bo</span> and <span data-id="user:u2">@Bo</span></p>';
+    expect(mentionedIds(html)).toEqual({ userIds: ['u2'], contactIds: ['k1'] });
+    expect(mentionedIds(null)).toEqual({ userIds: [], contactIds: [] });
+  });
+});

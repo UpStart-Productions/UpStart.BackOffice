@@ -34,8 +34,8 @@ export type QueueRow = {
   title: string;
   /** REPLY: when they wrote. NEXT_STEP: due date. QUIET: last contact. */
   at: string | null;
-  missing?: boolean;
   overdue?: boolean;
+  dueToday?: boolean;
   owner?: string | null;
   interactionId?: string | null;
 };
@@ -328,41 +328,36 @@ export class ActivityService {
     }
     reply.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? ''));
 
-    // Next steps: overdue or due today, plus prospects and active clients with none set. Overdue pipeline cards too.
+    // Next steps: every next step that is set (organizations and pipeline cards), soonest first; overdue ones flagged.
+    // An organization without a next step is fine and is not listed.
     const dueBy = endOfToday(now);
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const orgs = await this.prisma.client.findMany({
       where: {
-        AND: [
-          clientReach,
-          clientNarrow,
-          ownerMine,
-          { OR: [{ journey: 'PROSPECT' }, { journey: 'CLIENT', isActive: true }] },
-          { OR: [{ nextAction: null }, { nextActionDate: { lte: dueBy } }] },
-        ],
+        AND: [clientReach, clientNarrow, ownerMine, { nextAction: { not: null } }],
       },
       select: { id: true, name: true, nextAction: true, nextActionDate: true, nextActionOwner: { select: ownerSelect } },
     });
     const nextStep: QueueRow[] = orgs
-      .filter((o) => !isSnoozed('NEXT_STEP', o.id))
+      .filter((o) => o.nextAction?.trim() && !isSnoozed('NEXT_STEP', o.id))
       .map((o) => ({
         queue: 'NEXT_STEP' as const,
         refKey: o.id,
         clientId: o.id,
         clientName: o.name,
         person: null,
-        title: o.nextAction?.trim() || 'No next step set',
+        title: o.nextAction!.trim(),
         at: o.nextActionDate ? o.nextActionDate.toISOString() : null,
-        missing: !o.nextAction?.trim(),
         overdue: !!o.nextActionDate && o.nextActionDate < startOfToday,
+        dueToday: !!o.nextActionDate && o.nextActionDate >= startOfToday && o.nextActionDate <= dueBy,
         owner: personName(o.nextActionOwner),
       }));
     if (!q.contactId) {
       const cards = await this.prisma.lead.findMany({
         where: {
           archivedAt: null,
-          nextActionDate: { lte: dueBy },
+          nextAction: { not: null },
           ...(q.clientId ? { clientId: q.clientId } : {}),
           ...(ids === null ? {} : { clientId: { in: ids } }),
         },
@@ -371,6 +366,7 @@ export class ActivityService {
       for (const c of cards) {
         const key = `lead:${c.id}`;
         if (isSnoozed('NEXT_STEP', key)) continue;
+        if (!c.nextAction?.trim()) continue;
         nextStep.push({
           queue: 'NEXT_STEP',
           refKey: key,
@@ -378,15 +374,16 @@ export class ActivityService {
           clientName: c.client?.name ?? c.organization,
           leadId: c.id,
           person: null,
-          title: c.nextAction?.trim() || 'Follow up',
+          title: c.nextAction.trim(),
           at: c.nextActionDate ? c.nextActionDate.toISOString() : null,
           overdue: !!c.nextActionDate && c.nextActionDate < startOfToday,
+          dueToday: !!c.nextActionDate && c.nextActionDate >= startOfToday && c.nextActionDate <= dueBy,
           owner: null,
         });
       }
     }
-    // Missing first, then oldest due date.
-    nextStep.sort((a, b) => Number(!!b.missing) - Number(!!a.missing) || (a.at ?? '').localeCompare(b.at ?? ''));
+    // Soonest first (overdue at the top); no date last.
+    nextStep.sort((a, b) => (a.at ?? '9999').localeCompare(b.at ?? '9999'));
 
     // Gone quiet: active clients with no contact for a while.
     const quietCutoff = new Date(now.getTime() - goneQuietDays * DAY);
@@ -437,7 +434,14 @@ export class ActivityService {
     const unfiled = (unfiledRows as unknown as InteractionRow[]).map((r) => toInteractionView(r, false));
 
     return {
-      counts: { reply: reply.length, nextStep: nextStep.length, quiet: quiet.length, unfiled: unfiled.length },
+      counts: {
+        reply: reply.length,
+        nextStep: nextStep.length,
+        /** Next steps that are overdue or due today (what the nav badge counts). */
+        nextStepDue: nextStep.filter((n) => n.overdue || n.dueToday).length,
+        quiet: quiet.length,
+        unfiled: unfiled.length,
+      },
       thresholds: { needsReplyDays, goneQuietDays },
       reply,
       nextStep,
@@ -446,9 +450,9 @@ export class ActivityService {
     };
   }
 
-  /** Nav badge: my Needs reply, Next steps and Unfiled. Gone quiet is a review list, not counted. */
+  /** Nav badge: my Needs reply, next steps overdue or due today, and Unfiled. Gone quiet is a review list, not counted. */
   async count(user: UserContext): Promise<{ count: number }> {
     const r = await this.queues(user, { mine: true });
-    return { count: r.counts.reply + r.counts.nextStep + r.counts.unfiled };
+    return { count: r.counts.reply + r.counts.nextStepDue + r.counts.unfiled };
   }
 }

@@ -1,4 +1,4 @@
-# CRM (Pipeline, Organizations, People, Activity, Bookings)
+# CRM (Activity, Pipeline, Organizations, People, Bookings)
 
 How the pieces fit:
 
@@ -34,7 +34,7 @@ Every organization has a **Status**: Prospect, Client or Other.
 
 On an organization's page: Status (Prospect, Client, or Other), Active or Inactive when status is Client, Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, Activity and Files. **Add new person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page. Each linked person shows name (link to their People profile), role or title, and email; the red trash control on the right **Remove from organization** (they stay in People).
 
-**Activity** lists emails, calls, meetings and notes. The box at the top logs a **Note**, **Call** or **Meeting** in one line: pick the type, type what happened, **Log it**. Tick **Set the next step** to set the organization's next step at the same time. **More details…** opens the full form (pick the type at the top of the dialog). **Include people's activity** (on by default) also shows calls, meetings and notes logged on this organization's people that aren't filed to any organization; those are labelled "From [name]'s activity". An email filed to another organization never shows here, even if one of this organization's people was on it. Email threads show their newest message with "earlier messages in this thread" to expand. **Open full view** opens Activity for this organization. On a call, **Who called** is We called, They called, or Internal. The activity shows the caller, then an arrow, then who was called. On a meeting, **Where** is the place or link, such as Zoom or their office. **Notes / next steps** is a formatted note: bold, lists, and links. **Who was involved** lists **Our team** and that organization's people, so you can record who on your side talked with whom. **All**, **Emails**, **Calls**, **Meetings** and **Notes** is a menu above the list, with Search beside it. Search looks only at the type you picked, including when nothing is logged yet. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC'd on the thread. The same panel is on a pipeline card. On a person's page, Activity shows everything that person took part in, and you can log on the person. It is filed to their organization when they belong to exactly one; otherwise it stays on the person and shows on each of their organizations with Include people's activity on.
+**Activity** lists emails, calls, meetings and notes. The box at the top logs a **Note**, **Call** or **Meeting** in one line: pick the type, type what happened, **Log it**. Type **@** to mention a teammate or one of the organization's people (the full form takes @ too). Everyone mentioned is added to who was involved, and mentioned teammates get a notification. Tick **Set the next step** to set the organization's next step at the same time. **More details…** opens the full form (pick the type at the top of the dialog). **Include people's activity** (on by default) also shows calls, meetings and notes logged on this organization's people that aren't filed to any organization; those are labelled "From [name]'s activity". An email filed to another organization never shows here, even if one of this organization's people was on it. Email threads show their newest message with "earlier messages in this thread" to expand. **Open full view** opens Activity for this organization. On a call, **Who called** is We called, They called, or Internal. The activity shows the caller, then an arrow, then who was called. On a meeting, **Where** is the place or link, such as Zoom or their office. **Notes / next steps** is a formatted note: bold, lists, and links. **Who was involved** lists **Our team** and that organization's people, so you can record who on your side talked with whom. **All**, **Emails**, **Calls**, **Meetings** and **Notes** is a menu above the list, with Search beside it. Search looks only at the type you picked, including when nothing is logged yet. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC'd on the thread. The same panel is on a pipeline card. On a person's page, Activity shows everything that person took part in, and you can log on the person. It is filed to their organization when they belong to exactly one; otherwise it stays on the person and shows on each of their organizations with Include people's activity on.
 
 ## Clients
 
@@ -72,12 +72,12 @@ On a card's page, **Lane** changes its lane, **Open organization** goes to the o
 
 ## Activity
 
-**Activity** in the menu (it replaced Inbox) has two tabs. The number on the menu item is your To do count (Needs reply, Next steps and Unfiled).
+**Activity** in the menu (it replaced Inbox) has two tabs. The number on the menu item is your To do count (Needs reply, next steps overdue or due today, and Unfiled).
 
 **To do** has four queues; click one to list it:
 
 - **Needs reply**: the latest email on a thread came from outside and nobody has answered for 2 or more days.
-- **Next steps**: next steps that are overdue or due today, and prospects or active clients with no next step at all. Overdue next steps on pipeline cards are listed too.
+- **Next steps**: every next step that is set, on organizations and pipeline cards, soonest first. Overdue ones have a red **Overdue** tag; due today has a **Due today** tag. Organizations without a next step are not listed (they don't need one).
 - **Gone quiet**: active clients nobody has contacted in 30 or more days.
 - **Unfiled**: captured email that could not be matched. **File…** one to an **Organization** or a **Pipeline card**; leave "Link the people on this email to the organization" on so their next email files itself.
 
@@ -85,11 +85,11 @@ On a card's page, **Lane** changes its lane, **Open organization** goes to the o
 
 **All activity** is every email, call, meeting and note, newest first, with the organization each belongs to. Filter by **Logged by**, **From** and **To** dates, type, or search.
 
-Pick an **Organization** or **Person** at the top to narrow both tabs to them. With an organization you also get its status, next step and people, and the quick log files to that organization. **Back to the organization** returns to its page. **Open full view** on an organization's or person's Activity panel opens this page for them.
+Pick an **Organization** or **Person** at the top to narrow both tabs to them. Panels on the right then show, for an organization, its **Next step**, **Details** (status, tags, phone, email, website, address, last contact, notes) and **People** (view only; add or remove people on the organization's page); for a person, their **Details** and **Organizations**, each with its next step. The quick log files to that organization or person. Click the name in Details to open their page. **Open full view** on an organization's or person's Activity panel opens this page for them.
 
 ## Next step
 
-Every organization can have one **next step**: what happens next, when, and who owns it. It is shown under the name at the top of the organization's page. **Set next step** or **Edit** to change it. **Done** records "Done: …" on the timeline, clears it, and asks for the next one. Prospects and active clients without one, and overdue ones, show on **Activity → To do**.
+Every organization can have one **next step**: what happens next, when, and who owns it. It is shown under the name at the top of the organization's page. **Set next step** or **Edit** to change it. **Done** records "Done: …" on the timeline, clears it, and asks for the next one. Every next step that is set shows on **Activity → To do → Next steps**, with overdue ones tagged.
 
 ## Network and Partners
 

@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
-import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -43,6 +42,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
 import { ToolbarSearchFieldComponent } from '../toolbar-search-field/toolbar-search-field.component';
 import { DateInputComponent } from '../date-input/date-input.component';
 import { parseDateKey } from '../../core/date.util';
+import { isBlankHtml, mentionQuillModules } from '../../task-manager/core/tm-mentions';
 
 /** One timeline row: an item, and for an email thread how many messages it holds. */
 type TimelineRow = { item: Interaction; threadKey: string | null; threadCount: number; nested: boolean };
@@ -124,7 +124,6 @@ function nowForInput(): string {
     RouterLink,
     CheckboxModule,
     TagModule,
-    TextareaModule,
     DateInputComponent,
     AppDialogModule,
     ButtonModule,
@@ -140,7 +139,8 @@ function nowForInput(): string {
     RowActionsMenuComponent,
   ],
   template: `
-    <div class="card">
+    <!-- On the Activity page the timeline sits in the page's own card, so no card of its own (no extra indent). -->
+    <div [class.card]="!hideHeader()">
       @if (!hideHeader()) {
         <div class="activity-header">
           <h3 class="text-lg font-semibold mb-0">Activity</h3>
@@ -164,15 +164,15 @@ function nowForInput(): string {
             [allowEmpty]="false"
             ariaLabel="Activity type"
           />
-          <label for="quickLogText" class="sr-only">What happened</label>
-          <textarea
-            pTextarea
-            id="quickLogText"
-            rows="2"
+          <quill-editor
+            class="quick-log-text"
             [(ngModel)]="quickText"
-            [placeholder]="quickPlaceholder()"
-            class="w-full quick-log-text"
-          ></textarea>
+            [modules]="quickModules"
+            [placeholder]="quickPlaceholder() + ' Type @ to mention someone.'"
+            [styles]="{ 'min-height': '64px' }"
+            (onEditorCreated)="onLogBodyEditor($event)"
+            aria-label="What happened"
+          />
           @if (canSetFollowUp()) {
             <div class="quick-log-follow">
               <p-checkbox inputId="quickFollow" [(ngModel)]="quickFollow" [binary]="true" />
@@ -299,7 +299,7 @@ function nowForInput(): string {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
               }
               @if (showOrgNames() && item.client; as org) {
-                <span>· <a [routerLink]="['/organizations', org.id]">{{ org.name }}</a></span>
+                <a [routerLink]="['/organizations', org.id]">{{ org.name }}</a>
               }
             </div>
             @if (item.via?.length) {
@@ -377,7 +377,8 @@ function nowForInput(): string {
               id="logBody"
               name="logBody"
               [(ngModel)]="logBody"
-              placeholder="Notes, next steps…"
+              [modules]="dialogModules"
+              placeholder="Notes, next steps… Type @ to mention someone."
               [styles]="{ 'min-height': '140px' }"
               (onEditorCreated)="onLogBodyEditor($event)"
             />
@@ -601,7 +602,7 @@ function nowForInput(): string {
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
     .activity-full-link { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-weight: 500; }
     .quick-log { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--surface-border, #e5e7eb); border-radius: 0.5rem; background: var(--surface-50, #f9fafb); }
-    .quick-log-text { resize: vertical; }
+    .quick-log-text { display: block; background: var(--surface-0, #fff); }
     .quick-log-follow { display: flex; align-items: center; gap: 0.5rem; }
     .quick-log-next { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     .quick-log-next-text { flex: 2 1 16rem; min-width: 0; }
@@ -840,6 +841,23 @@ export class ActivityTimelineComponent {
   );
 
   // Quick log (inline bar)
+  /** @mention: your team and this organization's people. Loaded with the involved-people list. */
+  private mentionPeople(): Person[] {
+    const toPerson = (o: InvolvedOption): Person => ({
+      id: o.id,
+      name: o.label,
+      email: '',
+      firstName: o.firstName,
+      lastName: o.lastName,
+      avatarUrl: o.avatarUrl,
+      role: '',
+      isGuest: false,
+    });
+    return [...this.teamOptions().map(toPerson), ...this.contactOptions().map(toPerson)];
+  }
+  readonly quickModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()), { toolbar: false });
+  readonly dialogModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()));
+
   quickType: 'CALL' | 'MEETING' | 'NOTE' = 'NOTE';
   quickText = '';
   quickFollow = false;
@@ -922,6 +940,12 @@ export class ActivityTimelineComponent {
       this.includePeople();
       this.comms.activityChanged();
       untracked(() => void this.load(false));
+    });
+    // People for @mentions in the quick log.
+    effect(() => {
+      const canLog = this.canLog();
+      this.clientId();
+      if (canLog) untracked(() => void this.loadPeople());
     });
   }
 
@@ -1030,7 +1054,7 @@ export class ActivityTimelineComponent {
     this.logDirection = 'OUTBOUND';
     this.logWhere = '';
     this.logSubject = '';
-    this.logBody = fromQuick && this.quickText.trim() ? `<p>${escapePlain(this.quickText.trim())}</p>` : '';
+    this.logBody = fromQuick && !isBlankHtml(this.quickText) ? this.quickText : '';
     this.involvedIds = [];
     this.logError.set(null);
     this.logVisible = true;
@@ -1120,8 +1144,8 @@ export class ActivityTimelineComponent {
   }
 
   async quickLog() {
-    const text = this.quickText.trim();
-    if (!text) {
+    const text = this.quickText;
+    if (isBlankHtml(text)) {
       this.quickError.set('Type what happened first.');
       return;
     }
@@ -1135,7 +1159,7 @@ export class ActivityTimelineComponent {
       await this.comms.log({
         type: this.quickType,
         ...this.logTarget(),
-        bodyText: `<p>${escapePlain(text)}</p>`,
+        bodyText: text,
         direction: this.quickType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
       });
       const clientId = this.clientId();

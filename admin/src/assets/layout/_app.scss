@@ -205,7 +205,7 @@
   padding: var(--space-table-y) var(--space-table-x);
   text-align: left;
   background: #f9fafb;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #e9ebef;
 }
 
 .p-datatable-sort-icon,
@@ -227,7 +227,8 @@ p-sorticon svg {
 .p-datatable.table-bordered .p-datatable-tbody > tr > td {
   padding: var(--space-table-y) var(--space-table-x);
   color: var(--color-text-secondary);
-  border-bottom: 1px solid #f9fafb;
+  /* Row dividers: visible but light. */
+  border-bottom: 1px solid #e9ebef;
   vertical-align: middle;
 }
 
