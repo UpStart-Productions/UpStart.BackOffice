@@ -1,6 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TagModule } from 'primeng/tag';
+import { TextareaModule } from 'primeng/textarea';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -18,6 +22,7 @@ import type Quill from 'quill';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
 import { Person, TmProjectListItem, TmSection } from '../../task-manager/core/tm.types';
 import {
+  ActivityFeedFilter,
   CommunicationsApi,
   contactName,
   ContactSummary,
@@ -36,6 +41,11 @@ import { MessageBodyComponent } from '../message-body/message-body.component';
 import { PersonComponent } from '../person/person.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 import { ToolbarSearchFieldComponent } from '../toolbar-search-field/toolbar-search-field.component';
+import { DateInputComponent } from '../date-input/date-input.component';
+import { parseDateKey } from '../../core/date.util';
+
+/** One timeline row: an item, and for an email thread how many messages it holds. */
+type TimelineRow = { item: Interaction; threadKey: string | null; threadCount: number; nested: boolean };
 
 type TypeFilter = 'ALL' | InteractionType;
 
@@ -99,8 +109,11 @@ function nowForInput(): string {
 }
 
 /**
- * Communication timeline for one client, lead or contact: emails captured from Gmail
- * plus calls, meetings and notes logged by hand.
+ * Communication timeline for one organization, pipeline card or person, or for every organization
+ * (Activity page, global): captured emails plus calls, meetings and notes logged by hand.
+ *
+ * An organization's timeline shows what is filed to it plus, with "Include people's activity", its people's activity
+ * that is not filed to any organization (labelled with whose it is). Email threads collapse to their newest message.
  */
 @Component({
   selector: 'app-activity-timeline',
@@ -108,6 +121,11 @@ function nowForInput(): string {
   imports: [PersonComponent, 
     DatePipe,
     FormsModule,
+    RouterLink,
+    CheckboxModule,
+    TagModule,
+    TextareaModule,
+    DateInputComponent,
     AppDialogModule,
     ButtonModule,
     InputTextModule,
@@ -123,14 +141,65 @@ function nowForInput(): string {
   ],
   template: `
     <div class="card">
-      <div class="activity-header">
-        <h3 class="text-lg font-semibold mb-0">Activity</h3>
-        @if (canLog()) {
-          <div class="activity-header-actions">
-            <p-button label="Log activity" icon="pi pi-plus" size="small" (onClick)="openLog()" />
+      @if (!hideHeader()) {
+        <div class="activity-header">
+          <h3 class="text-lg font-semibold mb-0">Activity</h3>
+          @if (fullViewParams(); as qp) {
+            <div class="activity-header-actions">
+              <a routerLink="/activity" [queryParams]="qp" class="activity-full-link">
+                <i class="pi pi-window-maximize" aria-hidden="true"></i> Open full view
+              </a>
+            </div>
+          }
+        </div>
+      }
+
+      @if (canLog()) {
+        <div class="quick-log" role="group" aria-label="Log activity">
+          <p-selectbutton
+            [options]="typeOptions"
+            optionLabel="label"
+            optionValue="value"
+            [(ngModel)]="quickType"
+            [allowEmpty]="false"
+            ariaLabel="Activity type"
+          />
+          <label for="quickLogText" class="sr-only">What happened</label>
+          <textarea
+            pTextarea
+            id="quickLogText"
+            rows="2"
+            [(ngModel)]="quickText"
+            [placeholder]="quickPlaceholder()"
+            class="w-full quick-log-text"
+          ></textarea>
+          @if (canSetFollowUp()) {
+            <div class="quick-log-follow">
+              <p-checkbox inputId="quickFollow" [(ngModel)]="quickFollow" [binary]="true" />
+              <label for="quickFollow">Set the next step</label>
+            </div>
+            @if (quickFollow) {
+              <div class="quick-log-next">
+                <div class="form-field quick-log-next-text">
+                  <label for="quickNextText">Next step</label>
+                  <input pInputText id="quickNextText" [(ngModel)]="quickNextText" class="w-full" placeholder="e.g. Send the revised proposal" />
+                </div>
+                <div class="form-field quick-log-next-date">
+                  <label for="quickNextDate">When</label>
+                  <app-date-input inputId="quickNextDate" [(ngModel)]="quickNextDate" />
+                </div>
+              </div>
+            }
+          }
+          @if (quickError()) {
+            <p-message severity="error" [text]="quickError()!" />
+          }
+          <div class="quick-log-actions">
+            <p-button label="More details…" severity="secondary" [text]="true" size="small" (onClick)="openLog(true)" />
+            <p-button label="Log it" icon="pi pi-check" size="small" [loading]="quickSaving()" (onClick)="quickLog()" />
           </div>
-        }
-      </div>
+        </div>
+      }
 
       @if (error()) {
         <p-message severity="error" [text]="error()!" class="mb-3" />
@@ -164,6 +233,12 @@ function nowForInput(): string {
               (ngModelChange)="query.set($event)"
             />
           </div>
+          @if (clientId()) {
+            <div class="activity-people-toggle">
+              <p-checkbox inputId="includePeople" [ngModel]="includePeople()" (ngModelChange)="includePeople.set($event)" [binary]="true" />
+              <label for="includePeople">Include people's activity</label>
+            </div>
+          }
         </div>
       }
 
@@ -191,8 +266,9 @@ function nowForInput(): string {
         </div>
       }
 
-      @for (item of visible(); track item.id) {
-        <div class="activity-item">
+      @for (row of rows(); track row.item.id) {
+        @let item = row.item;
+        <div class="activity-item" [class.activity-item--nested]="row.nested">
           <div class="activity-icon activity-icon--{{ item.type }}" [attr.aria-label]="item.type" role="img">
             <i class="pi {{ icon(item) }}" aria-hidden="true"></i>
           </div>
@@ -222,9 +298,21 @@ function nowForInput(): string {
               @if (!logger(item) && item.captures.length) {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
               }
+              @if (showOrgNames() && item.client; as org) {
+                <span>· <a [routerLink]="['/organizations', org.id]">{{ org.name }}</a></span>
+              }
             </div>
+            @if (item.via?.length) {
+              <p-tag [value]="viaLabel(item)" severity="info" styleClass="activity-via" />
+            }
 
             <app-message-body [item]="item" />
+            @if (row.threadCount > 1 && !row.nested) {
+              <button type="button" class="activity-thread-toggle" (click)="toggleThread(row.threadKey!)" [attr.aria-expanded]="isExpanded(row.threadKey!)">
+                <i class="pi" [class.pi-chevron-down]="!isExpanded(row.threadKey!)" [class.pi-chevron-up]="isExpanded(row.threadKey!)" aria-hidden="true"></i>
+                {{ isExpanded(row.threadKey!) ? 'Hide earlier messages' : (row.threadCount - 1) + ' earlier message' + (row.threadCount === 2 ? '' : 's') + ' in this thread' }}
+              </button>
+            }
           </div>
         </div>
       }
@@ -511,7 +599,19 @@ function nowForInput(): string {
   styles: `
     .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
-    .activity-filter { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .activity-full-link { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-weight: 500; }
+    .quick-log { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--surface-border, #e5e7eb); border-radius: 0.5rem; background: var(--surface-50, #f9fafb); }
+    .quick-log-text { resize: vertical; }
+    .quick-log-follow { display: flex; align-items: center; gap: 0.5rem; }
+    .quick-log-next { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .quick-log-next-text { flex: 2 1 16rem; min-width: 0; }
+    .quick-log-next-date { flex: 1 1 10rem; min-width: 0; }
+    .quick-log-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .activity-people-toggle { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; white-space: nowrap; }
+    .activity-item--nested { margin-left: 2.85rem; border-top-style: dashed; }
+    .activity-thread-toggle { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; padding: 0.25rem 0; border: 0; background: transparent; color: #1d4ed8; cursor: pointer; font: inherit; }
+    :host ::ng-deep .activity-via { margin: 0.15rem 0 0.35rem; }
+    .activity-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
     .activity-search {
       flex: 1 1 auto;
       min-width: 0;
@@ -620,22 +720,47 @@ export class ActivityTimelineComponent {
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
 
-  clientId = input<string>();
-  leadId = input<string>();
-  contactId = input<string>();
+  clientId = input<string | null>();
+  leadId = input<string | null>();
+  contactId = input<string | null>();
+  /** Every organization (Activity page). Ignored when clientId, leadId or contactId is set. */
+  global = input(false);
+  /** Extra filters from the Activity page (type, who logged it, dates, search). */
+  feedFilter = input<ActivityFeedFilter | null>(null);
+  /** The Activity page shows its own heading. */
+  hideHeader = input(false);
+  /** Show an "Open full view" link to the Activity page (record pages). */
+  showFullViewLink = input(true);
   /** Second group heading: the organization these people belong to. */
   organizationName = input<string>();
 
-  readonly target = computed<TimelineTarget | null>(() => {
+  readonly target = computed<TimelineTarget | { global: true } | null>(() => {
     const c = this.clientId();
     const l = this.leadId();
     const k = this.contactId();
     if (c) return { clientId: c };
     if (l) return { leadId: l };
     if (k) return { contactId: k };
+    if (this.global()) return { global: true };
     return null;
   });
-  readonly canLog = computed(() => !!this.clientId() || !!this.leadId());
+  readonly canLog = computed(() => !!this.clientId() || !!this.leadId() || !!this.contactId());
+  /** The next step lives on organizations. */
+  readonly canSetFollowUp = computed(() => !!this.clientId());
+  /** Organization names on items whenever the feed spans organizations. */
+  readonly showOrgNames = computed(() => !this.clientId() && !this.leadId());
+  readonly includePeople = signal(true);
+  readonly fullViewParams = computed<Record<string, string> | null>(() => {
+    if (!this.showFullViewLink()) return null;
+    const c = this.clientId();
+    const k = this.contactId();
+    const params: Record<string, string> = { tab: 'all' };
+    if (c) params['organization'] = c;
+    else if (k) params['person'] = k;
+    else return null;
+    return params;
+  });
+  private readonly expandedThreads = signal<ReadonlySet<string>>(new Set());
 
   items = signal<Interaction[]>([]);
   nextBefore = signal<string | null>(null);
@@ -651,6 +776,53 @@ export class ActivityTimelineComponent {
     if (!q) return typed;
     return typed.filter((i) => activityHaystack(i).includes(q));
   });
+  /** Email threads collapse to their newest message; earlier ones show nested when expanded. */
+  readonly rows = computed<TimelineRow[]>(() => {
+    const list = this.visible();
+    const counts = new Map<string, number>();
+    for (const i of list) {
+      if (i.type === 'EMAIL' && i.threadKey) counts.set(i.threadKey, (counts.get(i.threadKey) ?? 0) + 1);
+    }
+    const expanded = this.expandedThreads();
+    const seen = new Set<string>();
+    const out: TimelineRow[] = [];
+    for (const item of list) {
+      const key = item.type === 'EMAIL' && item.threadKey ? item.threadKey : null;
+      if (!key) {
+        out.push({ item, threadKey: null, threadCount: 1, nested: false });
+        continue;
+      }
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push({ item, threadKey: key, threadCount: counts.get(key) ?? 1, nested: false });
+        if (expanded.has(key)) {
+          for (const older of list) {
+            if (older !== item && older.type === 'EMAIL' && older.threadKey === key) {
+              out.push({ item: older, threadKey: key, threadCount: 1, nested: true });
+            }
+          }
+        }
+      }
+    }
+    return out;
+  });
+
+  isExpanded(key: string): boolean {
+    return this.expandedThreads().has(key);
+  }
+
+  toggleThread(key: string) {
+    const next = new Set(this.expandedThreads());
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    this.expandedThreads.set(next);
+  }
+
+  viaLabel(item: Interaction): string {
+    const names = item.via ?? [];
+    return names.length === 1 ? `From ${names[0]}'s activity` : `From people's activity: ${names.join(', ')}`;
+  }
+
   readonly filterName = computed(() => this.filterOptions.find((o) => o.value === this.filter())?.label.toLowerCase() ?? 'activity');
   readonly searchPlaceholder = computed(() => (this.filter() === 'ALL' ? 'Search activity…' : `Search ${this.filterName()}…`));
 
@@ -663,9 +835,24 @@ export class ActivityTimelineComponent {
   }
   readonly emptyMessage = computed(() =>
     this.canLog()
-      ? 'No activity yet. Use Log activity to record a call, meeting, or note.'
+      ? 'No activity yet. Log a call, meeting, or note above.'
       : 'No activity yet.',
   );
+
+  // Quick log (inline bar)
+  quickType: 'CALL' | 'MEETING' | 'NOTE' = 'NOTE';
+  quickText = '';
+  quickFollow = false;
+  quickNextText = '';
+  quickNextDate = '';
+  quickSaving = signal(false);
+  quickError = signal<string | null>(null);
+
+  quickPlaceholder(): string {
+    if (this.quickType === 'CALL') return 'How did the call go?';
+    if (this.quickType === 'MEETING') return 'What was decided?';
+    return 'What happened?';
+  }
 
   // Log dialog state
   logVisible = false;
@@ -717,9 +904,9 @@ export class ActivityTimelineComponent {
     { label: 'Notes', value: 'NOTE', icon: 'pi-file-edit' },
   ];
   readonly typeOptions = [
+    { label: 'Note', value: 'NOTE' },
     { label: 'Call', value: 'CALL' },
     { label: 'Meeting', value: 'MEETING' },
-    { label: 'Note', value: 'NOTE' },
   ];
   readonly callOptions = [
     { label: 'We called', value: 'OUTBOUND' },
@@ -729,8 +916,12 @@ export class ActivityTimelineComponent {
 
   constructor() {
     effect(() => {
-      this.target(); // reload whenever the subject changes
-      void this.load(false);
+      // Reload whenever the subject, the filters or the people toggle change, or activity changes elsewhere.
+      this.target();
+      this.feedFilter();
+      this.includePeople();
+      this.comms.activityChanged();
+      untracked(() => void this.load(false));
     });
   }
 
@@ -802,7 +993,19 @@ export class ActivityTimelineComponent {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const page = await this.comms.timeline(target, more ? this.nextBefore() : null);
+      const before = more ? this.nextBefore() : null;
+      const page =
+        'leadId' in target
+          ? await this.comms.timeline(target, before)
+          : await this.comms.activity(
+              {
+                ...(this.feedFilter() ?? {}),
+                clientId: 'clientId' in target ? target.clientId : this.feedFilter()?.clientId,
+                contactId: 'contactId' in target ? target.contactId : this.feedFilter()?.contactId,
+                includePeople: this.includePeople(),
+              },
+              before,
+            );
       this.items.set(more ? [...this.items(), ...page.items] : page.items);
       this.nextBefore.set(page.nextBefore);
     } catch (err) {
@@ -820,13 +1023,14 @@ export class ActivityTimelineComponent {
     ];
   }
 
-  async openLog() {
-    this.logType = 'CALL';
+  /** Full log dialog. From the quick bar, it starts with the type and text typed there. */
+  async openLog(fromQuick = false) {
+    this.logType = fromQuick ? this.quickType : 'CALL';
     this.logWhen = nowForInput();
     this.logDirection = 'OUTBOUND';
     this.logWhere = '';
     this.logSubject = '';
-    this.logBody = '';
+    this.logBody = fromQuick && this.quickText.trim() ? `<p>${escapePlain(this.quickText.trim())}</p>` : '';
     this.involvedIds = [];
     this.logError.set(null);
     this.logVisible = true;
@@ -835,7 +1039,7 @@ export class ActivityTimelineComponent {
 
   private async loadPeople(forClientId?: string | null) {
     this.involvedLoading.set(true);
-    const clientId = forClientId === undefined ? this.clientId() : forClientId;
+    const clientId = forClientId === undefined ? this.clientId() ?? null : forClientId;
     try {
       const [team, contacts] = await Promise.all([
         this.comms.team().catch(() => [] as TeamMember[]),
@@ -884,8 +1088,7 @@ export class ActivityTimelineComponent {
     try {
       const payload: LogInteractionPayload = {
         type: this.logType,
-        clientId: this.clientId(),
-        leadId: this.leadId(),
+        ...this.logTarget(),
         occurredAt: this.logWhen ? new Date(this.logWhen).toISOString() : undefined,
         subject: this.logSubject.trim() || undefined,
         bodyText: notes,
@@ -896,12 +1099,61 @@ export class ActivityTimelineComponent {
       };
       await this.comms.log(payload);
       this.logVisible = false;
+      this.quickText = '';
       this.toast.add({ severity: 'success', summary: 'Logged', detail: 'Activity added to the timeline.' });
-      await this.load(false);
+      this.comms.notifyActivityChanged();
     } catch (err) {
       this.logError.set(err instanceof Error ? err.message : 'Save failed');
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  /** Where a logged activity goes: the organization, card or person this timeline is for. */
+  private logTarget(): Pick<LogInteractionPayload, 'clientId' | 'leadId' | 'contactId'> {
+    const c = this.clientId();
+    const l = this.leadId();
+    const k = this.contactId();
+    if (c) return { clientId: c };
+    if (l) return { leadId: l };
+    return k ? { contactId: k } : {};
+  }
+
+  async quickLog() {
+    const text = this.quickText.trim();
+    if (!text) {
+      this.quickError.set('Type what happened first.');
+      return;
+    }
+    if (this.quickFollow && !this.quickNextText.trim()) {
+      this.quickError.set('Add the next step, or untick Set the next step.');
+      return;
+    }
+    this.quickSaving.set(true);
+    this.quickError.set(null);
+    try {
+      await this.comms.log({
+        type: this.quickType,
+        ...this.logTarget(),
+        bodyText: `<p>${escapePlain(text)}</p>`,
+        direction: this.quickType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
+      });
+      const clientId = this.clientId();
+      if (this.quickFollow && clientId) {
+        const day = this.quickNextDate ? parseDateKey(this.quickNextDate) : null;
+        day?.setHours(12, 0, 0, 0);
+        await this.comms.setNextStep(clientId, { text: this.quickNextText.trim(), date: day ? day.toISOString() : null });
+      }
+      this.quickText = '';
+      this.quickFollow = false;
+      this.quickNextText = '';
+      this.quickNextDate = '';
+      this.toast.add({ severity: 'success', summary: 'Logged', detail: 'Added to the timeline.' });
+      this.comms.notifyActivityChanged();
+    } catch (err) {
+      this.quickError.set(err instanceof Error ? err.message : 'Could not log it');
+    } finally {
+      this.quickSaving.set(false);
     }
   }
 

@@ -7,7 +7,7 @@ This guide powers **JD**, the in-app Back Office guide (avatar in the bottom-lef
 Sections appear based on role. **Admins** see:
 
 - **Dashboard**
-- **CRM**: Pipeline, Organizations, People, Inbox, Bookings (partners are organizations tagged Partner)
+- **CRM**: Pipeline, Organizations, People, Activity, Bookings (partners are organizations tagged Partner)
 - **Office**: Clients, Projects, Tasks, Time, Expenses, Invoices
 - **Reports**
 - **Accounting** (Admin only): Chart of Accounts, Journal, Bank Import, Accounting Reports
@@ -16,7 +16,7 @@ Sections appear based on role. **Admins** see:
 
 **Tasks-only** users (tenant role that only grants Tasks) see **Tasks** alone in the menu.
 
-People (team members and contacts) are shown with their photo, or colored initials when there's no photo, next to their name: on pipeline cards, contact and client pages, the email timeline, the Inbox, expenses and role lists.
+People (team members and contacts) are shown with their photo, or colored initials when there's no photo, next to their name: on pipeline cards, contact and client pages, the email timeline, Activity, expenses and role lists.
 
 **Regular users** see only areas their tenant role grants (Organizations, Time, etc.) — if a menu item is missing, they do not have access; do not tell them to use Admin-only screens.
 

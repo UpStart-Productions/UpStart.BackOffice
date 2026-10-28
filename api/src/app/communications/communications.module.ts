@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ServiceKeysModule } from '../service-keys/service-keys.module';
+import { ActivityController } from './activity.controller';
+import { ActivityService } from './activity.service';
 import { CaptureSettingsController } from './capture-settings.controller';
 import { CaptureSettingsService } from './capture-settings.service';
 import { CommunicationsController } from './communications.controller';
@@ -20,6 +22,7 @@ import { InteractionsService } from './interactions.service';
     CommunicationsController,
     ContactsController,
     CaptureSettingsController,
+    ActivityController,
   ],
   providers: [
     InboundAliasService,
@@ -28,6 +31,7 @@ import { InteractionsService } from './interactions.service';
     InteractionsService,
     ContactsService,
     CaptureSettingsService,
+    ActivityService,
   ],
   exports: [InboundAliasService],
 })

@@ -68,10 +68,10 @@ export class ShellComponent implements OnInit {
   readonly canInbox = computed(() => !!areaLevel(this.session.me(), 'inbox'));
   readonly canContacts = computed(() => !!areaLevel(this.session.me(), 'contacts'));
 
-  /** Keep the Inbox badge fresh: refresh the unfiled count after every navigation. */
+  /** Keep the Activity badge fresh: refresh my To do count after every navigation. */
   private readonly refreshInboxCount = effect(() => {
     this.currentUrl();
-    if (this.canInbox()) void this.comms.refreshUnfiledCount();
+    if (this.canInbox()) void this.comms.refreshActivityCount();
     if (this.canContacts()) void this.comms.refreshReviewCount();
   });
 
@@ -96,7 +96,7 @@ export class ShellComponent implements OnInit {
         { area: 'pipeline', label: 'Pipeline', icon: 'pi-chart-bar', route: '/pipeline' },
         { area: 'clients', label: 'Organizations', icon: 'pi-building', route: '/organizations' },
         { area: 'contacts', label: 'People', icon: 'pi-address-book', route: '/people', badge: this.comms.reviewCount() },
-        { area: 'inbox', label: 'Inbox', icon: 'pi-inbox', route: '/inbox', badge: this.comms.unfiledCount() },
+        { area: 'inbox', label: 'Activity', icon: 'pi-comments', route: '/activity', badge: this.comms.activityCount() },
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       ]),
       ...section('Office', [

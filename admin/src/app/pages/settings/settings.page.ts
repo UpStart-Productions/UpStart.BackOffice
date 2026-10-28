@@ -22,6 +22,7 @@ import { EmailCaptureSettingsComponent } from '../../ui/email-capture/email-capt
 import { McpSettingsComponent } from '../../ui/mcp-settings/mcp-settings.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/expenses-invoicing-settings.component';
+import { ActivitySettingsComponent } from '../../ui/activity-settings/activity-settings.component';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 
 interface ServiceKey {
@@ -110,6 +111,7 @@ interface SettingsStatusIcon {
     McpSettingsComponent,
     HelpTextComponent,
     ExpensesInvoicingSettingsComponent,
+    ActivitySettingsComponent,
     AvatarDropzoneComponent,
   ],
   templateUrl: './settings.page.html',

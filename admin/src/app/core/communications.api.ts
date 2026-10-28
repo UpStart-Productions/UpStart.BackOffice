@@ -34,6 +34,11 @@ export interface Interaction {
   status: 'FILED' | 'UNFILED';
   clientId: string | null;
   leadId: string | null;
+  threadKey?: string | null;
+  /** The organization it is filed to (shown on the Activity page). */
+  client?: { id: string; name: string } | null;
+  /** On an organization's timeline: the people whose activity pulled this in (not filed to the organization). */
+  via?: string[];
   participants: InteractionParticipant[];
   captures: { capturedByEmail: string; userId: string | null }[];
   loggedBy: { id: string; name: string | null; firstName?: string | null; lastName?: string | null; avatarUrl?: string | null } | null;
@@ -88,6 +93,8 @@ export interface LogInteractionPayload {
   type: 'CALL' | 'MEETING' | 'NOTE';
   clientId?: string;
   leadId?: string;
+  /** Log on a person: filed to their organization when they have exactly one. */
+  contactId?: string;
   occurredAt?: string;
   subject?: string;
   location?: string;
@@ -96,6 +103,53 @@ export interface LogInteractionPayload {
   contactIds?: string[];
   /** Team members besides the person logging the activity. */
   userIds?: string[];
+}
+
+/** Filters for the activity feed. clientId / contactId: that record; neither: every organization. */
+export interface ActivityFeedFilter {
+  clientId?: string | null;
+  contactId?: string | null;
+  includePeople?: boolean;
+  type?: InteractionType | null;
+  loggedByUserId?: string | null;
+  from?: string | null;
+  to?: string | null;
+  q?: string | null;
+}
+
+export interface NextStep {
+  clientId: string;
+  text: string | null;
+  date: string | null;
+  owner: { id: string; firstName: string | null; lastName: string | null; name: string | null; email: string; avatarUrl: string | null } | null;
+  overdue: boolean;
+}
+
+export type ActivityQueue = 'REPLY' | 'NEXT_STEP' | 'QUIET';
+
+export interface QueueRow {
+  queue: ActivityQueue;
+  refKey: string;
+  clientId: string | null;
+  clientName: string | null;
+  leadId?: string | null;
+  contactId?: string | null;
+  person: string | null;
+  title: string;
+  at: string | null;
+  missing?: boolean;
+  overdue?: boolean;
+  owner?: string | null;
+  interactionId?: string | null;
+}
+
+export interface ActivityQueues {
+  counts: { reply: number; nextStep: number; quiet: number; unfiled: number };
+  thresholds: { needsReplyDays: number; goneQuietDays: number };
+  reply: QueueRow[];
+  nextStep: QueueRow[];
+  quiet: QueueRow[];
+  unfiled: Interaction[];
 }
 
 export interface TeamMember {
@@ -200,8 +254,63 @@ export class CommunicationsApi {
     return this.captureAddressRequest;
   }
 
-  /** Number of emails waiting in the Unfiled inbox (drives the nav badge). */
+  /** Number of emails waiting in the Unfiled inbox. */
   readonly unfiledCount = signal(0);
+  /** My Activity → To do items (Needs reply, Next steps, Unfiled); drives the Activity nav badge. */
+  readonly activityCount = signal(0);
+
+  /** Bumped whenever activity or a next step changes, so every open timeline, header and To do list reloads. */
+  readonly activityChanged = signal(0);
+
+  notifyActivityChanged(): void {
+    this.activityChanged.update((n) => n + 1);
+    void this.refreshActivityCount();
+  }
+
+  async refreshActivityCount(): Promise<void> {
+    try {
+      const res = await this.api.get<{ count: number }>('/activity/queues/count');
+      this.activityCount.set(res.count);
+    } catch {
+      // Cosmetic badge; never break navigation.
+    }
+  }
+
+  /** Timeline for one organization or person, or every organization (Activity page). */
+  activity(filter: ActivityFeedFilter, before?: string | null): Promise<TimelinePage> {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filter)) {
+      if (v === null || v === undefined || v === '') continue;
+      params.set(k, String(v));
+    }
+    if (before) params.set('before', before);
+    const qs = params.toString();
+    return this.api.get(`/activity${qs ? `?${qs}` : ''}`);
+  }
+
+  queues(opts: { mine: boolean; clientId?: string | null; contactId?: string | null }): Promise<ActivityQueues> {
+    const params = new URLSearchParams({ mine: String(opts.mine) });
+    if (opts.clientId) params.set('clientId', opts.clientId);
+    if (opts.contactId) params.set('contactId', opts.contactId);
+    return this.api.get(`/activity/queues?${params}`);
+  }
+
+  /** Hide a To do row until a date; until null dismisses it for good. */
+  snooze(queue: ActivityQueue, refKey: string, until: string | null) {
+    return this.api.post<{ ok: boolean }>('/activity/snooze', { queue, refKey, until });
+  }
+
+  nextStep(clientId: string): Promise<NextStep> {
+    return this.api.get(`/activity/organizations/${clientId}/next-step`);
+  }
+
+  setNextStep(clientId: string, body: { text?: string | null; date?: string | null; ownerId?: string | null }): Promise<NextStep> {
+    return this.api.put(`/activity/organizations/${clientId}/next-step`, body);
+  }
+
+  completeNextStep(clientId: string): Promise<NextStep> {
+    return this.api.post(`/activity/organizations/${clientId}/next-step/done`, {});
+  }
 
   /** Auto-created contacts waiting for review (drives the Contacts nav badge). */
   readonly reviewCount = signal(0);

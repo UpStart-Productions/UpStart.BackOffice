@@ -216,6 +216,8 @@ model User {
   invoicesCreated           Invoice[]                   @relation("InvoiceCreatedBy")
   clientAssignments         ClientAssignment[]          @relation("ClientAssignmentUser")
   helpAgentSettingsUpdates  HelpAgentSettings[]         @relation("HelpAgentSettingsUpdatedBy")
+  clientNextActions         Client[]                    @relation("ClientNextActionOwner")
+  activitySnoozes           ActivitySnooze[]            @relation("ActivitySnoozeBy")
 
   @@unique([tenantId, email])
   @@index([email])
@@ -239,6 +241,11 @@ model Client {
   isPublicFeatured     Boolean        @default(false)
   publicSortOrder      Int            @default(0)
   lastContactAt        DateTime?
+  /// Next step: what happens next with this organization, when, and who owns it. Shown in the page header and on Activity → To do.
+  nextAction           String?        @db.Text
+  nextActionDate       DateTime?
+  nextActionOwnerId    String?
+  nextActionOwner      User?          @relation("ClientNextActionOwner", fields: [nextActionOwnerId], references: [id], onDelete: SetNull)
   email                String?
   phone                String?
   address              String?
@@ -602,6 +609,10 @@ model OrganizationProfile {
   billingEmail String?
   /// Reimbursement rate per mile for Mileage expenses.
   mileageRate  Decimal? @db.Decimal(10, 4)
+  /// Activity → To do: an email waits this many days for a reply before it is listed under Needs reply.
+  needsReplyDays Int    @default(2)
+  /// Activity → To do: an active client with no contact for this many days is listed under Gone quiet.
+  goneQuietDays  Int    @default(30)
   updatedAt    DateTime @updatedAt
 }
 
@@ -1546,6 +1557,7 @@ model Tenant {
   clientAssignments           ClientAssignment[]
   pipelines                   Pipeline[]
   pipelineStages              PipelineStage[]
+  activitySnoozes             ActivitySnooze[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -1755,4 +1767,27 @@ model PasswordReset {
   createdAt DateTime  @default(now())
 
   @@index([email, createdAt])
+}
+
+enum ActivityQueue {
+  REPLY
+  NEXT_STEP
+  QUIET
+}
+
+/// Hides one row of Activity → To do until a date (until = null: dismissed for good). Shared by the whole tenant.
+/// refKey: the email thread key for REPLY, the organization id (or "lead:<id>") for NEXT_STEP, the organization id for QUIET.
+model ActivitySnooze {
+  id          String        @id @default(cuid())
+  tenantId    String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  queue       ActivityQueue
+  refKey      String
+  until       DateTime?
+  createdById String?
+  createdBy   User?         @relation("ActivitySnoozeBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@unique([tenantId, queue, refKey])
+  @@index([tenantId])
 }

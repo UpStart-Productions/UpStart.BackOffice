@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.dto';
+import { UpdateActivitySettingsDto } from './dto/update-activity-settings.dto';
 import { UploadLogoDto } from './dto/upload-logo.dto';
 import { OrganizationProfileService } from './organization-profile.service';
 import { AccessGuard, AdminOnly, SignedIn } from '../access/access.guard';
@@ -23,6 +24,19 @@ export class OrganizationProfileController {
   @AdminOnly()
   get() {
     return this.profile.get();
+  }
+
+  /** Activity → To do thresholds (Settings → Activity). */
+  @Get('activity')
+  @AdminOnly()
+  activitySettings() {
+    return this.profile.getActivitySettings();
+  }
+
+  @Put('activity')
+  @AdminOnly()
+  saveActivitySettings(@Body() dto: UpdateActivitySettingsDto) {
+    return this.profile.saveActivitySettings(dto);
   }
 
   @Put()

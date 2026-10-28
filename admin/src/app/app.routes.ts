@@ -136,10 +136,12 @@ export const appRoutes: Route[] = [
           import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
       },
       {
-        path: 'inbox',
+        path: 'activity',
         loadComponent: () =>
-          import('./pages/inbox/unfiled-inbox.page').then((m) => m.UnfiledInboxPage),
+          import('./pages/activity/activity.page').then((m) => m.ActivityPage),
       },
+      // The Unfiled inbox is now a queue on Activity → To do.
+      { path: 'inbox', pathMatch: 'full', redirectTo: '/activity?queue=unfiled' },
       {
         path: 'people',
         loadComponent: () =>

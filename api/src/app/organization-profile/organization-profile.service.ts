@@ -6,6 +6,7 @@ import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.dto';
 import { UploadLogoDto } from './dto/upload-logo.dto';
+import { UpdateActivitySettingsDto } from './dto/update-activity-settings.dto';
 
 const ALLOWED_LOGO_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const LOGO_MAX_BYTES = 5 * 1024 * 1024;
@@ -89,6 +90,28 @@ export class OrganizationProfileService {
       update: data,
     });
     return this.toDto(row);
+  }
+
+  async getActivitySettings(): Promise<{ needsReplyDays: number; goneQuietDays: number }> {
+    const row = await this.prisma.organizationProfile.findUnique({
+      where: { tenantId: currentTenantId() },
+      select: { needsReplyDays: true, goneQuietDays: true },
+    });
+    return { needsReplyDays: row?.needsReplyDays ?? 2, goneQuietDays: row?.goneQuietDays ?? 30 };
+  }
+
+  async saveActivitySettings(dto: UpdateActivitySettingsDto): Promise<{ needsReplyDays: number; goneQuietDays: number }> {
+    const data = {
+      ...(dto.needsReplyDays !== undefined && { needsReplyDays: dto.needsReplyDays }),
+      ...(dto.goneQuietDays !== undefined && { goneQuietDays: dto.goneQuietDays }),
+    };
+    const row = await this.prisma.organizationProfile.upsert({
+      where: { tenantId: currentTenantId() },
+      create: { ...data },
+      update: data,
+      select: { needsReplyDays: true, goneQuietDays: true },
+    });
+    return row;
   }
 
   async uploadLogo(dto: UploadLogoDto): Promise<{ logoUrl: string }> {

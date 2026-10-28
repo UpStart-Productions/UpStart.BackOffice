@@ -36,7 +36,7 @@ export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   contacts: 'People',
   pipeline: 'Pipeline',
   bookings: 'Bookings',
-  inbox: 'Inbox',
+  inbox: 'Activity',
   projects: 'Projects',
   tasks: 'Tasks',
   time: 'Time',

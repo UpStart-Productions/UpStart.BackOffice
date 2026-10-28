@@ -14,7 +14,7 @@ const SNIPPET_LENGTH = 300;
 /** Built-in Guest role key. Kept as a literal so this service does not pull in the shared package. */
 const GUEST_ROLE_KEY = 'guest';
 
-const listInclude = {
+export const listInclude = {
   participants: {
     select: {
       email: true,
@@ -29,6 +29,8 @@ const listInclude = {
   },
   captures: { select: { capturedByEmail: true, userId: true } },
   loggedBy: { select: { id: true, name: true, firstName: true, lastName: true, avatarUrl: true } },
+  /** The organization it is filed to, for feeds that span organizations (Activity page). */
+  client: { select: { id: true, name: true } },
 };
 
 type ParticipantRow = {
@@ -47,7 +49,7 @@ function toParticipantView(p: ParticipantRow) {
   return { ...rest, avatarUrl: toPublicAssetUrl(contact?.avatarUrl ?? user?.avatarUrl ?? null) };
 }
 
-type InteractionRow = {
+export type InteractionRow = {
   id: string;
   type: string;
   direction: string;
@@ -64,6 +66,7 @@ type InteractionRow = {
   participants?: unknown[];
   captures?: unknown[];
   loggedBy?: unknown;
+  client?: { id: string; name: string } | null;
 };
 
 /** Visible text, with Quill/HTML tags removed so a formatted note previews as a sentence. */
@@ -302,18 +305,36 @@ export class InteractionsService {
   }
 
   /** Log a call, meeting or note by hand. */
+  /**
+   * Log a call, meeting or note by hand, on an organization, a pipeline card, or a person.
+   * Logged on a person (contactId only): filed to their organization when they have exactly one; with none or
+   * several it stays on the person (no organization) and shows on their page and, via "include people's activity",
+   * on each of their organizations.
+   */
   async log(dto: LogInteractionDto, user: { id: string; email: string }) {
-    if (!!dto.clientId === !!dto.leadId) {
-      throw new BadRequestException('Provide exactly one of clientId or leadId.');
+    if (dto.clientId && dto.leadId) {
+      throw new BadRequestException('Provide only one of clientId or leadId.');
+    }
+    if (!dto.clientId && !dto.leadId && !dto.contactId) {
+      throw new BadRequestException('Provide clientId, leadId or contactId.');
     }
     let logClientId: string | null = dto.clientId ?? null;
     if (dto.clientId) {
       const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
       if (!client) throw new NotFoundException('Client not found.');
-    } else {
+    } else if (dto.leadId) {
       const lead = await this.prisma.lead.findUnique({ where: { id: dto.leadId as string }, select: { id: true, clientId: true } });
       if (!lead) throw new NotFoundException('Lead not found.');
       logClientId = lead.clientId;
+    } else {
+      const person = await this.prisma.contact.findFirst({
+        where: { id: dto.contactId },
+        select: { id: true, accountLinks: { select: { clientId: true } } },
+      });
+      if (!person) throw new NotFoundException('Contact not found.');
+      const orgs = [...new Set(person.accountLinks.map((l) => l.clientId))];
+      logClientId = orgs.length === 1 ? orgs[0] : null;
+      dto.contactIds = [...new Set([dto.contactId as string, ...(dto.contactIds ?? [])])];
     }
     if (!dto.subject?.trim() && !plainText(dto.bodyText)) {
       throw new BadRequestException('Add a subject or some notes.');

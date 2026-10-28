@@ -30,6 +30,9 @@
             />
           }
         </div>
+        @if (!isNew) {
+          <app-next-step [clientId]="id()!" [canEdit]="canEdit()" class="client-next-step" />
+        }
 
         <div class="showcase-flex-col">
           <div class="form-field showcase-full">
