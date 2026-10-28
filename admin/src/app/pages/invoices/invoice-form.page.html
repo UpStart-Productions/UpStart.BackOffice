@@ -134,7 +134,11 @@
         <div class="card invoice-generate-card">
           <h4 class="showcase-section-title">Generate from time</h4>
           <p class="invoice-generate-hint text-sm text-muted mb-3">
-            Pull uninvoiced billable time for the selected period. Entries must fall entirely within the period.
+            @if (billingTenant) {
+              Pull your uninvoiced time and reimbursable expenses (including mileage) for the selected period. Time entries must fall entirely within the period.
+            } @else {
+              Pull uninvoiced billable time for the selected period. Entries must fall entirely within the period.
+            }
           </p>
 
           <div class="showcase-flex-col">

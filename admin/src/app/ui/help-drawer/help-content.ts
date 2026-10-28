@@ -22,11 +22,11 @@ const INVOICE_FORM: HelpArticle = {
   sections: [
     {
       heading: 'Bill to',
-      body: 'Pick the client. Bill-to email and address fill in from the client and can be changed for this invoice. The client\'s Invoice Code is prepended to the invoice number (e.g. UPSP-0001), so the client needs one before you invoice.',
+      body: 'A client: pick the client. Bill-to email and address fill in from the client and can be changed for this invoice. The client\'s Invoice Code is prepended to the invoice number (e.g. UPSP-0001), so the client needs one before you invoice. Our organization: you bill your own organization for your work; bill-to fills in from Settings → Business.',
     },
     {
       heading: 'Generate from time',
-      body: 'Pulls uninvoiced billable time for the period you choose (month, quarter, year or a date range), optionally for one project. Entries must fall entirely within the period. If you see "Entries missing hourly rate", set a rate on the project or the user and generate again.',
+      body: 'Billing a client pulls the client\'s uninvoiced billable time. Billing your organization pulls your own uninvoiced time (billable or not) and your uninvoiced reimbursable expenses, including mileage, at your own hourly rate first. Pick the period (month, quarter or a date range), optionally one project. Time entries must fall entirely within the period. If you see "missing an hourly rate", set a rate on the entry, project or user and generate again. The same hour can be on a client invoice and on your invoice to your organization, but not on two of the same kind.',
     },
     {
       heading: 'Line items',
@@ -564,7 +564,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Reimbursable and billable',
-        body: 'Reimbursable means someone paid personally and should be paid back. Billable to client means it should be charged to the client. Both show in the Flags column.',
+        body: 'Reimbursable means someone paid personally and should be paid back; reimbursable expenses can go on that person\'s invoice to the organization. Billable to client means it should be charged to the client. Both show in the Flags column.',
+      },
+      {
+        heading: 'Mileage',
+        body: 'Set Category to Mileage and enter Miles instead of Amount. The amount is miles times the mileage rate in Settings → Business. New mileage starts as Reimbursable. A saved mileage expense keeps its original rate.',
       },
       {
         heading: 'Filtering and totals',
@@ -579,7 +583,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New Invoice',
-        body: 'Starts a draft. Pick the client, then add lines by hand or use Generate from time.',
+        body: 'Starts a draft. Bill a client or your organization, then add lines by hand or use Generate from time.',
+      },
+      {
+        heading: 'Export',
+        body: 'Downloads a CSV of Sent and Paid invoices addressed to your organization, issued in the date range you pick: person, hours, time, reimbursements and total per invoice. Use it for payroll or accounting.',
       },
       {
         heading: 'Status',
@@ -735,7 +743,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Business',
-        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your organization are sent.',
+        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your organization are sent. Mileage rate is what a Mileage expense pays per mile.',
       },
       {
         heading: 'Email capture',

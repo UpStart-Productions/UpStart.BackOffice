@@ -91,6 +91,8 @@ export type TimeEntryDto = {
   isBillable: boolean;
   hourlyRate?: number | null;
   invoiceLineItemId?: string | null;
+  /** Set when the time is on the user's own invoice to the organization. */
+  tenantInvoiceLineItemId?: string | null;
   project: { id: string; name: string; client: { id: string; name: string } };
   projectTask?: { id: string; name: string; isBillable: boolean } | null;
   user: { id: string; firstName?: string | null; lastName?: string | null; email: string };
@@ -108,6 +110,8 @@ export type InvoiceLineItemDto = {
   amount: number;
   sortOrder: number;
   timeEntryIds?: string[];
+  /** Reimbursable expenses on this line (invoices billed to the organization). */
+  expenseIds?: string[];
   project?: { id: string; name: string } | null;
 };
 

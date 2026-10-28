@@ -9,6 +9,8 @@ import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { AppDialogModule } from '../../core/app-dialog.module';
+import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import {
   RowActionsMenuComponent,
@@ -49,6 +51,8 @@ type Invoice = {
     TagModule,
     PageComponent,
     RowActionsMenuComponent,
+    AppDialogModule,
+    DateInputComponent,
   ],
   templateUrl: './invoices-list.page.html',
   styles: [
@@ -83,6 +87,12 @@ export class InvoicesListPage implements OnInit {
   error = signal<string | null>(null);
   searchQuery = '';
   searchDebounced = signal('');
+
+  exportVisible = false;
+  exportFrom = '';
+  exportTo = '';
+  exporting = signal(false);
+  exportError = signal<string | null>(null);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -156,6 +166,43 @@ export class InvoicesListPage implements OnInit {
       .join(' ')
       .toLowerCase();
     return haystack.includes(q);
+  }
+
+  /** Defaults to last month. */
+  openExport() {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
+    const ymd = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    this.exportFrom = ymd(first);
+    this.exportTo = ymd(last);
+    this.exportError.set(null);
+    this.exportVisible = true;
+  }
+
+  async downloadExport() {
+    this.exporting.set(true);
+    this.exportError.set(null);
+    try {
+      const params = new URLSearchParams({ from: this.exportFrom.slice(0, 10), to: this.exportTo.slice(0, 10) });
+      const res = await this.api.get<{ filename: string; csv: string; count: number }>(`/invoices/payroll-export?${params}`);
+      if (res.count === 0) {
+        this.exportError.set('No Sent or Paid invoices to your organization in this range.');
+        return;
+      }
+      const url = URL.createObjectURL(new Blob([res.csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.exportVisible = false;
+    } catch (err) {
+      this.exportError.set(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   async load() {

@@ -28,6 +28,19 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 **Expenses** lists expenses. **New Expense** on the left; **Total** shows filtered total next to it; search on the far right.
 
+**Mileage:** set **Category** to **Mileage** and the **Amount** field becomes **Miles**. The amount is miles times your organization's mileage rate (Settings → Business), shown under the field. A new mileage expense starts as **Reimbursable**. A saved mileage expense keeps the rate it was entered with, even if the rate changes later. If no rate is set yet, mileage can't be saved until an admin sets one.
+
 ## Invoices
 
 **Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. Overdue/due warnings may appear above the table.
+
+### Bill to: a client or your organization
+
+- **A client** — your organization bills a client. **Generate from time** pulls the client's uninvoiced *billable* time.
+- **Our organization** — you bill your own organization for your work (for example, a contractor or caregiver submitting hours). **Generate from time** pulls *your own* uninvoiced time (billable or not) plus your uninvoiced **reimbursable** expenses, including mileage. Hours use your own hourly rate first, then the entry's or project's rate.
+
+The two are tracked separately: the same hour can go on the client's invoice and on your invoice to your organization, but never on two invoices of the same kind. Saving a draft keeps its time and expenses attached; deleting a draft frees them up again.
+
+### Export
+
+**Export** (next to **New Invoice**) downloads a CSV of **Sent** and **Paid** invoices addressed to your organization with an issue date in the range you pick (defaults to last month). One row per invoice: invoice number, person, email, issue date, status, paid date, hours, time amount, reimbursements, other lines, tax and total. Use it for payroll or accounting. If your role only sees your own invoices, the export only includes yours.

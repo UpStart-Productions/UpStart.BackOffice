@@ -20,22 +20,44 @@
     </div>
 
     <div class="showcase-row">
-      <div class="form-field showcase-half">
-        <label for="expense-amount">Amount</label>
-        <p-inputNumber
-          inputId="expense-amount"
-          mode="decimal"
-          prefix="$"
-          locale="en-US"
-          [min]="0"
-          [minFractionDigits]="2"
-          [maxFractionDigits]="2"
-          [ngModel]="amount()"
-          (ngModelChange)="amount.set($event)"
-          styleClass="w-full"
-          inputStyleClass="w-full"
-        />
-      </div>
+      @if (isMileage()) {
+        <div class="form-field showcase-half">
+          <label for="expense-miles">Miles</label>
+          <p-inputNumber
+            inputId="expense-miles"
+            mode="decimal"
+            locale="en-US"
+            [min]="0"
+            [maxFractionDigits]="2"
+            [ngModel]="miles()"
+            (ngModelChange)="miles.set($event)"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+          />
+          @if (mileageRate() != null) {
+            <small class="text-color-secondary">× {{ formatRate(mileageRate()) }}/mi = {{ formatMoney(mileageAmount()) }}</small>
+          } @else {
+            <small class="text-color-secondary">Set a mileage rate in Settings → Business first.</small>
+          }
+        </div>
+      } @else {
+        <div class="form-field showcase-half">
+          <label for="expense-amount">Amount</label>
+          <p-inputNumber
+            inputId="expense-amount"
+            mode="decimal"
+            prefix="$"
+            locale="en-US"
+            [min]="0"
+            [minFractionDigits]="2"
+            [maxFractionDigits]="2"
+            [ngModel]="amount()"
+            (ngModelChange)="amount.set($event)"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+          />
+        </div>
+      }
       <div class="form-field showcase-half">
         <label for="expense-date">Date incurred</label>
         <app-date-input
@@ -54,7 +76,7 @@
         list="expense-category-options"
         placeholder="e.g. Software, Travel, Supplies…"
         [ngModel]="category()"
-        (ngModelChange)="category.set($event)"
+        (ngModelChange)="onCategoryChange($event)"
         class="w-full"
       />
       <datalist id="expense-category-options">

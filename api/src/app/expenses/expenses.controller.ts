@@ -30,6 +30,9 @@ import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
+import { currentTenantId } from '../tenancy/tenant-context';
+
+export const MILEAGE_CATEGORY = 'Mileage';
 
 const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -76,6 +79,49 @@ export class ExpensesController {
     if (!project) throw new NotFoundException('Project not found');
   }
 
+  /** The organization's mileage rate per mile (Settings → Business), or null when not set. */
+  @Get('mileage-rate')
+  async mileageRate() {
+    return { rate: await this.currentMileageRate() };
+  }
+
+  private async currentMileageRate(): Promise<number | null> {
+    const profile = await this.prisma.organizationProfile.findUnique({
+      where: { tenantId: currentTenantId() },
+      select: { mileageRate: true },
+    });
+    return profile?.mileageRate != null ? Number(profile.mileageRate) : null;
+  }
+
+  /**
+   * Amount and mileage fields for a save. Miles set: amount = miles x rate (the expense keeps the rate it was first
+   * saved with; a new mileage expense uses the organization's current rate). Miles null: a regular expense again.
+   */
+  private async mileageFields(
+    dto: { miles?: number | null; amount?: number },
+    existing?: { miles: Prisma.Decimal | null; mileageRate: Prisma.Decimal | null },
+  ): Promise<{ amount?: number; miles?: number | null; mileageRate?: number | null; category?: string }> {
+    if (dto.miles === undefined) {
+      // A mileage expense's amount always comes from its miles.
+      if (existing?.miles != null) return {};
+      return dto.amount !== undefined ? { amount: dto.amount } : {};
+    }
+    if (dto.miles === null) {
+      if (dto.amount === undefined) throw new BadRequestException('Amount is required');
+      return { amount: dto.amount, miles: null, mileageRate: null };
+    }
+    const rate = existing?.mileageRate != null ? Number(existing.mileageRate) : await this.currentMileageRate();
+    if (rate == null) {
+      throw new BadRequestException('Set a mileage rate in Settings → Business before adding mileage');
+    }
+    return {
+      miles: dto.miles,
+      mileageRate: rate,
+      amount: Math.round(dto.miles * rate * 100) / 100,
+      category: MILEAGE_CATEGORY,
+    };
+  }
+
   @Get()
   @ApiQuery({ name: 'projectId', required: false })
   @ApiQuery({ name: 'userId', required: false })
@@ -113,13 +159,17 @@ export class ExpensesController {
   async create(@Req() req: Request, @Body() dto: CreateExpenseDto) {
     const user = req.user as UserContext;
     if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
+    const mileage = await this.mileageFields(dto);
+    if (mileage.amount === undefined) throw new BadRequestException('Amount is required');
     const expense = await this.prisma.expense.create({
       data: {
         userId: user.id,
         projectId: dto.projectId,
         description: dto.description,
-        amount: dto.amount,
-        category: dto.category,
+        amount: mileage.amount,
+        miles: mileage.miles ?? null,
+        mileageRate: mileage.mileageRate ?? null,
+        category: mileage.category ?? dto.category,
         incurredAt: new Date(dto.incurredAt),
         isReimbursable: dto.isReimbursable ?? false,
         isBillable: dto.isBillable ?? false,
@@ -144,13 +194,14 @@ export class ExpensesController {
     const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(user)) } });
     if (!existing) throw new NotFoundException('Expense not found');
     if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
+    const mileage = await this.mileageFields(dto, existing);
 
     const expense = await this.prisma.expense.update({
       where: { id },
       data: {
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.amount !== undefined && { amount: dto.amount }),
         ...(dto.category !== undefined && { category: dto.category }),
+        ...mileage,
         ...(dto.incurredAt !== undefined && { incurredAt: new Date(dto.incurredAt) }),
         ...(dto.projectId !== undefined && { projectId: dto.projectId || null }),
         ...(dto.isReimbursable !== undefined && { isReimbursable: dto.isReimbursable }),

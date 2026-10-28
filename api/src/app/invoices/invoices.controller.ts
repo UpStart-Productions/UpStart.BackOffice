@@ -18,7 +18,8 @@ import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { PayService } from '../pay/pay.service';
-import { InvoiceFromTimeService } from './invoice-from-time.service';
+import { InvoiceFromTimeService, timeLinkField } from './invoice-from-time.service';
+import { PayrollExportQueryDto } from './dto/payroll-export-query.dto';
 import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
 import { currentTenantId } from '../tenancy/tenant-context';
@@ -47,12 +48,38 @@ const sendRecipientsInclude = {
 const invoiceInclude = {
   client: true,
   lineItems: {
-    include: { project: { select: { id: true, name: true } } },
+    include: {
+      project: { select: { id: true, name: true } },
+      timeEntries: { select: { id: true } },
+      tenantTimeEntries: { select: { id: true } },
+      tenantExpenses: { select: { id: true } },
+    },
     orderBy: { sortOrder: 'asc' as const },
   },
 } satisfies Prisma.InvoiceInclude;
 
 type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceInclude }>;
+
+/** Line items carry the ids of their linked time and expenses, so saving a draft keeps the links. */
+function withLinkIds(invoice: InvoiceWithDetails) {
+  return {
+    ...invoice,
+    lineItems: invoice.lineItems.map(({ timeEntries, tenantTimeEntries, tenantExpenses, ...li }) => ({
+      ...li,
+      timeEntryIds: (invoice.billTo === 'TENANT' ? tenantTimeEntries : timeEntries).map((t) => t.id),
+      expenseIds: tenantExpenses.map((e) => e.id),
+    })),
+  };
+}
+
+function csvCell(value: string | number | null | undefined): string {
+  const s = value == null ? '' : String(value);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function isoDate(d: Date | null | undefined): string {
+  return d ? d.toISOString().slice(0, 10) : '';
+}
 
 @ApiTags('invoices')
 @ApiBearerAuth()
@@ -119,6 +146,72 @@ export class InvoicesController {
     return this.tenantBillTo();
   }
 
+  /**
+   * Invoices billed to the organization (Sent or Paid) issued in a date range, one row per invoice:
+   * who submitted it, hours, pay for time, reimbursements and total. For handing to payroll or accounting.
+   */
+  @Get('payroll-export')
+  async payrollExport(@Req() req: Request, @Query() query: PayrollExportQueryDto) {
+    const from = new Date(`${query.from}T00:00:00.000Z`);
+    const to = new Date(`${query.to}T23:59:59.999Z`);
+    if (from > to) throw new BadRequestException('From must be on or before To');
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        AND: [await this.scope(req.user as UserContext)],
+        billTo: 'TENANT',
+        status: { in: ['SENT', 'PAID'] },
+        issueDate: { gte: from, lte: to },
+      },
+      include: {
+        createdBy: { select: { firstName: true, lastName: true, email: true } },
+        lineItems: {
+          select: {
+            amount: true,
+            tenantTimeEntries: { select: { durationMin: true } },
+            tenantExpenses: { select: { id: true } },
+          },
+        },
+      },
+      orderBy: [{ issueDate: 'asc' }, { number: 'asc' }],
+    });
+
+    const header = ['Invoice', 'Person', 'Email', 'Issue date', 'Status', 'Paid date', 'Hours', 'Time amount', 'Reimbursements', 'Other', 'Tax', 'Total'];
+    const rows = invoices.map((inv) => {
+      let minutes = 0;
+      let time = 0;
+      let reimb = 0;
+      let other = 0;
+      for (const li of inv.lineItems) {
+        const amount = Number(li.amount);
+        if (li.tenantTimeEntries.length) {
+          minutes += li.tenantTimeEntries.reduce((s, t) => s + (t.durationMin ?? 0), 0);
+          time += amount;
+        } else if (li.tenantExpenses.length) {
+          reimb += amount;
+        } else {
+          other += amount;
+        }
+      }
+      const person = [inv.createdBy?.firstName, inv.createdBy?.lastName].filter(Boolean).join(' ');
+      return [
+        inv.displayNumber,
+        person,
+        inv.createdBy?.email ?? '',
+        isoDate(inv.issueDate),
+        inv.status,
+        isoDate(inv.paidAt),
+        (minutes / 60).toFixed(2),
+        time.toFixed(2),
+        reimb.toFixed(2),
+        other.toFixed(2),
+        Number(inv.taxAmount ?? 0).toFixed(2),
+        Number(inv.total).toFixed(2),
+      ];
+    });
+    const csv = [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
+    return { filename: `invoices-to-organization_${query.from}_to_${query.to}.csv`, csv, count: invoices.length };
+  }
+
   /** A client the user may invoice. Same not-found answer as a missing client. */
   private async requireClient(user: UserContext, clientId: string) {
     const clientIds = await this.access.clientIdFilter(user);
@@ -181,6 +274,10 @@ export class InvoicesController {
       { billTo, clientId, userId: billTo === 'TENANT' || this.ownOnly(user) ? user.id : null },
       dto.lineItems,
     );
+    await this.invoiceFromTime.assertExpensesLinkable(
+      { billTo, userId: billTo === 'TENANT' ? user.id : null },
+      dto.lineItems,
+    );
 
     const lastInvoice = await this.prisma.invoice.findFirst({
       orderBy: { number: 'desc' },
@@ -213,12 +310,12 @@ export class InvoicesController {
         },
       });
 
-      await this.syncLineItems(tx, invoice.id, dto.lineItems);
+      await this.syncLineItems(tx, invoice.id, billTo, dto.lineItems);
 
-      return tx.invoice.findUniqueOrThrow({
+      return withLinkIds(await tx.invoice.findUniqueOrThrow({
         where: { id: invoice.id },
         include: invoiceInclude,
-      });
+      }));
     });
   }
 
@@ -229,7 +326,7 @@ export class InvoicesController {
       include: invoiceInclude,
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
-    return invoice;
+    return withLinkIds(invoice);
   }
 
   @Put(':id')
@@ -249,7 +346,12 @@ export class InvoicesController {
           billTo: existing.billTo,
           clientId: existing.clientId,
           userId: existing.billTo === 'TENANT' ? existing.createdById : this.ownOnly(user) ? user.id : null,
+          invoiceId: id,
         },
+        dto.lineItems,
+      );
+      await this.invoiceFromTime.assertExpensesLinkable(
+        { billTo: existing.billTo, userId: existing.billTo === 'TENANT' ? existing.createdById : null, invoiceId: id },
         dto.lineItems,
       );
     }
@@ -260,8 +362,16 @@ export class InvoicesController {
           where: { invoiceLineItem: { invoiceId: id } },
           data: { invoiceLineItemId: null },
         });
+        await tx.timeEntry.updateMany({
+          where: { tenantInvoiceLineItem: { invoiceId: id } },
+          data: { tenantInvoiceLineItemId: null },
+        });
+        await tx.expense.updateMany({
+          where: { tenantInvoiceLineItem: { invoiceId: id } },
+          data: { tenantInvoiceLineItemId: null },
+        });
         await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
-        await this.syncLineItems(tx, id, dto.lineItems);
+        await this.syncLineItems(tx, id, existing.billTo, dto.lineItems);
       }
 
       const subtotal = dto.lineItems
@@ -313,7 +423,7 @@ export class InvoicesController {
     }
 
     await this.generateAndStorePdf(invoice);
-    return invoice;
+    return withLinkIds(invoice);
   }
 
   @Delete(':id')
@@ -451,8 +561,10 @@ export class InvoicesController {
   private async syncLineItems(
     tx: Prisma.TransactionClient,
     invoiceId: string,
+    billTo: 'CLIENT' | 'TENANT',
     lineItems: CreateInvoiceLineItemDto[],
   ) {
+    const link = timeLinkField(billTo);
     for (let i = 0; i < lineItems.length; i++) {
       const item = lineItems[i];
       const amount = Math.round(item.quantity * item.unitPrice * 100) / 100;
@@ -471,11 +583,22 @@ export class InvoicesController {
       const entryIds = item.timeEntryIds ?? [];
       if (entryIds.length > 0) {
         const updated = await tx.timeEntry.updateMany({
-          where: { id: { in: entryIds }, invoiceLineItemId: null },
-          data: { invoiceLineItemId: line.id },
+          where: { id: { in: entryIds }, [link]: null },
+          data: { [link]: line.id },
         });
         if (updated.count !== entryIds.length) {
           throw new BadRequestException('One or more time entries could not be linked to the invoice');
+        }
+      }
+
+      const expenseIds = billTo === 'TENANT' ? item.expenseIds ?? [] : [];
+      if (expenseIds.length > 0) {
+        const updated = await tx.expense.updateMany({
+          where: { id: { in: expenseIds }, tenantInvoiceLineItemId: null },
+          data: { tenantInvoiceLineItemId: line.id },
+        });
+        if (updated.count !== expenseIds.length) {
+          throw new BadRequestException('One or more expenses could not be linked to the invoice');
         }
       }
     }

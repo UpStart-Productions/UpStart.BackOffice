@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateOrganizationProfileDto {
   @ApiPropertyOptional()
@@ -42,4 +43,13 @@ export class UpdateOrganizationProfileDto {
   @IsOptional()
   @MaxLength(200)
   billingEmail?: string;
+
+  /** Reimbursement per mile for Mileage expenses (e.g. 0.70). Null clears it. */
+  @ApiPropertyOptional({ nullable: true })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  @Type(() => Number)
+  mileageRate?: number | null;
 }

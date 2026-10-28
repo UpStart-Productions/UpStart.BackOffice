@@ -157,6 +157,25 @@
                 <small class="text-color-secondary">Where invoices addressed to your organization are sent by default.</small>
               </div>
             </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="businessMileageRate">Mileage rate (per mile)</label>
+                <p-inputNumber
+                  inputId="businessMileageRate"
+                  name="businessMileageRate"
+                  mode="decimal"
+                  prefix="$"
+                  locale="en-US"
+                  [min]="0"
+                  [minFractionDigits]="2"
+                  [maxFractionDigits]="4"
+                  [(ngModel)]="businessForm.mileageRate"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
+                />
+                <small class="text-color-secondary">Mileage expenses are miles times this rate. A saved expense keeps the rate it was entered with.</small>
+              </div>
+            </div>
             <div class="form-actions">
               <button
                 type="button"

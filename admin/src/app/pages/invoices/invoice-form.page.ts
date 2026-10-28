@@ -33,26 +33,33 @@ type LineItem = {
   unitPrice: number;
   amount: number;
   timeEntryIds: string[];
+  /** Reimbursable expenses (invoices billed to the organization only). */
+  expenseIds: string[];
   projectName?: string;
 };
 
 type PeriodType = 'month' | 'quarter' | 'custom';
+
+type InvoicePreviewLine = {
+  projectId: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  timeEntryIds: string[];
+  expenseIds?: string[];
+  startedAt: string;
+};
 
 type InvoicePreview = {
   period: { label: string };
   projects: Array<{
     projectId: string | null;
     projectName: string;
-    lines: Array<{
-      projectId: string | null;
-      description: string;
-      quantity: number;
-      unitPrice: number;
-      amount: number;
-      timeEntryIds: string[];
-      startedAt: string;
-    }>;
+    lines: InvoicePreviewLine[];
   }>;
+  /** Unbilled reimbursable expenses; only when billing the organization. */
+  expenses: InvoicePreviewLine[];
   canGenerate: boolean;
   missingRates: Array<{
     entryId: string;
@@ -242,6 +249,7 @@ export class InvoiceFormPage implements OnInit {
             unitPrice: Number(li.unitPrice),
             amount: Number(li.amount),
             timeEntryIds: li.timeEntryIds ?? [],
+            expenseIds: li.expenseIds ?? [],
           })),
         );
         this.onClientChange();
@@ -288,7 +296,7 @@ export class InvoiceFormPage implements OnInit {
     const projectId = this.generate.projectId || null;
     this.lineItems.update((items) => [
       ...items,
-      { projectId, description: '', quantity: 0, unitPrice: 0, amount: 0, timeEntryIds: [] },
+      { projectId, description: '', quantity: 0, unitPrice: 0, amount: 0, timeEntryIds: [], expenseIds: [] },
     ]);
   }
 
@@ -346,25 +354,37 @@ export class InvoiceFormPage implements OnInit {
             `${preview.missingRates.length} time entr${preview.missingRates.length === 1 ? 'y' : 'ies'} missing an hourly rate. Add a rate on the entry, project, or user before generating.`,
           );
         } else {
-          this.generateMessage.set('No billable, uninvoiced time found for this period.');
+          this.generateMessage.set(
+            this.billingTenant
+              ? 'No uninvoiced time or reimbursable expenses found for this period.'
+              : 'No billable, uninvoiced time found for this period.',
+          );
         }
         return;
       }
 
-      const flat = preview.projects
+      const toLine = (line: InvoicePreviewLine): LineItem => ({
+        projectId: line.projectId,
+        description: line.description,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        amount: line.amount,
+        timeEntryIds: line.timeEntryIds,
+        expenseIds: line.expenseIds ?? [],
+      });
+      const timeLines = preview.projects
         .flatMap((project) => project.lines)
         .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-        .map((line) => ({
-          projectId: line.projectId,
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          amount: line.amount,
-          timeEntryIds: line.timeEntryIds,
-        }));
+        .map(toLine);
+      // Expenses follow the time, newest first.
+      const expenseLines = (preview.expenses ?? []).map(toLine);
+      const flat = [...timeLines, ...expenseLines];
       this.lineItems.set(flat);
+      const expenseNote = expenseLines.length
+        ? ` and ${expenseLines.length} expense${expenseLines.length === 1 ? '' : 's'}`
+        : '';
       this.generateMessage.set(
-        `Loaded ${flat.length} line${flat.length === 1 ? '' : 's'} from time (${preview.period.label}). Review and edit before saving.`,
+        `Loaded ${timeLines.length} time line${timeLines.length === 1 ? '' : 's'}${expenseNote} (${preview.period.label}). Review and edit before saving.`,
       );
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to generate from time');
@@ -395,6 +415,7 @@ export class InvoiceFormPage implements OnInit {
         unitPrice: li.unitPrice,
         sortOrder: i,
         timeEntryIds: li.timeEntryIds.length ? li.timeEntryIds : undefined,
+        expenseIds: li.expenseIds.length ? li.expenseIds : undefined,
       }));
 
       if (this.isNew) {

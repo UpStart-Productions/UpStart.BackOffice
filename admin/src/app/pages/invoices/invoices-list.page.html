@@ -8,6 +8,15 @@
     <h2 class="page-title page-title-in-card">Invoices</h2>
     <div class="toolbar">
       <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
+      <button
+        type="button"
+        pButton
+        label="Export"
+        icon="pi pi-download"
+        severity="secondary"
+        [outlined]="true"
+        (click)="openExport()"
+      ></button>
       <div class="toolbar-search">
         <app-toolbar-search-field
           placeholder="Search by number, bill to, status…"
@@ -82,4 +91,41 @@
       </ng-template>
     </p-table>
   </div>
+
+  <p-dialog
+    header="Export invoices to your organization"
+    [(visible)]="exportVisible"
+    [modal]="true"
+    [closable]="!exporting()"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: 'min(32rem, 96vw)' }"
+  >
+    <p class="mt-0 mb-3">
+      A CSV of Sent and Paid invoices addressed to your organization, issued in this date range: who submitted each one, hours, time, reimbursements and total. Use it for payroll or accounting.
+    </p>
+    <div class="showcase-row">
+      <div class="form-field showcase-half">
+        <label for="exportFrom">From</label>
+        <app-date-input inputId="exportFrom" [(ngModel)]="exportFrom" />
+      </div>
+      <div class="form-field showcase-half">
+        <label for="exportTo">To</label>
+        <app-date-input inputId="exportTo" [(ngModel)]="exportTo" />
+      </div>
+    </div>
+    @if (exportError()) {
+      <p-message severity="error" [text]="exportError()!" styleClass="mt-3" />
+    }
+    <ng-template pTemplate="footer">
+      <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="exporting()" (onClick)="exportVisible = false" />
+      <p-button
+        label="Download CSV"
+        icon="pi pi-download"
+        [loading]="exporting()"
+        [disabled]="!exportFrom || !exportTo"
+        (onClick)="downloadExport()"
+      />
+    </ng-template>
+  </p-dialog>
 </app-page>

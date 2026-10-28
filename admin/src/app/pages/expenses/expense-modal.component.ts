@@ -12,7 +12,7 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
-import { Expense, ExpenseProject, SUGGESTED_EXPENSE_CATEGORIES } from './expense.types';
+import { Expense, ExpenseProject, isMileageCategory, SUGGESTED_EXPENSE_CATEGORIES } from './expense.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
@@ -54,6 +54,9 @@ export class ExpenseModalComponent {
   isBillable = signal(false);
   paymentMethod = signal('');
   notes = signal('');
+  miles = signal<number | null>(null);
+  /** Rate per mile: the expense's own rate when editing a mileage expense, else the organization's current rate. */
+  mileageRate = signal<number | null>(null);
 
   receiptFile: File | null = null;
   receiptPreviewName = signal<string | null>(null);
@@ -66,7 +69,20 @@ export class ExpenseModalComponent {
 
   readonly dialogTitle = computed(() => (this.isEdit() ? 'Edit expense' : 'New expense'));
 
-  readonly canSubmit = computed(() => !!this.description().trim() && !!this.amount() && this.amount()! > 0);
+  readonly isMileage = computed(() => isMileageCategory(this.category()));
+
+  /** Miles x rate, shown read-only for mileage. */
+  readonly mileageAmount = computed(() => {
+    const miles = this.miles();
+    const rate = this.mileageRate();
+    return miles != null && rate != null ? Math.round(miles * rate * 100) / 100 : null;
+  });
+
+  readonly canSubmit = computed(() => {
+    if (!this.description().trim()) return false;
+    if (this.isMileage()) return !!this.miles() && this.miles()! > 0 && this.mileageRate() != null;
+    return !!this.amount() && this.amount()! > 0;
+  });
 
   readonly existingReceiptUrl = computed(() => {
     const url = this.editingExpense()?.receiptUrl;
@@ -95,9 +111,28 @@ export class ExpenseModalComponent {
       this.isBillable.set(e?.isBillable ?? false);
       this.paymentMethod.set(e?.paymentMethod ?? '');
       this.notes.set(e?.notes ?? '');
+      this.miles.set(e?.miles != null ? Number(e.miles) : null);
+      this.mileageRate.set(e?.mileageRate != null ? Number(e.mileageRate) : null);
+      if (e?.mileageRate == null) void this.loadMileageRate();
 
       this.visible = true;
     });
+  }
+
+  private async loadMileageRate() {
+    try {
+      const res = await this.api.get<{ rate: number | null }>('/expenses/mileage-rate');
+      this.mileageRate.set(res.rate);
+    } catch {
+      this.mileageRate.set(null);
+    }
+  }
+
+  /** Mileage is almost always paid back, so a new mileage expense starts as reimbursable. */
+  onCategoryChange(value: string) {
+    const wasMileage = this.isMileage();
+    this.category.set(value);
+    if (!wasMileage && this.isMileage() && !this.isEdit()) this.isReimbursable.set(true);
   }
 
   onReceiptSelected(event: Event) {
@@ -120,7 +155,8 @@ export class ExpenseModalComponent {
   private payload() {
     return {
       description: this.description().trim(),
-      amount: this.amount(),
+      amount: this.isMileage() ? undefined : this.amount(),
+      miles: this.isMileage() ? this.miles() : null,
       category: this.category().trim() || undefined,
       incurredAt: new Date(this.incurredAt()).toISOString(),
       projectId: this.projectId() || undefined,
@@ -133,7 +169,13 @@ export class ExpenseModalComponent {
 
   async save() {
     if (!this.canSubmit()) {
-      this.error.set('Description and a positive amount are required.');
+      this.error.set(
+        this.isMileage()
+          ? this.mileageRate() == null
+            ? 'Set a mileage rate in Settings → Business before adding mileage.'
+            : 'Description and miles are required.'
+          : 'Description and a positive amount are required.',
+      );
       return;
     }
 
@@ -188,5 +230,13 @@ export class ExpenseModalComponent {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  formatRate(n: number | null): string {
+    return n == null ? '—' : '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+
+  formatMoney(n: number | null): string {
+    return n == null ? '—' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
   }
 }

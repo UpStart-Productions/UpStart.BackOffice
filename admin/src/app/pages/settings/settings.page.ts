@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
 import { MessageModule } from 'primeng/message';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
@@ -77,6 +78,8 @@ interface OrganizationProfile {
   phone: string;
   /** Where invoices billed to the organization (e.g. by caregivers) are sent by default. */
   billingEmail?: string;
+  /** Reimbursement per mile for Mileage expenses. */
+  mileageRate?: number | null;
 }
 
 const LOGO_MAX_BYTES = 5 * 1024 * 1024;
@@ -100,6 +103,7 @@ interface SettingsStatusIcon {
     ButtonModule,
     AppDialogModule,
     InputTextModule,
+    InputNumberModule,
     MessageModule,
     TagModule,
     TooltipModule,
@@ -293,6 +297,7 @@ export class SettingsPage implements OnInit {
     zip: '',
     phone: '',
     billingEmail: '',
+    mileageRate: null,
   };
   businessSaving = signal(false);
   businessLoaded = signal(false);
@@ -411,6 +416,7 @@ export class SettingsPage implements OnInit {
       zip: profile.zip ?? '',
       phone: profile.phone ?? '',
       billingEmail: profile.billingEmail ?? '',
+      mileageRate: profile.mileageRate ?? null,
     };
     this.logoPreviewUrl.set(null);
     this.tenantBranding.apply({
@@ -431,6 +437,7 @@ export class SettingsPage implements OnInit {
         zip: this.businessForm.zip.trim(),
         phone: this.businessForm.phone.trim(),
         billingEmail: (this.businessForm.billingEmail ?? '').trim(),
+        mileageRate: this.businessForm.mileageRate ?? null,
       });
       this.applyBusinessProfile(saved);
       this.toast.add({

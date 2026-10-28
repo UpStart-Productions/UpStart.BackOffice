@@ -20,6 +20,8 @@ export type OrganizationProfileDto = {
   phone: string;
   /** Where invoices billed to the organization are sent by default. */
   billingEmail: string;
+  /** Reimbursement per mile for Mileage expenses; null when not set. */
+  mileageRate: number | null;
 };
 
 export type OrganizationBrandingDto = {
@@ -79,6 +81,7 @@ export class OrganizationProfileService {
       zip: trimToNull(dto.zip),
       phone: trimToNull(dto.phone),
       billingEmail: trimToNull(dto.billingEmail),
+      ...(dto.mileageRate !== undefined && { mileageRate: dto.mileageRate }),
     };
     const row = await this.prisma.organizationProfile.upsert({
       where: { tenantId: currentTenantId() },
@@ -170,6 +173,7 @@ export class OrganizationProfileService {
     zip?: string | null;
     phone?: string | null;
     billingEmail?: string | null;
+    mileageRate?: { toString(): string } | null;
   } | null): OrganizationProfileDto {
     return {
       companyName: row?.companyName ?? '',
@@ -180,6 +184,7 @@ export class OrganizationProfileService {
       zip: row?.zip ?? '',
       phone: row?.phone ?? '',
       billingEmail: row?.billingEmail ?? '',
+      mileageRate: row?.mileageRate != null ? Number(row.mileageRate) : null,
     };
   }
 }
