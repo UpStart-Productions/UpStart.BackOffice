@@ -9,6 +9,8 @@ export class CreateProjectDto {
   @ApiPropertyOptional() @IsString() @IsOptional() description?: string;
   @ApiPropertyOptional() @IsNumber() @IsOptional() @Type(() => Number) hourlyRate?: number;
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isBillable?: boolean;
+  @ApiPropertyOptional() @IsBoolean() @IsOptional() defaultExpenseReimbursable?: boolean;
+  @ApiPropertyOptional() @IsBoolean() @IsOptional() defaultExpenseBillable?: boolean;
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;
   @ApiPropertyOptional() @IsString() @IsOptional() color?: string | null;
 }

@@ -53,6 +53,8 @@ type ProjectResponse = {
   description?: string | null;
   hourlyRate?: number | null;
   isBillable: boolean;
+  defaultExpenseReimbursable: boolean;
+  defaultExpenseBillable: boolean;
   isActive: boolean;
   inTaskManager?: boolean;
   asanaProjectGid?: string | null;
@@ -147,6 +149,8 @@ export class ProjectFormPage implements OnInit {
     description: '',
     hourlyRate: null as number | null,
     isBillable: true,
+    defaultExpenseReimbursable: false,
+    defaultExpenseBillable: false,
     isActive: true,
   };
 
@@ -186,7 +190,10 @@ export class ProjectFormPage implements OnInit {
     } else {
       this.manualTasks.set(this.defaultTasks());
       const clientId = this.route.snapshot.queryParamMap.get('clientId');
-      if (clientId) this.form.clientId = clientId;
+      if (clientId) {
+        this.form.clientId = clientId;
+        this.form.defaultExpenseBillable = true;
+      }
     }
     this.loading.set(false);
   }
@@ -199,6 +206,8 @@ export class ProjectFormPage implements OnInit {
       description: project.description ?? '',
       hourlyRate: project.hourlyRate ?? null,
       isBillable: project.isBillable,
+      defaultExpenseReimbursable: project.defaultExpenseReimbursable ?? false,
+      defaultExpenseBillable: project.defaultExpenseBillable ?? false,
       isActive: project.isActive,
     };
     this.contactRows.set(this.mapContacts(project.contacts ?? []));
@@ -581,8 +590,19 @@ export class ProjectFormPage implements OnInit {
       description: richTextOrUndefined(this.form.description),
       hourlyRate: this.form.hourlyRate,
       isBillable: this.form.isBillable,
+      defaultExpenseReimbursable: this.form.defaultExpenseReimbursable,
+      defaultExpenseBillable: this.form.defaultExpenseBillable,
       isActive: this.form.isActive,
     };
+  }
+
+  onClientChange(clientId: string | null) {
+    this.form.clientId = clientId ?? '';
+    if (this.isNew && clientId) {
+      this.form.defaultExpenseBillable = true;
+    } else if (this.isNew && !clientId) {
+      this.form.defaultExpenseBillable = false;
+    }
   }
 
   async save() {

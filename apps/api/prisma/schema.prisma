@@ -463,6 +463,9 @@ model Project {
   description      String?  @db.Text
   hourlyRate       Decimal? @db.Decimal(10, 2)
   isBillable       Boolean  @default(true)
+  /// Defaults for new expenses when this project is selected (overridable on each expense).
+  defaultExpenseReimbursable Boolean @default(false)
+  defaultExpenseBillable     Boolean @default(false)
   isActive         Boolean  @default(true)
   asanaProjectGid  String?
   asanaProjectGids Json?
@@ -691,6 +694,24 @@ model ExpenseCategory {
   tenantId  String   @default("")
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   /// Stable id for seeded categories; null for tenant-created rows.
+  slug      String?
+  name      String
+  nameKey   String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@unique([tenantId, nameKey])
+  @@index([tenantId])
+}
+
+/// Tenant-configurable payment methods on expenses (Personal Card, Cash, …).
+model ExpensePaymentMethod {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   slug      String?
   name      String
   nameKey   String
@@ -1486,6 +1507,7 @@ model Tenant {
   timeEntrys                  TimeEntry[]
   expenses                    Expense[]
   expenseCategories           ExpenseCategory[]
+  expensePaymentMethods       ExpensePaymentMethod[]
   invoices                    Invoice[]
   payables                    Payable[]
   serviceKeys                 ServiceKey[]

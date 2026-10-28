@@ -172,17 +172,17 @@
         @if (canSetup()) {
         <div class="pipeline-col pipeline-col-add">
           @if (addingLane()) {
-            <input
-              pInputText
-              class="w-full mb-2"
-              placeholder="Lane name"
-              [(ngModel)]="newLaneName"
-              (keydown.enter)="addLane()"
-              (keydown.escape)="addingLane.set(false)"
-              aria-label="New lane name"
-              appAutofocus
-            />
-            <div class="flex gap-2">
+            <div class="field-action-row">
+              <input
+                pInputText
+                class="flex-1 min-w-0"
+                placeholder="Lane name"
+                [(ngModel)]="newLaneName"
+                (keydown.enter)="addLane()"
+                (keydown.escape)="addingLane.set(false)"
+                aria-label="New lane name"
+                appAutofocus
+              />
               <p-button label="Add" size="small" [loading]="busy()" [disabled]="!newLaneName.trim()" (onClick)="addLane()" />
               <p-button label="Cancel" size="small" severity="secondary" [text]="true" (onClick)="addingLane.set(false)" />
             </div>

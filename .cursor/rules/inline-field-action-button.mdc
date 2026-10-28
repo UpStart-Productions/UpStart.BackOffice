@@ -1,0 +1,34 @@
+---
+description: Small PrimeNG buttons beside inputs on the same row
+globs: admin/**/*.{html,ts,scss}
+alwaysApply: false
+---
+
+# Inline field action buttons
+
+When an **action button** sits on the **same horizontal row** as a form control (text input, readonly value, `app-money-input`, `p-select`, etc.), the button must use **`size="small"`** on `p-button` / `pButton`.
+
+Typical actions: **Save**, **Copy**, **Add**, **Link**, **Save Rate**, **Use** (suggested value).
+
+## Do
+
+- Wrap the control + button in **`.field-action-row`** (`admin/src/assets/layout/_form-layout.scss`).
+- `size="small"` on every action button in that row.
+- Icon-only inline actions (copy, remove on a dropzone row) also use `size="small"` when they are `p-button`.
+
+## Do not
+
+- `class="p-button-sm"` — use `size="small"` (PrimeNG 21).
+- Default/large buttons squeezed beside a single-line field.
+- Apply to **dialog footers**, **page toolbars** (New … next to title), **form-actions** Save at the bottom of a form, or **table row ⋮ menus** — those keep their normal sizes unless product says otherwise.
+
+## References
+
+| Pattern | Where |
+|---------|--------|
+| Mileage rate + Save Rate | `ui/expenses-invoicing/expenses-invoicing-settings.component.ts` |
+| Category name + Add | `ui/expense-categories/expense-categories-settings.component.ts` |
+| Capture address + Copy | `ui/email-capture/email-capture-settings.component.ts` |
+| MCP URL + Copy | `ui/mcp-settings/mcp-settings.component.ts` |
+| Role + Link | `ui/organization-links/organization-links.component.ts` |
+| Email + Add | `pages/contacts/contact-detail.page.ts` |

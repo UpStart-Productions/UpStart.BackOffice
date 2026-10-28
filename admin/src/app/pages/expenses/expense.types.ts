@@ -1,4 +1,10 @@
-export type ExpenseProject = { id: string; name: string; client: { id: string; name: string } | null };
+export type ExpenseProject = {
+  id: string;
+  name: string;
+  client: { id: string; name: string } | null;
+  defaultExpenseReimbursable?: boolean;
+  defaultExpenseBillable?: boolean;
+};
 
 export type ExpenseUser = { id: string; firstName?: string | null; lastName?: string | null; email: string; avatarUrl?: string | null };
 
@@ -21,6 +27,15 @@ export type Expense = {
 };
 
 export type ExpenseCategory = {
+  id: string;
+  slug: string | null;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+  expenseCount?: number;
+};
+
+export type ExpensePaymentMethod = {
   id: string;
   slug: string | null;
   name: string;

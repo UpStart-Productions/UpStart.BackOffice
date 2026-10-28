@@ -123,7 +123,8 @@
           [options]="clients()"
           optionLabel="name"
           optionValue="id"
-          [(ngModel)]="form.clientId"
+          [ngModel]="form.clientId"
+          (ngModelChange)="onClientChange($event)"
           name="clientId"
           placeholder="None (personal / internal project)"
           [showClear]="true"
@@ -166,8 +167,28 @@
                 name="isBillable"
                 (ngModelChange)="onProjectBillableChange($event)"
               />
-              <label>Billable <app-help-text key="project.billable" /></label>
+              <label>Billable (time) <app-help-text key="project.billable" /></label>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-field project-expense-defaults showcase-full">
+        <span class="font-medium">New expense defaults</span>
+        <div class="flex flex-wrap gap-4 mt-2">
+          <div class="flex align-items-center gap-2">
+            <p-toggleSwitch
+              [(ngModel)]="form.defaultExpenseReimbursable"
+              name="defaultExpenseReimbursable"
+            />
+            <label>Reimbursable <app-help-text key="project.defaultExpenseReimbursable" /></label>
+          </div>
+          <div class="flex align-items-center gap-2">
+            <p-toggleSwitch
+              [(ngModel)]="form.defaultExpenseBillable"
+              name="defaultExpenseBillable"
+            />
+            <label>Billable to client <app-help-text key="project.defaultExpenseBillable" /></label>
           </div>
         </div>
       </div>

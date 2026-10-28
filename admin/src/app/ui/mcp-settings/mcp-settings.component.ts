@@ -25,7 +25,7 @@ export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
       <p-accordion-panel value="server-url">
         <p-accordion-header>Server URL <app-help-text key="mcp.serverUrl" /></p-accordion-header>
         <p-accordion-content>
-          <div class="mcp-url-row">
+          <div class="field-action-row">
             <input
               pInputText
               [value]="mcpEndpoint"
@@ -33,7 +33,7 @@ export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
               class="flex-1 mcp-url"
               aria-label="MCP server URL"
             />
-            <p-button label="Copy" icon="pi pi-copy" severity="secondary" (onClick)="copy(mcpEndpoint)" />
+            <p-button label="Copy" icon="pi pi-copy" severity="secondary" size="small" (onClick)="copy(mcpEndpoint)" />
           </div>
         </p-accordion-content>
       </p-accordion-panel>
@@ -63,12 +63,6 @@ export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
     .mcp-sub-accordion {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .mcp-url-row {
-      display: flex;
-      align-items: center;
       gap: 0.5rem;
     }
 

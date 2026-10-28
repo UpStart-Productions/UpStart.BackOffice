@@ -328,7 +328,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Profile',
-        body: 'First and last name, email and title on one form; phone below. Save stores the profile. When your role allows it, Delete person removes them from Back Office after you confirm.',
+        body: 'First and last name, email and title on one form; phone below. Save stores the profile. To delete someone, use Delete on their row on the People list when your role allows it.',
       },
       {
         heading: 'Photo',
@@ -560,7 +560,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New Expense',
-        body: 'Description, amount and date are required. Add a category, project, payment method, notes and a receipt as needed.',
+        body: 'Description, amount (or miles for Mileage), and date are required. Category and miles sit on one row when Mileage is selected. Project and payment method are on the row below. Add notes or a receipt as needed.',
       },
       {
         heading: 'Reimbursable and billable',
@@ -751,7 +751,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Expenses and Invoicing',
-        body: 'Mileage rate (per mile) for Mileage expenses, plus the category list on the Expenses page. Rename or hide built-in categories; Mileage cannot be removed. Add custom categories anytime.',
+        body: 'Mileage rate (per mile) for Mileage expenses, plus category and payment method lists for the Expenses form. Rename or hide built-ins; Mileage category cannot be removed. Add custom labels anytime.',
       },
       {
         heading: 'Email capture',

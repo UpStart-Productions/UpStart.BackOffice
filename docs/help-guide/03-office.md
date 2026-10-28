@@ -8,6 +8,8 @@
 
 **Projects** lists billable work tied to clients. **New Project** creates one. Open a project to edit details, contacts, and tasks.
 
+Under **New expense defaults**, set **Reimbursable** and **Billable to client** for new expenses on that project. Picking the project on **New Expense** fills those toggles; you can still change them on each row.
+
 On a project, the **People** panel matches the client page: **Add existing person** or **Add new person**, then **Save** the project to sync details from People. Use **Open in People** on a row to edit someone. Legacy project-only contacts should be removed and re-added from People.
 
 When the project is in **Task Manager**, a **Tasks** card appears above **Manual tasks**: up to five open tasks by due date; click a task name or **Open in Tasks** for the full project. **Manual tasks** are still the list used on timesheets (including Asana-synced names when configured).
@@ -28,9 +30,9 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 **Expenses** lists expenses. **New Expense** on the left; **Total** shows filtered total next to it; search on the far right.
 
-**Categories:** pick from the dropdown (admins manage the list under **Settings → Expenses and Invoicing**).
+**Categories** and **payment method** use dropdowns (admins manage both lists under **Settings → Expenses and Invoicing**).
 
-**Mileage:** choose the **Mileage** category and the **Amount** field becomes **Miles**. The amount is miles times your organization's mileage rate (**Settings → Expenses and Invoicing**), shown under the field. A new mileage expense starts as **Reimbursable**. A saved mileage expense keeps the rate it was entered with, even if the rate changes later. If no rate is set yet, mileage can't be saved until an admin sets one.
+**Mileage:** choose the **Mileage** category and the **Amount** field becomes **Miles**. The amount is miles times your organization's mileage rate (**Settings → Expenses and Invoicing**), shown under the field. A new mileage expense starts as **Reimbursable** (even when the project default is off). Choosing a **Project** applies that project's **New expense defaults** to **Reimbursable** and **Billable to client** on a new expense. A saved mileage expense keeps the rate it was entered with, even if the rate changes later. If no rate is set yet, mileage can't be saved until an admin sets one.
 
 ## Invoices
 

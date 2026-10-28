@@ -292,6 +292,7 @@
                     type="button"
                     pButton
                     label="Use"
+                    size="small"
                     [text]="true"
                     class="p-0 ml-2"
                     (click)="useSuggestedRedirectUri()"
@@ -402,6 +403,7 @@
                     type="button"
                     pButton
                     label="Use"
+                    size="small"
                     [text]="true"
                     class="p-0 ml-2"
                     (click)="useSuggestedGoogleCalendarRedirectUri()"
@@ -455,6 +457,7 @@
                         type="button"
                         pButton
                         label="Save calendar"
+                        size="small"
                         [loading]="googleCalendarSavingSelection()"
                         (click)="saveGoogleCalendarSelection()"
                       ></button>
@@ -523,13 +526,14 @@
     <div class="pt-2 w-full">
       <div class="form-field mb-3">
         <label class="font-semibold">{{ newKeyName() }}</label>
-        <div class="api-key-row">
+        <div class="api-key-row field-action-row">
           <code class="api-key-value">{{ newKey() }}</code>
           <button
             type="button"
             pButton
             icon="pi pi-copy"
             severity="secondary"
+            size="small"
             aria-label="Copy API key"
             (click)="copyKey()"
           ></button>

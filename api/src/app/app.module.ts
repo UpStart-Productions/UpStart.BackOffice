@@ -14,6 +14,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { ExpenseCategoriesModule } from './expense-categories/expense-categories.module';
+import { ExpensePaymentMethodsModule } from './expense-payment-methods/expense-payment-methods.module';
 import { UsersModule } from './users/users.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -58,6 +59,7 @@ import { HealthController } from './health.controller';
     TimeEntriesModule,
     ExpensesModule,
     ExpenseCategoriesModule,
+    ExpensePaymentMethodsModule,
     InvoicesModule,
     LeadsModule,
     PipelinesModule,

@@ -11,7 +11,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
-import { Expense, ExpenseCategory, ExpenseProject, isMileageCategory } from './expense.types';
+import { Expense, ExpenseCategory, ExpensePaymentMethod, ExpenseProject, isMileageCategory } from './expense.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
@@ -66,6 +66,7 @@ export class ExpenseModalComponent {
   private readonly receiptDropzone = viewChild<SingleFileDropzoneComponent>('receiptDropzone');
 
   categories = signal<ExpenseCategory[]>([]);
+  paymentMethods = signal<ExpensePaymentMethod[]>([]);
 
   readonly categorySelectOptions = computed(() => {
     const list = this.categories();
@@ -77,17 +78,23 @@ export class ExpenseModalComponent {
     ] satisfies ExpenseCategory[];
   });
 
+  readonly paymentMethodSelectOptions = computed(() => {
+    const list = this.paymentMethods();
+    const current = this.paymentMethod().trim();
+    if (!current || list.some((m) => m.name.toLowerCase() === current.toLowerCase())) return list;
+    return [
+      ...list,
+      { id: '_legacy', slug: null, name: current, sortOrder: 999, isActive: true },
+    ] satisfies ExpensePaymentMethod[];
+  });
+
   readonly projectOptions = computed(() =>
     this.projects().map((p) => ({ id: p.id, projectName: p.name, clientName: (p.client?.name ?? 'Personal') })),
   );
 
   readonly dialogTitle = computed(() => (this.isEdit() ? 'Edit expense' : 'New expense'));
 
-  readonly isMileage = computed(() => {
-    const e = this.editingExpense();
-    if (e?.miles != null) return true;
-    return isMileageCategory(this.category(), this.categories());
-  });
+  readonly isMileage = computed(() => isMileageCategory(this.category(), this.categories()));
 
   /** Miles x rate, shown read-only for mileage. */
   readonly mileageAmount = computed(() => {
@@ -128,9 +135,27 @@ export class ExpenseModalComponent {
       this.mileageRate.set(e?.mileageRate != null ? Number(e.mileageRate) : null);
       if (e?.mileageRate == null) void this.loadMileageRate();
       void this.loadCategories();
+      void this.loadPaymentMethods();
+
+      if (!e) this.applyExpenseDefaultsFromProject(this.projectId());
 
       this.visible = true;
     });
+  }
+
+  onProjectChange(projectId: string | null) {
+    this.projectId.set(projectId ?? '');
+    if (!this.isEdit()) this.applyExpenseDefaultsFromProject(projectId ?? '');
+  }
+
+  /** New expenses only: set reimbursable/billable from the project (mileage still forces reimbursable). */
+  private applyExpenseDefaultsFromProject(projectId: string) {
+    const project = projectId ? this.projects().find((p) => p.id === projectId) : null;
+    this.isBillable.set(project?.defaultExpenseBillable ?? false);
+    this.isReimbursable.set(project?.defaultExpenseReimbursable ?? false);
+    if (!this.isEdit() && isMileageCategory(this.category(), this.categories())) {
+      this.isReimbursable.set(true);
+    }
   }
 
   private async loadCategories() {
@@ -138,6 +163,14 @@ export class ExpenseModalComponent {
       this.categories.set(await this.api.get<ExpenseCategory[]>('/expense-categories'));
     } catch {
       this.categories.set([]);
+    }
+  }
+
+  private async loadPaymentMethods() {
+    try {
+      this.paymentMethods.set(await this.api.get<ExpensePaymentMethod[]>('/expense-payment-methods'));
+    } catch {
+      this.paymentMethods.set([]);
     }
   }
 
@@ -152,9 +185,16 @@ export class ExpenseModalComponent {
 
   /** Mileage is almost always paid back, so a new mileage expense starts as reimbursable. */
   onCategoryChange(value: string) {
-    const wasMileage = this.isMileage();
+    const wasMileage = isMileageCategory(this.category(), this.categories());
     this.category.set(value);
-    if (!wasMileage && this.isMileage() && !this.isEdit()) this.isReimbursable.set(true);
+    const nowMileage = isMileageCategory(value, this.categories());
+    if (wasMileage && !nowMileage) {
+      this.miles.set(null);
+    }
+    if (!wasMileage && nowMileage) {
+      if (!this.isEdit()) this.isReimbursable.set(true);
+      if (this.mileageRate() == null) void this.loadMileageRate();
+    }
   }
 
   onReceiptFile(file: File | null) {

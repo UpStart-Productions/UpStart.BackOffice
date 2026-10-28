@@ -32,7 +32,7 @@ import { ExpenseCategory, MILEAGE_CATEGORY_SLUG } from '../../pages/expenses/exp
       <p-message severity="error" [text]="error()!" class="mb-3 block" />
     }
 
-    <div class="toolbar">
+    <div class="field-action-row toolbar">
       <span class="font-medium mr-1">Categories <app-help-text key="settings.expensesInvoicing.categories" /></span>
       <input
         pInputText
@@ -42,7 +42,7 @@ import { ExpenseCategory, MILEAGE_CATEGORY_SLUG } from '../../pages/expenses/exp
         aria-label="New expense category name"
         (keydown.enter)="addCategory()"
       />
-      <p-button label="Add" icon="pi pi-plus" class="p-button-sm" [loading]="adding()" [disabled]="!newName.trim()" (onClick)="addCategory()" />
+      <p-button label="Add" icon="pi pi-plus" size="small" [loading]="adding()" [disabled]="!newName.trim()" (onClick)="addCategory()" />
     </div>
 
     <p-table [value]="categories()" [loading]="loading()" styleClass="table-bordered mt-3">

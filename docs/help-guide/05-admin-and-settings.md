@@ -38,8 +38,9 @@ Click **Save** after editing text fields. Logo upload saves immediately when you
 
 **Expenses and Invoicing** covers mileage and expense categories:
 
-- **Mileage rate (per mile)** — what a **Mileage** expense pays (miles × rate). Changing it affects new mileage only; saved expenses keep the rate they were entered with. Click **Save mileage rate** after editing.
+- **Mileage rate (per mile)** — what a **Mileage** expense pays (miles × rate). Changing it affects new mileage only; saved expenses keep the rate they were entered with. Click **Save Rate** next to the field after editing.
 - **Categories** — the list on the **Expenses** page. Built-ins (Software, Travel, Mileage, Meals, Supplies, Contractor, Advertising, Other) can be **renamed** or **Remove**d to hide from the picker (built-ins are deactivated, not deleted). **Mileage** cannot be removed. **Add** custom names and **Restore** inactive built-ins as needed.
+- **Payment methods** — how expenses were paid (Personal Card, Company Card, Cash, ePayment, and custom). Same rename, remove, add, and restore behavior as categories (except Mileage rules apply only to categories).
 
 ## Accounting (Admin only)
 

@@ -97,6 +97,8 @@ export class ProjectsController {
         hourlyRate: dto.hourlyRate,
         // Personal projects (no client) default to non-billable.
         isBillable: dto.isBillable ?? !!clientId,
+        defaultExpenseReimbursable: dto.defaultExpenseReimbursable ?? false,
+        defaultExpenseBillable: dto.defaultExpenseBillable ?? !!clientId,
         isActive: dto.isActive ?? true,
         color: dto.color ?? null,
       },
@@ -151,6 +153,12 @@ export class ProjectsController {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
         ...(dto.isBillable !== undefined && { isBillable: dto.isBillable }),
+        ...(dto.defaultExpenseReimbursable !== undefined && {
+          defaultExpenseReimbursable: dto.defaultExpenseReimbursable,
+        }),
+        ...(dto.defaultExpenseBillable !== undefined && {
+          defaultExpenseBillable: dto.defaultExpenseBillable,
+        }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.asanaProjectGid !== undefined && { asanaProjectGid: dto.asanaProjectGid }),
         ...((dto.asanaProjectGids !== undefined || dto.asanaProjectGid !== undefined) && {

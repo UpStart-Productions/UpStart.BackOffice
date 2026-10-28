@@ -20,22 +20,22 @@ import { HelpTextComponent } from '../help-text/help-text.component';
     @if (settings(); as s) {
       <h4 class="mt-0 mb-2">Capture address <app-help-text key="emailCapture.address" /></h4>
       @if (s.address) {
-        <div class="capture-row">
+        <div class="field-action-row">
           <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="Capture address" />
-          <p-button label="Copy" icon="pi pi-copy" severity="secondary" (onClick)="copy(s.address)" />
+          <p-button label="Copy" icon="pi pi-copy" severity="secondary" size="small" (onClick)="copy(s.address)" />
         </div>
       } @else {
         <p-message severity="warn" class="block mb-2">
           No address yet. It is created automatically when the API starts; reload in a moment.
         </p-message>
       }
-      <div class="capture-row mt-2">
+      <div class="field-action-row mt-2">
         @if (!editing) {
           <button type="button" class="link-btn" (click)="startEdit(s)">Change the address name</button>
         } @else {
           <input pInputText [(ngModel)]="newAlias" placeholder="e.g. tpn" class="flex-1" aria-label="New address name" />
-          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!newAlias.trim()" (onClick)="saveAlias()" />
-          <p-button label="Cancel" severity="secondary" [text]="true" (onClick)="editing = false" />
+          <p-button label="Save" icon="pi pi-check" size="small" [loading]="saving()" [disabled]="!newAlias.trim()" (onClick)="saveAlias()" />
+          <p-button label="Cancel" severity="secondary" [text]="true" size="small" (onClick)="editing = false" />
         }
       </div>
       @if (s.aliases.length > 1) {
@@ -52,7 +52,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
       <h4 class="mt-4 mb-2">How to log email <app-help-text key="emailCapture.howToLog" /></h4>
 
       <h4 class="mt-4 mb-2">Your team's email domains <app-help-text key="emailCapture.teamDomains" /></h4>
-      <div class="capture-row">
+      <div class="field-action-row">
         <input
           pInputText
           [(ngModel)]="domainsText"
@@ -60,14 +60,13 @@ import { HelpTextComponent } from '../help-text/help-text.component';
           class="flex-1"
           aria-label="Team email domains, comma separated"
         />
-        <p-button label="Save" icon="pi pi-check" severity="secondary" [loading]="savingDomains()" (onClick)="saveDomains()" />
+        <p-button label="Save" icon="pi pi-check" severity="secondary" size="small" [loading]="savingDomains()" (onClick)="saveDomains()" />
       </div>
     } @else if (loading()) {
       <p class="text-color-secondary">Loading…</p>
     }
   `,
   styles: `
-    .capture-row { display: flex; align-items: center; gap: 0.5rem; }
     .capture-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   `,
 })

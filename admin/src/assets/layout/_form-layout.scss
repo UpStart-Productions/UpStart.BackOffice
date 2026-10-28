@@ -177,6 +177,18 @@
   }
 }
 
+/* Input (or money/select) + action button on one row — buttons use size="small". */
+.field-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+
+  .p-button {
+    flex-shrink: 0;
+  }
+}
+
 /* Color input (swatch + hex) – e.g. Mobile App Config branding */
 .color-input-row {
   display: flex;

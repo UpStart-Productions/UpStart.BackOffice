@@ -1,9 +1,10 @@
 <p-dialog
+  styleClass="expense-modal-dialog"
   [header]="dialogTitle()"
   [(visible)]="visible"
   [modal]="true"
   [closable]="true"
-  [style]="{ width: '32rem' }"
+  [style]="{ width: '40rem', maxWidth: '96vw' }"
   (onHide)="onDialogHide()"
 >
   <div class="entry-form">
@@ -19,27 +20,18 @@
       />
     </div>
 
-    <div class="showcase-row">
+    <!-- 1. Amount + date incurred (same row) -->
+    <div class="expense-form-row">
       @if (isMileage()) {
-        <div class="form-field showcase-half">
-          <label for="expense-miles">Miles <app-help-text key="expense.miles" /></label>
-          <p-inputNumber
-            inputId="expense-miles"
-            mode="decimal"
-            locale="en-US"
-            [min]="0"
-            [maxFractionDigits]="2"
-            [ngModel]="miles()"
-            (ngModelChange)="miles.set($event)"
-            styleClass="w-full"
-            inputStyleClass="w-full"
-          />
-          @if (mileageRate() != null) {
-            <small class="text-color-secondary">× {{ formatRate(mileageRate()) }}/mi = {{ formatMoney(mileageAmount()) }}</small>
+        <div class="form-field">
+          <label>Amount</label>
+          <div class="expense-computed-amount">{{ formatMoney(mileageAmount()) }}</div>
+          @if (mileageRate() != null && miles()) {
+            <small class="text-color-secondary">{{ miles() }} mi × {{ formatRate(mileageRate()) }}/mi</small>
           }
         </div>
       } @else {
-        <div class="form-field showcase-half">
+        <div class="form-field">
           <label for="expense-amount">Amount</label>
           <app-money-input
             inputId="expense-amount"
@@ -53,7 +45,7 @@
           />
         </div>
       }
-      <div class="form-field showcase-half">
+      <div class="form-field">
         <label for="expense-date">Date incurred</label>
         <app-date-input
           inputId="expense-date"
@@ -63,54 +55,113 @@
       </div>
     </div>
 
-    <div class="form-field">
-      <label for="expense-category">Category (optional) <app-help-text key="expense.category" /></label>
-      <p-select
-        inputId="expense-category"
-        [options]="categorySelectOptions()"
-        optionLabel="name"
-        optionValue="name"
-        [ngModel]="category() || null"
-        (ngModelChange)="onCategoryChange($event ?? '')"
-        placeholder="Search and select…"
-        [filter]="true"
-        filterBy="name"
-        filterPlaceholder="Search…"
-        [showClear]="true"
-        styleClass="w-full"
-        appendTo="body"
-      />
-    </div>
+    <!-- 2. Category + miles (same row when Mileage) -->
+    @if (isMileage()) {
+      <div class="expense-form-row">
+        <div class="form-field">
+          <label for="expense-category">Category <app-help-text key="expense.category" /></label>
+          <p-select
+            inputId="expense-category"
+            [options]="categorySelectOptions()"
+            optionLabel="name"
+            optionValue="name"
+            [ngModel]="category() || null"
+            (ngModelChange)="onCategoryChange($event ?? '')"
+            placeholder="Search and select…"
+            [filter]="true"
+            filterBy="name"
+            filterPlaceholder="Search…"
+            [showClear]="true"
+            styleClass="w-full"
+            appendTo="body"
+          />
+        </div>
+        <div class="form-field">
+          <label for="expense-miles">Miles <app-help-text key="expense.miles" /></label>
+          <p-inputNumber
+            inputId="expense-miles"
+            mode="decimal"
+            locale="en-US"
+            [min]="0"
+            [maxFractionDigits]="2"
+            [ngModel]="miles()"
+            (ngModelChange)="miles.set($event)"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+          />
+        </div>
+      </div>
+    } @else {
+      <div class="form-field">
+        <label for="expense-category">Category (optional) <app-help-text key="expense.category" /></label>
+        <p-select
+          inputId="expense-category"
+          [options]="categorySelectOptions()"
+          optionLabel="name"
+          optionValue="name"
+          [ngModel]="category() || null"
+          (ngModelChange)="onCategoryChange($event ?? '')"
+          placeholder="Search and select…"
+          [filter]="true"
+          filterBy="name"
+          filterPlaceholder="Search…"
+          [showClear]="true"
+          styleClass="w-full"
+          appendTo="body"
+        />
+      </div>
+    }
 
-    <div class="form-field">
-      <label for="expense-project">Project (optional)</label>
-      <p-select
-        inputId="expense-project"
-        [options]="projectOptions()"
-        optionLabel="projectName"
-        optionValue="id"
-        [ngModel]="projectId()"
-        (ngModelChange)="projectId.set($event)"
-        [filter]="true"
-        filterBy="projectName,clientName"
-        filterPlaceholder="Search by client or project…"
-        placeholder="No project"
-        [showClear]="true"
-        styleClass="w-full"
-        appendTo="body"
-      >
-        <ng-template #selectedItem let-option>
-          @if (option) {
+    <!-- 3. Project + payment method (same row) -->
+    <div class="expense-form-row">
+      <div class="form-field">
+        <label for="expense-project">Project (optional)</label>
+        <p-select
+          inputId="expense-project"
+          [options]="projectOptions()"
+          optionLabel="projectName"
+          optionValue="id"
+          [ngModel]="projectId()"
+          (ngModelChange)="onProjectChange($event)"
+          [filter]="true"
+          filterBy="projectName,clientName"
+          filterPlaceholder="Search by client or project…"
+          placeholder="No project"
+          [showClear]="true"
+          styleClass="w-full"
+          appendTo="body"
+        >
+          <ng-template #selectedItem let-option>
+            @if (option) {
+              <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
+            }
+          </ng-template>
+          <ng-template #item let-option>
             <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
-          }
-        </ng-template>
-        <ng-template #item let-option>
-          <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
-        </ng-template>
-      </p-select>
+          </ng-template>
+        </p-select>
+      </div>
+      <div class="form-field">
+        <label for="expense-payment-method">Payment method (optional) <app-help-text key="expense.paymentMethod" /></label>
+        <p-select
+          inputId="expense-payment-method"
+          [options]="paymentMethodSelectOptions()"
+          optionLabel="name"
+          optionValue="name"
+          [ngModel]="paymentMethod() || null"
+          (ngModelChange)="paymentMethod.set($event ?? '')"
+          placeholder="Search and select…"
+          [filter]="true"
+          filterBy="name"
+          filterPlaceholder="Search…"
+          [showClear]="true"
+          styleClass="w-full"
+          appendTo="body"
+        />
+      </div>
     </div>
 
-    <div class="showcase-row">
+    <div class="expense-form-row expense-form-row--toggles">
       <div class="flex align-items-center gap-2">
         <p-toggleSwitch [ngModel]="isReimbursable()" (ngModelChange)="isReimbursable.set($event)" />
         <label>Reimbursable <app-help-text key="expense.reimbursable" /></label>
@@ -119,18 +170,6 @@
         <p-toggleSwitch [ngModel]="isBillable()" (ngModelChange)="isBillable.set($event)" />
         <label>Billable to client <app-help-text key="expense.billable" /></label>
       </div>
-    </div>
-
-    <div class="form-field">
-      <label for="expense-payment-method">Payment method (optional)</label>
-      <input
-        pInputText
-        id="expense-payment-method"
-        placeholder="e.g. Personal card, Company Amex…"
-        [ngModel]="paymentMethod()"
-        (ngModelChange)="paymentMethod.set($event)"
-        class="w-full"
-      />
     </div>
 
     <div class="form-field">

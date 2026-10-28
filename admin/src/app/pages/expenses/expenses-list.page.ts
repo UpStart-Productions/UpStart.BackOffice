@@ -12,7 +12,14 @@ import { ExpenseModalComponent } from './expense-modal.component';
 import { Expense, ExpenseProject } from './expense.types';
 import { PersonComponent } from '../../ui/person/person.component';
 
-type ProjectListItem = { id: string; name: string; isActive?: boolean; client: { id: string; name: string } | null };
+type ProjectListItem = {
+  id: string;
+  name: string;
+  isActive?: boolean;
+  client: { id: string; name: string } | null;
+  defaultExpenseReimbursable?: boolean;
+  defaultExpenseBillable?: boolean;
+};
 
 @Component({
   selector: 'app-expenses-list-page',

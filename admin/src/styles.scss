@@ -375,3 +375,22 @@ body {
   min-width: min(100vw - 2rem, 22rem);
   max-width: min(100vw - 2rem, 28rem);
 }
+
+/* Expense modal: fixed 50/50 rows (PrimeNG appends dialog to body). */
+.expense-modal-dialog .expense-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+  align-items: start;
+}
+
+.expense-modal-dialog .expense-form-row--toggles {
+  align-items: center;
+}
+
+@media (max-width: 520px) {
+  .expense-modal-dialog .expense-form-row {
+    grid-template-columns: 1fr;
+  }
+}

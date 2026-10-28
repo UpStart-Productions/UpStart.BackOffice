@@ -38,11 +38,17 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Miles times your mileage rate (Settings → Expenses and Invoicing). Set a rate there before saving mileage. A saved expense keeps the rate it was entered with.',
   'expense.category':
     'Pick from your organization\'s list (Settings → Expenses and Invoicing). Mileage uses miles instead of amount.',
+  'expense.paymentMethod':
+    'How you paid. Admins manage the list under Settings → Expenses and Invoicing.',
 
   // Projects
   'project.hourlyRate':
     "Used for time on this project instead of each person's own rate. Leave blank to use the rate set on Users.",
   'project.billable': 'Billable time on this project is what Generate from time pulls onto invoices.',
+  'project.defaultExpenseReimbursable':
+    'When someone logs a new expense on this project, start with Reimbursable on or off. They can still change it on each expense.',
+  'project.defaultExpenseBillable':
+    'When someone logs a new expense on this project, start with Billable to client on or off. They can still change it on each expense.',
   'project.manualTasks': 'Billable and non-billable tasks for timesheet entries on this project.',
   'project.asanaConfig':
     'Link an Asana board and one or more sections. Incomplete tasks from those sections appear on timesheets.',
@@ -93,6 +99,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Mileage expenses are miles times this rate. A saved expense keeps the rate it was entered with.',
   'settings.expensesInvoicing.categories':
     'Categories on the Expenses page. Built-ins (Software, Travel, Mileage, …) can be renamed or hidden; Mileage cannot be removed. Add your own anytime.',
+  'settings.expensesInvoicing.paymentMethods':
+    'Payment methods on the expense form (Personal Card, Company Card, Cash, ePayment, and custom). Rename or hide built-ins; add your own.',
 
   // Settings — integrations
   'settings.apiKeys':

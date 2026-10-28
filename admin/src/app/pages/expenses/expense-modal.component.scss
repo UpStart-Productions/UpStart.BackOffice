@@ -4,6 +4,29 @@
   gap: 1rem;
 }
 
+/* Two equal columns inside the expense dialog (do not use global showcase-half — it wraps). */
+.expense-form-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+  align-items: start;
+}
+
+.expense-form-row--toggles {
+  align-items: center;
+}
+
+@media (max-width: 520px) {
+  .expense-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-field {
+  min-width: 0;
+}
+
 .form-field label {
   display: block;
   font-size: var(--fs-sm);
@@ -29,4 +52,12 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.expense-computed-amount {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-border, var(--surface-border));
+  border-radius: var(--content-border-radius, 6px);
+  background: var(--surface-ground, #f8f9fa);
+  font-weight: 600;
 }

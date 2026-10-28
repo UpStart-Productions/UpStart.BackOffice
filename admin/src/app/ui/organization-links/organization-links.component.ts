@@ -68,8 +68,8 @@ import { HelpTextComponent } from '../help-text/help-text.component';
       </div>
       <div class="form-field mb-2">
         <label for="linkRole">Role <app-help-text key="person.orgRole" /></label>
-        <div class="org-link-add">
-          <input pInputText id="linkRole" [(ngModel)]="linkRole" placeholder="e.g. Board member" class="w-full" />
+        <div class="field-action-row org-link-add">
+          <input pInputText id="linkRole" [(ngModel)]="linkRole" placeholder="e.g. Board member" class="flex-1 min-w-0" />
           <p-button
             label="Link"
             icon="pi pi-link"
@@ -104,12 +104,6 @@ import { HelpTextComponent } from '../help-text/help-text.component';
     .org-link-role {
       color: var(--text-color-secondary);
       font-size: var(--fs-sm);
-    }
-    .org-link-add {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.5rem;
     }
   `,
 })
