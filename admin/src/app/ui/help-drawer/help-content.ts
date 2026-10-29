@@ -812,7 +812,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'New intake',
-        body: 'Starts an intake form for an organization that has none yet. You can also start one from the Care card on the organization page.',
+        body: 'Starts an intake form for an organization that has none yet. You can also start one from the Care card on the organization page. Customize fields (Care setup) changes the form and its public intake links.',
       },
     ],
   },
@@ -822,11 +822,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New care profile',
-        body: 'Pick an organization to start its care profile. You can also start one from the Care card on the organization page.',
+        body: 'Pick an organization to start its care profile. You can also start one from the Care card on the organization page. Customize fields (Care setup) changes the form.',
       },
       {
         heading: 'Who sees what',
-        body: 'Each form sets Read or Edit per role (Care → Forms). People only see organizations assigned to them unless their role has Organizations: All.',
+        body: 'Each form sets Read or Edit per role (Customize fields). People only see organizations assigned to them unless their role has Organizations: All.',
       },
     ],
   },
@@ -848,19 +848,9 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
     ],
   },
-  'care/forms': {
-    title: 'Forms',
-    intro: 'Set up your Intake form and Care profile. Needs Care Setup.',
-    sections: [
-      {
-        heading: 'Forms',
-        body: 'Open a form to change its name, who can use it, its fields and (Intake form) public intake links.',
-      },
-    ],
-  },
   'care/forms/:id': {
-    title: 'Form setup',
-    intro: 'Name, access, fields and public links for one Care form.',
+    title: 'Customize fields',
+    intro: 'Opened with Customize fields on Intake or Care profiles (Care setup). Name, access, fields and public links for that form.',
     sections: [
       {
         heading: 'Who can use it',
@@ -892,7 +882,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Modules',
-        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar) and Care (Intake, Care profiles, Forms and public Care links).',
+        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar) and Care (Intake, Care profiles and public Care links).',
       },
       {
         heading: 'Switch to',

@@ -15,6 +15,8 @@ export type Project = {
   id: string;
   name: string;
   isActive?: boolean;
+  /** When true, work tasks can be picked from Task Manager for time entries. */
+  inTaskManager?: boolean;
   client: { id: string; name: string } | null;
   asanaSectionGid?: string | null;
   tasks?: ProjectTask[];

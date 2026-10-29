@@ -21,7 +21,7 @@ export function fieldView(f: FieldRow) {
 }
 
 /**
- * Care → Forms: the tenant's Intake form and Care profile, their sections and fields, who can use them
+ * Customize fields (Care → Intake / Care profiles): the tenant's Intake form and Care profile, their sections and fields, who can use them
  * (per role) and their public links. Changing a form needs Care Setup; reading one needs access to it.
  */
 @ApiTags('care')

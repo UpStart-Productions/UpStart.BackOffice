@@ -116,6 +116,69 @@
   white-space: nowrap;
 }
 
+.project-billing-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.project-billing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.project-billing-section + .project-billing-section {
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.project-billing-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+}
+
+.project-billing-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.project-billing-toggles label,
+.project-billing-billable label {
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+}
+
+.project-billing-time-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.project-billing-time-controls .project-rate-input {
+  flex: 1 1 5.5rem;
+  min-width: 5rem;
+  max-width: 9rem;
+}
+
+.project-billing-billable {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .asana-link-row {
   display: flex;
   gap: 1rem;

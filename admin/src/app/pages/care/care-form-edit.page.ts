@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -11,13 +11,14 @@ import { TextareaModule } from 'primeng/textarea';
 import type { CareFormAccess, CareFormDto } from '@upstart/back-office/shared';
 import { CareApi } from '../../core/care.api';
 import { CareLinksComponent } from '../../ui/care-forms/care-links.component';
+import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE } from '../../ui/care-forms/care.types';
 import { FormBuilderComponent } from '../../ui/care-forms/form-builder.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
 
 type Level = 'none' | 'read' | 'edit';
 
-/** One Care form: name and description, who can use it, its sections and fields, and (Intake) public links. */
+/** Customize fields (from Care → Intake or Care profiles, Setup only): name, who can use it, sections and fields, and (Intake) public links. */
 @Component({
   selector: 'app-care-form-edit-page',
   standalone: true,
@@ -35,7 +36,7 @@ type Level = 'none' | 'read' | 'edit';
     PageComponent,
   ],
   template: `
-    <app-page [title]="form()?.name ?? 'Form'" backLink="/care/forms" backLabel="Back to Forms" helpKey="care.form.page">
+    <app-page [title]="'Customize ' + (form()?.name ?? 'form')" [backLink]="backLink()" [backLabel]="'Back to ' + backLabel()" helpKey="care.form.page">
       @if (form()) {
         <p-button pageActions label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
       }
@@ -125,6 +126,8 @@ export class CareFormEditPage implements OnInit {
   private saved = '';
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
+  backLink = computed(() => CARE_KIND_ROUTE[this.form()?.kind ?? 'INTAKE']);
+  backLabel = computed(() => CARE_KIND_LIST_TITLE[this.form()?.kind ?? 'INTAKE']);
 
   async ngOnInit() {
     try {

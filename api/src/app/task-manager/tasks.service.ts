@@ -149,6 +149,11 @@ export class TasksService {
       scopedProjectId = projectId ?? section.projectId;
       await this.access.assertProject(user, scopedProjectId, 'view');
     } else if (projectId) {
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { inTaskManager: true },
+      });
+      if (!project?.inTaskManager) return [];
       await this.access.assertProject(user, projectId, 'view');
     }
 

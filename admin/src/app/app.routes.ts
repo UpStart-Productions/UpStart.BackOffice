@@ -214,11 +214,6 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./pages/care/care-record.page').then((m) => m.CareRecordPage),
       },
       {
-        path: 'care/forms',
-        loadComponent: () => import('./pages/care/care-forms.page').then((m) => m.CareFormsPage),
-        canActivate: [actionGuard('care', 'setup')],
-      },
-      {
         path: 'care/forms/:id',
         loadComponent: () => import('./pages/care/care-form-edit.page').then((m) => m.CareFormEditPage),
         canActivate: [actionGuard('care', 'setup')],

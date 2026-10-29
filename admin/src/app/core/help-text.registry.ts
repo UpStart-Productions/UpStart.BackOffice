@@ -49,6 +49,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'project.hourlyRate':
     "Used for time on this project instead of each person's own rate. Leave blank to use the rate set on Users.",
   'project.billable': 'Billable time on this project is what Generate from time pulls onto invoices.',
+  'project.expenseDefaults':
+    'Starting values when someone adds an expense on this project: Reimbursable pays the employee back; Billable to client can go on an invoice. Each expense can still be changed.',
   'project.defaultExpenseReimbursable':
     'When someone logs a new expense on this project, start with Reimbursable on or off. They can still change it on each expense.',
   'project.defaultExpenseBillable':
@@ -131,10 +133,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'tenant.modules':
     'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
   // Care module
-  'care.forms.page':
-    'Your Intake form and Care profile. Open one to set its fields, who can use it and (Intake) public links.',
   'care.form.page':
-    'Name, who can use this form, its sections and fields, and public links. Field changes save right away; Save is for the name, description and access.',
+    'Customize this form: name, who can use it, its sections and fields, and (Intake) public links. Field changes save right away; Save is for the name, description and access.',
   'care.form.description': 'Shown at the top of the form on public links.',
   'care.form.access':
     'Per role: None, Read or Edit. Admins can always edit. People only see forms for organizations they can reach (the ones assigned to them unless their role has Organizations: All).',
@@ -143,8 +143,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'care.form.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
   'care.form.required': 'People filling in the form through a public link must answer it. Staff can save with it empty.',
   'care.intake.page':
-    "Every organization's intake form. Waiting for review lists intakes sent through a public link; open one to Accept it into a new or existing organization, or Dismiss it.",
-  'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization.",
+    "Every organization's intake form. Waiting for review lists intakes sent through a public link; open one to Accept it into a new or existing organization, or Dismiss it. Customize fields (Care setup) changes the form and its public links.",
+  'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization; Customize fields (Care setup) changes the form.",
   'care.record.page':
     "This organization's copy of the form. Edit and Save; Share link makes a link so someone outside (e.g. family) can update it.",
   'care.links.intake':

@@ -23,7 +23,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
 type Section = CareFormDto['sections'][number];
 type Field = FormFieldDto & { valueCount?: number };
 
-/** Sections and fields of a Care form (Care → Forms → a form). Changes save right away. */
+/** Sections and fields of a Care form (Customize fields on Intake or Care profiles). Changes save right away. */
 @Component({
   selector: 'app-form-builder',
   standalone: true,

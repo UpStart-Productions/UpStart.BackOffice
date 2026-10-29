@@ -189,38 +189,41 @@ export class ProjectFormPage implements OnInit {
   }
 
   async ngOnInit() {
-    const [clientsData, asanaStatus] = await Promise.all([
-      this.api.get<Client[]>('/clients?journey=CLIENT').catch(() => [] as Client[]),
-      this.api.get<AsanaStatus>('/asana/status').catch(() => null),
-    ]);
-    this.clients.set(clientsData);
-    this.asanaStatus.set(asanaStatus);
-
-    if (asanaStatus?.connected) {
-      await this.loadAsanaProjects();
-    }
-
     const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.id.set(id);
-      try {
-        await this.applyProject(await this.api.get<ProjectResponse>(`/projects/${id}`));
+    try {
+      const [clientsData, asanaStatus, project] = await Promise.all([
+        this.api.get<Client[]>('/clients?journey=CLIENT').catch(() => [] as Client[]),
+        this.api.get<AsanaStatus>('/asana/status').catch(() => null),
+        id
+          ? this.api.get<ProjectResponse>(`/projects/${id}`)
+          : Promise.resolve(null as ProjectResponse | null),
+      ]);
+      this.clients.set(clientsData);
+      this.asanaStatus.set(asanaStatus);
+
+      if (project && id) {
+        this.id.set(id);
+        await this.applyProject(project, { loadAsanaSectionsInBackground: true });
         this.savedSnapshot = this.snapshot();
-      } catch (err) {
-        this.error.set(err instanceof Error ? err.message : 'Failed to load project');
+      } else {
+        this.manualTasks.set(this.defaultTasks());
+        const clientId = this.route.snapshot.queryParamMap.get('clientId');
+        if (clientId) {
+          this.form.clientId = clientId;
+          this.form.defaultExpenseBillable = true;
+        }
       }
-    } else {
-      this.manualTasks.set(this.defaultTasks());
-      const clientId = this.route.snapshot.queryParamMap.get('clientId');
-      if (clientId) {
-        this.form.clientId = clientId;
-        this.form.defaultExpenseBillable = true;
-      }
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to load project');
+    } finally {
+      this.loading.set(false);
     }
-    this.loading.set(false);
   }
 
-  private async applyProject(project: ProjectResponse) {
+  private async applyProject(
+    project: ProjectResponse,
+    opts?: { loadAsanaSectionsInBackground?: boolean },
+  ) {
     this.attribution.set(project.attribution ?? null);
     this.inTaskManager.set(project.inTaskManager === true);
     this.form = {
@@ -242,7 +245,11 @@ export class ProjectFormPage implements OnInit {
     if (project.asanaProjectGid) {
       this.ensureAsanaProjectOption(project.asanaProjectGid, project.asanaProjectName);
       if (this.asanaConnected()) {
-        await this.loadAsanaSections(project.asanaProjectGid);
+        if (opts?.loadAsanaSectionsInBackground) {
+          void this.loadAsanaSections(project.asanaProjectGid);
+        } else {
+          await this.loadAsanaSections(project.asanaProjectGid);
+        }
       }
       this.ensureAsanaSectionOptions(sectionGids, project.asanaSectionName);
     }

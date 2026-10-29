@@ -91,7 +91,7 @@ export const ACTION_LABELS: Record<RoleAction, string> = {
 export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings', 'care'];
 
 /**
- * Areas whose only checkbox is Setup. Care: what a role can read or edit is set per form (Care → Forms),
+ * Areas whose only checkbox is Setup. Care: what a role can read or edit is set per form (Customize fields),
  * and which clients by Clients reach (assigned clients unless Organizations is All).
  */
 export const SETUP_ONLY_AREAS: readonly PermissionArea[] = ['care'];

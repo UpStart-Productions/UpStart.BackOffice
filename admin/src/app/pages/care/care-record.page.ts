@@ -78,7 +78,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         <div class="grid grid-3">
           <div class="stack span-2">
             @if (!r.sections.length) {
-              <div class="card"><p class="m-0">This form has no fields yet. Add them under Care → Forms.</p></div>
+              <div class="card"><p class="m-0">This form has no fields yet. Someone with Care setup can add them with Customize fields on the list page.</p></div>
             }
             @for (s of r.sections; track s.id) {
               @if (s.fields.length) {

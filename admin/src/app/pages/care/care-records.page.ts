@@ -11,6 +11,7 @@ import { TagModule } from 'primeng/tag';
 import type { CareFormAccessLevel, CareFormKind, CareRecordListItemDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CareApi } from '../../core/care.api';
+import { SessionService } from '../../core/session.service';
 import { CARE_KIND_LIST_TITLE } from '../../ui/care-forms/care.types';
 import { PageComponent } from '../../ui/layout/page.component';
 import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
@@ -36,9 +37,14 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
   ],
   template: `
     <app-page [title]="title" [helpKey]="kind === 'INTAKE' ? 'care.intake.page' : 'care.profiles.page'">
-      @if (myAccess() === 'edit') {
-        <p-button pageActions [label]="kind === 'INTAKE' ? 'New intake' : 'New care profile'" icon="pi pi-plus" (onClick)="openNew()" />
-      }
+      <ng-container ngProjectAs="[pageActions]">
+        @if (canSetup() && formId()) {
+          <a pButton label="Customize fields" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', formId()]"></a>
+        }
+        @if (myAccess() === 'edit') {
+          <p-button [label]="kind === 'INTAKE' ? 'New intake' : 'New care profile'" icon="pi pi-plus" (onClick)="openNew()" />
+        }
+      </ng-container>
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
@@ -110,6 +116,7 @@ export class CareRecordsPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
+  private readonly session = inject(SessionService);
 
   readonly kind = (this.route.snapshot.data['kind'] as CareFormKind) ?? 'INTAKE';
   readonly title = CARE_KIND_LIST_TITLE[this.kind];
@@ -122,6 +129,8 @@ export class CareRecordsPage implements OnInit {
   error = signal<string | null>(null);
   tab = signal<'all' | 'pending'>('all');
   query = '';
+
+  readonly canSetup = computed(() => this.session.can('care', 'setup'));
 
   newVisible = false;
   newClientId: string | null = null;

@@ -11,18 +11,6 @@ import type {
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
 
-export type CareFormListItem = {
-  id: string;
-  kind: CareFormKind;
-  name: string;
-  description: string | null;
-  access: CareFormAccess;
-  fieldCount: number;
-  recordCount: number;
-  linkCount: number;
-  myAccess: CareFormAccessLevel | null;
-};
-
 export type CareClientForm = {
   formId: string;
   kind: CareFormKind;
@@ -48,9 +36,6 @@ export class CareApi {
   /** Public intakes waiting for review (nav badge). */
   readonly pendingCount = signal(0);
 
-  forms() {
-    return this.api.get<{ forms: CareFormListItem[]; canSetup: boolean }>('/care/forms');
-  }
   form(id: string) {
     return this.api.get<CareFormDto>(`/care/forms/${id}`);
   }

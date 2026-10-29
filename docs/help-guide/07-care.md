@@ -5,7 +5,7 @@
 ## Who sees what
 
 - The role needs the **Care** area (Users → Roles: Care **All**). **Setup** on Care lets someone change the forms and make public intake links.
-- Each form has **Who can use it** (Care → Forms → a form): **None**, **Read** or **Edit** per role. Admins can always edit.
+- Each form has **Who can use it** (**Customize fields** on Care → Intake or Care → Care profiles): **None**, **Read** or **Edit** per role. Admins can always edit.
 - People only see forms for organizations they can reach: the organizations assigned to them, unless their role has **Organizations: All**.
 
 ## Intake
@@ -36,9 +36,9 @@ On a form page, **Share link → New link** makes a link to that organization's 
 - Changes made through the link save straight to the form. People who can edit the form and reach that organization get a notification (bell, and email unless turned off under Inbox → Notification settings).
 - Use the link's ⋮ menu to **Copy link**, **Open** or **Revoke** it. A revoked link stops working right away.
 
-## Forms (setup)
+## Customize fields (setup)
 
-**Care → Forms** (needs Care Setup) lists the Intake form and Care profile. Open one to:
+On **Care → Intake** and **Care → Care profiles**, people whose role has Care **Setup** see **Customize fields**. It opens that form's setup, where you can:
 
 - Change its **Name** and **Description** (shown at the top of public links), and **Who can use it**. Click **Save** at the top for these.
 - **Fields**: add a section, then **Add field** with a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and **Required** (required on public links; staff can save with it empty). The type can't be changed later. The ⋮ menus edit, move up or down, or delete. Deleting a field removes its answers from every record. **Filled in on** shows how many records have an answer. Field changes save right away.

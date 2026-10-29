@@ -125,7 +125,6 @@ export class ShellComponent implements OnInit {
       ...section('Care', [
         { area: 'care', label: 'Intake', icon: 'pi-inbox', route: '/care/intake', badge: this.care.pendingCount() },
         { area: 'care', label: 'Care profiles', icon: 'pi-id-card', route: '/care/profiles' },
-        ...(this.session.can('care', 'setup') ? [{ area: 'care' as PermissionArea, label: 'Forms', icon: 'pi-list', route: '/care/forms' }] : []),
       ]),
       ...section('Reports', [{ area: 'reports', label: 'Reports', icon: 'pi-chart-line', route: '/reports' }]),
     ];

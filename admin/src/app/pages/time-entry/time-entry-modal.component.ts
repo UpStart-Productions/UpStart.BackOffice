@@ -15,6 +15,7 @@ import {
   parseDurationInput,
   sanitizeDurationInput,
 } from './timesheet.utils';
+import { TmApiService } from '../../task-manager/core/tm-api.service';
 import type { ClientOption, Project, TimeEntry, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
@@ -459,6 +460,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 })
 export class TimeEntryModalComponent {
   private readonly api = inject(ApiService);
+  private readonly tmApi = inject(TmApiService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   visible = false;
@@ -887,13 +889,26 @@ export class TimeEntryModalComponent {
     return { ...row, label: tmTaskLabel(row) };
   }
 
+  private projectInTaskManager(projectId: string): boolean {
+    return this.projects().find((p) => p.id === projectId)?.inTaskManager === true;
+  }
+
   async loadTmTaskOptions(projectId: string, selected?: TimeEntry['task']) {
+    if (!this.projectInTaskManager(projectId)) {
+      this.tmTaskOptions.set([]);
+      return;
+    }
     this.loadingTmTasks.set(true);
     try {
-      const rows = await this.api.get<TmTaskSearchHit[]>(
-        `/tm/tasks/search?projectId=${encodeURIComponent(projectId)}&limit=100`,
-      );
-      let options = rows.map((row) => this.toTmTaskOption(row));
+      const project = this.selectedProject();
+      const rows = await this.tmApi.listTasks(projectId, 'incomplete');
+      const hits: TmTaskSearchHit[] = rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        project: { id: projectId, name: project?.name ?? '' },
+        parent: null,
+      }));
+      let options = hits.map((row) => this.toTmTaskOption(row));
       if (selected && !options.some((o) => o.id === selected.id)) {
         options = [
           this.toTmTaskOption({
