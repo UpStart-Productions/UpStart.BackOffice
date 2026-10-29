@@ -1,7 +1,7 @@
 import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -59,7 +59,6 @@ type Draft = {
   standalone: true,
   imports: [PageComponent, RowActionsMenuComponent, 
     FormsModule,
-    RouterLink,
     ButtonModule,
     InputTextModule,
     MultiSelectModule,

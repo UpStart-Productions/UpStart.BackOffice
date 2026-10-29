@@ -1,5 +1,36 @@
 # Dashboard
 
-Open **Dashboard** from the left nav (home icon).
+Open **Dashboard** from the left nav (home icon). It is the landing page after sign-in and shows what needs you today. You only see the parts your role can use.
 
-The dashboard shows widgets such as time today, invoices, and other summaries depending on configuration. Use it as the landing page after sign-in.
+## Mine / Everyone's
+
+The **Mine / Everyone's** switch at the top right changes the Activity counts and lists (Needs reply, Next steps, Gone quiet, Unfiled) and the invoice figures. **Mine** shows your items and the invoices you created; **Everyone's** shows the whole team's. **My tasks** and **My time** always show your own.
+
+## Count cards
+
+The cards across the top open the matching list:
+
+- **Needs reply**: emails waiting on an answer. Opens **Activity**.
+- **Next steps due**: next steps that are overdue or due today. Opens **Activity** on **Next steps**.
+- **Tasks due**: your tasks that are overdue or due today. Opens **Tasks**.
+- **Overdue invoices**: sent invoices past their due date. Opens **Invoices**.
+- **Unfiled**: captured email that still needs filing. Opens **Activity** on **Unfiled**.
+
+## Cards
+
+Each card has an icon and title in its header, and a **⋯** handle for moving it. Click the card's title to open the full list.
+
+
+- **My tasks**: your tasks due in the next week, overdue first. Click a task to open it.
+- **Next steps**: next steps due in the next week. Click the organization or pipeline card to open it.
+- **Needs reply**: the oldest emails waiting on an answer.
+- **My time**: a running timer (with a stop button), and your hours today and this week.
+- **Invoices**: amount outstanding, overdue amount, drafts to send, and the unpaid invoices that have a due date, soonest first.
+- **Upcoming bookings**: confirmed bookings in the next week.
+- **Gone quiet**: active clients nobody has contacted in a while.
+
+Each card shows the first few items; click its title to see the rest.
+
+## Rearranging
+
+Drag a card by the **⋯** handle in its header to move it. Your order is remembered on this computer and browser.

@@ -53,25 +53,25 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
           <p class="text-color-secondary mt-0 mb-0 text-sm"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
         } @else if (preview().length > 0) {
           @if (openCount() > previewLimit) {
-            <p class="text-color-secondary mt-0 mb-0 text-sm project-work-task-meta">
-              {{ openCount() }} open · showing {{ previewLimit }} by due date
+            <p class="side-list-note">
+              {{ openCount() }} open, showing {{ previewLimit }} by due date
             </p>
           }
-          <div class="project-work-task-list">
+          <div class="side-list">
             @for (task of preview(); track task.id) {
-              <div class="project-work-task-row">
+              <div class="side-list-row">
                 <app-tm-avatar [person]="task.assignee" [size]="28" />
-                <div class="project-work-task-body">
-                  <a class="project-work-task-title" [routerLink]="taskLink(task.id)">{{ task.name }}</a>
+                <div class="side-list-body">
+                  <a class="side-list-title" [routerLink]="taskLink(task.id)">{{ task.name }}</a>
                 </div>
                 @if (dueText(task); as due) {
-                  <span class="project-work-task-due" [class]="dueToneClass(task)">{{ due }}</span>
+                  <span class="side-list-value" [class]="dueToneClass(task)">{{ due }}</span>
                 }
               </div>
             }
           </div>
         } @else {
-          <p class="text-color-secondary mt-0 mb-0">No open tasks.</p>
+          <p class="side-list-empty">No open tasks.</p>
         }
       </div>
     }
@@ -120,7 +120,7 @@ export class ProjectWorkTasksPreviewComponent {
 
   dueToneClass(task: TaskSummary): string {
     const tone = dueTone(task.dueOn, task.isCompleted);
-    return tone === 'none' ? '' : `project-work-task-due--${tone}`;
+    return tone === 'none' ? '' : `side-list-value--${tone}`;
   }
 
   private async load(projectId: string) {

@@ -1,0 +1,19 @@
+---
+description: NEVER use a colored left border (accent stripe) on cards, panels, banners, list rows or callouts
+alwaysApply: true
+---
+
+# No colored left borders
+
+**NEVER** use the colored left-border "accent stripe" trick anywhere in the UI: no `border-left: 3px solid <color>`, no `border-left-color` per variant, no `box-shadow: inset 3px 0 …` or `::before` bar that fakes one.
+
+This applies to cards, count/stat cards, panels, banners, alerts, callouts, list rows and table rows.
+
+To mark a type or status, use one of these instead:
+
+- An icon colored with a severity token (`--color-severity-*-text`)
+- A tinted background (`--color-severity-*-bg`)
+- A `p-tag`
+- The **icon rail**: a 30px solid colored column on the left of the card with the icon centered in white, and the content to its right. Use `app-queue-card` with `accent` + `icon` (styles in `_queue-cards.scss`). This is a real column, not a stripe, and is the only allowed colored left edge.
+
+Existing uses are legacy. Do not copy them, and remove the stripe when you touch that code.

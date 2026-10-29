@@ -1,0 +1,153 @@
+/*
+ * Dashboard panel grid with drag-to-reorder (CDK, mixed orientation). Panels: app-dashboard-panel.
+ * Slots span 1 or 2 of 3 columns; panels in the same row stretch to the same height.
+ */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  min-width: 0;
+}
+
+.dashboard-grid-slot {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--content-border-radius);
+
+  &--wide {
+    grid-column: span 2;
+  }
+}
+
+/* The panel while it follows the pointer. */
+.dashboard-grid-slot.cdk-drag-preview {
+  box-sizing: border-box;
+  opacity: 0.95;
+  border-radius: var(--content-border-radius);
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* Where it will land. */
+.dashboard-grid-slot.cdk-drag-placeholder {
+  background: var(--color-severity-info-bg);
+  opacity: 0.6;
+}
+
+.dashboard-grid-slot.cdk-drag-animating,
+.dashboard-grid.cdk-drop-list-dragging .dashboard-grid-slot:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-grid-slot--wide {
+    grid-column: span 1;
+  }
+}
+
+/* ── Panel contents ─────────────────────────────────────────────────────── */
+
+/* Two figures side by side (My time, Invoices). */
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.dashboard-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--p-content-hover-background, #f3f4f6);
+}
+
+.dashboard-stat-label {
+  color: var(--text-color-secondary);
+}
+
+.dashboard-stat-value {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+
+.dashboard-stat--danger {
+  background: var(--color-severity-danger-bg);
+
+  .dashboard-stat-value {
+    color: var(--color-severity-danger-text);
+  }
+}
+
+/* Running timer banner (My time). */
+.dashboard-timer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.5rem 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--color-severity-success-bg);
+}
+
+.dashboard-timer-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--color-severity-success-text);
+}
+
+.dashboard-timer-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-severity-success-text);
+  animation: dashboard-timer-pulse 1.6s ease-in-out infinite;
+}
+
+.dashboard-timer-elapsed {
+  flex-shrink: 0;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-severity-success-text);
+}
+
+@keyframes dashboard-timer-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-timer-dot {
+    animation: none;
+  }
+}
+
+/* "N more in …" under a list. */
+.side-list-more {
+  margin-top: 0.75rem;
+}

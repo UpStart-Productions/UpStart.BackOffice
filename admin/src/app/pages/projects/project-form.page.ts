@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -74,7 +74,6 @@ type ProjectResponse = {
     NgTemplateOutlet,
     HelpTextComponent,
     FormsModule,
-    RouterLink,
     ButtonModule,
     InputTextModule,
     MessageModule,

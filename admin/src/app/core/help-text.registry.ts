@@ -152,6 +152,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Lowercase letters, numbers and dashes. Also used for email capture (slug@in.…).',
   'tenant.internalDomains':
     'Comma separated. Email from these domains is treated as the team, not contacts.',
+  'dashboard.page':
+    "What needs you today: emails waiting for a reply, next steps and tasks due, overdue invoices, your time and upcoming bookings. Mine / Everyone's switches the Activity and invoice figures.",
   'activity.page':
     "To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. All activity is every email, call, meeting and note. Pick an organization or person to narrow both.",
   'settings.activity.needsReplyDays':

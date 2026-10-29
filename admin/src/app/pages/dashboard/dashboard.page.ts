@@ -1,348 +1,397 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { DragDropModule } from 'primeng/dragdrop';
+import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { Component, computed, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { MessageService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { areaLevel, type PermissionArea } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
-import { PipelinesApi, type PipelineSummary } from '../../core/pipelines.api';
+import { ActivityQueues, CommunicationsApi, QueueRow, relativeTime } from '../../core/communications.api';
 import { SessionService } from '../../core/session.service';
+import { lastContactLabel } from '../../core/staleness.util';
+import { TmApiService } from '../../task-manager/core/tm-api.service';
+import { addDaysKey, dueLabel, dueTone, todayKey } from '../../task-manager/core/tm-format.util';
+import { MyTask } from '../../task-manager/core/tm.types';
+import { DashboardPanelComponent } from '../../ui/dashboard-panel/dashboard-panel.component';
 import { PageComponent } from '../../ui/layout/page.component';
-import {
-  DashboardWidgetComponent,
-  type DashboardWidgetHeight,
-  type DashboardWidgetSpan,
-} from '../../ui/dashboard-widget/dashboard-widget.component';
-import {
-  DashboardInvoicesWidgetComponent,
-  DashboardPipelineWidgetComponent,
-  DashboardProjectsWidgetComponent,
-  DashboardTimeTodayWidgetComponent,
-} from '../../ui/dashboard-widgets';
-import type { Lead } from '../pipeline/pipeline-board.page';
+import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
+import { invoiceDueFlag, isUnpaidInvoiceStatus, sortInvoicesForAttention } from '../invoices/invoice-status.util';
 import type { TimeEntry } from '../time-entry/time-entry.types';
-import {
-  dateKey,
-  endOfWeek,
-  formatDurationMin,
-  startOfWeek,
-} from '../time-entry/timesheet.utils';
+import { addDays, dateKey, endOfWeek, formatDurationMin, formatElapsed, startOfWeek } from '../time-entry/timesheet.utils';
 
-const STORAGE_KEY = 'admin-dashboard-widget-order';
-
-export interface DashboardWidgetConfig {
-  id: string;
-  title: string;
-  icon?: string;
-  iconColor?: 'primary' | 'success' | 'info' | 'warning' | 'danger';
-  span: DashboardWidgetSpan;
-  height: DashboardWidgetHeight;
-}
-
-const DEFAULT_WIDGET_ORDER = ['time-today', 'pipeline', 'invoices', 'projects'];
-
-const DROPPABLE_SCOPE: string[] = [...DEFAULT_WIDGET_ORDER];
-
-/** The area each widget needs; widgets for areas the user's role doesn't grant are hidden (and not loaded). */
-const WIDGET_AREA: Record<string, PermissionArea> = {
-  'time-today': 'time',
-  pipeline: 'pipeline',
-  invoices: 'invoices',
-  projects: 'projects',
-};
-
-const WIDGET_CONFIGS: DashboardWidgetConfig[] = [
-  {
-    id: 'time-today',
-    title: 'Time',
-    icon: 'pi-clock',
-    iconColor: 'primary',
-    span: 1,
-    height: 'tall',
-  },
-  {
-    id: 'pipeline',
-    title: 'Pipeline',
-    icon: 'pi-chart-bar',
-    iconColor: 'success',
-    span: 1,
-    height: 'tall',
-  },
-  {
-    id: 'invoices',
-    title: 'Invoices',
-    icon: 'pi-receipt',
-    iconColor: 'warning',
-    span: 1,
-    height: 'short',
-  },
-  {
-    id: 'projects',
-    title: 'Active Projects',
-    icon: 'pi-briefcase',
-    iconColor: 'info',
-    span: 2,
-    height: 'short',
-  },
-];
+/** How many rows each card lists before "Open in …" takes over. */
+const LIST_LIMIT = 6;
+/** Tasks, next steps and bookings this many days ahead count as coming up. */
+const LOOKAHEAD_DAYS = 7;
 
 type Invoice = {
   id: string;
-  number: number;
+  number?: number;
   displayNumber: string;
   status: string;
   issueDate: string;
-  dueDate?: string;
-  total: number;
+  dueDate?: string | null;
+  total: number | string;
+  amountPaid?: number | string | null;
   billToName?: string | null;
   client: { id: string; name: string } | null;
+  createdBy?: { id: string } | null;
 };
 
-type Project = {
+type Booking = {
   id: string;
-  name: string;
-  isActive?: boolean;
-  client: { id: string; name: string } | null;
+  startAt: string;
+  status: 'CONFIRMED' | 'CANCELLED';
+  guestName: string;
+  guestOrg: string | null;
+  bookingType: { id: string; name: string } | null;
 };
 
+type PanelId = 'tasks' | 'time' | 'nextSteps' | 'invoices' | 'replies' | 'quiet' | 'bookings';
+type Panel = { id: PanelId; area: PermissionArea; wide: boolean };
+
+/** Default order. Wide panels take 2 of 3 columns. */
+const PANELS: Panel[] = [
+  { id: 'tasks', area: 'tasks', wide: true },
+  { id: 'time', area: 'time', wide: false },
+  { id: 'nextSteps', area: 'inbox', wide: true },
+  { id: 'invoices', area: 'invoices', wide: false },
+  { id: 'replies', area: 'inbox', wide: true },
+  { id: 'quiet', area: 'inbox', wide: false },
+  { id: 'bookings', area: 'bookings', wide: false },
+];
+
+/** Each person's panel order, per browser (same approach as Task Manager board prefs). */
+const ORDER_KEY = 'ubo-dashboard-panel-order:v1';
+
+type Section<T> = { loading: boolean; error: string | null; data: T };
+
+function section<T>(data: T): Section<T> {
+  return { loading: true, error: null, data };
+}
+
+function errorText(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
+/** Due-date tone → .side-list-value modifier. */
+function toneClass(tone: string): string {
+  return tone === 'overdue' || tone === 'today' || tone === 'soon' ? `side-list-value--${tone}` : '';
+}
+
+/**
+ * Dashboard: what needs the signed-in person today. Count cards open the matching queue or list; the cards below
+ * show the top few items. Every section is gated by the role's areas. Mine / Everyone's applies to Activity
+ * queues and invoices; tasks and time are always your own.
+ */
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [
-    PageComponent,
-    DashboardWidgetComponent,
-    DashboardTimeTodayWidgetComponent,
-    DashboardPipelineWidgetComponent,
-    DashboardInvoicesWidgetComponent,
-    DashboardProjectsWidgetComponent,
-    DragDropModule,
-  ],
+  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, ButtonModule, SelectButtonModule, DashboardPanelComponent, PageComponent, QueueCardComponent],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
+  private readonly comms = inject(CommunicationsApi);
+  private readonly tm = inject(TmApiService);
   private readonly session = inject(SessionService);
+  private readonly toast = inject(MessageService);
 
-  /** Whether the user's role grants an area (admins: always). */
+  readonly scopeOptions = [
+    { label: 'Mine', value: true },
+    { label: "Everyone's", value: false },
+  ];
+  readonly mine = signal(true);
+
+  readonly queues = signal<Section<ActivityQueues | null>>(section(null));
+  readonly tasks = signal<Section<MyTask[]>>(section([]));
+  readonly time = signal<Section<TimeEntry[]>>(section([]));
+  readonly invoices = signal<Section<Invoice[]>>(section([]));
+  readonly bookings = signal<Section<Booking[]>>(section([]));
+
+  /** Ticks every second so the running timer counts up. */
+  private readonly tick = signal(0);
+  private timer: ReturnType<typeof setInterval> | null = null;
+  readonly stopping = signal(false);
+
+  readonly listLimit = LIST_LIMIT;
+
+  // ── Access ───────────────────────────────────────────────────────────────
+
   can(area: PermissionArea): boolean {
     return !!areaLevel(this.session.me(), area);
   }
 
-  private timerInterval: ReturnType<typeof setInterval> | null = null;
-  protected readonly tick = signal(0);
+  /** The toggle only matters when the role can see other people's queues or invoices. */
+  readonly showScope = computed(() => this.can('inbox') || areaLevel(this.session.me(), 'invoices') === 'all');
 
-  readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-
-  readonly clientsCount = signal(0);
-  readonly projectsCount = signal(0);
-  readonly openLeadsCount = signal(0);
-  readonly weekHoursLabel = signal('0:00');
-
-  readonly timeEntries = signal<TimeEntry[]>([]);
-  readonly leads = signal<Lead[]>([]);
-  readonly pipelines = signal<PipelineSummary[]>([]);
-  private readonly pipelinesApi = inject(PipelinesApi);
-  readonly invoices = signal<Invoice[]>([]);
-  readonly projects = signal<Project[]>([]);
-
-  readonly timeLoading = signal(true);
-  readonly pipelineLoading = signal(true);
-  readonly invoicesLoading = signal(true);
-  readonly projectsLoading = signal(true);
-
-  readonly timeError = signal<string | null>(null);
-  readonly pipelineError = signal<string | null>(null);
-  readonly invoicesError = signal<string | null>(null);
-  readonly projectsError = signal<string | null>(null);
+  // ── Panels (drag to reorder) ─────────────────────────────────────────────
 
   private readonly savedOrder = signal<string[]>([]);
 
-  readonly orderedWidgets = computed(() => {
-    const saved = this.savedOrder();
-    const allowed = WIDGET_CONFIGS.filter((w) => this.can(WIDGET_AREA[w.id]));
-    if (saved.length === 0) return allowed;
-    const orderMap = new Map(saved.map((id, i) => [id, i]));
-    const maxOrder = WIDGET_CONFIGS.length;
-    return [...allowed].sort((a, b) => {
-      const aOrder = orderMap.has(a.id) ? orderMap.get(a.id)! : maxOrder;
-      const bOrder = orderMap.has(b.id) ? orderMap.get(b.id)! : maxOrder;
-      return aOrder - bOrder;
+  /** Panels the role can use, in the person's saved order; new panels go after, in default order. */
+  readonly panels = computed(() => {
+    const allowed = PANELS.filter((p) => this.can(p.area));
+    const rank = new Map(this.savedOrder().map((id, i) => [id, i]));
+    return allowed
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => (rank.get(a.p.id) ?? PANELS.length + a.i) - (rank.get(b.p.id) ?? PANELS.length + b.i))
+      .map(({ p }) => p);
+  });
+
+  onPanelDrop(event: CdkDragDrop<Panel[]>) {
+    if (event.previousIndex === event.currentIndex) return;
+    const ids = this.panels().map((p) => p.id);
+    moveItemInArray(ids, event.previousIndex, event.currentIndex);
+    this.savedOrder.set(ids);
+    try {
+      localStorage.setItem(this.orderKey(), JSON.stringify(ids));
+    } catch {
+      // Order just won't be remembered.
+    }
+  }
+
+  private loadOrder() {
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(this.orderKey()) ?? '[]');
+      if (Array.isArray(parsed)) this.savedOrder.set(parsed.filter((x): x is string => typeof x === 'string'));
+    } catch {
+      // Ignore bad stored data.
+    }
+  }
+
+  private orderKey(): string {
+    return `${ORDER_KEY}:${this.session.me()?.id ?? 'anon'}`;
+  }
+
+  // ── Activity queues ──────────────────────────────────────────────────────
+
+  readonly counts = computed(() => this.queues().data?.counts ?? null);
+  readonly needsReplyDays = computed(() => this.queues().data?.thresholds.needsReplyDays ?? 2);
+
+  readonly nextSteps = computed<QueueRow[]>(() => {
+    const horizon = addDaysKey(todayKey(), LOOKAHEAD_DAYS);
+    return (this.queues().data?.nextStep ?? []).filter((r) => r.overdue || r.dueToday || (r.at && dateKey(new Date(r.at)) <= horizon));
+  });
+  readonly replies = computed(() => this.queues().data?.reply ?? []);
+  readonly quiet = computed(() => this.queues().data?.quiet ?? []);
+
+  // ── Tasks (always mine) ──────────────────────────────────────────────────
+
+  readonly upcomingTasks = computed(() => {
+    const horizon = addDaysKey(todayKey(), LOOKAHEAD_DAYS);
+    return this.tasks()
+      .data.filter((t) => !t.isCompleted && t.dueOn && t.dueOn <= horizon)
+      .sort((a, b) => (a.dueOn ?? '').localeCompare(b.dueOn ?? '') || a.name.localeCompare(b.name));
+  });
+  readonly tasksDueCount = computed(() => {
+    const today = todayKey();
+    return this.tasks().data.filter((t) => !t.isCompleted && t.dueOn && t.dueOn <= today).length;
+  });
+
+  // ── Time (always mine) ───────────────────────────────────────────────────
+
+  readonly runningEntry = computed(() => this.time().data.find((e) => !e.stoppedAt) ?? null);
+  readonly elapsedLabel = computed(() => {
+    this.tick();
+    const running = this.runningEntry();
+    return running ? formatElapsed(Date.now() - new Date(running.startedAt).getTime()) : '';
+  });
+  readonly todayLabel = computed(() => formatDurationMin(this.minutesSince(dateKey(new Date()))));
+  readonly weekLabel = computed(() => formatDurationMin(this.minutesSince(dateKey(startOfWeek(new Date())))));
+
+  // ── Invoices (Mine = ones you created) ───────────────────────────────────
+
+  readonly scopedInvoices = computed(() => {
+    const all = this.invoices().data;
+    const me = this.session.me()?.id;
+    return this.mine() && me ? all.filter((i) => i.createdBy?.id === me) : all;
+  });
+  private readonly openInvoices = computed(() => this.scopedInvoices().filter((i) => i.status === 'SENT' && isUnpaidInvoiceStatus(i.status)));
+  readonly outstandingTotal = computed(() => this.openInvoices().reduce((sum, i) => sum + this.balance(i), 0));
+  readonly overdueInvoices = computed(() => this.openInvoices().filter((i) => invoiceDueFlag(i.dueDate, i.status) === 'overdue'));
+  readonly overdueTotal = computed(() => this.overdueInvoices().reduce((sum, i) => sum + this.balance(i), 0));
+  readonly draftCount = computed(() => this.scopedInvoices().filter((i) => i.status === 'DRAFT').length);
+  readonly attentionInvoices = computed(() => sortInvoicesForAttention(this.openInvoices().filter((i) => !!i.dueDate)));
+
+  // ── Bookings ─────────────────────────────────────────────────────────────
+
+  readonly upcomingBookings = computed(() => {
+    const now = Date.now();
+    const horizon = addDays(new Date(), LOOKAHEAD_DAYS).getTime();
+    return this.bookings().data.filter((b) => {
+      const t = new Date(b.startAt).getTime();
+      return b.status === 'CONFIRMED' && t >= now && t <= horizon;
     });
   });
 
-  readonly droppableScope = DROPPABLE_SCOPE;
+  constructor() {
+    // Mine / Everyone's re-reads the queues; invoices filter in place.
+    effect(() => {
+      const mine = this.mine();
+      untracked(() => {
+        if (this.can('inbox')) void this.loadQueues(mine);
+      });
+    });
+  }
 
   ngOnInit() {
-    this.loadSavedOrder();
-    this.timerInterval = setInterval(() => this.tick.update((n) => n + 1), 1000);
-    void this.loadAll();
+    this.loadOrder();
+    this.timer = setInterval(() => this.tick.update((n) => n + 1), 1000);
+    if (this.can('tasks')) void this.loadTasks();
+    if (this.can('time')) void this.loadTime();
+    if (this.can('invoices')) void this.loadInvoices();
+    if (this.can('bookings')) void this.loadBookings();
   }
 
   ngOnDestroy() {
-    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.timer) clearInterval(this.timer);
   }
 
-  onWidgetDrop(event: DragEvent, targetWidgetId: string) {
-    const draggedId = event.dataTransfer?.getData('text');
-    if (!draggedId || draggedId === targetWidgetId) return;
+  // ── Actions ──────────────────────────────────────────────────────────────
 
-    const ids = this.orderedWidgets().map((w) => w.id);
-    const fromIdx = ids.indexOf(draggedId);
-    const toIdx = ids.indexOf(targetWidgetId);
-    if (fromIdx === -1 || toIdx === -1) return;
-
-    const reordered = [...ids];
-    reordered.splice(fromIdx, 1);
-    reordered.splice(toIdx, 0, draggedId);
-    this.saveOrder(reordered);
-  }
-
-  private loadSavedOrder() {
+  async stopTimer() {
+    const running = this.runningEntry();
+    if (!running || this.stopping()) return;
+    this.stopping.set(true);
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as string[];
-        if (Array.isArray(parsed) && parsed.every((x) => typeof x === 'string')) {
-          this.savedOrder.set(parsed);
-        }
-      }
-    } catch {
-      // ignore invalid stored data
-    }
-  }
-
-  private saveOrder(order: string[]) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
-      this.savedOrder.set(order);
-    } catch {
-      // ignore storage errors
-    }
-  }
-
-  private async loadAll() {
-    this.loading.set(true);
-    this.error.set(null);
-
-    await Promise.all([
-      this.can('time') ? this.loadTimeEntries() : this.timeLoading.set(false),
-      this.can('pipeline') ? this.loadLeads() : this.pipelineLoading.set(false),
-      this.can('invoices') ? this.loadInvoices() : this.invoicesLoading.set(false),
-      this.can('projects') ? this.loadProjects() : this.projectsLoading.set(false),
-      this.can('clients') ? this.loadClients() : undefined,
-    ]);
-
-    this.loading.set(false);
-  }
-
-  private async loadClients() {
-    try {
-      const data = await this.api.get<{ id: string }[]>('/clients?journey=CLIENT');
-      this.clientsCount.set(data.length);
-    } catch {
-      // non-critical for dashboard shell
-    }
-  }
-
-  private async loadProjects() {
-    this.projectsLoading.set(true);
-    this.projectsError.set(null);
-    try {
-      const data = await this.api.get<Project[]>('/projects');
-      this.projects.set(data);
-      this.projectsCount.set(data.filter((p) => p.isActive !== false).length);
+      await this.api.post(`/time-entries/${running.id}/stop`);
+      await this.loadTime();
     } catch (err) {
-      this.projectsError.set(err instanceof Error ? err.message : 'Failed to load projects');
+      this.toast.add({ severity: 'error', summary: 'Could not stop timer', detail: errorText(err, 'Failed') });
     } finally {
-      this.projectsLoading.set(false);
+      this.stopping.set(false);
     }
   }
 
-  private async loadLeads() {
-    this.pipelineLoading.set(true);
-    this.pipelineError.set(null);
+  // ── Labels ───────────────────────────────────────────────────────────────
+
+  taskDue(t: MyTask): string {
+    return dueLabel(t.dueOn);
+  }
+
+  taskTone(t: MyTask): string {
+    return toneClass(dueTone(t.dueOn, t.isCompleted));
+  }
+
+  nextStepDue(r: QueueRow): string {
+    return r.at ? dueLabel(dateKey(new Date(r.at))) : 'No date';
+  }
+
+  nextStepTone(r: QueueRow): string {
+    return r.overdue ? toneClass('overdue') : r.dueToday ? toneClass('today') : '';
+  }
+
+  nextStepDetail(r: QueueRow): string {
+    return !this.mine() && r.owner ? `${r.title}, ${r.owner}` : r.title;
+  }
+
+  replyDetail(r: QueueRow): string {
+    return r.clientId && r.person ? `${r.person}: ${r.title}` : r.title;
+  }
+
+  invoiceBalance(i: Invoice): number {
+    return this.balance(i);
+  }
+
+  waiting(r: QueueRow): string {
+    return r.at ? relativeTime(r.at) : '';
+  }
+
+  lastContact(r: QueueRow): string {
+    return lastContactLabel(r.at);
+  }
+
+  invoiceDue(i: Invoice): string {
+    return i.dueDate ? dueLabel(dateKey(new Date(i.dueDate))) : '';
+  }
+
+  invoiceTone(i: Invoice): string {
+    return invoiceDueFlag(i.dueDate, i.status) === 'overdue' ? toneClass('overdue') : '';
+  }
+
+  bookingWhen(b: Booking): string {
+    const d = new Date(b.startAt);
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${dueLabel(dateKey(d))} ${time}`;
+  }
+
+  money(n: number): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+  }
+
+  plural(n: number, word: string): string {
+    return `${n} ${word}${n === 1 ? '' : 's'}`;
+  }
+
+  private balance(i: Invoice): number {
+    return Math.max(0, Number(i.total ?? 0) - Number(i.amountPaid ?? 0));
+  }
+
+  /** Minutes logged from a day (YYYY-MM-DD) through now, counting the running timer. */
+  private minutesSince(fromKey: string): number {
+    this.tick();
+    let total = 0;
+    for (const e of this.time().data) {
+      if (dateKey(new Date(e.startedAt)) < fromKey) continue;
+      total += e.stoppedAt ? (e.durationMin ?? 0) : Math.max(0, Math.round((Date.now() - new Date(e.startedAt).getTime()) / 60_000));
+    }
+    return total;
+  }
+
+  // ── Loading ──────────────────────────────────────────────────────────────
+
+  private async loadQueues(mine: boolean) {
+    this.queues.update((s) => ({ ...s, loading: true, error: null }));
     try {
-      // Everything on the board counts as open; archived cards are not returned.
-      const [data, pipelines] = await Promise.all([
-        this.api.get<Lead[]>('/leads'),
-        this.pipelinesApi.list().catch(() => [] as PipelineSummary[]),
-      ]);
-      this.leads.set(data);
-      this.pipelines.set(pipelines);
-      this.openLeadsCount.set(data.length);
+      const data = await this.comms.queues({ mine });
+      this.queues.set({ loading: false, error: null, data });
     } catch (err) {
-      this.pipelineError.set(err instanceof Error ? err.message : 'Failed to load pipeline');
-    } finally {
-      this.pipelineLoading.set(false);
+      this.queues.set({ loading: false, error: errorText(err, 'Could not load Activity'), data: null });
+    }
+  }
+
+  private async loadTasks() {
+    try {
+      this.tasks.set({ loading: false, error: null, data: await this.tm.myTasks() });
+    } catch (err) {
+      this.tasks.set({ loading: false, error: errorText(err, 'Could not load tasks'), data: [] });
+    }
+  }
+
+  /**
+   * Your entries from a week before this week starts, so a timer left running over the weekend still shows.
+   * Today and This week only count entries from their own start dates.
+   */
+  private async loadTime() {
+    try {
+      const weekStart = startOfWeek(new Date());
+      const from = addDays(weekStart, -7).toISOString();
+      const to = endOfWeek(weekStart).toISOString();
+      const me = this.session.me()?.id;
+      const user = me ? `&userId=${encodeURIComponent(me)}` : '';
+      const data = await this.api.get<TimeEntry[]>(`/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${user}`);
+      this.time.set({ loading: false, error: null, data });
+    } catch (err) {
+      this.time.set({ loading: false, error: errorText(err, 'Could not load time'), data: [] });
     }
   }
 
   private async loadInvoices() {
-    this.invoicesLoading.set(true);
-    this.invoicesError.set(null);
     try {
-      const data = await this.api.get<Invoice[]>('/invoices');
-      this.invoices.set(data);
+      this.invoices.set({ loading: false, error: null, data: await this.api.get<Invoice[]>('/invoices') });
     } catch (err) {
-      this.invoicesError.set(err instanceof Error ? err.message : 'Failed to load invoices');
-    } finally {
-      this.invoicesLoading.set(false);
+      this.invoices.set({ loading: false, error: errorText(err, 'Could not load invoices'), data: [] });
     }
   }
 
-  private async loadTimeEntries() {
-    this.timeLoading.set(true);
-    this.timeError.set(null);
+  private async loadBookings() {
     try {
-      const weekStart = startOfWeek(new Date());
-      const from = weekStart.toISOString();
-      const to = endOfWeek(weekStart).toISOString();
-      let data = await this.api.get<TimeEntry[]>(
-        `/time-entries?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${this.myUserQuery('&')}`,
-      );
-      if (!data.some((e) => !e.stoppedAt)) {
-        const all = await this.api.get<TimeEntry[]>(`/time-entries${this.myUserQuery('?')}`);
-        const active = all.find((e) => !e.stoppedAt);
-        if (active && !data.some((e) => e.id === active.id)) {
-          data = [active, ...data];
-        }
-      }
-      this.timeEntries.set(data);
-      this.weekHoursLabel.set(formatDurationMin(this.computeWeekMinutes(data)));
+      const data = await this.api.get<Booking[]>('/booking/admin/bookings?status=CONFIRMED');
+      this.bookings.set({ loading: false, error: null, data });
     } catch (err) {
-      this.timeError.set(err instanceof Error ? err.message : 'Failed to load time entries');
-    } finally {
-      this.timeLoading.set(false);
+      this.bookings.set({ loading: false, error: errorText(err, 'Could not load bookings'), data: [] });
     }
-  }
-
-  /** The dashboard shows the signed-in user's own time, even for roles that can see everyone's. */
-  private myUserQuery(sep: '?' | '&'): string {
-    const id = this.session.me()?.id;
-    return id ? `${sep}userId=${encodeURIComponent(id)}` : '';
-  }
-
-  private computeWeekMinutes(entries: TimeEntry[]): number {
-    const weekStart = startOfWeek(new Date());
-    const weekKeys = new Set(
-      Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(weekStart);
-        d.setDate(d.getDate() + i);
-        return dateKey(d);
-      }),
-    );
-    const running = entries.find((e) => !e.stoppedAt);
-    let total = 0;
-    for (const e of entries) {
-      const key = dateKey(new Date(e.startedAt));
-      if (!weekKeys.has(key)) continue;
-      if (!e.stoppedAt) {
-        if (e.id === running?.id) {
-          const ms = Date.now() - new Date(e.startedAt).getTime();
-          total += Math.max(0, Math.round(ms / 60_000));
-        }
-      } else {
-        total += e.durationMin ?? 0;
-      }
-    }
-    return total;
   }
 }

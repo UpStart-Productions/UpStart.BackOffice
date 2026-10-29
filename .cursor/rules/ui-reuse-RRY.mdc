@@ -13,6 +13,12 @@ Before adding or changing any user-facing control (picker, modal, form block, ta
 2. **Refactor early** — The **second** time the same control appears (even with small visual differences), extract the shared piece **in that same change**. Do not “match later,” “standardize in a follow-up,” or leave one-off `p-select` / dialog markup because the screen is slightly different.
 3. **Yield one implementation** — One component for presentation, one loader/service for data if needed, one set of styles (component + shared panel class). Callers pass inputs; they do not reimplement row templates, filter fields, or API merge logic.
 
+## Styles too
+
+Use what already exists before writing CSS: the shared app classes and PrimeNG components (`p-tag`, `p-button`, `p-message`, …). Do not hand-style a badge, pill, tag or button look-alike.
+
+**Count badge (canonical):** the global `.count-badge` in `assets/layout/_app.scss` (purple pill by default; color modifiers `--info` (light blue), `--success`, `--warning`, `--danger`, and `--muted` for zero). Used by the left nav, the Task Manager sidebar, and `app-queue-card`. Add a local class only to position it (e.g. `.nav-badge { margin-left: auto; }`). Do not use `p-badge` for counts. Only write new styles when nothing existing fits, and call it out.
+
 ## Anti-patterns (do not do this)
 
 - Same picker/modal pattern copy-pasted across feature folders with tweaked CSS or subtitle text.
@@ -49,3 +55,22 @@ Do not add another people side panel, `people-card`, or inline pickers on featur
 - **Usage:** `period = signal(defaultPeriod())`, then `<app-period-picker idPrefix="x" [(value)]="period" />`; resolve dates with `resolveReportPeriod(this.period())`.
 - **Math:** `admin/src/app/core/period.util.ts` (`pages/reports/report-period.util.ts` only re-exports it).
 - Used on Reports, invoice Generate from time, and Expenses. Do not add another month/quarter/range picker.
+
+## Queue count cards (canonical)
+
+- **Control:** `app-queue-card` (`admin/src/app/ui/queue-card/queue-card.component.ts`) inside `<div class="queue-grid">`; styles in `assets/layout/_queue-cards.scss`.
+- With `link` (+ `queryParams`) it opens a page (Dashboard); without it, it is a toggle that emits `pick` (Activity → To do).
+- Do not hand-build another label + count badge card.
+
+## Card row lists (canonical)
+
+- Rows inside a `card` / `card card--side`: `.side-list` > `.side-list-row` > `.side-list-body` (`.side-list-title`, `.side-list-detail`) + `.side-list-value` (`--strong`, `--overdue`, `--today`, `--soon`). Empty or loading text: `.side-list-empty`. Styles in `assets/layout/_grid.scss`.
+- `a.side-list-title` is excluded from the global link underline (underlines on hover only).
+- Used by the Dashboard cards and the project Tasks preview. Do not add another per-component copy of this row.
+
+## Dashboard panels (canonical)
+
+- **Panel:** `app-dashboard-panel` (`admin/src/app/ui/dashboard-panel/dashboard-panel.component.ts`): card with a header bar (colored icon tile, title that links to the full list with no underline, ⋯ drag handle). Body rows use `.side-list`.
+- **Grid + drag:** `.dashboard-grid` / `.dashboard-grid-slot` (`--wide` spans 2 of 3) with CDK `cdkDropList cdkDropListOrientation="mixed"`; styles and panel-content classes (`.dashboard-stats`, `.dashboard-timer`) in `assets/layout/_dashboard.scss`. Order is saved per user in localStorage.
+- Icon colors: info, success, warning, danger, neutral. Never purple (reserved for action buttons).
+

@@ -179,15 +179,9 @@ $tm-detail-width: min(42rem, 48vw);
   text-overflow: ellipsis;
 }
 
+/* Look comes from the global .count-badge; this only places it. */
 .tm-nav-badge {
   margin-left: auto;
-  background: var(--brand-primary);
-  color: #fff;
-  border-radius: 999px;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  padding: 0 0.45rem;
-  line-height: 1.25rem;
 }
 
 .tm-nav-group {

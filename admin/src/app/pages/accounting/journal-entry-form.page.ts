@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -19,7 +19,7 @@ type LineDraft = { accountId: string; debit: number | null; credit: number | nul
   selector: 'app-journal-entry-form-page',
   standalone: true,
   imports: [
-    FormsModule, RouterLink, ButtonModule, InputTextModule, MessageModule, SelectModule, TableModule, PageComponent,
+    FormsModule, ButtonModule, InputTextModule, MessageModule, SelectModule, TableModule, PageComponent,
     DateInputComponent,
   ],
   templateUrl: './journal-entry-form.page.html',

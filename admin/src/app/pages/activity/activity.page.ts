@@ -40,6 +40,7 @@ import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { PersonComponent } from '../../ui/person/person.component';
+import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type Tab = 'todo' | 'all';
@@ -114,6 +115,7 @@ function endOfDayIso(key: string): string | null {
     PeopleSelectComponent,
     PeopleComponent,
     PersonComponent,
+    QueueCardComponent,
     RowActionsMenuComponent,
   ],
   template: `
@@ -180,13 +182,7 @@ function endOfDayIso(key: string): string | null {
 
               <div class="queue-grid">
                 @for (q of queueKeys; track q) {
-                  <button type="button" class="queue-card" [class.queue-card--active]="queue() === q" [attr.aria-pressed]="queue() === q" (click)="setQueue(q)">
-                    <span class="queue-card-head">
-                      <span class="queue-card-label">{{ info[q].label }}</span>
-                      <span class="queue-card-count" [class.queue-card-count--zero]="!countOf(q)">{{ countOf(q) }}</span>
-                    </span>
-                    <span class="queue-card-help">{{ info[q].help(thresholds()) }}</span>
-                  </button>
+                  <app-queue-card [label]="info[q].label" [count]="countOf(q)" [help]="info[q].help(thresholds())" [active]="queue() === q" (pick)="setQueue(q)" />
                 }
               </div>
 
@@ -486,15 +482,6 @@ function endOfDayIso(key: string): string | null {
     .pre-line { white-space: pre-line; }
     .activity-count { display: inline-block; min-width: 1.25rem; margin-left: 0.4rem; padding: 0 0.4rem; border-radius: 0.75rem; background: #fee2e2; color: #991b1b; font-weight: 600; text-align: center; }
     .todo-toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
-    .queue-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
-    @media (max-width: 900px) { .queue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    .queue-card { display: flex; flex-direction: column; gap: 0.35rem; text-align: left; padding: 0.75rem 1rem; border: 1px solid var(--surface-border, #e5e7eb); border-radius: 0.5rem; background: var(--surface-0, #fff); cursor: pointer; font: inherit; color: inherit; min-width: 0; }
-    .queue-card--active { border: 2px solid #2563eb; padding: calc(0.75rem - 1px) calc(1rem - 1px); }
-    .queue-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-    .queue-card-label { font-weight: 600; }
-    .queue-card-count { min-width: 1.5rem; padding: 0 0.5rem; border-radius: 0.75rem; background: #fee2e2; color: #991b1b; font-weight: 700; text-align: center; }
-    .queue-card-count--zero { background: var(--surface-100, #f3f4f6); color: var(--text-color-secondary, #4b5563); }
-    .queue-card-help { color: var(--text-color-secondary, #4b5563); }
     .text-overdue { color: #b91c1c; font-weight: 600; }
     .file-form { display: flex; flex-direction: column; gap: 1rem; }
     .clickable-row { cursor: pointer; }

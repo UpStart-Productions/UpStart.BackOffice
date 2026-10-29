@@ -464,35 +464,6 @@ p-sorticon svg {
 }
 
 /* Dashboard: 3-column grid for widgets */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 300px;
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.dashboard-grid-slot {
-  min-height: 0;
-  min-width: 0;
-  border-radius: var(--content-border-radius);
-  transition: background-color 0.15s, box-shadow 0.15s;
-  display: flex;
-  flex-direction: column;
-}
-
-.dashboard-grid-slot.p-draggable-enter {
-  background-color: var(--color-severity-info-bg);
-  box-shadow: inset 0 0 0 2px var(--color-severity-info-text);
-}
-
-.dashboard-grid-draggable {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
 .stat-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
@@ -666,4 +637,50 @@ p-sorticon svg {
 
 .notifications-decline-btn.p-button.p-button-text:not(:disabled):hover {
   background: rgba(239, 68, 68, 0.1);
+}
+
+/*
+ * Count badge: the purple pill with a number (nav Activity / People counts, Task Manager Inbox, Dashboard and
+ * Activity count cards). The one badge style in the app; pick a color modifier below and position it with a local
+ * class (e.g. .nav-badge).
+ */
+.count-badge {
+  display: inline-block;
+  min-width: 1.25rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--p-primary-color, #2563eb);
+  color: #fff;
+  font-size: var(--fs-sm);
+  line-height: 1.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Color variants: light tint with dark text. Default (no modifier) is the purple nav badge. */
+/* blue-700 on blue-100 = 5.5:1, passes WCAG AA for small text. */
+.count-badge--info {
+  background: var(--brand-blue-100);
+  color: var(--brand-blue-700);
+}
+
+.count-badge--success {
+  background: var(--color-severity-success-bg);
+  color: var(--color-severity-success-text);
+}
+
+.count-badge--warning {
+  background: var(--color-severity-warning-bg);
+  color: var(--color-severity-warning-text);
+}
+
+.count-badge--danger {
+  background: var(--color-severity-danger-bg);
+  color: var(--color-severity-danger-text);
+}
+
+/* Nothing waiting (e.g. a count card showing 0). */
+.count-badge--muted {
+  background: var(--p-content-hover-background, #f3f4f6);
+  color: var(--text-color-secondary);
 }

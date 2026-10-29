@@ -1,0 +1,97 @@
+/*
+ * Count cards for work queues: Activity → To do (pick a queue) and the Dashboard (open the queue).
+ * Rendered by app-queue-card (admin/src/app/ui/queue-card/queue-card.component.ts) inside a .queue-grid.
+ */
+.queue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.queue-card {
+  display: flex;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--surface-border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: var(--surface-0, #fff);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a.queue-card:hover {
+  border-color: var(--text-color-secondary);
+}
+
+.queue-card:focus-visible {
+  outline: 2px solid var(--color-text-link);
+  outline-offset: 2px;
+}
+
+.queue-card--active {
+  border: 2px solid #2563eb;
+  padding: calc(0.75rem - 1px) calc(1rem - 1px);
+}
+
+.queue-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.queue-card-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.queue-card-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/*
+ * Accent: a 30px colored rail down the left with the icon centered in white; content sits to its right.
+ * This is the approved alternative to a thin colored left border (see no-colored-left-borders.mdc).
+ */
+.queue-card[data-accent] {
+  padding: 0;
+  overflow: hidden;
+}
+
+.queue-card[data-accent] .queue-card-main {
+  padding: 0.75rem 1rem;
+}
+
+.queue-card-rail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  color: #fff;
+  background: var(--text-color-secondary);
+}
+
+.queue-card[data-accent='info'] .queue-card-rail { background: var(--color-severity-info-text); }
+.queue-card[data-accent='success'] .queue-card-rail { background: var(--color-severity-success-text); }
+.queue-card[data-accent='warning'] .queue-card-rail { background: var(--color-severity-warning-text); }
+.queue-card[data-accent='danger'] .queue-card-rail { background: var(--color-severity-danger-text); }
+
+.queue-card-help {
+  color: var(--text-color-secondary, #4b5563);
+}
+
+/* Count cards across the top of a page (Dashboard), spaced like the page grid below them. */
+.queue-grid--page {
+  margin-bottom: 2rem;
+}

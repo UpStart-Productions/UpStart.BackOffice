@@ -43,7 +43,7 @@ Every back-office page has the same header, rendered by `app-page`
 1. **Never** put a page title inside a card (`page-title-in-card` is legacy) and never hand-build a header (`page-header-with-back`, `tm-project-header` are legacy).
 2. **At most one purple (primary) button**, and it is the **last** (rightmost) item in `pageActions`. Every other button is `severity="secondary"` `[outlined]="true"`.
 3. Rare or destructive actions (Archive, Restore, Delete) go in `app-row-actions-menu` as the **first** item in `pageActions`.
-4. **Search, filters and tabs never go in the header.** They go at the top of the content card (`.toolbar`, search in `.toolbar-search` on the right). Exception: Activity's **Organization** and **Person** pickers live in `pageActions`, on the right of the title.
+4. **Search, filters and tabs never go in the header.** They go at the top of the content card (`.toolbar`, search in `.toolbar-search` on the right). Exceptions: Activity's **Organization** and **Person** pickers, and the Dashboard's **Mine / Everyone's** switch, live in `pageActions`, on the right of the title.
 5. **Edit pages: Save is the primary in the header**, disabled until something changes (compare against a snapshot taken on load and after save). No Save/Cancel row at the bottom of the form; the back arrow is the cancel.
 6. Errors show in a card directly under the header, not inside the content card.
 7. Back navigation is always the header back arrow (`backLink`), never a breadcrumb text link.

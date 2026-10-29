@@ -28,7 +28,7 @@ export type NavItem =
                   @if (!compact()) {
                     <span class="layout-menu-section-label">{{ item.sectionLabel }}</span>
                     @if (item.badge) {
-                      <span class="nav-badge nav-badge--section" [attr.aria-label]="item.badge + ' waiting'">{{
+                      <span class="count-badge nav-badge nav-badge--section" [attr.aria-label]="item.badge + ' waiting'">{{
                         item.badge > 99 ? '99+' : item.badge
                       }}</span>
                     }
@@ -55,7 +55,7 @@ export type NavItem =
                       <span>{{ item.label }}</span>
                     }
                     @if (item.badge) {
-                      <span class="nav-badge" [class.nav-badge--compact]="compact()" [attr.aria-label]="item.badge + ' waiting'">{{
+                      <span class="count-badge nav-badge" [class.nav-badge--compact]="compact()" [attr.aria-label]="item.badge + ' waiting'">{{
                         item.badge > 99 ? '99+' : item.badge
                       }}</span>
                     }
@@ -94,16 +94,9 @@ export type NavItem =
         font-size: var(--fs-sm);
         line-height: 1rem;
       }
+      /* Look comes from the global .count-badge; this only places it. */
       .nav-badge {
         margin-left: auto;
-        min-width: 1.25rem;
-        padding: 0 0.4rem;
-        border-radius: 999px;
-        background: var(--p-primary-color, #2563eb);
-        color: #fff;
-        font-size: var(--fs-sm);
-        line-height: 1.25rem;
-        text-align: center;
       }
     `,
   ],

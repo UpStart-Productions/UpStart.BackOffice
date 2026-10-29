@@ -24,7 +24,7 @@ import { TmProjectIconComponent } from './tm-project-icon.component';
           <a routerLink="/tasks/inbox" routerLinkActive="active" class="tm-nav-link">
             <i class="pi pi-inbox"></i><span>Inbox</span>
             @if (store.unreadCount() > 0) {
-              <span class="tm-nav-badge" [attr.aria-label]="store.unreadCount() + ' unread'">{{ store.unreadCount() > 99 ? '99+' : store.unreadCount() }}</span>
+              <span class="count-badge tm-nav-badge" [attr.aria-label]="store.unreadCount() + ' unread'">{{ store.unreadCount() > 99 ? '99+' : store.unreadCount() }}</span>
             }
           </a>
         </li>

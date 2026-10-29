@@ -193,19 +193,23 @@ const PROJECT_FORM: HelpArticle = {
 export const HELP_CONTENT: Record<string, HelpArticle> = {
   dashboard: {
     title: 'Dashboard',
-    intro: 'Your landing page after sign-in: a quick read on time, pipeline, invoices and projects.',
+    intro: 'Your landing page after sign-in: what needs you today. You only see the parts your role can use.',
     sections: [
       {
-        heading: 'Summary tiles',
-        body: 'Clients, Active projects, Hours this week and Open leads at a glance.',
+        heading: 'Count cards',
+        body: 'Needs reply, Next steps due, Tasks due, Overdue invoices and Unfiled. Click a card to open that list in Activity, Tasks or Invoices.',
       },
       {
-        heading: 'Widgets',
-        body: 'Time shows today and this week, and whether a timer is running. Pipeline lists upcoming next actions. Invoices and Active Projects give shortcuts to create one.',
+        heading: 'Cards',
+        body: 'My tasks and Next steps show what is due in the next week, overdue first. Needs reply and Gone quiet show the top items from Activity. My time shows a running timer and your hours today and this week. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due. Upcoming bookings lists confirmed bookings in the next week. Click a card\'s title to open the full list.',
+      },
+      {
+        heading: "Mine / Everyone's",
+        body: "Switches the Activity counts and lists and the invoice figures between your own items and the whole team's. My tasks and My time are always yours.",
       },
       {
         heading: 'Rearranging',
-        body: 'Drag a widget by its handle to reorder the dashboard. Your order is remembered.',
+        body: 'Drag a card by the ⋯ handle in its header to move it. Your order is remembered on this computer and browser.',
       },
     ],
   },

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -26,7 +26,6 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
   standalone: true,
   imports: [PersonComponent, 
     FormsModule,
-    RouterLink,
     ButtonModule,
     InputTextModule,
     MessageModule,

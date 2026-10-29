@@ -1,6 +1,6 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { TagModule } from 'primeng/tag';
@@ -30,7 +30,7 @@ type InvoiceDetail = {
 @Component({
   selector: 'app-invoice-detail-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, MessageModule, TagModule, PageComponent],
+  imports: [ButtonModule, MessageModule, TagModule, PageComponent],
   templateUrl: './invoice-detail.page.html',
   styleUrl: './invoice-detail.page.scss',
 })

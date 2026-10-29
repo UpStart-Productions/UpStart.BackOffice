@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -20,7 +20,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 @Component({
   selector: 'app-tm-forms-list-page',
   standalone: true,
-  imports: [PageComponent, FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, HelpTextComponent],
+  imports: [PageComponent, FormsModule, ButtonModule, InputTextModule, SelectModule, TableModule, TooltipModule, AppDialogModule, HelpTextComponent],
   template: `
     <div class="tm-page">
       <app-page

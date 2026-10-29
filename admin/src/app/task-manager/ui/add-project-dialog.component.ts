@@ -1,6 +1,5 @@
 import { Component, inject, model, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { MessageModule } from 'primeng/message';
@@ -17,7 +16,7 @@ type Available = { id: string; name: string; client: { id: string; name: string 
 @Component({
   selector: 'app-tm-add-project-dialog',
   standalone: true,
-  imports: [LucideIconPickerComponent, FormsModule, RouterLink, AppDialogModule, ButtonModule, SelectModule, MessageModule, HelpTextComponent],
+  imports: [LucideIconPickerComponent, FormsModule, AppDialogModule, ButtonModule, SelectModule, MessageModule, HelpTextComponent],
   template: `
     <p-dialog header="Add project to Tasks" [(visible)]="visible" [modal]="true" [style]="{ width: '30rem' }" (onShow)="onShow()" [draggable]="false">
       <form (ngSubmit)="add()">

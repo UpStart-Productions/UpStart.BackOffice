@@ -1,131 +1,293 @@
-<app-page title="Dashboard">
-  @if (loading() && timeLoading() && pipelineLoading()) {
-    <p class="text-muted">Loading dashboard…</p>
-  } @else if (error()) {
-    <div class="card">
-      <div class="error-banner" role="alert">{{ error() }}</div>
-    </div>
-  } @else {
-    <div class="stat-cards mb-4">
-      @if (can('clients')) {
-      <div class="stat-card stat-card--clients">
-        <small class="text-muted">Clients</small>
-        <h3 class="m-0">{{ clientsCount() }}</h3>
-      </div>
-      }
-      @if (can('projects')) {
-      <div class="stat-card stat-card--projects">
-        <small class="text-muted">Active projects</small>
-        <h3 class="m-0">{{ projectsCount() }}</h3>
-      </div>
-      }
-      @if (can('time')) {
-      <div class="stat-card stat-card--hours">
-        <small class="text-muted">Hours this week</small>
-        <h3 class="m-0">{{ weekHoursLabel() }}</h3>
-      </div>
-      }
-      @if (can('pipeline')) {
-      <div class="stat-card stat-card--leads">
-        <small class="text-muted">Open leads</small>
-        <h3 class="m-0">{{ openLeadsCount() }}</h3>
-      </div>
-      }
-    </div>
+<app-page title="Dashboard" helpKey="dashboard.page">
+  @if (showScope()) {
+    <p-selectbutton
+      pageActions
+      [options]="scopeOptions"
+      optionLabel="label"
+      optionValue="value"
+      [ngModel]="mine()"
+      (ngModelChange)="mine.set($event)"
+      [allowEmpty]="false"
+      ariaLabel="Whose items"
+    />
+  }
 
-    <div class="dashboard-grid">
-      @for (w of orderedWidgets(); track w.id) {
-        <div
-          class="dashboard-grid-slot"
-          [style.grid-column]="'span ' + w.span"
-          [style.grid-row]="w.height === 'tall' ? 'span 2' : null"
-          [pDroppable]="droppableScope"
-          (onDrop)="onWidgetDrop($event, w.id)"
-        >
-          <div
-            class="dashboard-grid-draggable"
-            [pDraggable]="w.id"
-            dragHandle=".dashboard-widget-drag-handle, .dashboard-widget-drag-handle i"
-          >
-            @switch (w.id) {
-              @case ('time-today') {
-                <app-dashboard-widget
-                  [title]="w.title"
-                  [icon]="w.icon"
-                  [iconColor]="w.iconColor"
-                  [span]="w.span"
-                  [height]="w.height"
-                  [showDragHandle]="true"
-                  seeAllLink="/time-entry"
-                  seeAllAriaLabel="Open timesheet"
-                >
-                  <app-dashboard-time-today-widget
-                    [entries]="timeEntries()"
-                    [loading]="timeLoading()"
-                    [error]="timeError()"
-                    [tick]="tick()"
-                  />
-                </app-dashboard-widget>
-              }
-              @case ('pipeline') {
-                <app-dashboard-widget
-                  [title]="w.title"
-                  [icon]="w.icon"
-                  [iconColor]="w.iconColor"
-                  [span]="w.span"
-                  [height]="w.height"
-                  [showDragHandle]="true"
-                  seeAllLink="/pipeline"
-                  seeAllAriaLabel="Open pipeline"
-                >
-                  <app-dashboard-pipeline-widget
-                    [leads]="leads()"
-                    [pipelines]="pipelines()"
-                    [loading]="pipelineLoading()"
-                    [error]="pipelineError()"
-                  />
-                </app-dashboard-widget>
-              }
-              @case ('invoices') {
-                <app-dashboard-widget
-                  [title]="w.title"
-                  [icon]="w.icon"
-                  [iconColor]="w.iconColor"
-                  [span]="w.span"
-                  [height]="w.height"
-                  [showDragHandle]="true"
-                  seeAllLink="/invoices"
-                  seeAllAriaLabel="View all invoices"
-                >
-                  <app-dashboard-invoices-widget
-                    [invoices]="invoices()"
-                    [loading]="invoicesLoading()"
-                    [error]="invoicesError()"
-                  />
-                </app-dashboard-widget>
-              }
-              @case ('projects') {
-                <app-dashboard-widget
-                  [title]="w.title"
-                  [icon]="w.icon"
-                  [iconColor]="w.iconColor"
-                  [span]="w.span"
-                  [height]="w.height"
-                  [showDragHandle]="true"
-                  seeAllLink="/projects"
-                  seeAllAriaLabel="View all projects"
-                >
-                  <app-dashboard-projects-widget
-                    [projects]="projects()"
-                    [loading]="projectsLoading()"
-                    [error]="projectsError()"
-                  />
-                </app-dashboard-widget>
-              }
-            }
-          </div>
-        </div>
+  @if (can('inbox') || can('tasks') || can('invoices')) {
+    <div class="queue-grid queue-grid--page">
+      @if (can('inbox')) {
+        <app-queue-card
+          label="Needs reply"
+          icon="pi-reply"
+          accent="danger"
+          [count]="counts()?.reply ?? 0"
+          [help]="'Waiting ' + needsReplyDays() + '+ day' + (needsReplyDays() === 1 ? '' : 's') + ' for an answer.'"
+          link="/activity"
+        />
+        <app-queue-card
+          label="Next steps due"
+          icon="pi-flag"
+          accent="warning"
+          [count]="counts()?.nextStepDue ?? 0"
+          help="Overdue or due today."
+          link="/activity"
+          [queryParams]="{ queue: 'nextStep' }"
+        />
+      }
+      @if (can('tasks')) {
+        <app-queue-card label="Tasks due" icon="pi-check-square" accent="info" [count]="tasksDueCount()" help="Your tasks, overdue or due today." link="/tasks" />
+      }
+      @if (can('invoices')) {
+        <app-queue-card label="Overdue invoices" icon="pi-receipt" accent="danger" [count]="overdueInvoices().length" help="Sent and past the due date." link="/invoices" />
+      }
+      @if (can('inbox')) {
+        <app-queue-card
+          label="Unfiled"
+          icon="pi-inbox"
+          accent="info"
+          [count]="counts()?.unfiled ?? 0"
+          help="Captured email to file."
+          link="/activity"
+          [queryParams]="{ queue: 'unfiled' }"
+        />
       }
     </div>
   }
+
+  <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="panels()" (cdkDropListDropped)="onPanelDrop($event)">
+    @for (p of panels(); track p.id) {
+      <div class="dashboard-grid-slot" [class.dashboard-grid-slot--wide]="p.wide" cdkDrag [cdkDragData]="p">
+        @switch (p.id) {
+          @case ('tasks') {
+            <app-dashboard-panel title="My tasks" icon="pi-check-square" color="info" link="/tasks" linkLabel="Open in Tasks">
+              @if (tasks().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (tasks().error) {
+                <p class="side-list-empty">{{ tasks().error }}</p>
+              } @else if (upcomingTasks().length) {
+                <div class="side-list">
+                  @for (t of upcomingTasks().slice(0, listLimit); track t.id) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        <a class="side-list-title" routerLink="/tasks" [queryParams]="{ task: t.id }">{{ t.name }}</a>
+                        <span class="side-list-detail">{{ t.project.name }}</span>
+                      </div>
+                      <span class="side-list-value" [class]="taskTone(t)">{{ taskDue(t) }}</span>
+                    </div>
+                  }
+                </div>
+                @if (upcomingTasks().length > listLimit) {
+                  <p class="side-list-empty side-list-more">{{ upcomingTasks().length - listLimit }} more in Tasks</p>
+                }
+              } @else {
+                <p class="side-list-empty">Nothing due in the next week.</p>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('nextSteps') {
+            <app-dashboard-panel
+              title="Next steps"
+              icon="pi-flag"
+              color="warning"
+              link="/activity"
+              [queryParams]="{ queue: 'nextStep' }"
+              linkLabel="Open in Activity"
+            >
+              @if (queues().loading && !queues().data) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (queues().error) {
+                <p class="side-list-empty">{{ queues().error }}</p>
+              } @else if (nextSteps().length) {
+                <div class="side-list">
+                  @for (r of nextSteps().slice(0, listLimit); track r.refKey) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        @if (r.leadId) {
+                          <a class="side-list-title" [routerLink]="['/pipeline', r.leadId]">{{ r.clientName || 'Pipeline card' }}</a>
+                        } @else if (r.clientId) {
+                          <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
+                        } @else {
+                          <span class="side-list-title">{{ r.clientName || r.title }}</span>
+                        }
+                        <span class="side-list-detail">{{ nextStepDetail(r) }}</span>
+                      </div>
+                      <span class="side-list-value" [class]="nextStepTone(r)">{{ nextStepDue(r) }}</span>
+                    </div>
+                  }
+                </div>
+                @if (nextSteps().length > listLimit) {
+                  <p class="side-list-empty side-list-more">{{ nextSteps().length - listLimit }} more in Activity</p>
+                }
+              } @else {
+                <p class="side-list-empty">No next steps due in the next week.</p>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('replies') {
+            <app-dashboard-panel title="Needs reply" icon="pi-reply" color="danger" link="/activity" linkLabel="Open in Activity">
+              @if (queues().loading && !queues().data) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (queues().error) {
+                <p class="side-list-empty">{{ queues().error }}</p>
+              } @else if (replies().length) {
+                <div class="side-list">
+                  @for (r of replies().slice(0, listLimit); track r.refKey) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        @if (r.clientId) {
+                          <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
+                        } @else {
+                          <span class="side-list-title">{{ r.person || 'Unknown sender' }}</span>
+                        }
+                        <span class="side-list-detail">{{ replyDetail(r) }}</span>
+                      </div>
+                      <span class="side-list-value">{{ waiting(r) }}</span>
+                    </div>
+                  }
+                </div>
+                @if (replies().length > listLimit) {
+                  <p class="side-list-empty side-list-more">{{ replies().length - listLimit }} more in Activity</p>
+                }
+              } @else {
+                <p class="side-list-empty">Nothing waiting on a reply.</p>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('time') {
+            <app-dashboard-panel title="My time" icon="pi-clock" color="success" link="/time-entry" linkLabel="Open timesheet">
+              @if (time().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (time().error) {
+                <p class="side-list-empty">{{ time().error }}</p>
+              } @else {
+                @if (runningEntry(); as running) {
+                  <div class="dashboard-timer">
+                    <div class="side-list-body">
+                      <span class="dashboard-timer-label"><span class="dashboard-timer-dot" aria-hidden="true"></span>Timer running</span>
+                      <span class="side-list-detail">{{ running.project?.name ?? running.client?.name ?? 'No project' }}</span>
+                    </div>
+                    <span class="dashboard-timer-elapsed">{{ elapsedLabel() }}</span>
+                    <p-button
+                      icon="pi pi-stop-circle"
+                      severity="secondary"
+                      [text]="true"
+                      ariaLabel="Stop timer"
+                      [loading]="stopping()"
+                      (onClick)="stopTimer()"
+                    />
+                  </div>
+                }
+                <div class="dashboard-stats">
+                  <div class="dashboard-stat">
+                    <span class="dashboard-stat-label">Today</span>
+                    <span class="dashboard-stat-value">{{ todayLabel() }}</span>
+                  </div>
+                  <div class="dashboard-stat">
+                    <span class="dashboard-stat-label">This week</span>
+                    <span class="dashboard-stat-value">{{ weekLabel() }}</span>
+                  </div>
+                </div>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('invoices') {
+            <app-dashboard-panel title="Invoices" icon="pi-receipt" color="info" link="/invoices" linkLabel="Open in Invoices">
+              @if (invoices().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (invoices().error) {
+                <p class="side-list-empty">{{ invoices().error }}</p>
+              } @else {
+                <div class="dashboard-stats">
+                  <div class="dashboard-stat">
+                    <span class="dashboard-stat-label">Outstanding</span>
+                    <span class="dashboard-stat-value">{{ money(outstandingTotal()) }}</span>
+                  </div>
+                  <div class="dashboard-stat" [class.dashboard-stat--danger]="overdueTotal() > 0">
+                    <span class="dashboard-stat-label">Overdue ({{ overdueInvoices().length }})</span>
+                    <span class="dashboard-stat-value">{{ money(overdueTotal()) }}</span>
+                  </div>
+                </div>
+                <div class="side-list">
+                  <div class="side-list-row">
+                    <div class="side-list-body"><span class="side-list-title">Drafts to send</span></div>
+                    <span class="side-list-value side-list-value--strong">{{ draftCount() }}</span>
+                  </div>
+                  @for (inv of attentionInvoices().slice(0, listLimit); track inv.id) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        <a class="side-list-title" [routerLink]="['/invoices', inv.id]">{{ inv.displayNumber }}</a>
+                        <span class="side-list-detail">{{ inv.billToName || inv.client?.name }}, due {{ invoiceDue(inv) }}</span>
+                      </div>
+                      <span class="side-list-value" [class]="invoiceTone(inv)">{{ money(invoiceBalance(inv)) }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('bookings') {
+            <app-dashboard-panel title="Upcoming bookings" icon="pi-calendar" color="success" link="/bookings" linkLabel="Open in Bookings">
+              @if (bookings().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (bookings().error) {
+                <p class="side-list-empty">{{ bookings().error }}</p>
+              } @else if (upcomingBookings().length) {
+                <div class="side-list">
+                  @for (b of upcomingBookings().slice(0, listLimit); track b.id) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        <span class="side-list-title">{{ b.guestName }}</span>
+                        <span class="side-list-detail">{{ b.bookingType?.name ?? b.guestOrg ?? '' }}</span>
+                      </div>
+                      <span class="side-list-value">{{ bookingWhen(b) }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="side-list-empty">No bookings in the next week.</p>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('quiet') {
+            <app-dashboard-panel
+              title="Gone quiet"
+              icon="pi-volume-off"
+              color="neutral"
+              link="/activity"
+              [queryParams]="{ queue: 'quiet' }"
+              linkLabel="Open in Activity"
+            >
+              @if (queues().loading && !queues().data) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (queues().error) {
+                <p class="side-list-empty">{{ queues().error }}</p>
+              } @else if (quiet().length) {
+                <div class="side-list">
+                  @for (r of quiet().slice(0, listLimit); track r.refKey) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        @if (r.clientId) {
+                          <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
+                        } @else {
+                          <span class="side-list-title">{{ r.clientName || r.title }}</span>
+                        }
+                      </div>
+                      <span class="side-list-value">{{ lastContact(r) }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="side-list-empty">Every active client has been in touch recently.</p>
+              }
+            </app-dashboard-panel>
+          }
+        }
+      </div>
+    }
+  </div>
 </app-page>
