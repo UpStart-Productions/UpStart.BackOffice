@@ -55,7 +55,7 @@
 
   <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="panels()" (cdkDropListDropped)="onPanelDrop($event)">
     @for (p of panels(); track p.id) {
-      <div class="dashboard-grid-slot" [class.dashboard-grid-slot--wide]="p.wide" cdkDrag [cdkDragData]="p">
+      <div class="dashboard-grid-slot" cdkDrag [cdkDragData]="p">
         @switch (p.id) {
           @case ('tasks') {
             <app-dashboard-panel title="My tasks" icon="pi-check-square" color="info" link="/tasks" linkLabel="Open in Tasks">

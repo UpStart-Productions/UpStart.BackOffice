@@ -49,17 +49,17 @@ type Booking = {
 };
 
 type PanelId = 'tasks' | 'time' | 'nextSteps' | 'invoices' | 'replies' | 'quiet' | 'bookings';
-type Panel = { id: PanelId; area: PermissionArea; wide: boolean };
+type Panel = { id: PanelId; area: PermissionArea };
 
-/** Default order. Wide panels take 2 of 3 columns. */
+/** Default order. Every panel is one column of three. */
 const PANELS: Panel[] = [
-  { id: 'tasks', area: 'tasks', wide: true },
-  { id: 'time', area: 'time', wide: false },
-  { id: 'nextSteps', area: 'inbox', wide: true },
-  { id: 'invoices', area: 'invoices', wide: false },
-  { id: 'replies', area: 'inbox', wide: true },
-  { id: 'quiet', area: 'inbox', wide: false },
-  { id: 'bookings', area: 'bookings', wide: false },
+  { id: 'tasks', area: 'tasks' },
+  { id: 'time', area: 'time' },
+  { id: 'nextSteps', area: 'inbox' },
+  { id: 'invoices', area: 'invoices' },
+  { id: 'replies', area: 'inbox' },
+  { id: 'quiet', area: 'inbox' },
+  { id: 'bookings', area: 'bookings' },
 ];
 
 /** Each person's panel order, per browser (same approach as Task Manager board prefs). */

@@ -1,6 +1,6 @@
 /*
  * Dashboard panel grid with drag-to-reorder (CDK, mixed orientation). Panels: app-dashboard-panel.
- * Slots span 1 or 2 of 3 columns; panels in the same row stretch to the same height.
+ * Every slot is one of 3 columns; panels in the same row stretch to the same height.
  */
 .dashboard-grid {
   display: grid;
@@ -14,10 +14,6 @@
   flex-direction: column;
   min-width: 0;
   border-radius: var(--content-border-radius);
-
-  &--wide {
-    grid-column: span 2;
-  }
 }
 
 /* The panel while it follows the pointer. */
@@ -45,10 +41,6 @@
 @media (max-width: 1200px) {
   .dashboard-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dashboard-grid-slot--wide {
-    grid-column: span 1;
   }
 }
 
