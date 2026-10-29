@@ -6,7 +6,7 @@
 
 ## Projects
 
-**Projects** lists billable work tied to clients. **New Project** creates one. Open a project to edit details, contacts, and tasks.
+**Projects** lists billable work tied to clients. The list shows **active** projects only; turn on **Show inactive projects** above the table to include archived ones (your choice is remembered). Use the row **⋯** menu for **Make inactive** or **Make active**. **New Project** creates one. Open a project to edit details, contacts, and tasks.
 
 Under **New expense defaults**, set **Reimbursable** and **Billable to client** for new expenses on that project. Picking the project on **New Expense** fills those toggles; you can still change them on each row.
 

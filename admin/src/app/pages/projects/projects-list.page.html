@@ -7,6 +7,16 @@
   }
   <div class="card">
     <div class="toolbar">
+      <div class="toolbar-start">
+        <label class="projects-list-inactive-toggle" for="projectsShowInactive">
+          <span>Show inactive projects</span>
+          <p-toggleSwitch
+            inputId="projectsShowInactive"
+            [ngModel]="showInactive()"
+            (ngModelChange)="setShowInactive($event)"
+          />
+        </label>
+      </div>
       <div class="toolbar-search">
         <app-toolbar-search-field
           placeholder="Search by project, client…"
