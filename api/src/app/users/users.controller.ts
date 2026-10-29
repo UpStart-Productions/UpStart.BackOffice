@@ -17,7 +17,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import { isAdminRole, sanitizeActions, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
+import { isAdminRole, sanitizeActions, sanitizeModules, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
 import { InvitesService } from '../invites/invites.service';
@@ -25,7 +25,7 @@ import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
-import { runUnscoped } from '../tenancy/tenant-context';
+import { runUnscoped, tryTenantId } from '../tenancy/tenant-context';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateUserDto, SetUserActiveDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
@@ -111,6 +111,11 @@ export class UsersController {
         },
       }),
     );
+    // Modules of the tenant this request runs in (a super user may be switched into another tenant).
+    const tenantId = tryTenantId();
+    const tenant = tenantId
+      ? await runUnscoped(() => this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { modules: true } }))
+      : null;
     return {
       id: row.id,
       email: row.email,
@@ -126,6 +131,7 @@ export class UsersController {
       roleName: row.tenantRole?.name ?? null,
       permissions: sanitizePermissions(row.tenantRole?.permissions),
       actions: sanitizeActions(row.tenantRole?.actions),
+      modules: tenant ? sanitizeModules(tenant.modules) : undefined,
     };
   }
 

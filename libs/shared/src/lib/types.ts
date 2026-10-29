@@ -172,6 +172,8 @@ export type MeDto = {
   permissions?: import('./permissions').RolePermissions;
   /** What this user can do per area (create/edit/delete/setup); missing = allowed. */
   actions?: import('./permissions').RoleActions;
+  /** Modules switched on for the current tenant (see modules.ts). Areas of other modules don't exist. */
+  modules?: string[];
 };
 
 export type UserListDto = {

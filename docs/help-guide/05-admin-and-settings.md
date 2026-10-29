@@ -18,7 +18,7 @@ Super users can impersonate a user from row actions (viewing as that user).
 
 ## Settings (Admin only)
 
-**Settings** accordion sections include business profile, **MCP server** (connect desktop AI apps to UpStart Back Office), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area.
+**Settings** accordion sections include business profile, **Client fields**, **MCP server** (connect desktop AI apps to UpStart Back Office), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area. **Google Calendar** only shows when the Bookings module is on.
 
 ### MCP server
 
@@ -41,6 +41,14 @@ Click **Save** after editing text fields. Logo upload saves immediately when you
 - **Mileage rate (per mile)** — what a **Mileage** expense pays (miles × rate). Changing it affects new mileage only; saved expenses keep the rate they were entered with. Click **Save Rate** next to the field after editing.
 - **Categories** — the list on the **Expenses** page. Built-ins (Software, Travel, Mileage, Meals, Supplies, Contractor, Advertising, Other) can be **renamed** or **Remove**d to hide from the picker (built-ins are deactivated, not deleted). **Mileage** cannot be removed. **Add** custom names and **Restore** inactive built-ins as needed.
 - **Payment methods** — how expenses were paid (Personal Card, Company Card, Cash, ePayment, and custom). Same rename, remove, add, and restore behavior as categories (except Mileage rules apply only to categories).
+
+### Client fields
+
+**Client fields** adds your own sections and fields to every organization page, for example a profile or intake details. Type a name next to **Sections** and click **Add** to create a section, then **Add field** under it. A field has a name and a type: **Text**, **Long text**, **Number**, **Date**, **Single-select**, **Multi-select** or **Checkbox**. Select fields need at least one option; renaming an option keeps what was already picked. The type can't be changed after the field is added.
+
+Use the ⋮ menu on a section or field to **Edit**, **Move up**, **Move down** or **Delete**. Deleting a field removes what was filled in on every organization; deleting a section also deletes its fields. **Filled in on** shows how many organizations have a value.
+
+Edit a section and tick **Sensitive** to limit it: only admins and people assigned to the organization see and edit a sensitive section.
 
 ### Activity
 

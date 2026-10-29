@@ -121,30 +121,6 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'settings.googleCalendar.bookingCalendar':
     'Confirmed bookings are created on this calendar. Busy times on all connected calendars still block availability.',
 
-  // Email capture (Settings)
-  'emailCapture.address':
-    'CC this address on outbound email to log it. Older alias addresses still work if you rename the capture name.',
-  'emailCapture.howToLog':
-    '1) CC this address on email you want logged — it lands on the matching client or lead Activity. 2) Reply-all keeps the address on the thread. 3) Unmatched mail goes to Inbox; file once and the thread follows. To log mail without the address on it, reply-all and add the capture address. The Email button on records opens your mail app with CC filled in. Only messages this address is on are seen — nothing else in mailboxes is read.',
-  'emailCapture.teamDomains':
-    "Addresses at these domains count as your team (your users always do), so they're never treated as clients.",
-
-  // MCP (Settings)
-  'mcp.overview':
-    'Lets desktop AI apps (Claude, ChatGPT, Codex, Cursor, and others) work in UpStart Back Office as you — same sign-in and role. Changes apply immediately; invoices are created as drafts until you send.',
-  'mcp.capabilities':
-    'Tools use the same API as this app. Your role controls which tools appear; the API enforces permissions on every write. Includes session, search, organizations, people, projects, time, expenses, tasks, and draft/send/paid invoices. Not available via MCP today: Bookings, Inbox filing, accounting, pipeline setup, receipt upload, browser extension capture.',
-  'mcp.serverUrl':
-    'Paste as a remote MCP server (Streamable HTTP). No client ID or secret; the server registers the app on first connect.',
-  'mcp.claude':
-    'Claude → Settings → Connectors → Add custom connector / MCP server → paste URL → Authenticate with UpStart Back Office → Allow.',
-  'mcp.chatgpt':
-    'ChatGPT desktop app → Settings → Connectors (or Apps & connectors) → add MCP → paste URL → sign in and Allow. Mobile app does not support MCP connectors.',
-  'mcp.codex':
-    'Codex settings → MCP Servers → add Streamable HTTP server with this URL → authenticate when prompted.',
-  'mcp.cursor':
-    'Add a remote MCP server URL in MCP settings (Streamable HTTP with OAuth, not a local stdio command). Complete login and Allow in the browser. Stdio-only clients cannot use this server.',
-
   // Platform / inbox / accounting
   'tenant.overview':
     'Each tenant is a separate organization with its own data. After adding one, switch into it and add its first admin from Users.',
@@ -152,6 +128,16 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Lowercase letters, numbers and dashes. Also used for email capture (slug@in.…).',
   'tenant.internalDomains':
     'Comma separated. Email from these domains is treated as the team, not contacts.',
+  'tenant.modules':
+    'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
+  'settings.clientFields.sections':
+    'Groups of your own fields shown on each organization page, e.g. a profile or intake details. Add a section, then add fields to it.',
+  'settings.clientFields.sensitive':
+    'Only admins and people assigned to the organization can see and edit this section.',
+  'settings.clientFields.type':
+    "What the field holds. The type can't be changed after the field is added.",
+  'settings.clientFields.options':
+    'The choices people can pick from. Renaming a choice keeps what was already picked.',
   'dashboard.page':
     "What needs you today: emails waiting for a reply, next steps and tasks due, overdue invoices, your time and upcoming bookings. Mine / Everyone's switches the Activity and invoice figures.",
   'activity.page':

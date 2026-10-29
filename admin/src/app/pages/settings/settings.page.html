@@ -42,16 +42,17 @@
                   placeholder="Shown in the top bar and on invoices"
                 />
               </div>
-              <div class="form-field showcase-half">
+              <div class="form-field showcase-half settings-business-logo">
                 <label>Logo <app-help-text key="settings.business.logo" /></label>
                 <app-avatar-dropzone
                   #logoDropzone
-                  [fill]="true"
+                  [panel]="true"
                   [existingUrl]="businessForm.logoUrl"
                   thumbShape="square"
                   emptyTitle="Logo"
                   emptyHint="Drop image or click to browse"
                   selectedTitle="Logo"
+                  replaceHint="Drop or click to replace"
                   emptyIcon="pi-image"
                   [class.settings-logo-dropzone--busy]="logoUploading()"
                   (fileChange)="onLogoDropzone($event)"
@@ -172,12 +173,28 @@
         </p-accordion-content>
       </p-accordion-panel>
 
+      <p-accordion-panel value="client-fields">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            <i class="pi pi-list settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
+            <span class="settings-accordion-title">Client fields</span>
+            <span class="settings-accordion-meta">Your own sections and fields on organization pages</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <app-client-fields-settings />
+        </p-accordion-content>
+      </p-accordion-panel>
+
       <p-accordion-panel value="mcp">
         <p-accordion-header>
           <span class="settings-accordion-header">
             <i class="pi pi-sparkles settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
             <span class="settings-accordion-title">MCP server</span>
-            <span class="settings-accordion-meta">Connect Claude, ChatGPT, and other AI apps</span>
+            <span class="settings-accordion-meta">
+              Lets desktop AI apps (Claude, ChatGPT, Codex, Cursor, and others) work in UpStart Back Office as you — same
+              sign-in and role. Changes apply immediately; invoices are created as drafts until you send.
+            </span>
           </span>
         </p-accordion-header>
         <p-accordion-content>
@@ -190,7 +207,7 @@
           <span class="settings-accordion-header">
             @let apiStatus = sectionStatusIcon(apiKeysStatus());
             <i
-              [class]="apiStatus.icon + ' settings-accordion-status ' + apiStatus.className"
+              [class]="'pi pi-key settings-accordion-status ' + apiStatus.className"
               [attr.aria-label]="apiStatus.label"
             ></i>
             <span class="settings-accordion-title">API Keys</span>
@@ -258,7 +275,7 @@
           <span class="settings-accordion-header">
             @let asanaStatusIcon = sectionStatusIcon(asanaStatus());
             <i
-              [class]="asanaStatusIcon.icon + ' settings-accordion-status ' + asanaStatusIcon.className"
+              [class]="'pi pi-check-square settings-accordion-status ' + asanaStatusIcon.className"
               [attr.aria-label]="asanaStatusIcon.label"
             ></i>
             <span class="settings-accordion-title">Asana</span>
@@ -364,12 +381,13 @@
         </p-accordion-content>
       </p-accordion-panel>
 
+      @if (bookingsOn()) {
       <p-accordion-panel value="google-calendar">
         <p-accordion-header>
           <span class="settings-accordion-header">
             @let googleStatusIcon = sectionStatusIcon(googleCalendarStatus());
             <i
-              [class]="googleStatusIcon.icon + ' settings-accordion-status ' + googleStatusIcon.className"
+              [class]="'pi pi-calendar settings-accordion-status ' + googleStatusIcon.className"
               [attr.aria-label]="googleStatusIcon.label"
             ></i>
             <span class="settings-accordion-title">Google Calendar</span>
@@ -517,6 +535,7 @@
           }
         </p-accordion-content>
       </p-accordion-panel>
+      }
     </p-accordion>
   </div>
 </app-page>

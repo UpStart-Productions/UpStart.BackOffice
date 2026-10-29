@@ -10,7 +10,6 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { ExpensePaymentMethod } from '../../pages/expenses/expense.types';
-import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 
 @Component({
@@ -24,7 +23,6 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     TableModule,
     TagModule,
     AppDialogModule,
-    HelpTextComponent,
     RowActionsMenuComponent,
   ],
   template: `
@@ -33,7 +31,6 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     }
 
     <div class="field-action-row toolbar">
-      <span class="font-medium mr-1">Payment methods <app-help-text key="settings.expensesInvoicing.paymentMethods" /></span>
       <input
         pInputText
         [(ngModel)]="newName"

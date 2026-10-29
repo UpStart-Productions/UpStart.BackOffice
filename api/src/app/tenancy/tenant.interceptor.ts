@@ -4,12 +4,15 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  NotFoundException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_TENANT_ID } from '../communications/communications.constants';
 import { runUnscoped, runWithTenant } from './tenant-context';
+import { routeModules } from '../access/route-modules';
 
 export const TENANT_SLUG_HEADER = 'x-tenant-slug';
 
@@ -22,11 +25,16 @@ export const TENANT_SLUG_HEADER = 'x-tenant-slug';
  *  - Service key / portal session: the tenant their guard put on the request.
  *  - Anonymous public routes (booking, forms): x-tenant-slug header, else the default tenant.
  *    Token routes (pay, invites, booking cancel) re-scope from the token's row via PublicTenantService.
+ * Also enforces modules: a route that belongs to a module (see routeModules) answers 404 when the
+ * tenant has that module off.
  * Runs after guards, so request.user is already populated.
  */
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reflector: Reflector,
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'http') return next.handle();
@@ -49,6 +57,15 @@ export class TenantInterceptor implements NestInterceptor {
           }
         }
         if (anonymous && !tenantId) tenantId = DEFAULT_TENANT_ID;
+
+        // A route of a module that is off for this tenant doesn't exist (404, also for admins).
+        const needs = routeModules(this.reflector, context);
+        if (needs.length && tenantId) {
+          const tenant = await runUnscoped(() =>
+            this.prisma.tenant.findUnique({ where: { id: tenantId! }, select: { modules: true } }),
+          );
+          if (!needs.some((m) => tenant?.modules.includes(m))) throw new NotFoundException('Not found');
+        }
 
         const handle = () => next.handle().subscribe(subscriber);
         // Subscribe inside the ALS scope so the handler (and everything it awaits) inherits it.

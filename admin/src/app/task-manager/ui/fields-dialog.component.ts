@@ -1,4 +1,3 @@
-import { NgTemplateOutlet } from '@angular/common';
 import { Component, inject, input, model, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -8,7 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TmApiService } from '../core/tm-api.service';
 import { fieldOptionChipColors, normalizeFieldOptionColor, PROJECT_COLORS } from '../core/tm-format.util';
-import { TmColorPickerComponent } from './color-picker.component';
+import { FieldOptionsEditorComponent } from '../../ui/field-options-editor/field-options-editor.component';
 import { FieldOption, FieldType, TmField, TmProject } from '../core/tm.types';
 
 const TYPE_LABELS: Record<FieldType, string> = {
@@ -24,7 +23,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
 @Component({
   selector: 'app-tm-fields-dialog',
   standalone: true,
-  imports: [NgTemplateOutlet, FormsModule, AppDialogModule, ButtonModule, InputTextModule, SelectModule, TmColorPickerComponent],
+  imports: [FormsModule, AppDialogModule, ButtonModule, InputTextModule, SelectModule, FieldOptionsEditorComponent],
   template: `
     <p-dialog header="Custom fields" [(visible)]="visible" [modal]="true" [style]="{ width: '36rem' }" (onShow)="reset()" [draggable]="false">
       <ul class="tm-field-list">
@@ -34,7 +33,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
               <div class="tm-field-edit">
                 <input pInputText [(ngModel)]="draftName" aria-label="Field name" class="w-full" />
                 @if (isSelect(f.type)) {
-                  <ng-container *ngTemplateOutlet="optionsEditor"></ng-container>
+                  <app-field-options-editor [colors]="true" [(options)]="draftOptions" />
                 }
                 <div class="form-actions">
                   <button type="button" pButton label="Cancel" severity="secondary" (click)="editingId.set(null)"></button>
@@ -70,7 +69,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
             <p-select [options]="typeOptions" optionLabel="label" optionValue="value" [(ngModel)]="draftType" appendTo="body" />
           </div>
           @if (isSelect(draftType)) {
-            <ng-container *ngTemplateOutlet="optionsEditor"></ng-container>
+            <app-field-options-editor [colors]="true" [(options)]="draftOptions" />
           }
           <div class="form-actions">
             <button type="button" pButton label="Done" severity="secondary" (click)="visible.set(false)"></button>
@@ -79,18 +78,6 @@ const TYPE_LABELS: Record<FieldType, string> = {
         </div>
       }
 
-      <ng-template #optionsEditor>
-        <div class="tm-options-editor">
-          @for (o of draftOptions(); track $index) {
-            <div class="tm-option-row">
-              <app-tm-color-picker [ngModel]="o.color" (ngModelChange)="setOptionColor($index, $event)" />
-              <input pInputText [ngModel]="o.label" (ngModelChange)="setOptionLabel($index, $event)" aria-label="Option label" class="flex-1" />
-              <button type="button" class="tm-icon-btn tm-icon-btn--danger" (click)="removeOption($index)" aria-label="Remove option"><i class="pi pi-trash"></i></button>
-            </div>
-          }
-          <button type="button" class="tm-link-btn" (click)="addOption()"><i class="pi pi-plus"></i> Add option</button>
-        </div>
-      </ng-template>
     </p-dialog>
   `,
 })
@@ -139,22 +126,6 @@ export class TmFieldsDialogComponent {
     this.editingId.set(f.id);
     this.draftName = f.name;
     this.draftOptions.set(f.options.map((o) => ({ ...o, color: normalizeFieldOptionColor(o.color) })));
-  }
-
-  addOption() {
-    this.draftOptions.update((list) => [
-      ...list,
-      { id: '', label: '', color: PROJECT_COLORS[list.length % PROJECT_COLORS.length] },
-    ]);
-  }
-  removeOption(i: number) {
-    this.draftOptions.update((list) => list.filter((_, idx) => idx !== i));
-  }
-  setOptionLabel(i: number, label: string) {
-    this.draftOptions.update((list) => list.map((o, idx) => (idx === i ? { ...o, label } : o)));
-  }
-  setOptionColor(i: number, color: string) {
-    this.draftOptions.update((list) => list.map((o, idx) => (idx === i ? { ...o, color } : o)));
   }
 
   private cleanOptions(): FieldOption[] {

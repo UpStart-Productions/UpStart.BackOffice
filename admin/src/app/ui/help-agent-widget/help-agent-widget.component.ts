@@ -187,12 +187,13 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
       .help-agent-panel-title-text {
         display: flex;
         flex-direction: column;
-        gap: 0.1rem;
-        line-height: 1.2;
+        gap: 0;
+        line-height: 1.15;
+        font-size: var(--fs-sm);
       }
 
       .help-agent-panel-subtitle {
-        font-size: var(--fs-sm);
+        font-size: var(--fs-xs, 0.75rem);
         font-weight: 400;
         color: var(--color-text-secondary, var(--text-color-secondary));
       }
@@ -372,19 +373,19 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.75rem 1rem;
+        padding: 0.5rem 0.75rem;
         border-bottom: 1px solid var(--color-border);
       }
 
       .help-agent-panel-title {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.4rem;
       }
 
       .help-agent-panel-avatar {
-        width: 2.625rem;
-        height: 2.625rem;
+        width: 2rem;
+        height: 2rem;
       }
 
       .help-agent-msg-avatar {

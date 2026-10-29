@@ -305,6 +305,7 @@ model Client {
   interactions      Interaction[]
   assignments       ClientAssignment[]
   tags              ClientTag[]
+  fieldValues       ClientFieldValue[]
 
   @@unique([tenantId, code])
 }
@@ -1576,6 +1577,8 @@ model Tenant {
   slug            String   @unique
   /// Email domains that count as this tenant's own team (besides staff users), e.g. thepurplenest.org.
   internalDomains String[] @default([])
+  /// Modules switched on for this tenant (libs/shared modules.ts). Areas of other modules don't exist here.
+  modules         String[] @default(["bookings"])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -1640,6 +1643,9 @@ model Tenant {
   pipelines                   Pipeline[]
   pipelineStages              PipelineStage[]
   activitySnoozes             ActivitySnooze[]
+  clientFieldSections         ClientFieldSection[]
+  clientFields                ClientField[]
+  clientFieldValues           ClientFieldValue[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -1876,5 +1882,71 @@ model ActivitySnooze {
   createdAt   DateTime      @default(now())
 
   @@unique([tenantId, queue, refKey])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Client custom fields: each tenant defines its own sections and fields shown on the organization page.
+// ---------------------------------------------------------------------------------------------------------------
+
+enum ClientFieldType {
+  TEXT
+  LONG_TEXT
+  NUMBER
+  DATE
+  SINGLE_SELECT
+  MULTI_SELECT
+  CHECKBOX
+}
+
+model ClientFieldSection {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  /// Only admins and people assigned to the client see this section.
+  sensitive Boolean  @default(false)
+  sortOrder Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fields ClientField[]
+
+  @@index([tenantId, sortOrder])
+}
+
+model ClientField {
+  id        String          @id @default(cuid())
+  tenantId  String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  sectionId String
+  name      String
+  type      ClientFieldType
+  /// Select options: [{ id, label }]. Values store option ids, so renaming an option keeps its values.
+  options   Json?
+  sortOrder Float           @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  section ClientFieldSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  values  ClientFieldValue[]
+
+  @@index([sectionId, sortOrder])
+  @@index([tenantId])
+}
+
+model ClientFieldValue {
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  clientId  String
+  fieldId   String
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  client Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  field  ClientField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, fieldId])
+  @@index([fieldId])
   @@index([tenantId])
 }

@@ -1,4 +1,5 @@
 import type { UserRole } from './types';
+import { areaEnabled } from './modules';
 
 /**
  * App areas a tenant-defined role can be granted, each at a level:
@@ -112,7 +113,13 @@ export function sanitizeActions(input: unknown): RoleActions {
   return out;
 }
 
-type WithAccess = { role: UserRole; permissions?: RolePermissions | null; actions?: RoleActions | null };
+type WithAccess = {
+  role: UserRole;
+  permissions?: RolePermissions | null;
+  actions?: RoleActions | null;
+  /** The current tenant's modules (admin app). An area of a module that is off doesn't exist, even for admins. */
+  modules?: readonly string[] | null;
+};
 
 /**
  * Whether the user may take an action in an area. Admins may do everything. Anyone else needs the area
@@ -120,6 +127,7 @@ type WithAccess = { role: UserRole; permissions?: RolePermissions | null; action
  */
 export function allows(user: WithAccess | null | undefined, area: PermissionArea, action: AreaAction): boolean {
   if (!user) return false;
+  if (!areaEnabled(user.modules, area)) return false;
   if (user.role === 'ADMIN') return true;
   if (user.role !== 'USER') return false;
   if (!user.permissions?.[area]) return false;
@@ -191,6 +199,7 @@ export const ROLE_PRESETS: readonly RolePreset[] = [
 /** The user's level in an area: admins have 'all' everywhere; null means no access. */
 export function areaLevel(user: WithAccess | null | undefined, area: PermissionArea): AccessLevel | null {
   if (!user) return null;
+  if (!areaEnabled(user.modules, area)) return null;
   if (user.role === 'ADMIN') return 'all';
   if (user.role !== 'USER') return null;
   return user.permissions?.[area] ?? null;

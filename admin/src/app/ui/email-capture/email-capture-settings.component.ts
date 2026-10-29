@@ -5,69 +5,145 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { CaptureSettings, CommunicationsApi } from '../../core/communications.api';
-import { HelpTextComponent } from '../help-text/help-text.component';
 
 /** Settings > Email capture: the address to CC and how logging works. */
 @Component({
   selector: 'app-email-capture-settings',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, HelpTextComponent],
+  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule],
   template: `
     @if (error()) {
       <p-message severity="error" [text]="error()!" class="mb-3 block" />
     }
 
     @if (settings(); as s) {
-      <h4 class="mt-0 mb-2">Capture address <app-help-text key="emailCapture.address" /></h4>
-      @if (s.address) {
-        <div class="field-action-row">
-          <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="Capture address" />
-          <p-button label="Copy" icon="pi pi-copy" severity="secondary" size="small" (onClick)="copy(s.address)" />
-        </div>
-      } @else {
-        <p-message severity="warn" class="block mb-2">
-          No address yet. It is created automatically when the API starts; reload in a moment.
-        </p-message>
-      }
-      <div class="field-action-row mt-2">
-        @if (!editing) {
-          <button type="button" class="link-btn" (click)="startEdit(s)">Change the address name</button>
-        } @else {
-          <input pInputText [(ngModel)]="newAlias" placeholder="e.g. tpn" class="flex-1" aria-label="New address name" />
-          <p-button label="Save" icon="pi pi-check" size="small" [loading]="saving()" [disabled]="!newAlias.trim()" (onClick)="saveAlias()" />
-          <p-button label="Cancel" severity="secondary" [text]="true" size="small" (onClick)="editing = false" />
-        }
-      </div>
-      @if (s.aliases.length > 1) {
-        <p class="text-sm mt-2 mb-0">
-          Older addresses still work:
-          @for (a of s.aliases; track a.alias) {
-            @if (!a.isPrimary) {
-              <code class="mr-2">{{ a.address || a.alias }}</code>
-            }
-          }
+      <div class="email-capture-instructions text-sm mb-3">
+        <p class="font-semibold mt-0 mb-2">How to log email</p>
+        <ol class="email-capture-steps mb-0">
+          <li>CC this address on email you want logged — it lands on the matching client or lead Activity.</li>
+          <li>Reply-all keeps the address on the thread.</li>
+          <li>Unmatched mail goes to Inbox; file once and the thread follows.</li>
+        </ol>
+        <p class="mt-2 mb-0 text-color-secondary">
+          To log mail without the address on it, reply-all and add the capture address. The Email button on records
+          opens your mail app with CC filled in. Only messages this address is on are seen — nothing else in mailboxes
+          is read.
         </p>
-      }
+      </div>
 
-      <h4 class="mt-4 mb-2">How to log email <app-help-text key="emailCapture.howToLog" /></h4>
+      <div class="showcase-row email-capture-fields-row">
+        <div class="form-field showcase-half email-capture-col">
+          <label>Capture address</label>
+          <p class="text-sm text-color-secondary mt-0 mb-2">
+            CC this address on outbound email to log it. Older alias addresses still work if you rename the capture
+            name.
+          </p>
+          @if (s.address) {
+            <div class="field-action-row">
+              @if (editing) {
+                <input
+                  pInputText
+                  [(ngModel)]="newAlias"
+                  class="flex-1 capture-address"
+                  aria-label="Capture address name"
+                  placeholder="e.g. tpn"
+                />
+                <span class="capture-address-suffix">&#64;{{ captureDomain(s) }}</span>
+                <p-button
+                  label="Save"
+                  icon="pi pi-check"
+                  size="small"
+                  [loading]="saving()"
+                  [disabled]="!newAlias.trim()"
+                  (onClick)="saveAlias()"
+                />
+                <p-button label="Cancel" severity="secondary" [text]="true" size="small" (onClick)="cancelEdit()" />
+              } @else {
+                <input pInputText [value]="s.address" readonly class="flex-1 capture-address" aria-label="Capture address" />
+                <p-button label="Copy" icon="pi pi-copy" severity="secondary" size="small" (onClick)="copy(s.address)" />
+              }
+            </div>
+            @if (!editing) {
+              <button type="button" class="link-btn mt-2" (click)="startEdit(s)">Change the address name</button>
+            }
+          } @else {
+            <p-message severity="warn" class="block mb-0">
+              No address yet. It is created automatically when the API starts; reload in a moment.
+            </p-message>
+          }
+          @if (s.aliases.length > 1) {
+            <p class="text-sm mt-2 mb-0">
+              Older addresses still work:
+              @for (a of s.aliases; track a.alias) {
+                @if (!a.isPrimary) {
+                  <code class="mr-2">{{ a.address || a.alias }}</code>
+                }
+              }
+            </p>
+          }
+        </div>
 
-      <h4 class="mt-4 mb-2">Your team's email domains <app-help-text key="emailCapture.teamDomains" /></h4>
-      <div class="field-action-row">
-        <input
-          pInputText
-          [(ngModel)]="domainsText"
-          placeholder="e.g. thepurplenest.org"
-          class="flex-1"
-          aria-label="Team email domains, comma separated"
-        />
-        <p-button label="Save" icon="pi pi-check" severity="secondary" size="small" [loading]="savingDomains()" (onClick)="saveDomains()" />
+        <div class="form-field showcase-half email-capture-col">
+          <label for="teamDomains">Your team's email domains</label>
+          <p class="text-sm text-color-secondary mt-0 mb-2">
+            Addresses at these domains count as your team (your users always do), so they're never treated as clients.
+          </p>
+          <div class="field-action-row">
+            <input
+              pInputText
+              id="teamDomains"
+              [(ngModel)]="domainsText"
+              placeholder="e.g. thepurplenest.org"
+              class="flex-1"
+              aria-label="Team email domains, comma separated"
+            />
+            <p-button
+              label="Save"
+              icon="pi pi-check"
+              severity="secondary"
+              size="small"
+              [loading]="savingDomains()"
+              (onClick)="saveDomains()"
+            />
+          </div>
+        </div>
       </div>
     } @else if (loading()) {
-      <p class="text-color-secondary">Loading…</p>
+      <p class="text-color-secondary"><i class="pi pi-spin pi-spinner" aria-hidden="true"></i></p>
     }
   `,
   styles: `
-    .capture-address { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .capture-address {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .capture-address-suffix {
+      flex-shrink: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: var(--fs-sm);
+      color: var(--text-color-secondary);
+    }
+
+    .email-capture-fields-row {
+      align-items: start;
+    }
+
+    .email-capture-col {
+      min-width: 0;
+    }
+
+    .email-capture-instructions {
+      line-height: 1.5;
+    }
+
+    .email-capture-steps {
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+
+    .email-capture-steps li + li {
+      margin-top: 0.35rem;
+    }
   `,
 })
 export class EmailCaptureSettingsComponent implements OnInit {
@@ -100,14 +176,24 @@ export class EmailCaptureSettingsComponent implements OnInit {
     }
   }
 
+  captureDomain(s: CaptureSettings): string {
+    const fromAddress = s.address?.includes('@') ? s.address.split('@').slice(1).join('@') : '';
+    return fromAddress || s.inboundDomain;
+  }
+
   private apply(s: CaptureSettings) {
     this.settings.set(s);
     this.domainsText = s.internalDomains.join(', ');
   }
 
   startEdit(s: CaptureSettings) {
-    this.newAlias = s.primaryAlias ?? '';
+    this.newAlias = s.primaryAlias ?? s.address?.split('@')[0] ?? '';
     this.editing = true;
+  }
+
+  cancelEdit() {
+    this.editing = false;
+    this.newAlias = '';
   }
 
   async saveAlias() {

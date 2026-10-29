@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -11,7 +11,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { AccordionModule } from 'primeng/accordion';
-import { US_STATES, type RecordAttributionDto } from '@upstart/back-office/shared';
+import { areaEnabled, US_STATES, type RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
@@ -24,6 +24,8 @@ import { McpSettingsComponent } from '../../ui/mcp-settings/mcp-settings.compone
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/expenses-invoicing-settings.component';
 import { ActivitySettingsComponent } from '../../ui/activity-settings/activity-settings.component';
+import { ClientFieldsSettingsComponent } from '../../ui/client-fields/client-fields-settings.component';
+import { SessionService } from '../../core/session.service';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 
 interface ServiceKey {
@@ -114,6 +116,7 @@ interface SettingsStatusIcon {
     HelpTextComponent,
     ExpensesInvoicingSettingsComponent,
     ActivitySettingsComponent,
+    ClientFieldsSettingsComponent,
     AvatarDropzoneComponent,
     RecordAttributionComponent,
   ],
@@ -236,6 +239,9 @@ export class SettingsPage implements OnInit {
   private readonly tenantBranding = inject(TenantBrandingService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly route        = inject(ActivatedRoute);
+  private readonly session      = inject(SessionService);
+  /** Google Calendar only feeds Bookings, so it is hidden when the Bookings module is off. */
+  readonly bookingsOn = computed(() => areaEnabled(this.session.me()?.modules, 'bookings'));
   private readonly router       = inject(Router);
 
   keys      = signal<ServiceKey[]>([]);

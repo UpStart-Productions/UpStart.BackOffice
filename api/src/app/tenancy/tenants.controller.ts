@@ -8,17 +8,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RequireSuperGuard } from './require-super.guard';
 import { runUnscoped, runWithTenant } from './tenant-context';
 import { ensurePresetRoles } from '../access/role-presets.util';
+import { DEFAULT_MODULES, sanitizeModules } from '@upstart/back-office/shared';
 
 export class CreateTenantDto {
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
   @IsString() @Matches(/^[a-z0-9-]{2,40}$/, { message: 'Slug: 2-40 characters, a-z, 0-9 and dashes' }) slug!: string;
   @IsOptional() @IsArray() @IsString({ each: true }) internalDomains?: string[];
+  /** Module keys to switch on (libs/shared modules.ts). Omitted: the default set. */
+  @IsOptional() @IsArray() @IsString({ each: true }) modules?: string[];
 }
 
 export class UpdateTenantDto {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(120) name?: string;
   @IsOptional() @IsString() @Matches(/^[a-z0-9-]{2,40}$/, { message: 'Slug: 2-40 characters, a-z, 0-9 and dashes' }) slug?: string;
   @IsOptional() @IsArray() @IsString({ each: true }) internalDomains?: string[];
+  /** Module keys switched on. Turning one off hides it but keeps its data. */
+  @IsOptional() @IsArray() @IsString({ each: true }) modules?: string[];
 }
 
 @ApiTags('tenants')
@@ -60,7 +65,7 @@ export class TenantsController {
   @UseGuards(RequireSuperGuard)
   list() {
     return this.prisma.tenant.findMany({
-      select: { id: true, name: true, slug: true, internalDomains: true, createdAt: true },
+      select: { id: true, name: true, slug: true, internalDomains: true, modules: true, createdAt: true },
       orderBy: { name: 'asc' },
     });
   }
@@ -71,7 +76,7 @@ export class TenantsController {
   async update(@Param('id') id: string, @Body() dto: UpdateTenantDto) {
     const existing = await this.prisma.tenant.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Tenant not found');
-    const data: { name?: string; slug?: string; internalDomains?: string[] } = {};
+    const data: { name?: string; slug?: string; internalDomains?: string[]; modules?: string[] } = {};
     if (dto.name !== undefined) {
       const name = dto.name.trim();
       if (!name) throw new BadRequestException('Name is required');
@@ -80,6 +85,7 @@ export class TenantsController {
     if (dto.internalDomains !== undefined) {
       data.internalDomains = [...new Set(dto.internalDomains.map((d) => d.trim().toLowerCase()).filter(Boolean))];
     }
+    if (dto.modules !== undefined) data.modules = sanitizeModules(dto.modules);
     const slugChanged = dto.slug !== undefined && dto.slug !== existing.slug;
     if (slugChanged) {
       if (await this.prisma.tenant.findUnique({ where: { slug: dto.slug } })) {
@@ -100,7 +106,7 @@ export class TenantsController {
         }
       });
     }
-    return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains };
+    return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains, modules: tenant.modules };
   }
 
   /** Create a tenant and its primary inbound-email alias. Add its first admin from Users after switching in. */
@@ -113,7 +119,8 @@ export class TenantsController {
     if (await this.prisma.tenant.findUnique({ where: { slug: dto.slug } })) {
       throw new ConflictException(`A tenant with slug "${dto.slug}" already exists`);
     }
-    const tenant = await this.prisma.tenant.create({ data: { name, slug: dto.slug, internalDomains } });
+    const modules = dto.modules !== undefined ? sanitizeModules(dto.modules) : [...DEFAULT_MODULES];
+    const tenant = await this.prisma.tenant.create({ data: { name, slug: dto.slug, internalDomains, modules } });
     // Capture address <slug>@in.<domain>; unscoped because no request tenant exists yet (tenantId is explicit).
     await runUnscoped(async () => {
       const taken = await this.prisma.inboundAlias.findUnique({ where: { alias: dto.slug } });
@@ -124,6 +131,6 @@ export class TenantsController {
       await ensurePresetRoles(this.prisma);
       await this.prisma.organizationProfile.create({ data: { companyName: name } });
     });
-    return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains };
+    return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains, modules: tenant.modules };
   }
 }

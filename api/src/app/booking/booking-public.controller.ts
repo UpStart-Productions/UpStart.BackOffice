@@ -1,11 +1,13 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PublicTenantService } from '../tenancy/public-tenant.service';
+import { ForModule } from '../access/route-modules';
 import { DEFAULT_BOOKING_SLUG, BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
 /** Public booking — no auth (website widgets). */
 @ApiTags('booking')
+@ForModule('bookings')
 @Controller('booking')
 export class BookingPublicController {
   constructor(

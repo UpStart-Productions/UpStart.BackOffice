@@ -170,6 +170,8 @@
       </form>
 
         @if (!isNew) {
+          <app-client-fields-panel [clientId]="id()!" [canEdit]="canEdit()" />
+
           <app-activity-timeline [clientId]="id()!" [organizationName]="form.name" />
 
           <app-artifacts-panel [clientId]="id()!" />

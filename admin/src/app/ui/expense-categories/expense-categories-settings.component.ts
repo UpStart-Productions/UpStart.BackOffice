@@ -9,7 +9,6 @@ import { TagModule } from 'primeng/tag';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 import { ExpenseCategory, MILEAGE_CATEGORY_SLUG } from '../../pages/expenses/expense.types';
 
@@ -24,7 +23,6 @@ import { ExpenseCategory, MILEAGE_CATEGORY_SLUG } from '../../pages/expenses/exp
     TableModule,
     TagModule,
     AppDialogModule,
-    HelpTextComponent,
     RowActionsMenuComponent,
   ],
   template: `
@@ -33,7 +31,6 @@ import { ExpenseCategory, MILEAGE_CATEGORY_SLUG } from '../../pages/expenses/exp
     }
 
     <div class="field-action-row toolbar">
-      <span class="font-medium mr-1">Categories <app-help-text key="settings.expensesInvoicing.categories" /></span>
       <input
         pInputText
         [(ngModel)]="newName"

@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
-import { allows, isAdminRole, isBackOfficeRole, tasksOnly, type AreaAction, type PermissionArea } from '@upstart/back-office/shared';
+import { allows, areaEnabled, isAdminRole, isBackOfficeRole, tasksOnly, type AreaAction, type PermissionArea } from '@upstart/back-office/shared';
 import { AuthStoreService } from './auth-store.service';
 import { CognitoAuthService } from './cognito-auth.service';
 import { SessionService } from './session.service';
@@ -89,16 +89,20 @@ const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
 ];
 
 /**
- * Sends users away from areas their role doesn't grant (admins pass; the API enforces the same).
+ * Sends users away from areas their role doesn't grant (admins pass; the API enforces the same), and everyone
+ * away from areas of modules that are off for the tenant.
  * A Tasks-only role (like Guest) only ever sees the Task Manager.
  */
 export const areaGuard: CanActivateChildFn = async (_route, state) => {
   const me = await inject(SessionService).getReady();
-  if (!me || isAdminRole(me.role)) return true;
+  if (!me) return true;
+  const hit = AREA_BY_PREFIX.find(([prefix]) => state.url === prefix || state.url.startsWith(prefix + '/') || state.url.startsWith(prefix + '?'));
+  // An area of a module that is off for this tenant doesn't exist, even for admins.
+  if (hit && !areaEnabled(me.modules, hit[1])) return inject(Router).createUrlTree(['/dashboard']);
+  if (isAdminRole(me.role)) return true;
   if (tasksOnly(me)) {
     return /^\/tasks(\/|$|\?)/.test(state.url) ? true : inject(Router).createUrlTree(['/tasks']);
   }
-  const hit = AREA_BY_PREFIX.find(([prefix]) => state.url === prefix || state.url.startsWith(prefix + '/') || state.url.startsWith(prefix + '?'));
   if (!hit || me.permissions?.[hit[1]]) return true;
   return inject(Router).createUrlTree(['/dashboard']);
 };

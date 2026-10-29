@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, output, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -12,6 +12,7 @@ import { MessageService } from 'primeng/api';
 import {
   ACTION_LABELS,
   actionsFor,
+  areaEnabled,
   OWNABLE_AREAS,
   PERMISSION_AREAS,
   PERMISSION_LABELS,
@@ -24,6 +25,7 @@ import {
   type RolePermissions,
 } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -136,7 +138,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
             </tr>
           </thead>
           <tbody>
-            @for (area of areas; track area) {
+            @for (area of visibleAreas(); track area) {
               <tr>
                 <td>{{ label(area) }}</td>
                 <td>
@@ -240,7 +242,9 @@ export class RolesTabComponent implements OnInit {
   /** Emitted after a role changes so the Users tab can refresh role names. */
   readonly changed = output<void>();
 
-  readonly areas = PERMISSION_AREAS;
+  private readonly session = inject(SessionService);
+  /** Areas that exist for this tenant (areas of modules that are off are hidden; saved levels are kept). */
+  readonly visibleAreas = computed(() => PERMISSION_AREAS.filter((a) => areaEnabled(this.session.me()?.modules, a)));
   readonly allActions = ROLE_ACTIONS;
   /** Checkbox state per area; areas without an action just ignore it. */
   grid = signal<ActionGrid>(this.fullGrid());
@@ -296,7 +300,7 @@ export class RolesTabComponent implements OnInit {
 
   /** One chip per area the role can use: name, Own marker, and an icon per action (faded when not allowed). */
   chips(role: RoleRow) {
-    return PERMISSION_AREAS.filter((area) => role.permissions[area]).map((area) => {
+    return this.visibleAreas().filter((area) => role.permissions[area]).map((area) => {
       const actions = actionsFor(area).map((a) => ({
         key: a,
         label: ACTION_LABELS[a],

@@ -4,11 +4,11 @@ import { allows, isAdminRole, isBackOfficeRole, type AreaAction, type Permission
 import { Request } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { AccessService } from './access.service';
+import { RULE_KEY, type AccessRule } from './route-modules';
 
-const RULE_KEY = 'ubo:access-rule';
 const ACTION_KEY = 'ubo:access-action';
 
-type AccessRule = { kind: 'area'; areas: PermissionArea[] } | { kind: 'admin' } | { kind: 'signedIn' };
+export { ForModule } from './route-modules';
 
 /** Any level in one of these areas. Scoping to 'own' is done in the services. */
 export const Area = (...areas: PermissionArea[]) => SetMetadata(RULE_KEY, { kind: 'area', areas } satisfies AccessRule);

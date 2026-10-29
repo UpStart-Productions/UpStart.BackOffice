@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
+import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
 import { ApiService } from '../../core/api.service';
 import { HelpTextComponent } from '../help-text/help-text.component';
@@ -25,11 +26,35 @@ interface OrganizationProfile {
   standalone: true,
   imports: [
     FormsModule,
+    AccordionModule,
     ButtonModule,
     HelpTextComponent,
     MoneyInputComponent,
     ExpenseCategoriesSettingsComponent,
     ExpensePaymentMethodsSettingsComponent,
+  ],
+  styles: [
+    `
+      .expenses-invoicing-lists-row {
+        align-items: start;
+      }
+
+      .expenses-invoicing-lists-col {
+        min-width: 0;
+      }
+
+      .expenses-invoicing-sub-accordion {
+        display: block;
+      }
+
+      .expenses-invoicing-sub-accordion .settings-sub-accordion-header {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: var(--fs-base);
+        font-weight: 600;
+      }
+    `,
   ],
   template: `
     <div class="form-field mb-4">
@@ -56,12 +81,44 @@ interface OrganizationProfile {
       </div>
     </div>
 
-    <app-expense-categories-settings />
+    <div class="showcase-row expenses-invoicing-lists-row">
+      <div class="showcase-half expenses-invoicing-lists-col">
+        <p-accordion class="expenses-invoicing-sub-accordion" [(value)]="categoriesAccordionPanel">
+          <p-accordion-panel value="categories">
+            <p-accordion-header>
+              <span class="settings-sub-accordion-header">
+                Categories
+                <app-help-text key="settings.expensesInvoicing.categories" />
+              </span>
+            </p-accordion-header>
+            <p-accordion-content>
+              <app-expense-categories-settings />
+            </p-accordion-content>
+          </p-accordion-panel>
+        </p-accordion>
+      </div>
 
-    <app-expense-payment-methods-settings class="block mt-4" />
+      <div class="showcase-half expenses-invoicing-lists-col">
+        <p-accordion class="expenses-invoicing-sub-accordion" [(value)]="paymentMethodsAccordionPanel">
+          <p-accordion-panel value="payment-methods">
+            <p-accordion-header>
+              <span class="settings-sub-accordion-header">
+                Payment methods
+                <app-help-text key="settings.expensesInvoicing.paymentMethods" />
+              </span>
+            </p-accordion-header>
+            <p-accordion-content>
+              <app-expense-payment-methods-settings />
+            </p-accordion-content>
+          </p-accordion-panel>
+        </p-accordion>
+      </div>
+    </div>
   `,
 })
 export class ExpensesInvoicingSettingsComponent implements OnInit {
+  categoriesAccordionPanel: string[] = [];
+  paymentMethodsAccordionPanel: string[] = [];
   private readonly api = inject(ApiService);
   private readonly toast = inject(MessageService);
 

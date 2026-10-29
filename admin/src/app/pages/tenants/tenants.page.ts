@@ -5,14 +5,17 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { CheckboxModule } from 'primeng/checkbox';
+import { DEFAULT_MODULES, MODULE_KEYS, MODULES, type ModuleKey } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { TenantService } from '../../core/tenant.service';
+import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
-type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; createdAt: string };
+type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; modules: string[]; createdAt: string };
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -21,7 +24,7 @@ const slugify = (s: string) =>
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, AppDialogModule, RowActionsMenuComponent, HelpTextComponent],
+  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, CheckboxModule, AppDialogModule, RowActionsMenuComponent, HelpTextComponent],
   template: `
     <app-page title="Tenants" helpKey="tenant.overview">
       <p-button pageActions label="Add tenant" icon="pi pi-plus" (onClick)="openAdd()" />
@@ -31,7 +34,7 @@ const slugify = (s: string) =>
       <div class="card">
         <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered">
           <ng-template pTemplate="header">
-            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th></tr>
+            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th><th>Modules</th></tr>
           </ng-template>
           <ng-template pTemplate="body" let-t>
             <tr>
@@ -42,6 +45,11 @@ const slugify = (s: string) =>
               </td>
               <td><code>{{ t.slug }}</code></td>
               <td>{{ t.internalDomains.length ? t.internalDomains.join(', ') : '—' }}</td>
+              <td>
+                <span class="module-tags">
+                  @for (m of t.modules; track m) { <p-tag [value]="moduleLabel(m)" severity="secondary" /> } @empty { — }
+                </span>
+              </td>
             </tr>
           </ng-template>
         </p-table>
@@ -63,6 +71,13 @@ const slugify = (s: string) =>
           <input pInputText id="t-slug" [(ngModel)]="slug" (ngModelChange)="slugEdited = true" placeholder="purplenest" class="w-full" />
           <label for="t-domains">Internal email domains (optional) <app-help-text key="tenant.internalDomains" /></label>
           <input pInputText id="t-domains" [(ngModel)]="domains" placeholder="thepurplenest.org, example.com" class="w-full" />
+          <span class="modules-label">Modules <app-help-text key="tenant.modules" /></span>
+          @for (key of moduleKeys; track key) {
+            <div class="module-option">
+              <p-checkbox [inputId]="'t-mod-' + key" [binary]="true" [ngModel]="modules.includes(key)" (ngModelChange)="toggleModule(key, $event)" />
+              <label [for]="'t-mod-' + key">{{ moduleLabel(key) }}</label>
+            </div>
+          }
           @if (formError()) { <p-message severity="error" [text]="formError()!" /> }
         </div>
         <ng-template pTemplate="footer">
@@ -72,11 +87,18 @@ const slugify = (s: string) =>
       </p-dialog>
     </app-page>
   `,
-  styles: `.form { display: flex; flex-direction: column; gap: 0.5rem; }`,
+  styles: `
+    .form { display: flex; flex-direction: column; gap: 0.5rem; }
+    .modules-label { margin-top: 0.5rem; }
+    .module-option { display: flex; align-items: center; gap: 0.5rem; }
+    .module-tags { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; }
+  `,
 })
 export class TenantsPage implements OnInit {
   private readonly api = inject(ApiService);
   readonly tenant = inject(TenantService);
+  private readonly session = inject(SessionService);
+  readonly moduleKeys = MODULE_KEYS;
 
   tenants = signal<TenantRow[]>([]);
   loading = signal(true);
@@ -87,6 +109,7 @@ export class TenantsPage implements OnInit {
   name = '';
   slug = '';
   domains = '';
+  modules: string[] = [];
   slugEdited = false;
   editingId: string | null = null;
 
@@ -119,6 +142,7 @@ export class TenantsPage implements OnInit {
     this.name = t.name;
     this.slug = t.slug;
     this.domains = t.internalDomains.join(', ');
+    this.modules = [...t.modules];
     this.slugEdited = true;
     this.formError.set(null);
     this.addVisible = true;
@@ -127,9 +151,18 @@ export class TenantsPage implements OnInit {
   openAdd() {
     this.editingId = null;
     this.name = this.slug = this.domains = '';
+    this.modules = [...DEFAULT_MODULES];
     this.slugEdited = false;
     this.formError.set(null);
     this.addVisible = true;
+  }
+
+  moduleLabel(key: string): string {
+    return MODULES[key as ModuleKey]?.label ?? key;
+  }
+
+  toggleModule(key: ModuleKey, on: boolean) {
+    this.modules = on ? [...new Set([...this.modules, key])] : this.modules.filter((m) => m !== key);
   }
 
   onName(v: string) {
@@ -142,7 +175,7 @@ export class TenantsPage implements OnInit {
     this.formError.set(null);
     try {
       const internalDomains = this.domains.split(',').map((d) => d.trim()).filter(Boolean);
-      const body = { name: this.name.trim(), slug: this.slug.trim(), internalDomains };
+      const body = { name: this.name.trim(), slug: this.slug.trim(), internalDomains, modules: this.modules };
       if (this.editingId) {
         const old = this.tenants().find((t) => t.id === this.editingId);
         await this.api.patch(`/tenants/${this.editingId}`, body);
@@ -155,7 +188,9 @@ export class TenantsPage implements OnInit {
         await this.api.post('/tenants', body);
       }
       this.addVisible = false;
-      await Promise.all([this.load(), this.tenant.load()]);
+      // The current tenant's modules decide the menu and role areas: reload them.
+      const editedCurrent = this.tenants().find((t) => t.id === this.editingId)?.slug === this.tenant.currentSlug();
+      await Promise.all([this.load(), this.tenant.load(), editedCurrent ? this.session.refresh() : Promise.resolve()]);
     } catch (e) {
       this.formError.set(e instanceof Error ? e.message.replace(/^API error \d+: /, '') : 'Could not save tenant');
     } finally {

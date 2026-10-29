@@ -81,6 +81,32 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
       object-fit: cover;
       border-radius: 8px;
     }
+    .avatar-panel-photo--logo img {
+      aspect-ratio: auto;
+      height: 7.5rem;
+      object-fit: contain;
+      padding: 1rem 1.25rem;
+      background: var(--surface-ground);
+      box-sizing: border-box;
+      border: 1px solid var(--surface-border);
+    }
+    .avatar-dropzone--logo-empty {
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      min-height: 7.5rem;
+      max-width: none;
+      width: 100%;
+      padding: 1.25rem 1rem;
+    }
+    .avatar-dropzone--logo-empty .avatar-dropzone-icon {
+      font-size: 1.75rem;
+      margin-bottom: 0.35rem;
+    }
+    .avatar-dropzone--logo-empty .avatar-dropzone-copy {
+      flex: unset;
+    }
     .avatar-panel-photo--active {
       outline: 2px solid var(--primary-color);
       outline-offset: 2px;
@@ -110,6 +136,7 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
     @if (panel() && displayUrl()) {
       <div
         class="avatar-panel-photo"
+        [class.avatar-panel-photo--logo]="thumbShape() === 'square'"
         [class.avatar-panel-photo--active]="dragOver()"
         role="button"
         tabindex="0"
@@ -125,6 +152,25 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
         <button type="button" class="avatar-panel-remove" aria-label="Remove photo" (click)="onRemoveClick($event)">
           <i class="pi pi-trash" aria-hidden="true"></i>
         </button>
+      </div>
+    } @else if (panel() && thumbShape() === 'square') {
+      <div
+        class="avatar-dropzone avatar-dropzone--logo-empty"
+        [class.avatar-dropzone--active]="dragOver()"
+        role="button"
+        tabindex="0"
+        (click)="onZoneClick()"
+        (keydown.enter)="onZoneClick()"
+        (keydown.space)="onZoneClick(); $event.preventDefault()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+      >
+        <i class="pi {{ emptyIcon() }} avatar-dropzone-icon" aria-hidden="true"></i>
+        <span class="avatar-dropzone-copy">
+          <strong>{{ emptyTitle() }}</strong>
+          {{ emptyHint() }}
+        </span>
       </div>
     } @else {
       <div

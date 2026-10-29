@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -24,6 +24,7 @@ import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { ClientFieldsPanelComponent } from '../../ui/client-fields/client-fields-panel.component';
 import type { AccountJourney, ClientDto, RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
@@ -77,6 +78,7 @@ type ClientForm = {
     CrmTagInputComponent,
     HelpTextComponent,
     RecordAttributionComponent,
+    ClientFieldsPanelComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',
@@ -146,8 +148,11 @@ export class ClientFormPage implements OnInit {
     return JSON.stringify(this.form);
   }
 
+  /** Custom sections (Settings → Client fields), saved together with the form. */
+  private readonly customFields = viewChild(ClientFieldsPanelComponent);
+
   isDirty() {
-    return this.snapshot() !== this.savedSnapshot;
+    return this.snapshot() !== this.savedSnapshot || !!this.customFields()?.isDirty();
   }
 
   /** New or edit under Office → Clients (not CRM → Organizations). */
@@ -276,9 +281,12 @@ export class ClientFormPage implements OnInit {
         const detailPath = this.backLink === '/clients' ? '/clients' : '/organizations';
         await this.router.navigate([detailPath, created.id], { replaceUrl: true });
       } else {
-        const updated = await this.api.put<ClientDto>(`/clients/${this.id()}`, payload);
-        this.attribution.set(updated.attribution ?? null);
-        this.savedSnapshot = this.snapshot();
+        if (this.snapshot() !== this.savedSnapshot) {
+          const updated = await this.api.put<ClientDto>(`/clients/${this.id()}`, payload);
+          this.attribution.set(updated.attribution ?? null);
+          this.savedSnapshot = this.snapshot();
+        }
+        await this.customFields()?.save();
         this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.form.name} saved.` });
       }
     } catch (err) {

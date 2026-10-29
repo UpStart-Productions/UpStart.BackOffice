@@ -7,4 +7,5 @@
 - **Lanes don't set status**: moving a card to any lane never makes its organization a Client; use **Make client**.
 - **Tags**: there's no page yet to rename, recolor or delete CRM tags; remove a tag from each organization or person instead. The **Organizations** permission area also covers the Clients page, and **People** covers the People page.
 - **Activity → Unfiled** has no duplicate-contact merge yet.
+- **Client fields** show on the organization page only: they aren't in the Organizations or Clients lists, search, filters or exports yet, and there's no drag to reorder (use Move up / Move down).
 - Help guide content is a **bootstrap** — if the UI changed recently and this file was not updated, prefer the on-screen labels and ask an admin to update `docs/help-guide/`.

@@ -3,7 +3,6 @@ import { MessageService } from 'primeng/api';
 import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { HelpTextComponent } from '../help-text/help-text.component';
 
 /** Production MCP endpoint (Streamable HTTP). Shown in Settings for all environments. */
 export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
@@ -12,19 +11,33 @@ export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
 @Component({
   selector: 'app-mcp-settings',
   standalone: true,
-  imports: [AccordionModule, ButtonModule, InputTextModule, HelpTextComponent],
+  imports: [AccordionModule, ButtonModule, InputTextModule],
   template: `
-    <h4 class="mt-0 mb-3 font-semibold">MCP server <app-help-text key="mcp.overview" /></h4>
-
     <p-accordion class="mcp-sub-accordion" [multiple]="true" [(value)]="openPanels">
       <p-accordion-panel value="capabilities">
-        <p-accordion-header>What the MCP server can do <app-help-text key="mcp.capabilities" /></p-accordion-header>
-        <p-accordion-content />
+        <p-accordion-header>What the MCP server can do</p-accordion-header>
+        <p-accordion-content>
+          <div class="mcp-instructions text-sm">
+            <p>
+              Tools use the same API as this app. Your role controls which tools appear; the API enforces permissions
+              on every write.
+            </p>
+            <p class="mb-2">Includes session, search, organizations, people, projects, time, expenses, tasks, and draft/send/paid invoices.</p>
+            <p class="mb-0">
+              Not available via MCP today: Bookings, Inbox filing, accounting, pipeline setup, receipt upload, browser
+              extension capture.
+            </p>
+          </div>
+        </p-accordion-content>
       </p-accordion-panel>
 
       <p-accordion-panel value="server-url">
-        <p-accordion-header>Server URL <app-help-text key="mcp.serverUrl" /></p-accordion-header>
+        <p-accordion-header>Server URL</p-accordion-header>
         <p-accordion-content>
+          <p class="mcp-instructions text-sm text-color-secondary">
+            Paste as a remote MCP server (Streamable HTTP). No client ID or secret; the server registers the app on
+            first connect.
+          </p>
           <div class="field-action-row">
             <input
               pInputText
@@ -39,23 +52,42 @@ export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
       </p-accordion-panel>
 
       <p-accordion-panel value="claude">
-        <p-accordion-header>Connect Claude <app-help-text key="mcp.claude" /></p-accordion-header>
-        <p-accordion-content />
+        <p-accordion-header>Connect Claude</p-accordion-header>
+        <p-accordion-content>
+          <p class="mcp-instructions text-sm mb-0">
+            Claude → Settings → Connectors → Add custom connector / MCP server → paste URL → Authenticate with UpStart
+            Back Office → Allow.
+          </p>
+        </p-accordion-content>
       </p-accordion-panel>
 
       <p-accordion-panel value="chatgpt">
-        <p-accordion-header>Connect ChatGPT <app-help-text key="mcp.chatgpt" /></p-accordion-header>
-        <p-accordion-content />
+        <p-accordion-header>Connect ChatGPT</p-accordion-header>
+        <p-accordion-content>
+          <p class="mcp-instructions text-sm mb-0">
+            ChatGPT desktop app → Settings → Connectors (or Apps &amp; connectors) → add MCP → paste URL → sign in and
+            Allow. Mobile app does not support MCP connectors.
+          </p>
+        </p-accordion-content>
       </p-accordion-panel>
 
       <p-accordion-panel value="codex">
-        <p-accordion-header>Connect OpenAI Codex (VS Code / desktop) <app-help-text key="mcp.codex" /></p-accordion-header>
-        <p-accordion-content />
+        <p-accordion-header>Connect OpenAI Codex (VS Code / desktop)</p-accordion-header>
+        <p-accordion-content>
+          <p class="mcp-instructions text-sm mb-0">
+            Codex settings → MCP Servers → add Streamable HTTP server with this URL → authenticate when prompted.
+          </p>
+        </p-accordion-content>
       </p-accordion-panel>
 
       <p-accordion-panel value="cursor">
-        <p-accordion-header>Connect Cursor and other MCP clients <app-help-text key="mcp.cursor" /></p-accordion-header>
-        <p-accordion-content />
+        <p-accordion-header>Connect Cursor and other MCP clients</p-accordion-header>
+        <p-accordion-content>
+          <p class="mcp-instructions text-sm mb-0">
+            Add a remote MCP server URL in MCP settings (Streamable HTTP with OAuth, not a local stdio command). Complete
+            login and Allow in the browser. Stdio-only clients cannot use this server.
+          </p>
+        </p-accordion-content>
       </p-accordion-panel>
     </p-accordion>
   `,
@@ -64,6 +96,15 @@ export const MCP_SERVER_URL = 'https://mcp.heyupstart.com/mcp';
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+    }
+
+    .mcp-instructions {
+      line-height: 1.5;
+      color: var(--text-color);
+    }
+
+    .mcp-instructions p {
+      margin: 0 0 0.75rem;
     }
 
     .mcp-url {
