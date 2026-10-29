@@ -8,6 +8,11 @@
   (onHide)="onDialogHide()"
 >
   <div class="entry-form">
+    @if (lockedInvoice(); as inv) {
+      <p-message severity="info" styleClass="w-full">
+        On invoice {{ inv.displayNumber }}. Amount, category, project, Reimbursable and Billable can't change while it's on that invoice.
+      </p-message>
+    }
     <div class="form-field">
       <label for="expense-description">Description</label>
       <input
@@ -29,6 +34,11 @@
           @if (mileageRate() != null && miles()) {
             <small class="text-color-secondary">{{ miles() }} mi × {{ formatRate(mileageRate()) }}/mi</small>
           }
+        </div>
+      } @else if (lockedInvoice()) {
+        <div class="form-field">
+          <label>Amount</label>
+          <div class="expense-computed-amount">{{ formatMoney(amount()) }}</div>
         </div>
       } @else {
         <div class="form-field">
@@ -67,6 +77,7 @@
             optionValue="name"
             [ngModel]="category() || null"
             (ngModelChange)="onCategoryChange($event ?? '')"
+            [disabled]="!!lockedInvoice()"
             placeholder="Search and select…"
             [filter]="true"
             filterBy="name"
@@ -86,6 +97,7 @@
             [maxFractionDigits]="2"
             [ngModel]="miles()"
             (ngModelChange)="miles.set($event)"
+            [disabled]="!!lockedInvoice()"
             styleClass="w-full"
             inputStyleClass="w-full"
           />
@@ -101,6 +113,7 @@
           optionValue="name"
           [ngModel]="category() || null"
           (ngModelChange)="onCategoryChange($event ?? '')"
+          [disabled]="!!lockedInvoice()"
           placeholder="Search and select…"
           [filter]="true"
           filterBy="name"
@@ -123,6 +136,7 @@
           optionValue="id"
           [ngModel]="projectId()"
           (ngModelChange)="onProjectChange($event)"
+          [disabled]="!!lockedInvoice()"
           [filter]="true"
           filterBy="projectName,clientName"
           filterPlaceholder="Search by client or project…"
@@ -163,11 +177,11 @@
 
     <div class="expense-form-row expense-form-row--toggles">
       <div class="flex align-items-center gap-2">
-        <p-toggleSwitch [ngModel]="isReimbursable()" (ngModelChange)="isReimbursable.set($event)" />
+        <p-toggleSwitch [ngModel]="isReimbursable()" (ngModelChange)="isReimbursable.set($event)" [disabled]="!!lockedInvoice()" />
         <label>Reimbursable <app-help-text key="expense.reimbursable" /></label>
       </div>
       <div class="flex align-items-center gap-2">
-        <p-toggleSwitch [ngModel]="isBillable()" (ngModelChange)="isBillable.set($event)" />
+        <p-toggleSwitch [ngModel]="isBillable()" (ngModelChange)="isBillable.set($event)" [disabled]="!!lockedInvoice()" />
         <label>Billable to client <app-help-text key="expense.billable" /></label>
       </div>
     </div>
@@ -208,7 +222,7 @@
   <ng-template pTemplate="footer">
     <div class="dialog-footer">
       <div class="footer-left">
-        @if (isEdit()) {
+        @if (isEdit() && !lockedInvoice()) {
           <button
             type="button"
             pButton

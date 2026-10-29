@@ -32,8 +32,12 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Payment collection is not implemented yet. Use price fields to display amount and prepare for Stripe later.',
 
   // Expenses
-  'expense.reimbursable': 'Someone paid for this personally and should be paid back.',
-  'expense.billable': 'This should be charged to the client, usually on their next invoice.',
+  'expense.reimbursable':
+    'Someone paid for this personally and should be paid back. It goes on their invoice to your organization: Not submitted, then Submitted, then Reimbursed when that invoice is paid.',
+  'expense.billable':
+    "Charged to the client at cost. It needs a project for that client, and goes on the client's next invoice: Not billed, then Invoiced, then Client paid.",
+  'expenses.page':
+    'Expenses for the period you pick. The totals follow your filters. Billable and Reimbursable show where each expense is in billing or paying back.',
   'expense.miles':
     'Miles times your mileage rate (Settings → Expenses and Invoicing). Set a rate there before saving mileage. A saved expense keeps the rate it was entered with.',
   'expense.category':
@@ -65,7 +69,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   // Invoices
   'invoice.billToEmail': 'Where Send emails this invoice by default. You can pick a different address when sending.',
   'invoice.generateFromTime.client':
-    'Pull uninvoiced billable time for the selected period. Time entries must fall entirely within the period.',
+    'Pull uninvoiced billable time and billable expenses (at cost, on this client\'s projects) for the selected period. Time entries must fall entirely within the period.',
   'invoice.generateFromTime.tenant':
     'Pull your uninvoiced time and reimbursable expenses (including mileage) for the selected period. Time entries must fall entirely within the period.',
   'invoice.lineItems':

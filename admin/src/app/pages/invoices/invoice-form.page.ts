@@ -18,6 +18,8 @@ import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
 import { PageComponent } from '../../ui/layout/page.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
+import { PeriodPickerComponent } from '../../ui/period-picker/period-picker.component';
+import { defaultPeriod } from '../../core/period.util';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
@@ -38,7 +40,6 @@ type LineItem = {
   projectName?: string;
 };
 
-type PeriodType = 'month' | 'quarter' | 'custom';
 
 type InvoicePreviewLine = {
   projectId: string | null;
@@ -71,32 +72,10 @@ type InvoicePreview = {
 
 type LineItemRow = { item: LineItem; index: number };
 
-const MONTHS = [
-  { label: 'January', value: 1 },
-  { label: 'February', value: 2 },
-  { label: 'March', value: 3 },
-  { label: 'April', value: 4 },
-  { label: 'May', value: 5 },
-  { label: 'June', value: 6 },
-  { label: 'July', value: 7 },
-  { label: 'August', value: 8 },
-  { label: 'September', value: 9 },
-  { label: 'October', value: 10 },
-  { label: 'November', value: 11 },
-  { label: 'December', value: 12 },
-];
-
-const QUARTERS = [
-  { label: 'Q1 (Jan – Mar)', value: 1 },
-  { label: 'Q2 (Apr – Jun)', value: 2 },
-  { label: 'Q3 (Jul – Sep)', value: 3 },
-  { label: 'Q4 (Oct – Dec)', value: 4 },
-];
-
 @Component({
   selector: 'app-invoice-form-page',
   standalone: true,
-  imports: [HelpTextComponent, 
+  imports: [HelpTextComponent, PeriodPickerComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -126,8 +105,6 @@ export class InvoiceFormPage implements OnInit {
     { label: 'Our organization', value: 'TENANT' as BillTo },
   ];
 
-  readonly months = MONTHS;
-  readonly quarters = QUARTERS;
 
   id = signal<string | null>(null);
   displayNumber = signal<string | null>(null);
@@ -142,20 +119,9 @@ export class InvoiceFormPage implements OnInit {
   projects = signal<Project[]>([]);
   filteredProjects = signal<Project[]>([]);
 
-  private readonly now = new Date();
-  readonly yearOptions = [
-    this.now.getFullYear() - 1,
-    this.now.getFullYear(),
-    this.now.getFullYear() + 1,
-  ];
-
+  /** Generate from time: the period (app-period-picker) and an optional project. */
+  period = signal(defaultPeriod());
   generate = {
-    periodType: 'month' as PeriodType,
-    month: this.now.getMonth() + 1,
-    year: this.now.getFullYear(),
-    quarter: Math.floor(this.now.getMonth() / 3) + 1,
-    from: '',
-    to: '',
     projectId: '' as string,
   };
 
@@ -197,13 +163,6 @@ export class InvoiceFormPage implements OnInit {
   get subtotal() { return this.lineItems().reduce((s, i) => s + i.amount, 0); }
   get taxAmount() { return this.form.taxRate ? this.subtotal * this.form.taxRate : 0; }
   get total() { return this.subtotal + this.taxAmount; }
-  get periodTypeOptions() {
-    return [
-      { label: 'Month', value: 'month' as PeriodType },
-      { label: 'Quarter', value: 'quarter' as PeriodType },
-      { label: 'Custom range', value: 'custom' as PeriodType },
-    ];
-  }
 
   async ngOnInit() {
     const [clients, projects] = await Promise.all([
@@ -327,7 +286,8 @@ export class InvoiceFormPage implements OnInit {
       this.error.set('Select a client before generating from time');
       return;
     }
-    if (this.generate.periodType === 'custom' && (!this.generate.from || !this.generate.to)) {
+    const period = this.period();
+    if (period.periodType === 'custom' && (!period.from || !period.to)) {
       this.error.set('Select a custom date range');
       return;
     }
@@ -341,16 +301,16 @@ export class InvoiceFormPage implements OnInit {
       const params = new URLSearchParams({
         billTo: this.form.billTo,
         ...(this.form.clientId ? { clientId: this.form.clientId } : {}),
-        periodType: this.generate.periodType,
-        year: String(this.generate.year),
+        periodType: period.periodType,
+        year: String(period.year),
       });
-      if (this.generate.periodType === 'month') {
-        params.set('month', String(this.generate.month));
-      } else if (this.generate.periodType === 'quarter') {
-        params.set('quarter', String(this.generate.quarter));
+      if (period.periodType === 'month') {
+        params.set('month', String(period.month));
+      } else if (period.periodType === 'quarter') {
+        params.set('quarter', String(period.quarter));
       } else {
-        params.set('from', this.generate.from);
-        params.set('to', this.generate.to);
+        params.set('from', period.from);
+        params.set('to', period.to);
       }
       if (this.generate.projectId) {
         params.set('projectId', this.generate.projectId);
@@ -369,7 +329,7 @@ export class InvoiceFormPage implements OnInit {
           this.generateMessage.set(
             this.billingTenant
               ? 'No uninvoiced time or reimbursable expenses found for this period.'
-              : 'No billable, uninvoiced time found for this period.',
+              : 'No billable, uninvoiced time or expenses found for this period.',
           );
         }
         return;

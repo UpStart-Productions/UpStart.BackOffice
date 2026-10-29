@@ -2,6 +2,7 @@ import { Component, computed, signal, viewChild } from '@angular/core';
 import { inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
@@ -25,6 +26,7 @@ export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
     FormsModule,
     AppDialogModule,
     ButtonModule,
+    MessageModule,
     InputTextModule,
     InputNumberModule,
     TextareaModule,
@@ -93,6 +95,12 @@ export class ExpenseModalComponent {
   );
 
   readonly dialogTitle = computed(() => (this.isEdit() ? 'Edit expense' : 'New expense'));
+
+  /** The invoice this expense is on, if any. While it is, amount, miles, category, project and the toggles are locked. */
+  readonly lockedInvoice = computed(() => {
+    const e = this.editingExpense();
+    return e?.billingInvoice ?? e?.reimbursementInvoice ?? null;
+  });
 
   readonly isMileage = computed(() => isMileageCategory(this.category(), this.categories()));
 

@@ -26,7 +26,7 @@ const INVOICE_FORM: HelpArticle = {
     },
     {
       heading: 'Generate from time',
-      body: 'Billing a client pulls the client\'s uninvoiced billable time. Billing your organization pulls your own uninvoiced time (billable or not) and your uninvoiced reimbursable expenses, including mileage, at your own hourly rate first. Pick the period (month, quarter or a date range), optionally one project. Time entries must fall entirely within the period. If you see "missing an hourly rate", set a rate on the entry, project or user and generate again. The same hour can be on a client invoice and on your invoice to your organization, but not on two of the same kind.',
+      body: 'Billing a client pulls the client\'s uninvoiced billable time and billable expenses on its projects, at cost. Billing your organization pulls your own uninvoiced time (billable or not) and your uninvoiced reimbursable expenses, including mileage, at your own hourly rate first. Pick the period (month, quarter or a date range), optionally one project. Time entries must fall entirely within the period. If you see "missing an hourly rate", set a rate on the entry, project or user and generate again. The same hour can be on a client invoice and on your invoice to your organization, but not on two of the same kind.',
     },
     {
       heading: 'Line items',
@@ -564,15 +564,27 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   expenses: {
     title: 'Expenses',
-    intro: 'Money spent on the business or on client work.',
+    intro: 'Money spent on the business or on client work, for the period you pick.',
     sections: [
+      {
+        heading: 'Period, filters and totals',
+        body: 'Pick a month, quarter or date range (this month to start). Filter by status, client, project, person or category, or search. The totals at the top follow your filters: total spent, billable to clients and reimbursable. The donut charts split billable and reimbursable by status: amber is not billed or not submitted, blue is invoiced or submitted, green is client paid or reimbursed.',
+      },
+      {
+        heading: 'Status',
+        body: 'Billable: Not billed, then Invoiced once it is on a client invoice, then Client paid when that invoice is paid. Reimbursable: Not submitted, then Submitted once it is on the person\'s invoice to the organization, then Reimbursed when that invoice is paid. The invoice number links to the invoice. Voiding an invoice puts its expenses back to Not billed or Not submitted.',
+      },
+      {
+        heading: 'On an invoice',
+        body: 'While an expense is on an invoice, its amount, category, project, Reimbursable and Billable can\'t change and it can\'t be deleted. Take it off the invoice (edit the draft) first.',
+      },
       {
         heading: 'New Expense',
         body: 'Description, amount (or miles for Mileage), and date are required. Category and miles sit on one row when Mileage is selected. Project and payment method are on the row below. Add notes or a receipt as needed.',
       },
       {
         heading: 'Reimbursable and billable',
-        body: 'Reimbursable means someone paid personally and should be paid back; reimbursable expenses can go on that person\'s invoice to the organization. Billable to client means it should be charged to the client. Both show in the Flags column.',
+        body: 'Reimbursable means someone paid personally and should be paid back; it goes on that person\'s invoice to the organization. Billable to client means it is charged to the client at cost on their next invoice; it needs a project for that client. An expense can be both.',
       },
       {
         heading: 'Mileage',
@@ -581,10 +593,6 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       {
         heading: 'Categories',
         body: 'Admins manage the list under Settings → Expenses and Invoicing. Pick a category from the dropdown when logging an expense.',
-      },
-      {
-        heading: 'Filtering and totals',
-        body: 'Search by description, category or project, or filter to Has receipt. Total reflects whatever is filtered.',
       },
     ],
   },

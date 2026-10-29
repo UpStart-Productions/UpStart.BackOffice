@@ -18,7 +18,7 @@ import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { PayService } from '../pay/pay.service';
-import { InvoiceFromTimeService, timeLinkField } from './invoice-from-time.service';
+import { expenseLinkField, InvoiceFromTimeService, timeLinkField } from './invoice-from-time.service';
 import { PayrollExportQueryDto } from './dto/payroll-export-query.dto';
 import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
@@ -52,6 +52,7 @@ const invoiceInclude = {
       project: { select: { id: true, name: true } },
       timeEntries: { select: { id: true } },
       tenantTimeEntries: { select: { id: true } },
+      expenses: { select: { id: true } },
       tenantExpenses: { select: { id: true } },
     },
     orderBy: { sortOrder: 'asc' as const },
@@ -64,10 +65,10 @@ type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceIncl
 function withLinkIds(invoice: InvoiceWithDetails) {
   return {
     ...invoice,
-    lineItems: invoice.lineItems.map(({ timeEntries, tenantTimeEntries, tenantExpenses, ...li }) => ({
+    lineItems: invoice.lineItems.map(({ timeEntries, tenantTimeEntries, expenses, tenantExpenses, ...li }) => ({
       ...li,
       timeEntryIds: (invoice.billTo === 'TENANT' ? tenantTimeEntries : timeEntries).map((t) => t.id),
-      expenseIds: tenantExpenses.map((e) => e.id),
+      expenseIds: (invoice.billTo === 'TENANT' ? tenantExpenses : expenses).map((e) => e.id),
     })),
   };
 }
@@ -275,7 +276,7 @@ export class InvoicesController {
       dto.lineItems,
     );
     await this.invoiceFromTime.assertExpensesLinkable(
-      { billTo, userId: billTo === 'TENANT' ? user.id : null },
+      { billTo, clientId, userId: billTo === 'TENANT' || this.ownOnly(user) ? user.id : null },
       dto.lineItems,
     );
 
@@ -351,7 +352,12 @@ export class InvoicesController {
         dto.lineItems,
       );
       await this.invoiceFromTime.assertExpensesLinkable(
-        { billTo: existing.billTo, userId: existing.billTo === 'TENANT' ? existing.createdById : null, invoiceId: id },
+        {
+          billTo: existing.billTo,
+          clientId: existing.clientId,
+          userId: existing.billTo === 'TENANT' ? existing.createdById : this.ownOnly(user) ? user.id : null,
+          invoiceId: id,
+        },
         dto.lineItems,
       );
     }
@@ -367,11 +373,27 @@ export class InvoicesController {
           data: { tenantInvoiceLineItemId: null },
         });
         await tx.expense.updateMany({
+          where: { invoiceLineItem: { invoiceId: id } },
+          data: { invoiceLineItemId: null },
+        });
+        await tx.expense.updateMany({
           where: { tenantInvoiceLineItem: { invoiceId: id } },
           data: { tenantInvoiceLineItemId: null },
         });
         await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
         await this.syncLineItems(tx, id, existing.billTo, dto.lineItems);
+      }
+
+      if (dto.status === 'VOID') {
+        // A voided invoice frees its expenses so they can be billed or reimbursed again.
+        await tx.expense.updateMany({
+          where: { invoiceLineItem: { invoiceId: id } },
+          data: { invoiceLineItemId: null },
+        });
+        await tx.expense.updateMany({
+          where: { tenantInvoiceLineItem: { invoiceId: id } },
+          data: { tenantInvoiceLineItemId: null },
+        });
       }
 
       const subtotal = dto.lineItems
@@ -591,11 +613,12 @@ export class InvoicesController {
         }
       }
 
-      const expenseIds = billTo === 'TENANT' ? item.expenseIds ?? [] : [];
+      const expenseIds = item.expenseIds ?? [];
       if (expenseIds.length > 0) {
+        const expenseLink = expenseLinkField(billTo);
         const updated = await tx.expense.updateMany({
-          where: { id: { in: expenseIds }, tenantInvoiceLineItemId: null },
-          data: { tenantInvoiceLineItemId: line.id },
+          where: { id: { in: expenseIds }, [expenseLink]: null },
+          data: { [expenseLink]: line.id },
         });
         if (updated.count !== expenseIds.length) {
           throw new BadRequestException('One or more expenses could not be linked to the invoice');

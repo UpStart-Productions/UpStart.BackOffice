@@ -9,34 +9,6 @@
   align-items: flex-end;
 }
 
-.invoice-period-field {
-  flex: 1 1 10rem;
-  min-width: 0;
-}
-
-.invoice-period-range-label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-weight: 500;
-}
-
-.invoice-date-range {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-
-  app-date-input {
-    flex: 1 1 10rem;
-    min-width: 10rem;
-  }
-}
-
-.invoice-date-range-sep {
-  flex-shrink: 0;
-  color: var(--text-color-secondary, #6b6b6b);
-}
-
 .invoice-generate-actions {
   display: flex;
   flex-wrap: wrap;

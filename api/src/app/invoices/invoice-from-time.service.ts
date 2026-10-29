@@ -10,7 +10,7 @@ export type InvoicePreviewLine = {
   unitPrice: number;
   amount: number;
   timeEntryIds: string[];
-  /** Reimbursable expenses on this line (invoices billed to the tenant only). */
+  /** Expenses on this line: billable ones on a client invoice, reimbursable ones on an invoice to the tenant. */
   expenseIds?: string[];
   /** ISO timestamp of the time entry; used to sort newest-first on the invoice. */
   startedAt: string;
@@ -39,7 +39,10 @@ export type InvoicePreviewResult = {
     label: string;
   };
   projects: InvoicePreviewProject[];
-  /** Unbilled reimbursable expenses (mileage included). Only for invoices billed to the tenant. */
+  /**
+   * Unbilled expenses, mileage included. CLIENT: the client's billable expenses (on its projects), at cost.
+   * TENANT: the user's reimbursable expenses.
+   */
   expenses: InvoicePreviewLine[];
   subtotal: number;
   canGenerate: boolean;
@@ -61,6 +64,11 @@ export function timeLinkField(billTo: BillTo): 'invoiceLineItemId' | 'tenantInvo
   return billTo === 'TENANT' ? 'tenantInvoiceLineItemId' : 'invoiceLineItemId';
 }
 
+/** The expense column that links to an invoice of this kind (same names as on time entries). */
+export function expenseLinkField(billTo: BillTo): 'invoiceLineItemId' | 'tenantInvoiceLineItemId' {
+  return timeLinkField(billTo);
+}
+
 @Injectable()
 export class InvoiceFromTimeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -68,6 +76,7 @@ export class InvoiceFromTimeService {
   /**
    * Unbilled, finished time in the period.
    * CLIENT: the client's billable time (optionally one project).
+   * CLIENT also includes the client's unbilled billable expenses (on its projects), billed at cost.
    * TENANT: one user's own time, billable or not (optionally narrowed by client/project), plus their unbilled reimbursable expenses.
    * Each kind has its own link on the time entry, so time on a client invoice can still go on the user's invoice to the tenant.
    * userId limits to that user's entries (always set for TENANT, and for roles limited to their own invoices).
@@ -167,9 +176,13 @@ export class InvoiceFromTimeService {
         const bLatest = b.lines[0]?.startedAt ?? '';
         return bLatest.localeCompare(aLatest) || a.projectName.localeCompare(b.projectName);
       });
-    const expenses = tenant && params.userId
-      ? await this.reimbursableExpenseLines(params.userId, bounds, params.projectId)
-      : [];
+    const expenses = tenant
+      ? params.userId
+        ? await this.reimbursableExpenseLines(params.userId, bounds, params.projectId)
+        : []
+      : params.clientId
+        ? await this.billableExpenseLines(params.clientId, bounds, params.projectId, params.userId)
+        : [];
     const expenseTotal = expenses.reduce((s, l) => s + l.amount, 0);
     const subtotal = Math.round((projects.reduce((s, p) => s + p.subtotal, 0) + expenseTotal) * 100) / 100;
 
@@ -204,22 +217,28 @@ export class InvoiceFromTimeService {
       },
       orderBy: { incurredAt: 'desc' },
     });
-    return rows.map((e) => {
-      const isMileage = e.miles != null && e.mileageRate != null;
-      const quantity = isMileage ? Number(e.miles) : 1;
-      const unitPrice = isMileage ? Number(e.mileageRate) : Number(e.amount);
-      const heading = `${formatEntryDate(e.incurredAt)} — ${isMileage ? `Mileage (${quantity} mi)` : e.category?.trim() || 'Expense'}`;
-      return {
-        projectId: e.projectId,
-        description: [heading, e.description?.trim()].filter(Boolean).join('\n'),
-        quantity,
-        unitPrice,
-        amount: Number(e.amount),
-        timeEntryIds: [],
-        expenseIds: [e.id],
-        startedAt: e.incurredAt.toISOString(),
-      };
+    return rows.map(toExpenseLine);
+  }
+
+  /** The client's billable expenses in the period (on its projects) not yet on a client invoice. Billed at cost. */
+  private async billableExpenseLines(
+    clientId: string,
+    bounds: InvoicePeriodBounds,
+    projectId?: string,
+    userId?: string,
+  ): Promise<InvoicePreviewLine[]> {
+    const rows = await this.prisma.expense.findMany({
+      where: {
+        isBillable: true,
+        invoiceLineItemId: null,
+        incurredAt: { gte: bounds.from, lte: bounds.to },
+        project: { clientId },
+        ...(projectId ? { projectId } : {}),
+        ...(userId ? { userId } : {}),
+      },
+      orderBy: { incurredAt: 'desc' },
     });
+    return rows.map(toExpenseLine);
   }
 
   /**
@@ -264,33 +283,80 @@ export class InvoiceFromTimeService {
     }
   }
 
-  /** Expenses go only on invoices billed to the tenant: the creator's own, reimbursable, and not on another invoice. */
+  /**
+   * TENANT invoices: the creator's own reimbursable expenses. CLIENT invoices: billable expenses on that client's projects
+   * (only the user's own when target.userId is set). An expense already on an invoice of the same kind is rejected,
+   * unless it is on invoiceId (the draft being edited).
+   */
   async assertExpensesLinkable(
-    target: { billTo: BillTo; userId: string | null; invoiceId?: string },
+    target: { billTo: BillTo; clientId: string | null; userId: string | null; invoiceId?: string },
     lineItems: { expenseIds?: string[] }[],
   ): Promise<void> {
     const ids = lineItems.flatMap((li) => li.expenseIds ?? []);
     if (ids.length === 0) return;
-    if (target.billTo !== 'TENANT' || !target.userId) {
-      throw new BadRequestException('Expenses can only be added to an invoice billed to your organization');
+    const tenant = target.billTo === 'TENANT';
+    if (tenant && !target.userId) {
+      throw new BadRequestException('Expenses can only be added to your own invoice to your organization');
     }
 
     const unique = [...new Set(ids)];
     const expenses = await this.prisma.expense.findMany({
       where: { id: { in: unique } },
-      select: { id: true, userId: true, isReimbursable: true, tenantInvoiceLineItem: { select: { invoiceId: true } } },
+      select: {
+        id: true,
+        userId: true,
+        isReimbursable: true,
+        isBillable: true,
+        project: { select: { clientId: true } },
+        invoiceLineItem: { select: { invoiceId: true } },
+        tenantInvoiceLineItem: { select: { invoiceId: true } },
+      },
     });
     if (expenses.length !== unique.length) {
       throw new BadRequestException('One or more expenses were not found');
     }
     for (const e of expenses) {
-      if (e.userId !== target.userId) throw new BadRequestException('You can only invoice your own expenses');
-      if (!e.isReimbursable) throw new BadRequestException('Only reimbursable expenses can be invoiced');
-      if (e.tenantInvoiceLineItem && e.tenantInvoiceLineItem.invoiceId !== target.invoiceId) {
+      if (target.userId && e.userId !== target.userId) {
+        throw new BadRequestException('You can only invoice your own expenses');
+      }
+      if (tenant && !e.isReimbursable) throw new BadRequestException('Only reimbursable expenses can be invoiced to your organization');
+      if (!tenant && !e.isBillable) throw new BadRequestException('Only billable expenses can be invoiced to a client');
+      if (!tenant && e.project?.clientId !== target.clientId) {
+        throw new BadRequestException('Expense is not on a project for this client');
+      }
+      const linked = tenant ? e.tenantInvoiceLineItem : e.invoiceLineItem;
+      if (linked && linked.invoiceId !== target.invoiceId) {
         throw new BadRequestException('One or more expenses are already invoiced');
       }
     }
   }
+}
+
+/** One invoice line per expense, at cost. Mileage shows miles x rate. */
+function toExpenseLine(e: {
+  id: string;
+  projectId: string | null;
+  incurredAt: Date;
+  amount: Prisma.Decimal;
+  miles: Prisma.Decimal | null;
+  mileageRate: Prisma.Decimal | null;
+  category: string | null;
+  description: string;
+}): InvoicePreviewLine {
+  const isMileage = e.miles != null && e.mileageRate != null;
+  const quantity = isMileage ? Number(e.miles) : 1;
+  const unitPrice = isMileage ? Number(e.mileageRate) : Number(e.amount);
+  const heading = `${formatEntryDate(e.incurredAt)} — ${isMileage ? `Mileage (${quantity} mi)` : e.category?.trim() || 'Expense'}`;
+  return {
+    projectId: e.projectId,
+    description: [heading, e.description?.trim()].filter(Boolean).join('\n'),
+    quantity,
+    unitPrice,
+    amount: Number(e.amount),
+    timeEntryIds: [],
+    expenseIds: [e.id],
+    startedAt: e.incurredAt.toISOString(),
+  };
 }
 
 /** Paying a user: their own rate comes first, since entry and project rates are what the client is charged. */

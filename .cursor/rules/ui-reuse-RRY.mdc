@@ -42,3 +42,10 @@ Do not add another people side panel, `people-card`, or inline pickers on featur
 - **Panel:** `app-organization-links` (`admin/src/app/ui/organization-links/organization-links.component.ts`)
 - Used on the person page. Shows linked organizations (name and role), unlink, and link-to-an-organization with Role.
 - Callers pass the person and handle `contactChange`. Do not copy this card onto another page.
+
+## Period picker (canonical)
+
+- **Control:** `app-period-picker` (`admin/src/app/ui/period-picker/period-picker.component.ts`): Period (Month / Quarter / Custom range), then Year + Month, Year + Quarter, or a From–To range. Host is `display: contents`, so it sits in the caller's flex filter row.
+- **Usage:** `period = signal(defaultPeriod())`, then `<app-period-picker idPrefix="x" [(value)]="period" />`; resolve dates with `resolveReportPeriod(this.period())`.
+- **Math:** `admin/src/app/core/period.util.ts` (`pages/reports/report-period.util.ts` only re-exports it).
+- Used on Reports, invoice Generate from time, and Expenses. Do not add another month/quarter/range picker.

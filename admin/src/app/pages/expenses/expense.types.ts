@@ -24,7 +24,17 @@ export type Expense = {
   mileageRate?: number | null;
   user: ExpenseUser;
   project?: ExpenseProject | null;
+  /** Billable only: Not billed, on a client invoice, or that invoice is paid. Null when not billable. */
+  billingStatus?: ExpenseBillingStatus | null;
+  billingInvoice?: ExpenseInvoiceRef | null;
+  /** Reimbursable only: not on an invoice to the organization yet, on one, or that invoice is paid. Null when not reimbursable. */
+  reimbursementStatus?: ExpenseReimbursementStatus | null;
+  reimbursementInvoice?: ExpenseInvoiceRef | null;
 };
+
+export type ExpenseBillingStatus = 'UNBILLED' | 'INVOICED' | 'PAID';
+export type ExpenseReimbursementStatus = 'NOT_SUBMITTED' | 'SUBMITTED' | 'REIMBURSED';
+export type ExpenseInvoiceRef = { id: string; displayNumber: string; status: string };
 
 export type ExpenseCategory = {
   id: string;

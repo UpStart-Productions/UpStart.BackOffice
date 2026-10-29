@@ -683,6 +683,8 @@ model Expense {
   /// Mileage expenses: miles driven and the rate per mile used (amount = miles x rate).
   miles                   Decimal? @db.Decimal(10, 2)
   mileageRate             Decimal? @db.Decimal(10, 4)
+  /// Line on an invoice billed to a client (billable expenses, at cost).
+  invoiceLineItemId       String?
   /// Line on the user's own invoice to the tenant (reimbursement).
   tenantInvoiceLineItemId String?
   createdAt               DateTime @default(now())
@@ -690,10 +692,12 @@ model Expense {
 
   user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   project               Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  invoiceLineItem       InvoiceLineItem? @relation("ClientInvoiceExpense", fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
   tenantInvoiceLineItem InvoiceLineItem? @relation("TenantInvoiceExpense", fields: [tenantInvoiceLineItemId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([projectId])
+  @@index([invoiceLineItemId])
   @@index([tenantInvoiceLineItemId])
   @@index([incurredAt])
   @@index([tenantId])
@@ -835,6 +839,7 @@ model InvoiceLineItem {
   project           Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   timeEntries       TimeEntry[] @relation("ClientInvoiceTime")
   tenantTimeEntries TimeEntry[] @relation("TenantInvoiceTime")
+  expenses          Expense[]   @relation("ClientInvoiceExpense")
   tenantExpenses    Expense[]   @relation("TenantInvoiceExpense")
 
   @@index([invoiceId])

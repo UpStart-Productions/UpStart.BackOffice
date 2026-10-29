@@ -2,7 +2,140 @@
   cursor: pointer;
 }
 
-.expenses-total {
-  font-size: var(--fs-base);
+/* Period, filters and search in one wrapping row at the top of the panel. */
+.expenses-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.expenses-filter-field {
+  flex: 0 0 auto;
+  width: 12rem;
+  min-width: 10rem;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+/* Three equal summary cards above the filters; amounts line up across them. */
+.expenses-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.expenses-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--content-border-radius);
+  background: #fff;
+}
+
+.expenses-summary-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expenses-summary-amount {
+  font-size: var(--fs-2xl);
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--text-color);
+}
+
+.expenses-summary-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.expenses-summary-figures {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/* Right side of the card: status legend stacked just left of the donut. */
+.expenses-summary-chart {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Small donut; arcs start at 12 o'clock. */
+.expenses-donut {
+  width: 5rem;
+  height: 5rem;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.expenses-donut-track,
+.expenses-donut-arc {
+  fill: none;
+  stroke-width: 5;
+}
+
+.expenses-donut-track {
+  stroke: var(--color-border);
+}
+
+/* Status legend stacked under the amount: dot + label, then amount, both left-aligned. */
+.expenses-legend {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  column-gap: 1rem;
+  row-gap: 0.15rem;
+  color: var(--text-color-secondary);
+}
+
+.expenses-legend-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.expenses-legend-amount {
+  font-size: var(--fs-md);
+  color: var(--text-color);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.expenses-legend-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.expense-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.expense-receipt-icon {
+  color: var(--color-severity-info-text);
 }

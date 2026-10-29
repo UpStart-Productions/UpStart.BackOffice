@@ -28,7 +28,19 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Expenses
 
-**Expenses** lists expenses. **New Expense** on the left; **Total** shows filtered total next to it; search on the far right.
+**Expenses** shows expenses for a period. **New Expense** is at the top right.
+
+- **Period**: Month, Quarter or Custom range, with the year and month or quarter (or From and To dates). It starts on this month.
+- **Filters**: **Status**, **Client**, **Project**, **Person** (when more than one person has expenses in the period) and **Category**, plus search on the right (description, category, project, client, payment method, person or invoice number).
+- **Totals** at the top, for the period and filters: **Total spent**, **Billable to clients** and **Reimbursable**. Billable and Reimbursable each have a small donut chart split by status, with each status and its amount listed beside it. Amber is Not billed / Not submitted, blue is Invoiced / Submitted, green is Client paid / Reimbursed. The list has a total row at the bottom.
+- **Status** column:
+  - Billable: **Not billed** → **Invoiced** (on a client invoice, draft or sent) → **Client paid** (that invoice is paid).
+  - Reimbursable: **Not submitted** → **Submitted** (on the person's invoice to your organization) → **Reimbursed** (that invoice is paid).
+  - An expense that is both shows both. The invoice number next to a status opens the invoice. Voiding an invoice puts its expenses back to Not billed or Not submitted.
+- Click a row, or **Edit** in the row's ⋮ menu, to edit. **Delete** is in the ⋮ menu (it asks first).
+- **On an invoice**: while an expense is on an invoice, its amount, category, project, Reimbursable and Billable can't change and it can't be deleted. Remove it from the invoice first (edit the draft).
+
+**Billable** expenses are charged to the client at cost. They need a project for that client; billable expenses with no project can't go on a client invoice.
 
 **Categories** and **payment method** use dropdowns (admins manage both lists under **Settings → Expenses and Invoicing**).
 
@@ -40,10 +52,10 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ### Bill to: a client or your organization
 
-- **A client** — your organization bills a client. **Generate from time** pulls the client's uninvoiced *billable* time.
+- **A client** — your organization bills a client. **Generate from time** pulls the client's uninvoiced *billable* time and its uninvoiced **billable** expenses (on that client's projects, at cost, one line each; mileage shows miles × rate).
 - **Our organization** — you bill your own organization for your work (for example, a contractor or caregiver submitting hours). **Generate from time** pulls *your own* uninvoiced time (billable or not) plus your uninvoiced **reimbursable** expenses, including mileage. Hours use your own hourly rate first, then the entry's or project's rate.
 
-The two are tracked separately: the same hour can go on the client's invoice and on your invoice to your organization, but never on two invoices of the same kind. Saving a draft keeps its time and expenses attached; deleting a draft frees them up again.
+The two are tracked separately: the same hour, or the same expense, can go on the client's invoice and on your invoice to your organization, but never on two invoices of the same kind. Saving a draft keeps its time and expenses attached; deleting a draft frees them up again. Voiding an invoice frees its expenses.
 
 ### Export
 

@@ -35,6 +35,10 @@ import { ExpenseCategoriesService } from '../expense-categories/expense-categori
 
 const RECEIPT_MAX_BYTES = 10 * 1024 * 1024;
 
+const linkedInvoiceSelect = {
+  select: { invoice: { select: { id: true, displayNumber: true, status: true } } },
+} as const;
+
 const expenseInclude = {
   user: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
   project: {
@@ -44,7 +48,29 @@ const expenseInclude = {
       client: { select: { id: true, name: true } },
     },
   },
-};
+  invoiceLineItem: linkedInvoiceSelect,
+  tenantInvoiceLineItem: linkedInvoiceSelect,
+} satisfies Prisma.ExpenseInclude;
+
+type ExpenseWithLinks = Prisma.ExpenseGetPayload<{ include: typeof expenseInclude }>;
+
+/** Billable: Not billed, then Invoiced (on a client invoice), then Paid (that invoice is paid). */
+export type ExpenseBillingStatus = 'UNBILLED' | 'INVOICED' | 'PAID';
+/** Reimbursable: Not submitted, then Submitted (on the person's invoice to the organization), then Reimbursed (paid). */
+export type ExpenseReimbursementStatus = 'NOT_SUBMITTED' | 'SUBMITTED' | 'REIMBURSED';
+
+type LinkedInvoice = { id: string; displayNumber: string; status: string } | null | undefined;
+
+function linkStatus(invoice: LinkedInvoice): 'NONE' | 'ON_INVOICE' | 'PAID' {
+  if (!invoice || invoice.status === 'VOID') return 'NONE';
+  return invoice.status === 'PAID' ? 'PAID' : 'ON_INVOICE';
+}
+
+function invoiceRef(invoice: LinkedInvoice) {
+  return invoice && invoice.status !== 'VOID'
+    ? { id: invoice.id, displayNumber: invoice.displayNumber, status: invoice.status }
+    : null;
+}
 
 @ApiTags('expenses')
 @ApiBearerAuth()
@@ -191,10 +217,11 @@ export class ExpensesController {
   @Put(':id')
   async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateExpenseDto) {
     const user = req.user as UserContext;
-    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(user)) } });
+    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(user)) }, include: expenseInclude });
     if (!existing) throw new NotFoundException('Expense not found');
     if (dto.projectId) await this.assertProjectAllowed(user, dto.projectId);
     const mileage = await this.mileageFields(dto, existing);
+    this.assertInvoicedFieldsUnchanged(existing, dto, mileage);
 
     const expense = await this.prisma.expense.update({
       where: { id },
@@ -246,8 +273,12 @@ export class ExpensesController {
 
   @Delete(':id')
   async remove(@Req() req: Request, @Param('id') id: string) {
-    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
+    const existing = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) }, include: expenseInclude });
     if (!existing) throw new NotFoundException('Expense not found');
+    const invoice = invoiceRef(existing.invoiceLineItem?.invoice) ?? invoiceRef(existing.tenantInvoiceLineItem?.invoice);
+    if (invoice) {
+      throw new BadRequestException(`This expense is on invoice ${invoice.displayNumber}. Remove it from that invoice before deleting it.`);
+    }
     if (existing.receiptUrl) {
       await this.deleteStoredReceipt(existing.receiptUrl);
     }
@@ -266,7 +297,46 @@ export class ExpensesController {
     }
   }
 
-  private toView<T extends { receiptUrl: string | null }>(expense: T) {
-    return { ...expense, receiptUrl: toPublicAssetUrl(expense.receiptUrl) };
+  /** The expense plus its billing and reimbursement status, worked out from its invoice links. */
+  private toView(expense: ExpenseWithLinks) {
+    const { invoiceLineItem, tenantInvoiceLineItem, ...rest } = expense;
+    const billing = invoiceLineItem?.invoice;
+    const reimbursement = tenantInvoiceLineItem?.invoice;
+    const billingLink = linkStatus(billing);
+    const reimbursementLink = linkStatus(reimbursement);
+    const billingStatus: ExpenseBillingStatus | null = expense.isBillable
+      ? billingLink === 'PAID' ? 'PAID' : billingLink === 'ON_INVOICE' ? 'INVOICED' : 'UNBILLED'
+      : null;
+    const reimbursementStatus: ExpenseReimbursementStatus | null = expense.isReimbursable
+      ? reimbursementLink === 'PAID' ? 'REIMBURSED' : reimbursementLink === 'ON_INVOICE' ? 'SUBMITTED' : 'NOT_SUBMITTED'
+      : null;
+    return {
+      ...rest,
+      receiptUrl: toPublicAssetUrl(expense.receiptUrl),
+      billingStatus,
+      billingInvoice: invoiceRef(billing),
+      reimbursementStatus,
+      reimbursementInvoice: invoiceRef(reimbursement),
+    };
+  }
+
+  /**
+   * An expense on an invoice keeps what the invoice was built from: amount, miles, project, Billable and Reimbursable.
+   * Throws when the update would change one of them. Remove it from the invoice (or void the draft) first.
+   */
+  private assertInvoicedFieldsUnchanged(existing: ExpenseWithLinks, dto: UpdateExpenseDto, mileage: { amount?: number; miles?: number | null }) {
+    const invoice = invoiceRef(existing.invoiceLineItem?.invoice) ?? invoiceRef(existing.tenantInvoiceLineItem?.invoice);
+    if (!invoice) return;
+    const changed =
+      (mileage.amount !== undefined && Number(mileage.amount) !== Number(existing.amount)) ||
+      (mileage.miles !== undefined && (mileage.miles == null ? null : Number(mileage.miles)) !== (existing.miles == null ? null : Number(existing.miles))) ||
+      (dto.projectId !== undefined && (dto.projectId || null) !== existing.projectId) ||
+      (dto.isBillable !== undefined && dto.isBillable !== existing.isBillable) ||
+      (dto.isReimbursable !== undefined && dto.isReimbursable !== existing.isReimbursable);
+    if (changed) {
+      throw new BadRequestException(
+        `This expense is on invoice ${invoice.displayNumber}. Remove it from that invoice before changing the amount, project, Billable or Reimbursable.`,
+      );
+    }
   }
 }

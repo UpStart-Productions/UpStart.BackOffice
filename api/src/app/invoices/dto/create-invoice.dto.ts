@@ -13,7 +13,7 @@ export class CreateInvoiceLineItemDto {
   @ApiPropertyOptional({ type: [String] })
   @IsArray() @IsString({ each: true }) @IsOptional()
   timeEntryIds?: string[];
-  /** Reimbursable expenses on this line; only on invoices billed to the tenant. */
+  /** Expenses on this line: billable ones on a client invoice, reimbursable ones on an invoice billed to the tenant. */
   @ApiPropertyOptional({ type: [String] })
   @IsArray() @IsString({ each: true }) @IsOptional()
   expenseIds?: string[];

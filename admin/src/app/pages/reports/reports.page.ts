@@ -12,15 +12,9 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PageComponent } from '../../ui/layout/page.component';
-import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { dateKey, formatDurationMin, parseDateKey } from '../time-entry/timesheet.utils';
-import {
-  REPORT_MONTHS,
-  REPORT_QUARTERS,
-  dateInPeriod,
-  resolveReportPeriod,
-  type ReportPeriodType,
-} from './report-period.util';
+import { dateInPeriod, defaultPeriod, resolveReportPeriod } from '../../core/period.util';
+import { PeriodPickerComponent } from '../../ui/period-picker/period-picker.component';
 import {
   exportTimeReportExcel,
   exportTimeReportPdf,
@@ -127,7 +121,7 @@ type TaskProjectRow = {
     TabsModule,
     TagModule,
     PageComponent,
-    DateInputComponent,
+    PeriodPickerComponent,
   ],
   templateUrl: './reports.page.html',
   styleUrl: './reports.page.scss',
@@ -139,8 +133,6 @@ export class ReportsPage implements OnInit {
   @ViewChild('billableChartRef') billableChartRef?: UIChart;
   @ViewChild('nonBillableChartRef') nonBillableChartRef?: UIChart;
 
-  readonly months = REPORT_MONTHS;
-  readonly quarters = REPORT_QUARTERS;
 
   activeTab = 0;
   loading = signal(false);
@@ -157,21 +149,10 @@ export class ReportsPage implements OnInit {
   projects = signal<Project[]>([]);
   private filteredProjects = signal<Project[]>([]);
 
-  private readonly now = new Date();
-  readonly yearOptions = [
-    this.now.getFullYear() - 2,
-    this.now.getFullYear() - 1,
-    this.now.getFullYear(),
-    this.now.getFullYear() + 1,
-  ];
+  /** The reporting period (app-period-picker). */
+  period = signal(defaultPeriod());
 
   filters = {
-    periodType: 'month' as ReportPeriodType,
-    month: this.now.getMonth() + 1,
-    year: this.now.getFullYear(),
-    quarter: Math.floor(this.now.getMonth() / 3) + 1,
-    from: '',
-    to: '',
     clientId: '' as string,
     projectId: '' as string,
   };
@@ -179,12 +160,6 @@ export class ReportsPage implements OnInit {
   private timeEntries = signal<TimeEntry[]>([]);
   private invoices = signal<Invoice[]>([]);
   private taskReport = signal<TaskReport | null>(null);
-
-  readonly periodTypeOptions = [
-    { label: 'Month', value: 'month' as ReportPeriodType },
-    { label: 'Quarter', value: 'quarter' as ReportPeriodType },
-    { label: 'Custom range', value: 'custom' as ReportPeriodType },
-  ];
 
   readonly clientOptions = computed(() => [
     { label: 'All clients', value: '' },
@@ -435,18 +410,11 @@ export class ReportsPage implements OnInit {
   }
 
   async runReport() {
-    const bounds = resolveReportPeriod({
-      periodType: this.filters.periodType,
-      month: this.filters.month,
-      year: this.filters.year,
-      quarter: this.filters.quarter,
-      from: this.filters.from,
-      to: this.filters.to,
-    });
+    const bounds = resolveReportPeriod(this.period());
 
     if (!bounds) {
       this.error.set(
-        this.filters.periodType === 'custom'
+        this.period().periodType === 'custom'
           ? 'Select a valid custom date range.'
           : 'Select a valid reporting period.',
       );

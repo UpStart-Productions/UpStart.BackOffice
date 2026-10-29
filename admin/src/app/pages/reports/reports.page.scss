@@ -20,30 +20,6 @@
   margin-bottom: 0;
 }
 
-.report-filter-field--period-detail {
-  width: auto;
-  min-width: 13rem;
-}
-
-.report-range-label {
-  display: block;
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  margin-bottom: 0.35rem;
-}
-
-.report-date-range {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-
-  app-date-input {
-    flex: 1 1 10rem;
-    min-width: 10rem;
-  }
-}
-
 .report-run-wrap {
   margin-top: 1rem;
 }

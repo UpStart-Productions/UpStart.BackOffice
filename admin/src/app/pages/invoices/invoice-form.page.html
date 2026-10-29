@@ -149,72 +149,7 @@
             </div>
 
             <div class="invoice-period-row">
-              <div class="form-field invoice-period-field">
-                <label for="periodType">Period</label>
-                <p-select
-                  inputId="periodType"
-                  [options]="periodTypeOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  [(ngModel)]="generate.periodType"
-                  styleClass="w-full"
-                  appendTo="body"
-                />
-              </div>
-              @if (generate.periodType !== 'custom') {
-                <div class="form-field invoice-period-field">
-                  <label for="periodYear">Year</label>
-                  <p-select
-                    inputId="periodYear"
-                    [options]="yearOptions"
-                    [(ngModel)]="generate.year"
-                    styleClass="w-full"
-                    appendTo="body"
-                  />
-                </div>
-              }
-              <div class="form-field invoice-period-field">
-                @if (generate.periodType === 'month') {
-                  <label for="periodMonth">Month</label>
-                  <p-select
-                    inputId="periodMonth"
-                    [options]="months"
-                    optionLabel="label"
-                    optionValue="value"
-                    [(ngModel)]="generate.month"
-                    styleClass="w-full"
-                    appendTo="body"
-                  />
-                } @else if (generate.periodType === 'quarter') {
-                  <label for="periodQuarter">Quarter</label>
-                  <p-select
-                    inputId="periodQuarter"
-                    [options]="quarters"
-                    optionLabel="label"
-                    optionValue="value"
-                    [(ngModel)]="generate.quarter"
-                    styleClass="w-full"
-                    appendTo="body"
-                  />
-                } @else {
-                  <span class="invoice-period-range-label" id="periodRangeLabel">Date range</span>
-                  <div class="invoice-date-range" aria-labelledby="periodRangeLabel">
-                    <app-date-input
-                      inputId="periodFrom"
-                      [(ngModel)]="generate.from"
-                      ariaLabel="From"
-                      placeholder="From"
-                    />
-                    <span class="invoice-date-range-sep" aria-hidden="true">–</span>
-                    <app-date-input
-                      inputId="periodTo"
-                      [(ngModel)]="generate.to"
-                      ariaLabel="To"
-                      placeholder="To"
-                    />
-                  </div>
-                }
-              </div>
+              <app-period-picker idPrefix="genPeriod" [(value)]="period" />
             </div>
 
             <div class="invoice-generate-actions">
