@@ -6,7 +6,7 @@
 
 ### Modules
 
-**Modules** are optional parts of the app, switched on per tenant with the checkboxes in **Add tenant** or **Edit**. The **Modules** column lists what each tenant has. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant (admins included), and its public pages stop working. Turning a module off keeps its data. Today the only module is **Bookings** (Bookings, booking types, public booking pages and Google Calendar); new tenants start with it on.
+**Modules** are optional parts of the app, switched on per tenant with the checkboxes in **Add tenant** or **Edit**. The **Modules** column lists what each tenant has. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant (admins included), and its public pages stop working. Turning a module off keeps its data. The modules are **Bookings** (Bookings, booking types, public booking pages and Google Calendar; new tenants start with it on) and **Care** (Intake, Care profiles, Forms and public Care links; see the Care topic). A tenant with Care on starts with an empty Intake form and Care profile.
 
 ## Guide setup
 

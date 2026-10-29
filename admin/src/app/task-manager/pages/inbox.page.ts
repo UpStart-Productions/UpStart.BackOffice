@@ -12,6 +12,8 @@ import { TmStoreService } from '../core/tm-store.service';
 import { AppNotification, EmailPrefs } from '../core/tm.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { SessionService } from '../../core/session.service';
+import { areaLevel } from '@upstart/back-office/shared';
 
 const TYPE_ICON: Record<string, string> = {
   task_assigned: 'pi-user-plus',
@@ -22,6 +24,7 @@ const TYPE_ICON: Record<string, string> = {
   task_form_submission: 'pi-inbox',
   activity_forwarded: 'pi-send',
   activity_mention: 'pi-at',
+  care_form_submission: 'pi-file-edit',
 };
 
 /** Notification inbox (Asana-style): activity / archive, mark read, email settings. */
@@ -84,7 +87,7 @@ const TYPE_ICON: Record<string, string> = {
       </ng-template>
       @if (prefs(); as p) {
         <ul class="tm-pref-list">
-          @for (row of prefRows; track row.key) {
+          @for (row of prefRows(); track row.key) {
             <li>
               <span>{{ row.label }}</span>
               <p-toggleswitch [ngModel]="p[row.key]" (ngModelChange)="setPref(row.key, $event)" />
@@ -100,12 +103,13 @@ export class InboxPage implements OnInit {
   private readonly store = inject(TmStoreService);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
+  private readonly session = inject(SessionService);
 
   readonly tabs = [
     { label: 'Activity', value: 'activity' },
     { label: 'Archive', value: 'archive' },
   ];
-  readonly prefRows: { key: keyof EmailPrefs; label: string }[] = [
+  private readonly basePrefRows: { key: keyof EmailPrefs; label: string }[] = [
     { key: 'task_assigned', label: 'A task is assigned to me' },
     { key: 'task_mention', label: 'Someone @mentions me' },
     { key: 'task_comment', label: 'Comments on tasks I follow' },
@@ -113,6 +117,12 @@ export class InboxPage implements OnInit {
     { key: 'project_added', label: "I'm added to a project" },
     { key: 'task_form_submission', label: 'A form I own gets a submission' },
   ];
+  /** The Care row only for people who use Care (module on and a Care role). */
+  readonly prefRows = computed(() =>
+    areaLevel(this.session.me(), 'care')
+      ? [...this.basePrefRows, { key: 'care_form_submission' as const, label: 'A Care form comes in through a public link' }]
+      : this.basePrefRows,
+  );
   readonly relativeTime = relativeTime;
 
   tab = signal<'activity' | 'archive'>('activity');

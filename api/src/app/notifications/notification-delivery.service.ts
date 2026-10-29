@@ -48,7 +48,7 @@ export class NotificationDeliveryService {
         extraHtml: input.body
           ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.55;color:#2d2d2d;white-space:pre-line;">${escapeHtml(input.body)}</p>`
           : undefined,
-        action: { href, label: 'Open task' },
+        action: { href, label: typeof input.meta?.actionLabel === 'string' ? input.meta.actionLabel : 'Open task' },
         actionNote: 'Change which emails you get under Inbox → Settings.',
       });
       await this.mail.sendRaw({ to: user.email, subject: input.title, html });

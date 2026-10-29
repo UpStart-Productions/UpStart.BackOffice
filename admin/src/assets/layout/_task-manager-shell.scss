@@ -1,5 +1,6 @@
 // Task Manager shell: layout rail, sidebar nav, design tokens (loaded globally in task mode layout).
 $tm-rail-width: 4.5rem;
+$tm-main-nav-full-width: 20rem;
 $tm-sidebar-width: 16rem;
 $tm-content-gap: 1.5rem;
 $tm-detail-width: min(42rem, 48vw);
@@ -52,10 +53,19 @@ $tm-detail-width: min(42rem, 48vw);
 }
 
 @media (min-width: 992px) {
+  // Icon rail on non–Task Manager routes (user toggled Collapse).
+  .layout-wrapper.layout-static.layout-nav-compact:not(.layout-static-inactive) {
+    .layout-main-container {
+      margin-left: calc(2rem + #{$tm-rail-width} + #{$tm-content-gap} - 2rem);
+      transition: margin-left 0.22s ease;
+    }
+  }
+
   .layout-wrapper.layout-static.layout-task-mode {
     .layout-main-container {
       // Rail + sidebar start 2rem from the edge; leave a clear gap before the content.
       margin-left: calc(2rem + #{$tm-rail-width} + #{$tm-sidebar-width} + #{$tm-content-gap} - 2rem);
+      transition: margin-left 0.22s ease;
     }
 
     .layout-sidebar--compact {
@@ -63,10 +73,31 @@ $tm-detail-width: min(42rem, 48vw);
       border-bottom-right-radius: 0;
     }
 
+    .layout-tm-sidebar {
+      transition:
+        transform var(--layout-section-transition-duration),
+        left 0.22s ease;
+    }
+
     .layout-tm-sidebar .tm-sidebar {
       border-left: none;
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
+    }
+  }
+
+  .layout-wrapper.layout-static.layout-task-mode.layout-task-main-nav-expanded {
+    .layout-tm-sidebar {
+      left: calc(2rem + #{$tm-main-nav-full-width});
+    }
+
+    .layout-main-container {
+      margin-left: calc(2rem + #{$tm-main-nav-full-width} + #{$tm-sidebar-width} + #{$tm-content-gap} - 2rem);
+    }
+
+    .layout-sidebar:not(.layout-sidebar--compact) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
     }
   }
 

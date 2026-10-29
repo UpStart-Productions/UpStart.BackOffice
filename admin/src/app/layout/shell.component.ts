@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, computed, effect, inject, OnInit } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -16,6 +16,7 @@ import { LayoutService } from './layout.service';
 import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
 import { TaskManagerStyleHostComponent } from '../task-manager/ui/task-manager-style-host.component';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
+import { CareApi } from '../core/care.api';
 import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
 import { AppUpdateService } from '../core/app-update.service';
@@ -50,6 +51,7 @@ export class ShellComponent implements OnInit {
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly comms = inject(CommunicationsApi);
+  private readonly care = inject(CareApi);
   private readonly appUpdate = inject(AppUpdateService);
   readonly layout = inject(LayoutService);
 
@@ -63,16 +65,28 @@ export class ShellComponent implements OnInit {
 
   /** Task Manager mode: main menu shrinks to an icon rail and the task sidebar takes over. */
   readonly taskMode = computed(() => isTaskManagerUrl(this.currentUrl()));
+
+  /** Icon rail on Task Manager routes unless expanded; same preference elsewhere. */
+  readonly navCompact = computed(() =>
+    this.taskMode() ? !this.layout.tasksNavExpanded() : this.layout.navCompact(),
+  );
+
+  private readonly syncNavPrefsUser = effect(() => {
+    const id = this.session.me()?.id ?? null;
+    untracked(() => this.layout.setPrefsUserId(id));
+  });
   /** A Tasks-only role (like Guest): the menu is just Tasks. */
   readonly isTasksOnly = computed(() => tasksOnly(this.session.me()));
   readonly canInbox = computed(() => !!areaLevel(this.session.me(), 'inbox'));
   readonly canContacts = computed(() => !!areaLevel(this.session.me(), 'contacts'));
+  readonly canCare = computed(() => !!areaLevel(this.session.me(), 'care'));
 
   /** Keep the Activity badge fresh: refresh my To do count after every navigation. */
   private readonly refreshInboxCount = effect(() => {
     this.currentUrl();
     if (this.canInbox()) void this.comms.refreshActivityCount();
     if (this.canContacts()) void this.comms.refreshReviewCount();
+    if (this.canCare()) void this.care.refreshPendingCount();
   });
 
   navItems = computed<NavItem[]>(() => {
@@ -107,6 +121,12 @@ export class ShellComponent implements OnInit {
         { area: 'expenses', label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
         { area: 'invoices', label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
       ]),
+      // Care module: intake forms, care profiles and their setup.
+      ...section('Care', [
+        { area: 'care', label: 'Intake', icon: 'pi-inbox', route: '/care/intake', badge: this.care.pendingCount() },
+        { area: 'care', label: 'Care profiles', icon: 'pi-id-card', route: '/care/profiles' },
+        ...(this.session.can('care', 'setup') ? [{ area: 'care' as PermissionArea, label: 'Forms', icon: 'pi-list', route: '/care/forms' }] : []),
+      ]),
       ...section('Reports', [{ area: 'reports', label: 'Reports', icon: 'pi-chart-line', route: '/reports' }]),
     ];
     if (me?.role === 'ADMIN') {
@@ -133,6 +153,8 @@ export class ShellComponent implements OnInit {
       'layout-static-inactive': state.staticMenuDesktopInactive,
       'layout-mobile-active': state.mobileMenuActive,
       'layout-task-mode': this.taskMode(),
+      'layout-task-main-nav-expanded': this.taskMode() && this.layout.tasksNavExpanded(),
+      'layout-nav-compact': this.navCompact() && !this.taskMode(),
       'has-impersonation-banner': !!this.auth.impersonatedUserId,
     };
   });

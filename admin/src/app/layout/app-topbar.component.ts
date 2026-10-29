@@ -100,7 +100,7 @@ import { LayoutService } from './layout.service';
           type="button"
           class="layout-menu-button layout-topbar-action"
           (click)="layout.onMenuToggle()"
-          aria-label="Open menu"
+          [attr.aria-label]="layout.sidebarHidden() ? 'Show navigation' : 'Hide navigation'"
         >
           <i class="pi pi-bars"></i>
         </button>

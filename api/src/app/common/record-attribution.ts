@@ -14,6 +14,7 @@ export const ATTRIBUTED_MODELS = new Set([
   'Account',
   'User',
   'OrganizationProfile',
+  'CareRecord',
 ]);
 
 /** Prisma scalar used for “created by” (Invoice uses createdById). */

@@ -76,10 +76,6 @@ const ORG_DETAIL: HelpArticle = {
       body: 'Emails, calls, meetings and notes for this organization. The box at the top logs a Note, Call or Meeting in one line (type @ to mention a teammate or one of their people; teammates get a notification); tick Set the next step to set it at the same time; More details… opens the full form. Include people\'s activity also shows activity logged on this organization\'s people that isn\'t filed to any organization ("From [name]\'s activity"). Email filed to another organization never shows here. Email threads show their newest message; expand for earlier ones. Open full view opens Activity for this organization. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
     },
     {
-      heading: 'Your own sections',
-      body: 'Sections your admin added under Settings → Client fields appear under the details, one card each. Fill them in and use Save at the top, the same Save as the details. A section tagged Sensitive is only shown to admins and people assigned to this organization.',
-    },
-    {
       heading: 'Files, links and notes',
       body: 'Upload files (drag and drop works), add links, or write notes that stay with the organization.',
     },
@@ -782,10 +778,6 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'How many days an email from outside waits before it shows under Needs reply (default 2), and how long an active client can go without contact before it shows under Gone quiet (default 30).',
       },
       {
-        heading: 'Client fields',
-        body: 'Add your own sections and fields to every organization page, e.g. a profile or intake details. Add a section, then Add field: pick a name and a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox). The type can\'t be changed later. Use the ⋮ menus to edit, move up or down, or delete. Deleting a field removes what was filled in on every organization. Edit a section to mark it Sensitive: only admins and people assigned to the organization see it.',
-      },
-      {
         heading: 'Email capture',
         body: 'Your capture address. CC it on an email to log it; reply-all keeps it on the thread. UpStart Back Office only sees messages this address is on. List your team\'s email domains so team members aren\'t created as contacts.',
       },
@@ -809,6 +801,82 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     ],
   },
 
+  // ── Care (module) ─────────────────────────────────────
+  'care/intake': {
+    title: 'Intake',
+    intro: "Every organization's intake form, and intakes sent through a public link.",
+    sections: [
+      {
+        heading: 'Waiting for review',
+        body: 'Intakes sent through a public intake link land here first, with the person who sent it. Open one, check it, then Accept to attach it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing organization. Dismiss deletes it. Only people whose role can edit the Intake form and reach every organization see this tab.',
+      },
+      {
+        heading: 'New intake',
+        body: 'Starts an intake form for an organization that has none yet. You can also start one from the Care card on the organization page.',
+      },
+    ],
+  },
+  'care/profiles': {
+    title: 'Care profiles',
+    intro: "Every organization's care profile, one living copy each.",
+    sections: [
+      {
+        heading: 'New care profile',
+        body: 'Pick an organization to start its care profile. You can also start one from the Care card on the organization page.',
+      },
+      {
+        heading: 'Who sees what',
+        body: 'Each form sets Read or Edit per role (Care → Forms). People only see organizations assigned to them unless their role has Organizations: All.',
+      },
+    ],
+  },
+  'care/records/:id': {
+    title: 'Care form',
+    intro: "One organization's copy of a Care form. It always shows the current answers.",
+    sections: [
+      {
+        heading: 'Editing',
+        body: 'Change any answers and click Save at the top. Read-only roles see the form without Save.',
+      },
+      {
+        heading: 'Share link',
+        body: "New link makes a link to this organization's form for someone outside, such as family. Pick a check: No check, Passcode (share it separately) or Emailed code (sent to the address you enter). Links expire after 30 days unless you change it, and you can Revoke one anytime from its ⋮ menu. Changes made through a link save straight to the form and notify your team; the side panel shows who made the last one.",
+      },
+      {
+        heading: 'Accept or dismiss',
+        body: 'An intake sent through a public intake link shows Waiting for review. Accept attaches it to a new or existing organization; Dismiss (⋮ menu) deletes it.',
+      },
+    ],
+  },
+  'care/forms': {
+    title: 'Forms',
+    intro: 'Set up your Intake form and Care profile. Needs Care Setup.',
+    sections: [
+      {
+        heading: 'Forms',
+        body: 'Open a form to change its name, who can use it, its fields and (Intake form) public intake links.',
+      },
+    ],
+  },
+  'care/forms/:id': {
+    title: 'Form setup',
+    intro: 'Name, access, fields and public links for one Care form.',
+    sections: [
+      {
+        heading: 'Who can use it',
+        body: 'For each role pick None, Read or Edit, then Save. Admins can always edit. The role also needs the Care area (Users → Roles), and people only see organizations assigned to them unless their role has Organizations: All.',
+      },
+      {
+        heading: 'Fields',
+        body: "Add a section, then Add field: a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and whether it is Required on public links. The type can't be changed later. Use the ⋮ menus to edit, move or delete; deleting a field removes its answers from every record. These changes save right away.",
+      },
+      {
+        heading: 'Public intake links',
+        body: 'Intake form only. New link makes a link anyone can use to send an intake, for example from your website, with No check, a Passcode, or an Emailed code to the person filling it in. Submissions wait under Intake → Waiting for review. Copy, open or revoke a link from its ⋮ menu.',
+      },
+    ],
+  },
+
   // ── Platform (super users) ─────────────────────────────
   tenants: {
     title: 'Tenants',
@@ -824,7 +892,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Modules',
-        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Today the only module is Bookings (Bookings, booking types, public booking pages and Google Calendar).',
+        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar) and Care (Intake, Care profiles, Forms and public Care links).',
       },
       {
         heading: 'Switch to',

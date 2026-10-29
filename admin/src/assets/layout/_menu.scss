@@ -13,7 +13,8 @@
   left: 2rem;
   transition:
     transform var(--layout-section-transition-duration),
-    left var(--layout-section-transition-duration);
+    left var(--layout-section-transition-duration),
+    width 0.22s ease;
   background-color: var(--sidebar-bg);
   border-radius: var(--content-border-radius);
   /* Room above JD guide avatar (bottom-left) */
@@ -90,8 +91,6 @@
 
     &:not(:first-child) {
       margin-top: 0.75rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
     }
   }
 
@@ -109,7 +108,6 @@
     height: 0;
     margin: 0.5rem 1rem;
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
   }
 }
 

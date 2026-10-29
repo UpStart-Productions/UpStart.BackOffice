@@ -22,6 +22,7 @@ export const PERMISSION_AREAS = [
   'expenses',
   'invoices',
   'reports',
+  'care',
 ] as const;
 
 export type PermissionArea = (typeof PERMISSION_AREAS)[number];
@@ -44,6 +45,7 @@ export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   expenses: 'Expenses',
   invoices: 'Invoices',
   reports: 'Reports',
+  care: 'Care',
 };
 
 export function isPermissionArea(value: string): value is PermissionArea {
@@ -85,8 +87,14 @@ export const ACTION_LABELS: Record<RoleAction, string> = {
   setup: 'Setup',
 };
 
-/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types). */
-export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings'];
+/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types), Care (forms). */
+export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings', 'care'];
+
+/**
+ * Areas whose only checkbox is Setup. Care: what a role can read or edit is set per form (Care → Forms),
+ * and which clients by Clients reach (assigned clients unless Organizations is All).
+ */
+export const SETUP_ONLY_AREAS: readonly PermissionArea[] = ['care'];
 
 /** Areas that only show information; actions don't apply. */
 export const VIEW_ONLY_AREAS: readonly PermissionArea[] = ['reports'];
@@ -94,6 +102,7 @@ export const VIEW_ONLY_AREAS: readonly PermissionArea[] = ['reports'];
 /** The checkboxes that make sense for an area. */
 export function actionsFor(area: PermissionArea): RoleAction[] {
   if (VIEW_ONLY_AREAS.includes(area)) return [];
+  if (SETUP_ONLY_AREAS.includes(area)) return ['setup'];
   return ROLE_ACTIONS.filter((a) => a !== 'setup' || SETUP_AREAS.includes(area));
 }
 
@@ -153,11 +162,11 @@ export const ROLE_PRESETS: readonly RolePreset[] = [
     name: 'Manager',
     permissions: {
       clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', inbox: 'all',
-      projects: 'all', tasks: 'all', time: 'all', expenses: 'all', invoices: 'all', reports: 'all',
+      projects: 'all', tasks: 'all', time: 'all', expenses: 'all', invoices: 'all', reports: 'all', care: 'all',
     },
     actions: {
       clients: ALL, contacts: ALL, pipeline: ALL_SETUP, bookings: ALL_SETUP, inbox: ALL,
-      projects: ALL, tasks: ALL, time: ALL, expenses: ALL, invoices: ALL,
+      projects: ALL, tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, care: { setup: true },
     },
   },
   {

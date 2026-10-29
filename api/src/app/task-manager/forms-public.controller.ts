@@ -4,6 +4,7 @@ import { ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { memoryStorage } from 'multer';
 import { SubmitFormDto } from './dto/task-manager.dto';
+import { clientIp } from '../common/rate-limiter';
 import { FORM_MAX_FILE_BYTES, FORM_MAX_FILES, TaskFormsService } from './task-forms.service';
 
 type Uploaded = { buffer: Buffer; mimetype: string; originalname: string; size: number };
@@ -15,12 +16,6 @@ function formKey(headers: Record<string, string | string[] | undefined>): string
   const auth = headers['authorization'];
   if (typeof auth === 'string' && /^Bearer\s+ubof_/i.test(auth)) return auth.replace(/^Bearer\s+/i, '').trim();
   return null;
-}
-
-function clientIp(req: Request): string {
-  const fwd = req.headers['x-forwarded-for'];
-  const first = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(',')[0]?.trim();
-  return first || req.ip || 'unknown';
 }
 
 /**

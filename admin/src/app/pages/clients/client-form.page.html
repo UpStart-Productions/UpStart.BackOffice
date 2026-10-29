@@ -170,8 +170,6 @@
       </form>
 
         @if (!isNew) {
-          <app-client-fields-panel [clientId]="id()!" [canEdit]="canEdit()" />
-
           <app-activity-timeline [clientId]="id()!" [organizationName]="form.name" />
 
           <app-artifacts-panel [clientId]="id()!" />
@@ -181,6 +179,8 @@
       @if (!isNew) {
         <div class="stack span-1">
           <app-people mode="organization" [clientId]="id()!" [compact]="true" />
+
+          <app-care-client-card [clientId]="id()!" />
 
           @if (isClient) {
             <div class="card card--side">

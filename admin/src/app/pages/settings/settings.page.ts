@@ -24,7 +24,6 @@ import { McpSettingsComponent } from '../../ui/mcp-settings/mcp-settings.compone
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/expenses-invoicing-settings.component';
 import { ActivitySettingsComponent } from '../../ui/activity-settings/activity-settings.component';
-import { ClientFieldsSettingsComponent } from '../../ui/client-fields/client-fields-settings.component';
 import { SessionService } from '../../core/session.service';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 
@@ -116,7 +115,6 @@ interface SettingsStatusIcon {
     HelpTextComponent,
     ExpensesInvoicingSettingsComponent,
     ActivitySettingsComponent,
-    ClientFieldsSettingsComponent,
     AvatarDropzoneComponent,
     RecordAttributionComponent,
   ],

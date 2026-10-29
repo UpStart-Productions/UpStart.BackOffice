@@ -130,14 +130,30 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Comma separated. Email from these domains is treated as the team, not contacts.',
   'tenant.modules':
     'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
-  'settings.clientFields.sections':
-    'Groups of your own fields shown on each organization page, e.g. a profile or intake details. Add a section, then add fields to it.',
-  'settings.clientFields.sensitive':
-    'Only admins and people assigned to the organization can see and edit this section.',
-  'settings.clientFields.type':
-    "What the field holds. The type can't be changed after the field is added.",
-  'settings.clientFields.options':
-    'The choices people can pick from. Renaming a choice keeps what was already picked.',
+  // Care module
+  'care.forms.page':
+    'Your Intake form and Care profile. Open one to set its fields, who can use it and (Intake) public links.',
+  'care.form.page':
+    'Name, who can use this form, its sections and fields, and public links. Field changes save right away; Save is for the name, description and access.',
+  'care.form.description': 'Shown at the top of the form on public links.',
+  'care.form.access':
+    'Per role: None, Read or Edit. Admins can always edit. People only see forms for organizations they can reach (the ones assigned to them unless their role has Organizations: All).',
+  'care.form.sections': 'Groups of fields on the form, e.g. Contact, Daily routine, Health notes. Add a section, then add fields to it.',
+  'care.form.fieldType': "What the field holds. The type can't be changed after the field is added.",
+  'care.form.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
+  'care.form.required': 'People filling in the form through a public link must answer it. Staff can save with it empty.',
+  'care.intake.page':
+    "Every organization's intake form. Waiting for review lists intakes sent through a public link; open one to Accept it into a new or existing organization, or Dismiss it.",
+  'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization.",
+  'care.record.page':
+    "This organization's copy of the form. Edit and Save; Share link makes a link so someone outside (e.g. family) can update it.",
+  'care.links.intake':
+    'Links anyone can use to send a new intake, e.g. on your website. Each one arrives under Care → Intake → Waiting for review.',
+  'care.links.record':
+    "A link to this organization's copy of the form, e.g. for family to update it. Changes save straight to the form and notify your team.",
+  'care.links.verify':
+    'No check: anyone with the link. Passcode: share it separately (phone or text). Emailed code: a code goes to an email address before the form opens.',
+  'care.links.expires': 'Leave empty for a link that never expires. You can revoke a link anytime.',
   'dashboard.page':
     "What needs you today: emails waiting for a reply, next steps and tasks due, overdue invoices, your time and upcoming bookings. Mine / Everyone's switches the Activity and invoice figures.",
   'activity.page':

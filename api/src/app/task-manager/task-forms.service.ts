@@ -1,3 +1,4 @@
+import { RateLimiter } from '../common/rate-limiter';
 import {
   BadRequestException,
   ForbiddenException,
@@ -43,24 +44,6 @@ const KEY_PREFIX = 'ubof_';
 type Uploaded = { buffer: Buffer; mimetype: string; originalname: string; size: number };
 
 const hashKey = (key: string) => createHash('sha256').update(key).digest('hex');
-
-/** Small in-memory sliding-window limiter (single API container). */
-class RateLimiter {
-  private hits = new Map<string, number[]>();
-  constructor(private readonly limit: number, private readonly windowMs: number) {}
-  allow(key: string): boolean {
-    const now = Date.now();
-    const recent = (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs);
-    if (recent.length >= this.limit) {
-      this.hits.set(key, recent);
-      return false;
-    }
-    recent.push(now);
-    this.hits.set(key, recent);
-    if (this.hits.size > 5000) this.hits.clear();
-    return true;
-  }
-}
 
 /**
  * Intake forms that create tasks in a project.

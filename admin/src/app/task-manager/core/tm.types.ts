@@ -173,7 +173,8 @@ export type AppNotification = {
   createdAt: string;
 };
 
-export type EmailPrefs = Record<'task_assigned' | 'task_mention' | 'task_comment' | 'task_completed' | 'project_added' | 'task_form_submission', boolean>;
+export type EmailPrefs = Record<'task_assigned' | 'task_mention' | 'task_comment' | 'task_completed' | 'project_added' | 'task_form_submission', boolean> &
+  Partial<Record<'care_form_submission', boolean>>;
 
 // ── Forms ──────────────────────────────────────────────────────────────────
 

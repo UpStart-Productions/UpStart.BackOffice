@@ -28,6 +28,11 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/task-form/task-form.page').then((m) => m.TaskFormPage),
   },
   {
+    // Public Care links (intake or one organization's form), optionally behind a passcode or emailed code.
+    path: 'care-form/:token',
+    loadComponent: () => import('./pages/care/care-public-form.page').then((m) => m.CarePublicFormPage),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],
@@ -193,6 +198,30 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/platform/help-assistant.page').then((m) => m.HelpAssistantPage),
         canActivate: [platformAdminGuard],
+      },
+      {
+        path: 'care/intake',
+        loadComponent: () => import('./pages/care/care-records.page').then((m) => m.CareRecordsPage),
+        data: { kind: 'INTAKE' },
+      },
+      {
+        path: 'care/profiles',
+        loadComponent: () => import('./pages/care/care-records.page').then((m) => m.CareRecordsPage),
+        data: { kind: 'CARE_PROFILE' },
+      },
+      {
+        path: 'care/records/:id',
+        loadComponent: () => import('./pages/care/care-record.page').then((m) => m.CareRecordPage),
+      },
+      {
+        path: 'care/forms',
+        loadComponent: () => import('./pages/care/care-forms.page').then((m) => m.CareFormsPage),
+        canActivate: [actionGuard('care', 'setup')],
+      },
+      {
+        path: 'care/forms/:id',
+        loadComponent: () => import('./pages/care/care-form-edit.page').then((m) => m.CareFormEditPage),
+        canActivate: [actionGuard('care', 'setup')],
       },
       {
         path: 'settings',

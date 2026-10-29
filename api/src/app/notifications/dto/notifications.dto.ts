@@ -32,4 +32,5 @@ export class EmailPreferencesDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() task_form_submission?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() activity_forwarded?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() activity_mention?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() care_form_submission?: boolean;
 }

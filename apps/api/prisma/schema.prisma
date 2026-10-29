@@ -227,6 +227,8 @@ model User {
   contactsCreated           Contact[]                   @relation("ContactCreatedBy")
   contactsUpdated           Contact[]                   @relation("ContactUpdatedBy")
   leadsCreated              Lead[]                      @relation("LeadCreatedBy")
+  careRecordsCreated        CareRecord[]                @relation("CareRecordCreatedBy")
+  careRecordsUpdated        CareRecord[]                @relation("CareRecordUpdatedBy")
   leadsUpdated              Lead[]                      @relation("LeadUpdatedBy")
   projectsCreated           Project[]                   @relation("ProjectCreatedBy")
   projectsUpdated           Project[]                   @relation("ProjectUpdatedBy")
@@ -305,7 +307,8 @@ model Client {
   interactions      Interaction[]
   assignments       ClientAssignment[]
   tags              ClientTag[]
-  fieldValues       ClientFieldValue[]
+  careRecords       CareRecord[]
+  careFormLinks     CareFormLink[]
 
   @@unique([tenantId, code])
 }
@@ -1643,9 +1646,12 @@ model Tenant {
   pipelines                   Pipeline[]
   pipelineStages              PipelineStage[]
   activitySnoozes             ActivitySnooze[]
-  clientFieldSections         ClientFieldSection[]
-  clientFields                ClientField[]
-  clientFieldValues           ClientFieldValue[]
+  careForms                   CareForm[]
+  careFormSections            CareFormSection[]
+  careFormFields              CareFormField[]
+  careRecords                 CareRecord[]
+  careFormLinks               CareFormLink[]
+  careLinkAccesses            CareLinkAccess[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -1886,10 +1892,16 @@ model ActivitySnooze {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Client custom fields: each tenant defines its own sections and fields shown on the organization page.
+// Care module: tenant-defined forms (Intake form, Care profile), one living record per client per form,
+// and public links (new intake, or one client's form) with optional passcode or emailed code.
 // ---------------------------------------------------------------------------------------------------------------
 
-enum ClientFieldType {
+enum CareFormKind {
+  INTAKE
+  CARE_PROFILE
+}
+
+enum FormFieldType {
   TEXT
   LONG_TEXT
   NUMBER
@@ -1899,54 +1911,158 @@ enum ClientFieldType {
   CHECKBOX
 }
 
-model ClientFieldSection {
+enum CareRecordStatus {
+  /// Submitted through a public new-intake link; not attached to an organization until someone accepts it.
+  PENDING
+  ACTIVE
+}
+
+enum CareLinkKind {
+  /// Anyone with the link can submit a new intake (becomes a pending intake).
+  NEW_INTAKE
+  /// One organization's form, e.g. for family to update it.
+  CLIENT_UPDATE
+}
+
+enum CareLinkVerify {
+  NONE
+  PASSCODE
+  EMAIL_CODE
+}
+
+model CareForm {
+  id          String       @id @default(cuid())
+  tenantId    String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  kind        CareFormKind
+  name        String
+  description String?      @db.Text
+  /// roleId -> "read" | "edit". Admins can always edit; a role not listed has no access.
+  access      Json         @default("{}")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  sections CareFormSection[]
+  records  CareRecord[]
+  links    CareFormLink[]
+
+  @@unique([tenantId, kind])
+}
+
+model CareFormSection {
   id        String   @id @default(cuid())
   tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  formId    String
   name      String
-  /// Only admins and people assigned to the client see this section.
-  sensitive Boolean  @default(false)
   sortOrder Float    @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  fields ClientField[]
+  form   CareForm        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  fields CareFormField[]
 
-  @@index([tenantId, sortOrder])
+  @@index([formId, sortOrder])
+  @@index([tenantId])
 }
 
-model ClientField {
-  id        String          @id @default(cuid())
-  tenantId  String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+model CareFormField {
+  id        String        @id @default(cuid())
+  tenantId  String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
   sectionId String
   name      String
-  type      ClientFieldType
+  type      FormFieldType
   /// Select options: [{ id, label }]. Values store option ids, so renaming an option keeps its values.
   options   Json?
-  sortOrder Float           @default(0)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  /// Required on public links. Staff can save a record with it empty.
+  required  Boolean       @default(false)
+  sortOrder Float         @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  section ClientFieldSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  values  ClientFieldValue[]
+  section CareFormSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId, sortOrder])
   @@index([tenantId])
 }
 
-model ClientFieldValue {
-  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  clientId  String
-  fieldId   String
-  value     Json
-  updatedAt DateTime @updatedAt
+/// One living copy of a form for one organization (or a pending public intake with no organization yet).
+model CareRecord {
+  id              String           @id @default(cuid())
+  tenantId        String           @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  formId          String
+  clientId        String?
+  status          CareRecordStatus @default(ACTIVE)
+  /// fieldId -> value. Values of deleted fields are dropped when read.
+  values          Json             @default("{}")
+  submitterName   String?
+  submitterEmail  String?
+  submitterPhone  String?
+  /// Last change made through a public link (no staff user): when and by whom (name or verified email).
+  publicUpdatedAt DateTime?
+  publicUpdatedBy String?
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
-  client Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  field  ClientField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  form      CareForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("CareRecordCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User?    @relation("CareRecordUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
-  @@id([clientId, fieldId])
-  @@index([fieldId])
+  @@unique([formId, clientId])
+  @@index([clientId])
+  @@index([tenantId, status])
+}
+
+model CareFormLink {
+  id           String         @id @default(cuid())
+  tenantId     String         @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+  formId       String
+  kind         CareLinkKind
+  /// CLIENT_UPDATE only.
+  clientId     String?
+  token        String         @unique
+  label        String?
+  verify       CareLinkVerify @default(NONE)
+  passcodeHash String?
+  /// EMAIL_CODE on a client link: the code goes here. New-intake links ask the visitor for their email.
+  email        String?
+  expiresAt    DateTime?
+  revokedAt    DateTime?
+  lastUsedAt   DateTime?
+  createdById  String?
+  createdAt    DateTime       @default(now())
+
+  form     CareForm         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  client   Client?          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  accesses CareLinkAccess[]
+
+  @@index([formId])
+  @@index([clientId])
+  @@index([tenantId])
+}
+
+/// A verification on a public link: an emailed code waiting to be entered, then a short-lived access token.
+model CareLinkAccess {
+  id             String    @id @default(cuid())
+  tenantId       String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  linkId         String
+  email          String?
+  codeHash       String?
+  codeExpiresAt  DateTime?
+  attempts       Int       @default(0)
+  token          String?   @unique
+  tokenExpiresAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  link CareFormLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
   @@index([tenantId])
 }

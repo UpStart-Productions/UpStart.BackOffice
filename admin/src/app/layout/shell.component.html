@@ -7,7 +7,7 @@
 }
 <div class="layout-wrapper" [ngClass]="containerClass()">
   <app-topbar />
-  <app-sidebar [navItems]="navItems()" [compact]="taskMode()" />
+  <app-sidebar [navItems]="navItems()" [compact]="navCompact()" [taskMode]="taskMode()" />
   @if (taskMode()) {
     <app-tm-style-host />
     <app-tm-sidebar class="layout-tm-sidebar" />
