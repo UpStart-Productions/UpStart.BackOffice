@@ -9,7 +9,7 @@ import type { PermissionArea } from './permissions';
 export const MODULES = {
   bookings: { label: 'Bookings', areas: ['bookings'] },
   /** In-home care: intake forms, care profiles (later visits, schedule, training). */
-  care: { label: 'Care', areas: ['care'] },
+  care: { label: 'Care', areas: ['care', 'visits', 'schedule'] },
 } as const satisfies Record<string, { label: string; areas: readonly PermissionArea[] }>;
 
 export type ModuleKey = keyof typeof MODULES;

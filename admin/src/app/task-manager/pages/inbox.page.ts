@@ -25,6 +25,7 @@ const TYPE_ICON: Record<string, string> = {
   activity_forwarded: 'pi-send',
   activity_mention: 'pi-at',
   care_form_submission: 'pi-file-edit',
+  care_shift_assigned: 'pi-calendar-plus',
 };
 
 /** Notification inbox (Asana-style): activity / archive, mark read, email settings. */
@@ -118,11 +119,13 @@ export class InboxPage implements OnInit {
     { key: 'task_form_submission', label: 'A form I own gets a submission' },
   ];
   /** The Care row only for people who use Care (module on and a Care role). */
-  readonly prefRows = computed(() =>
-    areaLevel(this.session.me(), 'care')
-      ? [...this.basePrefRows, { key: 'care_form_submission' as const, label: 'A Care form comes in through a public link' }]
-      : this.basePrefRows,
-  );
+  readonly prefRows = computed(() => {
+    const me = this.session.me();
+    const rows = [...this.basePrefRows];
+    if (areaLevel(me, 'care')) rows.push({ key: 'care_form_submission', label: 'A Care form comes in through a public link' });
+    if (areaLevel(me, 'schedule')) rows.push({ key: 'care_shift_assigned', label: 'A shift is assigned to me' });
+    return rows;
+  });
   readonly relativeTime = relativeTime;
 
   tab = signal<'activity' | 'archive'>('activity');

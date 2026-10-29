@@ -7,11 +7,13 @@ import { CareNotifyService } from './care-notify.service';
 import { CarePublicController } from './care-public.controller';
 import { CarePublicService } from './care-public.service';
 import { CareRecordsController } from './care-records.controller';
+import { CareShiftsController } from './care-shifts.controller';
+import { CareVisitsController } from './care-visits.controller';
 
-/** Care module (per-tenant): Intake form and Care profile, records per organization, public links. */
+/** Care module (per-tenant): Intake form and Care profile, visits (tied to time), schedule, public links. */
 @Module({
   imports: [NotificationsModule],
-  controllers: [CareFormsController, CareRecordsController, CarePublicController],
+  controllers: [CareFormsController, CareRecordsController, CareVisitsController, CareShiftsController, CarePublicController],
   providers: [CareAccessService, CareLinksService, CareNotifyService, CarePublicService],
 })
 export class CareModule {}

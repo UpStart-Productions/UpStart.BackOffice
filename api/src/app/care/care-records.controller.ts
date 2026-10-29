@@ -4,7 +4,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import type { CareFormKind, CareRecordDto, CareRecordListItemDto, FormFieldType } from '@upstart/back-office/shared';
+import { CARE_RECORD_KINDS, type CareFormKind, type CareRecordDto, type CareRecordListItemDto, type FormFieldType } from '@upstart/back-office/shared';
 import { AccessGuard, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
 import { ATTRIBUTION_INCLUDE, toRecordAttribution } from '../common/record-attribution';
@@ -102,6 +102,7 @@ export class CareRecordsController {
     await ensureCareForms(this.prisma);
     const roleId = await this.care.roleId(user);
     const forms = await this.prisma.careForm.findMany({
+      where: { kind: { in: CARE_RECORD_KINDS } },
       orderBy: { kind: 'asc' },
       include: { records: { where: { clientId }, select: { id: true, updatedAt: true } } },
     });
@@ -126,7 +127,7 @@ export class CareRecordsController {
   async create(@Req() req: Request, @Body() dto: CreateRecordDto) {
     const user = req.user as UserContext;
     const form = await this.prisma.careForm.findUnique({ where: { id: dto.formId } });
-    if (!form) throw new NotFoundException('Form not found');
+    if (!form || !CARE_RECORD_KINDS.includes(form.kind)) throw new NotFoundException('Form not found');
     if ((await this.care.formAccess(user, form)) !== 'edit') throw new NotFoundException('Form not found');
     await this.care.assertClient(user, dto.clientId);
     const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });

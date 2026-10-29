@@ -19,7 +19,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
-import { PeopleDirectoryOption, toDirectoryOptions } from '../projects/people-directory.util';
+import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-directory.util';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
 import type { ClientOption, Project, TimeEntry } from './time-entry.types';
@@ -200,25 +200,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       const rows = await this.api.get<
         { id: string; firstName?: string | null; lastName?: string | null; email: string; avatarUrl?: string | null }[]
       >('/time-entries/people');
-      this.people.set(
-        toDirectoryOptions(
-          rows.map((u) => {
-            const firstName = u.firstName?.trim() ?? '';
-            const lastName = u.lastName?.trim() ?? '';
-            return {
-              id: u.id,
-              source: 'USER',
-              sourceLabel: 'Team member',
-              firstName,
-              lastName,
-              email: u.email,
-              phone: '',
-              displayName: [firstName, lastName].filter(Boolean).join(' ') || u.email,
-              avatarUrl: u.avatarUrl ?? null,
-            };
-          }),
-        ),
-      );
+      this.people.set(teamUsersToOptions(rows));
     } catch {
       this.people.set([]);
     }

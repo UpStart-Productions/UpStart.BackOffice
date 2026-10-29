@@ -147,6 +147,16 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization; Customize fields (Care setup) changes the form.",
   'care.record.page':
     "This organization's copy of the form. Edit and Save; Share link makes a link so someone outside (e.g. family) can update it.",
+  'care.visits.page':
+    'Visits: who visited which organization and when, with the visit log. Start visit begins one now; End visit on its page records the time on the timesheet. Log past visit adds one afterwards. Customize fields (Care setup) changes the visit log checklist.',
+  'care.visit.page':
+    'One visit: when, the visit log and notes. While it is in progress, End visit records the end time and adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.',
+  'care.visit.time': 'An end time earlier than the start counts as the next day (overnight visits).',
+  'care.schedule.page':
+    'Shifts for the week. Add shift plans a one-off or weekly repeating shift; the ⋮ menu on a shift edits, cancels, deletes, or starts the visit when it is your shift.',
+  'care.schedule.worker': 'Leave empty for an open shift nobody has yet. The worker gets a notification when a shift is assigned to them.',
+  'care.schedule.repeat':
+    'Repeats on the days you pick, at the same local time, until the date you set (or keeps going). Each shift can still be edited on its own.',
   'care.links.intake':
     'Links anyone can use to send a new intake, e.g. on your website. Each one arrives under Care → Intake → Waiting for review.',
   'care.links.record':

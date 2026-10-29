@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import { isSelectFieldType, type CareFormDto, type FormFieldOption, type FormFieldType } from '@upstart/back-office/shared';
+import { CARE_RECORD_KINDS, isSelectFieldType, type CareFormDto, type FormFieldOption, type FormFieldType } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -44,6 +44,7 @@ export class CareFormsController {
     const roleId = await this.care.roleId(user);
     const setup = this.care.canSetup(user);
     const forms = await this.prisma.careForm.findMany({
+      where: { kind: { in: CARE_RECORD_KINDS } },
       orderBy: { kind: 'asc' },
       select: {
         id: true, kind: true, name: true, description: true, access: true,

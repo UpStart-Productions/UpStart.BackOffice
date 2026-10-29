@@ -85,7 +85,7 @@ const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
   ['/organizations', 'clients'], ['/clients', 'clients'], ['/people', 'contacts'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'],
   ['/booking-types', 'bookings'], ['/inbox', 'inbox'], ['/activity', 'inbox'], ['/projects', 'projects'],
   ['/tasks', 'tasks'], ['/time-entry', 'time'], ['/expenses', 'expenses'], ['/invoices', 'invoices'],
-  ['/reports', 'reports'], ['/care', 'care'],
+  ['/reports', 'reports'], ['/care/visits', 'visits'], ['/care/schedule', 'schedule'], ['/care', 'care'],
 ];
 
 /**

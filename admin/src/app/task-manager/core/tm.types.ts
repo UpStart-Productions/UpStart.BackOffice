@@ -174,7 +174,7 @@ export type AppNotification = {
 };
 
 export type EmailPrefs = Record<'task_assigned' | 'task_mention' | 'task_comment' | 'task_completed' | 'project_added' | 'task_form_submission', boolean> &
-  Partial<Record<'care_form_submission', boolean>>;
+  Partial<Record<'care_form_submission' | 'care_shift_assigned', boolean>>;
 
 // ── Forms ──────────────────────────────────────────────────────────────────
 

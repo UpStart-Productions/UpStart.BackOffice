@@ -1,6 +1,6 @@
 # Care (module)
 
-**Care** appears in the left menu only when the platform operator has switched the Care module on for your organization. It holds two forms your organization designs itself: the **Intake form** and the **Care profile**. Each organization (client) has at most one copy of each, a living document you keep up to date.
+**Care** appears in the left menu only when the platform operator has switched the Care module on for your organization. It holds **Intake**, **Care profiles**, **Visits** and the **Schedule**. The Intake form and Care profile are forms your organization designs itself; each organization (client) has at most one copy of each, a living document you keep up to date.
 
 ## Who sees what
 
@@ -47,3 +47,21 @@ On **Care → Intake** and **Care → Care profiles**, people whose role has Car
 ## Public form page
 
 People opening a link see your organization's name and the form. New intakes ask for their name and email (phone optional). Links that are revoked or expired say so. Too many attempts or submissions from one place are slowed down.
+
+## Visits
+
+**Care → Visits** lists visits for the period you pick, filtered by worker and organization. Roles need **Visits**: Own (only your own visits) or All (everyone's at the organizations you reach).
+
+- **Start visit**: pick the organization; the visit starts now and opens. A banner on Visits links back to a visit in progress.
+- **End visit** (on the visit page): saves the visit log and notes, sets the end to now and adds the hours to the worker's timesheet (no project, billable), so they invoice like any other time.
+- **Log past visit**: a visit that already happened (date, start, end; and the worker if your role sees everyone).
+- On a visit's page, change times, the visit log or notes and click **Save**; the time entry follows. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted. The ⋮ menu has **Delete** (also deletes its time entry).
+- **Customize fields** (Care setup) sets the **visit log** checklist filled in on every visit (for example meals, activities, mood). It has no per-role access or links: Visits access decides who uses it.
+
+## Schedule
+
+**Care → Schedule** shows a week of shifts (arrows and **This week** to move), filtered by worker and organization. Roles need **Schedule**: Own (only your own shifts; you can only plan your own) or All.
+
+- **Add shift**: organization, worker (empty = **open shift**), date, start and end, notes. **Repeat weekly** repeats on the days you pick at the same local time, until a date or with no end. A warning shows when the worker already has a shift at that time. The worker gets a notification (bell, and email unless turned off).
+- A shift's ⋮ menu: **Edit** (that shift only), **Cancel shift** / **Restore shift**, **Delete**, **Delete this and following** (repeating shifts; shifts with a visit stay), **Start visit** (your own scheduled shift) and **Open visit**.
+- Tags show **Open**, **Cancelled**, **Visit in progress** and **Visited**.

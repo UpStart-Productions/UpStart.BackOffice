@@ -229,6 +229,9 @@ model User {
   leadsCreated              Lead[]                      @relation("LeadCreatedBy")
   careRecordsCreated        CareRecord[]                @relation("CareRecordCreatedBy")
   careRecordsUpdated        CareRecord[]                @relation("CareRecordUpdatedBy")
+  careVisits                CareVisit[]                 @relation("CareVisitWorker")
+  careShifts                CareShift[]                 @relation("CareShiftWorker")
+  careShiftSeries           CareShiftSeries[]           @relation("CareShiftSeriesWorker")
   leadsUpdated              Lead[]                      @relation("LeadUpdatedBy")
   projectsCreated           Project[]                   @relation("ProjectCreatedBy")
   projectsUpdated           Project[]                   @relation("ProjectUpdatedBy")
@@ -309,6 +312,9 @@ model Client {
   tags              ClientTag[]
   careRecords       CareRecord[]
   careFormLinks     CareFormLink[]
+  careVisits        CareVisit[]
+  careShifts        CareShift[]
+  careShiftSeries   CareShiftSeries[]
 
   @@unique([tenantId, code])
 }
@@ -705,6 +711,7 @@ model TimeEntry {
   task                  Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
   invoiceLineItem       InvoiceLineItem? @relation("ClientInvoiceTime", fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
   tenantInvoiceLineItem InvoiceLineItem? @relation("TenantInvoiceTime", fields: [tenantInvoiceLineItemId], references: [id], onDelete: SetNull)
+  careVisit             CareVisit?
 
   @@index([userId])
   @@index([projectId])
@@ -1652,6 +1659,9 @@ model Tenant {
   careRecords                 CareRecord[]
   careFormLinks               CareFormLink[]
   careLinkAccesses            CareLinkAccess[]
+  careVisits                  CareVisit[]
+  careShifts                  CareShift[]
+  careShiftSeries             CareShiftSeries[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -1899,6 +1909,8 @@ model ActivitySnooze {
 enum CareFormKind {
   INTAKE
   CARE_PROFILE
+  /// The visit log's checklist: fields filled in on each visit.
+  VISIT
 }
 
 enum FormFieldType {
@@ -2064,5 +2076,107 @@ model CareLinkAccess {
   link CareFormLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
 
   @@index([linkId])
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Care: visits (what happened, tied to time) and the schedule (shifts, optionally repeating weekly).
+// ---------------------------------------------------------------------------------------------------------------
+
+enum CareVisitStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model CareVisit {
+  id              String          @id @default(cuid())
+  tenantId        String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  clientId        String
+  /// The worker (caregiver, care manager) who made the visit.
+  userId          String
+  shiftId         String?         @unique
+  startedAt       DateTime
+  endedAt         DateTime?
+  status          CareVisitStatus @default(IN_PROGRESS)
+  notes           String?         @db.Text
+  /// Visit log checklist answers: fieldId -> value (fields of the tenant's VISIT form).
+  values          Json            @default("{}")
+  /// Created when the visit ends, so the worker's hours flow into invoicing like any time entry.
+  timeEntryId     String?         @unique
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user      User       @relation("CareVisitWorker", fields: [userId], references: [id], onDelete: Cascade)
+  shift     CareShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  timeEntry TimeEntry? @relation(fields: [timeEntryId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, startedAt])
+  @@index([userId, startedAt])
+  @@index([clientId, startedAt])
+}
+
+enum CareShiftStatus {
+  SCHEDULED
+  CANCELLED
+}
+
+model CareShift {
+  id        String          @id @default(cuid())
+  tenantId  String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  clientId  String
+  /// Null = open shift (nobody assigned yet).
+  userId    String?
+  seriesId  String?
+  startAt   DateTime
+  endAt     DateTime
+  /// The time zone the shift was planned in (for notifications).
+  timezone  String
+  status    CareShiftStatus @default(SCHEDULED)
+  notes     String?         @db.Text
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  client Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User?            @relation("CareShiftWorker", fields: [userId], references: [id], onDelete: SetNull)
+  series CareShiftSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  visit  CareVisit?
+
+  @@index([tenantId, startAt])
+  @@index([userId, startAt])
+  @@index([clientId, startAt])
+  @@index([seriesId])
+}
+
+/// A weekly repeating shift. Shifts are generated ahead (and further as people look ahead); each can be edited on its own.
+model CareShiftSeries {
+  id             String   @id @default(cuid())
+  tenantId       String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  clientId       String
+  userId         String?
+  /// 0 = Sunday … 6 = Saturday.
+  weekdays       Int[]
+  /// Local "HH:mm" in `timezone`. An end time at or before the start runs past midnight.
+  startTime      String
+  endTime        String
+  timezone       String
+  /// Local dates "YYYY-MM-DD". endDate null = keeps going.
+  startDate      String
+  endDate        String?
+  /// Shifts exist up to and including this local date.
+  generatedUntil String
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  client Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User?       @relation("CareShiftSeriesWorker", fields: [userId], references: [id], onDelete: SetNull)
+  shifts CareShift[]
+
   @@index([tenantId])
 }

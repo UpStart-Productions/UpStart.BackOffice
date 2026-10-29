@@ -1,10 +1,14 @@
 /** Care module: tenant-defined forms (Intake form, Care profile) filled in per client. */
 
-export type CareFormKind = 'INTAKE' | 'CARE_PROFILE';
-export const CARE_FORM_KINDS: CareFormKind[] = ['INTAKE', 'CARE_PROFILE'];
+/** VISIT is the visit log's checklist: its fields are filled in on each visit, not once per organization. */
+export type CareFormKind = 'INTAKE' | 'CARE_PROFILE' | 'VISIT';
+export const CARE_FORM_KINDS: CareFormKind[] = ['INTAKE', 'CARE_PROFILE', 'VISIT'];
+/** Forms with one living copy per organization (not the visit checklist). */
+export const CARE_RECORD_KINDS: CareFormKind[] = ['INTAKE', 'CARE_PROFILE'];
 export const CARE_FORM_DEFAULT_NAMES: Record<CareFormKind, string> = {
   INTAKE: 'Intake form',
   CARE_PROFILE: 'Care profile',
+  VISIT: 'Visit log',
 };
 
 export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX';
@@ -110,3 +114,53 @@ export type CarePublicFormDto = {
   /** Email proven with a code (new intake); shown read-only on the form. */
   verifiedEmail: string | null;
 };
+
+// ── Visits and schedule ──────────────────────────────────────────────────────
+
+export type CareVisitStatus = 'IN_PROGRESS' | 'COMPLETED';
+
+export type CarePersonRef = { id: string; name: string; avatarUrl: string | null };
+
+export type CareVisitListItemDto = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  worker: CarePersonRef;
+  shiftId: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  status: CareVisitStatus;
+  durationMin: number | null;
+};
+
+export type CareVisitDto = CareVisitListItemDto & {
+  notes: string | null;
+  values: Record<string, unknown>;
+  sections: FormSectionDto[];
+  /** The checklist form, for Customize fields. */
+  formId: string;
+  timeEntryId: string | null;
+  /** The time entry is on an invoice: times can't change and the visit can't be deleted. */
+  invoiced: boolean;
+  canEdit: boolean;
+};
+
+export type CareShiftStatus = 'SCHEDULED' | 'CANCELLED';
+
+export type CareShiftDto = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  worker: CarePersonRef | null;
+  startAt: string;
+  endAt: string;
+  status: CareShiftStatus;
+  notes: string | null;
+  seriesId: string | null;
+  /** Repeat rule of the series, e.g. "Every Mon, Wed, Fri". */
+  repeatLabel: string | null;
+  visitId: string | null;
+  visitStatus: CareVisitStatus | null;
+};
+
+export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

@@ -848,6 +848,56 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
     ],
   },
+  'care/visits': {
+    title: 'Visits',
+    intro: 'Who visited which organization and when, with the visit log.',
+    sections: [
+      {
+        heading: 'Start visit',
+        body: 'Pick the organization and the visit starts now. Its page shows the visit log and notes; End visit records the end time and adds the hours to the timesheet. While a visit is in progress, a banner at the top links back to it. From the Schedule, Start visit on your own shift does the same and links the visit to the shift.',
+      },
+      {
+        heading: 'Log past visit',
+        body: 'Adds a visit that already happened: organization, date, start and end (and the worker, if your role sees everyone). Its time goes on the timesheet right away.',
+      },
+      {
+        heading: 'Who sees what',
+        body: "Visits Own: only your own visits. All: everyone's visits at the organizations you reach. Filter by period, worker and organization. Customize fields (Care setup) changes the visit log checklist.",
+      },
+    ],
+  },
+  'care/visits/:id': {
+    title: 'Visit',
+    intro: 'One visit: when, the visit log and notes.',
+    sections: [
+      {
+        heading: 'Time',
+        body: "Change the date, start or end and Save; the time entry on the timesheet follows. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked and the visit can't be deleted.",
+      },
+      {
+        heading: 'End visit',
+        body: 'Shown while the visit is in progress. Saves the visit log and notes, sets the end to now and adds the hours to the timesheet.',
+      },
+    ],
+  },
+  'care/schedule': {
+    title: 'Schedule',
+    intro: 'A week of shifts. Use the arrows or This week to move around.',
+    sections: [
+      {
+        heading: 'Add shift',
+        body: 'Organization, worker (empty = open shift), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the worker already has a shift at that time, you get a warning. The worker gets a notification.',
+      },
+      {
+        heading: 'Shift menu',
+        body: 'Edit changes that one shift. Cancel shift keeps it on the schedule crossed out (Restore brings it back). Delete removes it; Delete this and following ends a repeating series from that shift on. Start visit (your own shift) starts the visit; Open visit goes to it.',
+      },
+      {
+        heading: 'Who sees what',
+        body: "Schedule Own: only your own shifts, and you can only plan your own. All: everyone's shifts at the organizations you reach.",
+      },
+    ],
+  },
   'care/forms/:id': {
     title: 'Customize fields',
     intro: 'Opened with Customize fields on Intake or Care profiles (Care setup). Name, access, fields and public links for that form.',
@@ -882,7 +932,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Modules',
-        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar) and Care (Intake, Care profiles and public Care links).',
+        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar) and Care (Intake, Care profiles, Visits, Schedule and public Care links).',
       },
       {
         heading: 'Switch to',

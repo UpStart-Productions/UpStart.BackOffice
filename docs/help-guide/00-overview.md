@@ -9,7 +9,7 @@ Sections appear based on role. **Admins** see:
 - **Dashboard**
 - **CRM**: Activity, Pipeline, Organizations, People, Bookings (partners are organizations tagged Partner)
 - **Office**: Clients, Projects, Tasks, Time, Expenses, Invoices
-- **Care** (only when the Care module is on): Intake, Care profiles
+- **Care** (only when the Care module is on): Intake, Care profiles, Visits, Schedule
 - **Reports**
 - **Accounting** (Admin only): Chart of Accounts, Journal, Bank Import, Accounting Reports
 - **Admin** (Admin only): Users, Settings

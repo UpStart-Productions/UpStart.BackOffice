@@ -14,7 +14,8 @@ export type NotificationType =
   | 'task_form_submission'
   | 'activity_forwarded'
   | 'activity_mention'
-  | 'care_form_submission';
+  | 'care_form_submission'
+  | 'care_shift_assigned';
 
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'task_assigned',
@@ -32,6 +33,7 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'activity_forwarded',
   'activity_mention',
   'care_form_submission',
+  'care_shift_assigned',
 ];
 
 /** Deep-link and display metadata stored as JSON on each notification row. */

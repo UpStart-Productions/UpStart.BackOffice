@@ -45,3 +45,26 @@ export function toDirectoryAvatarPerson(entry: PeopleDirectoryEntry): Person {
     isGuest: false,
   };
 }
+
+/** Team members (users) as picker options for app-people-select (timesheets, Care visits and schedule). */
+export function teamUsersToOptions(
+  rows: { id: string; firstName?: string | null; lastName?: string | null; email: string; avatarUrl?: string | null }[],
+): PeopleDirectoryOption[] {
+  return toDirectoryOptions(
+    rows.map((u) => {
+      const firstName = u.firstName?.trim() ?? '';
+      const lastName = u.lastName?.trim() ?? '';
+      return {
+        id: u.id,
+        source: 'USER',
+        sourceLabel: 'Team member',
+        firstName,
+        lastName,
+        email: u.email,
+        phone: '',
+        displayName: [firstName, lastName].filter(Boolean).join(' ') || u.email,
+        avatarUrl: u.avatarUrl ?? null,
+      };
+    }),
+  );
+}

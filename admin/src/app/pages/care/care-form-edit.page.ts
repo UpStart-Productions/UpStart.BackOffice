@@ -58,6 +58,7 @@ type Level = 'none' | 'read' | 'edit';
             </div>
           </div>
 
+          @if (f.kind !== 'VISIT') {
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Who can use it <app-help-text key="care.form.access" /></h3>
@@ -87,6 +88,7 @@ type Level = 'none' | 'read' | 'edit';
               </ng-template>
             </p-table>
           </div>
+          }
 
           <div class="card">
             <div class="card-header">
