@@ -1,5 +1,21 @@
 // Shared types between API and Angular frontend
 
+export type AttributionUserDto = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+};
+
+export type RecordAttributionDto = {
+  createdBy: AttributionUserDto | null;
+  updatedBy: AttributionUserDto | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 /** ADMIN: everything. USER: what their tenant role grants. CLIENT: client portal login only. */
 export type UserRole = 'ADMIN' | 'USER' | 'CLIENT';
 
@@ -35,6 +51,7 @@ export type ClientDto = {
   portalUrl?: string | null;
   createdAt: string;
   updatedAt: string;
+  attribution?: RecordAttributionDto;
 };
 
 export type ProjectTaskDto = {

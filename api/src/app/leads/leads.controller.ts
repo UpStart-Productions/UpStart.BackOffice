@@ -12,10 +12,12 @@ import { UpdateLeadDto } from './dto/update-lead.dto';
 import { applyLeadEditsToLinks, ensureLeadLinks, leadPersonView } from './lead-links.util';
 import { findLane, firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
 import { AccessGuard, Area, Action } from '../access/access.guard';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 /** What the pipeline needs to show about a lead's Account and person. */
 const linkInclude = {
+  ...ATTRIBUTION_INCLUDE,
   client: { select: { id: true, name: true, journey: true } },
   contact: {
     select: {
@@ -35,7 +37,8 @@ function toLeadView<T extends { contact?: unknown; primaryContact: string | null
 ) {
   const { contact, ...rest } = lead;
   const avatar = (contact as { avatarUrl?: string | null } | null | undefined)?.avatarUrl ?? null;
-  return { ...rest, ...leadPersonView(lead as never), contactAvatarUrl: toPublicAssetUrl(avatar) };
+  const view = { ...rest, ...leadPersonView(lead as never), contactAvatarUrl: toPublicAssetUrl(avatar) };
+  return withAttribution(lead, view);
 }
 
 /** The lane a create/update asks for: an explicit lane, a legacy stage, or (on create) a pipeline's first lane. */

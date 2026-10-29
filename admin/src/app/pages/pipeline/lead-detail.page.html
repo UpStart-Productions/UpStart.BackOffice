@@ -36,6 +36,11 @@
       }
     }
   </ng-container>
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (!isNew) {
+      <app-record-attribution [attribution]="attribution()" />
+    }
+  </ng-container>
 
   @if (error()) {
     <div class="card">

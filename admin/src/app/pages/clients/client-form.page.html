@@ -3,8 +3,8 @@
   [backLink]="backLink"
   [backLabel]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
 >
-  @if (!loading() && !error()) {
-    <ng-container ngProjectAs="[pageActions]">
+  <ng-container ngProjectAs="[pageActions]">
+    @if (!loading() && !error()) {
       @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
         <p-button
           label="Make client"
@@ -23,8 +23,13 @@
         [disabled]="!isNew && !isDirty()"
         (onClick)="save()"
       />
-    </ng-container>
-  }
+    }
+  </ng-container>
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (!loading() && !error() && !isNew) {
+      <app-record-attribution [attribution]="attribution()" />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />

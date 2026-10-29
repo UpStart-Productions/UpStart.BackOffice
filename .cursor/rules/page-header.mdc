@@ -10,7 +10,7 @@ Every back-office page has the same header, rendered by `app-page`
 (`admin/src/app/ui/layout/page.component.ts`). It sits **above** the white content panels.
 
 ```
-[← back]  Title (ⓘ)  [status tags, related chips]  ..........  [⋮] [secondary…] [Primary]
+[← back]  Title (ⓘ)  [pageTitleTrail]  [status tags, related chips]  ..........  [⋮] [secondary…] [Primary]
 [optional one-line details]
 ┌ card ─────────────────────────────────────────────┐
 │ tabs → filters / search toolbar → content          │
@@ -21,10 +21,12 @@ Every back-office page has the same header, rendered by `app-page`
 
 - `title` (required), `backLink` + `backLabel` (shows the back arrow), `helpKey` (ⓘ after the title).
 - `pageLead` slot: an avatar or color tile shown just before the title (person page, Task Manager project).
+- `pageTitleTrail` slot: content immediately after the title (e.g. `app-record-attribution` on edit screens).
 - `pageMeta` slot: status tags (`p-tag`), related-record chips/links (person, Open organization).
 - `pageActions` slot: buttons, right-aligned.
 - `pageSubtitle` slot: an optional one-line details row (use class `page-header-subtitle`).
 - With more than one element in a slot, wrap them: `<ng-container ngProjectAs="[pageActions]">` with any `@if` blocks *inside* it. An `@if` holding more than one element is not routed to a slot (its contents fall into the page body).
+- **`ngProjectAs` must be on a direct child of `app-page`** (usually `ng-container`). Do not wrap that container in `@if` — put the `@if` *inside* the projected container instead.
 
 ```html
 <app-page title="Clients">

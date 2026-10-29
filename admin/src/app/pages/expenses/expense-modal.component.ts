@@ -16,6 +16,8 @@ import { Expense, ExpenseCategory, ExpensePaymentMethod, ExpenseProject, isMilea
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
 export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
 
@@ -35,6 +37,7 @@ export type ExpenseModalResult = 'saved' | 'deleted' | 'cancelled';
     DateInputComponent,
     MoneyInputComponent,
     SingleFileDropzoneComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './expense-modal.component.html',
   styleUrl: './expense-modal.component.scss',
@@ -48,6 +51,7 @@ export class ExpenseModalComponent {
   error = signal<string | null>(null);
   isEdit = signal(false);
   editingExpense = signal<Expense | null>(null);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
   projects = signal<ExpenseProject[]>([]);
 
   description = signal('');
@@ -125,6 +129,7 @@ export class ExpenseModalComponent {
       this.projects.set(options.projects);
       this.editingExpense.set(options.expense ?? null);
       this.isEdit.set(!!options.expense);
+      this.attribution.set(options.expense?.attribution ?? null);
       this.error.set(null);
       this.receiptFile = null;
       this.receiptDropzone()?.reset();
@@ -146,6 +151,7 @@ export class ExpenseModalComponent {
       void this.loadPaymentMethods();
 
       if (!e) this.applyExpenseDefaultsFromProject(this.projectId());
+      if (e) void this.loadAttribution(e.id);
 
       this.visible = true;
     });
@@ -179,6 +185,15 @@ export class ExpenseModalComponent {
       this.paymentMethods.set(await this.api.get<ExpensePaymentMethod[]>('/expense-payment-methods'));
     } catch {
       this.paymentMethods.set([]);
+    }
+  }
+
+  private async loadAttribution(expenseId: string) {
+    try {
+      const res = await this.api.get<{ attribution?: RecordAttributionDto }>(`/expenses/${expenseId}`);
+      this.attribution.set(res.attribution ?? null);
+    } catch {
+      this.attribution.set(null);
     }
   }
 
@@ -255,6 +270,11 @@ export class ExpenseModalComponent {
       if (existing) {
         const updated = await this.api.put<Expense>(`/expenses/${existing.id}`, this.payload());
         expenseId = updated.id;
+        if (updated.attribution) {
+          this.attribution.set(updated.attribution);
+        } else {
+          await this.loadAttribution(expenseId);
+        }
       } else {
         const created = await this.api.post<Expense>('/expenses', this.payload());
         expenseId = created.id;

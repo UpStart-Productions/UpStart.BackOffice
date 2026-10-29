@@ -24,7 +24,8 @@ import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
-import type { AccountJourney, ClientDto } from '@upstart/back-office/shared';
+import type { AccountJourney, ClientDto, RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
 type ClientProject = {
@@ -75,6 +76,7 @@ type ClientForm = {
     PeopleComponent,
     CrmTagInputComponent,
     HelpTextComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',
@@ -115,6 +117,7 @@ export class ClientFormPage implements OnInit {
   portalUrl = signal<string | null>(null);
   projects = signal<ClientProject[]>([]);
   projectsLoading = signal(false);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
 
   form: ClientForm = {
     name: '',
@@ -225,6 +228,7 @@ export class ClientFormPage implements OnInit {
       try {
         const client = await this.api.get<ClientDto>(`/clients/${id}`);
         this.patchForm(client);
+        this.attribution.set(client.attribution ?? null);
         this.savedSnapshot = this.snapshot();
         this.applyPortal(client);
         await this.loadProjects();
@@ -272,7 +276,8 @@ export class ClientFormPage implements OnInit {
         const detailPath = this.backLink === '/clients' ? '/clients' : '/organizations';
         await this.router.navigate([detailPath, created.id], { replaceUrl: true });
       } else {
-        await this.api.put(`/clients/${this.id()}`, payload);
+        const updated = await this.api.put<ClientDto>(`/clients/${this.id()}`, payload);
+        this.attribution.set(updated.attribution ?? null);
         this.savedSnapshot = this.snapshot();
         this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.form.name} saved.` });
       }

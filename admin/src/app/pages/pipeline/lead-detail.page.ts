@@ -19,6 +19,8 @@ import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { PersonComponent } from '../../ui/person/person.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
 const SOURCES = [
   { label: 'Warm Outreach', value: 'WARM_OUTREACH' },
@@ -59,6 +61,7 @@ const SERVICE_OPTIONS = [
     ButtonModule, InputTextModule, MessageModule, TextareaModule,
     SelectModule, AppDialogModule, TagModule,
     PageComponent, ArtifactsPanelComponent, ActivityTimelineComponent, DateInputComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './lead-detail.page.html',
   styleUrl: './lead-detail.page.scss',
@@ -95,6 +98,7 @@ export class LeadDetailPage implements OnInit {
   readonly categories = [...CATEGORIES].sort((a, b) => a.label.localeCompare(b.label));
   readonly serviceOptions = SERVICE_OPTIONS;
   serviceInterests = signal<string[]>([]);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
 
   form = {
     organization: '',
@@ -158,6 +162,7 @@ export class LeadDetailPage implements OnInit {
     this.pipelineId.set((lead['pipelineId'] as string) ?? null);
     this.archivedAt.set((lead['archivedAt'] as string) ?? null);
     this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);
+    this.attribution.set((lead['attribution'] as RecordAttributionDto | undefined) ?? null);
   }
 
   private buildPayload() {
@@ -228,7 +233,17 @@ export class LeadDetailPage implements OnInit {
         });
         await this.router.navigate(['/pipeline', lead.id], { replaceUrl: true });
       } else {
-        await this.api.put(`/leads/${this.id()}`, this.buildPayload());
+        const leadId = this.id()!;
+        const updated = await this.api.put<{ attribution?: RecordAttributionDto }>(
+          `/leads/${leadId}`,
+          this.buildPayload(),
+        );
+        if (updated?.attribution) {
+          this.attribution.set(updated.attribution);
+        } else {
+          const refetched = await this.api.get<{ attribution?: RecordAttributionDto }>(`/leads/${leadId}`);
+          this.attribution.set(refetched.attribution ?? null);
+        }
         this.savedSnapshot = this.snapshot();
         this.toast.add({
           severity: 'success',

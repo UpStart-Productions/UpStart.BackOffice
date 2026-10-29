@@ -23,6 +23,7 @@ import { PayrollExportQueryDto } from './dto/payroll-export-query.dto';
 import { buildProjectContacts } from './invoice-send-recipients.util';
 import { PdfService } from './pdf.service';
 import { currentTenantId } from '../tenancy/tenant-context';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 
 const projectContactSelect = {
@@ -46,6 +47,7 @@ const sendRecipientsInclude = {
 } satisfies Prisma.InvoiceInclude;
 
 const invoiceInclude = {
+  ...ATTRIBUTION_INCLUDE,
   client: true,
   lineItems: {
     include: {
@@ -63,7 +65,7 @@ type InvoiceWithDetails = Prisma.InvoiceGetPayload<{ include: typeof invoiceIncl
 
 /** Line items carry the ids of their linked time and expenses, so saving a draft keeps the links. */
 function withLinkIds(invoice: InvoiceWithDetails) {
-  return {
+  const view = {
     ...invoice,
     lineItems: invoice.lineItems.map(({ timeEntries, tenantTimeEntries, expenses, tenantExpenses, ...li }) => ({
       ...li,
@@ -71,6 +73,7 @@ function withLinkIds(invoice: InvoiceWithDetails) {
       expenseIds: (invoice.billTo === 'TENANT' ? tenantExpenses : expenses).map((e) => e.id),
     })),
   };
+  return withAttribution(invoice, view);
 }
 
 function csvCell(value: string | number | null | undefined): string {
@@ -465,7 +468,7 @@ export class InvoicesController {
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const pdfBuffer = await this.generateAndStorePdf(invoice);
+    const pdfBuffer = await this.resolveInvoicePdfForDownload(invoice);
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -538,7 +541,7 @@ export class InvoicesController {
 
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await this.generateAndStorePdf(invoice);
+      pdfBuffer = await this.resolveInvoicePdfForSend(invoice);
     } catch (err) {
       this.logger.error(`Invoice PDF generation failed (${id}): ${err}`);
       return {
@@ -637,6 +640,28 @@ export class InvoicesController {
       pdfBuffer,
     );
     return pdfBuffer;
+  }
+
+  /** Drafts: generate a preview PDF. Sent/paid/void: serve the stored copy from send only. */
+  private async resolveInvoicePdfForDownload(invoice: InvoiceWithDetails): Promise<Buffer> {
+    if (invoice.status === 'DRAFT') {
+      return this.generateAndStorePdf(invoice);
+    }
+    const stored = await this.storageFolders.readInvoicePdf(invoice.clientId, invoice.displayNumber);
+    if (!stored) {
+      throw new NotFoundException(
+        'Stored invoice PDF not found. It is created when the invoice is first sent.',
+      );
+    }
+    return stored;
+  }
+
+  /** First send generates and stores; resend reuses the stored PDF. */
+  private async resolveInvoicePdfForSend(invoice: InvoiceWithDetails): Promise<Buffer> {
+    if (invoice.status === 'DRAFT') {
+      return this.generateAndStorePdf(invoice);
+    }
+    return this.resolveInvoicePdfForDownload(invoice);
   }
 }
 

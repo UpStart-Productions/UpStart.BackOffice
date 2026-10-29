@@ -30,6 +30,7 @@ import {
   startedStoppedAt,
 } from './timesheet-csv.util';
 import { assertTmTaskInProject } from './time-entry-task.util';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 
 function computeDurationMin(startedAt: Date, stoppedAt: Date): number {
@@ -55,6 +56,7 @@ const entryInclude = {
     },
   },
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
+  ...ATTRIBUTION_INCLUDE,
 };
 
 const entryIncludeWithoutUser = {
@@ -75,6 +77,7 @@ const entryIncludeWithoutUser = {
       parent: { select: { id: true, name: true } },
     },
   },
+  ...ATTRIBUTION_INCLUDE,
 };
 
 @ApiTags('time-entries')
@@ -343,7 +346,7 @@ export class TimeEntriesController {
       include: entryInclude,
     });
     if (!entry) throw new NotFoundException('Time entry not found');
-    return entry;
+    return withAttribution(entry, entry);
   }
 
   @Put(':id')
@@ -375,7 +378,7 @@ export class TimeEntriesController {
       ? await resolveTimeEntryBillable(this.prisma, projectId, projectTaskId, dto.isBillable ?? entry.isBillable)
       : (dto.isBillable ?? entry.isBillable);
 
-    return this.prisma.timeEntry.update({
+    const updated = await this.prisma.timeEntry.update({
       where: { id },
       data: {
         ...(linksChanged && {
@@ -395,6 +398,7 @@ export class TimeEntriesController {
       },
       include: entryIncludeWithoutUser,
     });
+    return withAttribution(updated, updated);
   }
 
   @Delete(':id')

@@ -12,6 +12,7 @@ import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { resolveUserForRequest } from './resolve-user';
 import { sanitizeActions, sanitizePermissions } from '@upstart/back-office/shared';
+import { bindAttributionUser } from '../common/record-attribution';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 const COGNITO_JWKS_URI = (region: string, userPoolId: string) =>
@@ -107,6 +108,7 @@ export class JwtAuthGuard implements CanActivate {
     } satisfies UserContext;
 
     request.user = await applyImpersonation(request, this.prisma, real);
+    bindAttributionUser(request.user.id);
     return true;
   }
 }

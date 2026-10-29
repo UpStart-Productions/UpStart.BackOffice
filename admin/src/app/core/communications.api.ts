@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
 
 export type InteractionType = 'EMAIL' | 'CALL' | 'MEETING' | 'NOTE';
@@ -69,6 +70,7 @@ export interface ContactSummary {
     isPrimary: boolean;
     client: { id: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'NONE' };
   }[];
+  attribution?: RecordAttributionDto;
 }
 
 export interface CaptureSettings {

@@ -7,7 +7,8 @@ import { MessageModule } from 'primeng/message';
 import { TextareaModule } from 'primeng/textarea';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { areaLevel } from '@upstart/back-office/shared';
+import { areaLevel, type RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { SessionService } from '../../core/session.service';
 import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
@@ -87,6 +88,7 @@ type LineItemRow = { item: LineItem; index: number };
     QuillModule,
     PageComponent,
     DateInputComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './invoice-form.page.html',
   styleUrl: './invoice-form.page.scss',
@@ -138,6 +140,7 @@ export class InvoiceFormPage implements OnInit {
   };
 
   lineItems = signal<LineItem[]>([]);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
 
   readonly lineItemRows = computed((): LineItemRow[] =>
     this.lineItems().map((item, index) => ({ item, index })),
@@ -192,7 +195,9 @@ export class InvoiceFormPage implements OnInit {
           taxAmount?: number | null;
           total: number;
           lineItems: Array<LineItem & { project?: { name: string } | null }>;
+          attribution?: RecordAttributionDto;
         }>(`/invoices/${id}`);
+        this.attribution.set(inv.attribution ?? null);
         if (inv.status !== 'DRAFT') {
           await this.router.navigate(['/invoices', id]);
           return;
@@ -407,13 +412,20 @@ export class InvoiceFormPage implements OnInit {
         });
         await this.router.navigate(['/invoices', created.id, 'edit'], { replaceUrl: true });
       } else {
-        await this.api.put(`/invoices/${this.id()}`, {
+        const invoiceId = this.id()!;
+        const updated = await this.api.put<{ attribution?: RecordAttributionDto }>(`/invoices/${invoiceId}`, {
           ...this.billToPayload(),
           notes: richTextOrUndefined(this.form.notes) ?? '',
           dueDate: this.form.dueDate || undefined,
           taxRate: this.form.taxRate ?? undefined,
           lineItems,
         });
+        if (updated?.attribution) {
+          this.attribution.set(updated.attribution);
+        } else {
+          const refetched = await this.api.get<{ attribution?: RecordAttributionDto }>(`/invoices/${invoiceId}`);
+          this.attribution.set(refetched.attribution ?? null);
+        }
         this.savedSnapshot = this.snapshot();
         this.toast.add({
           severity: 'success',

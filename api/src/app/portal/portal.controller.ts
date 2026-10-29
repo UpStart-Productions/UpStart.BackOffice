@@ -16,11 +16,9 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Prisma } from '@prisma/client';
 import { InvoiceStatus } from '@prisma/client';
 import { Request, Response } from 'express';
-import { PdfService } from '../invoices/pdf.service';
-import { publicFromName } from '../mail/email-layout';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
-import { invoicePdfKey } from '../storage/storage-keys.util';
+import { StorageFoldersService } from '../storage/storage-folders.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreatePortalSessionDto } from './dto/create-portal-session.dto';
 import { toPortalArtifact } from './portal-artifact.util';
@@ -66,7 +64,7 @@ export class PortalController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly portalSession: PortalSessionService,
-    private readonly pdf: PdfService,
+    private readonly storageFolders: StorageFoldersService,
     private readonly pay: PayService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
@@ -249,20 +247,11 @@ export class PortalController {
   }
 
   private async readOrGenerateInvoicePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
-    const key = invoicePdfKey(invoice.clientId, invoice.displayNumber);
-    if (await this.storage.exists(key)) {
-      return this.storage.read(key);
+    const stored = await this.storageFolders.readInvoicePdf(invoice.clientId, invoice.displayNumber);
+    if (!stored) {
+      throw new NotFoundException('Invoice PDF not found');
     }
-
-    const fromName = publicFromName(process.env.MAIL_FROM_NAME);
-    const payUrl = await this.pay.payUrlForInvoice(invoice);
-    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
-    await this.storage.upload({
-      buffer: pdfBuffer,
-      key,
-      mimeType: 'application/pdf',
-    });
-    return pdfBuffer;
+    return stored;
   }
 
   private async requirePortalClient(clientId: string) {

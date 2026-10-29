@@ -37,6 +37,7 @@ import { CommunicationsModule } from './communications/communications.module';
 import { HelpAgentModule } from './help-agent/help-agent.module';
 import { SupportModule } from './support/support.module';
 import { CrmTagsModule } from './crm-tags/crm-tags.module';
+import { RecordAttributionMiddleware } from './common/record-attribution.middleware';
 import { RequestIdMiddleware } from './common/request-id.middleware';
 import { HealthController } from './health.controller';
 
@@ -86,7 +87,7 @@ import { HealthController } from './health.controller';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(RequestIdMiddleware)
+      .apply(RecordAttributionMiddleware, RequestIdMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

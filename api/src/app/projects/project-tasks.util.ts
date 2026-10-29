@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { ProjectTaskSource } from '@prisma/client';
+import { ATTRIBUTION_INCLUDE } from '../common/record-attribution';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectTaskInputDto } from '../projects/dto/project-task.dto';
 
@@ -7,6 +8,7 @@ const projectInclude = {
   client: { select: { id: true, name: true, code: true } },
   contacts: { orderBy: { sortOrder: 'asc' as const } },
   tasks: { orderBy: { sortOrder: 'asc' as const } },
+  ...ATTRIBUTION_INCLUDE,
 };
 
 const activeTasksInclude = {

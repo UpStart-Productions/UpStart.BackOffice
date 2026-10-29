@@ -11,7 +11,8 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { AccordionModule } from 'primeng/accordion';
-import { US_STATES } from '@upstart/back-office/shared';
+import { US_STATES, type RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -81,6 +82,7 @@ interface OrganizationProfile {
   phone: string;
   /** Where invoices billed to the organization (e.g. by caregivers) are sent by default. */
   billingEmail?: string;
+  attribution?: RecordAttributionDto;
 }
 
 type SettingsSectionStatus = 'connected' | 'disconnected' | 'error' | 'neutral';
@@ -113,6 +115,7 @@ interface SettingsStatusIcon {
     ExpensesInvoicingSettingsComponent,
     ActivitySettingsComponent,
     AvatarDropzoneComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './settings.page.html',
   styles: [
@@ -281,6 +284,7 @@ export class SettingsPage implements OnInit {
   };
   businessSaving = signal(false);
   businessLoaded = signal(false);
+  readonly businessAttribution = signal<RecordAttributionDto | null>(null);
   logoUploading = signal(false);
 
   private readonly logoDropzone = viewChild<AvatarDropzoneComponent>('logoDropzone');
@@ -387,7 +391,11 @@ export class SettingsPage implements OnInit {
 
   private applyBusinessProfile(profile: OrganizationProfile | null) {
     this.businessLoaded.set(!!profile);
-    if (!profile) return;
+    if (!profile) {
+      this.businessAttribution.set(null);
+      return;
+    }
+    this.businessAttribution.set(profile.attribution ?? null);
     this.businessForm = {
       companyName: profile.companyName ?? '',
       logoUrl: profile.logoUrl ?? null,

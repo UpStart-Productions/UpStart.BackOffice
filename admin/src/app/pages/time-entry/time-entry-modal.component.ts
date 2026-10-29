@@ -16,6 +16,8 @@ import {
   sanitizeDurationInput,
 } from './timesheet.utils';
 import type { ClientOption, Project, TimeEntry, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
 function tmTaskLabel(task: { name: string; parent?: { name: string } | null }): string {
   return task.parent?.name ? `${task.parent.name} › ${task.name}` : task.name;
@@ -34,6 +36,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
     TextareaModule,
     SelectModule,
     DatePickerModule,
+    RecordAttributionComponent,
   ],
   template: `
     <p-dialog
@@ -48,6 +51,9 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
           <span class="p-dialog-title entry-dialog-header-title">{{
             isEdit() ? 'Edit time entry for' : 'New time entry for'
           }}</span>
+          @if (isEdit()) {
+            <app-record-attribution [attribution]="attribution()" />
+          }
           <button
             type="button"
             class="entry-day-trigger"
@@ -461,6 +467,7 @@ export class TimeEntryModalComponent {
   isEdit = signal(false);
   entryDay = signal(new Date());
   editingEntry = signal<TimeEntry | null>(null);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
   projects = signal<Project[]>([]);
   clients = signal<ClientOption[]>([]);
   asanaConnected = signal(false);
@@ -558,6 +565,7 @@ export class TimeEntryModalComponent {
       this.entryDay.set(new Date(options.day));
       this.editingEntry.set(options.entry ?? null);
       this.isEdit.set(!!options.entry);
+      this.attribution.set(options.entry?.attribution ?? null);
       this.error.set(null);
       this.loadingAsanaNotes.set(false);
 
@@ -585,6 +593,8 @@ export class TimeEntryModalComponent {
 
       this.visible = true;
 
+      if (options.entry) void this.loadAttribution(options.entry.id);
+
       const projectId = options.entry?.project?.id;
       if (projectId) {
         const project = options.projects.find((p) => p.id === projectId);
@@ -594,6 +604,15 @@ export class TimeEntryModalComponent {
         void this.loadTmTaskOptions(projectId, options.entry?.task ?? null);
       }
     });
+  }
+
+  private async loadAttribution(entryId: string) {
+    try {
+      const res = await this.api.get<{ attribution?: RecordAttributionDto }>(`/time-entries/${entryId}`);
+      this.attribution.set(res.attribution ?? null);
+    } catch {
+      this.attribution.set(null);
+    }
   }
 
   private setTmTaskFromEntry(entry: TimeEntry) {
@@ -947,11 +966,19 @@ export class TimeEntryModalComponent {
       const stoppedAt = new Date(startedAt.getTime() + durationMin * 60_000);
 
       if (existing) {
-        await this.api.put(`/time-entries/${existing.id}`, {
-          ...this.entryPayload(projectId),
-          startedAt: startedAt.toISOString(),
-          stoppedAt: stoppedAt.toISOString(),
-        });
+        const updated = await this.api.put<{ attribution?: RecordAttributionDto }>(
+          `/time-entries/${existing.id}`,
+          {
+            ...this.entryPayload(projectId),
+            startedAt: startedAt.toISOString(),
+            stoppedAt: stoppedAt.toISOString(),
+          },
+        );
+        if (updated?.attribution) {
+          this.attribution.set(updated.attribution);
+        } else {
+          await this.loadAttribution(existing.id);
+        }
       } else {
         await this.api.post('/time-entries', {
           ...this.entryPayload(projectId),

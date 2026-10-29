@@ -14,6 +14,7 @@ import { ACCOUNT_JOURNEYS, AccountJourneyValue, CreateClientDto } from './dto/cr
 import { UpdateClientDto } from './dto/update-client.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { hasTagWhere, setClientTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 
 const clientSelect = {
@@ -39,6 +40,7 @@ const clientSelect = {
   portalTokenCreatedAt: true,
   createdAt: true,
   updatedAt: true,
+  ...ATTRIBUTION_INCLUDE,
 } as const;
 
 @ApiTags('clients')
@@ -166,7 +168,7 @@ export class ClientsController {
       await this.prisma.clientAssignment.create({ data: { clientId: client.id, userId: user.id } });
     }
     await this.storageFolders.ensureClientFolders(client.id);
-    return toClientView(client);
+    return withAttribution(client, toClientView(client));
   }
 
   @Get(':id')
@@ -177,7 +179,7 @@ export class ClientsController {
       select: clientSelect,
     });
     if (!client) throw new NotFoundException('Client not found');
-    return toClientView(client);
+    return withAttribution(client, toClientView(client));
   }
 
   @Put(':id')
@@ -208,7 +210,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return toClientView(client);
+    return withAttribution(client, toClientView(client));
   }
 
   @Action('edit')
@@ -228,7 +230,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return toClientView(client);
+    return withAttribution(client, toClientView(client));
   }
 
   @Action('edit')
@@ -243,7 +245,7 @@ export class ClientsController {
       data: { portalEnabled: false },
       select: clientSelect,
     });
-    return toClientView(client);
+    return withAttribution(client, toClientView(client));
   }
 
   @Action('edit')
@@ -262,7 +264,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return toClientView(client);
+    return withAttribution(client, toClientView(client));
   }
 
   @Delete(':id')

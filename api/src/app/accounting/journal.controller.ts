@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { assertBalancedLines } from './accounting.util';
 import { CreateJournalEntryDto } from './dto/create-journal-entry.dto';
 import { JournalListQueryDto } from './dto/journal-query.dto';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AccessGuard, AdminOnly } from '../access/access.guard';
 
 const journalEntryInclude = {
@@ -15,6 +16,7 @@ const journalEntryInclude = {
     orderBy: { id: 'asc' as const },
   },
   invoice: { select: { id: true, displayNumber: true } },
+  ...ATTRIBUTION_INCLUDE,
 } satisfies Prisma.JournalEntryInclude;
 
 @ApiTags('accounting')
@@ -49,7 +51,7 @@ export class JournalController {
       include: journalEntryInclude,
     });
     if (!entry) throw new NotFoundException('Journal entry not found');
-    return entry;
+    return withAttribution(entry, entry);
   }
 
   @Post()
@@ -78,10 +80,11 @@ export class JournalController {
           credit: line.credit ?? 0,
         })),
       });
-      return tx.journalEntry.findUniqueOrThrow({
+      const saved = await tx.journalEntry.findUniqueOrThrow({
         where: { id: entry.id },
         include: journalEntryInclude,
       });
+      return withAttribution(saved, saved);
     });
   }
 

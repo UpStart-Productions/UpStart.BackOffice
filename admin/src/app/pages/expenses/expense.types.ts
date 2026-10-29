@@ -1,3 +1,5 @@
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+
 export type ExpenseProject = {
   id: string;
   name: string;
@@ -30,6 +32,7 @@ export type Expense = {
   /** Reimbursable only: not on an invoice to the organization yet, on one, or that invoice is paid. Null when not reimbursable. */
   reimbursementStatus?: ExpenseReimbursementStatus | null;
   reimbursementInvoice?: ExpenseInvoiceRef | null;
+  attribution?: RecordAttributionDto;
 };
 
 export type ExpenseBillingStatus = 'UNBILLED' | 'INVOICED' | 'PAID';

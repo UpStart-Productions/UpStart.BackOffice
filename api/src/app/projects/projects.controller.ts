@@ -31,6 +31,7 @@ import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
+import { withAttribution } from '../common/record-attribution';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
@@ -105,7 +106,7 @@ export class ProjectsController {
       include: projectInclude,
     });
     await this.storageFolders.ensureProjectFolder(project.clientId, project.id);
-    return project;
+    return withAttribution(project, project);
   }
 
   @Get(':id')
@@ -116,7 +117,7 @@ export class ProjectsController {
       include: projectInclude,
     });
     if (!project) throw new NotFoundException('Project not found');
-    return project;
+    return withAttribution(project, project);
   }
 
   @Put(':id')
@@ -202,7 +203,7 @@ export class ProjectsController {
       });
     }
 
-    return project;
+    return withAttribution(project, project);
   }
 
   @Action('edit')

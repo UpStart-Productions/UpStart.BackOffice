@@ -1,4 +1,9 @@
 <app-page title="Settings">
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (businessLoaded()) {
+      <app-record-attribution [attribution]="businessAttribution()" />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card mb-3">
       <p-message severity="error" [text]="error()!" />

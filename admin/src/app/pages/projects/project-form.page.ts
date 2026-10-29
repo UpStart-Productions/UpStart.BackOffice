@@ -30,6 +30,8 @@ import {
 } from '../time-entry/time-entry.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ProjectWorkTasksPreviewComponent } from '../../ui/project-work-tasks-preview/project-work-tasks-preview.component';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
 type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
@@ -65,6 +67,7 @@ type ProjectResponse = {
   asanaSectionName?: string | null;
   contacts?: ProjectContactDraft[];
   tasks?: ProjectTaskDraft[];
+  attribution?: RecordAttributionDto;
 };
 
 @Component({
@@ -91,6 +94,7 @@ type ProjectResponse = {
     ArtifactsPanelComponent,
     PeopleComponent,
     ProjectWorkTasksPreviewComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './project-form.page.html',
   styleUrl: './project-form.page.scss',
@@ -141,6 +145,7 @@ export class ProjectFormPage implements OnInit {
   readonly manualTaskCount = computed(() => this.manualTasks().length);
   readonly contactCount = computed(() => this.contactRows().length);
   readonly asanaTaskCount = computed(() => this.asanaTasks().length);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
 
   form = {
     clientId: '',
@@ -216,6 +221,7 @@ export class ProjectFormPage implements OnInit {
   }
 
   private async applyProject(project: ProjectResponse) {
+    this.attribution.set(project.attribution ?? null);
     this.inTaskManager.set(project.inTaskManager === true);
     this.form = {
       clientId: project.clientId ?? '',

@@ -3,16 +3,22 @@
   backLink="/projects"
   backLabel="Back to Projects"
 >
-  @if (!loading() && !error()) {
-    <p-button
-      pageActions
-      label="Save"
-      icon="pi pi-check"
-      [loading]="saving()"
-      [disabled]="!isNew && !isDirty()"
-      (onClick)="save()"
-    />
-  }
+  <ng-container ngProjectAs="[pageActions]">
+    @if (!loading() && !error()) {
+      <p-button
+        label="Save"
+        icon="pi pi-check"
+        [loading]="saving()"
+        [disabled]="!isNew && !isDirty()"
+        (onClick)="save()"
+      />
+    }
+  </ng-container>
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (!loading() && !error() && !isNew) {
+      <app-record-attribution [attribution]="attribution()" />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />

@@ -7,7 +7,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
  * The one page shell and header for every back-office page (see .cursor/rules/page-header.mdc).
  *
  * The header sits above the white content panels:
- *   [← back]  [pageLead: avatar or color tile]  Title (help)  [pageMeta: status tags, chips]  ......  [pageActions: secondary…, primary]
+ *   [← back]  [pageLead]  Title (help)  [pageTitleTrail]  [pageMeta]  ......  [pageActions: secondary…, primary]
  *   [pageSubtitle: optional one-line details]
  *
  * Search, filters and tabs never go in the header; they belong at the top of the panel.
@@ -38,12 +38,17 @@ import { HelpTextComponent } from '../help-text/help-text.component';
             />
           }
           <ng-content select="[pageLead]" />
-          <h1 class="page-title page-header-title">
-            {{ title() }}
-            @if (helpKey(); as key) {
-              <app-help-text [key]="key" />
-            }
-          </h1>
+          <div class="page-header-title-block">
+            <h1 class="page-title page-header-title">
+              {{ title() }}
+              @if (helpKey(); as key) {
+                <app-help-text [key]="key" />
+              }
+            </h1>
+            <div class="page-header-title-trail">
+              <ng-content select="[pageTitleTrail]" />
+            </div>
+          </div>
           <div class="page-header-meta">
             <ng-content select="[pageMeta]" />
           </div>

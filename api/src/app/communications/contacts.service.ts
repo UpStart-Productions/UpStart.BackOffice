@@ -6,6 +6,7 @@ import {
 } from './dto/communications.dto';
 import { normalizeEmail } from './email-address.util';
 import { clampLimit } from './interactions.service';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { hasTagWhere, setContactTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
 
 const TENANT = DEFAULT_TENANT_ID; // Phase 2 replaces this with the caller's tenant.
@@ -16,6 +17,7 @@ const contactInclude = {
     select: { clientId: true, role: true, isPrimary: true, client: { select: { id: true, name: true, journey: true } } },
   },
   ...tagsInclude,
+  ...ATTRIBUTION_INCLUDE,
 };
 
 /** API shape: tag rows flattened to names. */
@@ -64,7 +66,7 @@ export class ContactsService {
   async get(id: string) {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: TENANT }, include: contactInclude });
     if (!contact) throw new NotFoundException('Contact not found.');
-    return toContactView(contact);
+    return withAttribution(contact, toContactView(contact));
   }
 
   async create(dto: CreateContactDto) {

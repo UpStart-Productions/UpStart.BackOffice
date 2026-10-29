@@ -1,12 +1,19 @@
 <p-dialog
   styleClass="expense-modal-dialog"
-  [header]="dialogTitle()"
   [(visible)]="visible"
   [modal]="true"
   [closable]="true"
   [style]="{ width: '40rem', maxWidth: '96vw' }"
   (onHide)="onDialogHide()"
 >
+  <ng-template pTemplate="header">
+    <div class="expense-modal-header">
+      <span class="p-dialog-title">{{ dialogTitle() }}</span>
+      @if (isEdit()) {
+        <app-record-attribution [attribution]="attribution()" />
+      }
+    </div>
+  </ng-template>
   <div class="entry-form">
     @if (lockedInvoice(); as inv) {
       <p-message severity="info" styleClass="w-full">

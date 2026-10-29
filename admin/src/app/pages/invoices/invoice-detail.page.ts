@@ -1,15 +1,29 @@
-import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
+import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { PageComponent } from '../../ui/layout/page.component';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
 import { invoiceDueFlag } from './invoice-status.util';
+
+type InvoiceLineItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  projectId?: string | null;
+  project?: { id: string; name: string } | null;
+};
 
 type InvoiceDetail = {
   id: string;
@@ -18,19 +32,35 @@ type InvoiceDetail = {
   issueDate: string;
   dueDate?: string | null;
   subtotal: number;
+  taxRate?: number | null;
   taxAmount?: number | null;
   total: number;
   paidAt?: string | null;
   amountPaid?: number | null;
   billTo?: 'CLIENT' | 'TENANT';
   billToName?: string | null;
+  billToEmail?: string | null;
+  billToAddress?: string | null;
+  notes?: string | null;
   client: { id: string; name: string } | null;
+  lineItems: InvoiceLineItem[];
+  attribution?: RecordAttributionDto | null;
+};
+
+type OrganizationLetterhead = {
+  companyName: string;
+  logoUrl: string | null;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
 };
 
 @Component({
   selector: 'app-invoice-detail-page',
   standalone: true,
-  imports: [ButtonModule, MessageModule, TagModule, PageComponent],
+  imports: [ButtonModule, MessageModule, TableModule, TagModule, RouterLink, PageComponent, RecordAttributionComponent],
   templateUrl: './invoice-detail.page.html',
   styleUrl: './invoice-detail.page.scss',
 })
@@ -46,7 +76,15 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   invoice = signal<InvoiceDetail | null>(null);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
+  readonly letterhead = signal<OrganizationLetterhead | null>(null);
+
+  pdfViewOpen = signal(false);
+  pdfLoading = signal(false);
+  pdfError = signal<string | null>(null);
   pdfUrl = signal<SafeResourceUrl | null>(null);
+
+  readonly orgLogoUrl = computed(() => resolveLogoAssetUrl(this.letterhead()?.logoUrl));
 
   private blobUrl: string | null = null;
 
@@ -59,6 +97,11 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     return this.invoice()?.status === 'SENT';
   }
 
+  get showProjectColumn(): boolean {
+    const items = this.invoice()?.lineItems ?? [];
+    return items.some((li) => li.projectId || li.project?.name);
+  }
+
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
@@ -67,23 +110,16 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     }
 
     try {
-      const inv = await this.api.get<InvoiceDetail>(`/invoices/${id}`);
+      const [inv, branding] = await Promise.all([
+        this.api.get<InvoiceDetail>(`/invoices/${id}`),
+        this.api.get<OrganizationLetterhead>('/organization-profile/branding').catch(() => null),
+      ]);
       if (inv.status === 'DRAFT') {
         await this.router.navigate(['/invoices', id, 'edit']);
         return;
       }
-      this.invoice.set({
-        ...inv,
-        subtotal: Number(inv.subtotal),
-        taxAmount: inv.taxAmount != null ? Number(inv.taxAmount) : null,
-        total: Number(inv.total),
-        amountPaid: inv.amountPaid != null ? Number(inv.amountPaid) : null,
-      });
-
-      const blob = await this.api.fetchPdfBlob(`/invoices/${id}/pdf`);
-      this.revokeBlob();
-      this.blobUrl = URL.createObjectURL(blob);
-      this.pdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.blobUrl));
+      this.letterhead.set(branding);
+      this.applyInvoice(inv);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load invoice');
     } finally {
@@ -135,8 +171,60 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     });
   }
 
+  formatIssueDateLong(iso: string): string {
+    return new Date(iso).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
   formatAmount(n: number): string {
     return '$' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  notesHtml(notes: string | null | undefined): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(notes ?? '');
+  }
+
+  orgAddressLines(): string[] {
+    const p = this.letterhead();
+    if (!p) return [];
+    const cityLine =
+      p.city && p.state
+        ? `${p.city}, ${p.state} ${p.zip ?? ''}`.trim()
+        : [p.city, p.state, p.zip].filter(Boolean).join(' ');
+    return [p.address, cityLine, p.phone].map((part) => part?.trim()).filter(Boolean) as string[];
+  }
+
+  billToAddressLines(inv: InvoiceDetail): string[] {
+    if (!inv.billToAddress?.trim()) return [];
+    return inv.billToAddress.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  }
+
+  async togglePdfView() {
+    if (this.pdfViewOpen()) {
+      this.pdfViewOpen.set(false);
+      return;
+    }
+    this.pdfViewOpen.set(true);
+    if (this.pdfUrl()) return;
+
+    const inv = this.invoice();
+    if (!inv) return;
+
+    this.pdfLoading.set(true);
+    this.pdfError.set(null);
+    try {
+      const blob = await this.api.fetchPdfBlob(`/invoices/${inv.id}/pdf`);
+      this.revokeBlob();
+      this.blobUrl = URL.createObjectURL(blob);
+      this.pdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.blobUrl));
+    } catch (err) {
+      this.pdfError.set(err instanceof Error ? err.message : 'PDF could not be loaded');
+    } finally {
+      this.pdfLoading.set(false);
+    }
   }
 
   async downloadPdf() {
@@ -179,13 +267,7 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     });
     if (result?.marked) {
       const updated = await this.api.get<InvoiceDetail>(`/invoices/${inv.id}`);
-      this.invoice.set({
-        ...updated,
-        subtotal: Number(updated.subtotal),
-        taxAmount: updated.taxAmount != null ? Number(updated.taxAmount) : null,
-        total: Number(updated.total),
-        amountPaid: updated.amountPaid != null ? Number(updated.amountPaid) : null,
-      });
+      this.applyInvoice(updated);
       this.toast.add({
         severity: 'success',
         summary: 'Invoice marked paid',
@@ -195,10 +277,38 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     }
   }
 
+  private applyInvoice(inv: InvoiceDetail) {
+    this.invoice.set({
+      ...inv,
+      subtotal: Number(inv.subtotal),
+      taxRate: inv.taxRate != null ? Number(inv.taxRate) : null,
+      taxAmount: inv.taxAmount != null ? Number(inv.taxAmount) : null,
+      total: Number(inv.total),
+      amountPaid: inv.amountPaid != null ? Number(inv.amountPaid) : null,
+      lineItems: (inv.lineItems ?? []).map((li) => ({
+        ...li,
+        quantity: Number(li.quantity),
+        unitPrice: Number(li.unitPrice),
+        amount: Number(li.amount),
+      })),
+    });
+    this.attribution.set(inv.attribution ?? null);
+  }
+
   private revokeBlob() {
     if (this.blobUrl) {
       URL.revokeObjectURL(this.blobUrl);
       this.blobUrl = null;
     }
   }
+}
+
+function resolveLogoAssetUrl(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const resolved = resolveAssetUrl(raw);
+  if (resolved) return resolved;
+  if (!raw.startsWith('/') && !raw.startsWith('http')) {
+    return resolveAssetUrl(`/api/uploads/${raw.replace(/\\/g, '/')}`);
+  }
+  return null;
 }

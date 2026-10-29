@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { resolveUserForRequest } from './resolve-user';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { applyImpersonation } from './impersonation';
+import { bindAttributionUser } from '../common/record-attribution';
 import { UserContext } from '../common/app.types';
 import { sanitizeActions, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
 
@@ -50,6 +51,7 @@ export class DevAuthGuard implements CanActivate {
     } satisfies UserContext;
 
     request.user = await applyImpersonation(request, this.prisma, real);
+    bindAttributionUser(request.user.id);
     return true;
   }
 }

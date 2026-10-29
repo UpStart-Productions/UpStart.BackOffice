@@ -49,6 +49,13 @@ export class StorageFoldersService {
     return key;
   }
 
+  /** Stored PDF from send (immutable for sent/paid invoices). */
+  async readInvoicePdf(clientId: string | null, displayNumber: string): Promise<Buffer | null> {
+    const key = invoicePdfKey(clientId, displayNumber);
+    if (!(await this.storage.exists(key))) return null;
+    return this.storage.read(key);
+  }
+
   async removeInvoicePdf(clientId: string | null, displayNumber: string): Promise<void> {
     const key = invoicePdfKey(clientId, displayNumber);
     try {

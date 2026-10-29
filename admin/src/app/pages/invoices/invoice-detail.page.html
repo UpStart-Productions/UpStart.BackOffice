@@ -3,6 +3,11 @@
   backLink="/invoices"
   backLabel="Back to Invoices"
 >
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (!error() && !loading() && invoice()) {
+      <app-record-attribution [attribution]="attribution()" />
+    }
+  </ng-container>
   <ng-container ngProjectAs="[pageMeta]">
     @if (!error() && !loading() && invoice(); as inv) {
       <p-tag [value]="statusLabel(inv)" [severity]="statusSeverity(inv.status)" />
@@ -34,34 +39,134 @@
       }
     }
   </ng-container>
-  @if (!error() && !loading() && invoice(); as inv) {
-    <div pageSubtitle class="invoice-detail-meta page-header-subtitle">
-      <span><strong>Bill to:</strong> {{ inv.billToName || inv.client?.name }}</span>
-      <span><strong>Issue date:</strong> {{ formatDate(inv.issueDate) }}</span>
-      @if (inv.dueDate) {
-        <span class="invoice-detail-due" [class.invoice-detail-due--overdue]="dueFlag(inv) === 'overdue'" [class.invoice-detail-due--due]="dueFlag(inv) === 'due'">
-          <strong>Due:</strong> {{ formatDate(inv.dueDate) }}
-        </span>
-      }
-      <span><strong>Total:</strong> {{ formatAmount(inv.total) }}</span>
-      @if (inv.status === 'PAID' && inv.amountPaid != null && inv.amountPaid !== inv.total) {
-        <span><strong>Paid:</strong> {{ formatAmount(inv.amountPaid) }}</span>
-      }
-    </div>
-  }
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
     </div>
   } @else if (!loading() && invoice(); as inv) {
-    <div class="showcase-flex-col">
-      <div class="card invoice-pdf-card">
-        @if (pdfUrl()) {
-          <iframe [src]="pdfUrl()!" class="invoice-pdf-frame" [title]="inv.displayNumber + ' PDF'"></iframe>
-        } @else {
-          <p class="text-sm text-muted p-4">PDF could not be loaded.</p>
-        }
+    <div class="card invoice-detail-card">
+      <div class="invoice-detail-header">
+        <div class="invoice-detail-header__letterhead">
+          <div class="invoice-detail-header__from">
+            @if (orgLogoUrl(); as logo) {
+              <img class="invoice-detail-header__logo" [src]="logo" [alt]="letterhead()?.companyName || 'Company logo'" />
+            } @else if (letterhead()?.companyName) {
+              <p class="invoice-detail-header__company-name">{{ letterhead()?.companyName }}</p>
+            }
+            @for (line of orgAddressLines(); track line) {
+              <p class="invoice-detail-header__from-line">{{ line }}</p>
+            }
+          </div>
+          <p-button
+            [label]="pdfViewOpen() ? 'Hide PDF' : 'View PDF'"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            (click)="togglePdfView()"
+          />
+        </div>
+        <div class="invoice-detail-header__meta">
+          <div class="invoice-detail-header__meta-block">
+            <span class="invoice-detail-header__meta-label">Bill to</span>
+            @if (inv.client?.id; as clientId) {
+              <a [routerLink]="['/clients', clientId]" class="invoice-detail-header__meta-value invoice-detail-client-link">
+                {{ inv.billToName || inv.client?.name }}
+              </a>
+            } @else {
+              <p class="invoice-detail-header__meta-value">{{ inv.billToName || inv.client?.name }}</p>
+            }
+            @if (inv.billToEmail) {
+              <p class="invoice-detail-header__meta-detail">{{ inv.billToEmail }}</p>
+            }
+            @for (line of billToAddressLines(inv); track line) {
+              <p class="invoice-detail-header__meta-detail">{{ line }}</p>
+            }
+          </div>
+          <div class="invoice-detail-header__meta-block">
+            <span class="invoice-detail-header__meta-label">Issue date</span>
+            <p class="invoice-detail-header__meta-value">{{ formatIssueDateLong(inv.issueDate) }}</p>
+          </div>
+          @if (inv.dueDate) {
+            <div class="invoice-detail-header__meta-block">
+              <span class="invoice-detail-header__meta-label">Due date</span>
+              <p
+                class="invoice-detail-header__meta-value"
+                [class.invoice-detail-due--overdue]="dueFlag(inv) === 'overdue'"
+                [class.invoice-detail-due--due]="dueFlag(inv) === 'due'"
+              >
+                {{ formatIssueDateLong(inv.dueDate) }}
+              </p>
+            </div>
+          }
+          <div class="invoice-detail-header__meta-block invoice-detail-header__meta-block--total">
+            <span class="invoice-detail-header__meta-label">Total</span>
+            <p class="invoice-detail-header__meta-value invoice-detail-header__meta-value--strong">
+              {{ formatAmount(inv.total) }}
+            </p>
+            @if (inv.status === 'PAID' && inv.amountPaid != null && inv.amountPaid !== inv.total) {
+              <p class="invoice-detail-header__meta-detail">Paid {{ formatAmount(inv.amountPaid) }}</p>
+            }
+          </div>
+        </div>
       </div>
+
+      @if (pdfViewOpen()) {
+        <div class="invoice-pdf-wrap">
+          @if (pdfLoading()) {
+            <div class="invoice-pdf-loading" aria-busy="true" aria-label="Loading PDF">
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            </div>
+          } @else if (pdfError()) {
+            <p-message severity="error" [text]="pdfError()!" />
+          } @else if (pdfUrl()) {
+            <iframe [src]="pdfUrl()!" class="invoice-pdf-frame" [title]="inv.displayNumber + ' PDF'"></iframe>
+          }
+        </div>
+      } @else {
+        @if (inv.lineItems.length === 0) {
+          <p class="text-sm text-muted">No line items.</p>
+        } @else {
+          <p-table [value]="inv.lineItems" styleClass="table-bordered invoice-detail-table">
+            <ng-template pTemplate="header">
+              <tr>
+                @if (showProjectColumn) {
+                  <th style="width: 160px">Project</th>
+                }
+                <th>Description</th>
+                <th class="invoice-detail-num-col">Qty/Hrs</th>
+                <th class="invoice-detail-num-col">Rate</th>
+                <th class="invoice-detail-num-col">Amount</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-li>
+              <tr>
+                @if (showProjectColumn) {
+                  <td>{{ li.project?.name || '—' }}</td>
+                }
+                <td>{{ li.description }}</td>
+                <td class="invoice-detail-num-col">{{ li.quantity }}</td>
+                <td class="invoice-detail-num-col">{{ formatAmount(li.unitPrice) }}</td>
+                <td class="invoice-detail-num-col font-semibold">{{ formatAmount(li.amount) }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+
+          <div class="invoice-detail-totals">
+            <span>Subtotal: <strong>{{ formatAmount(inv.subtotal) }}</strong></span>
+            @if (inv.taxRate) {
+              <span>Tax: <strong>{{ formatAmount(inv.taxAmount ?? 0) }}</strong></span>
+            }
+            <span>Total: <strong>{{ formatAmount(inv.total) }}</strong></span>
+          </div>
+        }
+
+        @if (inv.notes?.trim()) {
+          <div class="invoice-detail-notes-block">
+            <h4 class="showcase-section-title">Notes</h4>
+            <div class="invoice-detail-notes ql-editor" [innerHTML]="notesHtml(inv.notes)"></div>
+          </div>
+        }
+      }
     </div>
   }
 </app-page>

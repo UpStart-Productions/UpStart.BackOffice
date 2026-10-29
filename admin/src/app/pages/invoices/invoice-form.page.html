@@ -30,6 +30,11 @@
       />
     }
   </ng-container>
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (!loading() && !error() && isDraftEdit) {
+      <app-record-attribution [attribution]="attribution()" />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />

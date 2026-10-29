@@ -17,6 +17,11 @@
       />
     }
   </ng-container>
+  <ng-container ngProjectAs="[pageTitleTrail]">
+    @if (id()) {
+      <app-record-attribution [attribution]="attribution()" />
+    }
+  </ng-container>
   @if (error()) {
     <div class="card mb-3">
       <p-message severity="error" [text]="error()!" />

@@ -1,0 +1,55 @@
+-- Record create/update attribution (staff user + timestamp on main CRM/billing records).
+
+ALTER TABLE "Client" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "Client" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "Contact" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "Contact" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "Lead" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "Project" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "Project" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "Invoice" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "Expense" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "Expense" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "TimeEntry" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "TimeEntry" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "BookingType" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "BookingType" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "JournalEntry" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "JournalEntry" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "JournalEntry" ADD COLUMN "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "Account" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "Account" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "User" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "User" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "OrganizationProfile" ADD COLUMN "createdByUserId" TEXT;
+ALTER TABLE "OrganizationProfile" ADD COLUMN "updatedByUserId" TEXT;
+ALTER TABLE "OrganizationProfile" ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE "Client" ADD CONSTRAINT "Client_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Client" ADD CONSTRAINT "Client_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Contact" ADD CONSTRAINT "Contact_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Contact" ADD CONSTRAINT "Contact_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Lead" ADD CONSTRAINT "Lead_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Lead" ADD CONSTRAINT "Lead_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Project" ADD CONSTRAINT "Project_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Project" ADD CONSTRAINT "Project_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Invoice" ADD CONSTRAINT "Invoice_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Expense" ADD CONSTRAINT "Expense_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Expense" ADD CONSTRAINT "Expense_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "TimeEntry" ADD CONSTRAINT "TimeEntry_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "TimeEntry" ADD CONSTRAINT "TimeEntry_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "BookingType" ADD CONSTRAINT "BookingType_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "BookingType" ADD CONSTRAINT "BookingType_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "JournalEntry" ADD CONSTRAINT "JournalEntry_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "JournalEntry" ADD CONSTRAINT "JournalEntry_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Account" ADD CONSTRAINT "Account_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Account" ADD CONSTRAINT "Account_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "User" ADD CONSTRAINT "User_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "User" ADD CONSTRAINT "User_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "OrganizationProfile" ADD CONSTRAINT "OrganizationProfile_createdByUserId_fkey" FOREIGN KEY ("createdByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "OrganizationProfile" ADD CONSTRAINT "OrganizationProfile_updatedByUserId_fkey" FOREIGN KEY ("updatedByUserId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+CREATE INDEX "Client_createdByUserId_idx" ON "Client"("createdByUserId");
+CREATE INDEX "Client_updatedByUserId_idx" ON "Client"("updatedByUserId");
+CREATE INDEX "Invoice_updatedByUserId_idx" ON "Invoice"("updatedByUserId");

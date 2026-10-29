@@ -187,11 +187,15 @@ model User {
   tenantRole Role?    @relation(fields: [roleId], references: [id])
   hourlyRate Decimal? @db.Decimal(10, 2)
   isActive   Boolean  @default(true)
-  clientId   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  clientId          String?
+  createdByUserId   String?
+  updatedByUserId   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   client           Client?       @relation(fields: [clientId], references: [id])
+  createdBy        User?         @relation("UserCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy        User?         @relation("UserUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   timeEntries      TimeEntry[]
   expenses         Expense[]
   bookingTypesHost BookingType[] @relation("BookingTypeHost")
@@ -218,6 +222,29 @@ model User {
   helpAgentSettingsUpdates  HelpAgentSettings[]         @relation("HelpAgentSettingsUpdatedBy")
   clientNextActions         Client[]                    @relation("ClientNextActionOwner")
   activitySnoozes           ActivitySnooze[]            @relation("ActivitySnoozeBy")
+  clientsCreated            Client[]                    @relation("ClientCreatedBy")
+  clientsUpdated            Client[]                    @relation("ClientUpdatedBy")
+  contactsCreated           Contact[]                   @relation("ContactCreatedBy")
+  contactsUpdated           Contact[]                   @relation("ContactUpdatedBy")
+  leadsCreated              Lead[]                      @relation("LeadCreatedBy")
+  leadsUpdated              Lead[]                      @relation("LeadUpdatedBy")
+  projectsCreated           Project[]                   @relation("ProjectCreatedBy")
+  projectsUpdated           Project[]                   @relation("ProjectUpdatedBy")
+  invoicesUpdated           Invoice[]                   @relation("InvoiceUpdatedBy")
+  expensesCreated           Expense[]                   @relation("ExpenseCreatedBy")
+  expensesUpdated           Expense[]                   @relation("ExpenseUpdatedBy")
+  timeEntriesCreated        TimeEntry[]                 @relation("TimeEntryCreatedBy")
+  timeEntriesUpdated        TimeEntry[]                 @relation("TimeEntryUpdatedBy")
+  bookingTypesCreated       BookingType[]               @relation("BookingTypeCreatedBy")
+  bookingTypesUpdated       BookingType[]               @relation("BookingTypeUpdatedBy")
+  journalEntriesCreated     JournalEntry[]              @relation("JournalEntryCreatedBy")
+  journalEntriesUpdated     JournalEntry[]              @relation("JournalEntryUpdatedBy")
+  accountsCreated           Account[]                   @relation("AccountCreatedBy")
+  accountsUpdated           Account[]                   @relation("AccountUpdatedBy")
+  usersCreated              User[]                      @relation("UserCreatedBy")
+  usersUpdated              User[]                      @relation("UserUpdatedBy")
+  orgProfilesCreated        OrganizationProfile[]       @relation("OrgProfileCreatedBy")
+  orgProfilesUpdated        OrganizationProfile[]       @relation("OrgProfileUpdatedBy")
 
   @@unique([tenantId, email])
   @@index([email])
@@ -259,8 +286,13 @@ model Client {
   portalEnabled        Boolean        @default(false)
   portalToken          String?        @unique
   portalTokenCreatedAt DateTime?
+  createdByUserId      String?
+  updatedByUserId      String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
+
+  createdBy User? @relation("ClientCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ClientUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   projects          Project[]
   invoices          Invoice[]
@@ -305,8 +337,13 @@ model Lead {
   stageId           String?
   /// Set when someone archives the card by hand: off the board, history kept, restorable.
   archivedAt        DateTime?
+  createdByUserId   String?
+  updatedByUserId   String?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+
+  createdBy User? @relation("LeadCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("LeadUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   convertedClient Client?        @relation("LeadConverted", fields: [convertedClientId], references: [id])
   client          Client?        @relation("LeadAccount", fields: [clientId], references: [id])
@@ -487,8 +524,13 @@ model Project {
   /// Added to the Task Manager (Tasks). Projects are created/edited on the Projects page.
   inTaskManager    Boolean  @default(false)
   importedAsanaGid String?  @unique
+  createdByUserId  String?
+  updatedByUserId  String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  createdBy User? @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ProjectUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   client           Client?           @relation(fields: [clientId], references: [id], onDelete: Cascade)
   contacts         ProjectContact[]
@@ -612,8 +654,14 @@ model OrganizationProfile {
   /// Activity → To do: an email waits this many days for a reply before it is listed under Needs reply.
   needsReplyDays Int    @default(2)
   /// Activity → To do: an active client with no contact for this many days is listed under Gone quiet.
-  goneQuietDays  Int    @default(30)
-  updatedAt    DateTime @updatedAt
+  goneQuietDays    Int      @default(30)
+  createdByUserId  String?
+  updatedByUserId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  createdBy User? @relation("OrgProfileCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("OrgProfileUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
 
 model TimeEntry {
@@ -638,8 +686,13 @@ model TimeEntry {
   invoiceLineItemId       String?
   /// Line on the user's own invoice to the tenant. Separate from invoiceLineItemId so the same time can be billed to the client and paid to the user.
   tenantInvoiceLineItemId String?
+  createdByUserId         String?
+  updatedByUserId         String?
   createdAt               DateTime  @default(now())
   updatedAt               DateTime  @updatedAt
+
+  createdBy User? @relation("TimeEntryCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("TimeEntryUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   project               Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -687,8 +740,13 @@ model Expense {
   invoiceLineItemId       String?
   /// Line on the user's own invoice to the tenant (reimbursement).
   tenantInvoiceLineItemId String?
+  createdByUserId         String?
+  updatedByUserId         String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+
+  createdBy User? @relation("ExpenseCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ExpenseUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   user                  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   project               Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
@@ -752,8 +810,10 @@ model Invoice {
   billToEmail   String?
   billToAddress String?       @db.Text
   /// Who created it; null for invoices that predate this. Used by roles limited to their own invoices.
-  createdById   String?
-  createdBy     User?         @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdById     String?
+  updatedByUserId String?
+  createdBy       User?         @relation("InvoiceCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy       User?         @relation("InvoiceUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   number        Int
   displayNumber String
   status        InvoiceStatus @default(DRAFT)
@@ -778,6 +838,7 @@ model Invoice {
   @@unique([tenantId, number])
   @@index([clientId])
   @@index([createdById])
+  @@index([updatedByUserId])
   @@index([status])
 }
 
@@ -875,8 +936,13 @@ model BookingType {
   isBillable         Boolean        @default(false)
   paymentRequired    Boolean        @default(false)
   sortOrder          Int            @default(0)
+  createdByUserId    String?
+  updatedByUserId    String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+
+  createdBy User? @relation("BookingTypeCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("BookingTypeUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   host              User                      @relation("BookingTypeHost", fields: [hostUserId], references: [id])
   availabilityRules BookingAvailabilityRule[]
@@ -938,10 +1004,15 @@ model Account {
   tenant    Tenant      @relation(fields: [tenantId], references: [id])
   code      String // e.g. "1000" — simple numeric COA, sorted for display
   name      String
-  type      AccountType
-  isActive  Boolean     @default(true)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  type            AccountType
+  isActive        Boolean     @default(true)
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  createdBy User? @relation("AccountCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("AccountUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   lines               JournalLine[]
   bankTransactions    BankTransaction[]
@@ -959,9 +1030,15 @@ model JournalEntry {
   tenant    Tenant             @relation(fields: [tenantId], references: [id])
   date      DateTime
   memo      String?
-  source    JournalEntrySource @default(MANUAL)
-  invoiceId String?
-  createdAt DateTime           @default(now())
+  source          JournalEntrySource @default(MANUAL)
+  invoiceId       String?
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  createdBy User? @relation("JournalEntryCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("JournalEntryUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   invoice         Invoice?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   lines           JournalLine[]
@@ -1579,9 +1656,14 @@ model Contact {
   isActive      Boolean   @default(true)
   /// True when created from an inbound email and not yet reviewed.
   autoCreated   Boolean   @default(false)
-  lastContactAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  lastContactAt   DateTime?
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  createdBy User? @relation("ContactCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("ContactUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   tenant          Tenant                   @relation(fields: [tenantId], references: [id])
   emails          ContactEmail[]

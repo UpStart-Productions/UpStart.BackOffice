@@ -32,6 +32,7 @@ import {
   normalizeWebsiteForStorage,
 } from '../leads/lead-website.util';
 import { ensureLeadLinks } from '../leads/lead-links.util';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { findLane, firstLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
 
 export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
@@ -253,10 +254,11 @@ export class BookingService {
         host: { select: { email: true, name: true, firstName: true } },
         availabilityRules: true,
         _count: { select: { bookings: true } },
+        ...ATTRIBUTION_INCLUDE,
       },
     });
     if (!type) throw new NotFoundException('Booking type not found');
-    return this.toBookingTypeDto(type);
+    return withAttribution(type, this.toBookingTypeDto(type));
   }
 
   async createBookingType(dto: UpsertBookingTypeDto) {

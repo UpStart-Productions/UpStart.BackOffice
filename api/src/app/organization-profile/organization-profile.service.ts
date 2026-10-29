@@ -7,6 +7,8 @@ import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.dto';
 import { UploadLogoDto } from './dto/upload-logo.dto';
 import { UpdateActivitySettingsDto } from './dto/update-activity-settings.dto';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
 
 const ALLOWED_LOGO_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const LOGO_MAX_BYTES = 5 * 1024 * 1024;
@@ -23,11 +25,17 @@ export type OrganizationProfileDto = {
   billingEmail: string;
   /** Reimbursement per mile for Mileage expenses; null when not set. */
   mileageRate: number | null;
+  attribution?: RecordAttributionDto;
 };
 
 export type OrganizationBrandingDto = {
   companyName: string;
   logoUrl: string | null;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
 };
 
 @Injectable()
@@ -48,6 +56,11 @@ export class OrganizationProfileService {
     return {
       companyName: row?.companyName?.trim() ?? '',
       logoUrl: toPublicAssetUrl(row?.logoUrl ?? null),
+      address: row?.address?.trim() ?? '',
+      city: row?.city?.trim() ?? '',
+      state: row?.state?.trim() ?? '',
+      zip: row?.zip?.trim() ?? '',
+      phone: row?.phone?.trim() ?? '',
     };
   }
 
@@ -56,6 +69,7 @@ export class OrganizationProfileService {
     const tenantId = currentTenantId();
     const existing = await this.prisma.organizationProfile.findUnique({
       where: { tenantId },
+      include: ATTRIBUTION_INCLUDE,
     });
     if (existing) return existing;
 
@@ -70,6 +84,7 @@ export class OrganizationProfileService {
       where: { tenantId },
       create: { companyName },
       update: {},
+      include: ATTRIBUTION_INCLUDE,
     });
   }
 
@@ -88,6 +103,7 @@ export class OrganizationProfileService {
       where: { tenantId: currentTenantId() },
       create: { ...data },
       update: data,
+      include: ATTRIBUTION_INCLUDE,
     });
     return this.toDto(row);
   }
@@ -198,17 +214,31 @@ export class OrganizationProfileService {
     billingEmail?: string | null;
     mileageRate?: { toString(): string } | null;
   } | null): OrganizationProfileDto {
-    return {
-      companyName: row?.companyName ?? '',
-      logoUrl: toPublicAssetUrl(row?.logoUrl ?? null),
-      address: row?.address ?? '',
-      city: row?.city ?? '',
-      state: row?.state ?? '',
-      zip: row?.zip ?? '',
-      phone: row?.phone ?? '',
-      billingEmail: row?.billingEmail ?? '',
-      mileageRate: row?.mileageRate != null ? Number(row.mileageRate) : null,
+    if (!row) {
+      return {
+        companyName: '',
+        logoUrl: null,
+        address: '',
+        city: '',
+        state: '',
+        zip: '',
+        phone: '',
+        billingEmail: '',
+        mileageRate: null,
+      };
+    }
+    const base = {
+      companyName: row.companyName ?? '',
+      logoUrl: toPublicAssetUrl(row.logoUrl ?? null),
+      address: row.address ?? '',
+      city: row.city ?? '',
+      state: row.state ?? '',
+      zip: row.zip ?? '',
+      phone: row.phone ?? '',
+      billingEmail: row.billingEmail ?? '',
+      mileageRate: row.mileageRate != null ? Number(row.mileageRate) : null,
     };
+    return withAttribution(row as object, base);
   }
 }
 

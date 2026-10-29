@@ -15,6 +15,8 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
 type BookingTypeDto = {
   id: string;
@@ -40,6 +42,7 @@ type BookingTypeDto = {
   paymentRequired: boolean;
   bookingCount: number;
   availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
+  attribution?: RecordAttributionDto;
 };
 
 type HostOption = { id: string; label: string };
@@ -88,6 +91,7 @@ const DEFAULT_TIMEZONE = 'America/Los_Angeles';
     TableModule,
     ToggleSwitchModule,
     PageComponent,
+    RecordAttributionComponent,
   ],
   templateUrl: './booking-type-form.page.html',
 })
@@ -104,6 +108,7 @@ export class BookingTypeFormPage implements OnInit {
   error = signal<string | null>(null);
   bookingCount = signal(0);
   hostOptions = signal<HostOption[]>([]);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
 
   private readonly pipelinesApi = inject(PipelinesApi);
   /** Lanes a booking can put the lead in, labeled by pipeline when there is more than one. */
@@ -213,6 +218,7 @@ export class BookingTypeFormPage implements OnInit {
   }
 
   private applyDto(data: BookingTypeDto) {
+    this.attribution.set(data.attribution ?? null);
     this.bookingCount.set(data.bookingCount);
     this.form = {
       slug: data.slug,
@@ -280,7 +286,9 @@ export class BookingTypeFormPage implements OnInit {
       };
 
       if (this.id()) {
-        await this.api.put(`/booking/admin/types/${this.id()}`, payload);
+        const typeId = this.id()!;
+        const updated = await this.api.put<BookingTypeDto>(`/booking/admin/types/${typeId}`, payload);
+        this.attribution.set(updated.attribution ?? null);
         this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Booking type updated.', life: 3000 });
         await this.router.navigate(['/bookings/types']);
       } else {

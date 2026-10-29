@@ -1,3 +1,5 @@
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+
 export type ProjectTask = {
   id: string;
   projectId: string;
@@ -40,6 +42,7 @@ export type TimeEntry = {
   user?: { id: string; firstName?: string | null; lastName?: string | null; email: string } | null;
   projectTask?: { id: string; name: string; isBillable: boolean; source?: 'MANUAL' | 'ASANA' } | null;
   task?: TimeEntryTask | null;
+  attribution?: RecordAttributionDto;
 };
 
 export type TmTaskSearchHit = {

@@ -24,6 +24,7 @@ import { memoryStorage } from 'multer';
 import { extname } from 'path';
 import { randomUUID } from 'crypto';
 import { UserContext } from '../common/app.types';
+import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
@@ -50,6 +51,7 @@ const expenseInclude = {
   },
   invoiceLineItem: linkedInvoiceSelect,
   tenantInvoiceLineItem: linkedInvoiceSelect,
+  ...ATTRIBUTION_INCLUDE,
 } satisfies Prisma.ExpenseInclude;
 
 type ExpenseWithLinks = Prisma.ExpenseGetPayload<{ include: typeof expenseInclude }>;
@@ -310,7 +312,7 @@ export class ExpensesController {
     const reimbursementStatus: ExpenseReimbursementStatus | null = expense.isReimbursable
       ? reimbursementLink === 'PAID' ? 'REIMBURSED' : reimbursementLink === 'ON_INVOICE' ? 'SUBMITTED' : 'NOT_SUBMITTED'
       : null;
-    return {
+    const view = {
       ...rest,
       receiptUrl: toPublicAssetUrl(expense.receiptUrl),
       billingStatus,
@@ -318,6 +320,7 @@ export class ExpensesController {
       reimbursementStatus,
       reimbursementInvoice: invoiceRef(reimbursement),
     };
+    return withAttribution(expense, view);
   }
 
   /**

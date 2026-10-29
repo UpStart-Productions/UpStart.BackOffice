@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
+import { recordAttributionExtension } from '../common/record-attribution.extension';
 import { tenantExtension } from '../tenancy/prisma-tenant.extension';
 
 /**
@@ -15,6 +16,7 @@ export class PrismaService extends PrismaClient {
       connectionString: process.env.DATABASE_URL,
     });
     super({ adapter });
-    return this.$extends(tenantExtension) as unknown as this;
+    const scoped = this.$extends(tenantExtension).$extends(recordAttributionExtension);
+    return scoped as unknown as this;
   }
 }

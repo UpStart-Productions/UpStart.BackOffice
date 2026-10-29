@@ -20,6 +20,8 @@ import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component'
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 import { OrganizationLinksComponent } from '../../ui/organization-links/organization-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
 @Component({
   selector: 'app-contact-detail-page',
@@ -37,6 +39,7 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
     AvatarDropzoneComponent,
     OrganizationLinksComponent,
     HelpTextComponent,
+    RecordAttributionComponent,
   ],
   template: `
     <app-page
@@ -47,9 +50,16 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
       @if (contact(); as c) {
         <app-person pageLead [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
       }
-      @if (contact()) {
-        <p-button pageActions label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
-      }
+      <ng-container ngProjectAs="[pageActions]">
+        @if (contact()) {
+          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
+        }
+      </ng-container>
+      <ng-container ngProjectAs="[pageTitleTrail]">
+        @if (contact()) {
+          <app-record-attribution [attribution]="attribution()" />
+        }
+      </ng-container>
       @if (form.title.trim()) {
         <p pageSubtitle class="page-header-subtitle">{{ form.title }}</p>
       }
@@ -215,6 +225,7 @@ export class ContactDetailPage implements OnInit {
   private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
 
   contact = signal<ContactSummary | null>(null);
+  readonly attribution = signal<RecordAttributionDto | null>(null);
   error = signal<string | null>(null);
   saving = signal(false);
 
@@ -244,6 +255,7 @@ export class ContactDetailPage implements OnInit {
 
   apply(c: ContactSummary) {
     this.contact.set(c);
+    this.attribution.set(c.attribution ?? null);
     const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
     this.form = {
       firstName: c.firstName,

@@ -93,6 +93,13 @@ export class PayService {
 
     const key = invoicePdfKey(invoice.clientId, invoice.displayNumber);
     const filename = `${invoice.displayNumber}.pdf`;
+    if (invoice.status !== 'DRAFT') {
+      if (!(await this.storage.exists(key))) {
+        throw new NotFoundException('Invoice PDF not found');
+      }
+      return { buffer: await this.storage.read(key), filename };
+    }
+
     if (await this.storage.exists(key)) {
       return { buffer: await this.storage.read(key), filename };
     }
