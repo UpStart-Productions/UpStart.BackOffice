@@ -74,9 +74,10 @@ export class CareRecordsController {
     await ensureCareForms(this.prisma);
     const k: CareFormKind = kind === 'CARE_PROFILE' ? 'CARE_PROFILE' : 'INTAKE';
     const theForm = await this.prisma.form.findFirst({ where: careForm(k) });
-    if (!theForm) return { items: [], myAccess: null, formId: null, pendingCount: 0 };
+    if (!theForm) return { items: [], myAccess: null, formId: null, fieldCount: 0, pendingCount: 0 };
+    const fieldCount = await this.prisma.formField.count({ where: { section: { formId: theForm.id } } });
     const myAccess = await this.care.formAccess(user, theForm);
-    if (!myAccess) return { items: [], myAccess: null, formId: theForm.id, pendingCount: 0 };
+    if (!myAccess) return { items: [], myAccess: null, formId: theForm.id, fieldCount, pendingCount: 0 };
     const reach = await this.care.clientIds(user);
     const canSeePending = k === 'INTAKE' && reach === null && myAccess === 'edit';
     const where: Prisma.FormResponseWhereInput = {
@@ -89,10 +90,10 @@ export class CareRecordsController {
       ...(reach === null ? {} : { clientId: { in: reach } }),
       ...(canSeePending ? {} : { status: 'ACTIVE' as const }),
     };
-    if (status === 'PENDING' && !canSeePending) return { items: [], myAccess, formId: theForm.id, pendingCount: 0 };
+    if (status === 'PENDING' && !canSeePending) return { items: [], myAccess, formId: theForm.id, fieldCount, pendingCount: 0 };
     const rows = await this.prisma.formResponse.findMany({ where, orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }], include: LIST_INCLUDE });
     const pendingCount = canSeePending ? await this.prisma.formResponse.count({ where: { formId: theForm.id, status: 'PENDING' } }) : 0;
-    return { items: rows.map(listItem), myAccess, formId: theForm.id, pendingCount };
+    return { items: rows.map(listItem), myAccess, formId: theForm.id, fieldCount, pendingCount };
   }
 
   /** For the organization page: each form the user can use, and this organization's record if there is one. */

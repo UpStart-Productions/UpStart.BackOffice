@@ -1,15 +1,17 @@
-import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { QuillModule } from 'ngx-quill';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
-import { TextareaModule } from 'primeng/textarea';
 import { CARE_FORM_MODULE, formProfile, type CareFormDto, type FormAccess, type FormDefinition } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { FormWorkspaceService, type WorkspaceConfig } from '../../core/form-workspace.service';
 import { downloadFormFile, readFormFile } from '../../core/form-file.util';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
@@ -22,7 +24,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 
 type Level = 'none' | 'read' | 'edit';
 
-/** Customize fields (from Care → Intake or Care profiles, Setup only): name, who can use it, sections and fields, and (Intake) public links. */
+/** Customize form (from Care → Intake or Care profiles, Setup only): name, who can use it, sections and fields, and (Intake) public links. */
 @Component({
   selector: 'app-care-form-edit-page',
   standalone: true,
@@ -33,7 +35,7 @@ type Level = 'none' | 'read' | 'edit';
     MessageModule,
     SelectButtonModule,
     TableModule,
-    TextareaModule,
+    QuillModule,
     FormLinksComponent,
     FormBuilderComponent,
     HelpTextComponent,
@@ -47,7 +49,9 @@ type Level = 'none' | 'read' | 'edit';
       @if (form()) {
         <ng-container ngProjectAs="[pageActions]">
           <app-row-actions-menu [items]="headerActions" ariaLabel="Form actions" />
-          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+          @if (view() === 'settings' || view() === 'access' || isDirty()) {
+            <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+          }
         </ng-container>
       }
       @if (error()) {
@@ -55,62 +59,69 @@ type Level = 'none' | 'read' | 'edit';
       }
       @if (form(); as f) {
         <div class="stack">
-          <div class="card">
-            <div class="showcase-flex-col">
-              <div class="form-field">
-                <label for="cfName">Name</label>
-                <input pInputText id="cfName" class="w-full" [(ngModel)]="name" />
+          @switch (view()) {
+            @case ('settings') {
+              <div class="card">
+                <div class="showcase-flex-col">
+                  <div class="form-field">
+                    <label for="cfName">Name</label>
+                    <input pInputText id="cfName" class="w-full" [(ngModel)]="name" />
+                  </div>
+                  <div class="form-field">
+                    <label for="cfDesc">Description <app-help-text key="care.form.description" /></label>
+                    <quill-editor
+                      id="cfDesc"
+                      [(ngModel)]="description"
+                      placeholder="What this form is for…"
+                      [styles]="{ 'min-height': '120px' }"
+                    ></quill-editor>
+                  </div>
+                </div>
               </div>
-              <div class="form-field">
-                <label for="cfDesc">Description <app-help-text key="care.form.description" /></label>
-                <textarea pTextarea id="cfDesc" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="description"></textarea>
+            }
+            @case ('access') {
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Who can use it <app-help-text key="care.form.access" /></h3>
+                </div>
+                <p-table [value]="roles()" styleClass="table-bordered">
+                  <ng-template pTemplate="header">
+                    <tr><th>Role</th><th>Access</th></tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-r>
+                    <tr>
+                      <td>{{ r.name }}</td>
+                      <td>
+                        <p-selectbutton
+                          [options]="levelOptions"
+                          optionLabel="label"
+                          optionValue="value"
+                          [ngModel]="levels()[r.id] ?? 'none'"
+                          (ngModelChange)="setLevel(r.id, $event)"
+                          [allowEmpty]="false"
+                          size="small"
+                        />
+                      </td>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="emptymessage">
+                    <tr><td colspan="2">No roles yet.</td></tr>
+                  </ng-template>
+                </p-table>
               </div>
-            </div>
-          </div>
-
-          @if (f.kind !== 'VISIT') {
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Who can use it <app-help-text key="care.form.access" /></h3>
-            </div>
-            <p-table [value]="roles()" styleClass="table-bordered">
-              <ng-template pTemplate="header">
-                <tr><th>Role</th><th>Access</th></tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-r>
-                <tr>
-                  <td>{{ r.name }}</td>
-                  <td>
-                    <p-selectbutton
-                      [options]="levelOptions"
-                      optionLabel="label"
-                      optionValue="value"
-                      [ngModel]="levels()[r.id] ?? 'none'"
-                      (ngModelChange)="setLevel(r.id, $event)"
-                      [allowEmpty]="false"
-                      size="small"
-                    />
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="2">No roles yet.</td></tr>
-              </ng-template>
-            </p-table>
-          </div>
-          }
-
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Fields</h3>
-            </div>
-            <app-form-builder [form]="f" [profile]="profile()" apiBase="/care" (changed)="reload()" />
-          </div>
-
-          @if (profile().newLinks) {
-            <div class="card">
-              <app-form-links apiBase="/care" [formId]="f.id" title="Public intake links" helpKey="care.links.intake" />
-            </div>
+            }
+            @case ('links') {
+              <div class="card">
+                <app-form-links apiBase="/care" [formId]="f.id" title="Public intake links" helpKey="care.links.intake" />
+              </div>
+            }
+            @default {
+              @if (currentSection(); as sec) {
+                <div class="card">
+                  <app-form-builder [form]="f" [profile]="profile()" apiBase="/care" [sectionId]="sec.id" (changed)="reload()" />
+                </div>
+              }
+            }
           }
         </div>
       }
@@ -144,6 +155,7 @@ export class CareFormEditPage implements OnInit {
   private readonly care = inject(CareApi);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(MessageService);
+  private readonly ws = inject(FormWorkspaceService);
 
   readonly levelOptions = [
     { value: 'none', label: 'None' },
@@ -175,13 +187,54 @@ export class CareFormEditPage implements OnInit {
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
   /** The builder profile of this form (what it can have). */
   profile = computed(() => formProfile(CARE_FORM_MODULE, this.form()?.kind ?? 'INTAKE'));
+
+  private readonly query = toSignal(this.route.queryParamMap);
+  /** What the main area shows (the column picks it): settings, access, links, or a section id. Default: the first section. */
+  readonly view = computed(() => {
+    const f = this.form();
+    const v = this.query()?.get('view');
+    if (v === 'settings') return v;
+    if (v === 'access' && f?.kind !== 'VISIT') return v;
+    if (v === 'links' && this.profile().newLinks) return v;
+    if (v && f?.sections.some((x) => x.id === v)) return v;
+    return f?.sections[0]?.id ?? 'settings';
+  });
+  readonly currentSection = computed(() => this.form()?.sections.find((x) => x.id === this.view()) ?? null);
+
+  constructor() {
+    // The column added or reordered sections: show the fresh form.
+    effect(() => {
+      if (this.ws.changed()) void this.reload();
+    });
+  }
+
+  /** This form in the workspace column: its sections, then Settings, Who can use it and (Intake) Links. */
+  private workspace(form: CareFormDto | null): WorkspaceConfig {
+    const kind = form?.kind ?? 'INTAKE';
+    return {
+      base: ['/care/forms', this.id],
+      tools: [
+        { id: 'settings', label: 'Settings', icon: 'pi-cog' },
+        ...(kind !== 'VISIT' ? [{ id: 'access', label: 'Who can use it', icon: 'pi-users' }] : []),
+        ...(formProfile(CARE_FORM_MODULE, kind).newLinks ? [{ id: 'links', label: 'Links', icon: 'pi-link' }] : []),
+      ],
+      emptyView: 'settings',
+      load: async () => ({ ...(await this.care.form(this.id)), canEdit: true }),
+      addSection: async (name) => (await this.care.addSection(this.id, name)).id,
+      reorderSections: async (ids) => {
+        await this.care.reorderSections(this.id, ids);
+      },
+    };
+  }
   backLink = computed(() => CARE_KIND_ROUTE[this.form()?.kind ?? 'INTAKE']);
   backLabel = computed(() => CARE_KIND_LIST_TITLE[this.form()?.kind ?? 'INTAKE']);
 
   async ngOnInit() {
+    this.ws.open(this.id, this.workspace(null));
     try {
       const [form, roles] = await Promise.all([this.care.form(this.id), this.care.roles()]);
       this.roles.set(roles);
+      this.ws.config.set(this.workspace(form));
       this.apply(form);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load form');
@@ -193,6 +246,7 @@ export class CareFormEditPage implements OnInit {
     try {
       const form = await this.care.form(this.id);
       this.form.set(form);
+      this.ws.form.set({ ...form, canEdit: true });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to reload form');
     }
@@ -200,14 +254,15 @@ export class CareFormEditPage implements OnInit {
 
   private apply(form: CareFormDto) {
     this.form.set(form);
+    this.ws.form.set({ ...form, canEdit: true });
     this.name = form.name;
-    this.description = form.description ?? '';
+    this.description = asHtml(form.description);
     this.levels.set({ ...form.access });
     this.saved = this.snapshot();
   }
 
   private snapshot() {
-    return JSON.stringify({ n: this.name.trim(), d: this.description.trim(), a: this.levels() });
+    return JSON.stringify({ n: this.name.trim(), d: blankHtml(this.description) ? '' : this.description.trim(), a: this.levels() });
   }
 
   isDirty() {
@@ -276,7 +331,7 @@ export class CareFormEditPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      await this.care.updateForm(this.id, { name: this.name.trim(), description: this.description.trim() || null, access: this.levels() });
+      await this.care.updateForm(this.id, { name: this.name.trim(), description: blankHtml(this.description) ? null : this.description.trim(), access: this.levels() });
       this.apply(await this.care.form(this.id));
       this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.name.trim()} saved.` });
     } catch (err) {
@@ -285,4 +340,17 @@ export class CareFormEditPage implements OnInit {
       this.saving.set(false);
     }
   }
+}
+
+/** The description as editor HTML (older ones are plain text). */
+function asHtml(text: string | null | undefined): string {
+  if (!text?.trim()) return '';
+  if (/^\s*</.test(text)) return text;
+  const esc = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc.split(/\n{2,}/).map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+}
+
+/** An empty editor (no text, only blank paragraphs). */
+function blankHtml(html: string | null | undefined): boolean {
+  return !(html ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
 }

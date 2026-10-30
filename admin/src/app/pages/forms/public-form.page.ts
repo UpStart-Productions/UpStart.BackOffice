@@ -85,7 +85,9 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
           }
           @case ('form') {
             <h2 class="page-title task-form-title">{{ info()?.formName }}@if (info()?.clientName) {: {{ info()?.clientName }}}</h2>
-            @if (info()?.description) {
+            @if (info()?.descriptionHtml) {
+              <div class="text-color-secondary task-form-intro cp-rich" [innerHTML]="info()?.descriptionHtml"></div>
+            } @else if (info()?.description) {
               <p class="text-color-secondary task-form-intro">{{ info()?.description }}</p>
             } @else {
               <div class="mb-3"></div>
@@ -261,6 +263,18 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
     }
     .cp-intro {
       margin: -0.25rem 0 1rem;
+    }
+    /* A description written in the editor (paragraphs, lists, bold). */
+    .cp-rich ::ng-deep p {
+      margin: 0 0 0.5rem;
+    }
+    .cp-rich ::ng-deep p:last-child {
+      margin-bottom: 0;
+    }
+    .cp-rich ::ng-deep ul,
+    .cp-rich ::ng-deep ol {
+      margin: 0 0 0.5rem;
+      padding-left: 1.25rem;
     }
     .cp-section {
       font-size: var(--fs-md);

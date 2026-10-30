@@ -137,7 +137,10 @@ export function normalizeOrigins(input: unknown): string[] {
 /** What the public page gets before anyone has proven who they are. */
 export type FormPublicLinkDto = {
   formName: string;
+  /** Plain text (for embeds). */
   description: string | null;
+  /** The description as formatted HTML when it was written in the editor (Care forms); UBO's own page shows this. */
+  descriptionHtml: string | null;
   organizationName: string;
   kind: FormLinkKind;
   clientName: string | null;

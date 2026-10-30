@@ -18,6 +18,7 @@ import {
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { downloadFormFile } from '../../core/form-file.util';
+import { freeFormWorkspace } from './form-workspace.config';
 import { FormsApi } from '../../core/forms.api';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
@@ -353,8 +354,7 @@ export class FormEditPage implements OnInit {
   }
 
   async ngOnInit() {
-    // Another form may still be in the workspace sidebar until this one loads.
-    if (this.ws.form()?.id !== this.id) this.ws.form.set(null);
+    this.ws.open(this.id, freeFormWorkspace(this.forms, this.id));
     try {
       this.apply(await this.forms.form(this.id));
     } catch (err) {

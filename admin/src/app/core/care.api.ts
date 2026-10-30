@@ -39,6 +39,12 @@ export class CareApi {
   roles() {
     return this.api.get<{ id: string; name: string }[]>('/care/roles');
   }
+  addSection(formId: string, name: string) {
+    return this.api.post<{ id: string; name: string }>(`/care/forms/${formId}/sections`, { name });
+  }
+  reorderSections(formId: string, ids: string[]) {
+    return this.api.post(`/care/forms/${formId}/sections/order`, { ids });
+  }
   /** The form's sections and fields as a form file. */
   exportForm(id: string) {
     return this.api.get<FormDefinition>(`/care/forms/${id}/export`);
@@ -50,7 +56,7 @@ export class CareApi {
 
   async records(kind: CareFormKind, status?: 'PENDING' | 'ACTIVE') {
     const q = new URLSearchParams({ kind, ...(status ? { status } : {}) });
-    const res = await this.api.get<{ items: CareRecordListItemDto[]; myAccess: FormAccessLevel | null; formId: string | null; pendingCount: number }>(
+    const res = await this.api.get<{ items: CareRecordListItemDto[]; myAccess: FormAccessLevel | null; formId: string | null; fieldCount: number; pendingCount: number }>(
       `/care/records?${q}`,
     );
     if (kind === 'INTAKE') this.pendingCount.set(res.pendingCount);

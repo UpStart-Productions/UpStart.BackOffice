@@ -8,6 +8,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { FORM_LINK_VERIFY_LABELS, normalizeOrigins, type FormLinkDto, type FormLinkVerify } from '@upstart/back-office/shared';
 import { TextareaModule } from 'primeng/textarea';
 import { environment } from '../../../environments/environment';
@@ -36,6 +37,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     TableModule,
     TagModule,
     TextareaModule,
+    TooltipModule,
     AppDialogModule,
     HelpTextComponent,
     RowActionsMenuComponent,
@@ -45,6 +47,29 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
       <h3 class="card-title">{{ title() || (recordId() ? 'Share link' : 'Public links') }} @if (helpKey()) {<app-help-text [key]="helpKey()!" />}</h3>
       <p-button label="New link" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNew()" />
     </div>
+    @if (compact()) {
+      <!-- A side panel: one small row per link instead of the table. -->
+      <div class="side-list">
+        @for (l of links(); track l.id) {
+          <div class="side-list-row">
+            <div class="side-list-body">
+              <span class="side-list-title">{{ l.label || (l.clientName ?? 'Link') }}</span>
+              <span class="side-list-detail">{{ verifyLabel(l.verify) }}@if (l.email) { to {{ l.email }}}</span>
+              <span class="side-list-detail">{{ l.expiresAt ? 'Expires ' + (l.expiresAt | date: 'MMM d, y') : 'No expiry' }}</span>
+            </div>
+            @if (status(l).label !== 'Active') {
+              <p-tag [value]="status(l).label" [severity]="status(l).severity" />
+            }
+            @if (status(l).label === 'Active') {
+              <p-button icon="pi pi-copy" [text]="true" [rounded]="true" severity="secondary" size="small" ariaLabel="Copy link" pTooltip="Copy link" tooltipPosition="top" (onClick)="copy(l.url)" />
+            }
+            <app-row-actions-menu [items]="rowActions(l)" ariaLabel="Link actions" />
+          </div>
+        } @empty {
+          <p class="m-0 text-color-secondary">{{ loading() ? 'Loading…' : 'No links yet. New link makes one to send, for example to family.' }}</p>
+        }
+      </div>
+    } @else {
     <p-table [value]="links()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
@@ -70,6 +95,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
         <tr><td colspan="6">No links yet.</td></tr>
       </ng-template>
     </p-table>
+    }
 
     <p-dialog header="New link" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(30rem, 96vw)' }">
       @if (created(); as c) {
@@ -173,6 +199,8 @@ export class FormLinksComponent {
   formId = input<string | null>(null);
   /** Record mode: links to this organization's copy. */
   recordId = input<string | null>(null);
+  /** For a narrow side panel: a short list instead of the table. */
+  compact = input(false);
 
   readonly verifyOptions = (Object.keys(FORM_LINK_VERIFY_LABELS) as FormLinkVerify[]).map((value) => ({ value, label: FORM_LINK_VERIFY_LABELS[value] }));
 

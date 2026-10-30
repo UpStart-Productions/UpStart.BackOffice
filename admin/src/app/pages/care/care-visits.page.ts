@@ -46,7 +46,7 @@ import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-di
     <app-page title="Visits" helpKey="care.visits.page">
       <ng-container ngProjectAs="[pageActions]">
         @if (canSetup() && formId()) {
-          <a pButton label="Customize fields" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', formId()]"></a>
+          <a pButton label="Customize form" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', formId()]"></a>
         }
         @if (canCreate()) {
           <p-button label="Log past visit" icon="pi pi-history" severity="secondary" [outlined]="true" (onClick)="openNew('log')" />

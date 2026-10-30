@@ -1,4 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { NgClass } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
@@ -15,10 +16,11 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
 @Component({
   selector: 'app-form-workspace-sidebar',
   standalone: true,
-  imports: [FormsModule, RouterLink, RouterLinkActive, ButtonModule, InputTextModule, AppDialogModule, CdkDropList, CdkDrag, CdkDragPlaceholder],
+  imports: [NgClass, FormsModule, RouterLink, RouterLinkActive, ButtonModule, InputTextModule, AppDialogModule, CdkDropList, CdkDrag, CdkDragPlaceholder],
   template: `
     <nav class="tm-sidebar" aria-label="Form">
       @if (ws.form(); as f) {
+        @let c = ws.config();
         <div class="fw-sections">
           <div class="tm-nav-group-header-row">
             <span class="tm-nav-group-header">Sections</span>
@@ -38,8 +40,12 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
             @for (s of f.sections; track s.id; let i = $index) {
               <li cdkDrag [cdkDragData]="s" class="fw-section-item" [class.fw-draggable]="f.canEdit">
                 <!-- The whole row drags (a click still opens it); draggable=false stops the browser's own link dragging. -->
-                <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: s.id }" class="tm-nav-link" [class.active]="isView(s.id)" [title]="s.name" draggable="false">
-                  <i class="pi pi-objects-column fw-section-icon" aria-hidden="true"></i>
+                <a [routerLink]="c?.base" [queryParams]="{ view: s.id }" class="tm-nav-link" [class.active]="isView(s.id)" [title]="s.name" draggable="false">
+                  @if (f.canEdit) {
+                    <span class="fw-drag-handle" aria-hidden="true"><i class="pi pi-bars"></i></span>
+                  } @else {
+                    <span class="fw-drag-handle" aria-hidden="true"></span>
+                  }
                   <span class="fw-num">{{ i + 1 }}</span>
                   <span class="tm-nav-label">{{ s.name }}</span>
                   <span class="fw-count">{{ s.fields.length }}</span>
@@ -53,26 +59,19 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
         </div>
 
         <ul class="tm-nav fw-tools">
-          <li>
-            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'settings' }" class="tm-nav-link" [class.active]="isView('settings')">
-              <i class="pi pi-cog"></i><span>Settings</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'scoring' }" class="tm-nav-link" [class.active]="isView('scoring')">
-              <i class="pi pi-chart-bar"></i><span>Scoring</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'links' }" class="tm-nav-link" [class.active]="isView('links')">
-              <i class="pi pi-link"></i><span>Links</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="['/forms', f.id, 'submissions']" routerLinkActive="active" class="tm-nav-link">
-              <i class="pi pi-inbox"></i><span>Submissions</span>
-            </a>
-          </li>
+          @for (t of c?.tools ?? []; track t.id) {
+            <li>
+              @if (t.route) {
+                <a [routerLink]="t.route" routerLinkActive="active" class="tm-nav-link">
+                  <i class="pi" [ngClass]="t.icon"></i><span>{{ t.label }}</span>
+                </a>
+              } @else {
+                <a [routerLink]="c?.base" [queryParams]="{ view: t.id }" class="tm-nav-link" [class.active]="isView(t.id)">
+                  <i class="pi" [ngClass]="t.icon"></i><span>{{ t.label }}</span>
+                </a>
+              }
+            </li>
+          }
         </ul>
       }
     </nav>
@@ -103,11 +102,18 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
     .fw-draggable {
       cursor: grab;
     }
-    /* A section icon in the same column as the icons below (Settings, Scoring, …). The whole row drags. */
-    .fw-section-icon {
+    /* A drag handle on hover, in the same column as the icons below (Settings, Scoring, …). The whole row drags. */
+    .fw-drag-handle {
       width: 1.1rem;
       flex-shrink: 0;
       text-align: center;
+      color: var(--drag-handle-color);
+      font-size: var(--fs-sm);
+      opacity: 0;
+    }
+    .fw-section-item:hover .fw-drag-handle,
+    .cdk-drag-preview .fw-drag-handle {
+      opacity: 1;
     }
     /* The drop slot: same look as a task row's drop slot in Tasks. */
     .fw-drag-placeholder {
@@ -144,11 +150,14 @@ export class FormWorkspaceSidebarComponent {
   newName = '';
   adding = signal(false);
 
-  /** Whether the page shows this view (?view=…; default: the first section, or Settings). */
+  /** Whether the form page shows this view (?view=…; default: the first section, or the config's empty view). */
   isView(view: string) {
     const f = this.ws.form();
-    if (!f || this.router.url.includes('/submissions')) return false;
-    const current = new URL(this.router.url, 'http://x').searchParams.get('view') ?? (f.sections[0]?.id ?? 'settings');
+    const c = this.ws.config();
+    if (!f || !c) return false;
+    const url = new URL(this.router.url, 'http://x');
+    if (url.pathname.replace(/\/$/, '') !== c.base.join('/').replace(/^\/*/, '/')) return false;
+    const current = url.searchParams.get('view') ?? (f.sections[0]?.id ?? c.emptyView);
     return current === view;
   }
 
@@ -160,10 +169,10 @@ export class FormWorkspaceSidebarComponent {
     moveItemInArray(sections, event.previousIndex, event.currentIndex);
     this.ws.form.set({ ...f, sections });
     try {
-      await this.ws.reorderSections(f.id, sections.map((s) => s.id));
+      await this.ws.reorderSections(sections.map((s) => s.id));
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not reorder', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
-      await this.ws.reload(f.id);
+      await this.ws.reload();
     }
   }
 
@@ -178,9 +187,9 @@ export class FormWorkspaceSidebarComponent {
     if (!f || !name) return;
     this.adding.set(true);
     try {
-      const id = await this.ws.addSection(f.id, name);
+      const id = await this.ws.addSection(name);
       this.addVisible = false;
-      await this.router.navigate(['/forms', f.id], { queryParams: { view: id } });
+      await this.router.navigate(this.ws.config()?.base ?? ['/forms', f.id], { queryParams: { view: id } });
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not add section', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
     } finally {

@@ -128,7 +128,7 @@ export class CareVisitsController {
       .map((u) => ({ ...personRef(u), email: u.email, firstName: u.firstName, lastName: u.lastName }));
   }
 
-  /** The visit checklist form (for Customize fields). */
+  /** The visit checklist form (for Customize form). */
   @Get('visit-form')
   async visitForm() {
     return { formId: (await this.checklistForm()).formId };

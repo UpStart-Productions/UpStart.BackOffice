@@ -906,7 +906,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'New intake',
-        body: 'Starts an intake form for an organization that has none yet. You can also start one from the Care card on the organization page. Customize fields (Care setup) changes the form and its public intake links.',
+        body: 'Starts an intake form for an organization that has none yet. You can also start one from the Care card on the organization page. Customize form (Care setup) changes the form and its public intake links.',
       },
     ],
   },
@@ -916,11 +916,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New care profile',
-        body: 'Pick an organization to start its care profile. You can also start one from the Care card on the organization page. Customize fields (Care setup) changes the form.',
+        body: 'Pick an organization to start its care profile. You can also start one from the Care card on the organization page. Customize form (Care setup) changes the form.',
       },
       {
         heading: 'Who sees what',
-        body: 'Each form sets Read or Edit per role (Customize fields). People only see organizations assigned to them unless their role has Organizations: All.',
+        body: 'Each form sets Read or Edit per role (Customize form). People only see organizations assigned to them unless their role has Organizations: All.',
       },
     ],
   },
@@ -956,7 +956,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Who sees what',
-        body: "Visits Own: only your own visits. All: everyone's visits at the organizations you reach. Filter by period, worker and organization. Customize fields (Care setup) changes the visit log checklist.",
+        body: "Visits Own: only your own visits. All: everyone's visits at the organizations you reach. Filter by period, worker and organization. Customize form (Care setup) changes the visit log checklist.",
       },
     ],
   },
@@ -993,8 +993,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     ],
   },
   'care/forms/:id': {
-    title: 'Customize fields',
-    intro: 'Opened with Customize fields on Intake or Care profiles (Care setup). Name, access, fields and public links for that form.',
+    title: 'Customize form',
+    intro: 'Opened with Customize form on Intake or Care profiles (Care setup). The column on the left lists the form\'s sections, then Settings, Who can use it and (Intake) Links. Drag sections to reorder them; + adds one.',
     sections: [
       {
         heading: 'Who can use it',

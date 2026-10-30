@@ -14,6 +14,7 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { exportSubmissionsExcel } from './form-submission-export.util';
+import { freeFormWorkspace } from './form-workspace.config';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
 
 type Tab = 'pending' | 'accepted' | 'dismissed' | 'all';
@@ -120,7 +121,7 @@ export class FormSubmissionsPage implements OnInit {
       const status = tabOnly ? TAB_STATUS[this.tab()] : undefined;
       const [list, form] = await Promise.all([
         this.forms.exportSubmissions(this.formId, status),
-        this.ws.form()?.id === this.formId ? Promise.resolve(this.ws.form()!) : this.forms.form(this.formId),
+        this.forms.form(this.formId),
       ]);
       if (!list.length) {
         this.toast.add({ severity: 'info', summary: 'Nothing to export', detail: tabOnly ? 'No submissions on this tab.' : 'No submissions yet.' });
@@ -150,7 +151,7 @@ export class FormSubmissionsPage implements OnInit {
   async ngOnInit() {
     const t = this.route.snapshot.queryParamMap.get('tab') as Tab | null;
     if (t && t in TAB_STATUS) this.tab.set(t);
-    if (this.ws.form()?.id !== this.formId) this.ws.form.set(null);
+    this.ws.open(this.formId, freeFormWorkspace(this.forms, this.formId));
     try {
       const f = await this.forms.form(this.formId);
       this.ws.form.set(f);

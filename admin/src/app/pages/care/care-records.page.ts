@@ -39,7 +39,7 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
     <app-page [title]="title" [helpKey]="kind === 'INTAKE' ? 'care.intake.page' : 'care.profiles.page'">
       <ng-container ngProjectAs="[pageActions]">
         @if (canSetup() && formId()) {
-          <a pButton label="Customize fields" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', formId()]"></a>
+          <a pButton label="Customize form" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', formId()]"></a>
         }
         @if (myAccess() === 'edit') {
           <p-button [label]="kind === 'INTAKE' ? 'New intake' : 'New care profile'" icon="pi pi-plus" (onClick)="openNew()" />
@@ -124,6 +124,8 @@ export class CareRecordsPage implements OnInit {
   items = signal<CareRecordListItemDto[]>([]);
   myAccess = signal<FormAccessLevel | null>(null);
   formId = signal<string | null>(null);
+  /** Fields on this kind's form; with none, a new record goes straight to Customize form. */
+  fieldCount = signal(0);
   pendingCount = signal(0);
   loading = signal(true);
   error = signal<string | null>(null);
@@ -165,6 +167,7 @@ export class CareRecordsPage implements OnInit {
       this.items.set(res.items);
       this.myAccess.set(res.myAccess);
       this.formId.set(res.formId);
+      this.fieldCount.set(res.fieldCount);
       this.pendingCount.set(res.pendingCount);
       this.error.set(null);
     } catch (err) {
@@ -192,6 +195,12 @@ export class CareRecordsPage implements OnInit {
     try {
       const { id } = await this.care.createRecord(formId, this.newClientId);
       this.newVisible = false;
+      // The form has no fields yet: set it up first (the new record is waiting on the list).
+      if (!this.fieldCount() && this.canSetup()) {
+        this.toast.add({ severity: 'info', summary: 'Add fields first', detail: 'This form has no fields yet. Add them here, then open the new record from the list.' });
+        await this.router.navigate(['/care/forms', formId]);
+        return;
+      }
       await this.router.navigate(['/care/records', id]);
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not start', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });

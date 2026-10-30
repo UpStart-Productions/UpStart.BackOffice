@@ -5,7 +5,7 @@
 ## Who sees what
 
 - The role needs the **Care** area (Users → Roles: Care **All**). **Setup** on Care lets someone change the forms and make public intake links.
-- Each form has **Who can use it** (**Customize fields** on Care → Intake or Care → Care profiles): **None**, **Read** or **Edit** per role. Admins can always edit.
+- Each form has **Who can use it** (**Customize form** on Care → Intake or Care → Care profiles): **None**, **Read** or **Edit** per role. Admins can always edit.
 - People only see forms for organizations they can reach: the organizations assigned to them, unless their role has **Organizations: All**.
 
 ## Intake
@@ -38,16 +38,16 @@ On a form page, **Share link → New link** makes a link to that organization's 
 - Changes made through the link save straight to the form. People who can edit the form and reach that organization get a notification (bell, and email unless turned off under Inbox → Notification settings).
 - Use the link's ⋮ menu to **Copy link**, **Open** or **Revoke** it. A revoked link stops working right away.
 
-## Customize fields (setup)
+## Customize form (setup)
 
-On **Care → Intake** and **Care → Care profiles**, people whose role has Care **Setup** see **Customize fields**. It opens that form's setup, where you can:
+On **Care → Intake** and **Care → Care profiles**, people whose role has Care **Setup** see **Customize form**. It opens that form's workspace, like a form in Forms: the main menu shrinks to icons and a second column lists the form's **Sections** (drag to reorder, **+** to add), then **Settings**, **Who can use it** and, on the Intake form, **Links**. Starting a new intake or care profile while the form has no fields brings you here first. There you can:
 
-- Change its **Name** and **Description** (shown at the top of public links), and **Who can use it**. Click **Save** at the top for these.
-- **Fields**: add a section, then **Add field** with a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and **Required** (required on public links; staff can save with it empty). The type can't be changed later. Drag a field by its ☰ handle to reorder it. The ⋮ menus edit or delete fields, and edit, move up or down, or delete sections. Deleting a field removes its answers from every record. Each field shows its type, whether it's required and its choices. Field changes save right away.
+- **Settings**: its **Name** and **Description** (formatted text, shown at the top of public links). **Who can use it**: the access per role. Click **Save** at the top for these.
+- **A section**: **Add field** with a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and **Required** (required on public links; staff can save with it empty). The type can't be changed later. Drag a field by its ☰ handle to reorder it. The ⋮ menus edit or delete fields, and edit, move up or down, or delete sections. Deleting a field removes its answers from every record. Each field shows its type, whether it's required and its choices. Field changes save right away.
 - **Form files** (⋮ menu at the top): **Export form file** downloads the form's sections and fields; **Import form file** adds a file's sections and fields after the form's own (nothing already there changes). Use them to copy a setup to another UBO, for example from a test site to your live one. Files from Forms work too; any scoring in them is dropped.
-- **Public intake links** (Intake form only): links anyone can use to send a new intake, for example from your website. Same checks as share links; with **Emailed code**, the person enters their own email and gets a code. New-intake links don't expire unless you set days.
+- **Links** (Intake form only): public intake links anyone can use to send a new intake, for example from your website. Same checks as share links; with **Emailed code**, the person enters their own email and gets a code. New-intake links don't expire unless you set days.
 
-A Care form starts with no fields. Until it has some, opening an intake or care profile says so; people with Care **Setup** get a **Customize fields** button there.
+A Care form starts with no fields. Until it has some, opening an intake or care profile says so; people with Care **Setup** get a **Customize form** button there.
 
 ## Public form page
 
@@ -61,7 +61,7 @@ People opening a link see your organization's name and the form. New intakes ask
 - **End visit** (on the visit page): saves the visit log and notes, sets the end to now and adds the hours to the worker's timesheet (no project, billable), so they invoice like any other time.
 - **Log past visit**: a visit that already happened (date, start, end; and the worker if your role sees everyone).
 - On a visit's page, change times, the visit log or notes and click **Save**; the time entry follows. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted. The ⋮ menu has **Delete** (also deletes its time entry).
-- **Customize fields** (Care setup) sets the **visit log** checklist filled in on every visit (for example meals, activities, mood). It has no per-role access or links: Visits access decides who uses it.
+- **Customize form** (Care setup) sets the **visit log** checklist filled in on every visit (for example meals, activities, mood). It has no per-role access or links: Visits access decides who uses it.
 
 ## Schedule
 

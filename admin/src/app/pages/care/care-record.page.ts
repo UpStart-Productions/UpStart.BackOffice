@@ -79,7 +79,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                 @if (canSetup()) {
                   <div class="flex align-items-center gap-3 flex-wrap">
                     <p class="m-0 flex-1">This form has no fields yet. Add sections and fields, or import a form file.</p>
-                    <a pButton label="Customize fields" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', r.formId]"></a>
+                    <a pButton label="Customize form" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', r.formId]"></a>
                   </div>
                 } @else {
                   <p class="m-0">This form has no fields yet. Ask someone who sets up Care to add them.</p>
@@ -123,7 +123,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             }
             @if (r.clientId && r.myAccess === 'edit') {
               <div class="card card--side">
-                <app-form-links apiBase="/care" [recordId]="r.id" helpKey="care.links.record" />
+                <app-form-links apiBase="/care" [recordId]="r.id" helpKey="care.links.record" [compact]="true" />
               </div>
             }
           </div>

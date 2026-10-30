@@ -22,10 +22,10 @@ import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
 import { AppUpdateService } from '../core/app-update.service';
 
-/** Routes rendered in the form workspace (icon rail + the form's sidebar): a form and its submissions. */
+/** Routes rendered in the form workspace (icon rail + the form's sidebar): a form and its submissions, and Care's Customize form. */
 export function isFormWorkspaceUrl(url: string): boolean {
   const path = url.split(/[?#]/)[0];
-  return /^\/forms\/(?!submissions(\/|$))[^/]+(\/submissions)?\/?$/.test(path);
+  return /^\/forms\/(?!submissions(\/|$))[^/]+(\/submissions)?\/?$/.test(path) || /^\/care\/forms\/[^/]+\/?$/.test(path);
 }
 
 /** Routes rendered in Task Manager mode (icon rail + task sidebar). */

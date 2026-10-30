@@ -1,3 +1,4 @@
+import { htmlToPlainText } from '../task-manager/task-mentions.util';
 import {
   BadRequestException, ForbiddenException, GoneException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
@@ -115,7 +116,7 @@ export class FormPublicService {
 
   info(req: PublicRequest, token: string): Promise<FormPublicLinkDto> {
     return this.withLink(req, token, async (link, destination) => ({
-      ...(await this.content(link).then((c) => ({ formName: c.name, description: c.description }))),
+      ...(await this.content(link).then((c) => ({ formName: c.name, ...descriptionParts(c.description) }))),
       organizationName: await this.organizationName(link.tenantId),
       kind: link.kind,
       clientName: link.client?.name ?? null,
@@ -281,4 +282,11 @@ export class FormPublicService {
     });
     return accessToken;
   }
+}
+
+/** A description written in the editor is HTML: send plain text for embeds and the HTML for UBO's own page. */
+function descriptionParts(description: string | null): { description: string | null; descriptionHtml: string | null } {
+  if (!description?.trim()) return { description: null, descriptionHtml: null };
+  if (!/^\s*</.test(description)) return { description, descriptionHtml: null };
+  return { description: htmlToPlainText(description, 10000) || null, descriptionHtml: description };
 }

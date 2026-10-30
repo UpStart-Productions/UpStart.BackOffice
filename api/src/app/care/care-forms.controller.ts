@@ -17,7 +17,7 @@ import { UpdateCareFormDto } from './care.dto';
 const M = CARE_FORM_MODULE;
 
 /**
- * Customize fields (Care → Intake / Care profiles / Visits): Care's forms on the form engine, their sections and
+ * Customize form (Care → Intake / Care profiles / Visits): Care's forms on the form engine, their sections and
  * fields, who can use them (per role) and their public links. Changing a form needs Care Setup; reading one needs access to it.
  */
 @ApiTags('care')
