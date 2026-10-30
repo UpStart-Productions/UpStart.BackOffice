@@ -44,10 +44,21 @@ function toHtml(raw: string): string {
 
   for (const line of lines) {
     const trimmed = line.trim();
+    const headingMatch = trimmed.match(/^#{1,6}\s+(.*?)\s*#*$/);
     const bulletMatch = trimmed.match(/^[-*]\s+(.*)/);
     const numberedMatch = trimmed.match(/^\d+[.)]\s+(.*)/);
 
-    if (bulletMatch) {
+    if (headingMatch) {
+      // Headings (# … ######) become one small heading style: chat answers don't need levels.
+      flushList();
+      flushPara();
+      blocks.push(`<h4>${inlineFormat(headingMatch[1])}</h4>`);
+    } else if (/^([-*_])(\s*\1){2,}$/.test(trimmed)) {
+      // --- / *** / ___ : a divider
+      flushList();
+      flushPara();
+      blocks.push('<hr>');
+    } else if (bulletMatch) {
       flushPara();
       if (listType !== 'ul') flushList();
       listType = 'ul';

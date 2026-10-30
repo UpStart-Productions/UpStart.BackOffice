@@ -49,6 +49,11 @@ export class FormsApi {
     const q = status ? `?status=${status}` : '';
     return this.api.get<{ items: FormSubmissionListItemDto[]; pendingCount: number }>(`${this.base}/forms/${formId}/submissions${q}`);
   }
+  /** Every submission with answers (for Export to Excel). */
+  exportSubmissions(formId: string, status?: FormSubmissionStatus) {
+    const q = status ? `?status=${status}` : '';
+    return this.api.get<FormSubmissionDto[]>(`${this.base}/forms/${formId}/submissions/export${q}`);
+  }
   submission(id: string) {
     return this.api.get<FormSubmissionDto>(`${this.base}/submissions/${id}`);
   }

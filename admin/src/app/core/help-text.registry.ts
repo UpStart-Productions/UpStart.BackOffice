@@ -162,9 +162,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Profiles by score, e.g. 0–25% Finding Your Bearings. Each has what it means, next steps and an optional download. People see the profile their percentage falls in.',
   'forms.form.bandUpTo': 'The highest percentage for this profile. The profile with the highest number also covers everything above it.',
   'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
-  'forms.submissions.page': 'Everything sent through this form. Open one to see the answers and score, then Accept or Dismiss it.',
+  'forms.submissions.page': 'Everything sent through this form. Open one to see the answers and score, then Accept or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
   'forms.submission.page':
-    'One submission: the answers, the score and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing one. Dismiss sets it aside; Restore brings it back.',
+    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing one. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
   // Care module
   'care.form.page':
     'Customize this form: name, who can use it, its sections and fields, and (Intake) public links. Field changes save right away; Save is for the name, description and access.',

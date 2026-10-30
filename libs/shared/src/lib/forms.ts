@@ -296,6 +296,34 @@ export function computeFormScores(sections: FormSectionDto[], scoring: FormScori
   };
 }
 
+/** An answer as text: option labels for selects, Yes for a ticked checkbox, a readable date. Empty → ''. */
+export function formatFormValue(field: FormFieldDto, value: unknown): string {
+  if (value === null || value === undefined || value === '') return '';
+  const label = (id: unknown) => field.options.find((o) => o.id === id)?.label ?? String(id);
+  switch (field.type) {
+    case 'SINGLE_SELECT':
+      return label(value);
+    case 'MULTI_SELECT':
+      return Array.isArray(value) ? value.map(label).join(', ') : label(value);
+    case 'CHECKBOX':
+      return value === true ? 'Yes' : '';
+    case 'DATE': {
+      const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+      if (!m) return String(value);
+      return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    default:
+      return String(value);
+  }
+}
+
+/** Points an answer earned, or null when the field isn't scored. */
+export function formFieldPoints(field: FormFieldDto, value: unknown): number | null {
+  if (!isSelectFieldType(field.type) || !field.options.some((o) => typeof o.points === 'number')) return null;
+  const ids = Array.isArray(value) ? value : value == null ? [] : [value];
+  return ids.reduce<number>((sum, id) => sum + (field.options.find((o) => o.id === id)?.points ?? 0), 0);
+}
+
 /** Sections as public pages see them: no points or score areas. */
 export function publicSections(sections: FormSectionDto[]): FormSectionDto[] {
   return sections.map((s) => ({

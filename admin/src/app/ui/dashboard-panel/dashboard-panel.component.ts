@@ -159,7 +159,7 @@ export type DashboardPanelTab = {
         padding: 0;
         border: 0;
         background: transparent;
-        color: var(--text-color-secondary);
+        color: var(--drag-handle-color);
         border-radius: var(--content-border-radius);
         cursor: grab;
       }

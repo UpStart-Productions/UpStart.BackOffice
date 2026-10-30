@@ -19,31 +19,6 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
   template: `
     <nav class="tm-sidebar" aria-label="Form">
       @if (ws.form(); as f) {
-        <a routerLink="/forms" class="tm-nav-link fw-back"><i class="pi pi-arrow-left"></i><span>All forms</span></a>
-        <div class="fw-title" [title]="f.name">{{ f.name }}</div>
-        <ul class="tm-nav">
-          <li>
-            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'settings' }" class="tm-nav-link" [class.active]="isView('settings')">
-              <i class="pi pi-cog"></i><span>Settings</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'scoring' }" class="tm-nav-link" [class.active]="isView('scoring')">
-              <i class="pi pi-chart-bar"></i><span>Scoring</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'links' }" class="tm-nav-link" [class.active]="isView('links')">
-              <i class="pi pi-link"></i><span>Links</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="['/forms', f.id, 'submissions']" routerLinkActive="active" class="tm-nav-link">
-              <i class="pi pi-inbox"></i><span>Submissions</span>
-            </a>
-          </li>
-        </ul>
-
         <div class="fw-sections">
           <div class="tm-nav-group-header-row">
             <span class="tm-nav-group-header">Sections</span>
@@ -78,6 +53,29 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
             }
           </ul>
         </div>
+
+        <ul class="tm-nav fw-tools">
+          <li>
+            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'settings' }" class="tm-nav-link" [class.active]="isView('settings')">
+              <i class="pi pi-cog"></i><span>Settings</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'scoring' }" class="tm-nav-link" [class.active]="isView('scoring')">
+              <i class="pi pi-chart-bar"></i><span>Scoring</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: 'links' }" class="tm-nav-link" [class.active]="isView('links')">
+              <i class="pi pi-link"></i><span>Links</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="['/forms', f.id, 'submissions']" routerLinkActive="active" class="tm-nav-link">
+              <i class="pi pi-inbox"></i><span>Submissions</span>
+            </a>
+          </li>
+        </ul>
       }
     </nav>
 
@@ -93,18 +91,9 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
     </p-dialog>
   `,
   styles: `
-    .fw-back {
-      color: var(--text-color-secondary);
-    }
-    .fw-title {
-      font-weight: 600;
-      padding: 0.25rem 0.65rem 0.5rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .fw-sections {
+    .fw-tools {
       border-top: 1px solid var(--tm-border);
+      margin-top: 0.5rem;
       padding-top: 0.5rem;
     }
     .fw-num {
@@ -116,10 +105,13 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
     .fw-draggable {
       cursor: grab;
     }
+    /* Sits in the same column as the icons above (Settings, Scoring, …). */
     .fw-drag-handle {
-      color: var(--text-color-secondary);
+      color: var(--drag-handle-color);
       opacity: 0;
-      margin-left: -0.35rem;
+      width: 1.1rem;
+      flex-shrink: 0;
+      text-align: center;
       font-size: var(--fs-sm);
     }
     .fw-section-item:hover .fw-drag-handle,

@@ -8,6 +8,8 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
+import { fileExtLabel, fileIconClass, isRasterImage, isVideoFile } from '../../core/file-type.util';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, createdOnLabel, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
@@ -17,7 +19,7 @@ import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
 import { TmStoreService } from '../core/tm-store.service';
 import { isAdminRole, withinTaskCommentAuthorGrace } from '@upstart/back-office/shared';
-import { Person, TaskComment, TaskDetail, TaskSummary } from '../core/tm.types';
+import { Person, TaskAttachment, TaskComment, TaskDetail, TaskSummary } from '../core/tm.types';
 import { TmDueDatePickerComponent } from './due-date-picker.component';
 import { TmFieldCellComponent } from './field-cell.component';
 import { TmPersonPickerComponent } from './person-picker.component';
@@ -43,6 +45,7 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     TmDueDatePickerComponent,
     TmRecurrenceEditorComponent,
     TmFieldCellComponent,
+    AppDialogModule,
   ],
   templateUrl: './task-detail-panel.component.html',
   animations: [
@@ -95,6 +98,11 @@ export class TmTaskDetailComponent implements OnDestroy {
   editingCommentId = signal<string | null>(null);
   editCommentDraft = '';
   uploading = signal(false);
+  /** Files uploading now (spinner) or just finished (check), shown in the drop zone. */
+  uploadProgress = signal<{ name: string; done: boolean }[]>([]);
+  dragOver = signal(false);
+  /** The photo or video open in the viewer. */
+  previewAttachment = signal<TaskAttachment | null>(null);
   commentComposerOpen = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
@@ -502,11 +510,63 @@ export class TmTaskDetailComponent implements OnDestroy {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = '';
+    await this.uploadFiles(files);
+  }
+
+  onDragOver(event: DragEvent) {
+    if (!event.dataTransfer?.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    this.dragOver.set(true);
+  }
+
+  onDragLeave(event: DragEvent) {
+    const zone = event.currentTarget as HTMLElement;
+    if (event.relatedTarget instanceof Node && zone.contains(event.relatedTarget)) return;
+    this.dragOver.set(false);
+  }
+
+  async onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.dragOver.set(false);
+    await this.uploadFiles(Array.from(event.dataTransfer?.files ?? []));
+  }
+
+  attachmentIsImage(a: TaskAttachment) {
+    return isRasterImage(a.fileName, a.mimeType);
+  }
+
+  attachmentIsVideo(a: TaskAttachment) {
+    return isVideoFile(a.fileName, a.mimeType);
+  }
+
+  /** Photos and videos open in a viewer; other files open in a new tab (so does Cmd/Ctrl-click). */
+  openAttachment(a: TaskAttachment, event: MouseEvent) {
+    if (a.isLink || event.metaKey || event.ctrlKey) return;
+    if (!this.attachmentIsImage(a) && !this.attachmentIsVideo(a)) return;
+    event.preventDefault();
+    this.previewAttachment.set(a);
+  }
+
+  attachmentIcon(a: TaskAttachment) {
+    return fileIconClass(a.fileName, a.mimeType);
+  }
+
+  attachmentExt(a: TaskAttachment) {
+    return fileExtLabel(a.fileName);
+  }
+
+  /** Upload one at a time, each with a spinner then a check in the drop zone; the cards appear when all are in. */
+  private async uploadFiles(files: File[]) {
     const t = this.task();
-    if (!t || !files.length) return;
+    if (!t || !files.length || this.uploading()) return;
     this.uploading.set(true);
+    this.uploadProgress.set(files.map((f) => ({ name: f.name, done: false })));
     try {
-      for (const file of files) await this.api.uploadAttachment(t.id, file);
+      for (const [i, file] of files.entries()) {
+        await this.api.uploadAttachment(t.id, file);
+        this.uploadProgress.update((list) => list.map((p, j) => (j === i ? { ...p, done: true } : p)));
+      }
       await this.load(t.id, true);
       const fresh = this.task();
       if (fresh) this.changed.emit(fresh);
@@ -514,6 +574,7 @@ export class TmTaskDetailComponent implements OnDestroy {
       this.fail(err);
     } finally {
       this.uploading.set(false);
+      this.uploadProgress.set([]);
     }
   }
 

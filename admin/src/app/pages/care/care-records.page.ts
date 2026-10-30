@@ -62,7 +62,7 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             </p-tablist>
           </p-tabs>
         }
-        <div class="toolbar">
+        <div class="toolbar" [class.mt-3]="canSeePending()">
           <div class="toolbar-search">
             <app-toolbar-search-field placeholder="Search by organization or name…" ariaLabel="Search" [(ngModel)]="query" />
           </div>

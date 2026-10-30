@@ -18,7 +18,7 @@ Each form shows its status: **Draft** (never published), **Published**, or **Cha
 
 ## A form page
 
-Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists **All forms**, **Settings**, **Scoring**, **Links**, **Submissions** and the form's **Sections** (numbered, with how many questions each has). Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again.
+Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists the form's **Sections** (numbered, with how many questions each has), with **Settings**, **Scoring**, **Links** and **Submissions** below them. Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again; **Forms** in the main menu goes back to the list.
 
 - A section shows its questions. Its ⋮ menu has **Edit section** (name and an optional **Intro**, a line or two shown under the section title) and **Delete**. **Add field** adds a question. Drag a question by its ☰ handle to reorder it.
 - **Details** (name, description) and **Settings** save with **Save** at the top.
@@ -58,8 +58,14 @@ New link also has **Allowed websites**. The **Websites** column on the links lis
 
 ## Submissions
 
-Open **Submissions** from the form page or the list. Tabs: **Waiting for review**, **Accepted**, **Dismissed**, **All**. Open a submission to see the answers (as they were asked in that version), who sent it and the score.
+Open **Submissions** from the form page or the list. Tabs: **Waiting for review**, **Accepted**, **Dismissed**, **All**. **Export Excel** downloads a workbook for analysis outside UBO: click it for every submission, or use the arrow for **This tab only**. It has three sheets:
+
+- **Answers**: one row per answer, with when it came in, its status and who sent it, then the section, question code (Q1, Q2…), question and answer. On scored forms each row also has the answer's points and the question's score area.
+- **Results** (scored forms): one row per submission with the total points, total score %, profile and each score area.
+- **Questions**: the key to the codes: section, question, type, required, whether it's still on the form, score area and the choices with their points. Codes follow the current form order, so they stay the same when a question is reworded; questions only in earlier versions come last. Open a submission to see who sent it and its answers as text, as they were asked in that version (on scored forms each scored answer shows its points). Scored forms add a **Results** tab: the total score, the profile with its description, next steps and download, and each score area. The **Score** panel shows the total score and the profile.
+
+- **Export PDF** (⋮ menu) downloads who sent it, the results and every answer. **Export Excel** gives the same as a sheet, one row per question.
 
 - **Accept** → **New organization** creates a Prospect with that name (the sender's organization by default), a pipeline card with source Inbound, and the sender as its person. **Existing organization** attaches the submission to one you pick. **Open organization** goes there afterwards.
-- **Dismiss** sets it aside under **Dismissed**; **Restore** brings it back.
+- **Dismiss** (⋮ menu) sets it aside under **Dismissed**; **Restore** (⋮ menu) brings it back.
 - **Delete** (⋮ menu) removes it and its results link for good.

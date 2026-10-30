@@ -235,7 +235,7 @@
 .tm-drag-handle {
   cursor: grab;
   opacity: 0;
-  color: var(--tm-muted);
+  color: var(--drag-handle-color);
   font-size: var(--fs-sm);
   padding: 0 0.1rem;
 }

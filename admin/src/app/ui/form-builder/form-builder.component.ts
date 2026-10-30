@@ -231,7 +231,7 @@ export type BuilderForm = { id: string; sections: Section[] };
     }
     .fb-drag-handle {
       cursor: grab;
-      color: var(--text-color-secondary);
+      color: var(--drag-handle-color);
       padding: 0 0.15rem;
     }
     /* The drop slot while dragging a question: same look as a task row's drop slot in Tasks. */

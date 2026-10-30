@@ -472,27 +472,43 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
         background: var(--p-primary-100, #dbeafe);
       }
 
-      .help-agent-chat-msg p {
+      .help-agent-chat-msg ::ng-deep p {
         margin: 0 0 0.5rem;
       }
 
-      .help-agent-chat-msg ul,
-      .help-agent-chat-msg ol {
+      .help-agent-chat-msg ::ng-deep ul,
+      .help-agent-chat-msg ::ng-deep ol {
         margin: 0 0 0.5rem;
         padding-left: 1.1rem;
       }
 
-      .help-agent-chat-msg li {
+      .help-agent-chat-msg ::ng-deep h4 {
+        margin: 0.75rem 0 0.35rem;
+        font-size: var(--fs-base);
+        font-weight: 600;
+      }
+
+      .help-agent-chat-msg ::ng-deep h4:first-child {
+        margin-top: 0;
+      }
+
+      .help-agent-chat-msg ::ng-deep hr {
+        border: none;
+        border-top: 1px solid var(--surface-border);
+        margin: 0.75rem 0;
+      }
+
+      .help-agent-chat-msg ::ng-deep li {
         margin-bottom: 0.25rem;
       }
 
-      .help-agent-chat-msg p:last-child,
-      .help-agent-chat-msg ul:last-child,
-      .help-agent-chat-msg ol:last-child {
+      .help-agent-chat-msg ::ng-deep p:last-child,
+      .help-agent-chat-msg ::ng-deep ul:last-child,
+      .help-agent-chat-msg ::ng-deep ol:last-child {
         margin-bottom: 0;
       }
 
-      .help-agent-chat-msg code {
+      .help-agent-chat-msg ::ng-deep code {
         background: rgba(0, 0, 0, 0.06);
         padding: 0.1rem 0.3rem;
         border-radius: 3px;

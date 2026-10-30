@@ -194,6 +194,78 @@
         }
       </section>
 
+      @if (canComment() || t.attachments.length) {
+        <section class="tm-detail-section">
+          <h3 class="tm-detail-heading tm-detail-heading--caps">Attachments</h3>
+          @if (canComment()) {
+            <div
+              class="artifact-dropzone tm-attach-drop"
+              [class.artifact-dropzone--active]="dragOver()"
+              [class.artifact-dropzone--uploading]="uploading()"
+              role="button"
+              tabindex="0"
+              aria-label="Attach files: drop them here or press to browse"
+              (click)="pickFile()"
+              (keydown.enter)="pickFile()"
+              (keydown.space)="pickFile(); $event.preventDefault()"
+              (dragenter)="onDragOver($event)"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+            >
+              <span class="tm-attach-drop-label">
+                <i class="pi pi-cloud-upload artifact-dropzone-icon" aria-hidden="true"></i>
+                <span class="artifact-dropzone-text">Drop files here, or click to browse</span>
+              </span>
+              @if (uploadProgress().length) {
+                <div class="artifact-upload-progress">
+                  @for (p of uploadProgress(); track $index) {
+                    <span class="artifact-upload-item">
+                      <i class="pi" [class.pi-check]="p.done" [class.pi-spin]="!p.done" [class.pi-spinner]="!p.done"></i>
+                      {{ p.name }}
+                    </span>
+                  }
+                </div>
+              }
+            </div>
+          }
+          @if (t.attachments.length) {
+            <div class="artifact-card-grid tm-attach-grid">
+              @for (a of t.attachments; track a.id) {
+                <div class="artifact-file-card tm-attach-card">
+                  <a class="artifact-file-card-inner" [href]="resolveAssetUrl(a.url)" target="_blank" rel="noopener" [title]="a.fileName" (click)="openAttachment(a, $event)">
+                    @if (!a.isLink && attachmentIsImage(a)) {
+                      <img class="artifact-file-thumb" [src]="resolveAssetUrl(a.url)" alt="" />
+                    } @else if (!a.isLink && attachmentIsVideo(a)) {
+                      <!-- #t=0.1 makes the browser show the first frame instead of a blank box. -->
+                      <span class="tm-attach-video">
+                        <video class="artifact-file-thumb" [src]="resolveAssetUrl(a.url) + '#t=0.1'" preload="metadata" muted playsinline aria-hidden="true"></video>
+                        <span class="tm-attach-play" aria-hidden="true"><i class="pi pi-play"></i></span>
+                      </span>
+                    } @else {
+                      <div class="artifact-file-icon-wrap">
+                        <i class="pi artifact-file-icon" [class]="a.isLink ? 'pi-link' : attachmentIcon(a)"></i>
+                        @if (!a.isLink) {
+                          <span class="artifact-file-ext">{{ attachmentExt(a) }}</span>
+                        }
+                      </div>
+                    }
+                    <div class="artifact-file-footer">
+                      <div class="artifact-file-name">{{ a.fileName }}</div>
+                    </div>
+                  </a>
+                  @if (canEdit()) {
+                    <button type="button" class="tm-attach-remove" (click)="removeAttachment(a.id)" [attr.aria-label]="'Remove ' + a.fileName">
+                      <i class="pi pi-trash" aria-hidden="true"></i>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </section>
+      }
+
       <section class="tm-detail-section">
         <h3 class="tm-detail-heading tm-detail-heading--caps">
           Subtasks
@@ -250,27 +322,27 @@
         }
       </section>
 
-      @if (t.attachments.length) {
-        <section class="tm-detail-section">
-          <h3 class="tm-detail-heading">Attachments</h3>
-          <ul class="tm-attachments">
-            @for (a of t.attachments; track a.id) {
-              <li class="tm-attachment">
-                @if (a.mimeType?.startsWith('image/') && a.url) {
-                  <img class="tm-attachment-thumb" [src]="resolveAssetUrl(a.url)" alt="" />
-                } @else {
-                  <i class="pi" [class.pi-link]="a.isLink" [class.pi-file]="!a.isLink"></i>
-                }
-                <a [href]="resolveAssetUrl(a.url)" target="_blank" rel="noopener">{{ a.fileName }}</a>
-                <span class="tm-muted">{{ fileSizeLabel(a.fileSize) }}</span>
-                @if (canEdit()) {
-                  <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-icon-btn--danger" (click)="removeAttachment(a.id)" aria-label="Remove attachment"><i class="pi pi-trash"></i></button>
-                }
-              </li>
-            }
-          </ul>
-        </section>
-      }
+      <p-dialog
+        [header]="previewAttachment()?.fileName ?? ''"
+        [visible]="!!previewAttachment()"
+        (visibleChange)="!$event && previewAttachment.set(null)"
+        [modal]="true"
+        [dismissableMask]="true"
+        [draggable]="false"
+        [style]="{ width: 'min(60rem, 96vw)' }"
+        appendTo="body"
+      >
+        @if (previewAttachment(); as v) {
+          @if (attachmentIsVideo(v)) {
+            <video class="tm-preview-media" [src]="resolveAssetUrl(v.url)" controls autoplay playsinline></video>
+          } @else {
+            <img class="tm-preview-media tm-preview-image" [src]="resolveAssetUrl(v.url)" [alt]="v.fileName" />
+          }
+          <div class="tm-preview-footer">
+            <a [href]="resolveAssetUrl(v.url)" [attr.download]="v.fileName" class="text-primary"><i class="pi pi-download mr-1"></i>Download</a>
+          </div>
+        }
+      </p-dialog>
 
       <section class="tm-detail-section tm-activity">
         <div class="tm-activity-header">

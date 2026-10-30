@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import {
-  allows, normalizeFormSettings, parseFormDefinition, type FormDefinition, type FormScores, type FormSnapshot, type FormSubmissionDto, type FreeFormDto, type FreeFormListItemDto,
+  allows, normalizeFormSettings, parseFormDefinition, type FormDefinition, type FormScores, type FormSectionDto, type FormSnapshot, type FormSubmissionDto, type FreeFormDto, type FreeFormListItemDto,
 } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
@@ -16,7 +16,7 @@ import { formFieldOptions, liveValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
 import { AcceptSubmissionDto, CreateFreeFormDto, ImportFreeFormDto, SUBMISSION_STATUSES, UpdateFreeFormDto } from './free-forms.dto';
-import { bandsOf, liveSnapshot, M, personName, snapshotsDiffer, SUBMISSION_INCLUDE, submissionItem } from './free-forms.util';
+import { bandsOf, liveSnapshot, M, personName, snapshotsDiffer, SUBMISSION_INCLUDE, submissionItem, type SubmissionRow } from './free-forms.util';
 
 /**
  * Forms area: free-standing forms (module "forms"), their fields and scoring, Publish, public links and
@@ -358,15 +358,36 @@ export class FreeFormsController {
     return { items: rows.map(submissionItem), pendingCount };
   }
 
+  /** Every submission with its answers, for the Excel export. ?status like the list. */
+  @Get('forms/:id/submissions/export')
+  async exportSubmissions(@Req() req: Request, @Param('id') formId: string, @Query('status') status?: string): Promise<FormSubmissionDto[]> {
+    const user = req.user as UserContext;
+    const form = await this.findForm(user, formId);
+    const st = SUBMISSION_STATUSES.find((s) => s === status);
+    const rows = await this.prisma.formResponse.findMany({
+      where: { formId, ...(st ? { status: st } : {}) },
+      orderBy: { createdAt: 'asc' },
+      include: SUBMISSION_INCLUDE,
+    });
+    const current = rows.some((r) => !r.version) ? await this.structure.sections(formId) : [];
+    return rows.map((r) => this.submissionDto(user, r, form.name, current));
+  }
+
   @Get('submissions/:id')
   async submission(@Req() req: Request, @Param('id') id: string): Promise<FormSubmissionDto> {
     const user = req.user as UserContext;
     const r = await this.findSubmission(user, id);
+    const current = r.version ? [] : await this.structure.sections(r.formId);
+    return this.submissionDto(user, r, r.form.name, current);
+  }
+
+  /** `current`: the form's sections now, for submissions saved before versions. */
+  private submissionDto(user: UserContext, r: SubmissionRow, formName: string, current: FormSectionDto[]): FormSubmissionDto {
     const snap = r.version?.snapshot as unknown as FormSnapshot | undefined;
-    const sections = snap?.sections ?? (await this.structure.sections(r.formId));
+    const sections = snap?.sections ?? current;
     return {
       ...submissionItem(r),
-      formName: r.form.name,
+      formName,
       submitterPhone: r.submitterPhone,
       versionNumber: r.version?.number ?? null,
       sections,

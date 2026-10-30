@@ -398,35 +398,126 @@
   }
 }
 
-.tm-attachments {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
+// Attachments: a full-width drop zone (reuses the Files tab dropzone) and a grid of file cards.
+.tm-attach-drop {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 4.5rem;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
 
-.tm-attachment {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: var(--fs-base);
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
 
-  a {
-    color: var(--brand-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .artifact-upload-progress {
+    align-items: center;
   }
 }
 
-.tm-attachment-thumb {
-  width: 2.5rem;
-  height: 2.5rem;
-  object-fit: cover;
-  border-radius: 4px;
-  border: 1px solid var(--tm-border);
+.tm-attach-drop-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tm-attach-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  margin-top: 0;
+
+  .artifact-file-thumb,
+  .artifact-file-icon-wrap {
+    height: 90px;
+  }
+}
+
+// Video cards: the first frame with a play button over it.
+.tm-attach-video {
+  position: relative;
+  display: block;
+
+  video {
+    pointer-events: none;
+    background: #000;
+  }
+}
+
+.tm-attach-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .pi {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    padding-left: 0.15rem;
+  }
+}
+
+// Attachment viewer (photos and videos).
+.tm-preview-media {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  background: #000;
+  border-radius: 6px;
+}
+
+.tm-preview-image {
+  object-fit: contain;
+  background: var(--surface-ground);
+}
+
+.tm-preview-footer {
+  margin-top: 0.75rem;
+}
+
+// White circle with a trash can, top right on hover (like the People photo).
+.tm-attach-remove {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--color-severity-danger-text, #c62828);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 1;
+
+  .pi {
+    font-size: 0.8rem;
+  }
+
+  .tm-attach-card:hover &,
+  &:focus-visible {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .tm-attach-remove {
+    opacity: 1;
+  }
 }
 
 .tm-activity-header {

@@ -7,6 +7,7 @@ import { TabsModule } from 'primeng/tabs';
 import { MessageModule } from 'primeng/message';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
+import { fileExtension, fileExtLabel, fileIconClass, isRasterImage } from '../../core/file-type.util';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
@@ -24,8 +25,6 @@ type Artifact = {
 };
 
 /** Raster images only — SVG and documents use icon cards (img preview often fails for SVG). */
-const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-const RASTER_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp']);
 
 @Component({
   selector: 'app-artifacts-panel',
@@ -267,16 +266,11 @@ export class ArtifactsPanelComponent {
   }
 
   private fileExtension(a: Artifact): string {
-    const name = a.fileUrl ?? a.title;
-    return name.split('.').pop()?.toLowerCase() ?? '';
+    return fileExtension(a.fileUrl ?? a.title);
   }
 
   isImage(a: Artifact): boolean {
-    const mime = a.mimeType ?? '';
-    if (mime === 'image/svg+xml') return false;
-    if (mime && IMAGE_MIME_TYPES.has(mime)) return true;
-    const ext = this.fileExtension(a);
-    return RASTER_EXTENSIONS.has(ext);
+    return isRasterImage(a.fileUrl ?? a.title, a.mimeType);
   }
 
   isPdf(a: Artifact): boolean {
@@ -323,35 +317,11 @@ export class ArtifactsPanelComponent {
   }
 
   fileExt(a: Artifact): string {
-    return this.fileExtension(a).toUpperCase().slice(0, 4);
+    return fileExtLabel(a.fileUrl ?? a.title);
   }
 
   fileIcon(a: Artifact): string {
-    const mime = a.mimeType ?? '';
-    const ext = this.fileExtension(a);
-
-    if (mime === 'application/pdf' || ext === 'pdf') return 'pi-file-pdf';
-    if (
-      mime === 'application/msword' ||
-      mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      ext === 'doc' ||
-      ext === 'docx'
-    ) {
-      return 'pi-file-word';
-    }
-    if (
-      mime === 'application/vnd.ms-excel' ||
-      mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-      ext === 'xls' ||
-      ext === 'xlsx'
-    ) {
-      return 'pi-file-excel';
-    }
-    if (mime === 'text/plain' || ext === 'txt') return 'pi-file';
-    if (mime === 'image/svg+xml' || ext === 'svg') return 'pi-image';
-    if (mime.startsWith('video/')) return 'pi-video';
-    if (mime.startsWith('audio/')) return 'pi-volume-up';
-    return 'pi-file';
+    return fileIconClass(a.fileUrl ?? a.title, a.mimeType);
   }
 
   private get queryParam() {

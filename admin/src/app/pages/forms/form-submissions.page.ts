@@ -2,6 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MessageService, type MenuItem } from 'primeng/api';
+import { SplitButtonModule } from 'primeng/splitbutton';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
@@ -11,6 +13,7 @@ import { FormsApi } from '../../core/forms.api';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
+import { exportSubmissionsExcel } from './form-submission-export.util';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
 
 type Tab = 'pending' | 'accepted' | 'dismissed' | 'all';
@@ -20,9 +23,21 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
 @Component({
   selector: 'app-form-submissions-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, MessageModule, TableModule, TabsModule, TagModule, PageComponent, ToolbarSearchFieldComponent],
+  imports: [DatePipe, FormsModule, RouterLink, SplitButtonModule, MessageModule, TableModule, TabsModule, TagModule, PageComponent, ToolbarSearchFieldComponent],
   template: `
     <app-page [title]="(formName() || 'Form') + ': Submissions'" [backLink]="['/forms', formId]" [backLabel]="'Back to ' + (formName() || 'form')" helpKey="forms.submissions.page">
+      <ng-container ngProjectAs="[pageActions]">
+        <p-splitButton
+          label="Export Excel"
+          icon="pi pi-file-excel"
+          severity="secondary"
+          [outlined]="true"
+          [model]="exportItems"
+          [disabled]="exporting()"
+          title="Download submissions as an Excel workbook for analysis"
+          (onClick)="exportExcel(false)"
+        />
+      </ng-container>
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
@@ -40,7 +55,7 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
             <p-tab value="all">All</p-tab>
           </p-tablist>
         </p-tabs>
-        <div class="toolbar">
+        <div class="toolbar mt-3">
           <div class="toolbar-search">
             <app-toolbar-search-field placeholder="Search by name, email or organization…" ariaLabel="Search submissions" [(ngModel)]="query" />
           </div>
@@ -90,6 +105,37 @@ export class FormSubmissionsPage implements OnInit {
   error = signal<string | null>(null);
   tab = signal<Tab>('pending');
   query = '';
+  exporting = signal(false);
+  private readonly toast = inject(MessageService);
+
+  readonly exportItems: MenuItem[] = [
+    { label: 'All submissions', icon: 'pi pi-file-excel', command: () => void this.exportExcel(false) },
+    { label: 'This tab only', icon: 'pi pi-filter', command: () => void this.exportExcel(true) },
+  ];
+
+  /** The analysis workbook: every submission, or only the current tab's. */
+  async exportExcel(tabOnly: boolean) {
+    this.exporting.set(true);
+    try {
+      const status = tabOnly ? TAB_STATUS[this.tab()] : undefined;
+      const [list, form] = await Promise.all([
+        this.forms.exportSubmissions(this.formId, status),
+        this.ws.form()?.id === this.formId ? Promise.resolve(this.ws.form()!) : this.forms.form(this.formId),
+      ]);
+      if (!list.length) {
+        this.toast.add({ severity: 'info', summary: 'Nothing to export', detail: tabOnly ? 'No submissions on this tab.' : 'No submissions yet.' });
+        return;
+      }
+      const name = form.name || 'Form';
+      const suffix = tabOnly && this.tab() !== 'all' ? `-${this.tab()}` : '';
+      const base = `${name}-submissions${suffix}`.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+      exportSubmissionsExcel(name, { sections: form.sections, scoring: form.settings.scoring }, list, (r) => SUBMISSION_STATUS_TAG[r.status].label, base);
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not export', detail: err instanceof Error ? err.message : 'Failed' });
+    } finally {
+      this.exporting.set(false);
+    }
+  }
 
   round(n: number) {
     return Math.round(n);

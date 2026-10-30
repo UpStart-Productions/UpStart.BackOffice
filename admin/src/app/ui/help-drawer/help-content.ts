@@ -485,6 +485,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Click a task to open the side panel: assignee, due date, repeats, tags, description, subtasks, attachments and comments. Type @ in a comment to mention someone. You can edit or delete your own comment for 1 hour after posting; admins can delete any comment anytime. Copy task link shares it.',
       },
       {
+        heading: 'Attachments',
+        body: 'Drop files on the box under Description, or click it (or the paperclip at the top) to browse. Each file shows a spinner while it uploads, then appears as a card below. Click a card to open it: photos and videos (MP4, MOV) open in a viewer, other files in a new tab. Video cards show the first frame. The trash can on a card removes it. Files can be up to 25 MB.',
+      },
+      {
         heading: 'Moving and bulk actions',
         body: 'Drag tasks to reorder or move between sections. Hover a task row and use the down arrow (left of the drag handle) to move it to another section. Select several to change them together. A task can also be in another project.',
       },
@@ -822,7 +826,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'forms/:id': {
     title: 'Form',
-    intro: 'The form workspace: the column on the left lists Settings, Scoring, Links, Submissions and the form\'s sections. Click one to work on it.',
+    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring, Links and Submissions below them. Click one to work on it.',
     sections: [
       {
         heading: 'Sections',
@@ -862,19 +866,31 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         heading: 'Tabs',
         body: 'Waiting for review (when the form reviews submissions), Accepted, Dismissed and All. Each row shows the score and profile on scored forms.',
       },
+      {
+        heading: 'Export Excel',
+        body: 'A workbook for analysis outside UBO. Click for every submission; the arrow offers This tab only. Answers has a row per answer (when it came in, who sent it, status, question code, question, answer, and on scored forms points and score areas). Results (scored forms) has a row per submission with the total score and profile. Questions is the key to the codes (Q1, Q2…), which follow the current form order.',
+      },
     ],
   },
   'forms/submissions/:id': {
     title: 'Submission',
-    intro: 'The answers, the score and who sent it.',
+    intro: 'The answers, the results and who sent it.',
     sections: [
+      {
+        heading: 'Answers and results',
+        body: 'Answers shows every question with its answer (and points on scored forms). Results, on scored forms, shows the total score, the profile with its description and next steps, and each score area.',
+      },
+      {
+        heading: 'Export',
+        body: 'In the ⋮ menu: Export PDF (who sent it, results and every answer) or Export Excel (the same, one row per question).',
+      },
       {
         heading: 'Accept',
         body: 'New organization creates a Prospect with a pipeline card (source Inbound) and the sender as its person. Existing organization attaches the submission to one you pick.',
       },
       {
         heading: 'Dismiss and delete',
-        body: 'Dismiss sets it aside under Dismissed (Restore brings it back). Delete (⋮ menu) removes it and its results link for good.',
+        body: 'In the ⋮ menu. Dismiss sets it aside under Dismissed (Restore brings it back). Delete removes it and its results link for good.',
       },
     ],
   },
