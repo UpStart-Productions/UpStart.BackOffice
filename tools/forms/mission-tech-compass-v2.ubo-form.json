@@ -1,0 +1,678 @@
+{
+  "format": "ubo-form",
+  "version": 1,
+  "name": "Mission Tech Compass",
+  "description": "No grades, no judgment. Every nonprofit we work with has a version of this. As you answer, think of a real, recent example. It takes about 6 minutes.",
+  "settings": {
+    "review": true,
+    "askOrganization": true,
+    "askPhone": false,
+    "resultsEmail": true,
+    "thankYou": null,
+    "cta": {
+      "label": "Schedule a Discovery Chat",
+      "url": "https://heyupstart.com/book-discovery-chat/"
+    },
+    "scoring": {
+      "enabled": true,
+      "groups": [
+        {
+          "id": "reporting",
+          "name": "Reporting & Data"
+        },
+        {
+          "id": "workflows",
+          "name": "Everyday Workflows"
+        },
+        {
+          "id": "tools",
+          "name": "Tools & Systems"
+        },
+        {
+          "id": "people",
+          "name": "People & Know-how"
+        },
+        {
+          "id": "security",
+          "name": "Security & Trust"
+        }
+      ],
+      "bands": [
+        {
+          "id": "holding-it-together",
+          "label": "Holding It Together",
+          "upTo": 25,
+          "description": "Your team makes it work through sheer effort and memory. That's real commitment, and it's also what wears people out. Information lives in many places, key steps depend on who's in the office, and reports take far longer than they should. The good news: this is where a few small changes give back the most time.",
+          "nextSteps": [
+            "Pick one number your board asks for and give it one home",
+            "Write down the three tasks that only one person knows how to do",
+            "Start with a Tech Foundations Audit to find your biggest time leak",
+            "Hold off on new tools until the basics feel steady"
+          ],
+          "assetUrl": null,
+          "assetLabel": null
+        },
+        {
+          "id": "making-it-work",
+          "label": "Making It Work",
+          "upTo": 50,
+          "description": "You've got pieces that work. The friction lives in the gaps between them: copying from one tool to another, chasing updates, and double-checking numbers that don't match. Your team has found workarounds, and those workarounds quietly cost hours every week.",
+          "nextSteps": [
+            "Map one everyday workflow, like intake, from first contact to follow-up",
+            "Cut the most common double entry with Smarter Workflows",
+            "Bring your key numbers together with Data Clarity & Insight",
+            "Right-size your tools, but only after the cleanup"
+          ],
+          "assetUrl": null,
+          "assetLabel": null
+        },
+        {
+          "id": "picking-up-speed",
+          "label": "Picking Up Speed",
+          "upTo": 75,
+          "description": "The foundation is there. Most work has a home and a process. What's left is targeted: a report that still takes a day, a spreadsheet that's outgrown itself, or a handoff that depends on one person. A few focused fixes would give real time back.",
+          "nextSteps": [
+            "Fix the one workflow that breaks during busy seasons",
+            "Automate your most repeated report",
+            "Document the systems that live in one person's head",
+            "Explore custom tools only where you're hitting real limits"
+          ],
+          "assetUrl": null,
+          "assetLabel": null
+        },
+        {
+          "id": "ready-to-grow",
+          "label": "Ready to Grow",
+          "upTo": 100,
+          "description": "You're in good shape. Your systems are clear, your team uses them with confidence, and your data is trustworthy. Now technology can help you do more, not just keep up: deeper insight for funders, smoother experiences for the people you serve, and room to try new things.",
+          "nextSteps": [
+            "Use a Tech Foundations Audit as a strategic tune-up",
+            "Turn your data into impact stories for funders and your board",
+            "Connect your core tools so information flows on its own",
+            "Consider custom applications where off-the-shelf tools limit you"
+          ],
+          "assetUrl": null,
+          "assetLabel": null
+        }
+      ]
+    }
+  },
+  "sections": [
+    {
+      "name": "The Board Report Test",
+      "fields": [
+        {
+          "name": "Think about your last board or grant report. How did the numbers come together?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "reporting",
+          "options": [
+            {
+              "label": "Someone spent days pulling from spreadsheets, inboxes and people's memories",
+              "points": 0
+            },
+            {
+              "label": "A few hours of copying between files and chasing people for updates",
+              "points": 1
+            },
+            {
+              "label": "Mostly from one or two systems, with some cleanup",
+              "points": 2
+            },
+            {
+              "label": "We opened a report. Done in minutes.",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "To get one key number, like people served this month, how many places does someone check?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "reporting",
+          "options": [
+            {
+              "label": "4 or more (spreadsheets, email, paper, someone's memory)",
+              "points": 0
+            },
+            {
+              "label": "2 or 3",
+              "points": 1
+            },
+            {
+              "label": "One place, but we double-check it",
+              "points": 2
+            },
+            {
+              "label": "One place, and we trust it",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "A funder asks something you didn't plan for, like \"How many returning families came from the north county?\" What happens?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "reporting",
+          "options": [
+            {
+              "label": "Honestly, we probably couldn't answer it",
+              "points": 0
+            },
+            {
+              "label": "We could, after a day or two of digging",
+              "points": 1
+            },
+            {
+              "label": "We could pull it together in an hour",
+              "points": 2
+            },
+            {
+              "label": "We could answer before the call ends",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "When two files disagree about a number, what happens?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "reporting",
+          "options": [
+            {
+              "label": "It happens a lot, and we pick the one that looks right",
+              "points": 0
+            },
+            {
+              "label": "Someone reconciles them by hand",
+              "points": 1
+            },
+            {
+              "label": "It's rare, and we know which one to trust",
+              "points": 2
+            },
+            {
+              "label": "It doesn't happen. There's one source of truth.",
+              "points": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Copy, Paste, Repeat",
+      "fields": [
+        {
+          "name": "When a new client, volunteer or donor reaches out, how many times does their information get typed in?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "workflows",
+          "options": [
+            {
+              "label": "3 or more times, into different places",
+              "points": 0
+            },
+            {
+              "label": "Twice",
+              "points": 1
+            },
+            {
+              "label": "Once, then copied once",
+              "points": 2
+            },
+            {
+              "label": "Once. It flows where it needs to go.",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "In a typical week, how much time does each person spend re-entering, reformatting or chasing information?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "workflows",
+          "options": [
+            {
+              "label": "A day or more",
+              "points": 0
+            },
+            {
+              "label": "A few hours",
+              "points": 1
+            },
+            {
+              "label": "About an hour",
+              "points": 2
+            },
+            {
+              "label": "Hardly any",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "How do you usually find out something fell through the cracks, like a missed follow-up or an unanswered form?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "workflows",
+          "options": [
+            {
+              "label": "When someone complains",
+              "points": 0
+            },
+            {
+              "label": "Someone happens to notice",
+              "points": 1
+            },
+            {
+              "label": "In our regular check-ins",
+              "points": 2
+            },
+            {
+              "label": "Our tools flag it first",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "How do intake, follow-up and handoffs happen?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "workflows",
+          "options": [
+            {
+              "label": "Everyone has their own way",
+              "points": 0
+            },
+            {
+              "label": "We have a rhythm, but things slip",
+              "points": 1
+            },
+            {
+              "label": "A shared process most people follow",
+              "points": 2
+            },
+            {
+              "label": "A written process our tools help us follow (reminders, checklists, automations)",
+              "points": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Too Many Tabs",
+      "fields": [
+        {
+          "name": "How do your everyday tools (email, spreadsheets, forms, drives, a database) fit together?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "tools",
+          "options": [
+            {
+              "label": "Lots of tools, and none of them talk to each other",
+              "points": 0
+            },
+            {
+              "label": "A handful, with copy and paste between them",
+              "points": 1
+            },
+            {
+              "label": "A few core tools, mostly connected",
+              "points": 2
+            },
+            {
+              "label": "A tidy set that shares information",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "How long does it take to find a file or record?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "tools",
+          "options": [
+            {
+              "label": "Depends who you ask and which drive it's in",
+              "points": 0
+            },
+            {
+              "label": "A few minutes of searching or asking around",
+              "points": 1
+            },
+            {
+              "label": "Usually quick",
+              "points": 2
+            },
+            {
+              "label": "Instantly",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "What's true about the tools you pay for?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "tools",
+          "options": [
+            {
+              "label": "We're not sure what we pay for",
+              "points": 0
+            },
+            {
+              "label": "A few things we keep meaning to cancel or upgrade",
+              "points": 1
+            },
+            {
+              "label": "Mostly right-sized",
+              "points": 2
+            },
+            {
+              "label": "We review tools and costs every year",
+              "points": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "If Sally Won the Lottery",
+      "fields": [
+        {
+          "name": "If your go-to tech person left tomorrow, what would happen?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "people",
+          "options": [
+            {
+              "label": "Real trouble. It lives in their head.",
+              "points": 0
+            },
+            {
+              "label": "We'd scramble for a few weeks",
+              "points": 1
+            },
+            {
+              "label": "Bumpy, but most of it is written down",
+              "points": 2
+            },
+            {
+              "label": "Fine. Logins, steps and systems are documented.",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "Who fixes tech when something breaks?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "people",
+          "options": [
+            {
+              "label": "Whoever is closest, or a volunteer when they can",
+              "points": 0
+            },
+            {
+              "label": "One staff member, on top of their real job",
+              "points": 1
+            },
+            {
+              "label": "Someone on staff or outside help we can call",
+              "points": 2
+            },
+            {
+              "label": "A clear support plan, in-house or with a partner",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "How do people feel about the tools they use?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "people",
+          "options": [
+            {
+              "label": "Frustrated. They work around them.",
+              "points": 0
+            },
+            {
+              "label": "A couple of people do the tech heavy lifting for everyone",
+              "points": 1
+            },
+            {
+              "label": "Comfortable after a reminder or two",
+              "points": 2
+            },
+            {
+              "label": "Confident, and they ask when they're stuck",
+              "points": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Who Can See What?",
+      "fields": [
+        {
+          "name": "When someone leaves, how quickly do they lose access to email, drives and systems?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "security",
+          "options": [
+            {
+              "label": "Honestly, not sure they all have",
+              "points": 0
+            },
+            {
+              "label": "Eventually, when we remember",
+              "points": 1
+            },
+            {
+              "label": "Within a week",
+              "points": 2
+            },
+            {
+              "label": "Same day, with a checklist",
+              "points": 3
+            }
+          ]
+        },
+        {
+          "name": "Which of these do you have? Check all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "scoreGroupId": "security",
+          "options": [
+            {
+              "label": "Two-step login (MFA)",
+              "points": 0.6
+            },
+            {
+              "label": "A password manager",
+              "points": 0.6
+            },
+            {
+              "label": "Backups we've actually tested",
+              "points": 0.6
+            },
+            {
+              "label": "Staff training on scam emails",
+              "points": 0.6
+            },
+            {
+              "label": "A policy for client or donor data",
+              "points": 0.6
+            }
+          ]
+        },
+        {
+          "name": "Where does sensitive information (client details, donor info, health or school records) live?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "scoreGroupId": "security",
+          "options": [
+            {
+              "label": "All over: email, laptops, shared spreadsheets",
+              "points": 0
+            },
+            {
+              "label": "Shared drives most people can open",
+              "points": 1
+            },
+            {
+              "label": "Systems with logins, but nobody reviews who has access",
+              "points": 2
+            },
+            {
+              "label": "Secured systems where only the right people can see it",
+              "points": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Your Team",
+      "fields": [
+        {
+          "name": "If the right fix showed up, how much room does your team have right now?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            {
+              "label": "Stretched thin. Small wins only."
+            },
+            {
+              "label": "Room for a small project"
+            },
+            {
+              "label": "Ready for something meaningful"
+            }
+          ]
+        },
+        {
+          "name": "How aligned is your leadership or board on the role of technology?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "It rarely comes up"
+            },
+            {
+              "label": "Generally, but priorities shift"
+            },
+            {
+              "label": "We're aligned"
+            }
+          ]
+        },
+        {
+          "name": "How many staff do you have (counting part-time)?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Just me"
+            },
+            {
+              "label": "2 to 5"
+            },
+            {
+              "label": "6 to 20"
+            },
+            {
+              "label": "21 to 50"
+            },
+            {
+              "label": "More than 50"
+            }
+          ]
+        },
+        {
+          "name": "Your service area (pick all that apply)",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Basic Needs & Social Services"
+            },
+            {
+              "label": "Children, Youth & Families"
+            },
+            {
+              "label": "Health & Behavioral Health"
+            },
+            {
+              "label": "Education & Workforce Development"
+            },
+            {
+              "label": "Community Development & Neighborhood Support"
+            },
+            {
+              "label": "Arts, Culture & Humanities"
+            },
+            {
+              "label": "Environment & Animal Welfare"
+            },
+            {
+              "label": "Faith-Based Organization"
+            },
+            {
+              "label": "Advocacy & Policy"
+            },
+            {
+              "label": "Other"
+            }
+          ]
+        },
+        {
+          "name": "How did you hear about UpStart Productions?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Google search"
+            },
+            {
+              "label": "Instagram"
+            },
+            {
+              "label": "Facebook"
+            },
+            {
+              "label": "Friend or family"
+            },
+            {
+              "label": "Recommended by someone else"
+            },
+            {
+              "label": "Conference or event"
+            },
+            {
+              "label": "Other"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "In Your Words",
+      "fields": [
+        {
+          "name": "What's one task you wish took half the time?",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "What would your team do with 10 extra hours a week?",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

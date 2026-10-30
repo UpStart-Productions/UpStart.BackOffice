@@ -353,3 +353,72 @@ export type FormSubmissionDto = FormSubmissionListItemDto & {
   bands: FormScoreBand[];
   canEdit: boolean;
 };
+
+// ── Form files (Export / Import) ─────────────────────────────────────────────
+
+/** A whole free-standing form as a file: settings (scoring, profiles), sections and fields. No ids except score areas. */
+export type FormDefinition = {
+  format: 'ubo-form';
+  version: 1;
+  name: string;
+  description: string | null;
+  settings: FormSettings;
+  sections: {
+    name: string;
+    fields: {
+      name: string;
+      type: FormFieldType;
+      required: boolean;
+      /** Select fields: choices, with points on scored forms. */
+      options?: { label: string; points?: number }[];
+      /** Scored forms: the score area id (settings.scoring.groups[].id). */
+      scoreGroupId?: string | null;
+    }[];
+  }[];
+};
+
+/**
+ * Check a form file and return it cleaned up, or throw an Error saying what's wrong.
+ * Unknown field types fail; score areas that don't exist in the file's scoring are dropped.
+ */
+export function parseFormDefinition(input: unknown): FormDefinition {
+  const src = (input && typeof input === 'object' ? input : null) as Record<string, any> | null;
+  if (!src || src['format'] !== 'ubo-form') throw new Error('This is not a UBO form file');
+  if (src['version'] !== 1) throw new Error('This form file is from a newer version of UBO');
+  const name = typeof src['name'] === 'string' ? src['name'].trim().slice(0, 200) : '';
+  if (!name) throw new Error('The form file has no name');
+  const settings = normalizeFormSettings(src['settings']);
+  const groupIds = new Set(settings.scoring.groups.map((g) => g.id));
+  const sections = (Array.isArray(src['sections']) ? src['sections'] : []).map((s: any, si: number) => {
+    const sName = typeof s?.name === 'string' && s.name.trim() ? s.name.trim().slice(0, 120) : `Section ${si + 1}`;
+    const fields = (Array.isArray(s?.fields) ? s.fields : []).map((f: any) => {
+      const fName = typeof f?.name === 'string' ? f.name.trim().slice(0, 400) : '';
+      if (!fName) throw new Error(`A field in "${sName}" has no name`);
+      if (!FORM_FIELD_TYPES.includes(f?.type)) throw new Error(`"${fName}" has an unknown type`);
+      const type = f.type as FormFieldType;
+      const options = isSelectFieldType(type)
+        ? (Array.isArray(f.options) ? f.options : [])
+            .filter((o: any) => typeof o?.label === 'string' && o.label.trim())
+            .map((o: any) => ({ label: o.label.trim().slice(0, 400), ...(Number.isFinite(o.points) ? { points: Number(o.points) } : {}) }))
+        : undefined;
+      if (options && !options.length) throw new Error(`"${fName}" needs at least one choice`);
+      return {
+        name: fName,
+        type,
+        required: !!f.required,
+        ...(options ? { options } : {}),
+        scoreGroupId: typeof f.scoreGroupId === 'string' && groupIds.has(f.scoreGroupId) ? f.scoreGroupId : null,
+      };
+    });
+    return { name: sName, fields };
+  });
+  if (!sections.some((s: { fields: unknown[] }) => s.fields.length)) throw new Error('The form file has no fields');
+  return {
+    format: 'ubo-form',
+    version: 1,
+    name,
+    description: typeof src['description'] === 'string' ? src['description'].trim().slice(0, 4000) || null : null,
+    settings,
+    sections,
+  };
+}

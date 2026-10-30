@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -8,11 +8,13 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import type { FreeFormListItemDto } from '@upstart/back-office/shared';
+import { parseFormDefinition, type FormDefinition, type FreeFormListItemDto } from '@upstart/back-office/shared';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { SessionService } from '../../core/session.service';
+import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
@@ -31,8 +33,10 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
     TableModule,
     TagModule,
     AppDialogModule,
+    HelpTextComponent,
     PageComponent,
     RowActionsMenuComponent,
+    SingleFileDropzoneComponent,
     ToolbarSearchFieldComponent,
   ],
   template: `
@@ -94,11 +98,30 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
       <p-dialog header="New form" [(visible)]="newVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
         <div class="form-field">
           <label for="nfName">Name</label>
-          <input pInputText id="nfName" class="w-full" [(ngModel)]="newName" (keydown.enter)="create()" />
+          <input pInputText id="nfName" class="w-full" [(ngModel)]="newName" [placeholder]="importDef?.name ?? ''" (keydown.enter)="create()" />
+        </div>
+        <div class="form-field mt-3">
+          <label>Start from a form file (optional) <app-help-text key="forms.import" /></label>
+          <app-single-file-dropzone
+            #importDrop
+            accept=".json,application/json"
+            [maxBytes]="2 * 1024 * 1024"
+            emptyTitle="Form file"
+            emptyHint="Drop a form file (.json) or click to browse"
+            selectedTitle="Form file"
+            emptyIcon="pi-file-import"
+            (fileChange)="readImport($event)"
+            (invalidFile)="importError = $event"
+          />
+          @if (importError) {
+            <small class="text-red-600">{{ importError }}</small>
+          } @else if (importDef) {
+            <small>{{ importDef.name }}: {{ importFieldCount() }} fields in {{ importDef.sections.length }} sections</small>
+          }
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="creating()" (onClick)="newVisible = false" />
-          <p-button label="Create" icon="pi pi-check" [loading]="creating()" [disabled]="!newName.trim()" (onClick)="create()" />
+          <p-button label="Create" icon="pi pi-check" [loading]="creating()" [disabled]="!canSubmitNew()" (onClick)="create()" />
         </ng-template>
       </p-dialog>
     </app-page>
@@ -118,6 +141,10 @@ export class FormsPage implements OnInit {
   query = '';
   newVisible = false;
   newName = '';
+  /** A form file picked in New form (creates the form from it). */
+  importDef: FormDefinition | null = null;
+  importError = '';
+  private readonly importDrop = viewChild<SingleFileDropzoneComponent>('importDrop');
 
   readonly canCreate = computed(() => this.session.can('forms', 'create'));
   readonly canDelete = computed(() => this.session.can('forms', 'delete'));
@@ -156,15 +183,37 @@ export class FormsPage implements OnInit {
 
   openNew() {
     this.newName = '';
+    this.importDef = null;
+    this.importError = '';
+    this.importDrop()?.reset();
     this.newVisible = true;
   }
 
+  async readImport(file: File | null) {
+    this.importDef = null;
+    this.importError = '';
+    if (!file) return;
+    try {
+      this.importDef = parseFormDefinition(JSON.parse(await file.text()));
+    } catch (err) {
+      this.importError = err instanceof SyntaxError ? 'That file is not a form file.' : err instanceof Error ? err.message : 'That file could not be read.';
+    }
+  }
+
+  importFieldCount() {
+    return this.importDef?.sections.reduce((n, s) => n + s.fields.length, 0) ?? 0;
+  }
+
+  canSubmitNew() {
+    return !this.importError && (!!this.importDef || !!this.newName.trim());
+  }
+
   async create() {
+    if (!this.canSubmitNew()) return;
     const name = this.newName.trim();
-    if (!name) return;
     this.creating.set(true);
     try {
-      const { id } = await this.forms.create({ name });
+      const { id } = this.importDef ? await this.forms.import(this.importDef, name || undefined) : await this.forms.create({ name });
       this.newVisible = false;
       await this.router.navigate(['/forms', id]);
     } catch (err) {

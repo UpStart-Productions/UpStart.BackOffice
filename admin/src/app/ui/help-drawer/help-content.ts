@@ -808,7 +808,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New form',
-        body: 'Name it, then add sections and fields on the form page. Publish when it is ready; its links work from then on.',
+        body: 'Name it, then add sections and fields on the form page. Publish when it is ready; its links work from then on. Or start from a form file (made with Export form file on any form page, e.g. on another UBO).',
       },
       {
         heading: 'Status',

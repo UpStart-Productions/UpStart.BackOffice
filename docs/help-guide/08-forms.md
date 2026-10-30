@@ -7,9 +7,14 @@
 - The role needs the **Forms** area (Users → Roles). **Own** shows only the forms that person created; **All** shows every form. **Create**, **Edit** and **Delete** are checkboxes. Admins see everything.
 - New submissions notify admins, people with Forms **All**, and the person who created the form (bell, and email unless turned off under Inbox → Notification settings: "A form in Forms gets a submission").
 
+## Moving a form between UBOs (form files)
+
+- On a form page, **⋮ → Export form file** downloads the form (fields, settings, scoring and profiles) as a `.json` file.
+- **New form → Start from a form file** creates a draft from such a file, e.g. on another UBO. Leave Name empty to use the file's name. Review it, then **Publish**.
+
 ## The Forms list
 
-Each form shows its status: **Draft** (never published), **Published**, or **Changes not published** (the links still show the last published version). **Submissions** shows how many came in, with a count of those waiting for review. **New form** asks for a name and opens the form. The ⋮ menu has **Open**, **Submissions** and **Delete** (deleting a form deletes its submissions and stops its links).
+Each form shows its status: **Draft** (never published), **Published**, or **Changes not published** (the links still show the last published version). **Submissions** shows how many came in, with a count of those waiting for review. **New form** asks for a name (or a form file) and opens the form. The ⋮ menu has **Open**, **Submissions** and **Delete** (deleting a form deletes its submissions and stops its links).
 
 ## A form page
 

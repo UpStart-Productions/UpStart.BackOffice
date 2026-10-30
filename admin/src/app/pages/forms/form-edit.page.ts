@@ -67,9 +67,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
       </ng-container>
       <ng-container ngProjectAs="[pageActions]">
         @if (form(); as f) {
-          @if (f.canDelete) {
-            <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
-          }
+          <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
           @if (f.canEdit) {
             <p-button
               label="Publish"
@@ -395,7 +393,25 @@ export class FormEditPage implements OnInit {
   }
 
   headerActions(): RowActionItem[] {
-    return [{ id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove() }];
+    const items: RowActionItem[] = [{ id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() }];
+    if (this.form()?.canDelete) items.push({ id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove() });
+    return items;
+  }
+
+  /** Download the form (fields, settings, scoring) as a file that New form → form file can import, e.g. on another UBO. */
+  async exportFile() {
+    try {
+      const def = await this.forms.export(this.id);
+      const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${def.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'form'}.ubo-form.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not export', detail: err instanceof Error ? err.message : 'Failed' });
+    }
   }
 
   confirmRemove() {

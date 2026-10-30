@@ -6,6 +6,13 @@ export class CreateFreeFormDto {
   @IsOptional() @IsString() @MaxLength(4000) description?: string | null;
 }
 
+export class ImportFreeFormDto {
+  /** A form file (FormDefinition); checked by parseFormDefinition. */
+  @IsObject() definition!: Record<string, unknown>;
+  /** Optional: a different name than the file's. */
+  @IsOptional() @IsString() @MaxLength(200) name?: string;
+}
+
 export class UpdateFreeFormDto {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
   @IsOptional() @IsString() @MaxLength(4000) description?: string | null;

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import type {
-  FormSettings, FormSubmissionDto, FormSubmissionListItemDto, FormSubmissionStatus, FreeFormDto, FreeFormListItemDto,
+  FormDefinition, FormSettings, FormSubmissionDto, FormSubmissionListItemDto, FormSubmissionStatus, FreeFormDto, FreeFormListItemDto,
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
 
@@ -16,6 +16,12 @@ export class FormsApi {
   }
   create(body: { name: string; description?: string | null }) {
     return this.api.post<{ id: string }>(`${this.base}/forms`, body);
+  }
+  import(definition: unknown, name?: string) {
+    return this.api.post<{ id: string }>(`${this.base}/forms/import`, { definition, ...(name ? { name } : {}) });
+  }
+  export(id: string) {
+    return this.api.get<FormDefinition>(`${this.base}/forms/${id}/export`);
   }
   form(id: string) {
     return this.api.get<FreeFormDto>(`${this.base}/forms/${id}`);

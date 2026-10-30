@@ -73,3 +73,11 @@ logic) are added to the profile type and switched on per profile.
   allowed; requests without an Origin (server-to-server) aren't website requests and pass. This stops other sites from
   showing a form; rate limits, the honeypot and review cover abuse.
 - Admin: links panel ⋮ → **Embed on a website** (embed code, link key, allowed websites; `PATCH {apiBase}/links/:id`).
+
+## Form files (Export / Import)
+
+- `FormDefinition` (shared `forms.ts`, `format: 'ubo-form'`, `version: 1`): name, description, settings, sections with
+  fields (options with points, scoreGroupId). `parseFormDefinition` checks and cleans one.
+- `GET /form-admin/forms/:id/export`, `POST /form-admin/forms/import` (`{ definition, name? }`, creates a draft).
+- Admin: form page ⋮ → Export form file; New form → Start from a form file (`app-single-file-dropzone`).
+- Files live in `tools/forms/` (e.g. `mission-tech-compass-v2.ubo-form.json`).

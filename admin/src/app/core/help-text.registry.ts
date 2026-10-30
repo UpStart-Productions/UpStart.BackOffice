@@ -143,6 +143,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   // Forms area
   'forms.page':
     'Forms you build and share with a link: sign-ups, assessments, feedback. Each form has its own submissions. A form is live once you publish it.',
+  'forms.import':
+    'A form file made with Export form file (on a form page), e.g. from another UBO. It creates a draft with the same fields, settings and scoring. Publish it when ready.',
   'forms.form.page':
     'Build the form here. Details and Settings save with Save; Scoring and Fields save right away. Public links show the published version, so publish again for changes to reach people.',
   'forms.form.description': 'Shown at the top of the form.',

@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import {
-  allows, normalizeFormSettings, type FormScores, type FormSnapshot, type FormSubmissionDto, type FreeFormDto, type FreeFormListItemDto,
+  allows, normalizeFormSettings, parseFormDefinition, type FormDefinition, type FormScores, type FormSnapshot, type FormSubmissionDto, type FreeFormDto, type FreeFormListItemDto,
 } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
@@ -12,10 +12,10 @@ import { ensureLeadLinks } from '../leads/lead-links.util';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from './form.dto';
-import { liveValues } from './form-fields.util';
+import { formFieldOptions, liveValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
-import { AcceptSubmissionDto, CreateFreeFormDto, SUBMISSION_STATUSES, UpdateFreeFormDto } from './free-forms.dto';
+import { AcceptSubmissionDto, CreateFreeFormDto, ImportFreeFormDto, SUBMISSION_STATUSES, UpdateFreeFormDto } from './free-forms.dto';
 import { bandsOf, liveSnapshot, M, personName, snapshotsDiffer, SUBMISSION_INCLUDE, submissionItem } from './free-forms.util';
 
 /**
@@ -83,6 +83,74 @@ export class FreeFormsController {
       select: { id: true },
     });
     return { id: f.id };
+  }
+
+  /** Create a form (a draft) from a form file. */
+  @Post('forms/import')
+  async import(@Req() req: Request, @Body() dto: ImportFreeFormDto) {
+    const user = req.user as UserContext;
+    let def: FormDefinition;
+    try {
+      def = parseFormDefinition(dto.definition);
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'This form file could not be read');
+    }
+    const id = await this.prisma.$transaction(async (tx) => {
+      const form = await tx.form.create({
+        data: {
+          module: M,
+          name: dto.name?.trim() || def.name,
+          description: def.description,
+          settings: def.settings as unknown as Prisma.InputJsonValue,
+          createdById: user.id,
+        },
+        select: { id: true },
+      });
+      for (const [si, s] of def.sections.entries()) {
+        const section = await tx.formSection.create({ data: { formId: form.id, name: s.name, sortOrder: si }, select: { id: true } });
+        for (const [fi, f] of s.fields.entries()) {
+          await tx.formField.create({
+            data: {
+              sectionId: section.id,
+              name: f.name,
+              type: f.type,
+              required: f.required,
+              scoreGroupId: f.scoreGroupId ?? null,
+              options: f.options
+                ? (formFieldOptions(f.type, f.options, true) as unknown as Prisma.InputJsonValue)
+                : Prisma.DbNull,
+              sortOrder: fi,
+            },
+          });
+        }
+      }
+      return form.id;
+    });
+    return { id };
+  }
+
+  /** The form as a file (its current fields and settings, not necessarily what's published). */
+  @Get('forms/:id/export')
+  async export(@Req() req: Request, @Param('id') id: string): Promise<FormDefinition> {
+    const form = await this.findForm(req.user as UserContext, id);
+    const live = await liveSnapshot(this.structure, form);
+    return {
+      format: 'ubo-form',
+      version: 1,
+      name: form.name,
+      description: form.description,
+      settings: normalizeFormSettings(form.settings),
+      sections: live.sections.map((s) => ({
+        name: s.name,
+        fields: s.fields.map((f) => ({
+          name: f.name,
+          type: f.type,
+          required: f.required,
+          ...(f.options.length ? { options: f.options.map((o) => ({ label: o.label, ...(typeof o.points === 'number' ? { points: o.points } : {}) })) } : {}),
+          scoreGroupId: f.scoreGroupId ?? null,
+        })),
+      })),
+    };
   }
 
   @Get('forms/:id')
