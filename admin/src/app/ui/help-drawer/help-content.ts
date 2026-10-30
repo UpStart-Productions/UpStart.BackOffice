@@ -486,7 +486,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Attachments',
-        body: 'Drop files on the box under Description, or click it (or the paperclip at the top) to browse. Each file shows a spinner while it uploads, then appears as a card below. Click a card to open it: photos and videos (MP4, MOV) open in a viewer, other files in a new tab. Video cards show the first frame. The trash can on a card removes it. Files can be up to 25 MB.',
+        body: 'Drop files on the box under Description, or click it (or the paperclip at the top) to browse. Each file shows a spinner while it uploads, then appears as a card below. Click a card to open it: photos, videos (MP4, MOV) and PDFs open in a viewer, other files in a new tab. Video cards show the first frame. The trash can on a card removes it. Files can be up to 25 MB.',
       },
       {
         heading: 'Moving and bulk actions',

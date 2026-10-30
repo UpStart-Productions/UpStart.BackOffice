@@ -148,26 +148,6 @@
 }
 
 .invoice-pdf-wrap {
-  margin-top: 0.25rem;
-  border: 1px solid var(--surface-border);
-  border-radius: var(--border-radius, 6px);
-  overflow: hidden;
-  background: #fff;
-}
-
-.invoice-pdf-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 75vh;
-  color: var(--text-color-secondary);
-  font-size: var(--fs-xl);
-}
-
-.invoice-pdf-frame {
   display: block;
-  width: 100%;
-  min-height: 75vh;
-  border: none;
-  background: #fff;
+  margin-top: 0.25rem;
 }

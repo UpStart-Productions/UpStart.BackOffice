@@ -111,17 +111,7 @@
       </div>
 
       @if (pdfViewOpen()) {
-        <div class="invoice-pdf-wrap">
-          @if (pdfLoading()) {
-            <div class="invoice-pdf-loading" aria-busy="true" aria-label="Loading PDF">
-              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-            </div>
-          } @else if (pdfError()) {
-            <p-message severity="error" [text]="pdfError()!" />
-          } @else if (pdfUrl()) {
-            <iframe [src]="pdfUrl()!" class="invoice-pdf-frame" [title]="inv.displayNumber + ' PDF'"></iframe>
-          }
-        </div>
+        <app-pdf-frame class="invoice-pdf-wrap" [blob]="pdfBlob()" [loading]="pdfLoading()" [error]="pdfError()" [title]="inv.displayNumber + ' PDF'" />
       } @else {
         @if (inv.lineItems.length === 0) {
           <p class="text-sm text-muted">No line items.</p>

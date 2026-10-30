@@ -21,6 +21,10 @@ export function isRasterImage(name: string | null | undefined, mime: string | nu
   return RASTER_EXTENSIONS.has(fileExtension(name));
 }
 
+export function isPdfFile(name: string | null | undefined, mime: string | null | undefined): boolean {
+  return mime === 'application/pdf' || fileExtension(name) === 'pdf';
+}
+
 /** MP4, MOV, M4V or WebM: previews as its first frame and plays in the browser. */
 export function isVideoFile(name: string | null | undefined, mime: string | null | undefined): boolean {
   return (mime ?? '').startsWith('video/') || VIDEO_EXTENSIONS.has(fileExtension(name));

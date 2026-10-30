@@ -1,5 +1,5 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
@@ -9,6 +9,7 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { PdfFrameComponent } from '../../ui/pdf-frame/pdf-frame.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
@@ -60,11 +61,11 @@ type OrganizationLetterhead = {
 @Component({
   selector: 'app-invoice-detail-page',
   standalone: true,
-  imports: [ButtonModule, MessageModule, TableModule, TagModule, RouterLink, PageComponent, RecordAttributionComponent],
+  imports: [ButtonModule, MessageModule, TableModule, TagModule, RouterLink, PageComponent, PdfFrameComponent, RecordAttributionComponent],
   templateUrl: './invoice-detail.page.html',
   styleUrl: './invoice-detail.page.scss',
 })
-export class InvoiceDetailPage implements OnInit, OnDestroy {
+export class InvoiceDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -82,11 +83,9 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
   pdfViewOpen = signal(false);
   pdfLoading = signal(false);
   pdfError = signal<string | null>(null);
-  pdfUrl = signal<SafeResourceUrl | null>(null);
+  pdfBlob = signal<Blob | null>(null);
 
   readonly orgLogoUrl = computed(() => resolveLogoAssetUrl(this.letterhead()?.logoUrl));
-
-  private blobUrl: string | null = null;
 
   get canResend(): boolean {
     const s = this.invoice()?.status;
@@ -125,10 +124,6 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  ngOnDestroy() {
-    this.revokeBlob();
   }
 
   statusSeverity(status: string): string {
@@ -208,7 +203,7 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
       return;
     }
     this.pdfViewOpen.set(true);
-    if (this.pdfUrl()) return;
+    if (this.pdfBlob()) return;
 
     const inv = this.invoice();
     if (!inv) return;
@@ -216,10 +211,7 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
     this.pdfLoading.set(true);
     this.pdfError.set(null);
     try {
-      const blob = await this.api.fetchPdfBlob(`/invoices/${inv.id}/pdf`);
-      this.revokeBlob();
-      this.blobUrl = URL.createObjectURL(blob);
-      this.pdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.blobUrl));
+      this.pdfBlob.set(await this.api.fetchPdfBlob(`/invoices/${inv.id}/pdf`));
     } catch (err) {
       this.pdfError.set(err instanceof Error ? err.message : 'PDF could not be loaded');
     } finally {
@@ -293,13 +285,6 @@ export class InvoiceDetailPage implements OnInit, OnDestroy {
       })),
     });
     this.attribution.set(inv.attribution ?? null);
-  }
-
-  private revokeBlob() {
-    if (this.blobUrl) {
-      URL.revokeObjectURL(this.blobUrl);
-      this.blobUrl = null;
-    }
   }
 }
 

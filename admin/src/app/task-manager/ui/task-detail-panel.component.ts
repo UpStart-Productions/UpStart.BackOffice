@@ -8,7 +8,8 @@ import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
-import { fileExtLabel, fileIconClass, isRasterImage, isVideoFile } from '../../core/file-type.util';
+import { fileExtLabel, fileIconClass, isPdfFile, isRasterImage, isVideoFile } from '../../core/file-type.util';
+import { PdfFrameComponent } from '../../ui/pdf-frame/pdf-frame.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
@@ -46,6 +47,7 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     TmRecurrenceEditorComponent,
     TmFieldCellComponent,
     AppDialogModule,
+    PdfFrameComponent,
   ],
   templateUrl: './task-detail-panel.component.html',
   animations: [
@@ -101,8 +103,11 @@ export class TmTaskDetailComponent implements OnDestroy {
   /** Files uploading now (spinner) or just finished (check), shown in the drop zone. */
   uploadProgress = signal<{ name: string; done: boolean }[]>([]);
   dragOver = signal(false);
-  /** The photo or video open in the viewer. */
+  /** The photo, video or PDF open in the viewer. */
   previewAttachment = signal<TaskAttachment | null>(null);
+  previewPdf = signal<Blob | null>(null);
+  previewPdfLoading = signal(false);
+  previewPdfError = signal<string | null>(null);
   commentComposerOpen = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
@@ -540,12 +545,65 @@ export class TmTaskDetailComponent implements OnDestroy {
     return isVideoFile(a.fileName, a.mimeType);
   }
 
-  /** Photos and videos open in a viewer; other files open in a new tab (so does Cmd/Ctrl-click). */
+  attachmentIsPdf(a: TaskAttachment) {
+    return isPdfFile(a.fileName, a.mimeType);
+  }
+
+  /** Photos, videos and PDFs open in a viewer; other files open in a new tab (so does Cmd/Ctrl-click). */
   openAttachment(a: TaskAttachment, event: MouseEvent) {
     if (a.isLink || event.metaKey || event.ctrlKey) return;
-    if (!this.attachmentIsImage(a) && !this.attachmentIsVideo(a)) return;
+    const pdf = this.attachmentIsPdf(a);
+    if (!pdf && !this.attachmentIsImage(a) && !this.attachmentIsVideo(a)) return;
     event.preventDefault();
     this.previewAttachment.set(a);
+    if (pdf) void this.loadPreviewPdf(a);
+  }
+
+  closePreview() {
+    this.previewAttachment.set(null);
+    this.previewPdf.set(null);
+    this.previewPdfError.set(null);
+  }
+
+  /** PDFs show in the browser's viewer (like View PDF on an invoice) from a local copy. */
+  private async loadPreviewPdf(a: TaskAttachment) {
+    const url = resolveAssetUrl(a.url);
+    this.previewPdf.set(null);
+    this.previewPdfError.set(null);
+    if (!url) return;
+    this.previewPdfLoading.set(true);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('The PDF could not be loaded.');
+      const blob = await res.blob();
+      if (this.previewAttachment()?.id === a.id) this.previewPdf.set(blob);
+    } catch (err) {
+      this.previewPdfError.set(err instanceof Error ? err.message : 'The PDF could not be loaded.');
+    } finally {
+      this.previewPdfLoading.set(false);
+    }
+  }
+
+  /**
+   * Save the file without opening it. Files come from the API's address, where browsers ignore the download
+   * attribute, so fetch it and save a local copy (as the Files tab does).
+   */
+  async downloadAttachment(a: TaskAttachment, event: MouseEvent) {
+    event.preventDefault();
+    const url = resolveAssetUrl(a.url);
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Download failed');
+      const objectUrl = URL.createObjectURL(await res.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = a.fileName;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      this.fail(err);
+    }
   }
 
   attachmentIcon(a: TaskAttachment) {
