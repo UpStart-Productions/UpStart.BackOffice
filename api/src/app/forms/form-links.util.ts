@@ -1,5 +1,5 @@
 import { randomBytes, randomInt, scryptSync, timingSafeEqual, createHash } from 'crypto';
-import type { CareLinkDto } from '@upstart/back-office/shared';
+import type { FormLinkDto, FormLinkKind, FormLinkVerify } from '@upstart/back-office/shared';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 
 export const newLinkToken = () => randomBytes(24).toString('base64url');
@@ -31,17 +31,18 @@ export function maskEmail(email: string | null): string | null {
   return `${local.slice(0, 1)}•••@${domain}`;
 }
 
-export function careLinkUrl(token: string): string {
-  return `${adminAppBaseUrl()}/care-form/${token}`;
+/** Public page for a link. Care's forms keep their /care-form/ address (links already sent out still work). */
+export function formLinkUrl(module: string, token: string): string {
+  return module === 'care' ? `${adminAppBaseUrl()}/care-form/${token}` : `${adminAppBaseUrl()}/form/${token}`;
 }
 
 type LinkRow = {
-  id: string; formId: string; kind: 'NEW_INTAKE' | 'CLIENT_UPDATE'; label: string | null; clientId: string | null;
-  verify: 'NONE' | 'PASSCODE' | 'EMAIL_CODE'; email: string | null; expiresAt: Date | null; revokedAt: Date | null;
-  lastUsedAt: Date | null; createdAt: Date; token: string; client?: { name: string } | null;
+  id: string; formId: string; kind: FormLinkKind; label: string | null; clientId: string | null;
+  verify: FormLinkVerify; email: string | null; expiresAt: Date | null; revokedAt: Date | null;
+  lastUsedAt: Date | null; createdAt: Date; token: string; client?: { name: string } | null; form: { module: string };
 };
 
-export function linkView(l: LinkRow): CareLinkDto {
+export function linkView(l: LinkRow): FormLinkDto {
   return {
     id: l.id,
     formId: l.formId,
@@ -55,8 +56,8 @@ export function linkView(l: LinkRow): CareLinkDto {
     revokedAt: l.revokedAt?.toISOString() ?? null,
     lastUsedAt: l.lastUsedAt?.toISOString() ?? null,
     createdAt: l.createdAt.toISOString(),
-    url: careLinkUrl(l.token),
+    url: formLinkUrl(l.form.module, l.token),
   };
 }
 
-export const LINK_INCLUDE = { client: { select: { name: true } } } as const;
+export const LINK_INCLUDE = { client: { select: { name: true } }, form: { select: { module: true } } } as const;

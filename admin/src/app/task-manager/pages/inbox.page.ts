@@ -24,6 +24,7 @@ const TYPE_ICON: Record<string, string> = {
   task_form_submission: 'pi-inbox',
   activity_forwarded: 'pi-send',
   activity_mention: 'pi-at',
+  form_submission: 'pi-file-edit',
   care_form_submission: 'pi-file-edit',
   care_shift_assigned: 'pi-calendar-plus',
 };
@@ -122,6 +123,7 @@ export class InboxPage implements OnInit {
   readonly prefRows = computed(() => {
     const me = this.session.me();
     const rows = [...this.basePrefRows];
+    if (areaLevel(me, 'forms')) rows.push({ key: 'form_submission', label: 'A form in Forms gets a submission' });
     if (areaLevel(me, 'care')) rows.push({ key: 'care_form_submission', label: 'A Care form comes in through a public link' });
     if (areaLevel(me, 'schedule')) rows.push({ key: 'care_shift_assigned', label: 'A shift is assigned to me' });
     return rows;

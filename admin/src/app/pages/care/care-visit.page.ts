@@ -13,7 +13,7 @@ import { CareApi } from '../../core/care.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { dateKey } from '../../core/date.util';
 import { atLocal, formatDuration, normalizeValues, timeKey } from '../../ui/care-forms/care.types';
-import { FormFieldInputComponent } from '../../ui/care-forms/form-field-input.component';
+import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';

@@ -4,7 +4,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import { CARE_RECORD_KINDS, type CareFormKind, type CareRecordDto, type CareRecordListItemDto, type FormFieldType } from '@upstart/back-office/shared';
+import { CARE_FORM_MODULE, CARE_RECORD_KINDS, type CareFormKind, type CareRecordDto, type CareRecordListItemDto } from '@upstart/back-office/shared';
 import { AccessGuard, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
 import { ATTRIBUTION_INCLUDE, toRecordAttribution } from '../common/record-attribution';
@@ -12,13 +12,12 @@ import { ensureLeadLinks } from '../leads/lead-links.util';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CareAccessService } from './care-access.service';
-import { CareLinksService } from './care-links.service';
-import { fieldView } from './care-forms.controller';
-import { ensureCareForms } from './care-forms.util';
-import { AcceptIntakeDto, CreateLinkDto, CreateRecordDto, SaveValuesDto } from './care.dto';
-import { liveValues, mergeFormValues } from './form-fields.util';
-
-const ORDER = [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }];
+import { CreateLinkDto } from '../forms/form.dto';
+import { liveValues, mergeFormValues } from '../forms/form-fields.util';
+import { FormLinksService } from '../forms/form-links.service';
+import { FormStructureService } from '../forms/form-structure.service';
+import { byCareKind, careForm, careKind, ensureCareForms } from './care-forms.util';
+import { AcceptIntakeDto, CreateRecordDto, SaveValuesDto } from './care.dto';
 
 function personName(u: { firstName: string | null; lastName: string | null; name: string | null; email: string } | null): string | null {
   if (!u) return null;
@@ -26,12 +25,12 @@ function personName(u: { firstName: string | null; lastName: string | null; name
 }
 
 const LIST_INCLUDE = {
-  form: { select: { kind: true, name: true } },
+  form: { select: { key: true, name: true } },
   client: { select: { name: true } },
   updatedBy: { select: { firstName: true, lastName: true, name: true, email: true } },
 } as const;
 
-type ListRow = Prisma.CareRecordGetPayload<{ include: typeof LIST_INCLUDE }>;
+type ListRow = Prisma.FormResponseGetPayload<{ include: typeof LIST_INCLUDE }>;
 
 function listItem(r: ListRow): CareRecordListItemDto {
   const staffAt = r.updatedAt.getTime();
@@ -39,7 +38,7 @@ function listItem(r: ListRow): CareRecordListItemDto {
   return {
     id: r.id,
     formId: r.formId,
-    kind: r.form.kind,
+    kind: careKind(r.form),
     status: r.status,
     clientId: r.clientId,
     clientName: r.client?.name ?? null,
@@ -63,7 +62,8 @@ export class CareRecordsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly care: CareAccessService,
-    private readonly links: CareLinksService,
+    private readonly links: FormLinksService,
+    private readonly structure: FormStructureService,
   ) {}
 
   /** Records of one kind the user can see. ?status=PENDING lists public intakes waiting for review. */
@@ -72,13 +72,13 @@ export class CareRecordsController {
     const user = req.user as UserContext;
     await ensureCareForms(this.prisma);
     const k: CareFormKind = kind === 'CARE_PROFILE' ? 'CARE_PROFILE' : 'INTAKE';
-    const theForm = await this.prisma.careForm.findFirst({ where: { kind: k } });
+    const theForm = await this.prisma.form.findFirst({ where: careForm(k) });
     if (!theForm) return { items: [], myAccess: null, formId: null, pendingCount: 0 };
     const myAccess = await this.care.formAccess(user, theForm);
     if (!myAccess) return { items: [], myAccess: null, formId: theForm.id, pendingCount: 0 };
     const reach = await this.care.clientIds(user);
     const canSeePending = k === 'INTAKE' && reach === null && myAccess === 'edit';
-    const where: Prisma.CareRecordWhereInput = {
+    const where: Prisma.FormResponseWhereInput = {
       formId: theForm.id,
       ...(status === 'PENDING'
         ? { status: 'PENDING' as const }
@@ -89,8 +89,8 @@ export class CareRecordsController {
       ...(canSeePending ? {} : { status: 'ACTIVE' as const }),
     };
     if (status === 'PENDING' && !canSeePending) return { items: [], myAccess, formId: theForm.id, pendingCount: 0 };
-    const rows = await this.prisma.careRecord.findMany({ where, orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }], include: LIST_INCLUDE });
-    const pendingCount = canSeePending ? await this.prisma.careRecord.count({ where: { formId: theForm.id, status: 'PENDING' } }) : 0;
+    const rows = await this.prisma.formResponse.findMany({ where, orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }], include: LIST_INCLUDE });
+    const pendingCount = canSeePending ? await this.prisma.formResponse.count({ where: { formId: theForm.id, status: 'PENDING' } }) : 0;
     return { items: rows.map(listItem), myAccess, formId: theForm.id, pendingCount };
   }
 
@@ -101,22 +101,21 @@ export class CareRecordsController {
     await this.care.assertClient(user, clientId);
     await ensureCareForms(this.prisma);
     const roleId = await this.care.roleId(user);
-    const forms = await this.prisma.careForm.findMany({
-      where: { kind: { in: CARE_RECORD_KINDS } },
-      orderBy: { kind: 'asc' },
-      include: { records: { where: { clientId }, select: { id: true, updatedAt: true } } },
+    const forms = await this.prisma.form.findMany({
+      where: { module: CARE_FORM_MODULE, key: { in: CARE_RECORD_KINDS } },
+      include: { responses: { where: { clientId }, select: { id: true, updatedAt: true } } },
     });
     const out = [];
-    for (const f of forms) {
+    for (const f of byCareKind(forms)) {
       const myAccess = await this.care.formAccess(user, f, roleId);
       if (!myAccess) continue;
       out.push({
         formId: f.id,
-        kind: f.kind,
+        kind: careKind(f),
         name: f.name,
         myAccess,
-        recordId: f.records[0]?.id ?? null,
-        updatedAt: f.records[0]?.updatedAt.toISOString() ?? null,
+        recordId: f.responses[0]?.id ?? null,
+        updatedAt: f.responses[0]?.updatedAt.toISOString() ?? null,
       });
     }
     return out;
@@ -126,15 +125,15 @@ export class CareRecordsController {
   @Post('records')
   async create(@Req() req: Request, @Body() dto: CreateRecordDto) {
     const user = req.user as UserContext;
-    const form = await this.prisma.careForm.findUnique({ where: { id: dto.formId } });
-    if (!form || !CARE_RECORD_KINDS.includes(form.kind)) throw new NotFoundException('Form not found');
+    const form = await this.prisma.form.findFirst({ where: { id: dto.formId, module: CARE_FORM_MODULE } });
+    if (!form || !CARE_RECORD_KINDS.includes(careKind(form))) throw new NotFoundException('Form not found');
     if ((await this.care.formAccess(user, form)) !== 'edit') throw new NotFoundException('Form not found');
     await this.care.assertClient(user, dto.clientId);
     const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
     if (!client) throw new NotFoundException('Organization not found');
-    const existing = await this.prisma.careRecord.findFirst({ where: { formId: form.id, clientId: dto.clientId }, select: { id: true } });
+    const existing = await this.prisma.formResponse.findFirst({ where: { formId: form.id, clientId: dto.clientId }, select: { id: true } });
     if (existing) return { id: existing.id };
-    const r = await this.prisma.careRecord.create({ data: { formId: form.id, clientId: dto.clientId }, select: { id: true } });
+    const r = await this.prisma.formResponse.create({ data: { formId: form.id, clientId: dto.clientId, living: true }, select: { id: true } });
     return { id: r.id };
   }
 
@@ -147,14 +146,14 @@ export class CareRecordsController {
   @Put('records/:id')
   async save(@Req() req: Request, @Param('id') id: string, @Body() dto: SaveValuesDto) {
     const { record } = await this.care.assertRecord(req.user as UserContext, id, 'edit');
-    const fields = await this.fieldsOf(record.formId);
+    const fields = await this.structure.fields(record.formId);
     let values: Record<string, unknown>;
     try {
       values = mergeFormValues(fields, record.values as Record<string, unknown>, dto.values ?? {});
     } catch (err) {
       throw new BadRequestException(err instanceof Error ? err.message : 'Invalid value');
     }
-    await this.prisma.careRecord.update({ where: { id }, data: { values: values as Prisma.InputJsonValue } });
+    await this.prisma.formResponse.update({ where: { id }, data: { values: values as Prisma.InputJsonValue } });
     return this.view(id, 'edit');
   }
 
@@ -162,7 +161,7 @@ export class CareRecordsController {
   @Delete('records/:id')
   async remove(@Req() req: Request, @Param('id') id: string) {
     await this.care.assertRecord(req.user as UserContext, id, 'edit');
-    await this.prisma.careRecord.delete({ where: { id } });
+    await this.prisma.formResponse.delete({ where: { id } });
     return { deleted: true };
   }
 
@@ -199,9 +198,9 @@ export class CareRecordsController {
         return (await ensureLeadLinks(tx, lead.id)).clientId;
       });
     }
-    const taken = await this.prisma.careRecord.findFirst({ where: { formId: record.formId, clientId }, select: { id: true } });
+    const taken = await this.prisma.formResponse.findFirst({ where: { formId: record.formId, clientId }, select: { id: true } });
     if (taken) throw new ConflictException('That organization already has an intake form. Open it and copy what you need, or dismiss this one.');
-    await this.prisma.careRecord.update({ where: { id }, data: { clientId, status: 'ACTIVE' } });
+    await this.prisma.formResponse.update({ where: { id }, data: { clientId, status: 'ACTIVE' } });
     return this.view(id, 'edit');
   }
 
@@ -220,33 +219,20 @@ export class CareRecordsController {
     const user = req.user as UserContext;
     const { record } = await this.care.assertRecord(user, id, 'edit');
     if (!record.clientId) throw new BadRequestException('Accept this intake first');
-    return this.links.create(user, { formId: record.formId, kind: 'CLIENT_UPDATE', clientId: record.clientId }, dto);
+    return this.links.create(user, { formId: record.formId, kind: 'CLIENT', clientId: record.clientId }, dto);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  private async fieldsOf(formId: string) {
-    const sections = await this.prisma.careFormSection.findMany({
-      where: { formId },
-      orderBy: ORDER,
-      select: { id: true, name: true, fields: { orderBy: ORDER, select: { id: true, name: true, type: true, options: true, required: true } } },
-    });
-    return sections.flatMap((s) => s.fields.map((f) => ({ ...f, type: f.type as FormFieldType })));
-  }
-
   private async view(id: string, level: 'read' | 'edit'): Promise<CareRecordDto> {
-    const r = await this.prisma.careRecord.findUniqueOrThrow({ where: { id }, include: { ...LIST_INCLUDE, ...ATTRIBUTION_INCLUDE } });
-    const sections = await this.prisma.careFormSection.findMany({
-      where: { formId: r.formId },
-      orderBy: ORDER,
-      select: { id: true, name: true, fields: { orderBy: ORDER, select: { id: true, name: true, type: true, options: true, required: true } } },
-    });
+    const r = await this.prisma.formResponse.findUniqueOrThrow({ where: { id }, include: { ...LIST_INCLUDE, ...ATTRIBUTION_INCLUDE } });
+    const sections = await this.structure.sections(r.formId);
     const fields = sections.flatMap((s) => s.fields);
     return {
       ...listItem(r),
       formName: r.form.name,
       values: liveValues(fields, r.values),
-      sections: sections.map((s) => ({ id: s.id, name: s.name, fields: s.fields.map(fieldView) })),
+      sections,
       submitterPhone: r.submitterPhone,
       publicUpdatedAt: r.publicUpdatedAt?.toISOString() ?? null,
       publicUpdatedBy: r.publicUpdatedBy,

@@ -15,6 +15,7 @@ export const PERMISSION_AREAS = [
   'contacts',
   'pipeline',
   'bookings',
+  'forms',
   'inbox',
   'projects',
   'tasks',
@@ -32,7 +33,7 @@ export type AccessLevel = 'own' | 'all';
 export type RolePermissions = Partial<Record<PermissionArea, AccessLevel>>;
 
 /** Areas where "own" makes sense (the record has an owner or members). Every other area is all-or-nothing. */
-export const OWNABLE_AREAS: readonly PermissionArea[] = ['clients', 'contacts', 'projects', 'tasks', 'time', 'expenses', 'invoices', 'visits', 'schedule'];
+export const OWNABLE_AREAS: readonly PermissionArea[] = ['clients', 'contacts', 'forms', 'projects', 'tasks', 'time', 'expenses', 'invoices', 'visits', 'schedule'];
 
 export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   /** Organizations and the Clients list (the same records). */
@@ -40,6 +41,8 @@ export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   contacts: 'People',
   pipeline: 'Pipeline',
   bookings: 'Bookings',
+  /** Free-standing forms (Forms area). Own = forms the person created. */
+  forms: 'Forms',
   inbox: 'Activity',
   projects: 'Projects',
   tasks: 'Tasks',
@@ -165,11 +168,11 @@ export const ROLE_PRESETS: readonly RolePreset[] = [
     key: 'manager',
     name: 'Manager',
     permissions: {
-      clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', inbox: 'all',
+      clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', forms: 'all', inbox: 'all',
       projects: 'all', tasks: 'all', time: 'all', expenses: 'all', invoices: 'all', reports: 'all', care: 'all', visits: 'all', schedule: 'all',
     },
     actions: {
-      clients: ALL, contacts: ALL, pipeline: ALL_SETUP, bookings: ALL_SETUP, inbox: ALL,
+      clients: ALL, contacts: ALL, pipeline: ALL_SETUP, bookings: ALL_SETUP, forms: ALL, inbox: ALL,
       projects: ALL, tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, care: { setup: true }, visits: ALL, schedule: ALL,
     },
   },

@@ -5,15 +5,15 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsDateString, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Request } from 'express';
-import { allows, isAdminRole, type CareVisitDto, type CareVisitListItemDto, type FormFieldType } from '@upstart/back-office/shared';
+import { allows, isAdminRole, type CareVisitDto, type CareVisitListItemDto } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
-import { fieldView } from './care-forms.controller';
-import { ensureCareForms } from './care-forms.util';
-import { liveValues, mergeFormValues } from './form-fields.util';
+import { liveValues, mergeFormValues } from '../forms/form-fields.util';
+import { FormStructureService } from '../forms/form-structure.service';
+import { careForm, ensureCareForms } from './care-forms.util';
 
 export class CreateVisitDto {
   @IsString() clientId!: string;
@@ -41,7 +41,6 @@ export class EndVisitDto {
   @IsOptional() @IsObject() values?: Record<string, unknown>;
 }
 
-const ORDER = [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }];
 const PERSON = { select: { id: true, firstName: true, lastName: true, name: true, email: true, avatarUrl: true } } as const;
 const INCLUDE = {
   client: { select: { name: true } },
@@ -84,6 +83,7 @@ export class CareVisitsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
+    private readonly structure: FormStructureService,
   ) {}
 
   @Get('visits')
@@ -255,19 +255,14 @@ export class CareVisitsController {
 
   private async checklistForm() {
     await ensureCareForms(this.prisma);
-    const form = await this.prisma.careForm.findFirst({ where: { kind: 'VISIT' }, select: { id: true } });
+    const form = await this.prisma.form.findFirst({ where: careForm('VISIT'), select: { id: true } });
     if (!form) throw new NotFoundException('Visit log form missing');
-    const sections = await this.prisma.careFormSection.findMany({
-      where: { formId: form.id },
-      orderBy: ORDER,
-      select: { id: true, name: true, fields: { orderBy: ORDER, select: { id: true, name: true, type: true, options: true, required: true } } },
-    });
-    return { formId: form.id, sections };
+    return { formId: form.id, sections: await this.structure.sections(form.id) };
   }
 
   private async mergeValues(stored: Record<string, unknown>, submitted: Record<string, unknown>) {
     const { sections } = await this.checklistForm();
-    const fields = sections.flatMap((s) => s.fields.map((f) => ({ ...f, type: f.type as FormFieldType })));
+    const fields = sections.flatMap((s) => s.fields);
     try {
       return mergeFormValues(fields, stored ?? {}, submitted);
     } catch (err) {
@@ -305,7 +300,7 @@ export class CareVisitsController {
       ...listItem(v),
       notes: v.notes,
       values: liveValues(fields, v.values),
-      sections: sections.filter((s) => s.fields.length).map((s) => ({ id: s.id, name: s.name, fields: s.fields.map(fieldView) })),
+      sections: sections.filter((s) => s.fields.length),
       formId,
       timeEntryId: v.timeEntryId,
       invoiced: this.invoiced(v),

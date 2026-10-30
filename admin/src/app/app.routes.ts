@@ -28,9 +28,14 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/task-form/task-form.page').then((m) => m.TaskFormPage),
   },
   {
-    // Public Care links (intake or one organization's form), optionally behind a passcode or emailed code.
+    // Public form links (Care's intake or one organization's form), optionally behind a passcode or emailed code.
     path: 'care-form/:token',
-    loadComponent: () => import('./pages/care/care-public-form.page').then((m) => m.CarePublicFormPage),
+    loadComponent: () => import('./pages/forms/public-form.page').then((m) => m.PublicFormPage),
+  },
+  {
+    // Public links of free-standing forms (Forms area).
+    path: 'form/:token',
+    loadComponent: () => import('./pages/forms/public-form.page').then((m) => m.PublicFormPage),
   },
   {
     path: '',
@@ -198,6 +203,22 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/platform/help-assistant.page').then((m) => m.HelpAssistantPage),
         canActivate: [platformAdminGuard],
+      },
+      {
+        path: 'forms',
+        loadComponent: () => import('./pages/forms/forms.page').then((m) => m.FormsPage),
+      },
+      {
+        path: 'forms/submissions/:id',
+        loadComponent: () => import('./pages/forms/form-submission.page').then((m) => m.FormSubmissionPage),
+      },
+      {
+        path: 'forms/:id/submissions',
+        loadComponent: () => import('./pages/forms/form-submissions.page').then((m) => m.FormSubmissionsPage),
+      },
+      {
+        path: 'forms/:id',
+        loadComponent: () => import('./pages/forms/form-edit.page').then((m) => m.FormEditPage),
       },
       {
         path: 'care/intake',

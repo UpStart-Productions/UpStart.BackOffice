@@ -4,19 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { TagModule } from 'primeng/tag';
 import type { CareRecordDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CareApi } from '../../core/care.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { CareLinksComponent } from '../../ui/care-forms/care-links.component';
+import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
+import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE, normalizeValues } from '../../ui/care-forms/care.types';
-import { FormFieldInputComponent } from '../../ui/care-forms/form-field-input.component';
+import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 import { PageComponent } from '../../ui/layout/page.component';
-import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
@@ -29,14 +27,12 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     FormsModule,
     RouterLink,
     ButtonModule,
-    InputTextModule,
     MessageModule,
-    SelectButtonModule,
     TagModule,
     AppDialogModule,
-    CareLinksComponent,
+    AcceptResponseDialogComponent,
+    FormLinksComponent,
     FormFieldInputComponent,
-    OrganizationSelectComponent,
     PageComponent,
     RecordAttributionComponent,
     RowActionsMenuComponent,
@@ -117,39 +113,20 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             }
             @if (r.clientId && r.myAccess === 'edit') {
               <div class="card card--side">
-                <app-care-links [recordId]="r.id" />
+                <app-form-links apiBase="/care" [recordId]="r.id" helpKey="care.links.record" />
               </div>
             }
           </div>
         </div>
       }
 
-      <p-dialog header="Accept intake" [(visible)]="acceptVisible" [modal]="true" [style]="{ width: 'min(30rem, 96vw)' }">
-        <div class="form-field">
-          <p-selectbutton [options]="acceptModes" optionLabel="label" optionValue="value" [(ngModel)]="acceptMode" [allowEmpty]="false" />
-        </div>
-        @if (acceptMode === 'new') {
-          <div class="form-field mt-3">
-            <label for="crAcceptName">Organization name</label>
-            <input pInputText id="crAcceptName" class="w-full" [(ngModel)]="acceptName" />
-          </div>
-        } @else {
-          <div class="form-field mt-3">
-            <label for="crAcceptOrg">Organization</label>
-            <app-organization-select inputId="crAcceptOrg" [(value)]="acceptClientId" />
-          </div>
-        }
-        <ng-template pTemplate="footer">
-          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="accepting()" (onClick)="acceptVisible = false" />
-          <p-button
-            label="Accept"
-            icon="pi pi-check"
-            [loading]="accepting()"
-            [disabled]="acceptMode === 'new' ? !acceptName.trim() : !acceptClientId"
-            (onClick)="accept()"
-          />
-        </ng-template>
-      </p-dialog>
+      <app-accept-response-dialog
+        header="Accept intake"
+        [(visible)]="acceptVisible"
+        [defaultName]="record()?.submitterName ?? ''"
+        [busy]="accepting()"
+        (accept)="accept($event)"
+      />
     </app-page>
   `,
   styles: `
@@ -165,11 +142,6 @@ export class CareRecordPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
 
-  readonly acceptModes = [
-    { value: 'new', label: 'New organization' },
-    { value: 'existing', label: 'Existing organization' },
-  ];
-
   record = signal<CareRecordDto | null>(null);
   error = signal<string | null>(null);
   saving = signal(false);
@@ -177,10 +149,7 @@ export class CareRecordPage implements OnInit {
   values: Record<string, unknown> = {};
   private saved = '';
 
-  acceptVisible = false;
-  acceptMode: 'new' | 'existing' = 'new';
-  acceptName = '';
-  acceptClientId: string | null = null;
+  acceptVisible = signal(false);
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
@@ -261,22 +230,16 @@ export class CareRecordPage implements OnInit {
   }
 
   openAccept() {
-    this.acceptMode = 'new';
-    this.acceptName = this.record()?.submitterName ?? '';
-    this.acceptClientId = null;
-    this.acceptVisible = true;
+    this.acceptVisible.set(true);
   }
 
-  async accept() {
+  async accept(choice: AcceptResponseChoice) {
     this.accepting.set(true);
     try {
       // Keep any unsaved edits.
       if (this.isDirty()) await this.save();
-      const r = await this.care.accept(this.id, {
-        mode: this.acceptMode,
-        ...(this.acceptMode === 'new' ? { name: this.acceptName.trim() } : { clientId: this.acceptClientId ?? undefined }),
-      });
-      this.acceptVisible = false;
+      const r = await this.care.accept(this.id, choice);
+      this.acceptVisible.set(false);
       this.apply(r);
       void this.care.refreshPendingCount();
       this.toast.add({ severity: 'success', summary: 'Accepted', detail: `Intake added to ${r.clientName}.` });

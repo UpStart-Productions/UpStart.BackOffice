@@ -4,10 +4,19 @@ import { coerceFieldValue, normalizeOptions } from '../task-manager/task-fields.
 
 type FieldDef = { id: string; name: string; type: FormFieldType; options: unknown; required?: boolean };
 
-/** Select options as stored: [{ id, label }] (ids kept on rename, so values survive). Empty for other types. */
-export function formFieldOptions(type: FormFieldType, input: unknown): FormFieldOption[] {
+/**
+ * Select options as stored: [{ id, label, points? }] (ids kept on rename, so values survive). Empty for other types.
+ * `withPoints` keeps each option's points (scored forms); otherwise points are dropped.
+ */
+export function formFieldOptions(type: FormFieldType, input: unknown, withPoints = false): FormFieldOption[] {
   if (!isSelectFieldType(type)) return [];
-  return normalizeOptions(input).map(({ id, label }) => ({ id, label }));
+  const raw = Array.isArray(input) ? input.filter((o) => o && typeof o === 'object' && typeof o.label === 'string' && o.label.trim()) : [];
+  return normalizeOptions(raw).map(({ id, label }, i) => {
+    const p = Number((raw[i] as { points?: unknown }).points);
+    return withPoints && (raw[i] as { points?: unknown }).points !== undefined && (raw[i] as { points?: unknown }).points !== null && Number.isFinite(p)
+      ? { id, label, points: Math.max(-1000, Math.min(1000, p)) }
+      : { id, label };
+  });
 }
 
 /**

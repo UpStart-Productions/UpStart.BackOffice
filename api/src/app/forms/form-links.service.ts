@@ -1,24 +1,24 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import type { CareLinkKind } from '@upstart/back-office/shared';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { formProfile, type FormLinkKind } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { normalizeEmail } from '../communications/email-address.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CareAccessService } from './care-access.service';
-import { CreateLinkDto } from './care.dto';
-import { hashPasscode, LINK_INCLUDE, linkView, newLinkToken } from './care-links.util';
+import { CreateLinkDto } from './form.dto';
+import { hashPasscode, LINK_INCLUDE, linkView, newLinkToken } from './form-links.util';
 
-/** Default lifetime of a per-organization link; new-intake links don't expire unless asked. */
+/** Default lifetime of a per-organization link; new-response links don't expire unless asked. */
 const CLIENT_LINK_DAYS = 30;
 
+/**
+ * Public links of a form: making, listing and revoking them. The form's builder profile decides which
+ * kinds of link it can have. Who may do this is the owning module's check.
+ */
 @Injectable()
-export class CareLinksService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly care: CareAccessService,
-  ) {}
+export class FormLinksService {
+  constructor(private readonly prisma: PrismaService) {}
 
   async list(where: { formId: string; clientId?: string }) {
-    const rows = await this.prisma.careFormLink.findMany({
+    const rows = await this.prisma.formLink.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: LINK_INCLUDE,
@@ -28,22 +28,27 @@ export class CareLinksService {
 
   async create(
     user: UserContext,
-    target: { formId: string; kind: CareLinkKind; clientId: string | null },
+    target: { formId: string; kind: FormLinkKind; clientId: string | null },
     dto: CreateLinkDto,
   ) {
+    const form = await this.prisma.form.findUnique({ where: { id: target.formId }, select: { module: true, key: true } });
+    if (!form) throw new NotFoundException('Form not found');
+    const profile = formProfile(form.module, form.key);
+    if (target.kind === 'NEW' && !profile.newLinks) throw new BadRequestException('This form does not take new-response links');
+    if (target.kind === 'CLIENT' && !profile.clientLinks) throw new BadRequestException('This form does not take organization links');
     let email: string | null = null;
     if (dto.verify === 'PASSCODE' && !dto.passcode?.trim()) throw new BadRequestException('Enter a passcode');
-    if (dto.verify === 'EMAIL_CODE' && target.kind === 'CLIENT_UPDATE') {
+    if (dto.verify === 'EMAIL_CODE' && target.kind === 'CLIENT') {
       email = normalizeEmail(dto.email);
       if (!email) throw new BadRequestException('Enter the email address the code goes to');
     }
     const days =
       dto.expiresInDays === undefined
-        ? target.kind === 'CLIENT_UPDATE'
+        ? target.kind === 'CLIENT'
           ? CLIENT_LINK_DAYS
           : null
         : dto.expiresInDays || null;
-    const row = await this.prisma.careFormLink.create({
+    const row = await this.prisma.formLink.create({
       data: {
         formId: target.formId,
         kind: target.kind,
@@ -61,21 +66,22 @@ export class CareLinksService {
     return linkView(row);
   }
 
-  /** Setup can revoke any link; people who can edit a form can revoke its links for organizations they reach. */
-  async revoke(user: UserContext, id: string) {
-    const link = await this.prisma.careFormLink.findUnique({ where: { id }, include: { form: true } });
+  /** The link with its form, for the caller's permission check. */
+  async find(id: string) {
+    const link = await this.prisma.formLink.findUnique({ where: { id }, include: { form: true } });
     if (!link) throw new NotFoundException('Link not found');
-    if (!this.care.canSetup(user)) {
-      const level = await this.care.formAccess(user, link.form);
-      if (level !== 'edit' || !link.clientId) throw new ForbiddenException("Your role can't change this link");
-      await this.care.assertClient(user, link.clientId);
-    }
-    const row = await this.prisma.careFormLink.update({
+    return link;
+  }
+
+  /** Stop a link working and end every verified session on it. */
+  async revoke(id: string) {
+    const link = await this.find(id);
+    const row = await this.prisma.formLink.update({
       where: { id },
       data: { revokedAt: link.revokedAt ?? new Date() },
       include: LINK_INCLUDE,
     });
-    await this.prisma.careLinkAccess.deleteMany({ where: { linkId: id } });
+    await this.prisma.formLinkAccess.deleteMany({ where: { linkId: id } });
     return linkView(row);
   }
 }

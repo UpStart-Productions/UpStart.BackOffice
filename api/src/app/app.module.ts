@@ -3,6 +3,7 @@ import { AccountingModule } from './accounting/accounting.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
 import { CareModule } from './care/care.module';
+import { FormsModule } from './forms/forms.module';
 import { CognitoModule } from './cognito/cognito.module';
 import { CommonModule } from './common/common.module';
 import { InvoicesModule } from './invoices/invoices.module';
@@ -57,6 +58,7 @@ import { HealthController } from './health.controller';
     MailModule,
     UsersModule,
     ClientsModule,
+    FormsModule,
     CareModule,
     ProjectsModule,
     TimeEntriesModule,

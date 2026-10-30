@@ -10,7 +10,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { DateInputComponent } from '../date-input/date-input.component';
 
 /**
- * The one control for a Care form field (label + input by type). Used on the record page in the
+ * The one control for a form field (label + input by type). Used on the record page in the
  * back office and on the public form page. `value` is the stored shape: string, number, YYYY-MM-DD,
  * option id, option ids, or true.
  */

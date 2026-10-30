@@ -4,9 +4,9 @@ import { ActivatedRoute } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import type { CarePublicFormDto, CarePublicLinkDto } from '@upstart/back-office/shared';
+import type { FormPublicFormDto, FormPublicLinkDto, FormPublicSubmitResultDto, FormResultDto } from '@upstart/back-office/shared';
 import { environment } from '../../../environments/environment';
-import { FormFieldInputComponent } from '../../ui/care-forms/form-field-input.component';
+import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 
 type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done';
 
@@ -15,7 +15,7 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
  * update). Some links need a passcode or an emailed code first.
  */
 @Component({
-  selector: 'app-care-public-form-page',
+  selector: 'app-public-form-page',
   standalone: true,
   imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, FormFieldInputComponent],
   styleUrls: ['../login/login.page.scss', '../task-form/task-form.page.scss'],
@@ -98,10 +98,18 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
                     <label for="cpEmail2">Your email<span class="task-form-required">*</span></label>
                     <input pInputText id="cpEmail2" name="email2" type="email" class="w-full" [(ngModel)]="email" [readonly]="!!form()?.verifiedEmail" autocomplete="email" />
                   </div>
-                  <div class="form-field flex-1">
-                    <label for="cpPhone">Phone</label>
-                    <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" autocomplete="tel" />
-                  </div>
+                  @if (info()?.ask?.organization) {
+                    <div class="form-field flex-1">
+                      <label for="cpOrg">Organization<span class="task-form-required">*</span></label>
+                      <input pInputText id="cpOrg" name="organization" class="w-full" [(ngModel)]="organization" autocomplete="organization" />
+                    </div>
+                  }
+                  @if (info()?.ask?.phone) {
+                    <div class="form-field flex-1">
+                      <label for="cpPhone">Phone</label>
+                      <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" autocomplete="tel" />
+                    </div>
+                  }
                 }
               </div>
               @for (s of form()?.sections ?? []; track s.id) {
@@ -124,12 +132,61 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
               <h2 class="page-title task-form-title">Sent</h2>
               <p class="text-color-secondary mb-0">{{ doneMessage() }}</p>
             </div>
+            @if (result(); as r) {
+              <div class="cp-result">
+                <p class="cp-result-score">{{ round(r.percent) }}%</p>
+                @if (r.band; as b) {
+                  <h3 class="cp-section">{{ b.label }}</h3>
+                  @if (b.description) {
+                    <p class="text-color-secondary">{{ b.description }}</p>
+                  }
+                  @if (b.nextSteps.length) {
+                    <h3 class="cp-section">Recommended next steps</h3>
+                    <ul class="cp-result-list">
+                      @for (n of b.nextSteps; track $index) {
+                        <li>{{ n }}</li>
+                      }
+                    </ul>
+                  }
+                  @if (b.assetUrl) {
+                    <p><a [href]="b.assetUrl" target="_blank" rel="noopener">{{ b.assetLabel || 'Download your guide' }}</a></p>
+                  }
+                }
+                @if (r.groups.length) {
+                  <h3 class="cp-section">By area</h3>
+                  @for (g of r.groups; track g.id) {
+                    <div class="cp-result-row"><span>{{ g.name }}</span><strong>{{ round(g.percent) }}%</strong></div>
+                  }
+                }
+                @if (r.cta; as c) {
+                  <div class="login-actions mt-3"><a pButton [href]="c.url" [label]="c.label"></a></div>
+                }
+              </div>
+            }
           }
         }
       </div>
     </div>
   `,
   styles: `
+    .cp-result {
+      margin-top: 1.5rem;
+    }
+    .cp-result-score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin: 0;
+    }
+    .cp-result-list {
+      margin: 0 0 1rem;
+      padding-left: 1.25rem;
+    }
+    .cp-result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+    }
     .cp-section {
       font-size: var(--fs-md);
       font-weight: 600;
@@ -137,18 +194,23 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
     }
   `,
 })
-export class CarePublicFormPage implements OnInit {
+/**
+ * The public page for any form link (Care's /care-form/:token and /form/:token): optional passcode or emailed
+ * code, the form, then thanks. Scored forms also show the results.
+ */
+export class PublicFormPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly token = this.route.snapshot.paramMap.get('token') ?? '';
-  private readonly base = `${environment.apiBaseUrl}/care-links/${encodeURIComponent(this.token)}`;
+  private readonly base = `${environment.apiBaseUrl}/form-links/${encodeURIComponent(this.token)}`;
 
   step = signal<Step>('loading');
-  info = signal<CarePublicLinkDto | null>(null);
-  form = signal<CarePublicFormDto | null>(null);
+  info = signal<FormPublicLinkDto | null>(null);
+  form = signal<FormPublicFormDto | null>(null);
   error = signal<string | null>(null);
   busy = signal(false);
   codeSentTo = signal('');
   doneMessage = signal('');
+  result = signal<FormResultDto | null>(null);
 
   private accessToken: string | null = null;
   private challengeId: string | null = null;
@@ -157,16 +219,21 @@ export class CarePublicFormPage implements OnInit {
   code = '';
   name = '';
   phone = '';
+  organization = '';
   website = '';
   values: Record<string, unknown> = {};
 
+  round(n: number) {
+    return Math.round(n);
+  }
+
   isIntake() {
-    return this.info()?.kind === 'NEW_INTAKE';
+    return this.info()?.kind === 'NEW';
   }
 
   async ngOnInit() {
     try {
-      const info = await this.call<CarePublicLinkDto>('GET', '');
+      const info = await this.call<FormPublicLinkDto>('GET', '');
       this.info.set(info);
       if (info.verify === 'PASSCODE') this.step.set('passcode');
       else if (info.verify === 'EMAIL_CODE') this.step.set('email');
@@ -204,19 +271,27 @@ export class CarePublicFormPage implements OnInit {
 
   async submit() {
     await this.run(async () => {
-      const r = await this.call<{ message: string }>('POST', '/submit', {
+      const r = await this.call<FormPublicSubmitResultDto>('POST', '/submit', {
         values: this.values,
-        submitter: { name: this.name.trim(), email: this.email.trim(), phone: this.phone.trim() },
+        submitter: { name: this.name.trim(), email: this.email.trim(), phone: this.phone.trim(), organization: this.organization.trim() },
         website: this.website,
       });
       this.doneMessage.set(r.message);
+      if (r.resultToken) {
+        try {
+          const res = await fetch(`${environment.apiBaseUrl}/form-results/${encodeURIComponent(r.resultToken)}`);
+          if (res.ok) this.result.set((await res.json()) as FormResultDto);
+        } catch {
+          // The thanks message is enough when results can't load.
+        }
+      }
       this.step.set('done');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }
 
   private async loadForm() {
-    const f = await this.call<CarePublicFormDto>('GET', '/form');
+    const f = await this.call<FormPublicFormDto>('GET', '/form');
     this.form.set(f);
     this.values = { ...f.values };
     if (f.verifiedEmail) this.email = f.verifiedEmail;
@@ -251,7 +326,7 @@ export class CarePublicFormPage implements OnInit {
   private async call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = {};
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    if (this.accessToken) headers['X-Care-Access'] = this.accessToken;
+    if (this.accessToken) headers['X-Form-Access'] = this.accessToken;
     const res = await fetch(`${this.base}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     const json = await res.json().catch(() => null);
     if (!res.ok) {

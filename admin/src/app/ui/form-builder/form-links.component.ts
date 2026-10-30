@@ -8,19 +8,21 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { CARE_LINK_VERIFY_LABELS, type CareLinkDto, type CareLinkVerify } from '@upstart/back-office/shared';
+import { FORM_LINK_VERIFY_LABELS, type FormLinkDto, type FormLinkVerify } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { CareApi } from '../../core/care.api';
+import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 
 /**
- * Public links for a Care form: new-intake links (form mode, Intake form) or links to one
- * organization's copy (record mode). Each link can need a passcode or an emailed code.
+ * The one public-links panel for any form: new-response links (form mode) or links to one organization's
+ * response (record mode, Care). Each link can need a passcode or an emailed code. `apiBase` is the owning
+ * module's API (e.g. "/care", "/form-admin"), which serves {apiBase}/forms/:id/links, {apiBase}/records/:id/links
+ * and {apiBase}/links/:id/revoke.
  */
 @Component({
-  selector: 'app-care-links',
+  selector: 'app-form-links',
   standalone: true,
   imports: [
     DatePipe,
@@ -37,7 +39,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
   ],
   template: `
     <div class="card-header">
-      <h3 class="card-title">{{ recordId() ? 'Share link' : 'Public intake links' }} <app-help-text [key]="recordId() ? 'care.links.record' : 'care.links.intake'" /></h3>
+      <h3 class="card-title">{{ title() || (recordId() ? 'Share link' : 'Public links') }} @if (helpKey()) {<app-help-text [key]="helpKey()!" />}</h3>
       <p-button label="New link" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNew()" />
     </div>
     <p-table [value]="links()" [loading]="loading()" styleClass="table-bordered">
@@ -82,10 +84,10 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
       } @else {
         <div class="form-field">
           <label for="clLabel">Label</label>
-          <input pInputText id="clLabel" class="w-full" [(ngModel)]="label" [placeholder]="recordId() ? 'e.g. For the family' : 'e.g. Website intake'" />
+          <input pInputText id="clLabel" class="w-full" [(ngModel)]="label" [placeholder]="recordId() ? 'e.g. For the family' : 'e.g. Website'" />
         </div>
         <div class="form-field mt-3">
-          <label>Check before opening <app-help-text key="care.links.verify" /></label>
+          <label>Check before opening <app-help-text key="form.links.verify" /></label>
           <p-selectbutton [options]="verifyOptions" optionLabel="label" optionValue="value" [(ngModel)]="verify" [allowEmpty]="false" />
         </div>
         @if (verify === 'PASSCODE') {
@@ -101,7 +103,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
           </div>
         }
         <div class="form-field mt-3">
-          <label for="clDays">Expires after (days) <app-help-text key="care.links.expires" /></label>
+          <label for="clDays">Expires after (days) <app-help-text key="form.links.expires" /></label>
           <p-inputNumber inputId="clDays" [(ngModel)]="expiresInDays" [min]="0" [max]="3650" [useGrouping]="false" placeholder="Never" styleClass="w-full" inputStyleClass="w-full" />
         </div>
       }
@@ -116,26 +118,30 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     </p-dialog>
   `,
 })
-export class CareLinksComponent {
-  private readonly care = inject(CareApi);
+export class FormLinksComponent {
+  private readonly api = inject(ApiService);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
 
-  /** Form mode: new-intake links of this form. */
+  /** The owning module's API, e.g. "/care". */
+  apiBase = input.required<string>();
+  title = input<string | null>(null);
+  helpKey = input<string | null>(null);
+  /** Form mode: new-response links of this form. */
   formId = input<string | null>(null);
   /** Record mode: links to this organization's copy. */
   recordId = input<string | null>(null);
 
-  readonly verifyOptions = (Object.keys(CARE_LINK_VERIFY_LABELS) as CareLinkVerify[]).map((value) => ({ value, label: CARE_LINK_VERIFY_LABELS[value] }));
+  readonly verifyOptions = (Object.keys(FORM_LINK_VERIFY_LABELS) as FormLinkVerify[]).map((value) => ({ value, label: FORM_LINK_VERIFY_LABELS[value] }));
 
-  links = signal<CareLinkDto[]>([]);
+  links = signal<FormLinkDto[]>([]);
   loading = signal(true);
   saving = signal(false);
-  created = signal<CareLinkDto | null>(null);
+  created = signal<FormLinkDto | null>(null);
 
   dialogVisible = false;
   label = '';
-  verify: CareLinkVerify = 'NONE';
+  verify: FormLinkVerify = 'NONE';
   passcode = '';
   email = '';
   expiresInDays: number | null = null;
@@ -153,7 +159,10 @@ export class CareLinksComponent {
     try {
       const rid = this.recordId();
       const fid = this.formId();
-      this.links.set(rid ? await this.care.recordLinks(rid) : fid ? await this.care.formLinks(fid) : []);
+      const base = this.apiBase();
+      this.links.set(
+        rid ? await this.api.get<FormLinkDto[]>(`${base}/records/${rid}/links`) : fid ? await this.api.get<FormLinkDto[]>(`${base}/forms/${fid}/links`) : [],
+      );
     } catch {
       this.links.set([]);
     } finally {
@@ -161,17 +170,17 @@ export class CareLinksComponent {
     }
   }
 
-  verifyLabel(v: CareLinkVerify) {
-    return CARE_LINK_VERIFY_LABELS[v];
+  verifyLabel(v: FormLinkVerify) {
+    return FORM_LINK_VERIFY_LABELS[v];
   }
 
-  status(l: CareLinkDto): { label: string; severity: 'success' | 'secondary' | 'warn' } {
+  status(l: FormLinkDto): { label: string; severity: 'success' | 'secondary' | 'warn' } {
     if (l.revokedAt) return { label: 'Revoked', severity: 'secondary' };
     if (l.expiresAt && new Date(l.expiresAt) < new Date()) return { label: 'Expired', severity: 'warn' };
     return { label: 'Active', severity: 'success' };
   }
 
-  rowActions(l: CareLinkDto): RowActionItem[] {
+  rowActions(l: FormLinkDto): RowActionItem[] {
     const items: RowActionItem[] = [
       { id: 'copy', label: 'Copy link', icon: 'pi pi-copy', command: () => void this.copy(l.url) },
       { id: 'open', label: 'Open', icon: 'pi pi-external-link', command: () => window.open(l.url, '_blank', 'noopener') },
@@ -209,7 +218,8 @@ export class CareLinksComponent {
         expiresInDays: this.expiresInDays ?? 0,
       };
       const rid = this.recordId();
-      const link = rid ? await this.care.createRecordLink(rid, body) : await this.care.createFormLink(this.formId()!, body);
+      const base = this.apiBase();
+      const link = await this.api.post<FormLinkDto>(rid ? `${base}/records/${rid}/links` : `${base}/forms/${this.formId()}/links`, body);
       this.created.set(link);
       await this.load();
     } catch (err) {
@@ -219,13 +229,13 @@ export class CareLinksComponent {
     }
   }
 
-  confirmRevoke(l: CareLinkDto) {
+  confirmRevoke(l: FormLinkDto) {
     this.confirm.confirm({
       header: 'Revoke link',
       message: 'Revoke this link? It stops working right away and cannot be turned back on.',
       accept: async () => {
         try {
-          await this.care.revokeLink(l.id);
+          await this.api.post<FormLinkDto>(`${this.apiBase()}/links/${l.id}/revoke`, {});
           await this.load();
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not revoke', detail: err instanceof Error ? err.message : 'Failed' });

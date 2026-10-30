@@ -8,7 +8,7 @@ import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import type { CareFormAccessLevel, CareFormKind, CareRecordListItemDto } from '@upstart/back-office/shared';
+import type { FormAccessLevel, CareFormKind, CareRecordListItemDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CareApi } from '../../core/care.api';
 import { SessionService } from '../../core/session.service';
@@ -122,7 +122,7 @@ export class CareRecordsPage implements OnInit {
   readonly title = CARE_KIND_LIST_TITLE[this.kind];
 
   items = signal<CareRecordListItemDto[]>([]);
-  myAccess = signal<CareFormAccessLevel | null>(null);
+  myAccess = signal<FormAccessLevel | null>(null);
   formId = signal<string | null>(null);
   pendingCount = signal(0);
   loading = signal(true);

@@ -1,11 +1,9 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type {
-  CareFormAccess,
-  CareFormAccessLevel,
+  FormAccess,
+  FormAccessLevel,
   CareFormDto,
   CareFormKind,
-  CareLinkDto,
-  CareLinkVerify,
   CareRecordDto,
   CareRecordListItemDto,
   CareShiftDto,
@@ -18,17 +16,9 @@ export type CareClientForm = {
   formId: string;
   kind: CareFormKind;
   name: string;
-  myAccess: CareFormAccessLevel;
+  myAccess: FormAccessLevel;
   recordId: string | null;
   updatedAt: string | null;
-};
-
-export type NewCareLink = {
-  label?: string;
-  verify: CareLinkVerify;
-  passcode?: string;
-  email?: string;
-  expiresInDays?: number | null;
 };
 
 /** Care module API (forms setup, records, links) plus the pending-intake count for the nav badge. */
@@ -42,7 +32,7 @@ export class CareApi {
   form(id: string) {
     return this.api.get<CareFormDto>(`/care/forms/${id}`);
   }
-  updateForm(id: string, body: { name?: string; description?: string | null; access?: CareFormAccess }) {
+  updateForm(id: string, body: { name?: string; description?: string | null; access?: FormAccess }) {
     return this.api.patch(`/care/forms/${id}`, body);
   }
   roles() {
@@ -51,7 +41,7 @@ export class CareApi {
 
   async records(kind: CareFormKind, status?: 'PENDING' | 'ACTIVE') {
     const q = new URLSearchParams({ kind, ...(status ? { status } : {}) });
-    const res = await this.api.get<{ items: CareRecordListItemDto[]; myAccess: CareFormAccessLevel | null; formId: string | null; pendingCount: number }>(
+    const res = await this.api.get<{ items: CareRecordListItemDto[]; myAccess: FormAccessLevel | null; formId: string | null; pendingCount: number }>(
       `/care/records?${q}`,
     );
     if (kind === 'INTAKE') this.pendingCount.set(res.pendingCount);
@@ -81,22 +71,6 @@ export class CareApi {
   }
   forClient(clientId: string) {
     return this.api.get<CareClientForm[]>(`/care/clients/${clientId}`);
-  }
-
-  formLinks(formId: string) {
-    return this.api.get<CareLinkDto[]>(`/care/forms/${formId}/links`);
-  }
-  createFormLink(formId: string, body: NewCareLink) {
-    return this.api.post<CareLinkDto>(`/care/forms/${formId}/links`, body);
-  }
-  recordLinks(recordId: string) {
-    return this.api.get<CareLinkDto[]>(`/care/records/${recordId}/links`);
-  }
-  createRecordLink(recordId: string, body: NewCareLink) {
-    return this.api.post<CareLinkDto>(`/care/records/${recordId}/links`, body);
-  }
-  revokeLink(id: string) {
-    return this.api.post<CareLinkDto>(`/care/links/${id}/revoke`, {});
   }
 
   // ── Visits ─────────────────────────────────────────────────────────────────

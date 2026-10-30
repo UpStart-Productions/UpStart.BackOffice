@@ -8,11 +8,11 @@ import { MessageModule } from 'primeng/message';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TextareaModule } from 'primeng/textarea';
-import type { CareFormAccess, CareFormDto } from '@upstart/back-office/shared';
+import { CARE_FORM_MODULE, formProfile, type CareFormDto, type FormAccess } from '@upstart/back-office/shared';
 import { CareApi } from '../../core/care.api';
-import { CareLinksComponent } from '../../ui/care-forms/care-links.component';
 import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE } from '../../ui/care-forms/care.types';
-import { FormBuilderComponent } from '../../ui/care-forms/form-builder.component';
+import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
+import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
 
@@ -30,7 +30,7 @@ type Level = 'none' | 'read' | 'edit';
     SelectButtonModule,
     TableModule,
     TextareaModule,
-    CareLinksComponent,
+    FormLinksComponent,
     FormBuilderComponent,
     HelpTextComponent,
     PageComponent,
@@ -94,12 +94,12 @@ type Level = 'none' | 'read' | 'edit';
             <div class="card-header">
               <h3 class="card-title">Fields</h3>
             </div>
-            <app-form-builder [form]="f" (changed)="reload()" />
+            <app-form-builder [form]="f" [profile]="profile()" apiBase="/care" (changed)="reload()" />
           </div>
 
-          @if (f.kind === 'INTAKE') {
+          @if (profile().newLinks) {
             <div class="card">
-              <app-care-links [formId]="f.id" />
+              <app-form-links apiBase="/care" [formId]="f.id" title="Public intake links" helpKey="care.links.intake" />
             </div>
           }
         </div>
@@ -120,7 +120,7 @@ export class CareFormEditPage implements OnInit {
 
   form = signal<CareFormDto | null>(null);
   roles = signal<{ id: string; name: string }[]>([]);
-  levels = signal<CareFormAccess>({});
+  levels = signal<FormAccess>({});
   error = signal<string | null>(null);
   saving = signal(false);
   name = '';
@@ -128,6 +128,8 @@ export class CareFormEditPage implements OnInit {
   private saved = '';
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
+  /** The builder profile of this form (what it can have). */
+  profile = computed(() => formProfile(CARE_FORM_MODULE, this.form()?.kind ?? 'INTAKE'));
   backLink = computed(() => CARE_KIND_ROUTE[this.form()?.kind ?? 'INTAKE']);
   backLabel = computed(() => CARE_KIND_LIST_TITLE[this.form()?.kind ?? 'INTAKE']);
 

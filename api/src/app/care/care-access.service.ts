@@ -1,9 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { allows, isAdminRole, type CareFormAccessLevel } from '@upstart/back-office/shared';
+import { allows, CARE_FORM_MODULE, isAdminRole, type FormAccessLevel } from '@upstart/back-office/shared';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
-import { sanitizeFormAccess } from './care-forms.util';
+import { sanitizeFormAccess } from '../forms/form-access.util';
 
 /**
  * Who may do what with Care forms:
@@ -26,7 +26,7 @@ export class CareAccessService {
   }
 
   /** The user's access to a form, or null. */
-  async formAccess(user: UserContext, form: { access: unknown }, roleId?: string | null): Promise<CareFormAccessLevel | null> {
+  async formAccess(user: UserContext, form: { access: unknown }, roleId?: string | null): Promise<FormAccessLevel | null> {
     if (isAdminRole(user.role)) return 'edit';
     if (!allows(user, 'care', 'view')) return null;
     const rid = roleId === undefined ? await this.roleId(user) : roleId;
@@ -53,9 +53,9 @@ export class CareAccessService {
   }
 
   /** The form a record belongs to plus the user's access, or 404 when they can't see it at all. */
-  async assertRecord(user: UserContext, recordId: string, need: CareFormAccessLevel) {
-    const record = await this.prisma.careRecord.findUnique({
-      where: { id: recordId },
+  async assertRecord(user: UserContext, recordId: string, need: FormAccessLevel) {
+    const record = await this.prisma.formResponse.findFirst({
+      where: { id: recordId, form: { module: CARE_FORM_MODULE } },
       include: { form: true, client: { select: { id: true, name: true } } },
     });
     if (!record) throw new NotFoundException('Record not found');

@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -9,9 +9,11 @@ import { TableModule } from 'primeng/table';
 import {
   FORM_FIELD_TYPE_LABELS,
   isSelectFieldType,
-  type CareFormDto,
   type FormFieldDto,
   type FormFieldType,
+  type FormProfile,
+  type FormScoreGroup,
+  type FormSectionDto,
 } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
@@ -20,10 +22,16 @@ import { FieldOptionDraft, FieldOptionsEditorComponent } from '../field-options-
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 
-type Section = CareFormDto['sections'][number];
 type Field = FormFieldDto & { valueCount?: number };
+type Section = FormSectionDto & { fields: Field[] };
+/** What the builder edits: any form's sections and fields (valueCount = responses with the field filled in). */
+export type BuilderForm = { id: string; sections: Section[] };
 
-/** Sections and fields of a Care form (Customize fields on Intake or Care profiles). Changes save right away. */
+/**
+ * The one form builder: sections and fields of any form. Changes save right away.
+ * `profile` is a hard rule: the builder only offers what the form's profile allows (the API checks it too).
+ * `apiBase` is the owning module's API (e.g. "/care"), which checks who may change the form.
+ */
 @Component({
   selector: 'app-form-builder',
   standalone: true,
@@ -41,7 +49,7 @@ type Field = FormFieldDto & { valueCount?: number };
   ],
   template: `
     <div class="field-action-row toolbar">
-      <span class="font-medium mr-1">Sections <app-help-text key="care.form.sections" /></span>
+      <span class="font-medium mr-1">Sections <app-help-text key="form.builder.sections" /></span>
       <input
         pInputText
         [(ngModel)]="newSectionName"
@@ -67,8 +75,13 @@ type Field = FormFieldDto & { valueCount?: number };
               <th style="width: 3rem"></th>
               <th>Field</th>
               <th>Type</th>
-              <th>Required</th>
+              @if (profile().required) {
+                <th>Required</th>
+              }
               <th>Options</th>
+              @if (profile().scoring) {
+                <th>Score area</th>
+              }
               <th>Filled in on</th>
             </tr>
           </ng-template>
@@ -77,13 +90,18 @@ type Field = FormFieldDto & { valueCount?: number };
               <td><app-row-actions-menu [items]="fieldActions(s, f, fi)" ariaLabel="Field actions" /></td>
               <td>{{ f.name }}</td>
               <td>{{ typeLabel(f.type) }}</td>
-              <td>{{ f.required ? 'Yes' : '' }}</td>
+              @if (profile().required) {
+                <td>{{ f.required ? 'Yes' : '' }}</td>
+              }
               <td>{{ optionLabels(f) }}</td>
+              @if (profile().scoring) {
+                <td>{{ groupName(f.scoreGroupId) }}</td>
+              }
               <td>{{ f.valueCount ?? 0 }}</td>
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
-            <tr><td colspan="6">No fields yet.</td></tr>
+            <tr><td [attr.colspan]="5 + (profile().required ? 1 : 0) + (profile().scoring ? 1 : 0)">No fields yet.</td></tr>
           </ng-template>
         </p-table>
       </div>
@@ -108,10 +126,10 @@ type Field = FormFieldDto & { valueCount?: number };
         <input pInputText id="fbFieldName" class="w-full" [(ngModel)]="fieldName" />
       </div>
       <div class="form-field mt-3">
-        <label for="fbFieldType">Type <app-help-text key="care.form.fieldType" /></label>
+        <label for="fbFieldType">Type <app-help-text key="form.builder.fieldType" /></label>
         <p-select
           inputId="fbFieldType"
-          [options]="typeOptions"
+          [options]="typeOptions()"
           optionLabel="label"
           optionValue="value"
           [(ngModel)]="fieldType"
@@ -122,14 +140,32 @@ type Field = FormFieldDto & { valueCount?: number };
       </div>
       @if (isSelect(fieldType)) {
         <div class="form-field mt-3">
-          <label>Options <app-help-text key="care.form.options" /></label>
-          <app-field-options-editor [(options)]="fieldOptions" />
+          <label>Options <app-help-text [key]="profile().scoring ? 'form.builder.optionsScored' : 'form.builder.options'" /></label>
+          <app-field-options-editor [(options)]="fieldOptions" [points]="profile().scoring" />
+        </div>
+        @if (profile().scoring) {
+          <div class="form-field mt-3">
+            <label for="fbScoreGroup">Score area <app-help-text key="form.builder.scoreGroup" /></label>
+            <p-select
+              inputId="fbScoreGroup"
+              [options]="scoreGroups()"
+              optionLabel="name"
+              optionValue="id"
+              [(ngModel)]="fieldScoreGroupId"
+              [showClear]="true"
+              placeholder="None"
+              styleClass="w-full"
+              appendTo="body"
+            />
+          </div>
+        }
+      }
+      @if (profile().required) {
+        <div class="flex align-items-center gap-2 mt-3">
+          <p-checkbox inputId="fbRequired" [binary]="true" [(ngModel)]="fieldRequired" />
+          <label for="fbRequired">Required <app-help-text key="form.builder.required" /></label>
         </div>
       }
-      <div class="flex align-items-center gap-2 mt-3">
-        <p-checkbox inputId="fbRequired" [binary]="true" [(ngModel)]="fieldRequired" />
-        <label for="fbRequired">Required <app-help-text key="care.form.required" /></label>
-      </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="fieldVisible = false" />
         <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!fieldName.trim()" (onClick)="saveField()" />
@@ -166,14 +202,18 @@ export class FormBuilderComponent {
   private readonly toast = inject(MessageService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
 
-  form = input.required<CareFormDto>();
+  form = input.required<BuilderForm>();
+  profile = input.required<FormProfile>();
+  /** The owning module's API, e.g. "/care". */
+  apiBase = input.required<string>();
+  /** Scored forms: the score areas fields can count toward (saved scoring settings). */
+  scoreGroups = input<FormScoreGroup[]>([]);
   /** Something changed: the page reloads the form. */
   changed = output<void>();
 
-  readonly typeOptions = (Object.keys(FORM_FIELD_TYPE_LABELS) as FormFieldType[]).map((value) => ({
-    value,
-    label: FORM_FIELD_TYPE_LABELS[value],
-  }));
+  readonly typeOptions = computed(() =>
+    this.profile().fieldTypes.map((value) => ({ value, label: FORM_FIELD_TYPE_LABELS[value] })),
+  );
 
   adding = signal(false);
   saving = signal(false);
@@ -189,6 +229,7 @@ export class FormBuilderComponent {
   fieldName = '';
   fieldType: FormFieldType = 'TEXT';
   fieldRequired = false;
+  fieldScoreGroupId: string | null = null;
   fieldOptions = signal<FieldOptionDraft[]>([]);
 
   typeLabel(type: FormFieldType) {
@@ -198,14 +239,19 @@ export class FormBuilderComponent {
     return isSelectFieldType(type);
   }
   optionLabels(f: Field) {
-    return isSelectFieldType(f.type) ? f.options.map((o) => o.label).join(', ') : '';
+    if (!isSelectFieldType(f.type)) return '';
+    const scored = this.profile().scoring;
+    return f.options.map((o) => (scored && typeof o.points === 'number' ? `${o.label} (${o.points})` : o.label)).join(', ');
+  }
+  groupName(id: string | null | undefined) {
+    return id ? (this.scoreGroups().find((g) => g.id === id)?.name ?? '') : '';
   }
 
   sectionActions(s: Section, index: number): RowActionItem[] {
     const last = this.form().sections.length - 1;
     const items: RowActionItem[] = [{ id: 'edit', label: 'Rename', icon: 'pi pi-pencil', command: () => this.openEditSection(s) }];
-    if (index > 0) items.push({ id: 'up', label: 'Move up', icon: 'pi pi-arrow-up', command: () => void this.move(`/care/sections/${s.id}/move`, 'up') });
-    if (index < last) items.push({ id: 'down', label: 'Move down', icon: 'pi pi-arrow-down', command: () => void this.move(`/care/sections/${s.id}/move`, 'down') });
+    if (index > 0) items.push({ id: 'up', label: 'Move up', icon: 'pi pi-arrow-up', command: () => void this.move(`${this.apiBase()}/sections/${s.id}/move`, 'up') });
+    if (index < last) items.push({ id: 'down', label: 'Move down', icon: 'pi pi-arrow-down', command: () => void this.move(`${this.apiBase()}/sections/${s.id}/move`, 'down') });
     items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteSection(s) });
     return items;
   }
@@ -213,8 +259,8 @@ export class FormBuilderComponent {
   fieldActions(s: Section, f: Field, index: number): RowActionItem[] {
     const last = s.fields.length - 1;
     const items: RowActionItem[] = [{ id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEditField(s, f) }];
-    if (index > 0) items.push({ id: 'up', label: 'Move up', icon: 'pi pi-arrow-up', command: () => void this.move(`/care/fields/${f.id}/move`, 'up') });
-    if (index < last) items.push({ id: 'down', label: 'Move down', icon: 'pi pi-arrow-down', command: () => void this.move(`/care/fields/${f.id}/move`, 'down') });
+    if (index > 0) items.push({ id: 'up', label: 'Move up', icon: 'pi pi-arrow-up', command: () => void this.move(`${this.apiBase()}/fields/${f.id}/move`, 'up') });
+    if (index < last) items.push({ id: 'down', label: 'Move down', icon: 'pi pi-arrow-down', command: () => void this.move(`${this.apiBase()}/fields/${f.id}/move`, 'down') });
     items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteField(f) });
     return items;
   }
@@ -224,7 +270,7 @@ export class FormBuilderComponent {
     if (!name) return;
     this.adding.set(true);
     try {
-      await this.api.post(`/care/forms/${this.form().id}/sections`, { name });
+      await this.api.post(`${this.apiBase()}/forms/${this.form().id}/sections`, { name });
       this.newSectionName = '';
       this.changed.emit();
     } catch (err) {
@@ -244,7 +290,7 @@ export class FormBuilderComponent {
     if (!this.editingSection) return;
     this.saving.set(true);
     try {
-      await this.api.patch(`/care/sections/${this.editingSection.id}`, { name: this.sectionName.trim() });
+      await this.api.patch(`${this.apiBase()}/sections/${this.editingSection.id}`, { name: this.sectionName.trim() });
       this.sectionVisible = false;
       this.changed.emit();
     } catch (err) {
@@ -262,7 +308,7 @@ export class FormBuilderComponent {
         : `Delete "${s.name}"? This cannot be undone.`,
       accept: async () => {
         try {
-          await this.api.delete(`/care/sections/${s.id}`);
+          await this.api.delete(`${this.apiBase()}/sections/${s.id}`);
           this.changed.emit();
         } catch (err) {
           this.fail('Could not delete section', err);
@@ -275,8 +321,9 @@ export class FormBuilderComponent {
     this.fieldSection = s;
     this.editingField = null;
     this.fieldName = '';
-    this.fieldType = 'TEXT';
+    this.fieldType = this.profile().fieldTypes[0] ?? 'TEXT';
     this.fieldRequired = false;
+    this.fieldScoreGroupId = null;
     this.fieldOptions.set([
       { id: '', label: '' },
       { id: '', label: '' },
@@ -290,6 +337,7 @@ export class FormBuilderComponent {
     this.fieldName = f.name;
     this.fieldType = f.type;
     this.fieldRequired = f.required;
+    this.fieldScoreGroupId = f.scoreGroupId ?? null;
     this.fieldOptions.set(f.options.map((o) => ({ ...o })));
     this.fieldVisible = true;
   }
@@ -300,15 +348,24 @@ export class FormBuilderComponent {
     const options = isSelectFieldType(this.fieldType)
       ? this.fieldOptions()
           .filter((o) => o.label.trim())
-          .map((o) => ({ ...(o.id ? { id: o.id } : {}), label: o.label.trim() }))
+          .map((o) => ({
+            ...(o.id ? { id: o.id } : {}),
+            label: o.label.trim(),
+            ...(this.profile().scoring && typeof o.points === 'number' ? { points: o.points } : {}),
+          }))
       : undefined;
-    const body = { name, required: this.fieldRequired, ...(options ? { options } : {}) };
+    const body = {
+      name,
+      ...(this.profile().required ? { required: this.fieldRequired } : {}),
+      ...(this.profile().scoring ? { scoreGroupId: this.fieldScoreGroupId } : {}),
+      ...(options ? { options } : {}),
+    };
     this.saving.set(true);
     try {
       if (this.editingField) {
-        await this.api.patch(`/care/fields/${this.editingField.id}`, body);
+        await this.api.patch(`${this.apiBase()}/fields/${this.editingField.id}`, body);
       } else if (this.fieldSection) {
-        await this.api.post(`/care/sections/${this.fieldSection.id}/fields`, { ...body, type: this.fieldType });
+        await this.api.post(`${this.apiBase()}/sections/${this.fieldSection.id}/fields`, { ...body, type: this.fieldType });
       }
       this.fieldVisible = false;
       this.changed.emit();
@@ -327,7 +384,7 @@ export class FormBuilderComponent {
         : `Delete "${f.name}"? This cannot be undone.`,
       accept: async () => {
         try {
-          await this.api.delete(`/care/fields/${f.id}`);
+          await this.api.delete(`${this.apiBase()}/fields/${f.id}`);
           this.changed.emit();
         } catch (err) {
           this.fail('Could not delete field', err);

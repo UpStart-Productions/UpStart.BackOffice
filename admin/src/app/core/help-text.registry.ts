@@ -132,16 +132,40 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Comma separated. Email from these domains is treated as the team, not contacts.',
   'tenant.modules':
     'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
+  // Form builder (shared by every form)
+  'form.builder.sections': 'Groups of fields on the form, e.g. Contact details, Background. Add a section, then add fields to it.',
+  'form.builder.fieldType': "What the field holds. The type can't be changed after the field is added.",
+  'form.builder.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
+  'form.builder.optionsScored':
+    'The choices people can pick from, and the points each one is worth. Leave points empty on fields that are not scored.',
+  'form.builder.scoreGroup': 'The score area this question counts toward. Results show a percentage for each area.',
+  'form.builder.required': 'People filling in the form through a public link must answer it. Staff can save with it empty.',
+  // Forms area
+  'forms.page':
+    'Forms you build and share with a link: sign-ups, assessments, feedback. Each form has its own submissions. A form is live once you publish it.',
+  'forms.form.page':
+    'Build the form here. Details and Settings save with Save; Scoring and Fields save right away. Public links show the published version, so publish again for changes to reach people.',
+  'forms.form.description': 'Shown at the top of the form.',
+  'forms.form.review':
+    'On: submissions wait under Waiting for review until you Accept them (into a new Prospect or an existing organization) or Dismiss them. Off: they are accepted as they come in.',
+  'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
+  'forms.form.cta': 'A button on the results page and email, e.g. a link to book a call.',
+  'forms.form.scoring':
+    'Give answer choices points (in each select field). People get a percentage of the points possible, the profile for that percentage, and a percentage per score area.',
+  'forms.form.scoreAreas': 'Groups of questions scored together, e.g. Workflows, Data, Security. Pick a question\'s area when you edit the field.',
+  'forms.form.bands':
+    'Profiles by score, e.g. 0–25% Finding Your Bearings. Each has what it means, next steps and an optional download. People see the profile their percentage falls in.',
+  'forms.form.bandUpTo': 'The highest percentage for this profile. The profile with the highest number also covers everything above it.',
+  'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
+  'forms.submissions.page': 'Everything sent through this form. Open one to see the answers and score, then Accept or Dismiss it.',
+  'forms.submission.page':
+    'One submission: the answers, the score and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing one. Dismiss sets it aside; Restore brings it back.',
   // Care module
   'care.form.page':
     'Customize this form: name, who can use it, its sections and fields, and (Intake) public links. Field changes save right away; Save is for the name, description and access.',
   'care.form.description': 'Shown at the top of the form on public links.',
   'care.form.access':
     'Per role: None, Read or Edit. Admins can always edit. People only see forms for organizations they can reach (the ones assigned to them unless their role has Organizations: All).',
-  'care.form.sections': 'Groups of fields on the form, e.g. Contact, Daily routine, Health notes. Add a section, then add fields to it.',
-  'care.form.fieldType': "What the field holds. The type can't be changed after the field is added.",
-  'care.form.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
-  'care.form.required': 'People filling in the form through a public link must answer it. Staff can save with it empty.',
   'care.intake.page':
     "Every organization's intake form. Waiting for review lists intakes sent through a public link; open one to Accept it into a new or existing organization, or Dismiss it. Customize fields (Care setup) changes the form and its public links.",
   'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization; Customize fields (Care setup) changes the form.",
@@ -161,9 +185,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Links anyone can use to send a new intake, e.g. on your website. Each one arrives under Care → Intake → Waiting for review.',
   'care.links.record':
     "A link to this organization's copy of the form, e.g. for family to update it. Changes save straight to the form and notify your team.",
-  'care.links.verify':
+  'form.links.verify':
     'No check: anyone with the link. Passcode: share it separately (phone or text). Emailed code: a code goes to an email address before the form opens.',
-  'care.links.expires': 'Leave empty for a link that never expires. You can revoke a link anytime.',
+  'form.links.expires': 'Leave empty for a link that never expires. You can revoke a link anytime.',
   'dashboard.page':
     "What needs you today. Activity (replies, next steps, and quiet clients) is one card with tabs. Tasks, time, invoices, and bookings are the others. Lists scroll; the arrow in the card header opens the full page. Mine / Everyone's switches Activity and invoices.",
   'activity.page':

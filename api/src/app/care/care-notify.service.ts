@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { sanitizePermissions } from '@upstart/back-office/shared';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { sanitizeFormAccess } from './care-forms.util';
+import { sanitizeFormAccess } from '../forms/form-access.util';
 
 /**
  * Tells staff when something comes in through a public link (bell + email per their preferences).
@@ -20,7 +20,7 @@ export class CareNotifyService {
 
   async publicSubmission(params: { recordId: string; formId: string; clientId: string | null; title: string; body: string }) {
     try {
-      const form = await this.prisma.careForm.findUnique({ where: { id: params.formId }, select: { access: true } });
+      const form = await this.prisma.form.findUnique({ where: { id: params.formId }, select: { access: true } });
       const editRoles = new Set(
         Object.entries(sanitizeFormAccess(form?.access)).filter(([, l]) => l === 'edit').map(([roleId]) => roleId),
       );

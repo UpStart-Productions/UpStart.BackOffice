@@ -801,6 +801,76 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     ],
   },
 
+  // ── Forms ─────────────────────────────────────────────
+  forms: {
+    title: 'Forms',
+    intro: 'Forms you build and share with a link: sign-ups, assessments, feedback.',
+    sections: [
+      {
+        heading: 'New form',
+        body: 'Name it, then add sections and fields on the form page. Publish when it is ready; its links work from then on.',
+      },
+      {
+        heading: 'Status',
+        body: 'Draft: never published. Published: the links show the current form. Changes not published: the links still show the last published version.',
+      },
+      {
+        heading: 'Who sees what',
+        body: 'The Forms area on a role (Users → Roles): Own shows the forms that person created, All shows every form. Create, Edit and Delete are checkboxes. Admins see everything.',
+      },
+    ],
+  },
+  'forms/:id': {
+    title: 'Form',
+    intro: 'Details, settings, scoring, fields and public links for one form.',
+    sections: [
+      {
+        heading: 'Publish',
+        body: 'Public links show the published version. After changing fields or scoring, click Publish so people get the new version. Earlier submissions keep the version they answered.',
+      },
+      {
+        heading: 'Settings',
+        body: 'Review submissions before they become prospects, ask for the organization or a phone number, email people their results, a thank-you message and a call to action. Click Save.',
+      },
+      {
+        heading: 'Scoring',
+        body: 'Turn on Score this form, add score areas and profiles (by percentage), then give each answer choice points when you edit a select field, and pick its score area. Scoring saves right away.',
+      },
+      {
+        heading: 'Fields',
+        body: "Add a section, then Add field: a name, a type, Required, and on scored forms the points per choice and the score area. The type can't be changed later. Changes save right away.",
+      },
+      {
+        heading: 'Public links',
+        body: 'New link makes a link anyone can use, with No check, a Passcode or an Emailed code. Copy, open or revoke it from its ⋮ menu.',
+      },
+    ],
+  },
+  'forms/:id/submissions': {
+    title: 'Submissions',
+    intro: 'Everything sent through this form.',
+    sections: [
+      {
+        heading: 'Tabs',
+        body: 'Waiting for review (when the form reviews submissions), Accepted, Dismissed and All. Each row shows the score and profile on scored forms.',
+      },
+    ],
+  },
+  'forms/submissions/:id': {
+    title: 'Submission',
+    intro: 'The answers, the score and who sent it.',
+    sections: [
+      {
+        heading: 'Accept',
+        body: 'New organization creates a Prospect with a pipeline card (source Inbound) and the sender as its person. Existing organization attaches the submission to one you pick.',
+      },
+      {
+        heading: 'Dismiss and delete',
+        body: 'Dismiss sets it aside under Dismissed (Restore brings it back). Delete (⋮ menu) removes it and its results link for good.',
+      },
+    ],
+  },
+
   // ── Care (module) ─────────────────────────────────────
   'care/intake': {
     title: 'Intake',

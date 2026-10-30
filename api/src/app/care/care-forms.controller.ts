@@ -1,28 +1,24 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import { CARE_RECORD_KINDS, isSelectFieldType, type CareFormDto, type FormFieldOption, type FormFieldType } from '@upstart/back-office/shared';
+import { CARE_FORM_MODULE, CARE_RECORD_KINDS, type CareFormDto } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
+import { sanitizeFormAccess } from '../forms/form-access.util';
+import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto } from '../forms/form.dto';
+import { FormLinksService } from '../forms/form-links.service';
+import { FormStructureService } from '../forms/form-structure.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CareAccessService } from './care-access.service';
-import { CareLinksService } from './care-links.service';
-import { ensureCareForms, sanitizeFormAccess } from './care-forms.util';
-import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateCareFormDto, UpdateFieldDto } from './care.dto';
-import { formFieldOptions } from './form-fields.util';
+import { byCareKind, careKind, ensureCareForms } from './care-forms.util';
+import { UpdateCareFormDto } from './care.dto';
 
-const ORDER = [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }];
-const FIELD_SELECT = { id: true, name: true, type: true, options: true, required: true } as const;
-
-type FieldRow = { id: string; name: string; type: FormFieldType; options: Prisma.JsonValue; required: boolean };
-export function fieldView(f: FieldRow) {
-  return { id: f.id, name: f.name, type: f.type, options: (f.options as FormFieldOption[] | null) ?? [], required: f.required };
-}
+const M = CARE_FORM_MODULE;
 
 /**
- * Customize fields (Care → Intake / Care profiles): the tenant's Intake form and Care profile, their sections and fields, who can use them
- * (per role) and their public links. Changing a form needs Care Setup; reading one needs access to it.
+ * Customize fields (Care → Intake / Care profiles / Visits): Care's forms on the form engine, their sections and
+ * fields, who can use them (per role) and their public links. Changing a form needs Care Setup; reading one needs access to it.
  */
 @ApiTags('care')
 @ApiBearerAuth()
@@ -33,7 +29,8 @@ export class CareFormsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly care: CareAccessService,
-    private readonly links: CareLinksService,
+    private readonly structure: FormStructureService,
+    private readonly links: FormLinksService,
   ) {}
 
   /** Forms the user can use (all of them for Setup), with field counts. */
@@ -43,24 +40,23 @@ export class CareFormsController {
     await ensureCareForms(this.prisma);
     const roleId = await this.care.roleId(user);
     const setup = this.care.canSetup(user);
-    const forms = await this.prisma.careForm.findMany({
-      where: { kind: { in: CARE_RECORD_KINDS } },
-      orderBy: { kind: 'asc' },
+    const forms = await this.prisma.form.findMany({
+      where: { module: M, key: { in: CARE_RECORD_KINDS } },
       select: {
-        id: true, kind: true, name: true, description: true, access: true,
+        id: true, key: true, name: true, description: true, access: true,
         sections: { select: { _count: { select: { fields: true } } } },
-        _count: { select: { records: true, links: true } },
+        _count: { select: { responses: true, links: true } },
       },
     });
     const out = [];
-    for (const f of forms) {
+    for (const f of byCareKind(forms)) {
       const myAccess = await this.care.formAccess(user, f, roleId);
       if (!myAccess && !setup) continue;
       out.push({
-        id: f.id, kind: f.kind, name: f.name, description: f.description,
+        id: f.id, kind: careKind(f), name: f.name, description: f.description,
         access: sanitizeFormAccess(f.access),
         fieldCount: f.sections.reduce((n, s) => n + s._count.fields, 0),
-        recordCount: f._count.records,
+        recordCount: f._count.responses,
         linkCount: f._count.links,
         myAccess,
       });
@@ -78,42 +74,27 @@ export class CareFormsController {
   @Get('forms/:id')
   async get(@Req() req: Request, @Param('id') id: string): Promise<CareFormDto> {
     const user = req.user as UserContext;
-    const form = await this.findForm(id);
+    const form = await this.structure.findForm(id, M);
     const myAccess = await this.care.formAccess(user, form);
     if (!myAccess && !this.care.canSetup(user)) throw new NotFoundException('Form not found');
-    const sections = await this.prisma.careFormSection.findMany({
-      where: { formId: id },
-      orderBy: ORDER,
-      select: { id: true, name: true, fields: { orderBy: ORDER, select: FIELD_SELECT } },
-    });
-    // How many records have each field filled in (shown in setup before deleting a field).
-    const records = await this.prisma.careRecord.findMany({ where: { formId: id }, select: { values: true } });
-    const counts = new Map<string, number>();
-    for (const r of records) {
-      for (const [k, v] of Object.entries((r.values ?? {}) as Record<string, unknown>)) {
-        if (v !== null && v !== undefined) counts.set(k, (counts.get(k) ?? 0) + 1);
-      }
-    }
+    const sections = await this.structure.sections(id);
+    const counts = await this.structure.valueCounts(id);
     return {
       id: form.id,
-      kind: form.kind,
+      kind: careKind(form),
       name: form.name,
       description: form.description,
       access: sanitizeFormAccess(form.access),
       myAccess,
-      sections: sections.map((s) => ({
-        id: s.id,
-        name: s.name,
-        fields: s.fields.map((f) => ({ ...fieldView(f), valueCount: counts.get(f.id) ?? 0 })),
-      })),
+      sections: sections.map((s) => ({ ...s, fields: s.fields.map((f) => ({ ...f, valueCount: counts.get(f.id) ?? 0 })) })),
     };
   }
 
   @Patch('forms/:id')
   @Action('setup')
   async update(@Param('id') id: string, @Body() dto: UpdateCareFormDto) {
-    await this.findForm(id);
-    const data: Prisma.CareFormUpdateInput = {};
+    await this.structure.findForm(id, M);
+    const data: Prisma.FormUpdateInput = {};
     if (dto.name !== undefined) {
       if (!dto.name.trim()) throw new BadRequestException('Name is required');
       data.name = dto.name.trim();
@@ -125,114 +106,60 @@ export class CareFormsController {
       for (const roleId of Object.keys(access)) if (!roles.has(roleId)) delete access[roleId];
       data.access = access;
     }
-    const f = await this.prisma.careForm.update({ where: { id }, data });
+    const f = await this.prisma.form.update({ where: { id }, data });
     return { id: f.id, name: f.name, description: f.description, access: sanitizeFormAccess(f.access) };
   }
 
-  // ── Sections ───────────────────────────────────────────────────────────────
+  // ── Sections and fields (the form engine checks the builder profile) ──────
 
   @Post('forms/:id/sections')
   @Action('setup')
-  async createSection(@Param('id') formId: string, @Body() dto: SectionDto) {
-    await this.findForm(formId);
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException('Name is required');
-    const last = await this.prisma.careFormSection.findFirst({ where: { formId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
-    const s = await this.prisma.careFormSection.create({ data: { formId, name, sortOrder: (last?.sortOrder ?? -1) + 1 } });
-    return { id: s.id, name: s.name, fields: [] };
+  createSection(@Param('id') formId: string, @Body() dto: SectionDto) {
+    return this.structure.createSection(formId, M, dto.name);
   }
 
   @Patch('sections/:id')
   @Action('setup')
-  async updateSection(@Param('id') id: string, @Body() dto: SectionDto) {
-    await this.findSection(id);
-    if (!dto.name.trim()) throw new BadRequestException('Name is required');
-    const s = await this.prisma.careFormSection.update({ where: { id }, data: { name: dto.name.trim() } });
-    return { id: s.id, name: s.name };
+  updateSection(@Param('id') id: string, @Body() dto: SectionDto) {
+    return this.structure.renameSection(id, M, dto.name);
   }
 
   /** Deletes the section and its fields; their answers disappear from every record. */
   @Delete('sections/:id')
   @Action('setup')
-  async deleteSection(@Param('id') id: string) {
-    await this.findSection(id);
-    await this.prisma.careFormSection.delete({ where: { id } });
-    return { deleted: true };
+  deleteSection(@Param('id') id: string) {
+    return this.structure.deleteSection(id, M);
   }
 
   @Post('sections/:id/move')
   @Action('setup')
-  async moveSection(@Param('id') id: string, @Body() dto: MoveDto) {
-    const section = await this.findSection(id);
-    const rows = await this.prisma.careFormSection.findMany({ where: { formId: section.formId }, orderBy: ORDER, select: { id: true } });
-    await this.reorder(rows.map((r) => r.id), id, dto.direction, (rid, sortOrder) =>
-      this.prisma.careFormSection.update({ where: { id: rid }, data: { sortOrder } }),
-    );
-    return { moved: true };
+  moveSection(@Param('id') id: string, @Body() dto: MoveDto) {
+    return this.structure.moveSection(id, M, dto.direction);
   }
-
-  // ── Fields ─────────────────────────────────────────────────────────────────
 
   @Post('sections/:id/fields')
   @Action('setup')
-  async createField(@Param('id') sectionId: string, @Body() dto: CreateFieldDto) {
-    await this.findSection(sectionId);
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException('Name is required');
-    const options = formFieldOptions(dto.type, dto.options);
-    if (isSelectFieldType(dto.type) && !options.length) throw new BadRequestException('Add at least one option');
-    const last = await this.prisma.careFormField.findFirst({ where: { sectionId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
-    const f = await this.prisma.careFormField.create({
-      data: {
-        sectionId,
-        name,
-        type: dto.type,
-        required: !!dto.required,
-        options: options.length ? (options as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
-        sortOrder: (last?.sortOrder ?? -1) + 1,
-      },
-      select: FIELD_SELECT,
-    });
-    return fieldView(f);
+  createField(@Param('id') sectionId: string, @Body() dto: CreateFieldDto) {
+    return this.structure.createField(sectionId, M, dto);
   }
 
   @Patch('fields/:id')
   @Action('setup')
-  async updateField(@Param('id') id: string, @Body() dto: UpdateFieldDto) {
-    const field = await this.findField(id);
-    const data: Prisma.CareFormFieldUpdateInput = {};
-    if (dto.name !== undefined) {
-      if (!dto.name.trim()) throw new BadRequestException('Name is required');
-      data.name = dto.name.trim();
-    }
-    if (dto.required !== undefined) data.required = dto.required;
-    if (dto.options !== undefined && isSelectFieldType(field.type)) {
-      const options = formFieldOptions(field.type, dto.options);
-      if (!options.length) throw new BadRequestException('Add at least one option');
-      data.options = options as unknown as Prisma.InputJsonValue;
-    }
-    const f = await this.prisma.careFormField.update({ where: { id }, data, select: FIELD_SELECT });
-    return fieldView(f);
+  updateField(@Param('id') id: string, @Body() dto: UpdateFieldDto) {
+    return this.structure.updateField(id, M, dto);
   }
 
   /** Deletes the field; its answers disappear from every record. */
   @Delete('fields/:id')
   @Action('setup')
-  async deleteField(@Param('id') id: string) {
-    await this.findField(id);
-    await this.prisma.careFormField.delete({ where: { id } });
-    return { deleted: true };
+  deleteField(@Param('id') id: string) {
+    return this.structure.deleteField(id, M);
   }
 
   @Post('fields/:id/move')
   @Action('setup')
-  async moveField(@Param('id') id: string, @Body() dto: MoveDto) {
-    const field = await this.findField(id);
-    const rows = await this.prisma.careFormField.findMany({ where: { sectionId: field.sectionId }, orderBy: ORDER, select: { id: true } });
-    await this.reorder(rows.map((r) => r.id), id, dto.direction, (rid, sortOrder) =>
-      this.prisma.careFormField.update({ where: { id: rid }, data: { sortOrder } }),
-    );
-    return { moved: true };
+  moveField(@Param('id') id: string, @Body() dto: MoveDto) {
+    return this.structure.moveField(id, M, dto.direction);
   }
 
   // ── Public links (form level) ──────────────────────────────────────────────
@@ -241,56 +168,29 @@ export class CareFormsController {
   @Get('forms/:id/links')
   @Action('setup')
   async formLinks(@Param('id') formId: string) {
-    await this.findForm(formId);
+    await this.structure.findForm(formId, M);
     return this.links.list({ formId });
   }
 
-  /** A new-intake link (Intake form only). Per-organization links are made from the record. */
+  /** A new-intake link (the Intake form's profile is the only one that allows them). Per-organization links are made from the record. */
   @Post('forms/:id/links')
   @Action('setup')
   async createIntakeLink(@Req() req: Request, @Param('id') formId: string, @Body() dto: CreateLinkDto) {
-    const form = await this.findForm(formId);
-    if (form.kind !== 'INTAKE') throw new BadRequestException('New-intake links are only for the Intake form');
-    return this.links.create(req.user as UserContext, { formId, kind: 'NEW_INTAKE', clientId: null }, dto);
+    await this.structure.findForm(formId, M);
+    return this.links.create(req.user as UserContext, { formId, kind: 'NEW', clientId: null }, dto);
   }
 
+  /** Setup can revoke any link; people who can edit a form can revoke its links for organizations they reach. */
   @Post('links/:id/revoke')
   async revoke(@Req() req: Request, @Param('id') id: string) {
-    return this.links.revoke(req.user as UserContext, id);
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  private async findForm(id: string) {
-    const f = await this.prisma.careForm.findUnique({ where: { id } });
-    if (!f) throw new NotFoundException('Form not found');
-    return f;
-  }
-
-  private async findSection(id: string) {
-    const s = await this.prisma.careFormSection.findUnique({ where: { id } });
-    if (!s) throw new NotFoundException('Section not found');
-    return s;
-  }
-
-  private async findField(id: string) {
-    const f = await this.prisma.careFormField.findUnique({ where: { id } });
-    if (!f) throw new NotFoundException('Field not found');
-    return f;
-  }
-
-  /** Swap a row with its neighbour and renumber the list 0..n. */
-  private async reorder(
-    ids: string[],
-    id: string,
-    direction: 'up' | 'down',
-    write: (id: string, sortOrder: number) => Prisma.PrismaPromise<unknown>,
-  ) {
-    const i = ids.indexOf(id);
-    if (i < 0) throw new NotFoundException('Not found');
-    const j = direction === 'up' ? i - 1 : i + 1;
-    if (j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-    await this.prisma.$transaction(ids.map((rid, index) => write(rid, index)));
+    const user = req.user as UserContext;
+    const link = await this.links.find(id);
+    if (link.form.module !== M) throw new NotFoundException('Link not found');
+    if (!this.care.canSetup(user)) {
+      const level = await this.care.formAccess(user, link.form);
+      if (level !== 'edit' || !link.clientId) throw new ForbiddenException("Your role can't change this link");
+      await this.care.assertClient(user, link.clientId);
+    }
+    return this.links.revoke(id);
   }
 }

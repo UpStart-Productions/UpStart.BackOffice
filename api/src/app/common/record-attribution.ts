@@ -14,7 +14,7 @@ export const ATTRIBUTED_MODELS = new Set([
   'Account',
   'User',
   'OrganizationProfile',
-  'CareRecord',
+  'FormResponse',
   'CareVisit',
 ]);
 
@@ -101,10 +101,35 @@ function createdField(model: string): string {
   return CREATED_BY_FIELD[model] ?? 'createdByUserId';
 }
 
+/** Prisma "checked" creates (nested relation writes) reject scalar FK fields — use connect instead. */
+function createUsesNestedRelations(data: Record<string, unknown>): boolean {
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'tenant' || key === 'tenantId') continue;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+    const rel = value as Record<string, unknown>;
+    if ('create' in rel || 'createMany' in rel || 'connectOrCreate' in rel || 'upsert' in rel) return true;
+  }
+  return false;
+}
+
 function applyCreateData(model: string, data: Record<string, unknown>, ctx: AttributionContext): void {
+  const userId = ctx.userId;
+  if (!userId) return;
   const createdKey = createdField(model);
-  if (data[createdKey] === undefined) data[createdKey] = ctx.userId;
-  if (data.updatedByUserId === undefined) data.updatedByUserId = ctx.userId;
+  const useConnect = createUsesNestedRelations(data);
+
+  if (useConnect) {
+    if (data.createdBy === undefined && data[createdKey] === undefined) {
+      data.createdBy = { connect: { id: userId } };
+    }
+    if (data.updatedBy === undefined && data.updatedByUserId === undefined) {
+      data.updatedBy = { connect: { id: userId } };
+    }
+    return;
+  }
+
+  if (data[createdKey] === undefined) data[createdKey] = userId;
+  if (data.updatedByUserId === undefined) data.updatedByUserId = userId;
 }
 
 function applyUpdateData(data: Record<string, unknown>, ctx: AttributionContext): void {

@@ -227,8 +227,9 @@ model User {
   contactsCreated           Contact[]                   @relation("ContactCreatedBy")
   contactsUpdated           Contact[]                   @relation("ContactUpdatedBy")
   leadsCreated              Lead[]                      @relation("LeadCreatedBy")
-  careRecordsCreated        CareRecord[]                @relation("CareRecordCreatedBy")
-  careRecordsUpdated        CareRecord[]                @relation("CareRecordUpdatedBy")
+  formResponsesCreated      FormResponse[]              @relation("FormResponseCreatedBy")
+  formsCreated              Form[]                      @relation("FormCreatedBy")
+  formResponsesUpdated      FormResponse[]              @relation("FormResponseUpdatedBy")
   careVisits                CareVisit[]                 @relation("CareVisitWorker")
   careShifts                CareShift[]                 @relation("CareShiftWorker")
   careShiftSeries           CareShiftSeries[]           @relation("CareShiftSeriesWorker")
@@ -310,8 +311,8 @@ model Client {
   interactions      Interaction[]
   assignments       ClientAssignment[]
   tags              ClientTag[]
-  careRecords       CareRecord[]
-  careFormLinks     CareFormLink[]
+  formResponses     FormResponse[]
+  formLinks         FormLink[]
   careVisits        CareVisit[]
   careShifts        CareShift[]
   careShiftSeries   CareShiftSeries[]
@@ -1653,12 +1654,13 @@ model Tenant {
   pipelines                   Pipeline[]
   pipelineStages              PipelineStage[]
   activitySnoozes             ActivitySnooze[]
-  careForms                   CareForm[]
-  careFormSections            CareFormSection[]
-  careFormFields              CareFormField[]
-  careRecords                 CareRecord[]
-  careFormLinks               CareFormLink[]
-  careLinkAccesses            CareLinkAccess[]
+  forms                       Form[]
+  formSections                FormSection[]
+  formFields                  FormField[]
+  formResponses               FormResponse[]
+  formLinks                   FormLink[]
+  formLinkAccesses            FormLinkAccess[]
+  formVersions                FormVersion[]
   careVisits                  CareVisit[]
   careShifts                  CareShift[]
   careShiftSeries             CareShiftSeries[]
@@ -1902,16 +1904,10 @@ model ActivitySnooze {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Care module: tenant-defined forms (Intake form, Care profile), one living record per client per form,
-// and public links (new intake, or one client's form) with optional passcode or emailed code.
+// Form engine (core): forms owned by a module (Care's Intake form, Care profile, Visit log) or free-standing
+// (the Forms area), their sections and fields, responses, and public links with an optional passcode or
+// emailed code. Engine code never knows what a response is about; the owning module decides (see forms/).
 // ---------------------------------------------------------------------------------------------------------------
-
-enum CareFormKind {
-  INTAKE
-  CARE_PROFILE
-  /// The visit log's checklist: fields filled in on each visit.
-  VISIT
-}
 
 enum FormFieldType {
   TEXT
@@ -1923,45 +1919,59 @@ enum FormFieldType {
   CHECKBOX
 }
 
-enum CareRecordStatus {
-  /// Submitted through a public new-intake link; not attached to an organization until someone accepts it.
+enum FormResponseStatus {
+  /// Submitted through a public new-response link; waiting for someone to accept or dismiss it.
   PENDING
   ACTIVE
+  /// Reviewed and set aside (free-standing forms keep dismissed submissions; Care deletes them).
+  DISMISSED
 }
 
-enum CareLinkKind {
-  /// Anyone with the link can submit a new intake (becomes a pending intake).
-  NEW_INTAKE
-  /// One organization's form, e.g. for family to update it.
-  CLIENT_UPDATE
+enum FormLinkKind {
+  /// Anyone with the link can send a new response.
+  NEW
+  /// One organization's response, e.g. for family to update a Care profile.
+  CLIENT
 }
 
-enum CareLinkVerify {
+enum FormLinkVerify {
   NONE
   PASSCODE
   EMAIL_CODE
 }
 
-model CareForm {
-  id          String       @id @default(cuid())
-  tenantId    String       @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  kind        CareFormKind
-  name        String
-  description String?      @db.Text
+model Form {
+  id                 String   @id @default(cuid())
+  tenantId           String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant             Tenant   @relation(fields: [tenantId], references: [id])
+  /// The part of UBO that owns the form: "care", or "forms" for free-standing forms (Forms area).
+  module             String
+  /// The owning module's name for the form, e.g. "INTAKE". Null for free-standing forms.
+  key                String?
+  name               String
+  description        String?  @db.Text
   /// roleId -> "read" | "edit". Admins can always edit; a role not listed has no access.
-  access      Json         @default("{}")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  access             Json     @default("{}")
+  /// FormSettings (libs/shared forms.ts): scoring areas and bands, review, results email, organization question.
+  settings           Json     @default("{}")
+  /// What public links serve. Null: links serve the live fields (module forms such as Care's).
+  publishedVersionId String?  @unique
+  createdById        String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  sections CareFormSection[]
-  records  CareRecord[]
-  links    CareFormLink[]
+  sections         FormSection[]
+  responses        FormResponse[]
+  links            FormLink[]
+  versions         FormVersion[]  @relation("FormVersions")
+  publishedVersion FormVersion?   @relation("FormPublished", fields: [publishedVersionId], references: [id], onDelete: SetNull)
+  createdBy        User?          @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
-  @@unique([tenantId, kind])
+  @@unique([tenantId, module, key])
+  @@index([tenantId, module])
 }
 
-model CareFormSection {
+model FormSection {
   id        String   @id @default(cuid())
   tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
@@ -1971,78 +1981,112 @@ model CareFormSection {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  form   CareForm        @relation(fields: [formId], references: [id], onDelete: Cascade)
-  fields CareFormField[]
+  form   Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  fields FormField[]
 
   @@index([formId, sortOrder])
   @@index([tenantId])
 }
 
-model CareFormField {
-  id        String        @id @default(cuid())
-  tenantId  String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant        @relation(fields: [tenantId], references: [id])
-  sectionId String
-  name      String
-  type      FormFieldType
+model FormField {
+  id           String        @id @default(cuid())
+  tenantId     String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  sectionId    String
+  name         String
+  type         FormFieldType
   /// Select options: [{ id, label }]. Values store option ids, so renaming an option keeps its values.
-  options   Json?
-  /// Required on public links. Staff can save a record with it empty.
-  required  Boolean       @default(false)
-  sortOrder Float         @default(0)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  options      Json?
+  /// Required on public links. Staff can save a response with it empty.
+  required     Boolean       @default(false)
+  /// Scoring: the score area (FormSettings.scoring.groups[].id) this field's points count toward.
+  scoreGroupId String?
+  sortOrder    Float         @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  section CareFormSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  section FormSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([sectionId, sortOrder])
   @@index([tenantId])
 }
 
-/// One living copy of a form for one organization (or a pending public intake with no organization yet).
-model CareRecord {
-  id              String           @id @default(cuid())
-  tenantId        String           @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant          Tenant           @relation(fields: [tenantId], references: [id])
-  formId          String
-  clientId        String?
-  status          CareRecordStatus @default(ACTIVE)
+/// A frozen copy of a form (fields, options with points, scoring) made by Publish. Public links serve it.
+model FormVersion {
+  id            String   @id @default(cuid())
+  tenantId      String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  formId        String
+  number        Int
+  /// FormSnapshot (libs/shared forms.ts)
+  snapshot      Json
+  publishedById String?
+  publishedAt   DateTime @default(now())
+
+  form         Form           @relation("FormVersions", fields: [formId], references: [id], onDelete: Cascade)
+  publishedFor Form?          @relation("FormPublished")
+  responses    FormResponse[]
+
+  @@unique([formId, number])
+  @@index([tenantId])
+}
+
+/// Answers to a form. For Care: one living copy per organization (or a pending public intake with no organization yet).
+model FormResponse {
+  id                    String             @id @default(cuid())
+  tenantId              String             @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant                Tenant             @relation(fields: [tenantId], references: [id])
+  formId                String
+  /// The organization the response is about, when there is one.
+  clientId              String?
+  status                FormResponseStatus @default(ACTIVE)
   /// fieldId -> value. Values of deleted fields are dropped when read.
-  values          Json             @default("{}")
-  submitterName   String?
-  submitterEmail  String?
-  submitterPhone  String?
+  values                Json               @default("{}")
+  submitterName         String?
+  submitterEmail        String?
+  submitterPhone        String?
+  submitterOrganization String?
+  /// The published version it answered (free-standing forms).
+  versionId             String?
+  /// FormScores (libs/shared forms.ts), computed on submit.
+  scores                Json?
+  /// Opens the respondent's results page (/form-results/:token); no sign-in, so it is long and random.
+  resultToken           String?            @unique
+  /// One living copy per organization (Care records); enforced by a partial unique index in SQL.
+  living                Boolean            @default(false)
   /// Last change made through a public link (no staff user): when and by whom (name or verified email).
-  publicUpdatedAt DateTime?
-  publicUpdatedBy String?
-  createdByUserId String?
-  updatedByUserId String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  publicUpdatedAt       DateTime?
+  publicUpdatedBy       String?
+  createdByUserId       String?
+  updatedByUserId       String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
-  form      CareForm @relation(fields: [formId], references: [id], onDelete: Cascade)
-  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdBy User?    @relation("CareRecordCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  updatedBy User?    @relation("CareRecordUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  form      Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  version   FormVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  client    Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("FormResponseCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User?        @relation("FormResponseUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
-  @@unique([formId, clientId])
+  // Living copies: unique (formId, clientId) WHERE living (partial index, see migration 20261030120000_forms_area).
+  @@index([formId, clientId])
   @@index([clientId])
   @@index([tenantId, status])
 }
 
-model CareFormLink {
+model FormLink {
   id           String         @id @default(cuid())
   tenantId     String         @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant       Tenant         @relation(fields: [tenantId], references: [id])
   formId       String
-  kind         CareLinkKind
-  /// CLIENT_UPDATE only.
+  kind         FormLinkKind
+  /// CLIENT only.
   clientId     String?
   token        String         @unique
   label        String?
-  verify       CareLinkVerify @default(NONE)
+  verify       FormLinkVerify @default(NONE)
   passcodeHash String?
-  /// EMAIL_CODE on a client link: the code goes here. New-intake links ask the visitor for their email.
+  /// EMAIL_CODE on a client link: the code goes here. New-response links ask the visitor for their email.
   email        String?
   expiresAt    DateTime?
   revokedAt    DateTime?
@@ -2050,9 +2094,9 @@ model CareFormLink {
   createdById  String?
   createdAt    DateTime       @default(now())
 
-  form     CareForm         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form     Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
   client   Client?          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  accesses CareLinkAccess[]
+  accesses FormLinkAccess[]
 
   @@index([formId])
   @@index([clientId])
@@ -2060,7 +2104,7 @@ model CareFormLink {
 }
 
 /// A verification on a public link: an emailed code waiting to be entered, then a short-lived access token.
-model CareLinkAccess {
+model FormLinkAccess {
   id             String    @id @default(cuid())
   tenantId       String    @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant         Tenant    @relation(fields: [tenantId], references: [id])
@@ -2073,7 +2117,7 @@ model CareLinkAccess {
   tokenExpiresAt DateTime?
   createdAt      DateTime  @default(now())
 
-  link CareFormLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  link FormLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
 
   @@index([linkId])
   @@index([tenantId])
