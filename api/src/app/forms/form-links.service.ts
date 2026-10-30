@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { formProfile, type FormLinkKind } from '@upstart/back-office/shared';
+import { formProfile, normalizeOrigins, type FormLinkKind } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { normalizeEmail } from '../communications/email-address.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateLinkDto } from './form.dto';
+import { CreateLinkDto, UpdateLinkDto } from './form.dto';
 import { hashPasscode, LINK_INCLUDE, linkView, newLinkToken } from './form-links.util';
 
 /** Default lifetime of a per-organization link; new-response links don't expire unless asked. */
@@ -59,6 +59,7 @@ export class FormLinksService {
         passcodeHash: dto.verify === 'PASSCODE' ? hashPasscode(dto.passcode!.trim()) : null,
         email,
         expiresAt: days ? new Date(Date.now() + days * 86_400_000) : null,
+        allowedOrigins: normalizeOrigins(dto.allowedOrigins ?? []),
         createdById: user.id,
       },
       include: LINK_INCLUDE,
@@ -71,6 +72,20 @@ export class FormLinksService {
     const link = await this.prisma.formLink.findUnique({ where: { id }, include: { form: true } });
     if (!link) throw new NotFoundException('Link not found');
     return link;
+  }
+
+  /** Rename a link or change the websites that may show it. */
+  async update(id: string, dto: UpdateLinkDto) {
+    await this.find(id);
+    const row = await this.prisma.formLink.update({
+      where: { id },
+      data: {
+        ...(dto.label !== undefined ? { label: dto.label?.trim() || null } : {}),
+        ...(dto.allowedOrigins !== undefined ? { allowedOrigins: normalizeOrigins(dto.allowedOrigins) } : {}),
+      },
+      include: LINK_INCLUDE,
+    });
+    return linkView(row);
   }
 
   /** Stop a link working and end every verified session on it. */

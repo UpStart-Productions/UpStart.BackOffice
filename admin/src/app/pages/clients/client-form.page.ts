@@ -22,7 +22,7 @@ import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.comp
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleComponent } from '../../ui/people/people.component';
-import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
+import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { CareClientCardComponent } from '../../ui/care-forms/care-client-card.component';
 import type { AccountJourney, ClientDto, RecordAttributionDto } from '@upstart/back-office/shared';
@@ -75,7 +75,7 @@ type ClientForm = {
     ActivityTimelineComponent,
     NextStepComponent,
     PeopleComponent,
-    CrmTagInputComponent,
+    TagInputComponent,
     HelpTextComponent,
     RecordAttributionComponent,
     CareClientCardComponent,

@@ -27,6 +27,8 @@ Shows the organization's answers grouped by section. Change answers and click **
 
 The organization page has a **Care** card listing its forms: open one, or **Start** a form that doesn't exist yet.
 
+Public intake links can also go on your website: the link's ⋮ menu → **Embed on a website** gives a one-line embed code and **Allowed websites** (see Forms → Putting a form on a website).
+
 ## Share links (one organization's form)
 
 On a form page, **Share link → New link** makes a link to that organization's form for someone outside, such as family:

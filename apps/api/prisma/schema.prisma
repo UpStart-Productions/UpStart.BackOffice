@@ -1676,6 +1676,7 @@ model Contact {
   phone         String?
   avatarUrl     String?
   linkedInUrl   String?
+  personalUrl   String?
   notes         String?   @db.Text
   isActive      Boolean   @default(true)
   /// True when created from an inbound email and not yet reviewed.
@@ -2091,6 +2092,8 @@ model FormLink {
   expiresAt    DateTime?
   revokedAt    DateTime?
   lastUsedAt   DateTime?
+  /// Websites that may show this form in a browser (origins like https://example.org). Empty = any website.
+  allowedOrigins String[]     @default([])
   createdById  String?
   createdAt    DateTime       @default(now())
 

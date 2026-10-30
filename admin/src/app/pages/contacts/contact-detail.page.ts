@@ -16,7 +16,7 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
-import { CrmTagInputComponent } from '../../ui/crm-tags/crm-tag-input.component';
+import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 import { OrganizationLinksComponent } from '../../ui/organization-links/organization-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
@@ -35,7 +35,7 @@ import { RecordAttributionComponent } from '../../ui/record-attribution/record-a
     QuillModule,
     PageComponent,
     ActivityTimelineComponent,
-    CrmTagInputComponent,
+    TagInputComponent,
     AvatarDropzoneComponent,
     OrganizationLinksComponent,
     HelpTextComponent,
@@ -100,9 +100,19 @@ import { RecordAttributionComponent } from '../../ui/record-attribution/record-a
                     <input pInputText id="title" [(ngModel)]="form.title" class="w-full" />
                   </div>
                 </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="phone">Phone</label>
+                    <input pInputText id="phone" type="tel" [(ngModel)]="form.phone" class="w-full" autocomplete="tel" />
+                  </div>
+                  <div class="form-field">
+                    <label for="linkedInUrl">LinkedIn URL</label>
+                    <input pInputText id="linkedInUrl" type="url" [(ngModel)]="form.linkedInUrl" class="w-full" />
+                  </div>
+                </div>
                 <div class="form-field">
-                  <label for="phone">Phone</label>
-                  <input pInputText id="phone" [(ngModel)]="form.phone" class="w-full" />
+                  <label for="personalUrl">Personal URL</label>
+                  <input pInputText id="personalUrl" type="url" [(ngModel)]="form.personalUrl" class="w-full" />
                 </div>
                 <div class="form-field showcase-full">
                   <label for="notes">Notes</label>
@@ -235,6 +245,8 @@ export class ContactDetailPage implements OnInit {
     title: '',
     primaryEmail: '',
     phone: '',
+    linkedInUrl: '',
+    personalUrl: '',
     notes: '',
     isActive: true,
     tags: [] as string[],
@@ -263,6 +275,8 @@ export class ContactDetailPage implements OnInit {
       title: c.title ?? '',
       primaryEmail: primary?.email ?? '',
       phone: c.phone ?? '',
+      linkedInUrl: c.linkedInUrl ?? '',
+      personalUrl: c.personalUrl ?? '',
       notes: c.notes ?? '',
       isActive: c.isActive,
       tags: [...(c.tags ?? [])],
@@ -317,6 +331,8 @@ export class ContactDetailPage implements OnInit {
       f.title !== (c.title ?? '') ||
       f.primaryEmail.trim() !== this.primaryEmailOnRecord(c) ||
       f.phone !== (c.phone ?? '') ||
+      f.linkedInUrl !== (c.linkedInUrl ?? '') ||
+      f.personalUrl !== (c.personalUrl ?? '') ||
       f.notes !== (c.notes ?? '') ||
       f.isActive !== c.isActive ||
       f.tags.join('\n') !== (c.tags ?? []).join('\n')
@@ -341,6 +357,8 @@ export class ContactDetailPage implements OnInit {
         lastName: this.form.lastName,
         title: this.form.title,
         phone: this.form.phone,
+        linkedInUrl: this.form.linkedInUrl,
+        personalUrl: this.form.personalUrl,
         notes: richTextOrUndefined(this.form.notes),
         isActive: this.form.isActive,
         tags: this.form.tags,

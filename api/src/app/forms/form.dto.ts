@@ -47,6 +47,13 @@ export class CreateLinkDto {
   @IsOptional() @IsEmail() email?: string;
   /** Days until the link stops working; 0 or empty = never. */
   @IsOptional() @IsInt() @Min(0) @Max(3650) expiresInDays?: number | null;
+  /** Websites that may show the form (embeds); empty = any website. */
+  @IsOptional() @IsArray() @IsString({ each: true }) @MaxLength(300, { each: true }) allowedOrigins?: string[];
+}
+
+export class UpdateLinkDto {
+  @IsOptional() @IsString() @MaxLength(120) label?: string | null;
+  @IsOptional() @IsArray() @IsString({ each: true }) @MaxLength(300, { each: true }) allowedOrigins?: string[];
 }
 
 // ── Public links ──────────────────────────────────────────────────────────────

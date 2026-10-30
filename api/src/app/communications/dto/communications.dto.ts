@@ -44,6 +44,8 @@ export class CreateContactDto {
   @ApiPropertyOptional() @IsString() @MaxLength(100) @IsOptional() lastName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() title?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() linkedInUrl?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() personalUrl?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
   @ApiPropertyOptional() @IsEmail() @IsOptional() email?: string;
   @ApiPropertyOptional({ description: 'Link to this client on creation.' }) @IsString() @IsOptional() clientId?: string;
@@ -57,6 +59,8 @@ export class UpdateContactDto {
   @ApiPropertyOptional() @IsString() @MaxLength(100) @IsOptional() lastName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() title?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() linkedInUrl?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() personalUrl?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() avatarUrl?: string | null;
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;

@@ -11,6 +11,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import { AppModule } from './app/app.module';
 import { HttpExceptionFilter } from './app/common/http-exception.filter';
+import { publicFormsCors } from './app/forms/public-forms-cors';
 
 const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT ?? '10mb';
 
@@ -85,6 +86,7 @@ async function bootstrap() {
     'x-impersonate-user-id',
     'x-tenant-slug',
     'x-care-access',
+    'x-form-access',
     'content-type',
     'accept',
   ];
@@ -99,7 +101,7 @@ async function bootstrap() {
     SwaggerModule.setup('docs', app, document);
 
     const devOrigins = parseCorsOrigins();
-    app.enableCors({
+    app.enableCors(publicFormsCors({
       origin: (origin, callback) => {
         const isLocalhost = origin && /^https?:\/\/localhost(:\d+)?$/.test(origin);
         const isLocalNetwork =
@@ -121,7 +123,7 @@ async function bootstrap() {
       credentials: true,
       allowedHeaders,
       methods: [...CORS_METHODS],
-    });
+    }));
   } else {
     const corsOrigins = parseCorsOrigins();
     const allowLocalNetwork = process.env.CORS_ALLOW_LOCAL_NETWORK === 'true';
@@ -132,7 +134,7 @@ async function bootstrap() {
     } else {
       Logger.log(`CORS: ${corsOrigins.length} origin(s): ${corsOrigins.join(', ')}`);
     }
-    app.enableCors({
+    app.enableCors(publicFormsCors({
       origin: (origin, callback) => {
         if (isCorsOriginAllowed(origin, corsOrigins) || isChromeExtensionOrigin(origin)) {
           callback(null, true);
@@ -148,7 +150,7 @@ async function bootstrap() {
       credentials: true,
       allowedHeaders,
       methods: [...CORS_METHODS],
-    });
+    }));
   }
 
   app.setGlobalPrefix('api');

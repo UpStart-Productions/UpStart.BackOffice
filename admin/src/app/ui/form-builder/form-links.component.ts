@@ -8,7 +8,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { FORM_LINK_VERIFY_LABELS, type FormLinkDto, type FormLinkVerify } from '@upstart/back-office/shared';
+import { FORM_LINK_VERIFY_LABELS, normalizeOrigins, type FormLinkDto, type FormLinkVerify } from '@upstart/back-office/shared';
+import { TextareaModule } from 'primeng/textarea';
+import { environment } from '../../../environments/environment';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -33,6 +35,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     SelectButtonModule,
     TableModule,
     TagModule,
+    TextareaModule,
     AppDialogModule,
     HelpTextComponent,
     RowActionsMenuComponent,
@@ -49,6 +52,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
           <th>Link</th>
           <th>Check</th>
           <th>Expires</th>
+          <th>Websites</th>
           <th>Status</th>
         </tr>
       </ng-template>
@@ -58,11 +62,12 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
           <td>{{ l.label || (l.clientName ?? 'Link') }}</td>
           <td>{{ verifyLabel(l.verify) }}@if (l.email) { ({{ l.email }}) }</td>
           <td>{{ l.expiresAt ? (l.expiresAt | date: 'MMM d, y') : 'Never' }}</td>
+          <td>{{ l.allowedOrigins.length ? l.allowedOrigins.join(', ') : 'Any' }}</td>
           <td><p-tag [value]="status(l).label" [severity]="status(l).severity" /></td>
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="5">No links yet.</td></tr>
+        <tr><td colspan="6">No links yet.</td></tr>
       </ng-template>
     </p-table>
 
@@ -102,6 +107,12 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
             <input pInputText id="clEmail" type="email" class="w-full" [(ngModel)]="email" placeholder="name@example.com" />
           </div>
         }
+        @if (!recordId()) {
+          <div class="form-field mt-3">
+            <label for="clSites">Allowed websites <app-help-text key="form.links.websites" /></label>
+            <textarea pTextarea id="clSites" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="websites" placeholder="Any website. Or list them, e.g. example.org"></textarea>
+          </div>
+        }
         <div class="form-field mt-3">
           <label for="clDays">Expires after (days) <app-help-text key="form.links.expires" /></label>
           <p-inputNumber inputId="clDays" [(ngModel)]="expiresInDays" [min]="0" [max]="3650" [useGrouping]="false" placeholder="Never" styleClass="w-full" inputStyleClass="w-full" />
@@ -116,6 +127,37 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
         }
       </ng-template>
     </p-dialog>
+
+    <p-dialog header="Embed on a website" [(visible)]="embedVisible" [modal]="true" [style]="{ width: 'min(40rem, 96vw)' }">
+      @if (embedLink(); as e) {
+        <p class="mt-0">Paste this where the form should appear on any website. The form uses the website's own fonts and colors.</p>
+        <div class="form-field">
+          <label for="clEmbed">Embed code</label>
+          <textarea pTextarea id="clEmbed" class="w-full embed-code" rows="3" [value]="embedCode(e)" readonly></textarea>
+        </div>
+        <div class="form-field mt-3">
+          <label for="clLinkToken">Link key (for websites that draw the form themselves) <app-help-text key="form.links.token" /></label>
+          <div class="field-action-row">
+            <input pInputText id="clLinkToken" class="flex-1" [value]="tokenOf(e)" readonly />
+            <p-button label="Copy" icon="pi pi-copy" size="small" severity="secondary" (onClick)="copy(tokenOf(e))" />
+          </div>
+        </div>
+        <div class="form-field mt-3">
+          <label for="clEditSites">Allowed websites <app-help-text key="form.links.websites" /></label>
+          <textarea pTextarea id="clEditSites" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="websites" placeholder="Any website. Or list them, e.g. example.org"></textarea>
+        </div>
+      }
+      <ng-template pTemplate="footer">
+        <p-button label="Close" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="embedVisible = false" />
+        <p-button label="Copy embed code" icon="pi pi-copy" severity="secondary" [outlined]="true" (onClick)="copy(embedCode(embedLink()!))" />
+        <p-button label="Save websites" icon="pi pi-check" [loading]="saving()" (onClick)="saveWebsites()" />
+      </ng-template>
+    </p-dialog>
+  `,
+  styles: `
+    .embed-code {
+      font-family: monospace;
+    }
   `,
 })
 export class FormLinksComponent {
@@ -145,6 +187,9 @@ export class FormLinksComponent {
   passcode = '';
   email = '';
   expiresInDays: number | null = null;
+  websites = '';
+  embedVisible = false;
+  embedLink = signal<FormLinkDto | null>(null);
 
   constructor() {
     effect(() => {
@@ -185,6 +230,9 @@ export class FormLinksComponent {
       { id: 'copy', label: 'Copy link', icon: 'pi pi-copy', command: () => void this.copy(l.url) },
       { id: 'open', label: 'Open', icon: 'pi pi-external-link', command: () => window.open(l.url, '_blank', 'noopener') },
     ];
+    if (l.kind === 'NEW' && !l.revokedAt) {
+      items.push({ id: 'embed', label: 'Embed on a website', icon: 'pi pi-code', command: () => this.openEmbed(l) });
+    }
     if (!l.revokedAt) {
       items.push({ id: 'revoke', label: 'Revoke', icon: 'pi pi-ban', severity: 'danger', command: () => this.confirmRevoke(l) });
     }
@@ -198,6 +246,7 @@ export class FormLinksComponent {
     this.passcode = '';
     this.email = '';
     this.expiresInDays = this.recordId() ? 30 : null;
+    this.websites = '';
     this.dialogVisible = true;
   }
 
@@ -216,6 +265,7 @@ export class FormLinksComponent {
         passcode: this.verify === 'PASSCODE' ? this.passcode.trim() : undefined,
         email: this.verify === 'EMAIL_CODE' && this.recordId() ? this.email.trim() : undefined,
         expiresInDays: this.expiresInDays ?? 0,
+        ...(this.recordId() ? {} : { allowedOrigins: normalizeOrigins(this.websites) }),
       };
       const rid = this.recordId();
       const base = this.apiBase();
@@ -242,6 +292,39 @@ export class FormLinksComponent {
         }
       },
     });
+  }
+
+  /** The link's key: the last part of its URL. */
+  tokenOf(l: FormLinkDto) {
+    return l.url.split('/').pop() ?? '';
+  }
+
+  embedCode(l: FormLinkDto) {
+    const api = new URL(environment.apiBaseUrl, window.location.origin).href.replace(/\/$/, '');
+    return `<script src="${api}/form-embed.js" data-ubo-form="${this.tokenOf(l)}" async></script>`;
+  }
+
+  openEmbed(l: FormLinkDto) {
+    this.embedLink.set(l);
+    this.websites = l.allowedOrigins.join('\n');
+    this.embedVisible = true;
+  }
+
+  async saveWebsites() {
+    const l = this.embedLink();
+    if (!l) return;
+    this.saving.set(true);
+    try {
+      const updated = await this.api.patch<FormLinkDto>(`${this.apiBase()}/links/${l.id}`, { allowedOrigins: normalizeOrigins(this.websites) });
+      this.embedLink.set(updated);
+      this.websites = updated.allowedOrigins.join('\n');
+      await this.load();
+      this.toast.add({ severity: 'success', summary: 'Saved', detail: updated.allowedOrigins.length ? 'Only the listed websites can show this form.' : 'Any website can show this form.' });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not save', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   async copy(url: string) {

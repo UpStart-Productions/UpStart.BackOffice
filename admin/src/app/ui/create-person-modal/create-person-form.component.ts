@@ -1,4 +1,4 @@
-import { Component, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -6,10 +6,15 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
 import { CommunicationsApi, ContactSummary } from '../../core/communications.api';
-import { CrmTagInputComponent } from '../crm-tags/crm-tag-input.component';
+import { TagInputComponent } from '../tag-input/tag-input.component';
 import { CrmTagsApi } from '../../core/crm-tags.api';
 import { AvatarDropzoneComponent } from '../avatar-dropzone/avatar-dropzone.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
+
+/** Sentinel value in the organization picker for inline org creation. */
+export const NEW_ORGANIZATION_OPTION_ID = '__new_organization__';
+
+type OrgOption = { id: string; name: string };
 
 /** New-person fields (used inside a dialog or inline panel). */
 @Component({
@@ -21,7 +26,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
     InputTextModule,
     MessageModule,
     SelectModule,
-    CrmTagInputComponent,
+    TagInputComponent,
     AvatarDropzoneComponent,
     HelpTextComponent,
   ],
@@ -39,6 +44,19 @@ import { HelpTextComponent } from '../help-text/help-text.component';
     .form-row .form-field {
       flex: 1 1 0;
       min-width: 0;
+    }
+    .org-stub {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--border-radius);
+      background: var(--surface-ground);
+    }
+    .org-stub-title {
+      margin: 0;
+      font-weight: 600;
+      font-size: 0.875rem;
     }
     .form-actions {
       display: flex;
@@ -70,16 +88,30 @@ import { HelpTextComponent } from '../help-text/help-text.component';
           <input pInputText id="nEmail" type="email" [(ngModel)]="form.email" class="w-full" />
         </div>
         <div class="form-field">
+          <label for="nPhone">Phone</label>
+          <input pInputText id="nPhone" type="tel" [(ngModel)]="form.phone" class="w-full" autocomplete="tel" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
           <label for="nTitle">Title</label>
           <input pInputText id="nTitle" [(ngModel)]="form.title" class="w-full" placeholder="e.g. Executive Director" />
         </div>
+        <div class="form-field">
+          <label for="nLinkedIn">LinkedIn URL</label>
+          <input pInputText id="nLinkedIn" type="url" [(ngModel)]="form.linkedInUrl" class="w-full" placeholder="https://linkedin.com/in/…" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label for="nPersonalUrl">Personal URL</label>
+        <input pInputText id="nPersonalUrl" type="url" [(ngModel)]="form.personalUrl" class="w-full" placeholder="https://…" />
       </div>
       @if (showOrgPicker()) {
         <div class="form-field">
           <label for="nClient">Organization (optional)</label>
           <p-select
             inputId="nClient"
-            [options]="clients()"
+            [options]="orgOptions()"
             optionLabel="name"
             optionValue="id"
             [(ngModel)]="form.clientId"
@@ -91,8 +123,27 @@ import { HelpTextComponent } from '../help-text/help-text.component';
             appendTo="body"
           />
         </div>
+        @if (creatingOrg()) {
+          <div class="org-stub">
+            <p class="org-stub-title">New organization</p>
+            <div class="form-field">
+              <label for="nOrgName">Organization name</label>
+              <input pInputText id="nOrgName" [(ngModel)]="form.newOrg.name" class="w-full" />
+            </div>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="nOrgEmail">Organization email</label>
+                <input pInputText id="nOrgEmail" type="email" [(ngModel)]="form.newOrg.email" class="w-full" />
+              </div>
+              <div class="form-field">
+                <label for="nOrgWebsite">Website</label>
+                <input pInputText id="nOrgWebsite" type="url" [(ngModel)]="form.newOrg.website" class="w-full" placeholder="https://…" />
+              </div>
+            </div>
+          </div>
+        }
       }
-      @if (form.clientId) {
+      @if (linkingOrg()) {
         <div class="form-field">
           <label for="nRole">Role at organization <app-help-text key="person.orgRole" /></label>
           <input pInputText id="nRole" [(ngModel)]="form.role" class="w-full" placeholder="e.g. Board member" />
@@ -129,42 +180,56 @@ export class CreatePersonFormComponent {
 
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
-  readonly clients = signal<{ id: string; name: string }[]>([]);
+  readonly clients = signal<OrgOption[]>([]);
+
+  readonly orgOptions = computed(() => {
+    const list = this.clients();
+    const newOpt: OrgOption = { id: NEW_ORGANIZATION_OPTION_ID, name: 'New organization' };
+    return [newOpt, ...list];
+  });
 
   private selectedAvatarFile: File | null = null;
 
-  form = {
-    firstName: '',
-    lastName: '',
-    email: '',
-    title: '',
-    clientId: null as string | null,
-    role: '',
-    tags: [] as string[],
-  };
+  form = this.emptyForm();
 
   reset() {
     void this.crmTags.load();
-    this.form = {
-      firstName: '',
-      lastName: '',
-      email: '',
-      title: '',
-      clientId: this.defaultClientId(),
-      role: this.defaultRole(),
-      tags: [],
-    };
+    this.form = this.emptyForm();
     this.formError.set(null);
     this.selectedAvatarFile = null;
     this.avatarDropzone()?.reset();
-    void this.loadClients();
+    void this.loadClients(true);
   }
 
-  private async loadClients() {
+  creatingOrg(): boolean {
+    return this.form.clientId === NEW_ORGANIZATION_OPTION_ID;
+  }
+
+  linkingOrg(): boolean {
+    return !!this.form.clientId;
+  }
+
+  private emptyForm() {
+    return {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      title: '',
+      linkedInUrl: '',
+      personalUrl: '',
+      clientId: this.defaultClientId() as string | null,
+      role: this.defaultRole(),
+      tags: [] as string[],
+      newOrg: { name: '', email: '', website: '' },
+    };
+  }
+
+  private async loadClients(force = false) {
     if (!this.showOrgPicker() && this.defaultClientId()) return;
-    if (this.clients().length > 0) return;
+    if (!force && this.clients().length > 0) return;
     try {
-      this.clients.set(await this.api.get<{ id: string; name: string }[]>('/clients'));
+      this.clients.set(await this.api.get<OrgOption[]>('/clients'));
     } catch {
       this.clients.set([]);
     }
@@ -180,16 +245,36 @@ export class CreatePersonFormComponent {
       this.formError.set('First name is required.');
       return;
     }
+    if (this.creatingOrg() && !this.form.newOrg.name.trim()) {
+      this.formError.set('Organization name is required when creating a new organization.');
+      return;
+    }
     this.saving.set(true);
     this.formError.set(null);
     try {
+      let clientId = this.form.clientId;
+      if (clientId === NEW_ORGANIZATION_OPTION_ID) {
+        const org = this.form.newOrg;
+        const created = await this.api.post<{ id: string }>('/clients', {
+          name: org.name.trim(),
+          email: org.email.trim() || undefined,
+          website: org.website.trim() || undefined,
+          journey: 'NONE',
+          addToPipeline: false,
+        });
+        clientId = created.id;
+      }
+
       const created = await this.comms.createContact({
         firstName: this.form.firstName.trim(),
         lastName: this.form.lastName.trim() || undefined,
         email: this.form.email.trim() || undefined,
+        phone: this.form.phone.trim() || undefined,
         title: this.form.title.trim() || undefined,
-        clientId: this.form.clientId ?? undefined,
-        role: this.form.clientId ? this.form.role.trim() || undefined : undefined,
+        linkedInUrl: this.form.linkedInUrl.trim() || undefined,
+        personalUrl: this.form.personalUrl.trim() || undefined,
+        clientId: clientId ?? undefined,
+        role: clientId ? this.form.role.trim() || undefined : undefined,
         tags: this.form.tags.length ? this.form.tags : undefined,
       });
       let result = created;

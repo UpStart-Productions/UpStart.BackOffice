@@ -6,7 +6,7 @@ import { CARE_FORM_MODULE, CARE_RECORD_KINDS, type CareFormDto } from '@upstart/
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
 import { sanitizeFormAccess } from '../forms/form-access.util';
-import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto } from '../forms/form.dto';
+import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from '../forms/form.dto';
 import { FormLinksService } from '../forms/form-links.service';
 import { FormStructureService } from '../forms/form-structure.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -183,7 +183,18 @@ export class CareFormsController {
   /** Setup can revoke any link; people who can edit a form can revoke its links for organizations they reach. */
   @Post('links/:id/revoke')
   async revoke(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as UserContext;
+    await this.assertLink(req.user as UserContext, id);
+    return this.links.revoke(id);
+  }
+
+  /** Rename a link or change the websites that may show it (same rule as revoking). */
+  @Patch('links/:id')
+  async updateLink(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateLinkDto) {
+    await this.assertLink(req.user as UserContext, id);
+    return this.links.update(id, dto);
+  }
+
+  private async assertLink(user: UserContext, id: string) {
     const link = await this.links.find(id);
     if (link.form.module !== M) throw new NotFoundException('Link not found');
     if (!this.care.canSetup(user)) {
@@ -191,6 +202,5 @@ export class CareFormsController {
       if (level !== 'edit' || !link.clientId) throw new ForbiddenException("Your role can't change this link");
       await this.care.assertClient(user, link.clientId);
     }
-    return this.links.revoke(id);
   }
 }

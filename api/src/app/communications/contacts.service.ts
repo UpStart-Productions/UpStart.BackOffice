@@ -30,6 +30,11 @@ function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: string }).code === 'P2002';
 }
 
+function optionalText(value: string | undefined | null): string | null {
+  const t = value?.trim();
+  return t || null;
+}
+
 @Injectable()
 export class ContactsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -81,7 +86,9 @@ export class ContactsService {
           firstName: dto.firstName.trim(),
           lastName: dto.lastName?.trim() || null,
           title: dto.title ?? null,
-          phone: dto.phone ?? null,
+          phone: optionalText(dto.phone),
+          linkedInUrl: optionalText(dto.linkedInUrl),
+          personalUrl: optionalText(dto.personalUrl),
           notes: dto.notes ?? null,
           ...(email ? { emails: { create: { tenantId: TENANT, email, isPrimary: true } } } : {}),
           ...(dto.clientId
@@ -106,7 +113,9 @@ export class ContactsService {
         ...(dto.firstName !== undefined ? { firstName: dto.firstName.trim() } : {}),
         ...(dto.lastName !== undefined ? { lastName: dto.lastName.trim() || null } : {}),
         ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        ...(dto.phone !== undefined ? { phone: optionalText(dto.phone) } : {}),
+        ...(dto.linkedInUrl !== undefined ? { linkedInUrl: optionalText(dto.linkedInUrl) } : {}),
+        ...(dto.personalUrl !== undefined ? { personalUrl: optionalText(dto.personalUrl) } : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
         ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),

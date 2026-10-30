@@ -97,7 +97,30 @@ export type FormLinkDto = {
   lastUsedAt: string | null;
   createdAt: string;
   url: string;
+  /** Websites that may show the form (embed script or a site's own code). Empty = any website. */
+  allowedOrigins: string[];
 };
+
+/**
+ * Website origins from what people type: "example.org", "https://www.example.org/page" → "https://www.example.org".
+ * Bare hosts get https:// (http:// for localhost). Invalid entries are dropped; duplicates removed.
+ */
+export function normalizeOrigins(input: unknown): string[] {
+  const raw = Array.isArray(input) ? input : typeof input === 'string' ? input.split(/[\s,]+/) : [];
+  const out = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== 'string' || !item.trim()) continue;
+    let text = item.trim();
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(text)) text = (/^(localhost|127\.0\.0\.1)(:|$)/i.test(text) ? 'http://' : 'https://') + text;
+    try {
+      const u = new URL(text);
+      if (u.protocol === 'http:' || u.protocol === 'https:') out.add(u.origin.toLowerCase());
+    } catch {
+      // not a website address
+    }
+  }
+  return [...out].slice(0, 50);
+}
 
 /** What the public page gets before anyone has proven who they are. */
 export type FormPublicLinkDto = {
@@ -111,6 +134,8 @@ export type FormPublicLinkDto = {
   maskedEmail: string | null;
   /** Who-you-are questions to ask on new-response links (name and email are always asked). */
   ask: { organization: boolean; phone: boolean };
+  /** UBO's own page for this link (embeds send people there when the link needs a passcode or emailed code). */
+  pageUrl: string;
 };
 
 export type FormPublicSubmitResultDto = {

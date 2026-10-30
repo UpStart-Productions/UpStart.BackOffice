@@ -1,9 +1,15 @@
-import { Body, Controller, Get, Headers, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Req, Res } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
+import { FORM_EMBED_SCRIPT } from './form-embed.script';
 import { clientIp } from '../common/rate-limiter';
-import { FormPublicService } from './form-public.service';
+import { FormPublicService, type PublicRequest } from './form-public.service';
 import { PasscodeDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
+
+function pub(req: Request): PublicRequest {
+  const origin = req.headers.origin;
+  return { ip: clientIp(req), origin: typeof origin === 'string' ? origin : undefined };
+}
 
 /**
  * Public form links. No sign-in: the token finds the link and its tenant. Links with a passcode or emailed
@@ -17,22 +23,22 @@ export class FormPublicController {
 
   @Get(':token')
   info(@Req() req: Request, @Param('token') token: string) {
-    return this.forms.info(token, clientIp(req));
+    return this.forms.info(pub(req), token);
   }
 
   @Post(':token/passcode')
   passcode(@Req() req: Request, @Param('token') token: string, @Body() dto: PasscodeDto) {
-    return this.forms.passcode(token, clientIp(req), dto);
+    return this.forms.passcode(pub(req), token, dto);
   }
 
   @Post(':token/send-code')
   sendCode(@Req() req: Request, @Param('token') token: string, @Body() dto: SendCodeDto) {
-    return this.forms.sendCode(token, clientIp(req), dto);
+    return this.forms.sendCode(pub(req), token, dto);
   }
 
   @Post(':token/verify-code')
   verifyCode(@Req() req: Request, @Param('token') token: string, @Body() dto: VerifyCodeDto) {
-    return this.forms.verifyCode(token, clientIp(req), dto);
+    return this.forms.verifyCode(pub(req), token, dto);
   }
 
   @Get(':token/form')
@@ -43,7 +49,7 @@ export class FormPublicController {
     @Headers('x-form-access') access?: string,
     @Headers('x-care-access') legacy?: string,
   ) {
-    return this.forms.form(token, clientIp(req), access ?? legacy);
+    return this.forms.form(pub(req), token, access ?? legacy);
   }
 
   @Post(':token/submit')
@@ -55,7 +61,7 @@ export class FormPublicController {
     @Headers('x-form-access') access?: string,
     @Headers('x-care-access') legacy?: string,
   ) {
-    return this.forms.submit(token, clientIp(req), access ?? legacy, dto);
+    return this.forms.submit(pub(req), token, access ?? legacy, dto);
   }
 }
 
@@ -68,5 +74,17 @@ export class FormResultsController {
   @Get(':token')
   result(@Req() req: Request, @Param('token') token: string) {
     return this.forms.result(token, clientIp(req));
+  }
+}
+
+/** The embed script: <script src=".../api/form-embed.js" data-ubo-form="LINK_TOKEN" async></script> draws the form on any website. */
+@ApiTags('form-links')
+@Controller()
+export class FormEmbedController {
+  @Get('form-embed.js')
+  script(@Res() res: Response) {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.send(FORM_EMBED_SCRIPT);
   }
 }

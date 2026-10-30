@@ -56,6 +56,8 @@ export interface ContactSummary {
   lastName: string | null;
   title: string | null;
   phone: string | null;
+  linkedInUrl?: string | null;
+  personalUrl?: string | null;
   avatarUrl?: string | null;
   notes: string | null;
   isActive: boolean;
@@ -410,7 +412,10 @@ export class CommunicationsApi {
     firstName: string;
     lastName?: string;
     email?: string;
+    phone?: string;
     title?: string;
+    linkedInUrl?: string;
+    personalUrl?: string;
     clientId?: string;
     role?: string;
     tags?: string[];
@@ -418,7 +423,15 @@ export class CommunicationsApi {
     return this.api.post('/contacts', body);
   }
 
-  updateContact(id: string, body: Partial<Pick<ContactSummary, 'firstName' | 'lastName' | 'title' | 'phone' | 'notes' | 'isActive' | 'autoCreated' | 'tags'>>) {
+  updateContact(
+    id: string,
+    body: Partial<
+      Pick<
+        ContactSummary,
+        'firstName' | 'lastName' | 'title' | 'phone' | 'linkedInUrl' | 'personalUrl' | 'notes' | 'isActive' | 'autoCreated' | 'tags'
+      >
+    >,
+  ) {
     return this.api.patch<ContactSummary>(`/contacts/${id}`, body);
   }
 

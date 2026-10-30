@@ -56,3 +56,20 @@ logic) are added to the profile type and switched on per profile.
   (same component as `/care-form/:token`). Shared UI: `app-form-builder`, `app-form-links`, `app-accept-response-dialog`.
 - Host sites (e.g. heyupstart.com) call `/form-links/:token`, `/form-links/:token/form`, `/form-links/:token/submit`
   and `/form-results/:token` directly and render with their own branding. Their origin must be allowed by CORS.
+
+## Putting forms on other websites
+
+- **Embed script:** `GET /api/form-embed.js` (`FormEmbedController`, source in `forms/form-embed.script.ts`, plain browser JS).
+  `<script src="{api}/form-embed.js" data-ubo-form="{link token}" async></script>` draws the form inside the host page
+  with the host's fonts; CSS variables on `.ubo-form` tune it. Optional `data-target`, `data-redirect` (`{token}` =
+  result token), events `ubo-form:ready` / `ubo-form:submitted`. Links that need a passcode or emailed code show an
+  "Open the form" button to UBO's page (`pageUrl`).
+- **Headless:** a site's own code calls `/form-links/:token`, `/form-links/:token/form`, `/form-links/:token/submit`
+  and `/form-results/:token` (heyupstart.com's `/compass-test/` does this).
+- **CORS:** only these public form paths answer any website (`forms/public-forms-cors.ts`, wired in `main.ts`: no
+  credentials). Everything else keeps the app's CORS_ORIGINS rules.
+- **Allowed websites:** `FormLink.allowedOrigins` (migration `20261030150000_form_link_websites`). Empty = any website.
+  `FormPublicService` refuses browser requests (Origin header) from other websites with 403. UBO's own page is always
+  allowed; requests without an Origin (server-to-server) aren't website requests and pass. This stops other sites from
+  showing a form; rate limits, the honeypot and review cover abuse.
+- Admin: links panel ⋮ → **Embed on a website** (embed code, link key, allowed websites; `PATCH {apiBase}/links/:id`).

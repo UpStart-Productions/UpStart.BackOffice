@@ -318,7 +318,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Adding a person',
-        body: 'New Person asks for first and last name, email and title, optional photo, and optionally an organization and tags. Role is how they relate to that organization (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one organization.',
+        body: 'New Person asks for first and last name, their email, phone, title, LinkedIn and personal URL, optional photo, and optionally an organization and tags. Pick New organization in the Organization list to add name, email and website for a stub organization and link this person to it. Role is how they relate to that organization (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one organization.',
       },
       {
         heading: 'Tags',
@@ -340,7 +340,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Profile',
-        body: 'First and last name, email and title on one form; phone below. Save stores the profile. To delete someone, use Delete on their row on the People list when your role allows it.',
+        body: 'First and last name, email and title on one form; phone, LinkedIn URL and personal URL below. Save stores the profile. To delete someone, use Delete on their row on the People list when your role allows it.',
       },
       {
         heading: 'Photo',
@@ -842,7 +842,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Public links',
-        body: 'New link makes a link anyone can use, with No check, a Passcode or an Emailed code. Copy, open or revoke it from its ⋮ menu.',
+        body: 'New link makes a link anyone can use, with No check, a Passcode or an Emailed code. Copy, open or revoke it from its ⋮ menu. Embed on a website (⋮ menu) gives a one-line code to paste into any website, the link key for developers, and Allowed websites (empty = any website).',
       },
     ],
   },

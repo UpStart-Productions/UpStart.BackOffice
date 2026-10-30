@@ -36,6 +36,16 @@ People's score is the percentage of the points possible. A single-select counts 
 
 **New link** makes a link anyone can use to fill in the published form (for example on your website), with **No check**, a **Passcode** (share it separately) or an **Emailed code**. Use a link's ⋮ menu to **Copy link**, **Open** or **Revoke** it. Links only work once the form is published. On scored forms, people see their score, profile, next steps and score areas after sending.
 
+## Putting a form on a website
+
+A link's ⋮ menu → **Embed on a website** shows:
+
+- **Embed code**: one line to paste into any website (WordPress, Squarespace, a custom site). The form appears in the page and uses that website's own fonts and colors. Links with a passcode or emailed code show an **Open the form** button instead.
+- **Link key**: for a developer whose website draws the form with its own code, using UBO's public form API.
+- **Allowed websites**: empty means any website can show the form. List websites (one per line, e.g. example.org) to allow only those; click **Save websites**. Opening the link itself always works.
+
+New link also has **Allowed websites**. The **Websites** column on the links list shows what each link allows.
+
 ## Submissions
 
 Open **Submissions** from the form page or the list. Tabs: **Waiting for review**, **Accepted**, **Dismissed**, **All**. Open a submission to see the answers (as they were asked in that version), who sent it and the score.

@@ -39,7 +39,8 @@ function listItem(r: ListRow): CareRecordListItemDto {
     id: r.id,
     formId: r.formId,
     kind: careKind(r.form),
-    status: r.status,
+    // Care never dismisses (it deletes), so its records are only PENDING or ACTIVE.
+    status: r.status as CareRecordListItemDto['status'],
     clientId: r.clientId,
     clientName: r.client?.name ?? null,
     submitterName: r.submitterName,

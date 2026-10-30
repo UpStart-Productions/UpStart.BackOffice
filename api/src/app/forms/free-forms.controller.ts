@@ -11,7 +11,7 @@ import { UserContext } from '../common/app.types';
 import { ensureLeadLinks } from '../leads/lead-links.util';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto } from './form.dto';
+import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from './form.dto';
 import { liveValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
@@ -234,6 +234,14 @@ export class FreeFormsController {
     if (link.form.module !== M) throw new NotFoundException('Link not found');
     await this.findForm(req.user as UserContext, link.formId);
     return this.links.revoke(id);
+  }
+
+  @Patch('links/:id')
+  async updateLink(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateLinkDto) {
+    const link = await this.links.find(id);
+    if (link.form.module !== M) throw new NotFoundException('Link not found');
+    await this.findForm(req.user as UserContext, link.formId);
+    return this.links.update(id, dto);
   }
 
   // ── Submissions ────────────────────────────────────────────────────────────

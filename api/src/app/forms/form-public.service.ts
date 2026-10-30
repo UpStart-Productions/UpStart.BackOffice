@@ -1,4 +1,6 @@
-import { BadRequestException, GoneException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException, ForbiddenException, GoneException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException,
+} from '@nestjs/common';
 import {
   computeFormScores, normalizeFormSettings, publicSections,
   type FormFieldDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto,
@@ -13,8 +15,20 @@ import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
 import { FormDestinations, PUBLIC_LINK_INCLUDE, type FormDestination, type PublicLink } from './form-destinations';
 import { PasscodeDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
 import { mergeFormValues } from './form-fields.util';
-import { checkPasscode, maskEmail, newAccessToken, newEmailCode, sha256 } from './form-links.util';
+import { checkPasscode, formLinkUrl, maskEmail, newAccessToken, newEmailCode, sha256 } from './form-links.util';
+import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 import { FormStructureService } from './form-structure.service';
+
+/** Who's asking: their IP (rate limits) and, from a browser, the website (Origin header) the page is on. */
+export type PublicRequest = { ip: string; origin: string | undefined };
+
+/** A link with no websites listed works anywhere. UBO's own public page is always allowed. */
+function originAllowed(origin: string | undefined, allowed: string[]): boolean {
+  if (!origin || !allowed?.length) return true;
+  const o = origin.toLowerCase();
+  if (o === new URL(adminAppBaseUrl()).origin.toLowerCase()) return true;
+  return allowed.includes(o);
+}
 
 const ACCESS_HOURS = 2;
 const CODE_MINUTES = 10;
@@ -39,8 +53,17 @@ export class FormPublicService {
     private readonly destinations: FormDestinations,
   ) {}
 
-  /** Runs fn in the link's tenant with the link loaded; 404/410 for unknown, revoked or expired links. */
-  private async withLink<T>(token: string, ip: string, fn: (link: PublicLink, destination: FormDestination) => Promise<T>): Promise<T> {
+  /**
+   * Runs fn in the link's tenant with the link loaded; 404/410 for unknown, revoked or expired links, 403 when the
+   * request comes from a website the link doesn't allow. (The website check stops other sites from showing the form;
+   * requests without an Origin, such as server-to-server calls, aren't website requests and pass.)
+   */
+  private async withLink<T>(
+    req: PublicRequest,
+    token: string,
+    fn: (link: PublicLink, destination: FormDestination) => Promise<T>,
+  ): Promise<T> {
+    const ip = req.ip;
     if (!this.viewLimiter.allow(`${ip}`)) throw new HttpException('Too many requests, try again in a few minutes', HttpStatus.TOO_MANY_REQUESTS);
     const found = await runUnscoped(() => this.prisma.formLink.findUnique({ where: { token }, select: { tenantId: true } }));
     if (!found) throw new NotFoundException('This link is not valid');
@@ -57,6 +80,7 @@ export class FormPublicService {
         throw new GoneException('This link no longer works. Ask the organization that sent it for a new one.');
       }
       if (destination.requiresPublished && !link.form.publishedVersion) throw new NotFoundException('This form is not published yet');
+      if (!originAllowed(req.origin, link.allowedOrigins)) throw new ForbiddenException('This form is not available on this website');
       return fn(link, destination);
     });
   }
@@ -89,8 +113,8 @@ export class FormPublicService {
     return { name: link.form.name, description: link.form.description, sections: await this.structure.sections(link.formId), scoring: null };
   }
 
-  info(token: string, ip: string): Promise<FormPublicLinkDto> {
-    return this.withLink(token, ip, async (link, destination) => ({
+  info(req: PublicRequest, token: string): Promise<FormPublicLinkDto> {
+    return this.withLink(req, token, async (link, destination) => ({
       ...(await this.content(link).then((c) => ({ formName: c.name, description: c.description }))),
       organizationName: await this.organizationName(link.tenantId),
       kind: link.kind,
@@ -98,11 +122,13 @@ export class FormPublicService {
       verify: link.verify,
       maskedEmail: link.kind === 'CLIENT' ? maskEmail(link.email) : null,
       ask: destination.ask(link),
+      pageUrl: formLinkUrl(link.form.module, link.token),
     }));
   }
 
-  passcode(token: string, ip: string, dto: PasscodeDto) {
-    return this.withLink(token, ip, async (link) => {
+  passcode(req: PublicRequest, token: string, dto: PasscodeDto) {
+    const ip = req.ip;
+    return this.withLink(req, token, async (link) => {
       if (link.verify !== 'PASSCODE') throw new BadRequestException('This link has no passcode');
       if (!this.verifyLimiter.allow(`${link.id}:${ip}`)) throw new HttpException('Too many tries. Wait 15 minutes and try again.', HttpStatus.TOO_MANY_REQUESTS);
       if (!checkPasscode(dto.passcode.trim(), link.passcodeHash)) throw new UnauthorizedException('That passcode is not right');
@@ -110,8 +136,9 @@ export class FormPublicService {
     });
   }
 
-  sendCode(token: string, ip: string, dto: SendCodeDto) {
-    return this.withLink(token, ip, async (link) => {
+  sendCode(req: PublicRequest, token: string, dto: SendCodeDto) {
+    const ip = req.ip;
+    return this.withLink(req, token, async (link) => {
       if (link.verify !== 'EMAIL_CODE') throw new BadRequestException('This link does not use emailed codes');
       const email = link.kind === 'CLIENT' ? link.email : normalizeEmail(dto.email);
       if (!email) throw new BadRequestException('Enter your email address');
@@ -137,8 +164,9 @@ export class FormPublicService {
     });
   }
 
-  verifyCode(token: string, ip: string, dto: VerifyCodeDto) {
-    return this.withLink(token, ip, async (link) => {
+  verifyCode(req: PublicRequest, token: string, dto: VerifyCodeDto) {
+    const ip = req.ip;
+    return this.withLink(req, token, async (link) => {
       if (!this.verifyLimiter.allow(`${link.id}:${ip}`)) throw new HttpException('Too many tries. Wait 15 minutes and try again.', HttpStatus.TOO_MANY_REQUESTS);
       const row = await this.prisma.formLinkAccess.findFirst({ where: { id: dto.challengeId, linkId: link.id } });
       if (!row?.codeHash || !row.email || !row.codeExpiresAt || row.codeExpiresAt < new Date() || row.attempts >= MAX_CODE_ATTEMPTS) {
@@ -157,8 +185,8 @@ export class FormPublicService {
     });
   }
 
-  form(token: string, ip: string, accessToken: string | undefined): Promise<FormPublicFormDto> {
-    return this.withLink(token, ip, async (link, destination) => {
+  form(req: PublicRequest, token: string, accessToken: string | undefined): Promise<FormPublicFormDto> {
+    return this.withLink(req, token, async (link, destination) => {
       const access = await this.access(link, accessToken);
       const { sections } = await this.content(link);
       const values = link.kind === 'CLIENT' ? await destination.storedValues(link) : {};
@@ -166,8 +194,9 @@ export class FormPublicService {
     });
   }
 
-  submit(token: string, ip: string, accessToken: string | undefined, dto: PublicSubmitDto): Promise<FormPublicSubmitResultDto> {
-    return this.withLink(token, ip, async (link, destination) => {
+  submit(req: PublicRequest, token: string, accessToken: string | undefined, dto: PublicSubmitDto): Promise<FormPublicSubmitResultDto> {
+    const ip = req.ip;
+    return this.withLink(req, token, async (link, destination) => {
       if (!this.submitLimiter.allow(`${link.id}:${ip}`)) throw new HttpException('Too many submissions. Try again in a few minutes.', HttpStatus.TOO_MANY_REQUESTS);
       const access = await this.access(link, accessToken);
       const content = await this.content(link);
@@ -187,9 +216,9 @@ export class FormPublicService {
       const stored = link.kind === 'CLIENT' ? await destination.storedValues(link) : {};
       const values = this.merge(fields, stored, dto.values);
       const scores: FormScores | null = content.scoring?.enabled ? computeFormScores(content.sections, content.scoring, values) : null;
-      const outcome = await destination.submit(link, {
+      const outcome = (await destination.submit(link, {
         values, name, email, phone, organization, versionId: link.form.publishedVersion?.id ?? null, scores,
-      });
+      })) as { message?: string; resultToken?: string } | undefined;
       await this.prisma.formLink.update({ where: { id: link.id }, data: { lastUsedAt: new Date() } });
       return {
         ...thanks,
