@@ -499,20 +499,6 @@ export class PipelineBoardPage implements OnInit {
     });
   }
 
-  laneActions(lane: PipelineLane): RowActionItem[] {
-    return [
-      { id: 'rename', label: 'Rename lane', icon: 'pi pi-pencil', command: () => this.startLaneEdit(lane) },
-      {
-        id: 'remove',
-        label: 'Remove lane',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        disabled: this.lanes().length <= 1,
-        command: () => this.openRemoveLane(lane),
-      },
-    ];
-  }
-
   /** Lanes the cards of `lane` can move to (the other lanes of this pipeline). */
   otherLanes(lane: PipelineLane | null): PipelineLane[] {
     return lane ? this.lanes().filter((l) => l.id !== lane.id) : [];

@@ -256,7 +256,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Editing lanes',
-        body: 'Add lane is the column at the end. Click a lane name to rename it (Enter saves, Esc cancels). Drag a lane by its header to reorder. The lane menu has Remove lane; if it has cards, archived ones included, choose where they move.',
+        body: 'Add lane is the column at the end. Click a lane name to rename it (Enter saves, Esc cancels). Drag a lane by its header to reorder. The X on a lane removes it; if it has cards, archived ones included, choose where they move. A pipeline always keeps at least one lane.',
       },
       {
         heading: 'More than one pipeline',

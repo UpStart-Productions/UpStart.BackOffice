@@ -1,6 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter } from 'rxjs';
 import { LayoutService } from './layout.service';
@@ -10,7 +11,7 @@ const NAV_TOOLTIP_SHOW_DELAY_MS = 500;
 /** Extra gap between icon rail and nav label tooltip. */
 const NAV_TOOLTIP_OFFSET_PX = 4;
 
-export type NavLinkItem = { label: string; icon: string; route: string; badge?: number };
+export type NavLinkItem = { label: string; icon: string; lucide?: boolean; route: string; badge?: number };
 export type NavSectionItem = { sectionLabel: string; badge?: number };
 export type NavItem = NavLinkItem | NavSectionItem;
 
@@ -19,7 +20,7 @@ type NavGroup = { section: NavSectionItem | null; items: NavLinkItem[] };
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, TooltipModule],
+  imports: [NgTemplateOutlet, RouterLink, RouterLinkActive, TooltipModule, LucideIconComponent],
   template: `
     <div class="layout-sidebar" [class.layout-sidebar--compact]="compact()">
       <div class="layout-sidebar-header">
@@ -118,7 +119,11 @@ type NavGroup = { section: NavSectionItem | null; items: NavLinkItem[] };
         appendTo="body"
         [attr.aria-label]="compact() ? item.label : null"
       >
-        <i class="pi layout-menuitem-icon {{ item.icon }}"></i>
+        @if (item.lucide) {
+          <nmp-lucide-icon class="layout-menuitem-icon" [name]="item.icon" />
+        } @else {
+          <i class="pi layout-menuitem-icon {{ item.icon }}"></i>
+        }
         @if (!compact()) {
           <span>{{ item.label }}</span>
         }

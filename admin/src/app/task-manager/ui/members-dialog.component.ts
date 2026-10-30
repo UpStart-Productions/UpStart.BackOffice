@@ -71,7 +71,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
           <p-message severity="error" [text]="error()!" styleClass="mt-2" />
         }
         <p class="tm-share-hint">
-          Team members and People in Back Office appear in the list when they have an email. New addresses become guests and get an email to set a password. People whose role has Tasks at All can always see every project.
+          Picking a team member adds them right away and notifies them. People from Back Office (without an account) and new addresses become guests and get an email to set a password. People whose role has Tasks at All can always see every project.
         </p>
       }
 
@@ -156,6 +156,14 @@ export class TmMembersDialogComponent {
 
   onPersonPicked(id: string | null | undefined) {
     if (!id) return;
+    // Someone who already has an account in this tenant: add them right away (they get an
+    // in-app notification + email). CRM People without an account still go through Invite.
+    if (id.startsWith('user:')) {
+      if (this.busy()) return;
+      this.personPickId = id;
+      void this.invite();
+      return;
+    }
     const option = this.sharePeopleOptions().find((o) => o.id === id);
     if (option?.email) {
       this.email = option.email;

@@ -249,6 +249,7 @@ export class TaskProjectsService {
           actorLabel: personName(user),
           projectId,
           projectName: project.name,
+          actionLabel: 'Open board',
         },
       });
     }
@@ -319,6 +320,7 @@ export class TaskProjectsService {
           actorLabel: personName(user),
           projectId,
           projectName: project.name,
+          actionLabel: 'Open board',
         },
       });
     }

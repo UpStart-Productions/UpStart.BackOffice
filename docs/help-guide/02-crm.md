@@ -58,7 +58,7 @@ Each card leads with the **next step**: what you plan to do next and its due dat
 - **Add lane**: the column at the end of the board.
 - **Rename**: click a lane's name, type, press Enter (Esc cancels).
 - **Reorder**: drag a lane by its header.
-- **Remove**: the lane's menu (⋮) > **Remove lane**. If it has cards (archived ones count), choose a lane to move them to. A pipeline always keeps at least one lane.
+- **Remove**: the **X** on the lane. If it has cards (archived ones count), choose a lane to move them to. A pipeline always keeps at least one lane, so the X is unavailable on the last lane.
 
 **Pipelines:** the **⋮** menu at the top right has **New pipeline**, **Rename pipeline** and **Delete pipeline** (only an empty pipeline can be deleted). With more than one pipeline, pick which one to view from the list beside **Board / Archived**. A second pipeline can track partners you are recruiting.
 

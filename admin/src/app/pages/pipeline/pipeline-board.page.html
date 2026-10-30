@@ -82,7 +82,19 @@
               <span class="lane-header-right">
                 <span class="pipeline-badge">{{ leadsForLane(lane.id).length }}</span>
                 @if (canSetup()) {
-                  <app-row-actions-menu [items]="laneActions(lane)" ariaLabel="Lane actions" />
+                  <p-button
+                    icon="pi pi-times"
+                    [text]="true"
+                    severity="danger"
+                    size="small"
+                    [disabled]="lanes().length <= 1"
+                    [attr.aria-label]="'Remove ' + lane.name"
+                    [pTooltip]="lanes().length <= 1 ? 'A pipeline keeps at least one lane' : 'Remove lane'"
+                    tooltipPosition="top"
+                    (onClick)="openRemoveLane(lane); $event.stopPropagation()"
+                    (mousedown)="$event.stopPropagation()"
+                    (touchstart)="$event.stopPropagation()"
+                  />
                 }
               </span>
             </div>
