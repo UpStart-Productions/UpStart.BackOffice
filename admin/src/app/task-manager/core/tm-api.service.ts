@@ -64,6 +64,10 @@ export class TmApiService {
   people(projectId?: string) {
     return this.api.get<Person[]>(projectId ? `/tm/projects/${projectId}/people` : '/tm/people');
   }
+  /** Share dialog picker: the whole team, including people not yet on this board. */
+  shareCandidates(projectId: string) {
+    return this.api.get<Person[]>(`/tm/projects/${projectId}/share-candidates`);
+  }
   syncProjectContacts(projectId: string, contacts: Record<string, unknown>[]) {
     return this.api.put<TmProject>(`/tm/projects/${projectId}/contacts`, { contacts });
   }

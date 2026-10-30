@@ -20,7 +20,7 @@ import { normalizeOptions } from './task-fields.util';
 import { person, toField } from './task-mappers';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
 import { personName, personSelect } from './task-people.util';
-import { usersWithArea, AccessService } from '../access/access.service';
+import { usersWithArea, teamUsersWhere, AccessService } from '../access/access.service';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
 import { ProjectContactInputDto } from '../projects/dto/project-contact.dto';
 import { syncProjectContacts } from '../projects/project-contacts.util';
@@ -391,6 +391,21 @@ export class TaskProjectsService {
         ? { isActive: true, role: { in: ['ADMIN', 'USER'] } }
         : { isActive: true, OR: [usersWithArea('tasks', 'all'), { id: user.id }] };
     const users = await this.prisma.user.findMany({ where, select: personSelect, orderBy: [{ firstName: 'asc' }, { email: 'asc' }] });
+    return users.map(person);
+  }
+
+  /**
+   * People who can be picked in a board's Share dialog: the tenant's whole team (admins and every
+   * non-Guest role), whether or not they can see the board yet. Unlike `people()`, this includes
+   * users on "own"-level Tasks roles (e.g. Contractor) who aren't members yet.
+   */
+  async shareCandidates(user: UserContext, projectId: string) {
+    await this.access.assertProject(user, projectId, 'manage');
+    const users = await this.prisma.user.findMany({
+      where: { isActive: true, ...teamUsersWhere() },
+      select: personSelect,
+      orderBy: [{ firstName: 'asc' }, { email: 'asc' }],
+    });
     return users.map(person);
   }
 

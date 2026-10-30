@@ -43,7 +43,7 @@ export class PeoplePickerLoader {
     const params = new URLSearchParams({ limit: '250', crmOnly: 'true' });
     const [crmRows, team] = await Promise.all([
       this.api.get<PeopleDirectoryEntry[]>(`/search/people?${params}`).catch(() => [] as PeopleDirectoryEntry[]),
-      this.tm.people(opts.tmProjectId).catch(() => [] as Person[]),
+      this.tm.shareCandidates(opts.tmProjectId).catch(() => [] as Person[]),
     ]);
 
     const byEmail = new Map<string, PeopleDirectoryEntry>();

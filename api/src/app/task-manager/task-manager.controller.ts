@@ -130,6 +130,12 @@ export class TaskManagerController {
     return this.projects.people(me(req), id);
   }
 
+  /** Share dialog picker: the whole team, including people who can't see this board yet. */
+  @Get('projects/:id/share-candidates')
+  shareCandidates(@Req() req: Request, @Param('id') id: string) {
+    return this.projects.shareCandidates(me(req), id);
+  }
+
   /** Client-side project contacts (same list as on the Projects page). */
   @Action('edit')
   @Put('projects/:id/contacts')
