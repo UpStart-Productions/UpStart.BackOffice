@@ -167,7 +167,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'One submission: the answers, the results (total score, profile and score areas) and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing one. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
   // Care module
   'care.form.page':
-    'Customize this form: name, who can use it, its sections and fields, and (Intake) public links. Field changes save right away; Save is for the name, description and access.',
+    'Customize this form: name, who can use it, its sections and fields, and (Intake) public links. Field changes save right away; Save is for the name, description and access. The ⋮ menu exports or imports a form file.',
   'care.form.description': 'Shown at the top of the form on public links.',
   'care.form.access':
     'Per role: None, Read or Edit. Admins can always edit. People only see forms for organizations they can reach (the ones assigned to them unless their role has Organizations: All).',

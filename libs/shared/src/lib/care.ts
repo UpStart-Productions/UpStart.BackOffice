@@ -1,4 +1,4 @@
-import type { FormAccess, FormAccessLevel, FormSectionDto, FormFieldDto } from './forms';
+import type { FormAccess, FormAccessLevel, FormSectionDto } from './forms';
 
 /** Care module: tenant-defined forms (Intake form, Care profile, Visit log) on the form engine, filled in per client. */
 
@@ -22,7 +22,7 @@ export type CareFormDto = {
   name: string;
   description: string | null;
   access: FormAccess;
-  sections: (FormSectionDto & { fields: (FormFieldDto & { valueCount?: number })[] })[];
+  sections: FormSectionDto[];
   /** What the signed-in user can do with this form. */
   myAccess: FormAccessLevel | null;
 };

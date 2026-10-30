@@ -1005,6 +1005,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: "Add a section, then Add field: a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and whether it is Required on public links. The type can't be changed later. Drag a field by its ☰ handle to reorder it; use the ⋮ menus to edit or delete (and to move sections). Deleting a field removes its answers from every record. These changes save right away.",
       },
       {
+        heading: 'Form files',
+        body: 'The ⋮ menu at the top: Export form file downloads the sections and fields; Import form file adds a file\'s sections and fields after the ones here, without changing anything already there. Use them to copy a setup to another UBO, such as a test site to your live one.',
+      },
+      {
         heading: 'Public intake links',
         body: 'Intake form only. New link makes a link anyone can use to send an intake, for example from your website, with No check, a Passcode, or an Emailed code to the person filling it in. Submissions wait under Intake → Waiting for review. Copy, open or revoke a link from its ⋮ menu.',
       },

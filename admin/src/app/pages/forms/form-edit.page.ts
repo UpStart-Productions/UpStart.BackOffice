@@ -17,6 +17,7 @@ import {
 } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { downloadFormFile } from '../../core/form-file.util';
 import { FormsApi } from '../../core/forms.api';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
@@ -469,14 +470,7 @@ export class FormEditPage implements OnInit {
   /** Download the form (fields, settings, scoring) as a file that New form → form file can import, e.g. on another UBO. */
   async exportFile() {
     try {
-      const def = await this.forms.export(this.id);
-      const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${def.name.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'form'}.ubo-form.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadFormFile(await this.forms.export(this.id));
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not export', detail: err instanceof Error ? err.message : 'Failed' });
     }

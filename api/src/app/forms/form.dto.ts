@@ -92,3 +92,8 @@ export class PublicSubmitDto {
   /** Honeypot: people never see it, bots fill it in. */
   @IsOptional() @IsString() website?: string;
 }
+
+/** A form file (FormDefinition) to add to a module's form; checked by parseFormDefinition. */
+export class FormFileDto {
+  @IsObject() definition!: Record<string, unknown>;
+}

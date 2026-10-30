@@ -12,7 +12,7 @@ import { ensureLeadLinks } from '../leads/lead-links.util';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFieldDto, CreateLinkDto, MoveDto, OrderDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from './form.dto';
-import { formFieldOptions, liveValues } from './form-fields.util';
+import { liveValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
 import { AcceptSubmissionDto, CreateFreeFormDto, ImportFreeFormDto, SUBMISSION_STATUSES, UpdateFreeFormDto } from './free-forms.dto';
@@ -106,27 +106,7 @@ export class FreeFormsController {
         },
         select: { id: true },
       });
-      for (const [si, s] of def.sections.entries()) {
-        const section = await tx.formSection.create({
-          data: { formId: form.id, name: s.name, description: s.description ?? null, sortOrder: si },
-          select: { id: true },
-        });
-        for (const [fi, f] of s.fields.entries()) {
-          await tx.formField.create({
-            data: {
-              sectionId: section.id,
-              name: f.name,
-              type: f.type,
-              required: f.required,
-              scoreGroupId: f.scoreGroupId ?? null,
-              options: f.options
-                ? (formFieldOptions(f.type, f.options, true) as unknown as Prisma.InputJsonValue)
-                : Prisma.DbNull,
-              sortOrder: fi,
-            },
-          });
-        }
-      }
+      await this.structure.addDefinitionSections({ id: form.id, module: M, key: null }, def.sections, tx);
       return form.id;
     });
     return { id };
@@ -136,24 +116,13 @@ export class FreeFormsController {
   @Get('forms/:id/export')
   async export(@Req() req: Request, @Param('id') id: string): Promise<FormDefinition> {
     const form = await this.findForm(req.user as UserContext, id);
-    const live = await liveSnapshot(this.structure, form);
     return {
       format: 'ubo-form',
       version: 1,
       name: form.name,
       description: form.description,
       settings: normalizeFormSettings(form.settings),
-      sections: live.sections.map((s) => ({
-        name: s.name,
-        description: s.description ?? null,
-        fields: s.fields.map((f) => ({
-          name: f.name,
-          type: f.type,
-          required: f.required,
-          ...(f.options.length ? { options: f.options.map((o) => ({ label: o.label, ...(typeof o.points === 'number' ? { points: o.points } : {}) })) } : {}),
-          scoreGroupId: f.scoreGroupId ?? null,
-        })),
-      })),
+      sections: await this.structure.definitionSections(form.id),
     };
   }
 
@@ -162,13 +131,12 @@ export class FreeFormsController {
     const user = req.user as UserContext;
     const form = await this.findForm(user, id);
     const live = await liveSnapshot(this.structure, form);
-    const counts = await this.structure.valueCounts(id);
     return {
       id: form.id,
       name: form.name,
       description: form.description,
       settings: normalizeFormSettings(form.settings),
-      sections: live.sections.map((s) => ({ ...s, fields: s.fields.map((f) => ({ ...f, valueCount: counts.get(f.id) ?? 0 })) })),
+      sections: live.sections,
       published: form.publishedVersion ? { number: form.publishedVersion.number, publishedAt: form.publishedVersion.publishedAt.toISOString() } : null,
       hasUnpublishedChanges: form.publishedVersion ? snapshotsDiffer(live, form.publishedVersion.snapshot) : true,
       canEdit: allows(user, 'forms', 'edit'),

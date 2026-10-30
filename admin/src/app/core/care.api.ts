@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import type {
   FormAccess,
   FormAccessLevel,
+  FormDefinition,
   CareFormDto,
   CareFormKind,
   CareRecordDto,
@@ -37,6 +38,14 @@ export class CareApi {
   }
   roles() {
     return this.api.get<{ id: string; name: string }[]>('/care/roles');
+  }
+  /** The form's sections and fields as a form file. */
+  exportForm(id: string) {
+    return this.api.get<FormDefinition>(`/care/forms/${id}/export`);
+  }
+  /** Add a form file's sections and fields after the form's own. */
+  importForm(id: string, definition: FormDefinition) {
+    return this.api.post<{ sections: number; fields: number }>(`/care/forms/${id}/import`, { definition });
   }
 
   async records(kind: CareFormKind, status?: 'PENDING' | 'ACTIVE') {

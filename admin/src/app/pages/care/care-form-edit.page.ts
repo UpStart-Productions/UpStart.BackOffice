@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -8,7 +8,11 @@ import { MessageModule } from 'primeng/message';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TextareaModule } from 'primeng/textarea';
-import { CARE_FORM_MODULE, formProfile, type CareFormDto, type FormAccess } from '@upstart/back-office/shared';
+import { CARE_FORM_MODULE, formProfile, type CareFormDto, type FormAccess, type FormDefinition } from '@upstart/back-office/shared';
+import { AppDialogModule } from '../../core/app-dialog.module';
+import { downloadFormFile, readFormFile } from '../../core/form-file.util';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { CareApi } from '../../core/care.api';
 import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE } from '../../ui/care-forms/care.types';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
@@ -34,11 +38,17 @@ type Level = 'none' | 'read' | 'edit';
     FormBuilderComponent,
     HelpTextComponent,
     PageComponent,
+    AppDialogModule,
+    RowActionsMenuComponent,
+    SingleFileDropzoneComponent,
   ],
   template: `
     <app-page [title]="'Customize ' + (form()?.name ?? 'form')" [backLink]="backLink()" [backLabel]="'Back to ' + backLabel()" helpKey="care.form.page">
       @if (form()) {
-        <p-button pageActions label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+        <ng-container ngProjectAs="[pageActions]">
+          <app-row-actions-menu [items]="headerActions" ariaLabel="Form actions" />
+          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+        </ng-container>
       }
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
@@ -104,6 +114,29 @@ type Level = 'none' | 'read' | 'edit';
           }
         </div>
       }
+      <p-dialog header="Import form file" [(visible)]="importVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
+        <p class="mt-0">Adds the file's sections and fields after this form's own. Nothing here changes.</p>
+        <app-single-file-dropzone
+          #importDrop
+          accept=".json,application/json"
+          [maxBytes]="2 * 1024 * 1024"
+          emptyTitle="Form file"
+          emptyHint="Drop a form file (.json) or click to browse"
+          selectedTitle="Form file"
+          emptyIcon="pi-file-import"
+          (fileChange)="readImport($event)"
+          (invalidFile)="importError = $event"
+        />
+        @if (importError) {
+          <small class="text-red-600">{{ importError }}</small>
+        } @else if (importDef) {
+          <small>{{ importDef.name }}: {{ importFieldCount() }} fields in {{ importDef.sections.length }} sections</small>
+        }
+        <ng-template pTemplate="footer">
+          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="importing()" (onClick)="importVisible = false" />
+          <p-button label="Import" icon="pi pi-file-import" [loading]="importing()" [disabled]="!importDef" (onClick)="runImport()" />
+        </ng-template>
+      </p-dialog>
     </app-page>
   `,
 })
@@ -126,6 +159,18 @@ export class CareFormEditPage implements OnInit {
   name = '';
   description = '';
   private saved = '';
+
+  importVisible = false;
+  importDef: FormDefinition | null = null;
+  importError = '';
+  importing = signal(false);
+  private readonly importDrop = viewChild<SingleFileDropzoneComponent>('importDrop');
+
+  /** ⋮ menu: move this form's setup to another UBO (e.g. local to production) as a form file. */
+  readonly headerActions: RowActionItem[] = [
+    { id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() },
+    { id: 'import', label: 'Import form file', icon: 'pi pi-file-import', command: () => this.openImport() },
+  ];
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
   /** The builder profile of this form (what it can have). */
@@ -176,6 +221,51 @@ export class CareFormEditPage implements OnInit {
       else next[roleId] = level;
       return next;
     });
+  }
+
+  async exportFile() {
+    try {
+      downloadFormFile(await this.care.exportForm(this.id));
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not export', detail: err instanceof Error ? err.message : 'Failed' });
+    }
+  }
+
+  openImport() {
+    this.importDef = null;
+    this.importError = '';
+    this.importDrop()?.reset();
+    this.importVisible = true;
+  }
+
+  async readImport(file: File | null) {
+    this.importDef = null;
+    this.importError = '';
+    if (!file) return;
+    try {
+      this.importDef = await readFormFile(file);
+    } catch (err) {
+      this.importError = err instanceof Error ? err.message : 'That file could not be read.';
+    }
+  }
+
+  importFieldCount() {
+    return this.importDef?.sections.reduce((n, s) => n + s.fields.length, 0) ?? 0;
+  }
+
+  async runImport() {
+    if (!this.importDef) return;
+    this.importing.set(true);
+    try {
+      const res = await this.care.importForm(this.id, this.importDef);
+      this.importVisible = false;
+      await this.reload();
+      this.toast.add({ severity: 'success', summary: 'Imported', detail: `Added ${res.fields} fields in ${res.sections} sections.` });
+    } catch (err) {
+      this.importError = err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Import failed';
+    } finally {
+      this.importing.set(false);
+    }
   }
 
   async save() {

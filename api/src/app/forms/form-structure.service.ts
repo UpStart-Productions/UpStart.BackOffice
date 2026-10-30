@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  formProfile, isSelectFieldType, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
+  formProfile, isSelectFieldType, type FormDefinition, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
 } from '@upstart/back-office/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFieldDto, UpdateFieldDto } from './form.dto';
@@ -53,18 +53,6 @@ export class FormStructureService {
     return (await this.sections(formId)).flatMap((s) => s.fields);
   }
 
-  /** How many responses have each field filled in (shown in setup before deleting a field). */
-  async valueCounts(formId: string): Promise<Map<string, number>> {
-    const responses = await this.prisma.formResponse.findMany({ where: { formId }, select: { values: true } });
-    const counts = new Map<string, number>();
-    for (const r of responses) {
-      for (const [k, v] of Object.entries((r.values ?? {}) as Record<string, unknown>)) {
-        if (v !== null && v !== undefined) counts.set(k, (counts.get(k) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }
-
   async findForm(id: string, module: string) {
     const f = await this.prisma.form.findFirst({ where: { id, module } });
     if (!f) throw new NotFoundException('Form not found');
@@ -81,6 +69,60 @@ export class FormStructureService {
     const f = await this.prisma.formField.findFirst({ where: { id, section: { form: { module } } }, include: { section: { include: { form: true } } } });
     if (!f) throw new NotFoundException('Field not found');
     return f;
+  }
+
+  // ── Form files ─────────────────────────────────────────────────────────────
+
+  /** A form's sections and fields as they go in a form file (no ids except score areas). */
+  async definitionSections(formId: string): Promise<FormDefinition['sections']> {
+    return (await this.sections(formId)).map((s) => ({
+      name: s.name,
+      description: s.description ?? null,
+      fields: s.fields.map((f) => ({
+        name: f.name,
+        type: f.type,
+        required: f.required,
+        ...(f.options.length ? { options: f.options.map((o) => ({ label: o.label, ...(typeof o.points === 'number' ? { points: o.points } : {}) })) } : {}),
+        scoreGroupId: f.scoreGroupId ?? null,
+      })),
+    }));
+  }
+
+  /**
+   * Add a form file's sections and fields to a form, after its existing ones. The form's builder profile
+   * applies: a field type it doesn't offer fails the whole file; points, score areas and Required are dropped
+   * where the profile has none. Pass `db` to run inside the caller's transaction.
+   */
+  async addDefinitionSections(
+    form: FormRow,
+    sections: FormDefinition['sections'],
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<void> {
+    const profile = this.profile(form);
+    for (const f of sections.flatMap((s) => s.fields)) {
+      if (!profile.fieldTypes.includes(f.type)) throw new BadRequestException(`"${f.name}" is a field type this form can't have`);
+    }
+    const last = await db.formSection.findFirst({ where: { formId: form.id }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
+    const start = (last?.sortOrder ?? -1) + 1;
+    for (const [si, sec] of sections.entries()) {
+      const section = await db.formSection.create({
+        data: { formId: form.id, name: sec.name, description: sec.description ?? null, sortOrder: start + si },
+        select: { id: true },
+      });
+      for (const [fi, f] of sec.fields.entries()) {
+        await db.formField.create({
+          data: {
+            sectionId: section.id,
+            name: f.name,
+            type: f.type,
+            required: profile.required ? f.required : false,
+            scoreGroupId: profile.scoring ? f.scoreGroupId ?? null : null,
+            options: f.options ? (formFieldOptions(f.type, f.options, profile.scoring) as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+            sortOrder: fi,
+          },
+        });
+      }
+    }
   }
 
   // ── Sections ───────────────────────────────────────────────────────────────

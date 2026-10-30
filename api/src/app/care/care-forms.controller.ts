@@ -2,11 +2,11 @@ import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get,
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import { CARE_FORM_MODULE, CARE_RECORD_KINDS, type CareFormDto } from '@upstart/back-office/shared';
+import { CARE_FORM_MODULE, CARE_RECORD_KINDS, normalizeFormSettings, parseFormDefinition, type CareFormDto, type FormDefinition } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
 import { sanitizeFormAccess } from '../forms/form-access.util';
-import { CreateFieldDto, CreateLinkDto, MoveDto, OrderDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from '../forms/form.dto';
+import { CreateFieldDto, CreateLinkDto, FormFileDto, MoveDto, OrderDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from '../forms/form.dto';
 import { FormLinksService } from '../forms/form-links.service';
 import { FormStructureService } from '../forms/form-structure.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -78,7 +78,6 @@ export class CareFormsController {
     const myAccess = await this.care.formAccess(user, form);
     if (!myAccess && !this.care.canSetup(user)) throw new NotFoundException('Form not found');
     const sections = await this.structure.sections(id);
-    const counts = await this.structure.valueCounts(id);
     return {
       id: form.id,
       kind: careKind(form),
@@ -86,7 +85,7 @@ export class CareFormsController {
       description: form.description,
       access: sanitizeFormAccess(form.access),
       myAccess,
-      sections: sections.map((s) => ({ ...s, fields: s.fields.map((f) => ({ ...f, valueCount: counts.get(f.id) ?? 0 })) })),
+      sections,
     };
   }
 
@@ -108,6 +107,42 @@ export class CareFormsController {
     }
     const f = await this.prisma.form.update({ where: { id }, data });
     return { id: f.id, name: f.name, description: f.description, access: sanitizeFormAccess(f.access) };
+  }
+
+  // ── Form files (move a setup between UBO instances, e.g. local to production) ──
+
+  /** The form's sections and fields as a form file (the same format Forms uses). */
+  @Get('forms/:id/export')
+  @Action('setup')
+  async export(@Param('id') id: string): Promise<FormDefinition> {
+    const form = await this.structure.findForm(id, M);
+    return {
+      format: 'ubo-form',
+      version: 1,
+      name: form.name,
+      description: form.description,
+      settings: normalizeFormSettings(form.settings),
+      sections: await this.structure.definitionSections(id),
+    };
+  }
+
+  /**
+   * Add a form file's sections and fields after the form's own. Nothing existing changes, so answers already
+   * given keep their fields. Scoring in the file is dropped (Care forms aren't scored).
+   */
+  @Post('forms/:id/import')
+  @Action('setup')
+  async import(@Param('id') id: string, @Body() dto: FormFileDto) {
+    const form = await this.structure.findForm(id, M);
+    let def: FormDefinition;
+    try {
+      def = parseFormDefinition(dto.definition);
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'This form file could not be read');
+    }
+    if (!def.sections.length) throw new BadRequestException('This form file has no sections');
+    await this.prisma.$transaction((tx) => this.structure.addDefinitionSections(form, def.sections, tx));
+    return { sections: def.sections.length, fields: def.sections.reduce((n, s) => n + s.fields.length, 0) };
   }
 
   // ── Sections and fields (the form engine checks the builder profile) ──────

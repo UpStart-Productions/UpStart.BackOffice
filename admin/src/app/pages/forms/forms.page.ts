@@ -8,7 +8,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
-import { parseFormDefinition, type FormDefinition, type FreeFormListItemDto } from '@upstart/back-office/shared';
+import { type FormDefinition, type FreeFormListItemDto } from '@upstart/back-office/shared';
+import { readFormFile } from '../../core/form-file.util';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -194,9 +195,9 @@ export class FormsPage implements OnInit {
     this.importError = '';
     if (!file) return;
     try {
-      this.importDef = parseFormDefinition(JSON.parse(await file.text()));
+      this.importDef = await readFormFile(file);
     } catch (err) {
-      this.importError = err instanceof SyntaxError ? 'That file is not a form file.' : err instanceof Error ? err.message : 'That file could not be read.';
+      this.importError = err instanceof Error ? err.message : 'That file could not be read.';
     }
   }
 

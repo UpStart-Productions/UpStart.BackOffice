@@ -14,6 +14,17 @@ export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   MULTI_SELECT: 'Multi-select',
   CHECKBOX: 'Checkbox',
 };
+/** Lucide icon name per field type (builder rows and the type picker). */
+export const FORM_FIELD_TYPE_ICONS: Record<FormFieldType, string> = {
+  TEXT: 'text-cursor-input',
+  LONG_TEXT: 'text-align-start',
+  NUMBER: 'hash',
+  DATE: 'calendar-days',
+  SINGLE_SELECT: 'circle-dot',
+  MULTI_SELECT: 'list-checks',
+  CHECKBOX: 'square-check-big',
+};
+
 export function isSelectFieldType(type: FormFieldType): boolean {
   return type === 'SINGLE_SELECT' || type === 'MULTI_SELECT';
 }
@@ -370,7 +381,7 @@ export type FreeFormDto = {
   name: string;
   description: string | null;
   settings: FormSettings;
-  sections: (FormSectionDto & { fields: (FormFieldDto & { valueCount?: number })[] })[];
+  sections: FormSectionDto[];
   published: { number: number; publishedAt: string } | null;
   hasUnpublishedChanges: boolean;
   canEdit: boolean;

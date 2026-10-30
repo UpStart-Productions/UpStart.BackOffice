@@ -10,6 +10,7 @@ import type { CareRecordDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CareApi } from '../../core/care.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
 import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
 import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE, normalizeValues } from '../../ui/care-forms/care.types';
@@ -74,7 +75,16 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         <div class="grid grid-3">
           <div class="stack span-2">
             @if (!r.sections.length) {
-              <div class="card"><p class="m-0">This form has no fields yet. Someone with Care setup can add them with Customize fields on the list page.</p></div>
+              <div class="card">
+                @if (canSetup()) {
+                  <div class="flex align-items-center gap-3 flex-wrap">
+                    <p class="m-0 flex-1">This form has no fields yet. Add sections and fields, or import a form file.</p>
+                    <a pButton label="Customize fields" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', r.formId]"></a>
+                  </div>
+                } @else {
+                  <p class="m-0">This form has no fields yet. Ask someone who sets up Care to add them.</p>
+                }
+              </div>
             }
             @for (s of r.sections; track s.id) {
               @if (s.fields.length) {
@@ -141,6 +151,8 @@ export class CareRecordPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
+  readonly canSetup = computed(() => this.session.can('care', 'setup'));
 
   record = signal<CareRecordDto | null>(null);
   error = signal<string | null>(null);

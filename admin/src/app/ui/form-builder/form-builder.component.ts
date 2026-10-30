@@ -1,4 +1,4 @@
-import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPreview, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDragPreview, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -6,9 +6,10 @@ import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
 import { TextareaModule } from 'primeng/textarea';
+import { TooltipModule } from 'primeng/tooltip';
 import {
+  FORM_FIELD_TYPE_ICONS,
   FORM_FIELD_TYPE_LABELS,
   isSelectFieldType,
   type FormFieldDto,
@@ -21,12 +22,13 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FieldOptionDraft, FieldOptionsEditorComponent } from '../field-options-editor/field-options-editor.component';
+import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 
-type Field = FormFieldDto & { valueCount?: number };
+type Field = FormFieldDto;
 type Section = FormSectionDto & { fields: Field[] };
-/** What the builder edits: any form's sections and fields (valueCount = responses with the field filled in). */
+/** What the builder edits: any form's sections and fields. */
 export type BuilderForm = { id: string; sections: Section[] };
 
 /**
@@ -43,15 +45,17 @@ export type BuilderForm = { id: string; sections: Section[] };
     CheckboxModule,
     InputTextModule,
     SelectModule,
-    TableModule,
     TextareaModule,
+    TooltipModule,
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
     CdkDragPreview,
+    CdkDragPlaceholder,
     AppDialogModule,
     FieldOptionsEditorComponent,
     HelpTextComponent,
+    LucideIconComponent,
     RowActionsMenuComponent,
   ],
   template: `
@@ -81,54 +85,54 @@ export type BuilderForm = { id: string; sections: Section[] };
         @if (s.description) {
           <p class="fb-section-intro">{{ s.description }}</p>
         }
-        <p-table
-          [value]="s.fields"
-          styleClass="table-bordered"
-          cdkDropList
-          cdkDropListLockAxis="y"
-          [cdkDropListData]="s"
-          (cdkDropListDropped)="dropField($event)"
-        >
-          <ng-template pTemplate="header">
-            <tr>
-              <th style="width: 4.5rem"></th>
-              <th>Field</th>
-              <th>Type</th>
-              @if (profile().required) {
-                <th>Required</th>
-              }
-              <th>Options</th>
-              @if (profile().scoring) {
-                <th>Score area</th>
-              }
-              <th>Filled in on</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-f>
-            <tr cdkDrag [cdkDragData]="f">
-              <td>
-                <span class="fb-cell-actions">
-                  <span class="fb-drag-handle" cdkDragHandle title="Drag to reorder" aria-hidden="true"><i class="pi pi-bars"></i></span>
-                  <app-row-actions-menu [items]="fieldActions(s, f)" ariaLabel="Field actions" />
-                </span>
-                <div class="fb-drag-preview" *cdkDragPreview><i class="pi pi-bars"></i> {{ f.name }}</div>
-              </td>
-              <td>{{ f.name }}</td>
-              <td>{{ typeLabel(f.type) }}</td>
-              @if (profile().required) {
-                <td>{{ f.required ? 'Yes' : '' }}</td>
-              }
-              <td>{{ optionLabels(f) }}</td>
-              @if (profile().scoring) {
-                <td>{{ groupName(f.scoreGroupId) }}</td>
-              }
-              <td>{{ f.valueCount ?? 0 }}</td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr><td [attr.colspan]="5 + (profile().required ? 1 : 0) + (profile().scoring ? 1 : 0)">No fields yet.</td></tr>
-          </ng-template>
-        </p-table>
+        <div class="fb-fields" cdkDropList cdkDropListLockAxis="y" [cdkDropListData]="s" (cdkDropListDropped)="dropField($event)">
+          @for (f of s.fields; track f.id) {
+            <div class="fb-field" cdkDrag [cdkDragData]="f">
+              <span class="fb-cell-actions">
+                <span class="fb-drag-handle" cdkDragHandle title="Drag to reorder" aria-hidden="true"><i class="pi pi-bars"></i></span>
+                <app-row-actions-menu [items]="fieldActions(s, f)" ariaLabel="Field actions" />
+              </span>
+              <div class="fb-field-body">
+                <div class="fb-field-name">{{ f.name }}</div>
+                <div class="fb-field-meta">
+                  @if (profile().required) {
+                    <span
+                      class="fb-required"
+                      [class.fb-required--on]="f.required"
+                      [pTooltip]="f.required ? 'Required' : 'Optional'"
+                      tooltipPosition="top"
+                      [attr.aria-label]="f.required ? 'Required' : 'Optional'"
+                    ><i class="pi" [class.pi-circle-fill]="f.required" [class.pi-circle]="!f.required" aria-hidden="true"></i></span>
+                  }
+                  <span class="fb-chip"><nmp-lucide-icon [name]="typeIcon(f.type)" aria-hidden="true" /> {{ typeLabel(f.type) }}</span>
+                  <!-- The score area, only when it isn't the section's own name (that's already in the header). -->
+                  @if (profile().scoring && groupName(f.scoreGroupId); as g) {
+                    @if (g !== s.name) {
+                      <span class="fb-chip"><i class="pi pi-chart-bar" aria-hidden="true"></i> {{ g }}</span>
+                    }
+                  }
+                </div>
+                @if (isSelect(f.type) && f.options.length) {
+                  <div class="fb-field-options">
+                    @for (o of f.options; track o.id) {
+                      @let pts = profile().scoring && o.points !== undefined && o.points !== null ? o.points : null;
+                      <span class="fb-option" [title]="pts !== null ? o.label + ' (' + pts + ')' : o.label">
+                        <span class="fb-option-label">{{ o.label }}</span>
+                        @if (pts !== null) {
+                          <span class="fb-option-points">{{ pts }}</span>
+                        }
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+              <div class="fb-drag-preview" *cdkDragPreview><i class="pi pi-bars"></i> {{ f.name }}</div>
+              <div class="fb-drop-slot" *cdkDragPlaceholder></div>
+            </div>
+          } @empty {
+            <p class="fb-empty">No fields yet.</p>
+          }
+        </div>
       </div>
     } @empty {
       <p class="mt-3 mb-0">No sections yet. Add one, then add fields to it.</p>
@@ -165,7 +169,16 @@ export type BuilderForm = { id: string; sections: Section[] };
           [disabled]="!!editingField"
           styleClass="w-full"
           appendTo="body"
-        />
+        >
+          <ng-template pTemplate="selectedItem" let-o>
+            @if (o) {
+              <span class="fb-type-option"><nmp-lucide-icon [name]="typeIcon(o.value)" aria-hidden="true" />{{ o.label }}</span>
+            }
+          </ng-template>
+          <ng-template pTemplate="item" let-o>
+            <span class="fb-type-option"><nmp-lucide-icon [name]="typeIcon(o.value)" aria-hidden="true" />{{ o.label }}</span>
+          </ng-template>
+        </p-select>
       </div>
       @if (isSelect(fieldType)) {
         <div class="form-field mt-3">
@@ -234,17 +247,131 @@ export type BuilderForm = { id: string; sections: Section[] };
       color: var(--drag-handle-color);
       padding: 0 0.15rem;
     }
+    /* Questions: one compact block each (name, then type/required/area chips, then choices). */
+    /* In a card the list runs edge to edge (rows keep the card's 2rem inset), with a line between rows. */
+    .fb-fields {
+      --fb-inset: 0;
+    }
+    :host-context(.card) .fb-fields {
+      --fb-inset: 2rem;
+      margin: 0 calc(-1 * var(--fb-inset));
+    }
+    .fb-field {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.6rem var(--fb-inset);
+      background: var(--surface-card);
+      border-top: 1px solid var(--surface-border);
+    }
+    .fb-field:last-child {
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .fb-field:hover {
+      background: var(--surface-hover, var(--surface-50));
+    }
+    .fb-field .fb-cell-actions {
+      padding-top: 0.05rem;
+    }
+    .fb-field-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .fb-field-name {
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .fb-field-meta,
+    .fb-field-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+    }
+    .fb-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.05rem 0.5rem;
+      border-radius: 999px;
+      background: var(--surface-100);
+      color: var(--text-color-secondary);
+      font-size: var(--fs-sm);
+      line-height: 1.5;
+    }
+    .fb-chip .pi {
+      font-size: 0.7rem;
+    }
+    .fb-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      max-width: 18rem;
+      padding: 0.05rem 0.5rem;
+      border: 1px solid var(--surface-border);
+      border-radius: 6px;
+      font-size: var(--fs-sm);
+      line-height: 1.5;
+    }
+    .fb-option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fb-option-points {
+      flex-shrink: 0;
+      color: var(--text-color-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .fb-option-points::before {
+      content: '';
+      display: inline-block;
+      width: 1px;
+      height: 0.8em;
+      margin-right: 0.35rem;
+      background: var(--surface-border);
+      vertical-align: middle;
+    }
+    /* Required: a red filled dot; optional: an open dot. Name on hover. */
+    .fb-required {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 0.15rem;
+      color: var(--text-color-secondary);
+      cursor: default;
+    }
+    .fb-required .pi {
+      font-size: 0.7rem;
+    }
+    .fb-required--on {
+      color: var(--color-severity-danger-text, #dc2626);
+    }
+    .fb-type-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .fb-type-option nmp-lucide-icon {
+      color: var(--text-color-secondary);
+    }
+    .fb-chip nmp-lucide-icon {
+      font-size: 0.85rem;
+    }
+    .fb-empty {
+      margin: 0;
+      padding: 0.75rem var(--fb-inset);
+      color: var(--text-color-secondary);
+    }
     /* The drop slot while dragging a question: same look as a task row's drop slot in Tasks. */
-    tr.cdk-drag-placeholder > td {
-      background: color-mix(in srgb, var(--brand-primary) 9%, transparent) !important;
-      border-top: 1px dashed var(--brand-primary) !important;
-      border-bottom: 1px dashed var(--brand-primary) !important;
-      color: transparent !important;
+    .fb-drop-slot {
+      min-height: 3rem;
+      background: color-mix(in srgb, var(--brand-primary) 9%, transparent);
+      border-top: 1px dashed var(--brand-primary);
+      border-bottom: 1px dashed var(--brand-primary);
     }
-    tr.cdk-drag-placeholder > td * {
-      visibility: hidden;
-    }
-    .cdk-drop-list-dragging tr:not(.cdk-drag-placeholder) {
+    .cdk-drop-list-dragging .fb-field:not(.cdk-drag-placeholder) {
       transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
     }
     .fb-drag-preview {
@@ -316,13 +443,11 @@ export class FormBuilderComponent {
   typeLabel(type: FormFieldType) {
     return FORM_FIELD_TYPE_LABELS[type];
   }
+  typeIcon(type: FormFieldType) {
+    return FORM_FIELD_TYPE_ICONS[type];
+  }
   isSelect(type: FormFieldType) {
     return isSelectFieldType(type);
-  }
-  optionLabels(f: Field) {
-    if (!isSelectFieldType(f.type)) return '';
-    const scored = this.profile().scoring;
-    return f.options.map((o) => (scored && typeof o.points === 'number' ? `${o.label} (${o.points})` : o.label)).join(', ');
   }
   groupName(id: string | null | undefined) {
     return id ? (this.scoreGroups().find((g) => g.id === id)?.name ?? '') : '';
@@ -462,11 +587,8 @@ export class FormBuilderComponent {
   }
 
   confirmDeleteField(f: Field) {
-    const n = f.valueCount ?? 0;
     this.confirmDelete.confirm({
-      message: n
-        ? `Delete "${f.name}"? It is filled in on ${n} ${n === 1 ? 'record' : 'records'}, and those answers are removed. This cannot be undone.`
-        : `Delete "${f.name}"? This cannot be undone.`,
+      message: `Delete "${f.name}"? Any answers to it are removed too. This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`${this.apiBase()}/fields/${f.id}`);

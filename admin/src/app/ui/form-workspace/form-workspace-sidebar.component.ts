@@ -39,9 +39,7 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
               <li cdkDrag [cdkDragData]="s" class="fw-section-item" [class.fw-draggable]="f.canEdit">
                 <!-- The whole row drags (a click still opens it); draggable=false stops the browser's own link dragging. -->
                 <a [routerLink]="['/forms', f.id]" [queryParams]="{ view: s.id }" class="tm-nav-link" [class.active]="isView(s.id)" [title]="s.name" draggable="false">
-                  @if (f.canEdit) {
-                    <span class="fw-drag-handle" aria-hidden="true"><i class="pi pi-bars"></i></span>
-                  }
+                  <i class="pi pi-objects-column fw-section-icon" aria-hidden="true"></i>
                   <span class="fw-num">{{ i + 1 }}</span>
                   <span class="tm-nav-label">{{ s.name }}</span>
                   <span class="fw-count">{{ s.fields.length }}</span>
@@ -105,18 +103,11 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
     .fw-draggable {
       cursor: grab;
     }
-    /* Sits in the same column as the icons above (Settings, Scoring, …). */
-    .fw-drag-handle {
-      color: var(--drag-handle-color);
-      opacity: 0;
+    /* A section icon in the same column as the icons below (Settings, Scoring, …). The whole row drags. */
+    .fw-section-icon {
       width: 1.1rem;
       flex-shrink: 0;
       text-align: center;
-      font-size: var(--fs-sm);
-    }
-    .fw-section-item:hover .fw-drag-handle,
-    .cdk-drag-preview .fw-drag-handle {
-      opacity: 1;
     }
     /* The drop slot: same look as a task row's drop slot in Tasks. */
     .fw-drag-placeholder {

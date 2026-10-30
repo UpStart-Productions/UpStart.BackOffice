@@ -1,0 +1,104 @@
+import type { FormAccess, FormAccessLevel, FormSectionDto, FormFieldDto } from './forms';
+
+/** Care module: tenant-defined forms (Intake form, Care profile, Visit log) on the form engine, filled in per client. */
+
+/** VISIT is the visit log's checklist: its fields are filled in on each visit, not once per organization. */
+export type CareFormKind = 'INTAKE' | 'CARE_PROFILE' | 'VISIT';
+export const CARE_FORM_KINDS: CareFormKind[] = ['INTAKE', 'CARE_PROFILE', 'VISIT'];
+/** Forms with one living copy per organization (not the visit checklist). */
+export const CARE_RECORD_KINDS: CareFormKind[] = ['INTAKE', 'CARE_PROFILE'];
+export const CARE_FORM_DEFAULT_NAMES: Record<CareFormKind, string> = {
+  INTAKE: 'Intake form',
+  CARE_PROFILE: 'Care profile',
+  VISIT: 'Visit log',
+};
+
+/** Care's forms are engine forms with module "care" and one of these keys. */
+export const CARE_FORM_MODULE = 'care';
+
+export type CareFormDto = {
+  id: string;
+  kind: CareFormKind;
+  name: string;
+  description: string | null;
+  access: FormAccess;
+  sections: FormSectionDto[];
+  /** What the signed-in user can do with this form. */
+  myAccess: FormAccessLevel | null;
+};
+
+export type CareRecordStatus = 'PENDING' | 'ACTIVE';
+
+export type CareRecordListItemDto = {
+  id: string;
+  formId: string;
+  kind: CareFormKind;
+  status: CareRecordStatus;
+  clientId: string | null;
+  clientName: string | null;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+export type CareRecordDto = CareRecordListItemDto & {
+  formName: string;
+  values: Record<string, unknown>;
+  sections: FormSectionDto[];
+  submitterPhone: string | null;
+  publicUpdatedAt: string | null;
+  publicUpdatedBy: string | null;
+  myAccess: FormAccessLevel;
+  attribution?: import('./types').RecordAttributionDto;
+};
+
+// ── Visits and schedule ──────────────────────────────────────────────────────
+
+export type CareVisitStatus = 'IN_PROGRESS' | 'COMPLETED';
+
+export type CarePersonRef = { id: string; name: string; avatarUrl: string | null };
+
+export type CareVisitListItemDto = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  worker: CarePersonRef;
+  shiftId: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  status: CareVisitStatus;
+  durationMin: number | null;
+};
+
+export type CareVisitDto = CareVisitListItemDto & {
+  notes: string | null;
+  values: Record<string, unknown>;
+  sections: FormSectionDto[];
+  /** The checklist form, for Customize fields. */
+  formId: string;
+  timeEntryId: string | null;
+  /** The time entry is on an invoice: times can't change and the visit can't be deleted. */
+  invoiced: boolean;
+  canEdit: boolean;
+};
+
+export type CareShiftStatus = 'SCHEDULED' | 'CANCELLED';
+
+export type CareShiftDto = {
+  id: string;
+  clientId: string;
+  clientName: string;
+  worker: CarePersonRef | null;
+  startAt: string;
+  endAt: string;
+  status: CareShiftStatus;
+  notes: string | null;
+  seriesId: string | null;
+  /** Repeat rule of the series, e.g. "Every Mon, Wed, Fri". */
+  repeatLabel: string | null;
+  visitId: string | null;
+  visitStatus: CareVisitStatus | null;
+};
+
+export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
