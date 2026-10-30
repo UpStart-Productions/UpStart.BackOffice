@@ -70,7 +70,7 @@ Do not add another people side panel, `people-card`, or inline pickers on featur
 
 ## Dashboard panels (canonical)
 
-- **Panel:** `app-dashboard-panel` (`admin/src/app/ui/dashboard-panel/dashboard-panel.component.ts`): card with a header bar (colored icon tile, title that links to the full list with no underline, ⋯ drag handle). Body rows use `.side-list`.
-- **Grid + drag:** `.dashboard-grid` / `.dashboard-grid-slot` (each panel is 1 of 3 columns) with CDK `cdkDropList cdkDropListOrientation="mixed"`; styles and panel-content classes (`.dashboard-stats`, `.dashboard-timer`) in `assets/layout/_dashboard.scss`. Order is saved per user in localStorage.
+- **Panel:** `app-dashboard-panel` (`admin/src/app/ui/dashboard-panel/dashboard-panel.component.ts`): card with a header bar (colored icon tile, title, ⋯ drag handle, → link to the full list), an optional tab strip, and a body that scrolls once it is about six rows tall. Body rows use `.side-list`.
+- **Grid + drag:** `.dashboard-grid` / `.dashboard-grid-slot` (3 columns; Activity uses `span-2`) with CDK `cdkDropList cdkDropListOrientation="mixed"`; styles and panel-content classes (`.dashboard-stats`, `.dashboard-timer`) in `assets/layout/_dashboard.scss`. Order is saved per user in localStorage.
 - Icon colors: info, success, warning, danger, neutral. Never purple (reserved for action buttons).
 

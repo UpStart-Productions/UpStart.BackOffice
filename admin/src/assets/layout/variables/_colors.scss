@@ -84,13 +84,39 @@
   --color-accent-indigo: var(--brand-blue-500);
   --color-accent-plum: #764ba2;
 
+  /*
+   * Chart and dashboard-rail palette. Darker is for line and bar charts.
+   * Lighter is the dashboard count-card rail. Keep these hexes in sync with CHART_PALETTE
+   * in admin/src/app/core/chart-palette.ts.
+   */
+  --palette-blue-dark: #4e79a7;
+  --palette-blue-light: #a0cbe8;
+  --palette-orange-dark: #f28e2b;
+  --palette-orange-light: #ffbe7d;
+  --palette-green-dark: #59a14f;
+  --palette-green-light: #8cd17d;
+  --palette-gold-dark: #b6992d;
+  --palette-gold-light: #f1ce63;
+  --palette-teal-dark: #499894;
+  --palette-teal-light: #86bcb6;
+  --palette-red-dark: #e15759;
+  --palette-red-light: #ff9d9a;
+  --palette-gray-dark: #79706e;
+  --palette-gray-light: #bab0ac;
+  --palette-rose-dark: #d37295;
+  --palette-rose-light: #fabfd2;
+  --palette-purple-dark: #b07aa1;
+  --palette-purple-light: #d4a6c8;
+  --palette-brown-dark: #9d7660;
+  --palette-brown-light: #d7b5a6;
+
   /* ── Data / chart series (ordered for contrast on light UI) ── */
-  --color-data-1: var(--brand-violet-600);
-  --color-data-2: var(--brand-blue-600);
-  --color-data-3: var(--brand-green-600);
-  --color-data-4: var(--brand-lime-600);
-  --color-data-5: var(--brand-blue-500);
-  --color-data-6: var(--color-accent-plum);
+  --color-data-1: var(--palette-blue-dark);
+  --color-data-2: var(--palette-orange-dark);
+  --color-data-3: var(--palette-green-dark);
+  --color-data-4: var(--palette-gold-dark);
+  --color-data-5: var(--palette-teal-dark);
+  --color-data-6: var(--palette-red-dark);
 
   /* ── Severity (mapped to brand where it fits) ── */
   --color-severity-success-bg: var(--brand-green-50);

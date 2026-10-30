@@ -18,18 +18,13 @@ The cards across the top open the matching list:
 
 ## Cards
 
-Each card has an icon and title in its header, and a **⋯** handle for moving it. Click the card's title to open the full list.
+Each card has an icon and title in its header, a **⋯** handle for moving it, and a **→** link to the full list. A long list scrolls inside the card.
 
-
-- **My tasks**: your tasks due in the next week, overdue first. Click a task to open it.
-- **Next steps**: next steps due in the next week. Click the organization or pipeline card to open it.
-- **Needs reply**: the oldest emails waiting on an answer.
-- **My time**: a running timer (with a stop button), and your hours today and this week.
-- **Invoices**: amount outstanding, overdue amount, drafts to send, and the unpaid invoices that have a due date, soonest first.
-- **Upcoming bookings**: confirmed bookings in the next week.
-- **Gone quiet**: active clients nobody has contacted in a while.
-
-Each card shows the first few items; click its title to see the rest.
+- **My tasks**: your tasks due in the next week, overdue first. Click a task to open it, or the project name under it to open the project. **→** opens Tasks.
+- **Activity**: one wider card with tabs for **Needs reply** (emails waiting on an answer), **Next steps** (due in the next week), and **Gone quiet** (active clients nobody has contacted in a while). Click an organization, person, or pipeline card to open it. The count on a tab is how many are in that list. **→** opens that same list.
+- **My time**: a running timer (with a stop button), your hours today and this week, and this week's entries, newest first. Click a project, organization, or task to open it. **→** opens Time.
+- **Invoices**: amount outstanding, overdue amount, drafts to send, and the unpaid invoices that have a due date, soonest first. Click an invoice number or the client name to open it. **→** opens Invoices.
+- **Upcoming bookings**: confirmed bookings in the next week. If the booking is tied to a pipeline card, the guest name opens that card. **→** opens Bookings.
 
 ## Rearranging
 

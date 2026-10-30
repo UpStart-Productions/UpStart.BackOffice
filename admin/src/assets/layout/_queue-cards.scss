@@ -87,6 +87,13 @@ a.queue-card:hover {
 .queue-card[data-accent='warning'] .queue-card-rail { background: var(--color-severity-warning-text); }
 .queue-card[data-accent='danger'] .queue-card-rail { background: var(--color-severity-danger-text); }
 
+/* Dashboard rails: light fill, no icon. */
+.queue-card[data-accent='blue'] .queue-card-rail { background: var(--palette-blue-light); }
+.queue-card[data-accent='orange'] .queue-card-rail { background: var(--palette-orange-light); }
+.queue-card[data-accent='red'] .queue-card-rail { background: var(--palette-red-light); }
+.queue-card[data-accent='rose'] .queue-card-rail { background: var(--palette-rose-light); }
+.queue-card[data-accent='teal'] .queue-card-rail { background: var(--palette-teal-light); }
+
 .queue-card-help {
   color: var(--text-color-secondary, #4b5563);
 }

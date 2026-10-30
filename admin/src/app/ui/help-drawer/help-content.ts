@@ -201,7 +201,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Cards',
-        body: 'My tasks and Next steps show what is due in the next week, overdue first. Needs reply and Gone quiet show the top items from Activity. My time shows a running timer and your hours today and this week. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due. Upcoming bookings lists confirmed bookings in the next week. Click a card\'s title to open the full list.',
+        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Needs reply, Next steps, and Gone quiet; click an organization, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, or Bookings.',
       },
       {
         heading: "Mine / Everyone's",

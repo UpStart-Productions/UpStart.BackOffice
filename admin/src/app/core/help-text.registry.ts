@@ -165,7 +165,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'No check: anyone with the link. Passcode: share it separately (phone or text). Emailed code: a code goes to an email address before the form opens.',
   'care.links.expires': 'Leave empty for a link that never expires. You can revoke a link anytime.',
   'dashboard.page':
-    "What needs you today: emails waiting for a reply, next steps and tasks due, overdue invoices, your time and upcoming bookings. Mine / Everyone's switches the Activity and invoice figures.",
+    "What needs you today. Activity (replies, next steps, and quiet clients) is one card with tabs. Tasks, time, invoices, and bookings are the others. Lists scroll; the arrow in the card header opens the full page. Mine / Everyone's switches Activity and invoices.",
   'activity.page':
     "To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. All activity is every email, call, meeting and note. Pick an organization or person to narrow both.",
   'settings.activity.needsReplyDays':

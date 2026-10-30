@@ -18,7 +18,7 @@ a {
 
 .layout-main {
   a[href]:where(
-    :not(.p-button):not(.p-menuitem-link):not(.layout-topbar-logo):not(.text-primary):not(.side-list-title):not(.queue-card):not(.dashboard-panel-title-link):not(
+    :not(.p-button):not(.p-menuitem-link):not(.layout-topbar-logo):not(.text-primary):not(.side-list-title):not(.queue-card):not(.dashboard-panel-open):not(.dashboard-panel-title-link):not(
         .search-clear-inside
       )
   ) {

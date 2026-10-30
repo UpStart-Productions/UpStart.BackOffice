@@ -51,8 +51,11 @@ export class QueueCardComponent {
   label = input.required<string>();
   /** Optional PrimeIcons name without the "pi " prefix: in the colored rail when `accent` is set, else before the label. */
   icon = input<string | null>(null);
-  /** Optional 30px colored rail on the left with the icon in white (Dashboard). No purple: that is reserved for action buttons. */
-  accent = input<'info' | 'success' | 'warning' | 'danger' | null>(null);
+  /**
+   * Optional 30px rail on the left. Severity values use a white icon on a dark rail.
+   * Palette values (Dashboard) use the light fill and the darker icon.
+   */
+  accent = input<'info' | 'success' | 'warning' | 'danger' | 'blue' | 'orange' | 'red' | 'rose' | 'teal' | null>(null);
   count = input(0);
   help = input<string | null>(null);
   /** Toggle mode only: this queue is the one showing. */

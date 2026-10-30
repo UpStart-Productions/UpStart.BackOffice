@@ -1,6 +1,8 @@
 /*
  * Dashboard panel grid with drag-to-reorder (CDK, mixed orientation). Panels: app-dashboard-panel.
- * Every slot is one of 3 columns; panels in the same row stretch to the same height.
+ * Three columns. A slot with .span-2 (the Activity card) is two columns wide.
+ * Below 1200px the grid and .span-2 both collapse to one column.
+ * Panels in the same row stretch to the same height; the list inside scrolls.
  */
 .dashboard-grid {
   display: grid;
@@ -46,6 +48,40 @@
 
 /* ── Panel contents ─────────────────────────────────────────────────────── */
 
+/* Fixed block above the scroll region (timer, stats). Same 2rem inset as .dashboard-panel-scroll. */
+.dashboard-panel-pinned {
+  flex-shrink: 0;
+  padding-inline: 2rem;
+}
+
+/*
+ * Scroll body for every dashboard widget (Tasks, Activity, Time, Invoices, Bookings).
+ * One inset rule: 2rem horizontal (matches header/tabs/footer), top breathing room for first row or empty copy.
+ */
+.dashboard-panel-scroll {
+  box-sizing: border-box;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 17rem;
+  padding: 1rem 2rem 0.35rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  .side-list-row:first-child {
+    padding-top: 0.6rem;
+  }
+
+  .side-list-empty {
+    margin: 0;
+    padding: 2.5rem 0 3.5rem;
+    min-height: 8rem;
+  }
+}
+
+.dashboard-panel-pinned.dashboard-stats {
+  margin-bottom: 0;
+}
+
 /* Two figures side by side (My time, Invoices). */
 .dashboard-stats {
   display: grid;
@@ -80,6 +116,12 @@
   color: var(--text-color);
 }
 
+.dashboard-stat-unit {
+  margin-left: 0.25rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
 .dashboard-stat--danger {
   background: var(--color-severity-danger-bg);
 
@@ -94,9 +136,16 @@
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
-  padding: 0.75rem 0.5rem 0.75rem 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   background: var(--color-severity-success-bg);
+}
+
+.dashboard-timer-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .dashboard-timer-label {
@@ -139,7 +188,3 @@
   }
 }
 
-/* "N more in …" under a list. */
-.side-list-more {
-  margin-top: 0.75rem;
-}

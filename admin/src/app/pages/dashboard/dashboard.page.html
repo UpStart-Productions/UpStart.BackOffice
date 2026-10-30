@@ -17,16 +17,14 @@
       @if (can('inbox')) {
         <app-queue-card
           label="Needs reply"
-          icon="pi-reply"
-          accent="danger"
+          accent="red"
           [count]="counts()?.reply ?? 0"
           [help]="'Waiting ' + needsReplyDays() + '+ day' + (needsReplyDays() === 1 ? '' : 's') + ' for an answer.'"
           link="/activity"
         />
         <app-queue-card
           label="Next steps due"
-          icon="pi-flag"
-          accent="warning"
+          accent="orange"
           [count]="counts()?.nextStepDue ?? 0"
           help="Overdue or due today."
           link="/activity"
@@ -34,16 +32,15 @@
         />
       }
       @if (can('tasks')) {
-        <app-queue-card label="Tasks due" icon="pi-check-square" accent="info" [count]="tasksDueCount()" help="Your tasks, overdue or due today." link="/tasks" />
+        <app-queue-card label="Tasks due" accent="blue" [count]="tasksDueCount()" help="Your tasks, overdue or due today." link="/tasks" />
       }
       @if (can('invoices')) {
-        <app-queue-card label="Overdue invoices" icon="pi-receipt" accent="danger" [count]="overdueInvoices().length" help="Sent and past the due date." link="/invoices" />
+        <app-queue-card label="Overdue invoices" accent="rose" [count]="overdueInvoices().length" help="Sent and past the due date." link="/invoices" />
       }
       @if (can('inbox')) {
         <app-queue-card
           label="Unfiled"
-          icon="pi-inbox"
-          accent="info"
+          accent="teal"
           [count]="counts()?.unfiled ?? 0"
           help="Captured email to file."
           link="/activity"
@@ -55,100 +52,113 @@
 
   <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="panels()" (cdkDropListDropped)="onPanelDrop($event)">
     @for (p of panels(); track p.id) {
-      <div class="dashboard-grid-slot" cdkDrag [cdkDragData]="p">
+      <div class="dashboard-grid-slot" [class.span-2]="p.wide" cdkDrag [cdkDragData]="p">
         @switch (p.id) {
           @case ('tasks') {
-            <app-dashboard-panel title="My tasks" icon="pi-check-square" color="info" link="/tasks" linkLabel="Open in Tasks">
+            <app-dashboard-panel title="My tasks" icon="pi-check-square" color="info" link="/tasks">
               @if (tasks().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (tasks().error) {
                 <p class="side-list-empty">{{ tasks().error }}</p>
               } @else if (upcomingTasks().length) {
                 <div class="side-list">
-                  @for (t of upcomingTasks().slice(0, listLimit); track t.id) {
+                  @for (t of upcomingTasks(); track t.id) {
                     <div class="side-list-row">
                       <div class="side-list-body">
                         <a class="side-list-title" routerLink="/tasks" [queryParams]="{ task: t.id }">{{ t.name }}</a>
-                        <span class="side-list-detail">{{ t.project.name }}</span>
+                        <a class="side-list-detail" [routerLink]="['/projects', t.project.id]">{{ t.project.name }}</a>
                       </div>
                       <span class="side-list-value" [class]="taskTone(t)">{{ taskDue(t) }}</span>
                     </div>
                   }
                 </div>
-                @if (upcomingTasks().length > listLimit) {
-                  <p class="side-list-empty side-list-more">{{ upcomingTasks().length - listLimit }} more in Tasks</p>
-                }
               } @else {
                 <p class="side-list-empty">Nothing due in the next week.</p>
               }
             </app-dashboard-panel>
           }
 
-          @case ('nextSteps') {
+          @case ('activity') {
             <app-dashboard-panel
-              title="Next steps"
-              icon="pi-flag"
+              title="Activity"
+              icon="pi-comments"
               color="warning"
               link="/activity"
-              [queryParams]="{ queue: 'nextStep' }"
-              linkLabel="Open in Activity"
+              [queryParams]="activityQuery()"
+              [tabs]="activityTabs()"
+              [(activeTab)]="activityTab"
             >
               @if (queues().loading && !queues().data) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (queues().error) {
                 <p class="side-list-empty">{{ queues().error }}</p>
-              } @else if (nextSteps().length) {
-                <div class="side-list">
-                  @for (r of nextSteps().slice(0, listLimit); track r.refKey) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        @if (r.leadId) {
-                          <a class="side-list-title" [routerLink]="['/pipeline', r.leadId]">{{ r.clientName || 'Pipeline card' }}</a>
-                        } @else if (r.clientId) {
-                          <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
-                        } @else {
-                          <span class="side-list-title">{{ r.clientName || r.title }}</span>
-                        }
-                        <span class="side-list-detail">{{ nextStepDetail(r) }}</span>
+              } @else if (activityTab() === 'nextSteps') {
+                @if (nextSteps().length) {
+                  <div class="side-list">
+                    @for (r of nextSteps(); track r.refKey) {
+                      <div class="side-list-row">
+                        <div class="side-list-body">
+                          @if (r.leadId) {
+                            <a class="side-list-title" [routerLink]="['/pipeline', r.leadId]">{{ r.clientName || 'Pipeline card' }}</a>
+                          } @else if (r.clientId) {
+                            <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
+                          } @else {
+                            <span class="side-list-title">{{ r.clientName || r.title }}</span>
+                          }
+                          <span class="side-list-detail">{{ nextStepDetail(r) }}</span>
+                        </div>
+                        <span class="side-list-value" [class]="nextStepTone(r)">{{ nextStepDue(r) }}</span>
                       </div>
-                      <span class="side-list-value" [class]="nextStepTone(r)">{{ nextStepDue(r) }}</span>
-                    </div>
-                  }
-                </div>
-                @if (nextSteps().length > listLimit) {
-                  <p class="side-list-empty side-list-more">{{ nextSteps().length - listLimit }} more in Activity</p>
+                    }
+                  </div>
+                } @else {
+                  <p class="side-list-empty">No next steps due in the next week.</p>
                 }
-              } @else {
-                <p class="side-list-empty">No next steps due in the next week.</p>
-              }
-            </app-dashboard-panel>
-          }
-
-          @case ('replies') {
-            <app-dashboard-panel title="Needs reply" icon="pi-reply" color="danger" link="/activity" linkLabel="Open in Activity">
-              @if (queues().loading && !queues().data) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (queues().error) {
-                <p class="side-list-empty">{{ queues().error }}</p>
+              } @else if (activityTab() === 'quiet') {
+                @if (quiet().length) {
+                  <div class="side-list">
+                    @for (r of quiet(); track r.refKey) {
+                      <div class="side-list-row">
+                        <div class="side-list-body">
+                          @if (r.clientId) {
+                            <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
+                          } @else {
+                            <span class="side-list-title">{{ r.clientName || r.title }}</span>
+                          }
+                        </div>
+                        <span class="side-list-value">{{ lastContact(r) }}</span>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <p class="side-list-empty">Every active client has been in touch recently.</p>
+                }
               } @else if (replies().length) {
                 <div class="side-list">
-                  @for (r of replies().slice(0, listLimit); track r.refKey) {
+                  @for (r of replies(); track r.refKey) {
                     <div class="side-list-row">
                       <div class="side-list-body">
                         @if (r.clientId) {
                           <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
+                        } @else if (r.contactId) {
+                          <a class="side-list-title" [routerLink]="['/people', r.contactId]">{{ r.person || 'Unknown sender' }}</a>
                         } @else {
                           <span class="side-list-title">{{ r.person || 'Unknown sender' }}</span>
                         }
-                        <span class="side-list-detail">{{ replyDetail(r) }}</span>
+                        <span class="side-list-detail">
+                          @if (r.clientId && r.contactId && r.person) {
+                            <a [routerLink]="['/people', r.contactId]">{{ r.person }}</a>: {{ r.title }}
+                          } @else if (r.clientId && r.person) {
+                            {{ r.person }}: {{ r.title }}
+                          } @else {
+                            {{ r.title }}
+                          }
+                        </span>
                       </div>
                       <span class="side-list-value">{{ waiting(r) }}</span>
                     </div>
                   }
                 </div>
-                @if (replies().length > listLimit) {
-                  <p class="side-list-empty side-list-more">{{ replies().length - listLimit }} more in Activity</p>
-                }
               } @else {
                 <p class="side-list-empty">Nothing waiting on a reply.</p>
               }
@@ -156,17 +166,23 @@
           }
 
           @case ('time') {
-            <app-dashboard-panel title="My time" icon="pi-clock" color="success" link="/time-entry" linkLabel="Open timesheet">
+            <app-dashboard-panel title="My time" icon="pi-clock" color="success" link="/time-entry">
               @if (time().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (time().error) {
                 <p class="side-list-empty">{{ time().error }}</p>
               } @else {
                 @if (runningEntry(); as running) {
-                  <div class="dashboard-timer">
-                    <div class="side-list-body">
+                  <div class="dashboard-timer dashboard-panel-pinned">
+                    <div class="dashboard-timer-main">
                       <span class="dashboard-timer-label"><span class="dashboard-timer-dot" aria-hidden="true"></span>Timer running</span>
-                      <span class="side-list-detail">{{ running.project?.name ?? running.client?.name ?? 'No project' }}</span>
+                      @if (running.project) {
+                        <a class="side-list-title" [routerLink]="['/projects', running.project.id]">{{ running.project.name }}</a>
+                      } @else if (running.client) {
+                        <a class="side-list-title" [routerLink]="['/organizations', running.client.id]">{{ running.client.name }}</a>
+                      } @else {
+                        <span class="side-list-detail">No project</span>
+                      }
                     </div>
                     <span class="dashboard-timer-elapsed">{{ elapsedLabel() }}</span>
                     <p-button
@@ -179,28 +195,56 @@
                     />
                   </div>
                 }
-                <div class="dashboard-stats">
+                <div class="dashboard-stats dashboard-panel-pinned">
                   <div class="dashboard-stat">
                     <span class="dashboard-stat-label">Today</span>
-                    <span class="dashboard-stat-value">{{ todayLabel() }}</span>
+                    <span class="dashboard-stat-value">{{ todayLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
                   </div>
                   <div class="dashboard-stat">
                     <span class="dashboard-stat-label">This week</span>
-                    <span class="dashboard-stat-value">{{ weekLabel() }}</span>
+                    <span class="dashboard-stat-value">{{ weekLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
                   </div>
                 </div>
+                @if (weekEntries().length) {
+                  <div class="side-list">
+                    @for (e of weekEntries(); track e.id) {
+                      <div class="side-list-row">
+                        <div class="side-list-body">
+                          @if (e.project) {
+                            <a class="side-list-title" [routerLink]="['/projects', e.project.id]">{{ e.project.name }}</a>
+                          } @else if (e.client) {
+                            <a class="side-list-title" [routerLink]="['/organizations', e.client.id]">{{ e.client.name }}</a>
+                          } @else {
+                            <span class="side-list-title">No project</span>
+                          }
+                          <span class="side-list-detail">
+                            {{ timeDate(e) }}
+                            @if (e.task) {
+                              · <a [routerLink]="['/tasks']" [queryParams]="{ task: e.task.id }">{{ e.task.name }}</a>
+                            } @else if (timeNote(e)) {
+                              · {{ timeNote(e) }}
+                            }
+                          </span>
+                        </div>
+                        <span class="side-list-value side-list-value--strong">{{ timeDuration(e) }}</span>
+                      </div>
+                    }
+                  </div>
+                } @else if (!runningEntry()) {
+                  <p class="side-list-empty">Nothing logged this week.</p>
+                }
               }
             </app-dashboard-panel>
           }
 
           @case ('invoices') {
-            <app-dashboard-panel title="Invoices" icon="pi-receipt" color="info" link="/invoices" linkLabel="Open in Invoices">
+            <app-dashboard-panel title="Invoices" icon="pi-receipt" color="info" link="/invoices">
               @if (invoices().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (invoices().error) {
                 <p class="side-list-empty">{{ invoices().error }}</p>
               } @else {
-                <div class="dashboard-stats">
+                <div class="dashboard-stats dashboard-panel-pinned">
                   <div class="dashboard-stat">
                     <span class="dashboard-stat-label">Outstanding</span>
                     <span class="dashboard-stat-value">{{ money(outstandingTotal()) }}</span>
@@ -215,11 +259,18 @@
                     <div class="side-list-body"><span class="side-list-title">Drafts to send</span></div>
                     <span class="side-list-value side-list-value--strong">{{ draftCount() }}</span>
                   </div>
-                  @for (inv of attentionInvoices().slice(0, listLimit); track inv.id) {
+                  @for (inv of attentionInvoices(); track inv.id) {
                     <div class="side-list-row">
                       <div class="side-list-body">
                         <a class="side-list-title" [routerLink]="['/invoices', inv.id]">{{ inv.displayNumber }}</a>
-                        <span class="side-list-detail">{{ inv.billToName || inv.client?.name }}, due {{ invoiceDue(inv) }}</span>
+                        <span class="side-list-detail">
+                          @if (inv.client) {
+                            <a [routerLink]="['/clients', inv.client.id]">{{ inv.billToName || inv.client.name }}</a>,
+                          } @else if (inv.billToName) {
+                            {{ inv.billToName }},
+                          }
+                          due {{ invoiceDue(inv) }}
+                        </span>
                       </div>
                       <span class="side-list-value" [class]="invoiceTone(inv)">{{ money(invoiceBalance(inv)) }}</span>
                     </div>
@@ -230,17 +281,21 @@
           }
 
           @case ('bookings') {
-            <app-dashboard-panel title="Upcoming bookings" icon="pi-calendar" color="success" link="/bookings" linkLabel="Open in Bookings">
+            <app-dashboard-panel title="Upcoming bookings" icon="pi-calendar" color="success" link="/bookings">
               @if (bookings().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (bookings().error) {
                 <p class="side-list-empty">{{ bookings().error }}</p>
               } @else if (upcomingBookings().length) {
                 <div class="side-list">
-                  @for (b of upcomingBookings().slice(0, listLimit); track b.id) {
+                  @for (b of upcomingBookings(); track b.id) {
                     <div class="side-list-row">
                       <div class="side-list-body">
-                        <span class="side-list-title">{{ b.guestName }}</span>
+                        @if (b.lead) {
+                          <a class="side-list-title" [routerLink]="['/pipeline', b.lead.id]">{{ b.guestName }}</a>
+                        } @else {
+                          <span class="side-list-title">{{ b.guestName }}</span>
+                        }
                         <span class="side-list-detail">{{ b.bookingType?.name ?? b.guestOrg ?? '' }}</span>
                       </div>
                       <span class="side-list-value">{{ bookingWhen(b) }}</span>
@@ -249,40 +304,6 @@
                 </div>
               } @else {
                 <p class="side-list-empty">No bookings in the next week.</p>
-              }
-            </app-dashboard-panel>
-          }
-
-          @case ('quiet') {
-            <app-dashboard-panel
-              title="Gone quiet"
-              icon="pi-volume-off"
-              color="neutral"
-              link="/activity"
-              [queryParams]="{ queue: 'quiet' }"
-              linkLabel="Open in Activity"
-            >
-              @if (queues().loading && !queues().data) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (queues().error) {
-                <p class="side-list-empty">{{ queues().error }}</p>
-              } @else if (quiet().length) {
-                <div class="side-list">
-                  @for (r of quiet().slice(0, listLimit); track r.refKey) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        @if (r.clientId) {
-                          <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
-                        } @else {
-                          <span class="side-list-title">{{ r.clientName || r.title }}</span>
-                        }
-                      </div>
-                      <span class="side-list-value">{{ lastContact(r) }}</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <p class="side-list-empty">Every active client has been in touch recently.</p>
               }
             </app-dashboard-panel>
           }

@@ -11,6 +11,7 @@ import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { chartColorMode, chartSeriesColors } from '../../core/chart-palette';
 import { PageComponent } from '../../ui/layout/page.component';
 import { dateKey, formatDurationMin, parseDateKey } from '../time-entry/timesheet.utils';
 import { dateInPeriod, defaultPeriod, resolveReportPeriod } from '../../core/period.util';
@@ -560,24 +561,13 @@ export class ReportsPage implements OnInit {
     const filtered = rows.filter((r) => getValue(r) > 0);
     if (filtered.length === 0) return null;
 
-    const colors = [
-      '#7c3aed',
-      '#1565c0',
-      '#2e7d32',
-      '#f59e0b',
-      '#ef4444',
-      '#0891b2',
-      '#9333ea',
-      '#ea580c',
-    ];
-
     return {
       data: {
         labels: filtered.map((r) => r.projectName),
         datasets: [
           {
             data: filtered.map((r) => getValue(r)),
-            backgroundColor: filtered.map((_, i) => colors[i % colors.length]),
+            backgroundColor: chartSeriesColors(filtered.length, chartColorMode('doughnut')),
           },
         ],
       },

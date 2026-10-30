@@ -13,15 +13,13 @@ import { lastContactLabel } from '../../core/staleness.util';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
 import { addDaysKey, dueLabel, dueTone, todayKey } from '../../task-manager/core/tm-format.util';
 import { MyTask } from '../../task-manager/core/tm.types';
-import { DashboardPanelComponent } from '../../ui/dashboard-panel/dashboard-panel.component';
+import { DashboardPanelComponent, DashboardPanelTab } from '../../ui/dashboard-panel/dashboard-panel.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { invoiceDueFlag, isUnpaidInvoiceStatus, sortInvoicesForAttention } from '../invoices/invoice-status.util';
 import type { TimeEntry } from '../time-entry/time-entry.types';
 import { addDays, dateKey, endOfWeek, formatDurationMin, formatElapsed, startOfWeek } from '../time-entry/timesheet.utils';
 
-/** How many rows each card lists before "Open in …" takes over. */
-const LIST_LIMIT = 6;
 /** Tasks, next steps and bookings this many days ahead count as coming up. */
 const LOOKAHEAD_DAYS = 7;
 
@@ -46,19 +44,22 @@ type Booking = {
   guestName: string;
   guestOrg: string | null;
   bookingType: { id: string; name: string } | null;
+  lead: { id: string } | null;
 };
 
-type PanelId = 'tasks' | 'time' | 'nextSteps' | 'invoices' | 'replies' | 'quiet' | 'bookings';
-type Panel = { id: PanelId; area: PermissionArea };
+type PanelId = 'tasks' | 'time' | 'activity' | 'invoices' | 'bookings';
+type ActivityTab = 'replies' | 'nextSteps' | 'quiet';
+type Panel = { id: PanelId; area: PermissionArea; wide?: boolean };
 
-/** Default order. Every panel is one column of three. */
+/** The three old Activity cards, collapsed into the Activity panel wherever the first of them sat. */
+const LEGACY_ACTIVITY_IDS = new Set(['nextSteps', 'replies', 'quiet', 'activity']);
+
+/** Default order. Activity is two columns wide and sits beside My tasks. */
 const PANELS: Panel[] = [
   { id: 'tasks', area: 'tasks' },
+  { id: 'activity', area: 'inbox', wide: true },
   { id: 'time', area: 'time' },
-  { id: 'nextSteps', area: 'inbox' },
   { id: 'invoices', area: 'invoices' },
-  { id: 'replies', area: 'inbox' },
-  { id: 'quiet', area: 'inbox' },
   { id: 'bookings', area: 'bookings' },
 ];
 
@@ -75,6 +76,27 @@ function errorText(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
+/** Collapse the old Next steps / Needs reply / Gone quiet cards into one Activity card, in the first one's place. */
+function migratePanelOrder(ids: string[]): string[] {
+  const index = ids.findIndex((id) => LEGACY_ACTIVITY_IDS.has(id));
+  if (index === -1) return ids;
+  const before = ids.slice(0, index).filter((id) => !LEGACY_ACTIVITY_IDS.has(id));
+  const after = ids.slice(index + 1).filter((id) => !LEGACY_ACTIVITY_IDS.has(id));
+  return packWidePanel([...before, 'activity', ...after]);
+}
+
+/**
+ * Activity is two columns wide. If it would start in the last column, slide it one spot left
+ * so the row doesn't end with an empty cell.
+ */
+function packWidePanel(ids: string[]): string[] {
+  const index = ids.indexOf('activity');
+  if (index < 2 || index % 3 !== 2) return ids;
+  const next = [...ids];
+  [next[index - 1], next[index]] = [next[index], next[index - 1]];
+  return next;
+}
+
 /** Due-date tone → .side-list-value modifier. */
 function toneClass(tone: string): string {
   return tone === 'overdue' || tone === 'today' || tone === 'soon' ? `side-list-value--${tone}` : '';
@@ -82,8 +104,9 @@ function toneClass(tone: string): string {
 
 /**
  * Dashboard: what needs the signed-in person today. Count cards open the matching queue or list; the cards below
- * show the top few items. Every section is gated by the role's areas. Mine / Everyone's applies to Activity
- * queues and invoices; tasks and time are always your own.
+ * show the items and scroll once they get tall. Activity (Needs reply, Next steps, Gone quiet) is one card.
+ * Every section is gated by the role's areas. Mine / Everyone's applies to Activity queues and invoices;
+ * tasks and time are always your own.
  */
 @Component({
   selector: 'app-dashboard-page',
@@ -115,7 +138,8 @@ export class DashboardPage implements OnInit, OnDestroy {
   private timer: ReturnType<typeof setInterval> | null = null;
   readonly stopping = signal(false);
 
-  readonly listLimit = LIST_LIMIT;
+  /** Which list the Activity card is showing. The footer link opens that same list. */
+  readonly activityTab = signal<ActivityTab>('replies');
 
   // ── Access ───────────────────────────────────────────────────────────────
 
@@ -144,9 +168,10 @@ export class DashboardPage implements OnInit, OnDestroy {
     if (event.previousIndex === event.currentIndex) return;
     const ids = this.panels().map((p) => p.id);
     moveItemInArray(ids, event.previousIndex, event.currentIndex);
-    this.savedOrder.set(ids);
+    const packed = packWidePanel(ids);
+    this.savedOrder.set(packed);
     try {
-      localStorage.setItem(this.orderKey(), JSON.stringify(ids));
+      localStorage.setItem(this.orderKey(), JSON.stringify(packed));
     } catch {
       // Order just won't be remembered.
     }
@@ -155,7 +180,13 @@ export class DashboardPage implements OnInit, OnDestroy {
   private loadOrder() {
     try {
       const parsed: unknown = JSON.parse(localStorage.getItem(this.orderKey()) ?? '[]');
-      if (Array.isArray(parsed)) this.savedOrder.set(parsed.filter((x): x is string => typeof x === 'string'));
+      if (!Array.isArray(parsed)) return;
+      const ids = parsed.filter((x): x is string => typeof x === 'string');
+      const migrated = migratePanelOrder(ids);
+      this.savedOrder.set(migrated);
+      if (migrated.join() !== ids.join()) {
+        localStorage.setItem(this.orderKey(), JSON.stringify(migrated));
+      }
     } catch {
       // Ignore bad stored data.
     }
@@ -177,6 +208,24 @@ export class DashboardPage implements OnInit, OnDestroy {
   readonly replies = computed(() => this.queues().data?.reply ?? []);
   readonly quiet = computed(() => this.queues().data?.quiet ?? []);
 
+  readonly activityTabs = computed<DashboardPanelTab[]>(() => [
+    { id: 'replies', label: 'Needs reply', count: this.replies().length, countTone: 'danger' },
+    { id: 'nextSteps', label: 'Next steps', count: this.nextSteps().length, countTone: 'warning' },
+    { id: 'quiet', label: 'Gone quiet', count: this.quiet().length, countTone: 'info' },
+  ]);
+
+  /** Footer opens the Activity list that matches the tab. Needs reply is the page default. */
+  readonly activityQuery = computed(() => {
+    switch (this.activityTab()) {
+      case 'nextSteps':
+        return { queue: 'nextStep' };
+      case 'quiet':
+        return { queue: 'quiet' };
+      default:
+        return null;
+    }
+  });
+
   // ── Tasks (always mine) ──────────────────────────────────────────────────
 
   readonly upcomingTasks = computed(() => {
@@ -196,10 +245,17 @@ export class DashboardPage implements OnInit, OnDestroy {
   readonly elapsedLabel = computed(() => {
     this.tick();
     const running = this.runningEntry();
-    return running ? formatElapsed(Date.now() - new Date(running.startedAt).getTime()) : '';
+    return running ? this.withHrs(formatElapsed(Date.now() - new Date(running.startedAt).getTime())) : '';
   });
   readonly todayLabel = computed(() => formatDurationMin(this.minutesSince(dateKey(new Date()))));
   readonly weekLabel = computed(() => formatDurationMin(this.minutesSince(dateKey(startOfWeek(new Date())))));
+  /** This week's entries, newest first. The prior week is loaded only so a timer left running still shows. */
+  readonly weekEntries = computed(() => {
+    const weekStart = dateKey(startOfWeek(new Date()));
+    return this.time().data
+      .filter((e) => dateKey(new Date(e.startedAt)) >= weekStart)
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  });
 
   // ── Invoices (Mine = ones you created) ───────────────────────────────────
 
@@ -287,9 +343,6 @@ export class DashboardPage implements OnInit, OnDestroy {
     return !this.mine() && r.owner ? `${r.title}, ${r.owner}` : r.title;
   }
 
-  replyDetail(r: QueueRow): string {
-    return r.clientId && r.person ? `${r.person}: ${r.title}` : r.title;
-  }
 
   invoiceBalance(i: Invoice): number {
     return this.balance(i);
@@ -309,6 +362,29 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   invoiceTone(i: Invoice): string {
     return invoiceDueFlag(i.dueDate, i.status) === 'overdue' ? toneClass('overdue') : '';
+  }
+
+  timeDate(e: TimeEntry): string {
+    return dueLabel(dateKey(new Date(e.startedAt)));
+  }
+
+  /** Note under a time row when it is not a work task (those link on their own). */
+  timeNote(e: TimeEntry): string {
+    return e.description?.trim() || e.projectTask?.name || '';
+  }
+
+  timeDuration(e: TimeEntry): string {
+    this.tick();
+    if (!e.stoppedAt) {
+      const min = Math.max(0, Math.round((Date.now() - new Date(e.startedAt).getTime()) / 60_000));
+      return this.withHrs(formatDurationMin(min));
+    }
+    return this.withHrs(formatDurationMin(e.durationMin ?? 0));
+  }
+
+  /** Timer and entry rows include the unit in the string. Today and This week style it separately. */
+  private withHrs(value: string): string {
+    return `${value} hrs`;
   }
 
   bookingWhen(b: Booking): string {
