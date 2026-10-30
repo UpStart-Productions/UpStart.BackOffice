@@ -1464,7 +1464,7 @@ model UserNotificationPreference {
   userId           String   @id
   tenantId         String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant           Tenant   @relation(fields: [tenantId], references: [id])
-  /// { task_assigned: bool, task_mention: bool, task_comment: bool, ... } — missing keys default on.
+  /// { task_assigned: bool, ... }: only choices the person made. Missing keys follow the default (EMAIL_OFF_BY_DEFAULT is off, the rest on).
   emailPreferences Json     @default("{}")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

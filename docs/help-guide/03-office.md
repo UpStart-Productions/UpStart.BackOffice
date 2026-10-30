@@ -1,4 +1,4 @@
-# Office (Clients, Projects, Tasks, Time, Expenses, Invoices)
+# Office (Clients, Projects, Tasks, Time, Expenses, Invoices, Forms)
 
 ## Clients
 
@@ -60,3 +60,7 @@ The two are tracked separately: the same hour, or the same expense, can go on th
 ### Export
 
 **Export** (next to **New Invoice**) downloads a CSV of **Sent** and **Paid** invoices addressed to your organization with an issue date in the range you pick (defaults to last month). One row per invoice: invoice number, person, email, issue date, status, paid date, hours, time amount, reimbursements, other lines, tax and total. Use it for payroll or accounting. If your role only sees your own invoices, the export only includes yours.
+
+## Forms
+
+**Forms** is the last item in the Office menu. Use it to build forms and share them with a link. See the Forms guide for how lists, links and submissions work.

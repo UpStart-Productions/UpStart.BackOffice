@@ -124,7 +124,6 @@ export class ShellComponent implements OnInit {
         { area: 'clients', label: 'Organizations', icon: 'pi-building', route: '/organizations' },
         { area: 'contacts', label: 'People', icon: 'pi-address-book', route: '/people', badge: this.comms.reviewCount() },
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
-        { area: 'forms', label: 'Forms', icon: 'pi-file-edit', route: '/forms' },
       ]),
       ...section('Office', [
         { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
@@ -133,6 +132,7 @@ export class ShellComponent implements OnInit {
         { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },
         { area: 'expenses', label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
         { area: 'invoices', label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
+        { area: 'forms', label: 'Forms', icon: 'pi-file-edit', route: '/forms' },
       ]),
       // Care module: intake, care profiles, visits and the schedule.
       ...section('Care', [

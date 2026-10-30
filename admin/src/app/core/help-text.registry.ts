@@ -223,7 +223,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'tm.addProjectToTasks':
     'Only existing projects can be added to Tasks. Create new projects on the Projects page first.',
   'tm.notificationsEmailPrefs':
-    'In-app notifications always appear in the inbox. Choose which types also send email.',
+    'In-app notifications always appear in the inbox. Choose which types also send email. Files attached, due date changes, moves and new subtasks are off until you turn them on.',
 
   // Platform
   'platform.guideSetup':

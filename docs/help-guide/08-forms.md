@@ -1,6 +1,6 @@
 # Forms
 
-**Forms** (left menu, under CRM) is where you build forms and share them with a link: sign-ups, feedback, assessments with a score. Every organization has Forms; what each person sees depends on their role.
+**Forms** (left menu, under Office) is where you build forms and share them with a link: sign-ups, feedback, assessments with a score. Every organization has Forms; what each person sees depends on their role.
 
 ## Who sees what
 

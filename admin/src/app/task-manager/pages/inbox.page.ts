@@ -113,10 +113,16 @@ export class InboxPage implements OnInit {
   ];
   private readonly basePrefRows: { key: keyof EmailPrefs; label: string }[] = [
     { key: 'task_assigned', label: 'A task is assigned to me' },
+    { key: 'task_unassigned', label: "I'm unassigned from a task" },
     { key: 'task_mention', label: 'Someone @mentions me' },
     { key: 'task_comment', label: 'Comments on tasks I follow' },
+    { key: 'task_attachment', label: 'Files attached to tasks I follow' },
+    { key: 'task_due_date_changed', label: 'Due dates change on tasks I follow' },
+    { key: 'task_moved', label: 'Tasks I follow are moved' },
+    { key: 'task_subtask_added', label: 'Subtasks are added to tasks I follow' },
     { key: 'task_completed', label: 'Tasks I follow are completed' },
     { key: 'project_added', label: "I'm added to a project" },
+    { key: 'project_removed', label: "I'm removed from a project" },
     { key: 'task_form_submission', label: 'A form I own gets a submission' },
   ];
   /** The Care row only for people who use Care (module on and a Care role). */

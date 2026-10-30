@@ -63,6 +63,16 @@ export type UserNotificationDto = {
 
 export type EmailPreferences = Partial<Record<NotificationType, boolean>>;
 
+/**
+ * Busy task changes that land in the bell but don't email unless the person turns them on in Inbox → Settings.
+ * Every other type emails unless turned off.
+ */
+export const EMAIL_OFF_BY_DEFAULT: NotificationType[] = ['task_attachment', 'task_due_date_changed', 'task_moved', 'task_subtask_added'];
+
+export function emailOnByDefault(type: NotificationType): boolean {
+  return !EMAIL_OFF_BY_DEFAULT.includes(type);
+}
+
 export const NOTIFICATIONS_API = {
   list: '/notifications',
   unreadCount: '/notifications/unread-count',

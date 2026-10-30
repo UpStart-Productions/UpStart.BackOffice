@@ -8,6 +8,7 @@ import type {
   UserNotificationDto,
 } from './notification.types';
 import { CreateNotificationInput, NOTIFICATION_TYPES } from './notification.types';
+import { emailOnByDefault } from '@upstart/back-office/shared';
 
 function toDto(row: {
   id: string;
@@ -110,13 +111,14 @@ export class NotificationsService {
     const row = await this.prisma.userNotificationPreference.findUnique({ where: { userId } });
     const stored = (row?.emailPreferences as EmailPreferences | null) ?? {};
     return Object.fromEntries(
-      NOTIFICATION_TYPES.map((type) => [type, stored[type] !== false]),
+      NOTIFICATION_TYPES.map((type) => [type, typeof stored[type] === 'boolean' ? stored[type] : emailOnByDefault(type)]),
     ) as Record<NotificationType, boolean>;
   }
 
   async setEmailPreferences(userId: string, prefs: EmailPreferences): Promise<Record<NotificationType, boolean>> {
-    const current = await this.getEmailPreferences(userId);
-    const next: EmailPreferences = { ...current };
+    // Only choices people make are stored, so a missing key keeps following the default.
+    const row = await this.prisma.userNotificationPreference.findUnique({ where: { userId } });
+    const next: EmailPreferences = { ...((row?.emailPreferences as EmailPreferences | null) ?? {}) };
     for (const type of NOTIFICATION_TYPES) {
       if (typeof prefs[type] === 'boolean') next[type] = prefs[type];
     }

@@ -1,6 +1,10 @@
 # In-app notifications (top-bar bell)
 
-Per-user inbox stored in `UserNotification`. Task Manager delivers via `NotificationDeliveryService` (in-app row + optional email when `TASK_EMAIL_NOTIFICATIONS` is not `off`):
+Per-user inbox stored in `UserNotification`. Task Manager delivers via `NotificationDeliveryService` (in-app row + optional email when `TASK_EMAIL_NOTIFICATIONS` is not `off`).
+
+Recipients: task notifications go to the task's followers and assignee (the person who made the change is never notified). People follow a task they create, are assigned, comment on or are @mentioned in.
+
+Email defaults: every type emails unless the person turns it off in Inbox → Settings, except `EMAIL_OFF_BY_DEFAULT` (`task_attachment`, `task_due_date_changed`, `task_moved`, `task_subtask_added`), which only reach the bell until turned on. `UserNotificationPreference.emailPreferences` stores only the choices people make; a missing key follows the default.
 
 | Type | When |
 |------|------|
