@@ -2,6 +2,7 @@
 /**
  * The form embed script served at GET /api/form-embed.js (FormEmbedController). Plain browser JavaScript, no
  * build step: it is sent as written. Keep it free of backticks and dollar-brace (it lives in a String.raw template).
+ * Layouts (FormSettings.layout): page, steps (one section at a time, About you last), accordion (details), tabs.
  */
 export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <script src=".../api/form-embed.js" data-ubo-form="LINK_TOKEN" async></script>
    Optional: data-target="#css-selector" (where to draw; default: right after the script),
@@ -32,7 +33,16 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     ':where(.ubo-form .ubo-error){color:var(--ubo-error);margin:0 0 var(--ubo-gap)}',
     ':where(.ubo-form .ubo-hp){position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}',
     ':where(.ubo-form .ubo-score){font-size:2.5em;font-weight:700;margin:.5rem 0}',
-    ':where(.ubo-form .ubo-area){display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--ubo-border)}'
+    ':where(.ubo-form .ubo-area){display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--ubo-border)}',
+    ':where(.ubo-form .ubo-step){color:var(--ubo-muted);margin:0 0 .25rem}',
+    ':where(.ubo-form .ubo-nav){display:flex;gap:.75rem;flex-wrap:wrap}',
+    ':where(.ubo-form .ubo-button--secondary){background:transparent;color:inherit;border:1px solid var(--ubo-border)}',
+    ':where(.ubo-form .ubo-panel){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);margin:0 0 .75rem;padding:0 1rem}',
+    ':where(.ubo-form .ubo-panel > summary){cursor:pointer;font-weight:600;padding:.85rem 0}',
+    ':where(.ubo-form .ubo-panel[open] > summary){border-bottom:1px solid var(--ubo-border);margin-bottom:1rem}',
+    ':where(.ubo-form .ubo-tabs){display:flex;gap:.25rem;overflow-x:auto;border-bottom:1px solid var(--ubo-border);margin:0 0 var(--ubo-gap)}',
+    ':where(.ubo-form .ubo-tab){font:inherit;background:none;border:0;border-bottom:2px solid transparent;padding:.6rem .9rem;cursor:pointer;white-space:nowrap;color:var(--ubo-muted)}',
+    ':where(.ubo-form .ubo-tab[aria-selected=true]){border-bottom-color:var(--ubo-accent);color:inherit;font-weight:600}'
   ].join('\n');
 
   function el(tag, attrs, children) {
@@ -182,11 +192,61 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         if (orgIn) who.push(orgIn.node);
         if (phoneIn) who.push(phoneIn.node);
         var fields = [];
-        var body = [el('div', { className: 'ubo-row' }, who)];
-        form.sections.forEach(function (s) {
-          body.push(el('h3', { className: 'ubo-section', text: s.name }));
-          s.fields.forEach(function (f) { var x = field(f); fields.push({ def: f, ui: x }); body.push(x.node); });
+        var layout = form.layout || 'page';
+        var whoBlock = el('div', { className: 'ubo-row' }, who);
+        // One block per section: its title (unless the layout shows it), intro and fields.
+        var blocks = form.sections.map(function (s, si) {
+          var parts = [];
+          if (layout === 'page' || layout === 'steps') parts.push(el('h3', { className: 'ubo-section', text: s.name }));
+          if (s.description) parts.push(el('p', { className: 'ubo-description', text: s.description }));
+          var own = [];
+          s.fields.forEach(function (f) { var x = field(f); fields.push({ def: f, ui: x }); own.push({ def: f, ui: x }); parts.push(x.node); });
+          return { section: s, fields: own, node: el('div', { className: 'ubo-section-body', 'data-section': String(si) }, parts) };
         });
+        var body = [];
+        var stepCount = blocks.length + (info.kind === 'NEW' ? 1 : 0);
+        var step = 0;
+        var stepLabel = el('p', { className: 'ubo-step' });
+        var backBtn = el('button', { type: 'button', className: 'ubo-button ubo-button--secondary', text: 'Back' });
+        var nextBtn = el('button', { type: 'button', className: 'ubo-button', text: 'Next' });
+        var aboutBlock = el('div', { className: 'ubo-section-body' }, [el('h3', { className: 'ubo-section', text: 'About you' }), whoBlock]);
+        if (layout === 'steps') {
+          body.push(stepLabel);
+          blocks.forEach(function (b) { body.push(b.node); });
+          if (info.kind === 'NEW') body.push(aboutBlock);
+        } else if (layout === 'accordion') {
+          body.push(whoBlock);
+          blocks.forEach(function (b, i) {
+            var d = el('details', { className: 'ubo-panel', name: 'ubo-accordion-' + uid, open: i === 0 }, [el('summary', { text: b.section.name }), b.node]);
+            body.push(d);
+          });
+        } else if (layout === 'tabs') {
+          body.push(whoBlock);
+          var tabs = el('div', { className: 'ubo-tabs', role: 'tablist' });
+          blocks.forEach(function (b, i) {
+            var t = el('button', { type: 'button', role: 'tab', className: 'ubo-tab', 'aria-selected': i === 0 ? 'true' : 'false', text: b.section.name });
+            t.addEventListener('click', function () {
+              blocks.forEach(function (x, j) { x.node.hidden = j !== i; });
+              tabs.querySelectorAll('.ubo-tab').forEach(function (x, j) { x.setAttribute('aria-selected', j === i ? 'true' : 'false'); });
+            });
+            tabs.appendChild(t);
+            b.node.hidden = i !== 0;
+          });
+          body.push(tabs);
+          blocks.forEach(function (b) { body.push(b.node); });
+        } else {
+          body.push(whoBlock);
+          blocks.forEach(function (b) { body.push(b.node); });
+        }
+        function showStep() {
+          blocks.forEach(function (b, i) { b.node.hidden = i !== step; });
+          aboutBlock.hidden = step !== blocks.length;
+          stepLabel.textContent = 'Step ' + (step + 1) + ' of ' + stepCount;
+          backBtn.hidden = step === 0;
+          var last = step >= stepCount - 1;
+          nextBtn.hidden = last;
+          button.hidden = !last;
+        }
         var hp = el('input', { type: 'text', name: 'website', tabindex: '-1', autocomplete: 'off' });
         var errorBox = el('p', { className: 'ubo-error', role: 'alert' });
         errorBox.hidden = true;
@@ -194,9 +254,32 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         var formEl = el('form', { novalidate: true }, [
           el('h2', { text: info.formName }),
           info.description ? el('p', { className: 'ubo-description', text: info.description }) : null
-        ].concat(body, [el('div', { className: 'ubo-hp', 'aria-hidden': 'true' }, [hp]), errorBox, button]));
+        ].concat(body, [
+          el('div', { className: 'ubo-hp', 'aria-hidden': 'true' }, [hp]),
+          errorBox,
+          layout === 'steps' ? el('div', { className: 'ubo-nav' }, [backBtn, nextBtn, button]) : button
+        ]));
+        if (layout === 'steps') {
+          nextBtn.addEventListener('click', function () {
+            var b = blocks[step];
+            var miss = b ? b.fields.filter(function (x) { return x.ui.missing(); })[0] : null;
+            if (miss) { errorBox.textContent = miss.def.name + ': required'; errorBox.hidden = false; return; }
+            errorBox.hidden = true;
+            step = Math.min(step + 1, stepCount - 1);
+            showStep();
+            root.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          });
+          backBtn.addEventListener('click', function () {
+            errorBox.hidden = true;
+            step = Math.max(0, step - 1);
+            showStep();
+            root.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          });
+          showStep();
+        }
         formEl.addEventListener('submit', function (ev) {
           ev.preventDefault();
+          if (layout === 'steps' && step < stepCount - 1) { nextBtn.click(); return; }
           errorBox.hidden = true;
           var missing = fields.filter(function (x) { return x.ui.missing(); })[0];
           var problem = (info.kind === 'NEW' && !nameIn.input.value.trim()) ? 'Your name is required'

@@ -4,6 +4,7 @@
   "name": "Mission Tech Compass",
   "description": "No grades, no judgment. Every nonprofit we work with has a version of this. As you answer, think of a real, recent example. It takes about 6 minutes.",
   "settings": {
+    "layout": "steps",
     "review": true,
     "askOrganization": true,
     "askPhone": false,
@@ -100,6 +101,7 @@
   "sections": [
     {
       "name": "The Board Report Test",
+      "description": "Think about your last board or grant report, and how the numbers came together.",
       "fields": [
         {
           "name": "Think about your last board or grant report. How did the numbers come together?",
@@ -201,6 +203,7 @@
     },
     {
       "name": "Copy, Paste, Repeat",
+      "description": "Think about a typical week, and the information your team moves from place to place.",
       "fields": [
         {
           "name": "When a new client, volunteer or donor reaches out, how many times does their information get typed in?",
@@ -302,6 +305,7 @@
     },
     {
       "name": "Too Many Tabs",
+      "description": "Think about the tools your team opens every day.",
       "fields": [
         {
           "name": "How do your everyday tools (email, spreadsheets, forms, drives, a database) fit together?",
@@ -379,6 +383,7 @@
     },
     {
       "name": "If Sally Won the Lottery",
+      "description": "Think about who keeps your technology running, and what they know that nobody else does.",
       "fields": [
         {
           "name": "If your go-to tech person left tomorrow, what would happen?",
@@ -456,6 +461,7 @@
     },
     {
       "name": "Who Can See What?",
+      "description": "Think about who can open what, and what happens when someone leaves.",
       "fields": [
         {
           "name": "When someone leaves, how quickly do they lose access to email, drives and systems?",
@@ -537,6 +543,7 @@
     },
     {
       "name": "Your Team",
+      "description": "This doesn't change your results. It helps us tailor our suggestions.",
       "fields": [
         {
           "name": "If the right fix showed up, how much room does your team have right now?",
@@ -661,6 +668,7 @@
     },
     {
       "name": "In Your Words",
+      "description": "Optional, but these answers are often the most useful part.",
       "fields": [
         {
           "name": "What's one task you wish took half the time?",

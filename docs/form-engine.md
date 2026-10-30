@@ -81,3 +81,15 @@ logic) are added to the profile type and switched on per profile.
 - `GET /form-admin/forms/:id/export`, `POST /form-admin/forms/import` (`{ definition, name? }`, creates a draft).
 - Admin: form page ⋮ → Export form file; New form → Start from a form file (`app-single-file-dropzone`).
 - Files live in `tools/forms/` (e.g. `mission-tech-compass-v2.ubo-form.json`).
+
+## Form workspace and layouts
+
+- `/forms/:id` and `/forms/:id/submissions` render in workspace mode: the shell (`isFormWorkspaceUrl`) reuses the Task
+  Manager layout classes (`layout-task-mode`: icon rail + second column) and shows `app-form-workspace-sidebar`
+  (`ui/form-workspace/`) instead of the task sidebar. `FormWorkspaceService` (core) shares the open form between the
+  pages and the sidebar. The form page shows `?view=settings | scoring | links | <section id>` (default: first section);
+  `app-form-builder` takes `[sectionId]` to show one section.
+- `FormSection.description` (migration `20261030170000_form_section_intro`): section intro, shown on public pages.
+- `FormSettings.layout`: `page | steps | accordion | tabs` (default `page`). Returned in `FormPublicFormDto.layout`; UBO's
+  public page (`pages/forms/public-form.page.ts`, PrimeNG accordion/tabs) and the embed script follow it. Steps put
+  "About you" last on new-response links.

@@ -4,6 +4,8 @@ import { ConfirmationService } from 'primeng/api';
 export type ConfirmDeleteOptions = {
   message: string;
   header?: string;
+  /** Text on the confirm button (PrimeNG's default otherwise). */
+  acceptLabel?: string;
   accept: () => void | Promise<void>;
 };
 
@@ -21,6 +23,7 @@ export class ConfirmDeleteService {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       rejectButtonStyleClass: 'p-button-secondary',
+      ...(options.acceptLabel ? { acceptLabel: options.acceptLabel } : {}),
       accept: options.accept,
     });
   }

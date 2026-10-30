@@ -822,11 +822,19 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'forms/:id': {
     title: 'Form',
-    intro: 'Details, settings, scoring, fields and public links for one form.',
+    intro: 'The form workspace: the column on the left lists Settings, Scoring, Links, Submissions and the form\'s sections. Click one to work on it.',
     sections: [
       {
+        heading: 'Sections',
+        body: 'Click a section to see its questions. + next to Sections adds one; drag sections up or down to reorder them. A section\'s ⋮ menu edits its name and intro (a line shown under the title) or deletes it. Add field adds a question; drag questions by their ☰ handle to reorder them.',
+      },
+      {
+        heading: 'How sections are shown',
+        body: 'In Settings: One page, Steps (one section at a time), Accordion or Tabs. The link page and the embed code follow it. Click Save.',
+      },
+      {
         heading: 'Publish',
-        body: 'Public links show the published version. After changing fields or scoring, click Publish so people get the new version. Earlier submissions keep the version they answered.',
+        body: 'Public links show the published version. After changing fields or scoring, click Publish changes so people get the new version. Earlier submissions keep the version they answered. Unpublish takes the form offline until you publish again (the same button, or the ⋮ menu when changes are waiting).',
       },
       {
         heading: 'Settings',
@@ -978,7 +986,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Fields',
-        body: "Add a section, then Add field: a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and whether it is Required on public links. The type can't be changed later. Use the ⋮ menus to edit, move or delete; deleting a field removes its answers from every record. These changes save right away.",
+        body: "Add a section, then Add field: a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and whether it is Required on public links. The type can't be changed later. Drag a field by its ☰ handle to reorder it; use the ⋮ menus to edit or delete (and to move sections). Deleting a field removes its answers from every record. These changes save right away.",
       },
       {
         heading: 'Public intake links',

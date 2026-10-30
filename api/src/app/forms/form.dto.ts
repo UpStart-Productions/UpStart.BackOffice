@@ -15,6 +15,8 @@ class OptionDto {
 
 export class SectionDto {
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
+  /** Optional intro under the section title (null or empty clears it). Left out: unchanged. */
+  @IsOptional() @IsString() @MaxLength(2000) description?: string | null;
 }
 
 export class CreateFieldDto {
@@ -36,6 +38,11 @@ export class UpdateFieldDto {
 
 export class MoveDto {
   @IsIn(['up', 'down']) direction!: 'up' | 'down';
+}
+
+/** A new order (drag and drop): every id of the list, in order. */
+export class OrderDto {
+  @IsArray() @IsString({ each: true }) ids!: string[];
 }
 
 export class CreateLinkDto {

@@ -1,7 +1,10 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { AccordionModule } from 'primeng/accordion';
 import { ButtonModule } from 'primeng/button';
+import { TabsModule } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import type { FormPublicFormDto, FormPublicLinkDto, FormPublicSubmitResultDto, FormResultDto } from '@upstart/back-office/shared';
@@ -17,7 +20,7 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
 @Component({
   selector: 'app-public-form-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, FormFieldInputComponent],
+  imports: [NgTemplateOutlet, FormsModule, AccordionModule, ButtonModule, InputTextModule, MessageModule, TabsModule, FormFieldInputComponent],
   styleUrls: ['../login/login.page.scss', '../task-form/task-form.page.scss'],
   template: `
     <div class="login-page">
@@ -88,42 +91,107 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
               <div class="mb-3"></div>
             }
             <form class="login-form" (ngSubmit)="submit()">
-              <div class="flex flex-wrap gap-2 mb-3">
-                <div class="form-field flex-1">
-                  <label for="cpName">Your name@if (isIntake()) {<span class="task-form-required">*</span>}</label>
-                  <input pInputText id="cpName" name="name" class="w-full" [(ngModel)]="name" autocomplete="name" />
-                </div>
-                @if (isIntake()) {
-                  <div class="form-field flex-1">
-                    <label for="cpEmail2">Your email<span class="task-form-required">*</span></label>
-                    <input pInputText id="cpEmail2" name="email2" type="email" class="w-full" [(ngModel)]="email" [readonly]="!!form()?.verifiedEmail" autocomplete="email" />
-                  </div>
-                  @if (info()?.ask?.organization) {
-                    <div class="form-field flex-1">
-                      <label for="cpOrg">Organization<span class="task-form-required">*</span></label>
-                      <input pInputText id="cpOrg" name="organization" class="w-full" [(ngModel)]="organization" autocomplete="organization" />
-                    </div>
-                  }
-                  @if (info()?.ask?.phone) {
-                    <div class="form-field flex-1">
-                      <label for="cpPhone">Phone</label>
-                      <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" autocomplete="tel" />
-                    </div>
+              @if (layout() !== 'steps') {
+                <ng-container *ngTemplateOutlet="whoTpl" />
+              }
+              @switch (layout()) {
+                @case ('steps') {
+                  @if (stepSection(); as sec) {
+                    <p class="cp-step">Step {{ sectionStep() + 1 }} of {{ stepCount() }}</p>
+                    <ng-container *ngTemplateOutlet="sectionTpl; context: { $implicit: sec }" />
+                  } @else {
+                    <h3 class="cp-section">About you</h3>
+                    <ng-container *ngTemplateOutlet="whoTpl" />
                   }
                 }
-              </div>
-              @for (s of form()?.sections ?? []; track s.id) {
-                <h3 class="cp-section">{{ s.name }}</h3>
-                @for (f of s.fields; track f.id) {
-                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" />
+                @case ('accordion') {
+                  <p-accordion [(value)]="openSection">
+                    @for (sec of form()?.sections ?? []; track sec.id) {
+                      <p-accordion-panel [value]="sec.id">
+                        <p-accordion-header>{{ sec.name }}</p-accordion-header>
+                        <p-accordion-content>
+                          <ng-container *ngTemplateOutlet="sectionTpl; context: { $implicit: sec, hideTitle: true }" />
+                        </p-accordion-content>
+                      </p-accordion-panel>
+                    }
+                  </p-accordion>
+                }
+                @case ('tabs') {
+                  <p-tabs [(value)]="openSection" [scrollable]="true">
+                    <p-tablist>
+                      @for (sec of form()?.sections ?? []; track sec.id) {
+                        <p-tab [value]="sec.id">{{ sec.name }}</p-tab>
+                      }
+                    </p-tablist>
+                    <p-tabpanels>
+                      @for (sec of form()?.sections ?? []; track sec.id) {
+                        <p-tabpanel [value]="sec.id">
+                          <ng-container *ngTemplateOutlet="sectionTpl; context: { $implicit: sec, hideTitle: true }" />
+                        </p-tabpanel>
+                      }
+                    </p-tabpanels>
+                  </p-tabs>
+                }
+                @default {
+                  @for (sec of form()?.sections ?? []; track sec.id) {
+                    <ng-container *ngTemplateOutlet="sectionTpl; context: { $implicit: sec }" />
+                  }
                 }
               }
+
+              <ng-template #whoTpl>
+              <div class="flex flex-wrap gap-2 mb-3">
+                  <div class="form-field flex-1">
+                    <label for="cpName">Your name@if (isIntake()) {<span class="task-form-required">*</span>}</label>
+                    <input pInputText id="cpName" name="name" class="w-full" [(ngModel)]="name" autocomplete="name" />
+                  </div>
+                  @if (isIntake()) {
+                    <div class="form-field flex-1">
+                      <label for="cpEmail2">Your email<span class="task-form-required">*</span></label>
+                      <input pInputText id="cpEmail2" name="email2" type="email" class="w-full" [(ngModel)]="email" [readonly]="!!form()?.verifiedEmail" autocomplete="email" />
+                    </div>
+                    @if (info()?.ask?.organization) {
+                      <div class="form-field flex-1">
+                        <label for="cpOrg">Organization<span class="task-form-required">*</span></label>
+                        <input pInputText id="cpOrg" name="organization" class="w-full" [(ngModel)]="organization" autocomplete="organization" />
+                      </div>
+                    }
+                    @if (info()?.ask?.phone) {
+                      <div class="form-field flex-1">
+                        <label for="cpPhone">Phone</label>
+                        <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" autocomplete="tel" />
+                      </div>
+                    }
+                  }
+                </div>
+              </ng-template>
+
+              <ng-template #sectionTpl let-sec let-hideTitle="hideTitle">
+                @if (!hideTitle) {
+                  <h3 class="cp-section">{{ sec.name }}</h3>
+                }
+                @if (sec.description) {
+                  <p class="text-color-secondary cp-intro">{{ sec.description }}</p>
+                }
+                @for (f of sec.fields; track f.id) {
+                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" />
+                }
+              </ng-template>
               <div class="task-form-hp" aria-hidden="true">
                 <label for="cp-website">Website</label>
                 <input id="cp-website" name="website" tabindex="-1" autocomplete="off" [(ngModel)]="website" />
               </div>
               @if (error()) { <p-message severity="error" styleClass="w-full mb-3" [text]="error()!" /> }
-              <div class="login-actions"><p-button type="submit" label="Send" [loading]="busy()" /></div>
+              <div class="login-actions">
+                @if (layout() === 'steps' && sectionStep() > 0) {
+                  <p-button label="Back" severity="secondary" [outlined]="true" (onClick)="back()" />
+                }
+                @if (layout() === 'steps' && sectionStep() < stepCount() - 1) {
+                  <p-button label="Next" (onClick)="next()" />
+                } @else {
+                  <p-button type="submit" label="Send" [loading]="busy()" />
+                }
+              </div>
             </form>
           }
           @case ('done') {
@@ -187,6 +255,13 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
       justify-content: space-between;
       padding: 0.25rem 0;
     }
+    .cp-step {
+      color: var(--text-color-secondary);
+      margin: 0 0 0.25rem;
+    }
+    .cp-intro {
+      margin: -0.25rem 0 1rem;
+    }
     .cp-section {
       font-size: var(--fs-md);
       font-weight: 600;
@@ -222,6 +297,33 @@ export class PublicFormPage implements OnInit {
   organization = '';
   website = '';
   values: Record<string, unknown> = {};
+
+  /** How the form's sections are shown (set on the form in UBO). */
+  readonly layout = computed(() => this.form()?.layout ?? 'page');
+  /** Steps: the section shown (the last step is "About you" on new-response links). */
+  readonly sectionStep = signal(0);
+  readonly stepCount = computed(() => (this.form()?.sections.length ?? 0) + (this.isIntake() ? 1 : 0));
+  readonly stepSection = computed(() => this.form()?.sections[this.sectionStep()] ?? null);
+  /** Accordion and tabs: the open section. */
+  openSection: string | number | undefined = undefined;
+
+  next() {
+    const sec = this.stepSection();
+    const missing = sec?.fields.find((f) => f.required && isEmpty(this.values[f.id]));
+    if (missing) {
+      this.error.set(`${missing.name}: required`);
+      return;
+    }
+    this.error.set(null);
+    this.sectionStep.update((n) => Math.min(n + 1, this.stepCount() - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  back() {
+    this.error.set(null);
+    this.sectionStep.update((n) => Math.max(0, n - 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   round(n: number) {
     return Math.round(n);
@@ -270,6 +372,11 @@ export class PublicFormPage implements OnInit {
   }
 
   async submit() {
+    // Enter on an earlier step moves on instead of sending.
+    if (this.layout() === 'steps' && this.sectionStep() < this.stepCount() - 1) {
+      this.next();
+      return;
+    }
     await this.run(async () => {
       const r = await this.call<FormPublicSubmitResultDto>('POST', '/submit', {
         values: this.values,
@@ -294,6 +401,8 @@ export class PublicFormPage implements OnInit {
     const f = await this.call<FormPublicFormDto>('GET', '/form');
     this.form.set(f);
     this.values = { ...f.values };
+    this.sectionStep.set(0);
+    this.openSection = f.sections[0]?.id;
     if (f.verifiedEmail) this.email = f.verifiedEmail;
     this.error.set(null);
     this.step.set('form');
@@ -335,4 +444,8 @@ export class PublicFormPage implements OnInit {
     }
     return json as T;
   }
+}
+
+function isEmpty(v: unknown): boolean {
+  return v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
 }

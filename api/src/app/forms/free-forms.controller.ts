@@ -11,7 +11,7 @@ import { UserContext } from '../common/app.types';
 import { ensureLeadLinks } from '../leads/lead-links.util';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from './form.dto';
+import { CreateFieldDto, CreateLinkDto, MoveDto, OrderDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from './form.dto';
 import { formFieldOptions, liveValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
@@ -107,7 +107,10 @@ export class FreeFormsController {
         select: { id: true },
       });
       for (const [si, s] of def.sections.entries()) {
-        const section = await tx.formSection.create({ data: { formId: form.id, name: s.name, sortOrder: si }, select: { id: true } });
+        const section = await tx.formSection.create({
+          data: { formId: form.id, name: s.name, description: s.description ?? null, sortOrder: si },
+          select: { id: true },
+        });
         for (const [fi, f] of s.fields.entries()) {
           await tx.formField.create({
             data: {
@@ -142,6 +145,7 @@ export class FreeFormsController {
       settings: normalizeFormSettings(form.settings),
       sections: live.sections.map((s) => ({
         name: s.name,
+        description: s.description ?? null,
         fields: s.fields.map((f) => ({
           name: f.name,
           type: f.type,
@@ -216,20 +220,29 @@ export class FreeFormsController {
     return this.get(req, id);
   }
 
+  /** Take the form offline: links stop working until it is published again. Versions and submissions stay. */
+  @Post('forms/:id/unpublish')
+  @Action('edit')
+  async unpublish(@Req() req: Request, @Param('id') id: string) {
+    await this.findForm(req.user as UserContext, id);
+    await this.prisma.form.update({ where: { id }, data: { publishedVersionId: null } });
+    return this.get(req, id);
+  }
+
   // ── Sections and fields (full builder profile) ─────────────────────────────
 
   @Post('forms/:id/sections')
   @Action('edit')
   async createSection(@Req() req: Request, @Param('id') formId: string, @Body() dto: SectionDto) {
     await this.findForm(req.user as UserContext, formId);
-    return this.touch(formId, this.structure.createSection(formId, M, dto.name));
+    return this.touch(formId, this.structure.createSection(formId, M, dto.name, dto.description));
   }
 
   @Patch('sections/:id')
   async updateSection(@Req() req: Request, @Param('id') id: string, @Body() dto: SectionDto) {
     const s = await this.structure.findSection(id, M);
     await this.findForm(req.user as UserContext, s.formId);
-    return this.touch(s.formId, this.structure.renameSection(id, M, dto.name));
+    return this.touch(s.formId, this.structure.renameSection(id, M, dto.name, dto.description));
   }
 
   @Delete('sections/:id')
@@ -246,6 +259,23 @@ export class FreeFormsController {
     const s = await this.structure.findSection(id, M);
     await this.findForm(req.user as UserContext, s.formId);
     return this.touch(s.formId, this.structure.moveSection(id, M, dto.direction));
+  }
+
+  /** Drag and drop: the form's sections in a new order. */
+  @Post('forms/:id/sections/order')
+  @Action('edit')
+  async orderSections(@Req() req: Request, @Param('id') formId: string, @Body() dto: OrderDto) {
+    await this.findForm(req.user as UserContext, formId);
+    return this.touch(formId, this.structure.reorderSections(formId, M, dto.ids));
+  }
+
+  /** Drag and drop: a section's fields in a new order. */
+  @Post('sections/:id/fields/order')
+  @Action('edit')
+  async orderFields(@Req() req: Request, @Param('id') sectionId: string, @Body() dto: OrderDto) {
+    const s = await this.structure.findSection(sectionId, M);
+    await this.findForm(req.user as UserContext, s.formId);
+    return this.touch(s.formId, this.structure.reorderFields(sectionId, M, dto.ids));
   }
 
   @Post('sections/:id/fields')

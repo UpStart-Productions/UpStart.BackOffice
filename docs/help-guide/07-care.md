@@ -43,7 +43,7 @@ On a form page, **Share link → New link** makes a link to that organization's 
 On **Care → Intake** and **Care → Care profiles**, people whose role has Care **Setup** see **Customize fields**. It opens that form's setup, where you can:
 
 - Change its **Name** and **Description** (shown at the top of public links), and **Who can use it**. Click **Save** at the top for these.
-- **Fields**: add a section, then **Add field** with a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and **Required** (required on public links; staff can save with it empty). The type can't be changed later. The ⋮ menus edit, move up or down, or delete. Deleting a field removes its answers from every record. **Filled in on** shows how many records have an answer. Field changes save right away.
+- **Fields**: add a section, then **Add field** with a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and **Required** (required on public links; staff can save with it empty). The type can't be changed later. Drag a field by its ☰ handle to reorder it. The ⋮ menus edit or delete fields, and edit, move up or down, or delete sections. Deleting a field removes its answers from every record. **Filled in on** shows how many records have an answer. Field changes save right away.
 - **Public intake links** (Intake form only): links anyone can use to send a new intake, for example from your website. Same checks as share links; with **Emailed code**, the person enters their own email and gets a code. New-intake links don't expire unless you set days.
 
 ## Public form page

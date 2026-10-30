@@ -195,6 +195,11 @@
   }
 }
 
+/* Keeps the new-task row lined up with rows that show the Move to section button. */
+.tm-row-section-move--spacer {
+  visibility: hidden;
+}
+
 .tm-row-section-move {
   display: inline-flex;
   align-items: center;

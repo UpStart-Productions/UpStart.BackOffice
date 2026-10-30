@@ -245,6 +245,9 @@
                   <div class="tm-row tm-row-new" [style.grid-template-columns]="gridTemplate()">
                     <div class="tm-grid-cell tm-row-main">
                       <span class="tm-row-index tm-row-index--spacer" aria-hidden="true"></span>
+                      @if (canEdit() && sectionHasMoveTargets(g)) {
+                        <span class="tm-row-section-move tm-row-section-move--spacer" aria-hidden="true"></span>
+                      }
                       <span class="tm-drag-handle" aria-hidden="true"><i class="pi pi-bars"></i></span>
                       <span class="tm-check" aria-hidden="true"><i class="pi pi-circle"></i></span>
                       <input

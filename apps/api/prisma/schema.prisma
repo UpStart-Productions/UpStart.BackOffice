@@ -1978,6 +1978,8 @@ model FormSection {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   formId    String
   name      String
+  /// Optional intro shown under the section title on public pages.
+  description String? @db.Text
   sortOrder Float    @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

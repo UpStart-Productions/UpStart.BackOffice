@@ -19,12 +19,15 @@ export async function liveSnapshot(
   };
 }
 
-/** JSON with object keys sorted and undefined dropped (Postgres jsonb doesn't keep key order). */
+/**
+ * JSON with object keys sorted, and undefined and null dropped (Postgres jsonb doesn't keep key order; a key that's
+ * null now and missing in an older snapshot, like a new section intro, isn't a change).
+ */
 function canonical(value: unknown): string {
   if (value === null || typeof value !== 'object') return JSON.stringify(value ?? null);
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   const entries = Object.entries(value as Record<string, unknown>)
-    .filter(([, v]) => v !== undefined)
+    .filter(([, v]) => v !== undefined && v !== null)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
 }

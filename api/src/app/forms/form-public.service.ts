@@ -79,7 +79,7 @@ export class FormPublicService {
       if (link.revokedAt || (link.expiresAt && link.expiresAt < new Date())) {
         throw new GoneException('This link no longer works. Ask the organization that sent it for a new one.');
       }
-      if (destination.requiresPublished && !link.form.publishedVersion) throw new NotFoundException('This form is not published yet');
+      if (destination.requiresPublished && !link.form.publishedVersion) throw new NotFoundException('This form is not available right now');
       if (!originAllowed(req.origin, link.allowedOrigins)) throw new ForbiddenException('This form is not available on this website');
       return fn(link, destination);
     });
@@ -190,7 +190,12 @@ export class FormPublicService {
       const access = await this.access(link, accessToken);
       const { sections } = await this.content(link);
       const values = link.kind === 'CLIENT' ? await destination.storedValues(link) : {};
-      return { sections: publicSections(sections.filter((s) => s.fields.length)), values, verifiedEmail: access?.email ?? null };
+      return {
+        layout: normalizeFormSettings(link.form.settings).layout,
+        sections: publicSections(sections.filter((s) => s.fields.length)),
+        values,
+        verifiedEmail: access?.email ?? null,
+      };
     });
   }
 

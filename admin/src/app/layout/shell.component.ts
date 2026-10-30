@@ -16,10 +16,17 @@ import { LayoutService } from './layout.service';
 import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
 import { TaskManagerStyleHostComponent } from '../task-manager/ui/task-manager-style-host.component';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
+import { FormWorkspaceSidebarComponent } from '../ui/form-workspace/form-workspace-sidebar.component';
 import { CareApi } from '../core/care.api';
 import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
 import { AppUpdateService } from '../core/app-update.service';
+
+/** Routes rendered in the form workspace (icon rail + the form's sidebar): a form and its submissions. */
+export function isFormWorkspaceUrl(url: string): boolean {
+  const path = url.split(/[?#]/)[0];
+  return /^\/forms\/(?!submissions(\/|$))[^/]+(\/submissions)?\/?$/.test(path);
+}
 
 /** Routes rendered in Task Manager mode (icon rail + task sidebar). */
 export function isTaskManagerUrl(url: string): boolean {
@@ -39,6 +46,7 @@ export function isTaskManagerUrl(url: string): boolean {
     AppSidebarComponent,
     AppFooterComponent,
     TaskManagerStyleHostComponent,
+    FormWorkspaceSidebarComponent,
     TmSidebarComponent,
     InvoiceSendDialogComponent,
     InvoiceMarkPaidDialogComponent,
@@ -65,10 +73,14 @@ export class ShellComponent implements OnInit {
 
   /** Task Manager mode: main menu shrinks to an icon rail and the task sidebar takes over. */
   readonly taskMode = computed(() => isTaskManagerUrl(this.currentUrl()));
+  /** Form workspace: the same rail, with the form's sidebar (Settings, sections, Links, Submissions). */
+  readonly formMode = computed(() => isFormWorkspaceUrl(this.currentUrl()));
+  /** Either workspace: the main menu becomes a rail and a second column sits beside it. */
+  readonly workspaceMode = computed(() => this.taskMode() || this.formMode());
 
   /** Icon rail on Task Manager routes unless expanded; same preference elsewhere. */
   readonly navCompact = computed(() =>
-    this.taskMode() ? !this.layout.tasksNavExpanded() : this.layout.navCompact(),
+    this.workspaceMode() ? !this.layout.tasksNavExpanded() : this.layout.navCompact(),
   );
 
   private readonly syncNavPrefsUser = effect(() => {
@@ -154,9 +166,10 @@ export class ShellComponent implements OnInit {
       'layout-static': true,
       'layout-static-inactive': state.staticMenuDesktopInactive,
       'layout-mobile-active': state.mobileMenuActive,
-      'layout-task-mode': this.taskMode(),
-      'layout-task-main-nav-expanded': this.taskMode() && this.layout.tasksNavExpanded(),
-      'layout-nav-compact': this.navCompact() && !this.taskMode(),
+      // Task mode classes lay out both workspaces (rail + second column), see _task-manager-shell.scss.
+      'layout-task-mode': this.workspaceMode(),
+      'layout-task-main-nav-expanded': this.workspaceMode() && this.layout.tasksNavExpanded(),
+      'layout-nav-compact': this.navCompact() && !this.workspaceMode(),
       'has-impersonation-banner': !!this.auth.impersonatedUserId,
     };
   });

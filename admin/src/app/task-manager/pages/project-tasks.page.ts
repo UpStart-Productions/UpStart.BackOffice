@@ -105,6 +105,8 @@ export class ProjectTasksPage implements OnDestroy {
   completedFilter = signal<CompletedFilter>('incomplete');
   search = signal('');
   tagFilter = signal<string[]>([]);
+  /** Tasks added on this page: they stay visible even when they don't match the search or tag filter (Asana), until the filter changes or the list reloads. */
+  private readonly justAdded = signal<Set<string>>(new Set());
   /** Per-user collapsed sections (localStorage); not shared via API. */
   collapsedSectionIds = signal<Set<string>>(new Set());
   membersOpen = signal(false);
@@ -164,7 +166,9 @@ export class ProjectTasksPage implements OnDestroy {
     const q = this.search().trim().toLowerCase();
     const filter = this.completedFilter();
     const tagIds = this.tagFilter();
+    const justAdded = this.justAdded();
     const visible = this.tasks().filter((t) => {
+      if (justAdded.has(t.id)) return true;
       if (q && !t.name.toLowerCase().includes(q)) return false;
       if (tagIds.length && !t.tags.some((tag) => tagIds.includes(tag.id))) return false;
       if (filter === 'completed') return t.isCompleted;
@@ -220,6 +224,7 @@ export class ProjectTasksPage implements OnDestroy {
 
   async load(projectId: string, quiet = false) {
     const seq = ++this.loadSeq;
+    if (!quiet) this.justAdded.set(new Set());
     if (!quiet) {
       this.loading.set(true);
       this.error.set(null);
@@ -249,6 +254,7 @@ export class ProjectTasksPage implements OnDestroy {
 
   setTagFilter(value: string[] | null) {
     this.tagFilter.set(value ?? []);
+    this.justAdded.set(new Set());
     this.persistBoardPrefs();
   }
 
@@ -314,6 +320,11 @@ export class ProjectTasksPage implements OnDestroy {
     const target = event.target;
     if (target instanceof Element && target.closest('button, input, .tm-drag-handle, .tm-row-section-move')) return;
     this.onRowClick(task, event);
+  }
+
+  /** The new-task row keeps a spacer where rows in this section show "Move to section", so it lines up with them. */
+  sectionHasMoveTargets(group: Group): boolean {
+    return (group.section !== null ? 1 : 0) + this.sortedSections().filter((s) => s.id !== group.section?.id).length > 0;
   }
 
   /** Sections this task can move to (excludes its current section). */
@@ -748,6 +759,7 @@ export class ProjectTasksPage implements OnDestroy {
         afterTaskId,
       });
       this.tasks.update((list) => [...list, created]);
+      this.justAdded.update((ids) => new Set(ids).add(created.id));
       this.bumpOpenCount(1);
       if (!name) {
         setTimeout(() => {

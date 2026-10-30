@@ -32,6 +32,15 @@ export class FormsApi {
   remove(id: string) {
     return this.api.delete(`${this.base}/forms/${id}`);
   }
+  addSection(formId: string, name: string) {
+    return this.api.post<{ id: string; name: string }>(`${this.base}/forms/${formId}/sections`, { name });
+  }
+  reorderSections(formId: string, ids: string[]) {
+    return this.api.post(`${this.base}/forms/${formId}/sections/order`, { ids });
+  }
+  unpublish(id: string) {
+    return this.api.post<FreeFormDto>(`${this.base}/forms/${id}/unpublish`, {});
+  }
   publish(id: string) {
     return this.api.post<FreeFormDto>(`${this.base}/forms/${id}/publish`, {});
   }

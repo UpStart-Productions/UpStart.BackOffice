@@ -1,10 +1,11 @@
-import { DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
@@ -12,11 +13,12 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  FREE_FORM_MODULE, formProfile, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto,
+  FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto,
 } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
+import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
 import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
@@ -33,11 +35,10 @@ const newId = () => Math.random().toString(36).slice(2, 10);
   selector: 'app-form-edit-page',
   standalone: true,
   imports: [
-    DatePipe,
     FormsModule,
-    RouterLink,
     ButtonModule,
     CheckboxModule,
+    SelectButtonModule,
     InputNumberModule,
     InputTextModule,
     MessageModule,
@@ -62,22 +63,25 @@ const newId = () => Math.random().toString(36).slice(2, 10);
           } @else {
             <p-tag value="Published" severity="success" />
           }
-          <a [routerLink]="['/forms', f.id, 'submissions']" class="text-primary">Submissions</a>
         }
       </ng-container>
       <ng-container ngProjectAs="[pageActions]">
         @if (form(); as f) {
           <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
           @if (f.canEdit) {
-            <p-button
-              label="Publish"
-              icon="pi pi-send"
-              severity="secondary"
-              [outlined]="true"
-              [loading]="publishing()"
-              [disabled]="!f.hasUnpublishedChanges || isDirty()"
-              (onClick)="publish()"
-            />
+            @if (f.published && !f.hasUnpublishedChanges) {
+              <p-button label="Unpublish" icon="pi pi-eye-slash" severity="secondary" [outlined]="true" [loading]="publishing()" (onClick)="confirmUnpublish()" />
+            } @else {
+              <p-button
+                [label]="f.published ? 'Publish changes' : 'Publish'"
+                icon="pi pi-send"
+                severity="secondary"
+                [outlined]="true"
+                [loading]="publishing()"
+                [disabled]="isDirty()"
+                (onClick)="publish()"
+              />
+            }
             <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
           }
         }
@@ -89,16 +93,8 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
       @if (form(); as f) {
         <div class="stack">
-          <div class="card">
-            @if (!f.published) {
-              <p-message severity="info" text="Not published yet. Links work once you publish." />
-            } @else if (f.hasUnpublishedChanges) {
-              <p-message severity="warn" [text]="'Version ' + f.published.number + ' is live. Your changes reach people when you publish again.'" />
-            } @else {
-              <p-message severity="success" [text]="'Version ' + f.published.number + ' is live (published ' + (f.published.publishedAt | date: 'MMM d, y') + ').'" />
-            }
-          </div>
-
+          @switch (view()) {
+            @case ('settings') {
           <div class="card">
             <div class="card-header"><h3 class="card-title">Details</h3></div>
             <div class="showcase-flex-col">
@@ -116,6 +112,10 @@ const newId = () => Math.random().toString(36).slice(2, 10);
           <div class="card">
             <div class="card-header"><h3 class="card-title">Settings</h3></div>
             <div class="showcase-flex-col">
+              <div class="form-field">
+                <label>How sections are shown <app-help-text key="forms.form.layout" /></label>
+                <p-selectbutton [options]="layoutOptions" optionLabel="label" optionValue="value" [(ngModel)]="layout" [allowEmpty]="false" [disabled]="!f.canEdit" />
+              </div>
               <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="ffReview" [binary]="true" [(ngModel)]="settings.review" [disabled]="!f.canEdit" />
                 <label for="ffReview">Review submissions before they become prospects <app-help-text key="forms.form.review" /></label>
@@ -149,6 +149,8 @@ const newId = () => Math.random().toString(36).slice(2, 10);
             </div>
           </div>
 
+            }
+            @case ('scoring') {
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Scoring <app-help-text key="forms.form.scoring" /></h3>
@@ -216,18 +218,31 @@ const newId = () => Math.random().toString(36).slice(2, 10);
             }
           </div>
 
-          <div class="card">
-            <div class="card-header"><h3 class="card-title">Fields</h3></div>
-            @if (f.canEdit) {
-              <app-form-builder [form]="f" [profile]="profile" [apiBase]="forms.base" [scoreGroups]="scoring().enabled ? scoring().groups : []" (changed)="reload()" />
-            } @else {
-              <p class="m-0">Your role can view this form but not change it.</p>
             }
-          </div>
-
+            @case ('links') {
           <div class="card">
             <app-form-links [apiBase]="forms.base" [formId]="f.id" title="Public links" helpKey="forms.form.links" />
           </div>
+            }
+            @default {
+          @if (currentSection(); as sec) {
+            <div class="card">
+              @if (f.canEdit) {
+                <app-form-builder
+                  [form]="f"
+                  [profile]="profile"
+                  [apiBase]="forms.base"
+                  [sectionId]="sec.id"
+                  [scoreGroups]="scoring().enabled ? scoring().groups : []"
+                  (changed)="reload()"
+                />
+              } @else {
+                <p class="m-0">Your role can view this form but not change it.</p>
+              }
+            </div>
+          }
+            }
+          }
         </div>
       }
 
@@ -283,6 +298,19 @@ export class FormEditPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly ws = inject(FormWorkspaceService);
+
+  readonly layoutOptions = (Object.keys(FORM_LAYOUT_LABELS) as FormLayout[]).map((value) => ({ value, label: FORM_LAYOUT_LABELS[value] }));
+  private readonly query = toSignal(this.route.queryParamMap);
+  /** What the main area shows (sidebar picks it): settings, scoring, links, or a section id. Default: the first section. */
+  readonly view = computed(() => {
+    const f = this.form();
+    const v = this.query()?.get('view');
+    if (v === 'settings' || v === 'scoring' || v === 'links') return v;
+    if (v && f?.sections.some((x) => x.id === v)) return v;
+    return f?.sections[0]?.id ?? 'settings';
+  });
+  readonly currentSection = computed(() => this.form()?.sections.find((x) => x.id === this.view()) ?? null);
 
   readonly profile = formProfile(FREE_FORM_MODULE, null);
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
@@ -296,6 +324,7 @@ export class FormEditPage implements OnInit {
   // Details and settings (Save)
   name = '';
   description = '';
+  layout: FormLayout = 'page';
   settings: Pick<FormSettings, 'review' | 'askOrganization' | 'askPhone' | 'resultsEmail'> = {
     review: true, askOrganization: false, askPhone: false, resultsEmail: false,
   };
@@ -315,7 +344,16 @@ export class FormEditPage implements OnInit {
   band: FormScoreBand = this.blankBand();
   bandSteps = '';
 
+  constructor() {
+    // The sidebar added a section: show the fresh form.
+    effect(() => {
+      if (this.ws.changed()) void this.reload();
+    });
+  }
+
   async ngOnInit() {
+    // Another form may still be in the workspace sidebar until this one loads.
+    if (this.ws.form()?.id !== this.id) this.ws.form.set(null);
     try {
       this.apply(await this.forms.form(this.id));
     } catch (err) {
@@ -326,7 +364,9 @@ export class FormEditPage implements OnInit {
   /** Field changes save on their own; reload without touching unsaved details or settings. */
   async reload() {
     try {
-      this.form.set(await this.forms.form(this.id));
+      const f = await this.forms.form(this.id);
+      this.form.set(f);
+      this.ws.form.set(f);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to reload form');
     }
@@ -334,6 +374,8 @@ export class FormEditPage implements OnInit {
 
   private apply(f: FreeFormDto) {
     this.form.set(f);
+    this.ws.form.set(f);
+    this.layout = f.settings.layout;
     this.name = f.name;
     this.description = f.description ?? '';
     this.settings = { review: f.settings.review, askOrganization: f.settings.askOrganization, askPhone: f.settings.askPhone, resultsEmail: f.settings.resultsEmail };
@@ -344,7 +386,7 @@ export class FormEditPage implements OnInit {
   }
 
   private snapshot() {
-    return JSON.stringify({ n: this.name.trim(), d: this.description.trim(), s: this.settings, t: this.thankYou.trim(), cl: this.ctaLabel.trim(), cu: this.ctaUrl.trim() });
+    return JSON.stringify({ n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYou.trim(), cl: this.ctaLabel.trim(), cu: this.ctaUrl.trim() });
   }
 
   isDirty() {
@@ -357,6 +399,7 @@ export class FormEditPage implements OnInit {
     return {
       ...s,
       ...this.settings,
+      layout: this.layout,
       thankYou: this.thankYou.trim() || null,
       cta: this.ctaUrl.trim() ? { label: this.ctaLabel.trim() || 'Learn more', url: this.ctaUrl.trim() } : null,
       scoring,
@@ -392,8 +435,33 @@ export class FormEditPage implements OnInit {
     }
   }
 
+  /** Take the form offline: its links stop working until it is published again. Versions and submissions stay. */
+  confirmUnpublish() {
+    this.confirmDelete.confirm({
+      header: 'Unpublish form',
+      message: 'Unpublish this form? Its links and embeds stop working until you publish it again. Submissions are kept.',
+      acceptLabel: 'Unpublish',
+      accept: async () => {
+        this.publishing.set(true);
+        try {
+          this.apply(await this.forms.unpublish(this.id));
+          this.toast.add({ severity: 'success', summary: 'Unpublished', detail: 'The form is offline.' });
+        } catch (err) {
+          this.toast.add({ severity: 'error', summary: 'Could not unpublish', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+        } finally {
+          this.publishing.set(false);
+        }
+      },
+    });
+  }
+
   headerActions(): RowActionItem[] {
     const items: RowActionItem[] = [{ id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() }];
+    const f = this.form();
+    // With changes waiting, the header button publishes them; Unpublish moves here.
+    if (f?.canEdit && f.published && f.hasUnpublishedChanges) {
+      items.push({ id: 'unpublish', label: 'Unpublish', icon: 'pi pi-eye-slash', command: () => this.confirmUnpublish() });
+    }
     if (this.form()?.canDelete) items.push({ id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove() });
     return items;
   }
@@ -440,6 +508,7 @@ export class FormEditPage implements OnInit {
     try {
       const updated = await this.forms.update(this.id, { settings: { ...f.settings, scoring } });
       this.form.set(updated);
+      this.ws.form.set(updated);
       return true;
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not save scoring', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });

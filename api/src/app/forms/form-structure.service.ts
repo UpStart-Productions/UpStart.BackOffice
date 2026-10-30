@@ -41,11 +41,11 @@ export class FormStructureService {
     const rows = await this.prisma.formSection.findMany({
       where: { formId },
       orderBy: FORM_ORDER,
-      select: { id: true, name: true, fields: { orderBy: FORM_ORDER, select: FIELD_SELECT } },
+      select: { id: true, name: true, description: true, fields: { orderBy: FORM_ORDER, select: FIELD_SELECT } },
     });
     return rows
       .filter((s) => !opts.filledOnly || s.fields.length)
-      .map((s) => ({ id: s.id, name: s.name, fields: s.fields.map(fieldView) }));
+      .map((s) => ({ id: s.id, name: s.name, description: s.description, fields: s.fields.map(fieldView) }));
   }
 
   /** Every field of a form, in order. */
@@ -85,21 +85,27 @@ export class FormStructureService {
 
   // ── Sections ───────────────────────────────────────────────────────────────
 
-  async createSection(formId: string, module: string, rawName: string): Promise<FormSectionDto> {
+  async createSection(formId: string, module: string, rawName: string, description?: string | null): Promise<FormSectionDto> {
     await this.findForm(formId, module);
     const name = rawName.trim();
     if (!name) throw new BadRequestException('Name is required');
     const last = await this.prisma.formSection.findFirst({ where: { formId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
-    const s = await this.prisma.formSection.create({ data: { formId, name, sortOrder: (last?.sortOrder ?? -1) + 1 } });
-    return { id: s.id, name: s.name, fields: [] };
+    const s = await this.prisma.formSection.create({
+      data: { formId, name, description: description?.trim() || null, sortOrder: (last?.sortOrder ?? -1) + 1 },
+    });
+    return { id: s.id, name: s.name, description: s.description, fields: [] };
   }
 
-  async renameSection(id: string, module: string, rawName: string) {
+  /** Rename a section and, when given, change its intro. */
+  async renameSection(id: string, module: string, rawName: string, description?: string | null) {
     await this.findSection(id, module);
     const name = rawName.trim();
     if (!name) throw new BadRequestException('Name is required');
-    const s = await this.prisma.formSection.update({ where: { id }, data: { name } });
-    return { id: s.id, name: s.name };
+    const s = await this.prisma.formSection.update({
+      where: { id },
+      data: { name, ...(description !== undefined ? { description: description?.trim() || null } : {}) },
+    });
+    return { id: s.id, name: s.name, description: s.description };
   }
 
   /** Deletes the section and its fields; their answers disappear from every response. */
@@ -177,6 +183,30 @@ export class FormStructureService {
       this.prisma.formField.update({ where: { id: rid }, data: { sortOrder } }),
     );
     return { moved: true };
+  }
+
+  /** Drag and drop: put a form's sections in this order (every section id, once). */
+  async reorderSections(formId: string, module: string, ids: string[]) {
+    await this.findForm(formId, module);
+    const rows = await this.prisma.formSection.findMany({ where: { formId }, select: { id: true } });
+    await this.applyOrder(rows.map((r) => r.id), ids, (id, sortOrder) => this.prisma.formSection.update({ where: { id }, data: { sortOrder } }));
+    return { ordered: true };
+  }
+
+  /** Drag and drop: put a section's fields in this order (every field id, once). */
+  async reorderFields(sectionId: string, module: string, ids: string[]) {
+    await this.findSection(sectionId, module);
+    const rows = await this.prisma.formField.findMany({ where: { sectionId }, select: { id: true } });
+    await this.applyOrder(rows.map((r) => r.id), ids, (id, sortOrder) => this.prisma.formField.update({ where: { id }, data: { sortOrder } }));
+    return { ordered: true };
+  }
+
+  private async applyOrder(current: string[], ids: string[], write: (id: string, sortOrder: number) => Prisma.PrismaPromise<unknown>) {
+    const unique = [...new Set(ids)];
+    if (unique.length !== current.length || unique.some((id) => !current.includes(id))) {
+      throw new BadRequestException('The list changed. Reload and try again.');
+    }
+    await this.prisma.$transaction(unique.map((id, index) => write(id, index)));
   }
 
   /** Swap a row with its neighbour and renumber the list 0..n. */

@@ -7,10 +7,14 @@
 }
 <div class="layout-wrapper" [ngClass]="containerClass()">
   <app-topbar />
-  <app-sidebar [navItems]="navItems()" [compact]="navCompact()" [taskMode]="taskMode()" />
-  @if (taskMode()) {
+  <app-sidebar [navItems]="navItems()" [compact]="navCompact()" [taskMode]="workspaceMode()" />
+  @if (workspaceMode()) {
     <app-tm-style-host />
+  }
+  @if (taskMode()) {
     <app-tm-sidebar class="layout-tm-sidebar" />
+  } @else if (formMode()) {
+    <app-form-workspace-sidebar class="layout-tm-sidebar" />
   }
   <div class="layout-main-container">
     <div class="layout-main">

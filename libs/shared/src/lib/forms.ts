@@ -29,7 +29,8 @@ export type FormFieldDto = {
   /** Scoring: the score area this field counts toward (FormScoreGroup.id). */
   scoreGroupId?: string | null;
 };
-export type FormSectionDto = { id: string; name: string; fields: FormFieldDto[] };
+/** `description`: optional intro shown under the section title. */
+export type FormSectionDto = { id: string; name: string; description?: string | null; fields: FormFieldDto[] };
 
 /** Per role: what people with that role can do with a form. Admins can always edit. */
 export type FormAccessLevel = 'read' | 'edit';
@@ -146,6 +147,8 @@ export type FormPublicSubmitResultDto = {
 };
 
 export type FormPublicFormDto = {
+  /** How the sections are shown (FormSettings.layout). */
+  layout: FormLayout;
   sections: FormSectionDto[];
   values: Record<string, unknown>;
   /** Email proven with a code (new response); shown read-only on the form. */
@@ -170,7 +173,22 @@ export type FormScoreBand = {
 
 export type FormScoring = { enabled: boolean; groups: FormScoreGroup[]; bands: FormScoreBand[] };
 
+/**
+ * How a form's sections are shown on public pages: all on one page, one at a time with Next and Back (steps),
+ * collapsible (accordion), or a section switcher (tabs).
+ */
+export type FormLayout = 'page' | 'steps' | 'accordion' | 'tabs';
+export const FORM_LAYOUTS: FormLayout[] = ['page', 'steps', 'accordion', 'tabs'];
+export const FORM_LAYOUT_LABELS: Record<FormLayout, string> = {
+  page: 'One page',
+  steps: 'Steps',
+  accordion: 'Accordion',
+  tabs: 'Tabs',
+};
+
 export type FormSettings = {
+  /** How sections are shown on public pages. */
+  layout: FormLayout;
   /** Submissions wait under Waiting for review (accept into a Prospect, or dismiss). Off: they are accepted as is. */
   review: boolean;
   /** Ask the respondent for their organization (used as the Prospect name). */
@@ -186,6 +204,7 @@ export type FormSettings = {
 };
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
+  layout: 'page',
   review: true,
   askOrganization: false,
   askPhone: false,
@@ -217,6 +236,7 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     .sort((a: FormScoreBand, b: FormScoreBand) => a.upTo - b.upTo);
   const cta = src['cta'] && typeof src['cta'] === 'object' && str(src['cta'].url, 1000) ? { label: str(src['cta'].label, 120) || 'Learn more', url: str(src['cta'].url, 1000) } : null;
   return {
+    layout: FORM_LAYOUTS.includes(src['layout']) ? src['layout'] : DEFAULT_FORM_SETTINGS.layout,
     review: src['review'] === undefined ? DEFAULT_FORM_SETTINGS.review : !!src['review'],
     askOrganization: !!src['askOrganization'],
     askPhone: !!src['askPhone'],
@@ -365,6 +385,7 @@ export type FormDefinition = {
   settings: FormSettings;
   sections: {
     name: string;
+    description?: string | null;
     fields: {
       name: string;
       type: FormFieldType;
@@ -410,7 +431,8 @@ export function parseFormDefinition(input: unknown): FormDefinition {
         scoreGroupId: typeof f.scoreGroupId === 'string' && groupIds.has(f.scoreGroupId) ? f.scoreGroupId : null,
       };
     });
-    return { name: sName, fields };
+    const description = typeof s?.description === 'string' ? s.description.trim().slice(0, 2000) || null : null;
+    return { name: sName, description, fields };
   });
   if (!sections.some((s: { fields: unknown[] }) => s.fields.length)) throw new Error('The form file has no fields');
   return {

@@ -18,14 +18,19 @@ Each form shows its status: **Draft** (never published), **Published**, or **Cha
 
 ## A form page
 
+Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists **All forms**, **Settings**, **Scoring**, **Links**, **Submissions** and the form's **Sections** (numbered, with how many questions each has). Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again.
+
+- A section shows its questions. Its ⋮ menu has **Edit section** (name and an optional **Intro**, a line or two shown under the section title) and **Delete**. **Add field** adds a question. Drag a question by its ☰ handle to reorder it.
 - **Details** (name, description) and **Settings** save with **Save** at the top.
 - **Settings**:
+  - **How sections are shown** on the form's pages: **One page** (everything on one scrolling page), **Steps** (one section at a time with Next and Back, then About you), **Accordion** (sections open one at a time) or **Tabs** (a tab per section). The form's link page and the embed code follow it; websites that draw the form with their own code get it too.
   - **Review submissions before they become prospects**: submissions wait under **Waiting for review**. Turned off, they are accepted as they come in.
   - **Ask for their organization** and **Ask for a phone number**: extra questions next to name and email (name and email are always asked).
   - **Email people their results**: after sending, people get an email with their results, or your thank-you message on forms without scoring.
   - **Thank-you message** and **Call to action** (a label and a link, e.g. to book a call) shown after sending and in the results email.
 - **Scoring** and **Fields** save right away.
-- **Publish** makes the current fields and scoring the version people see. Until you publish again, the links keep showing the earlier version. Each submission keeps the version it answered.
+- **Publish** makes the current fields and scoring the version people see. After changes, the button reads **Publish changes**; until you click it, the links keep showing the earlier version. Each submission keeps the version it answered.
+- **Unpublish** (the same button when there are no changes waiting, otherwise in the ⋮ menu) takes the form offline: its links and embeds stop working until you publish again. Submissions are kept.
 
 ## Scoring
 

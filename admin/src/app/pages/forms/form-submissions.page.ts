@@ -8,6 +8,7 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import type { FormSubmissionListItemDto, FormSubmissionStatus } from '@upstart/back-office/shared';
 import { FormsApi } from '../../core/forms.api';
+import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
@@ -77,6 +78,7 @@ export class FormSubmissionsPage implements OnInit {
   private readonly forms = inject(FormsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly ws = inject(FormWorkspaceService);
 
   readonly formId = this.route.snapshot.paramMap.get('id') ?? '';
   readonly statusTag = SUBMISSION_STATUS_TAG;
@@ -102,8 +104,11 @@ export class FormSubmissionsPage implements OnInit {
   async ngOnInit() {
     const t = this.route.snapshot.queryParamMap.get('tab') as Tab | null;
     if (t && t in TAB_STATUS) this.tab.set(t);
+    if (this.ws.form()?.id !== this.formId) this.ws.form.set(null);
     try {
-      this.formName.set((await this.forms.form(this.formId)).name);
+      const f = await this.forms.form(this.formId);
+      this.ws.form.set(f);
+      this.formName.set(f.name);
     } catch {
       // The list below reports the error.
     }

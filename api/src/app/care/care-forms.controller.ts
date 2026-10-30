@@ -6,7 +6,7 @@ import { CARE_FORM_MODULE, CARE_RECORD_KINDS, type CareFormDto } from '@upstart/
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { UserContext } from '../common/app.types';
 import { sanitizeFormAccess } from '../forms/form-access.util';
-import { CreateFieldDto, CreateLinkDto, MoveDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from '../forms/form.dto';
+import { CreateFieldDto, CreateLinkDto, MoveDto, OrderDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from '../forms/form.dto';
 import { FormLinksService } from '../forms/form-links.service';
 import { FormStructureService } from '../forms/form-structure.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -115,13 +115,13 @@ export class CareFormsController {
   @Post('forms/:id/sections')
   @Action('setup')
   createSection(@Param('id') formId: string, @Body() dto: SectionDto) {
-    return this.structure.createSection(formId, M, dto.name);
+    return this.structure.createSection(formId, M, dto.name, dto.description);
   }
 
   @Patch('sections/:id')
   @Action('setup')
   updateSection(@Param('id') id: string, @Body() dto: SectionDto) {
-    return this.structure.renameSection(id, M, dto.name);
+    return this.structure.renameSection(id, M, dto.name, dto.description);
   }
 
   /** Deletes the section and its fields; their answers disappear from every record. */
@@ -135,6 +135,20 @@ export class CareFormsController {
   @Action('setup')
   moveSection(@Param('id') id: string, @Body() dto: MoveDto) {
     return this.structure.moveSection(id, M, dto.direction);
+  }
+
+  /** Drag and drop: the form's sections in a new order. */
+  @Post('forms/:id/sections/order')
+  @Action('setup')
+  orderSections(@Param('id') formId: string, @Body() dto: OrderDto) {
+    return this.structure.reorderSections(formId, M, dto.ids);
+  }
+
+  /** Drag and drop: a section's fields in a new order. */
+  @Post('sections/:id/fields/order')
+  @Action('setup')
+  orderFields(@Param('id') sectionId: string, @Body() dto: OrderDto) {
+    return this.structure.reorderFields(sectionId, M, dto.ids);
   }
 
   @Post('sections/:id/fields')
