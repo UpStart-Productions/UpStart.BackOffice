@@ -9,7 +9,7 @@ import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
-import { PdfFrameComponent } from '../../ui/pdf-frame/pdf-frame.component';
+import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
@@ -61,7 +61,7 @@ type OrganizationLetterhead = {
 @Component({
   selector: 'app-invoice-detail-page',
   standalone: true,
-  imports: [ButtonModule, MessageModule, TableModule, TagModule, RouterLink, PageComponent, PdfFrameComponent, RecordAttributionComponent],
+  imports: [ButtonModule, MessageModule, TableModule, TagModule, RouterLink, PageComponent, FileViewerDialogComponent, RecordAttributionComponent],
   templateUrl: './invoice-detail.page.html',
   styleUrl: './invoice-detail.page.scss',
 })
@@ -80,10 +80,7 @@ export class InvoiceDetailPage implements OnInit {
   readonly attribution = signal<RecordAttributionDto | null>(null);
   readonly letterhead = signal<OrganizationLetterhead | null>(null);
 
-  pdfViewOpen = signal(false);
-  pdfLoading = signal(false);
-  pdfError = signal<string | null>(null);
-  pdfBlob = signal<Blob | null>(null);
+  pdfViewer = signal<ViewerFile | null>(null);
 
   readonly orgLogoUrl = computed(() => resolveLogoAssetUrl(this.letterhead()?.logoUrl));
 
@@ -197,26 +194,16 @@ export class InvoiceDetailPage implements OnInit {
     return inv.billToAddress.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   }
 
-  async togglePdfView() {
-    if (this.pdfViewOpen()) {
-      this.pdfViewOpen.set(false);
-      return;
-    }
-    this.pdfViewOpen.set(true);
-    if (this.pdfBlob()) return;
-
+  /** The stored PDF in the shared viewer (the same window as task attachments). */
+  viewPdf() {
     const inv = this.invoice();
     if (!inv) return;
-
-    this.pdfLoading.set(true);
-    this.pdfError.set(null);
-    try {
-      this.pdfBlob.set(await this.api.fetchPdfBlob(`/invoices/${inv.id}/pdf`));
-    } catch (err) {
-      this.pdfError.set(err instanceof Error ? err.message : 'PDF could not be loaded');
-    } finally {
-      this.pdfLoading.set(false);
-    }
+    this.pdfViewer.set({
+      name: `${inv.displayNumber}.pdf`,
+      kind: 'pdf',
+      loadBlob: () => this.api.fetchPdfBlob(`/invoices/${inv.id}/pdf`),
+      download: () => this.api.downloadPdf(`/invoices/${inv.id}/pdf`, `${inv.displayNumber}.pdf`),
+    });
   }
 
   async downloadPdf() {

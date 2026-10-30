@@ -322,29 +322,7 @@
         }
       </section>
 
-      <p-dialog
-        [header]="previewAttachment()?.fileName ?? ''"
-        [visible]="!!previewAttachment()"
-        (visibleChange)="!$event && closePreview()"
-        [modal]="true"
-        [dismissableMask]="true"
-        [draggable]="false"
-        [style]="{ width: 'min(60rem, 96vw)' }"
-        appendTo="body"
-      >
-        @if (previewAttachment(); as v) {
-          @if (attachmentIsVideo(v)) {
-            <video class="tm-preview-media" [src]="resolveAssetUrl(v.url)" controls autoplay playsinline></video>
-          } @else if (attachmentIsPdf(v)) {
-            <app-pdf-frame class="tm-preview-pdf" [blob]="previewPdf()" [loading]="previewPdfLoading()" [error]="previewPdfError()" [title]="v.fileName" />
-          } @else {
-            <img class="tm-preview-media tm-preview-image" [src]="resolveAssetUrl(v.url)" [alt]="v.fileName" />
-          }
-          <div class="tm-preview-footer">
-            <a [href]="resolveAssetUrl(v.url)" class="text-primary" (click)="downloadAttachment(v, $event)"><i class="pi pi-download mr-1"></i>Download</a>
-          </div>
-        }
-      </p-dialog>
+      <app-file-viewer-dialog [file]="preview()" (closed)="previewAttachment.set(null)" />
 
       <section class="tm-detail-section tm-activity">
         <div class="tm-activity-header">

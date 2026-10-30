@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -24,7 +23,6 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
   selector: 'app-care-visit-page',
   standalone: true,
   imports: [
-    DatePipe,
     FormsModule,
     RouterLink,
     ButtonModule,

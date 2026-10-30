@@ -9,8 +9,7 @@ import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { fileExtLabel, fileIconClass, isPdfFile, isRasterImage, isVideoFile } from '../../core/file-type.util';
-import { PdfFrameComponent } from '../../ui/pdf-frame/pdf-frame.component';
-import { AppDialogModule } from '../../core/app-dialog.module';
+import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, createdOnLabel, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
@@ -46,8 +45,7 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     TmDueDatePickerComponent,
     TmRecurrenceEditorComponent,
     TmFieldCellComponent,
-    AppDialogModule,
-    PdfFrameComponent,
+    FileViewerDialogComponent,
   ],
   templateUrl: './task-detail-panel.component.html',
   animations: [
@@ -105,9 +103,12 @@ export class TmTaskDetailComponent implements OnDestroy {
   dragOver = signal(false);
   /** The photo, video or PDF open in the viewer. */
   previewAttachment = signal<TaskAttachment | null>(null);
-  previewPdf = signal<Blob | null>(null);
-  previewPdfLoading = signal(false);
-  previewPdfError = signal<string | null>(null);
+  readonly preview = computed<ViewerFile | null>(() => {
+    const a = this.previewAttachment();
+    if (!a) return null;
+    const kind = this.attachmentIsVideo(a) ? 'video' : this.attachmentIsPdf(a) ? 'pdf' : 'image';
+    return { name: a.fileName, kind, url: resolveAssetUrl(a.url) };
+  });
   commentComposerOpen = signal(false);
   private readonly host = inject(ElementRef<HTMLElement>);
   private readonly assigneePicker = viewChild.required<TmPersonPickerComponent>('assigneePicker');
@@ -556,54 +557,6 @@ export class TmTaskDetailComponent implements OnDestroy {
     if (!pdf && !this.attachmentIsImage(a) && !this.attachmentIsVideo(a)) return;
     event.preventDefault();
     this.previewAttachment.set(a);
-    if (pdf) void this.loadPreviewPdf(a);
-  }
-
-  closePreview() {
-    this.previewAttachment.set(null);
-    this.previewPdf.set(null);
-    this.previewPdfError.set(null);
-  }
-
-  /** PDFs show in the browser's viewer (like View PDF on an invoice) from a local copy. */
-  private async loadPreviewPdf(a: TaskAttachment) {
-    const url = resolveAssetUrl(a.url);
-    this.previewPdf.set(null);
-    this.previewPdfError.set(null);
-    if (!url) return;
-    this.previewPdfLoading.set(true);
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('The PDF could not be loaded.');
-      const blob = await res.blob();
-      if (this.previewAttachment()?.id === a.id) this.previewPdf.set(blob);
-    } catch (err) {
-      this.previewPdfError.set(err instanceof Error ? err.message : 'The PDF could not be loaded.');
-    } finally {
-      this.previewPdfLoading.set(false);
-    }
-  }
-
-  /**
-   * Save the file without opening it. Files come from the API's address, where browsers ignore the download
-   * attribute, so fetch it and save a local copy (as the Files tab does).
-   */
-  async downloadAttachment(a: TaskAttachment, event: MouseEvent) {
-    event.preventDefault();
-    const url = resolveAssetUrl(a.url);
-    if (!url) return;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Download failed');
-      const objectUrl = URL.createObjectURL(await res.blob());
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = a.fileName;
-      link.click();
-      URL.revokeObjectURL(objectUrl);
-    } catch (err) {
-      this.fail(err);
-    }
   }
 
   attachmentIcon(a: TaskAttachment) {

@@ -58,11 +58,11 @@
             }
           </div>
           <p-button
-            [label]="pdfViewOpen() ? 'Hide PDF' : 'View PDF'"
+            label="View PDF"
             severity="secondary"
             [outlined]="true"
             size="small"
-            (click)="togglePdfView()"
+            (click)="viewPdf()"
           />
         </div>
         <div class="invoice-detail-header__meta">
@@ -110,53 +110,50 @@
         </div>
       </div>
 
-      @if (pdfViewOpen()) {
-        <app-pdf-frame class="invoice-pdf-wrap" [blob]="pdfBlob()" [loading]="pdfLoading()" [error]="pdfError()" [title]="inv.displayNumber + ' PDF'" />
+      @if (inv.lineItems.length === 0) {
+        <p class="text-sm text-muted">No line items.</p>
       } @else {
-        @if (inv.lineItems.length === 0) {
-          <p class="text-sm text-muted">No line items.</p>
-        } @else {
-          <p-table [value]="inv.lineItems" styleClass="table-bordered invoice-detail-table">
-            <ng-template pTemplate="header">
-              <tr>
-                @if (showProjectColumn) {
-                  <th style="width: 160px">Project</th>
-                }
-                <th>Description</th>
-                <th class="invoice-detail-num-col">Qty/Hrs</th>
-                <th class="invoice-detail-num-col">Rate</th>
-                <th class="invoice-detail-num-col">Amount</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-li>
-              <tr>
-                @if (showProjectColumn) {
-                  <td>{{ li.project?.name || '—' }}</td>
-                }
-                <td>{{ li.description }}</td>
-                <td class="invoice-detail-num-col">{{ li.quantity }}</td>
-                <td class="invoice-detail-num-col">{{ formatAmount(li.unitPrice) }}</td>
-                <td class="invoice-detail-num-col font-semibold">{{ formatAmount(li.amount) }}</td>
-              </tr>
-            </ng-template>
-          </p-table>
+        <p-table [value]="inv.lineItems" styleClass="table-bordered invoice-detail-table">
+          <ng-template pTemplate="header">
+            <tr>
+              @if (showProjectColumn) {
+                <th style="width: 160px">Project</th>
+              }
+              <th>Description</th>
+              <th class="invoice-detail-num-col">Qty/Hrs</th>
+              <th class="invoice-detail-num-col">Rate</th>
+              <th class="invoice-detail-num-col">Amount</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-li>
+            <tr>
+              @if (showProjectColumn) {
+                <td>{{ li.project?.name || '—' }}</td>
+              }
+              <td>{{ li.description }}</td>
+              <td class="invoice-detail-num-col">{{ li.quantity }}</td>
+              <td class="invoice-detail-num-col">{{ formatAmount(li.unitPrice) }}</td>
+              <td class="invoice-detail-num-col font-semibold">{{ formatAmount(li.amount) }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
 
-          <div class="invoice-detail-totals">
-            <span>Subtotal: <strong>{{ formatAmount(inv.subtotal) }}</strong></span>
-            @if (inv.taxRate) {
-              <span>Tax: <strong>{{ formatAmount(inv.taxAmount ?? 0) }}</strong></span>
-            }
-            <span>Total: <strong>{{ formatAmount(inv.total) }}</strong></span>
-          </div>
-        }
+        <div class="invoice-detail-totals">
+          <span>Subtotal: <strong>{{ formatAmount(inv.subtotal) }}</strong></span>
+          @if (inv.taxRate) {
+            <span>Tax: <strong>{{ formatAmount(inv.taxAmount ?? 0) }}</strong></span>
+          }
+          <span>Total: <strong>{{ formatAmount(inv.total) }}</strong></span>
+        </div>
+      }
 
-        @if (inv.notes?.trim()) {
-          <div class="invoice-detail-notes-block">
-            <h4 class="showcase-section-title">Notes</h4>
-            <div class="invoice-detail-notes ql-editor" [innerHTML]="notesHtml(inv.notes)"></div>
-          </div>
-        }
+      @if (inv.notes?.trim()) {
+        <div class="invoice-detail-notes-block">
+          <h4 class="showcase-section-title">Notes</h4>
+          <div class="invoice-detail-notes ql-editor" [innerHTML]="notesHtml(inv.notes)"></div>
+        </div>
       }
     </div>
   }
+  <app-file-viewer-dialog [file]="pdfViewer()" (closed)="pdfViewer.set(null)" />
 </app-page>

@@ -465,29 +465,6 @@
   }
 }
 
-// Attachment viewer (photos and videos).
-.tm-preview-media {
-  display: block;
-  width: 100%;
-  max-height: 70vh;
-  background: #000;
-  border-radius: 6px;
-}
-
-.tm-preview-image {
-  object-fit: contain;
-  background: var(--surface-ground);
-}
-
-.tm-preview-pdf {
-  display: block;
-  --pdf-frame-height: 70vh;
-}
-
-.tm-preview-footer {
-  margin-top: 0.75rem;
-}
-
 // White circle with a trash can, top right on hover (like the People photo).
 .tm-attach-remove {
   position: absolute;

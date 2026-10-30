@@ -48,7 +48,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Invoices
 
-**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **View PDF** shows the stored PDF from when the invoice was sent; **Download PDF** saves that same file. Sent invoices cannot be edited. Overdue/due warnings may appear above the table.
+**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue/due warnings may appear above the table.
 
 ### Bill to: a client or your organization
 
