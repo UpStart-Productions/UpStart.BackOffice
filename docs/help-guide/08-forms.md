@@ -18,7 +18,7 @@ Each form shows its status: **Draft** (never published), **Published**, or **Cha
 
 ## A form page
 
-Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists the form's **Sections** (numbered, with how many questions each has), with **Settings**, **Scoring**, **Links** and **Submissions** below them. Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again; **Forms** in the main menu goes back to the list.
+Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists the form's **Sections** (numbered, with how many questions each has), with **Settings**, **Scoring** and **Links** below them. Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again; **Forms** in the main menu goes back to the list.
 
 - A section shows its questions. Its ⋮ menu has **Edit section** (name and an optional **Intro**, a line or two shown under the section title) and **Delete**. **Add field** adds a question. Drag a question by its ☰ handle to reorder it.
 - **Details** (name, description) and **Settings** save with **Save** at the top.
@@ -58,7 +58,7 @@ New link also has **Allowed websites**. The **Websites** column on the links lis
 
 ## Submissions
 
-Open **Submissions** from the form page or the list. Tabs: **Waiting for review**, **Accepted**, **Dismissed**, **All**. **Export Excel** downloads a workbook for analysis outside UBO: click it for every submission, or use the arrow for **This tab only**. It has three sheets:
+Open **Submissions** from the Forms list (the count, or **Submissions** in a form's ⋮ menu). It's separate from building the form. Tabs: **Waiting for review**, **Accepted**, **Dismissed**, **All**. **Export Excel** downloads a workbook for analysis outside UBO: click it for every submission, or use the arrow for **This tab only**. It has three sheets:
 
 - **Answers**: one row per answer, with when it came in, its status and who sent it, then the section, question code (Q1, Q2…), question and answer. On scored forms each row also has the answer's points and the question's score area.
 - **Results** (scored forms): one row per submission with the total points, total score %, profile and each score area.

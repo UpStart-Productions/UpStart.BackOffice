@@ -10,11 +10,9 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import type { FormSubmissionListItemDto, FormSubmissionStatus } from '@upstart/back-office/shared';
 import { FormsApi } from '../../core/forms.api';
-import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { exportSubmissionsExcel } from './form-submission-export.util';
-import { freeFormWorkspace } from './form-workspace.config';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
 
 type Tab = 'pending' | 'accepted' | 'dismissed' | 'all';
@@ -26,7 +24,7 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
   standalone: true,
   imports: [DatePipe, FormsModule, RouterLink, SplitButtonModule, MessageModule, TableModule, TabsModule, TagModule, PageComponent, ToolbarSearchFieldComponent],
   template: `
-    <app-page [title]="(formName() || 'Form') + ': Submissions'" [backLink]="['/forms', formId]" [backLabel]="'Back to ' + (formName() || 'form')" helpKey="forms.submissions.page">
+    <app-page [title]="(formName() || 'Form') + ': Submissions'" backLink="/forms" backLabel="Back to Forms" helpKey="forms.submissions.page">
       <ng-container ngProjectAs="[pageActions]">
         <p-splitButton
           label="Export Excel"
@@ -94,7 +92,6 @@ export class FormSubmissionsPage implements OnInit {
   private readonly forms = inject(FormsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly ws = inject(FormWorkspaceService);
 
   readonly formId = this.route.snapshot.paramMap.get('id') ?? '';
   readonly statusTag = SUBMISSION_STATUS_TAG;
@@ -151,10 +148,8 @@ export class FormSubmissionsPage implements OnInit {
   async ngOnInit() {
     const t = this.route.snapshot.queryParamMap.get('tab') as Tab | null;
     if (t && t in TAB_STATUS) this.tab.set(t);
-    this.ws.open(this.formId, freeFormWorkspace(this.forms, this.formId));
     try {
       const f = await this.forms.form(this.formId);
-      this.ws.form.set(f);
       this.formName.set(f.name);
     } catch {
       // The list below reports the error.

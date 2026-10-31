@@ -23,9 +23,9 @@ Only people whose role can **Edit** the Intake form and reach every organization
 
 ## A form (record) page
 
-Shows the organization's answers grouped by section. Change answers and click **Save** at the top. **Open organization** goes to the organization. The ⋮ menu has **Delete**. The side panel shows who sent it (public intakes), the last change made through a link, and **Share link**.
+Shows the organization's answers grouped by section. Change answers and click **Save** at the top. **Open organization** goes to the organization. The ⋮ menu has **Change organization** (moves it, with its share links, to another organization that doesn't have this form yet) and **Delete** (removes this organization's copy and its answers; the form itself stays). The side panel shows who sent it (public intakes), the last change made through a link, and **Share link**.
 
-The organization page has a **Care** card listing its forms: open one, or **Start** a form that doesn't exist yet.
+Each organization you serve gets its own copy of the Intake form and the Care profile, started from **New intake** / **New care profile** or by accepting an intake. Organizations in Care (with at least one of them) show a **Care** card on their page: open either one, or **Start** the one that's missing. Other organizations (partners, vendors and so on) don't show the card.
 
 Public intake links can also go on your website: the link's ⋮ menu → **Embed on a website** gives a one-line embed code and **Allowed websites** (see Forms → Putting a form on a website).
 

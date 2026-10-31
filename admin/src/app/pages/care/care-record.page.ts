@@ -17,6 +17,7 @@ import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE, normalizeValues } from '../../ui
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
+import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 /** One organization's copy of a Care form (or a public intake waiting for review). */
@@ -37,6 +38,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     PageComponent,
     RecordAttributionComponent,
     RowActionsMenuComponent,
+    OrganizationSelectComponent,
   ],
   template: `
     <app-page [title]="pageTitle()" [backLink]="backLink()" [backLabel]="'Back to ' + backLabel()" helpKey="care.record.page">
@@ -130,6 +132,18 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         </div>
       }
 
+      <p-dialog header="Change organization" [(visible)]="moveVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
+        <p class="mt-0">Moves this {{ record()?.formName }} and its share links from {{ record()?.clientName }} to another organization.</p>
+        <div class="form-field">
+          <label for="crMoveOrg">Organization</label>
+          <app-organization-select inputId="crMoveOrg" [(value)]="moveClientId" [exclude]="record()?.clientId ? [record()!.clientId!] : []" />
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="moving()" (onClick)="moveVisible = false" />
+          <p-button label="Move" icon="pi pi-arrow-right" [loading]="moving()" [disabled]="!moveClientId" (onClick)="move()" />
+        </ng-template>
+      </p-dialog>
+
       <app-accept-response-dialog
         header="Accept intake"
         [(visible)]="acceptVisible"
@@ -162,6 +176,9 @@ export class CareRecordPage implements OnInit {
   private saved = '';
 
   acceptVisible = signal(false);
+  moveVisible = false;
+  moveClientId: string | null = null;
+  moving = signal(false);
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
@@ -194,6 +211,9 @@ export class CareRecordPage implements OnInit {
   headerActions(): RowActionItem[] {
     const pending = this.record()?.status === 'PENDING';
     return [
+      ...(!pending && this.record()?.clientId
+        ? [{ id: 'move', label: 'Change organization', icon: 'pi pi-arrow-right-arrow-left', command: () => this.openMove() }]
+        : []),
       {
         id: 'delete',
         label: pending ? 'Dismiss' : 'Delete',
@@ -202,6 +222,26 @@ export class CareRecordPage implements OnInit {
         command: () => this.confirmDelete(),
       },
     ];
+  }
+
+  openMove() {
+    this.moveClientId = null;
+    this.moveVisible = true;
+  }
+
+  async move() {
+    if (!this.moveClientId) return;
+    this.moving.set(true);
+    try {
+      const r = await this.care.changeRecordClient(this.id, this.moveClientId);
+      this.apply(r);
+      this.moveVisible = false;
+      this.toast.add({ severity: 'success', summary: 'Moved', detail: `Now on ${r.clientName}.` });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not move', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    } finally {
+      this.moving.set(false);
+    }
   }
 
   async save() {

@@ -2,13 +2,18 @@ import { IsIn, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'clas
 
 export class UpdateCareFormDto {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(120) name?: string;
-  @IsOptional() @IsString() @MaxLength(4000) description?: string | null;
+  /** Formatted text (editor HTML). */
+  @IsOptional() @IsString() @MaxLength(20000) description?: string | null;
   /** roleId -> "read" | "edit"; roles left out have no access. */
   @IsOptional() @IsObject() access?: Record<string, string>;
 }
 
 export class CreateRecordDto {
   @IsString() formId!: string;
+  @IsString() clientId!: string;
+}
+
+export class ChangeRecordClientDto {
   @IsString() clientId!: string;
 }
 

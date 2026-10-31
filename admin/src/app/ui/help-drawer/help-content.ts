@@ -69,7 +69,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Next step',
-      body: 'Under the name: what happens next, when, and who owns it. Set next step or Edit to change it. Done records "Done: …" on the timeline, clears it and asks for the next one. Next steps show on Activity → To do, overdue ones in red.',
+      body: 'The Next step panel on the right: what happens next, when, and who owns it. Set next step or Edit to change it. Done records "Done: …" on the timeline, clears it and asks for the next one. Next steps show on Activity → To do, overdue ones in red.',
     },
     {
       heading: 'Activity',
@@ -826,7 +826,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'forms/:id': {
     title: 'Form',
-    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring, Links and Submissions below them. Click one to work on it.',
+    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring and Links below them. Click one to work on it. Submissions open from the Forms list.',
     sections: [
       {
         heading: 'Sections',
@@ -939,6 +939,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       {
         heading: 'Accept or dismiss',
         body: 'An intake sent through a public intake link shows Waiting for review. Accept attaches it to a new or existing organization; Dismiss (⋮ menu) deletes it.',
+      },
+      {
+        heading: 'Change organization or delete',
+        body: "In the ⋮ menu. Change organization moves this copy, with its answers and share links, to another organization that doesn't have this form yet. Delete removes this organization's copy; the form stays.",
       },
     ],
   },

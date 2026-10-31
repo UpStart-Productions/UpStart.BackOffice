@@ -38,10 +38,6 @@
     <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">
       <div class="stack" [class.span-2]="!isNew">
       <form class="card" (ngSubmit)="save()">
-        @if (!isNew) {
-          <app-next-step [clientId]="id()!" [canEdit]="canEdit()" class="client-next-step" />
-        }
-
         <div class="showcase-flex-col">
           <div class="form-field showcase-full">
             <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
@@ -178,6 +174,13 @@
 
       @if (!isNew) {
         <div class="stack span-1">
+          <div class="card card--side">
+            <div class="card-header">
+              <h3 class="card-title">Next step</h3>
+            </div>
+            <app-next-step [clientId]="id()!" [canEdit]="canEdit()" variant="panel" />
+          </div>
+
           <app-people mode="organization" [clientId]="id()!" [compact]="true" />
 
           <app-care-client-card [clientId]="id()!" />

@@ -7,13 +7,16 @@ import { areaEnabled } from '@upstart/back-office/shared';
 import { CareApi, CareClientForm } from '../../core/care.api';
 import { SessionService } from '../../core/session.service';
 
-/** Organization page side card: this organization's Care forms (shown when the Care module is on). */
+/**
+ * Organization page side card: this organization's intake and care profile. Shown only for organizations in Care
+ * (at least one started), so partners, vendors and the rest don't get an empty card. A missing one can be started here.
+ */
 @Component({
   selector: 'app-care-client-card',
   standalone: true,
   imports: [DatePipe, RouterLink, ButtonModule],
   template: `
-    @if (forms().length) {
+    @if (inCare()) {
       <div class="card card--side">
         <div class="card-header"><h3 class="card-title">Care</h3></div>
         <div class="side-list">
@@ -25,7 +28,7 @@ import { SessionService } from '../../core/session.service';
                   <span class="side-list-detail">Updated {{ f.updatedAt | date: 'MMM d, y' }}</span>
                 } @else {
                   <span class="side-list-title">{{ f.name }}</span>
-                  <span class="side-list-detail">Not started</span>
+                  <span class="side-list-detail">None yet</span>
                 }
               </div>
               @if (!f.recordId && f.myAccess === 'edit') {
@@ -48,6 +51,8 @@ export class CareClientCardComponent {
 
   forms = signal<CareClientForm[]>([]);
   starting = signal<string | null>(null);
+  /** The organization has an intake or care profile. */
+  readonly inCare = computed(() => this.forms().some((f) => !!f.recordId));
   private readonly careOn = computed(() => {
     const me = this.session.me();
     return !!me && areaEnabled(me.modules, 'care') && (me.role === 'ADMIN' || !!me.permissions?.care);

@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query, Req, UseGuards,
+  BadRequestException, Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -17,7 +17,7 @@ import { liveValues, mergeFormValues } from '../forms/form-fields.util';
 import { FormLinksService } from '../forms/form-links.service';
 import { FormStructureService } from '../forms/form-structure.service';
 import { byCareKind, careForm, careKind, ensureCareForms } from './care-forms.util';
-import { AcceptIntakeDto, CreateRecordDto, SaveValuesDto } from './care.dto';
+import { AcceptIntakeDto, ChangeRecordClientDto, CreateRecordDto, SaveValuesDto } from './care.dto';
 
 function personName(u: { firstName: string | null; lastName: string | null; name: string | null; email: string } | null): string | null {
   if (!u) return null;
@@ -156,6 +156,28 @@ export class CareRecordsController {
       throw new BadRequestException(err instanceof Error ? err.message : 'Invalid value');
     }
     await this.prisma.formResponse.update({ where: { id }, data: { values: values as Prisma.InputJsonValue } });
+    return this.view(id, 'edit');
+  }
+
+  /**
+   * Move an organization's record to another organization (e.g. it was started on the wrong one). Its answers
+   * and its share links go along. Refused when the other organization already has this form.
+   */
+  @Patch('records/:id/client')
+  async changeClient(@Req() req: Request, @Param('id') id: string, @Body() dto: ChangeRecordClientDto) {
+    const user = req.user as UserContext;
+    const { record } = await this.care.assertRecord(user, id, 'edit');
+    if (!record.clientId) throw new BadRequestException('Accept this intake first');
+    if (dto.clientId === record.clientId) return this.view(id, 'edit');
+    await this.care.assertClient(user, dto.clientId);
+    const client = await this.prisma.client.findFirst({ where: { id: dto.clientId }, select: { id: true, name: true } });
+    if (!client) throw new NotFoundException('Organization not found');
+    const taken = await this.prisma.formResponse.findFirst({ where: { formId: record.formId, clientId: client.id }, select: { id: true } });
+    if (taken) throw new ConflictException(`${client.name} already has ${record.form.name}`);
+    await this.prisma.$transaction([
+      this.prisma.formResponse.update({ where: { id }, data: { clientId: client.id } }),
+      this.prisma.formLink.updateMany({ where: { formId: record.formId, clientId: record.clientId }, data: { clientId: client.id } }),
+    ]);
     return this.view(id, 'edit');
   }
 

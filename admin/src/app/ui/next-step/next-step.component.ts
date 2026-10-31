@@ -17,7 +17,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
 /**
  * One-line next step for an organization: what happens next, when, and who owns it.
  * Done records "Done: …" on the timeline, clears the step and opens the editor for the next one.
- * Used in the organization/client page header and on the Activity page.
+ * Used in the organization page's right-hand panel and on the Activity page.
  */
 @Component({
   selector: 'app-next-step',
@@ -121,6 +121,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
     </p-dialog>
   `,
   styles: `
+    :host { display: block; }
     .next-step {
       display: flex;
       flex-wrap: wrap;

@@ -78,6 +78,10 @@ export class CareApi {
   saveRecord(id: string, values: Record<string, unknown>) {
     return this.api.put<CareRecordDto>(`/care/records/${id}`, { values });
   }
+  /** Move an organization's record (with its share links) to another organization. */
+  changeRecordClient(id: string, clientId: string) {
+    return this.api.patch<CareRecordDto>(`/care/records/${id}/client`, { clientId });
+  }
   deleteRecord(id: string) {
     return this.api.delete(`/care/records/${id}`);
   }
