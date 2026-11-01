@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested,
 } from 'class-validator';
-import { FORM_FIELD_TYPES, type FormFieldType, type FormLinkVerify } from '@upstart/back-office/shared';
+import { FORM_FIELD_TYPES, FORM_SUBFIELD_TYPES, type FormFieldType, type FormLinkVerify, type FormSubfieldType } from '@upstart/back-office/shared';
 
 const VERIFY: FormLinkVerify[] = ['NONE', 'PASSCODE', 'EMAIL_CODE'];
 
@@ -11,6 +11,14 @@ class OptionDto {
   @IsString() @MaxLength(400) label!: string;
   /** Scored forms only. */
   @IsOptional() @IsNumber() points?: number | null;
+}
+
+class SubfieldDto {
+  /** Kept when editing an existing sub-field (its answers stay). */
+  @IsOptional() @IsString() id?: string;
+  @IsString() @MinLength(1) @MaxLength(200) name!: string;
+  @IsIn(FORM_SUBFIELD_TYPES) type!: FormSubfieldType;
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => OptionDto) options?: OptionDto[];
 }
 
 export class SectionDto {
@@ -27,6 +35,8 @@ export class CreateFieldDto {
   /** Scored forms only: the score area. */
   @IsOptional() @IsString() @MaxLength(40) scoreGroupId?: string | null;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => OptionDto) options?: OptionDto[];
+  /** Repeating groups: the sub-fields. */
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SubfieldDto) subfields?: SubfieldDto[];
 }
 
 /** The type can't change once answers may exist. */
@@ -35,6 +45,8 @@ export class UpdateFieldDto {
   @IsOptional() @IsBoolean() required?: boolean;
   @IsOptional() @IsString() @MaxLength(40) scoreGroupId?: string | null;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => OptionDto) options?: OptionDto[];
+  /** Repeating groups: the sub-fields (ids kept for existing ones; their types can't change). */
+  @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SubfieldDto) subfields?: SubfieldDto[];
 }
 
 export class MoveDto {

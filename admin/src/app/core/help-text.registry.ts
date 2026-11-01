@@ -140,8 +140,10 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'form.builder.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
   'form.builder.optionsScored':
     'The choices people can pick from, and the points each one is worth. Leave points empty on fields that are not scored.',
+  'form.builder.subfields':
+    "The fields each row has, e.g. Name, Dosage and Frequency for a medication list. People click Add another for each row. A saved sub-field's type can't be changed; deleting one removes its answers.",
   'form.builder.scoreGroup': 'The score area this question counts toward. Results show a percentage for each area.',
-  'form.builder.required': 'People filling in the form through a public link must answer it. Staff can save with it empty.',
+  'form.builder.required': 'People filling in the form through a public link must answer it (a repeating group needs at least one row). Staff can save with it empty.',
   // Forms area
   'forms.page':
     'Forms you build and share with a link: sign-ups, assessments, feedback. Each form has its own submissions. A form is live once you publish it.',
@@ -150,7 +152,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.page':
     'Build the form here. Details and Settings save with Save; Scoring and Fields save right away. Public links show the published version, so publish again for changes to reach people.',
   'forms.form.preview':
-    'See the draft the way a new public link will look. Answers are not saved. Use Preview on the top bar (between Publish and Save) or in the ⋮ menu.',
+    'Opens the draft in a new tab. Refresh that tab after you change the form. Answers are not saved; required fields do not block paging in preview.',
   'forms.form.description': 'Shown at the top of the form.',
   'forms.form.layout':
     'One page: everything on one scrolling page. Page by section: one section at a time with Next and Back. Page by question: one question or text block per screen; picking a single choice moves on by itself. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',

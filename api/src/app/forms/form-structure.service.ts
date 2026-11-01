@@ -2,17 +2,22 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import {
   FORM_CONTENT_MAX, formProfile, isSelectFieldType, plainTextToHtml, type FormDefinition, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
+  type FormSubfieldDto,
 } from '@upstart/back-office/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFieldDto, UpdateFieldDto } from './form.dto';
-import { formFieldOptions } from './form-fields.util';
+import { formFieldOptions, formSubfields, storedSubfields } from './form-fields.util';
 
 export const FORM_ORDER = [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }];
 const FIELD_SELECT = { id: true, name: true, type: true, options: true, required: true, scoreGroupId: true } as const;
 
 type FieldRow = { id: string; name: string; type: FormFieldType; options: Prisma.JsonValue; required: boolean; scoreGroupId?: string | null };
 
+/** A repeating group keeps its sub-fields in the options column; everything else keeps select options there. */
 export function fieldView(f: FieldRow): FormFieldDto {
+  if (f.type === 'GROUP') {
+    return { id: f.id, name: f.name, type: f.type, options: [], required: f.required, scoreGroupId: null, subfields: storedSubfields(f.options) };
+  }
   return {
     id: f.id, name: f.name, type: f.type, options: (f.options as FormFieldOption[] | null) ?? [], required: f.required,
     scoreGroupId: f.scoreGroupId ?? null,
@@ -83,6 +88,9 @@ export class FormStructureService {
         type: f.type,
         required: f.required,
         ...(f.options.length ? { options: f.options.map((o) => ({ label: o.label, ...(typeof o.points === 'number' ? { points: o.points } : {}) })) } : {}),
+        ...(f.subfields?.length
+          ? { subfields: f.subfields.map((sf) => ({ name: sf.name, type: sf.type, ...(sf.options.length ? { options: sf.options.map((o) => ({ label: o.label })) } : {}) })) }
+          : {}),
         scoreGroupId: f.scoreGroupId ?? null,
       })),
     }));
@@ -114,14 +122,24 @@ export class FormStructureService {
         ? [{ name: plainTextToHtml(sec.description), type: 'CONTENT' as const, required: false }, ...sec.fields]
         : sec.fields;
       for (const [fi, f] of items.entries()) {
+        let stored: Prisma.InputJsonValue | typeof Prisma.DbNull = Prisma.DbNull;
+        if (f.type === 'GROUP') {
+          try {
+            stored = formSubfields((f as { subfields?: unknown }).subfields) as unknown as Prisma.InputJsonValue;
+          } catch (err) {
+            throw new BadRequestException(`"${f.name}": ${err instanceof Error ? err.message : 'invalid sub-fields'}`);
+          }
+        } else if (f.options) {
+          stored = formFieldOptions(f.type, f.options, profile.scoring) as unknown as Prisma.InputJsonValue;
+        }
         await db.formField.create({
           data: {
             sectionId: section.id,
             name: f.name,
             type: f.type,
             required: f.type !== 'CONTENT' && profile.required ? f.required : false,
-            scoreGroupId: f.type !== 'CONTENT' && profile.scoring ? f.scoreGroupId ?? null : null,
-            options: f.options ? (formFieldOptions(f.type, f.options, profile.scoring) as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+            scoreGroupId: f.type !== 'CONTENT' && f.type !== 'GROUP' && profile.scoring ? f.scoreGroupId ?? null : null,
+            options: stored,
             sortOrder: fi,
           },
         });
@@ -177,7 +195,7 @@ export class FormStructureService {
     const profile = this.profile(section.form);
     if (!profile.fieldTypes.includes(dto.type)) throw new BadRequestException('This form does not take that type of field');
     const name = this.itemName(dto.type, dto.name);
-    const options = formFieldOptions(dto.type, dto.options, profile.scoring);
+    const options: unknown[] = dto.type === 'GROUP' ? this.subfields(dto.subfields) : formFieldOptions(dto.type, dto.options, profile.scoring);
     if (isSelectFieldType(dto.type) && !options.length) throw new BadRequestException('Add at least one option');
     const last = await this.prisma.formField.findFirst({ where: { sectionId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
     const f = await this.prisma.formField.create({
@@ -186,7 +204,7 @@ export class FormStructureService {
         name,
         type: dto.type,
         required: dto.type !== 'CONTENT' && profile.required && !!dto.required,
-        scoreGroupId: dto.type !== 'CONTENT' && profile.scoring ? dto.scoreGroupId || null : null,
+        scoreGroupId: dto.type !== 'CONTENT' && dto.type !== 'GROUP' && profile.scoring ? dto.scoreGroupId || null : null,
         options: options.length ? (options as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
         sortOrder: (last?.sortOrder ?? -1) + 1,
       },
@@ -206,6 +224,11 @@ export class FormStructureService {
       return fieldView(f);
     }
     if (dto.required !== undefined) data.required = profile.required && dto.required;
+    if (field.type === 'GROUP') {
+      if (dto.subfields !== undefined) data.options = this.subfields(dto.subfields, storedSubfields(field.options)) as unknown as Prisma.InputJsonValue;
+      const f = await this.prisma.formField.update({ where: { id }, data, select: FIELD_SELECT });
+      return fieldView(f);
+    }
     if (dto.scoreGroupId !== undefined && profile.scoring) data.scoreGroupId = dto.scoreGroupId || null;
     if (dto.options !== undefined && isSelectFieldType(field.type)) {
       const options = formFieldOptions(field.type, dto.options, profile.scoring);
@@ -214,6 +237,15 @@ export class FormStructureService {
     }
     const f = await this.prisma.formField.update({ where: { id }, data, select: FIELD_SELECT });
     return fieldView(f);
+  }
+
+  /** A repeating group's sub-fields, checked (existing ids keep their type). */
+  private subfields(input: unknown, existing: FormSubfieldDto[] = []): FormSubfieldDto[] {
+    try {
+      return formSubfields(input, existing);
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'Invalid sub-fields');
+    }
   }
 
   /** A question's name (short), or a text block's formatted text (HTML, longer). */

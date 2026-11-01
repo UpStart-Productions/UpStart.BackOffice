@@ -26,6 +26,7 @@ import { FieldOptionDraft, FieldOptionsEditorComponent } from '../field-options-
 import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
+import { SubfieldDraft, SubfieldsEditorComponent } from './subfields-editor.component';
 
 type Field = FormFieldDto;
 type Section = FormSectionDto & { fields: Field[] };
@@ -56,6 +57,7 @@ export type BuilderForm = { id: string; sections: Section[] };
     CdkDragPlaceholder,
     AppDialogModule,
     FieldOptionsEditorComponent,
+    SubfieldsEditorComponent,
     HelpTextComponent,
     LucideIconComponent,
     RowActionsMenuComponent,
@@ -121,6 +123,15 @@ export type BuilderForm = { id: string; sections: Section[] };
                     }
                   }
                 </div>
+                @if (f.type === 'GROUP' && f.subfields?.length) {
+                  <div class="fb-field-options">
+                    @for (sf of f.subfields; track sf.id) {
+                      <span class="fb-option" [title]="sf.name + ' (' + typeLabel(sf.type) + ')'">
+                        <span class="fb-option-label">{{ sf.name }}</span>
+                      </span>
+                    }
+                  </div>
+                }
                 @if (isSelect(f.type) && f.options.length) {
                   <div class="fb-field-options">
                     @for (o of f.options; track o.id) {
@@ -171,7 +182,7 @@ export type BuilderForm = { id: string; sections: Section[] };
       </ng-template>
     </p-dialog>
 
-    <p-dialog [header]="editingField ? 'Edit field' : 'Add field'" [(visible)]="fieldVisible" [modal]="true" [style]="{ width: 'min(30rem, 96vw)' }">
+    <p-dialog [header]="editingField ? 'Edit field' : 'Add field'" [(visible)]="fieldVisible" [modal]="true" [style]="{ width: fieldType === 'GROUP' ? 'min(40rem, 96vw)' : 'min(30rem, 96vw)' }">
       <div class="form-field">
         <label for="fbFieldName">Name</label>
         <input pInputText id="fbFieldName" class="w-full" [(ngModel)]="fieldName" />
@@ -198,6 +209,12 @@ export type BuilderForm = { id: string; sections: Section[] };
           </ng-template>
         </p-select>
       </div>
+      @if (fieldType === 'GROUP') {
+        <div class="form-field mt-3">
+          <label>Sub-fields <app-help-text key="form.builder.subfields" /></label>
+          <app-subfields-editor [(subfields)]="fieldSubfields" />
+        </div>
+      }
       @if (isSelect(fieldType)) {
         <div class="form-field mt-3">
           <label>Options <app-help-text [key]="profile().scoring ? 'form.builder.optionsScored' : 'form.builder.options'" /></label>
@@ -501,6 +518,8 @@ export class FormBuilderComponent {
   fieldRequired = false;
   fieldScoreGroupId: string | null = null;
   fieldOptions = signal<FieldOptionDraft[]>([]);
+  /** Repeating group: its sub-fields. */
+  fieldSubfields = signal<SubfieldDraft[]>([]);
 
   typeLabel(type: FormFieldType) {
     return FORM_FIELD_TYPE_LABELS[type];
@@ -598,6 +617,7 @@ export class FormBuilderComponent {
       { id: '', label: '' },
       { id: '', label: '' },
     ]);
+    this.fieldSubfields.set([{ id: '', name: '', type: 'TEXT', options: [] }]);
     this.fieldVisible = true;
   }
 
@@ -609,6 +629,7 @@ export class FormBuilderComponent {
     this.fieldRequired = f.required;
     this.fieldScoreGroupId = f.scoreGroupId ?? null;
     this.fieldOptions.set(f.options.map((o) => ({ ...o })));
+    this.fieldSubfields.set((f.subfields ?? []).map((sf) => ({ id: sf.id, name: sf.name, type: sf.type, options: sf.options.map((o) => ({ ...o })) })));
     this.fieldVisible = true;
   }
 
@@ -624,11 +645,25 @@ export class FormBuilderComponent {
             ...(this.profile().scoring && typeof o.points === 'number' ? { points: o.points } : {}),
           }))
       : undefined;
+    const subfields =
+      this.fieldType === 'GROUP'
+        ? this.fieldSubfields()
+            .filter((sf) => sf.name.trim())
+            .map((sf) => ({
+              ...(sf.id ? { id: sf.id } : {}),
+              name: sf.name.trim(),
+              type: sf.type,
+              ...(isSelectFieldType(sf.type)
+                ? { options: sf.options.filter((o) => o.label.trim()).map((o) => ({ ...(o.id ? { id: o.id } : {}), label: o.label.trim() })) }
+                : {}),
+            }))
+        : undefined;
     const body = {
       name,
       ...(this.profile().required ? { required: this.fieldRequired } : {}),
-      ...(this.profile().scoring ? { scoreGroupId: this.fieldScoreGroupId } : {}),
+      ...(this.profile().scoring && this.fieldType !== 'GROUP' ? { scoreGroupId: this.fieldScoreGroupId } : {}),
       ...(options ? { options } : {}),
+      ...(subfields ? { subfields } : {}),
     };
     this.saving.set(true);
     try {

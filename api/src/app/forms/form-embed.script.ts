@@ -39,6 +39,8 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     ':where(.ubo-form .ubo-step){color:var(--ubo-muted);margin:0 0 .25rem}',
     ':where(.ubo-form .ubo-nav){display:flex;gap:.75rem;flex-wrap:wrap}',
     ':where(.ubo-form .ubo-button--secondary){background:transparent;color:inherit;border:1px solid var(--ubo-border)}',
+    ':where(.ubo-form .ubo-group-row){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);padding:.75rem .75rem 0;margin:0 0 .75rem}',
+    ':where(.ubo-form .ubo-group-remove){font:inherit;background:none;border:0;color:var(--ubo-muted);cursor:pointer;padding:0 0 .75rem;text-decoration:underline}',
     ':where(.ubo-form .ubo-panel){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);margin:0 0 .75rem;padding:0 1rem}',
     ':where(.ubo-form .ubo-panel > summary){cursor:pointer;font-weight:600;padding:.85rem 0}',
     ':where(.ubo-form .ubo-panel[open] > summary){border-bottom:1px solid var(--ubo-border);margin-bottom:1rem}',
@@ -148,6 +150,48 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           return multi ? (picked.length ? picked : null) : (picked[0] || null);
         },
         missing: function () { return f.required && !inputs.some(function (i) { return i.checked; }); },
+        name: f.name
+      };
+    }
+    if (f.type === 'GROUP') {
+      // A repeating group: a box of sub-fields per row, Add another adds one.
+      var subs = f.subfields || [];
+      var rowsBox = el('div');
+      var rows = [];
+      function addRow() {
+        var cells = subs.map(function (sf) {
+          return { id: sf.id, ui: field({ id: sf.id, name: sf.name, type: sf.type, options: sf.options || [], required: false }) };
+        });
+        var remove = el('button', { type: 'button', className: 'ubo-group-remove', text: 'Remove' });
+        var node = el('div', { className: 'ubo-group-row' }, cells.map(function (c) { return c.ui.node; }).concat([remove]));
+        var row = { node: node, cells: cells };
+        remove.addEventListener('click', function () {
+          rows.splice(rows.indexOf(row), 1);
+          rowsBox.removeChild(node);
+          // There is always one row to fill in.
+          if (!rows.length) addRow();
+        });
+        rows.push(row);
+        rowsBox.appendChild(node);
+      }
+      var add = el('button', { type: 'button', className: 'ubo-button ubo-button--secondary', text: 'Add another' });
+      add.addEventListener('click', function () { addRow(); });
+      addRow();
+      function readRows() {
+        return rows
+          .map(function (r) {
+            var out = {};
+            var any = false;
+            r.cells.forEach(function (c) { var v = c.ui.read(); if (v !== null) { out[c.id] = v; any = true; } });
+            return any ? out : null;
+          })
+          .filter(function (r) { return r; });
+      }
+      var groupLegend = el('legend', { className: 'ubo-label' }, [f.name, f.required ? el('span', { className: 'ubo-required', text: '*', 'aria-hidden': 'true' }) : null]);
+      return {
+        node: el('fieldset', { className: 'ubo-field' }, [groupLegend, rowsBox, add]),
+        read: function () { var r = readRows(); return r.length ? r : null; },
+        missing: function () { return f.required && !readRows().length; },
         name: f.name
       };
     }

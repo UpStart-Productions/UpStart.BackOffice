@@ -1924,6 +1924,8 @@ enum FormFieldType {
   CHECKBOX
   /// A text block, not a question: `name` holds formatted text (HTML); never answered.
   CONTENT
+  /// A repeating group: sub-fields (kept in `options`) filled in as rows; the answer is a list of rows.
+  GROUP
 }
 
 enum FormResponseStatus {

@@ -12,12 +12,13 @@
 
 .required-dot {
   display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 0.25rem;
+  width: 8px;
+  height: 8px;
+  margin-left: 0.35rem;
   border-radius: 50%;
-  background-color: var(--color-error);
+  background-color: var(--color-error, #d32f2f);
   vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .page-header-with-back {

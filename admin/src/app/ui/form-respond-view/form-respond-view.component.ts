@@ -129,12 +129,12 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
       <ng-template #whoTpl>
         <div class="flex flex-wrap gap-2 mb-3">
           <div class="form-field flex-1">
-            <label [for]="id('name')">Your name@if (intake()) {<span class="task-form-required">*</span>}</label>
+            <label [for]="id('name')">Your name@if (intake()) {<span class="required-dot" aria-hidden="true"></span>}</label>
             <input pInputText [id]="id('name')" name="name" class="w-full" [(ngModel)]="name" autocomplete="name" />
           </div>
           @if (intake()) {
             <div class="form-field flex-1">
-              <label [for]="id('email')">Your email<span class="task-form-required">*</span></label>
+              <label [for]="id('email')">Your email<span class="required-dot" aria-hidden="true"></span></label>
               <input
                 pInputText
                 [id]="id('email')"
@@ -148,7 +148,7 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
             </div>
             @if (ask().organization) {
               <div class="form-field flex-1">
-                <label [for]="id('org')">Organization<span class="task-form-required">*</span></label>
+                <label [for]="id('org')">Organization<span class="required-dot" aria-hidden="true"></span></label>
                 <input pInputText [id]="id('org')" name="organization" class="w-full" [(ngModel)]="organization" autocomplete="organization" />
               </div>
             }
@@ -255,6 +255,29 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
       font-weight: 600;
       margin: 1.25rem 0 0.75rem;
     }
+    .login-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .login-actions .p-button {
+      width: auto;
+    }
+    .form-field label {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .required-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--color-error, #d32f2f);
+      flex-shrink: 0;
+    }
   `,
 })
 export class FormRespondViewComponent {
@@ -328,10 +351,12 @@ export class FormRespondViewComponent {
   }
 
   next() {
-    const missing = this.page()?.fields.find((f) => f.required && !isContentField(f) && isEmpty(this.values[f.id]));
-    if (missing) {
-      this.error.set(this.layout() === 'questions' ? 'Please answer this question' : `${missing.name}: required`);
-      return;
+    if (!this.preview()) {
+      const missing = this.page()?.fields.find((f) => f.required && !isContentField(f) && isEmpty(this.values[f.id]));
+      if (missing) {
+        this.error.set(this.layout() === 'questions' ? 'Please answer this question' : `${missing.name}: required`);
+        return;
+      }
     }
     this.error.set(null);
     this.sectionStep.update((n) => Math.min(n + 1, this.stepCount() - 1));

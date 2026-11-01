@@ -100,7 +100,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                   @for (f of s.fields; track f.id) {
                     <app-form-field-input
                       class="showcase-half"
-                      [class.cv-wide]="f.type === 'LONG_TEXT' || f.type === 'CONTENT'"
+                      [class.cv-wide]="f.type === 'LONG_TEXT' || f.type === 'CONTENT' || f.type === 'GROUP'"
                       [field]="f"
                       [value]="values[f.id] ?? null"
                       (valueChange)="values[f.id] = $event"

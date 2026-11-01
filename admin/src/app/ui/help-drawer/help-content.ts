@@ -878,7 +878,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Preview',
-        body: 'Use Preview on the top bar (between Publish and Save) or in the ⋮ menu. You see the draft like a new public link. Answers are not saved. Field edits show as you save them; Details and Settings on screen are included even before Save.',
+        body: 'Preview opens the draft in a new tab (top bar or ⋮ menu). Refresh that tab after you change the form. Answers are not saved; required fields do not block Next or Back in preview.',
       },
     ],
   },

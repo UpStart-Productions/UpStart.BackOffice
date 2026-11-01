@@ -38,6 +38,12 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/forms/public-form.page').then((m) => m.PublicFormPage),
   },
   {
+    // Staff form preview (no app chrome): auth required; API enforces form access.
+    path: 'forms/:id/preview',
+    loadComponent: () => import('./pages/forms/form-preview.page').then((m) => m.FormPreviewPage),
+    canActivate: [authGuard, sessionGuard],
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard, sessionGuard],

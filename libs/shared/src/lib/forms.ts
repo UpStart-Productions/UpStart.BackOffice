@@ -3,11 +3,15 @@
  * Modules that need forms (Care today, the Forms area next) use these; the engine never knows what a response is about.
  */
 
-/** CONTENT is a text block, not a question: its `name` holds formatted text (HTML) and it never takes an answer. */
-export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'CONTENT';
-export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'CONTENT'];
+/**
+ * CONTENT is a text block, not a question: its `name` holds formatted text (HTML) and it never takes an answer.
+ * GROUP is a repeating group: a few sub-fields filled in as rows (Add another); its answer is a list of rows.
+ */
+export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'CONTENT' | 'GROUP';
+export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'GROUP', 'CONTENT'];
 export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   CONTENT: 'Text block',
+  GROUP: 'Repeating group',
   TEXT: 'Text',
   LONG_TEXT: 'Long text',
   NUMBER: 'Number',
@@ -26,7 +30,18 @@ export const FORM_FIELD_TYPE_ICONS: Record<FormFieldType, string> = {
   SINGLE_SELECT: 'circle-dot',
   MULTI_SELECT: 'list-checks',
   CHECKBOX: 'square-check-big',
+  GROUP: 'rows-3',
 };
+
+/** What a repeating group's sub-field can be (no text blocks, no groups inside groups). */
+export type FormSubfieldType = Exclude<FormFieldType, 'CONTENT' | 'GROUP'>;
+export const FORM_SUBFIELD_TYPES: FormSubfieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX'];
+/** Most sub-fields in a group, and most rows in one answer. */
+export const FORM_GROUP_MAX_SUBFIELDS = 12;
+export const FORM_GROUP_MAX_ROWS = 200;
+
+/** A repeating group's answer: one object per row, sub-field id -> value. */
+export type FormGroupRow = Record<string, unknown>;
 
 /** Longest text block (HTML). Question names stay short. */
 export const FORM_CONTENT_MAX = 20000;
@@ -56,6 +71,8 @@ export function isSelectFieldType(type: FormFieldType): boolean {
 
 /** `points`: scoring only (never sent to public pages). */
 export type FormFieldOption = { id: string; label: string; points?: number };
+/** One column of a repeating group. Ids are kept on rename, so answers survive. */
+export type FormSubfieldDto = { id: string; name: string; type: FormSubfieldType; options: FormFieldOption[] };
 export type FormFieldDto = {
   id: string;
   name: string;
@@ -64,7 +81,14 @@ export type FormFieldDto = {
   required: boolean;
   /** Scoring: the score area this field counts toward (FormScoreGroup.id). */
   scoreGroupId?: string | null;
+  /** Repeating groups (GROUP): the sub-fields each row has. */
+  subfields?: FormSubfieldDto[];
 };
+
+/** A sub-field as a field (to fill in with the same control). */
+export function subfieldAsField(sf: FormSubfieldDto): FormFieldDto {
+  return { id: sf.id, name: sf.name, type: sf.type, options: sf.options, required: false };
+}
 /** `description`: optional intro shown under the section title. */
 export type FormSectionDto = { id: string; name: string; description?: string | null; fields: FormFieldDto[] };
 
@@ -398,6 +422,22 @@ export function formatFormValue(field: FormFieldDto, value: unknown): string {
       if (!m) return String(value);
       return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
+    case 'GROUP': {
+      // One line per row: "Sub-field: value; Sub-field: value".
+      const rows = Array.isArray(value) ? (value as FormGroupRow[]) : [];
+      return rows
+        .map((row) =>
+          (field.subfields ?? [])
+            .map((sf) => {
+              const v = formatFormValue(subfieldAsField(sf), row?.[sf.id]);
+              return v ? `${sf.name}: ${v}` : '';
+            })
+            .filter(Boolean)
+            .join('; '),
+        )
+        .filter(Boolean)
+        .join('\n');
+    }
     default:
       return String(value);
   }
@@ -575,6 +615,8 @@ export type FormDefinition = {
       options?: { label: string; points?: number }[];
       /** Scored forms: the score area id (settings.scoring.groups[].id). */
       scoreGroupId?: string | null;
+      /** Repeating groups: the sub-fields (select sub-fields have options). */
+      subfields?: { name: string; type: FormSubfieldType; options?: { label: string }[] }[];
     }[];
   }[];
 };
@@ -604,12 +646,28 @@ export function parseFormDefinition(input: unknown): FormDefinition {
             .map((o: any) => ({ label: o.label.trim().slice(0, 400), ...(Number.isFinite(o.points) ? { points: Number(o.points) } : {}) }))
         : undefined;
       if (options && !options.length) throw new Error(`"${fName}" needs at least one choice`);
+      let subfields: { name: string; type: FormSubfieldType; options?: { label: string }[] }[] | undefined;
+      if (type === 'GROUP') {
+        subfields = (Array.isArray(f.subfields) ? f.subfields : []).slice(0, FORM_GROUP_MAX_SUBFIELDS).map((sf: any) => {
+          const sfName = typeof sf?.name === 'string' ? sf.name.trim().slice(0, 200) : '';
+          if (!sfName) throw new Error(`A sub-field of "${fName}" has no name`);
+          if (!FORM_SUBFIELD_TYPES.includes(sf?.type)) throw new Error(`"${sfName}" in "${fName}" has a type a repeating group can't have`);
+          const sfType = sf.type as FormSubfieldType;
+          const sfOptions = isSelectFieldType(sfType)
+            ? (Array.isArray(sf.options) ? sf.options : []).filter((o: any) => typeof o?.label === 'string' && o.label.trim()).map((o: any) => ({ label: o.label.trim().slice(0, 400) }))
+            : undefined;
+          if (sfOptions && !sfOptions.length) throw new Error(`"${sfName}" in "${fName}" needs at least one choice`);
+          return { name: sfName, type: sfType, ...(sfOptions ? { options: sfOptions } : {}) };
+        });
+        if (!subfields!.length) throw new Error(`"${fName}" needs at least one sub-field`);
+      }
       return {
         name: fName,
         type,
         required: !!f.required,
         ...(options ? { options } : {}),
-        scoreGroupId: typeof f.scoreGroupId === 'string' && groupIds.has(f.scoreGroupId) ? f.scoreGroupId : null,
+        ...(subfields ? { subfields } : {}),
+        scoreGroupId: type !== 'GROUP' && typeof f.scoreGroupId === 'string' && groupIds.has(f.scoreGroupId) ? f.scoreGroupId : null,
       };
     });
     const description = typeof s?.description === 'string' ? s.description.trim().slice(0, 2000) || null : null;

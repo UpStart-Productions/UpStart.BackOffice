@@ -13,7 +13,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  areaEnabled, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, publicSections, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
+  areaEnabled, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
   type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto,
 } from '@upstart/back-office/shared';
 import { SessionService } from '../../core/session.service';
@@ -24,7 +24,6 @@ import { freeFormWorkspace } from './form-workspace.config';
 import { FormsApi } from '../../core/forms.api';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
-import { FormRespondViewComponent } from '../../ui/form-respond-view/form-respond-view.component';
 import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -51,7 +50,6 @@ const newId = () => Math.random().toString(36).slice(2, 10);
     TextareaModule,
     AppDialogModule,
     FormBuilderComponent,
-    FormRespondViewComponent,
     FormLinksComponent,
     HelpTextComponent,
     RowActionsMenuComponent,
@@ -320,27 +318,6 @@ const newId = () => Math.random().toString(36).slice(2, 10);
             <app-form-links [apiBase]="forms.base" [formId]="f.id" title="Public links" helpKey="forms.form.links" />
           </div>
             }
-            @case ('preview') {
-          <p-message
-            severity="info"
-            styleClass="w-full mb-3"
-            text="Preview only — answers are not saved. Fields reflect your saved edits; unsaved Details and Settings appear here too."
-          />
-          @if (previewView(); as pv) {
-            <div class="card form-preview-card">
-              <app-form-respond-view
-                [formName]="pv.formName"
-                [description]="pv.description"
-                [descriptionHtml]="pv.descriptionHtml"
-                [layout]="pv.layout"
-                [sections]="pv.sections"
-                [ask]="pv.ask"
-                [preview]="true"
-                idPrefix="form-edit-preview"
-              />
-            </div>
-          }
-            }
             @default {
           @if (currentSection(); as sec) {
             <div class="card">
@@ -407,11 +384,6 @@ const newId = () => Math.random().toString(36).slice(2, 10);
         </ng-template>
       </p-dialog>
   `,
-  styles: `
-    .form-preview-card {
-      max-width: 42rem;
-    }
-  `,
 })
 export class FormEditPage implements OnInit {
   readonly forms = inject(FormsApi);
@@ -437,27 +409,11 @@ export class FormEditPage implements OnInit {
   readonly view = computed(() => {
     const f = this.form();
     const v = this.query()?.get('view');
-    if (v === 'settings' || v === 'scoring' || v === 'links' || v === 'access' || v === 'preview') return v;
+    if (v === 'settings' || v === 'scoring' || v === 'links' || v === 'access') return v;
     if (v && f?.sections.some((x) => x.id === v)) return v;
     return f?.sections[0]?.id ?? 'settings';
   });
   readonly currentSection = computed(() => this.form()?.sections.find((x) => x.id === this.view()) ?? null);
-
-  /** Public-style preview from the draft on screen (includes unsaved Details / Settings). */
-  readonly previewView = computed(() => {
-    const f = this.form();
-    if (!f) return null;
-    const raw = this.description.trim() || f.description?.trim() || '';
-    const descriptionHtml = raw && /^\s*</.test(raw) ? raw : null;
-    return {
-      formName: this.name.trim() || f.name,
-      description: descriptionHtml ? null : raw || null,
-      descriptionHtml,
-      layout: this.layout,
-      sections: publicSections(f.sections.filter((s) => s.fields.length)),
-      ask: { organization: this.settings.askOrganization, phone: this.settings.askPhone },
-    };
-  });
 
   readonly profile = formProfile(FREE_FORM_MODULE, null);
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
@@ -628,7 +584,7 @@ export class FormEditPage implements OnInit {
   }
 
   openPreview() {
-    void this.router.navigate(['/forms', this.id], { queryParams: { view: 'preview' } });
+    window.open(`/forms/${this.id}/preview`, '_blank', 'noopener');
   }
 
   headerActions(): RowActionItem[] {

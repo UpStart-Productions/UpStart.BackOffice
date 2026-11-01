@@ -17,9 +17,31 @@
   color: var(--text-color-secondary);
 }
 
-.task-form-required {
-  color: var(--p-red-500, #dc2626);
-  margin-left: 0.15rem;
+.task-form-card .login-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.task-form-card .login-actions .p-button {
+  width: auto;
+}
+
+.task-form-card label {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.task-form-card .required-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-error, #d32f2f);
+  flex-shrink: 0;
 }
 
 .task-form-check {

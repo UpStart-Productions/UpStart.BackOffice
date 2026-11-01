@@ -1,0 +1,1390 @@
+{
+  "format": "ubo-form",
+  "version": 1,
+  "name": "Client Information Form",
+  "description": "Confidential. Everything about a client in one place: contacts and legal, insurance, health, end-of-life wishes, functional assessment, background and death certificate information.",
+  "settings": {
+    "layout": "steps",
+    "review": true,
+    "askOrganization": false,
+    "askPhone": false,
+    "resultsEmail": false,
+    "cta": null,
+    "thankYou": null,
+    "client": {
+      "enabled": true,
+      "copies": "living",
+      "createClients": false,
+      "category": "Client profile"
+    },
+    "visitChecklist": false,
+    "scoring": {
+      "enabled": false,
+      "groups": [],
+      "bands": []
+    }
+  },
+  "sections": [
+    {
+      "name": "Client and case",
+      "fields": [
+        {
+          "name": "<p><strong>Confidential.</strong> Keep this form up to date as things change.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Date case opened",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Name",
+          "type": "TEXT",
+          "required": true
+        },
+        {
+          "name": "Date of birth",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "SSN",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Client phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Current address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Facility phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Facility fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Care facility admit date",
+          "type": "DATE",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Guardian and legal",
+      "fields": [
+        {
+          "name": "Guardian",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Guardian phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Guardian fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Guardian address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Guardianship number",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Guardian date of appointment",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Guardian county",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Conservator / trust / POA",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Conservator phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Conservator fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Conservator billing address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Conservator date of appointment",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Conservator county",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for guardian",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for guardian phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for guardian fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for guardian address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for protected person",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for protected person phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for protected person fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Attorney for protected person address",
+          "type": "TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Insurance and pharmacy",
+      "fields": [
+        {
+          "name": "Primary health insurance",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Primary insurance ID #",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Primary insurance phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Primary insurance fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Copy of primary insurance card attached",
+          "type": "CHECKBOX",
+          "required": false
+        },
+        {
+          "name": "Secondary health insurance",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Secondary insurance ID #",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Secondary insurance phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Secondary insurance fax",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Copy of secondary insurance card attached",
+          "type": "CHECKBOX",
+          "required": false
+        },
+        {
+          "name": "Other insurance",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Pharmacy",
+          "type": "TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Contacts and providers",
+      "fields": [
+        {
+          "name": "Significant others",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Relationship",
+              "type": "TEXT"
+            },
+            {
+              "name": "Phone",
+              "type": "TEXT"
+            },
+            {
+              "name": "Address",
+              "type": "TEXT"
+            }
+          ]
+        },
+        {
+          "name": "Hospital",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Hospital phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Hospital address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Current healthcare providers",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Specialty",
+              "type": "TEXT"
+            },
+            {
+              "name": "Phone",
+              "type": "TEXT"
+            },
+            {
+              "name": "Fax",
+              "type": "TEXT"
+            },
+            {
+              "name": "Address",
+              "type": "TEXT"
+            }
+          ]
+        },
+        {
+          "name": "Allergies",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "End of life",
+      "fields": [
+        {
+          "name": "Resuscitate / DNR",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Resuscitate (full code)"
+            },
+            {
+              "label": "DNR"
+            },
+            {
+              "label": "Not decided"
+            }
+          ]
+        },
+        {
+          "name": "Source (POLST, POA, guardian, etc.)",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Religious preference",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Name of church",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Church address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Church phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Church contact",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Religious notes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Funeral plan",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Funeral plan reviewed",
+          "type": "CHECKBOX",
+          "required": false
+        },
+        {
+          "name": "Funeral home",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Funeral home phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Funeral home address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Cemetery",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Cemetery phone",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Cemetery address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Funeral notes (include a description of the desired funeral)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Clothing size: top",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Clothing size: trousers",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Clothing size: underwear",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Clothing size: shoes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "General notes (and other significant contacts)",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Diagnoses",
+      "fields": [
+        {
+          "name": "<p>Add diagnoses as they occur, with the date.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Diagnoses",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Date",
+              "type": "DATE"
+            },
+            {
+              "name": "Diagnosis",
+              "type": "TEXT"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Medications",
+      "fields": [
+        {
+          "name": "<p>For later updates to the medication list, note the date only and refer to the med file.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Medications",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Date",
+              "type": "DATE"
+            },
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Dosage",
+              "type": "TEXT"
+            },
+            {
+              "name": "Frequency",
+              "type": "TEXT"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Hospitalizations and history",
+      "fields": [
+        {
+          "name": "<p>Hospitalizations and admissions to care homes, added as they occur.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Hospitalizations and admissions",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Date",
+              "type": "DATE"
+            },
+            {
+              "name": "Facility",
+              "type": "TEXT"
+            },
+            {
+              "name": "Reason for admission",
+              "type": "TEXT"
+            }
+          ]
+        },
+        {
+          "name": "Alcohol and drug history (narrative, include present use)",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Functional assessment",
+      "fields": [
+        {
+          "name": "<p>For each activity, pick how much help is needed and add any notes.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Eating",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Eating notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Swallowing",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "No problems"
+            },
+            {
+              "label": "Some difficulty"
+            },
+            {
+              "label": "Significant difficulty"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Swallowing notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Eating aids",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Ambulation",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Ambulation notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Transferring",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Transferring notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Mobility aids",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Toileting",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Toileting notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Continence",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Continent"
+            },
+            {
+              "label": "Sometimes incontinent"
+            },
+            {
+              "label": "Incontinent"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Continence notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Toileting aids",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Bathing",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Bathing notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Bathing aids",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Dressing",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Dressing notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Dressing aids",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Grooming",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Grooming notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Teeth",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Dentures",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Glasses",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Hearing",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Good"
+            },
+            {
+              "label": "Impaired"
+            },
+            {
+              "label": "Severely impaired"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Hearing notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Hearing aid",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Hearing aid battery",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Grocery shopping",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Grocery shopping notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Hair cuts",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Hair cuts notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Nail care",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Nail care notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Laundry",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Laundry notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Meal preparation",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Meal preparation notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Transportation",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Independent"
+            },
+            {
+              "label": "Needs some help"
+            },
+            {
+              "label": "Needs full help"
+            },
+            {
+              "label": "Not applicable"
+            }
+          ]
+        },
+        {
+          "name": "Transportation notes",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Other needs and services",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Mental status and habits",
+      "fields": [
+        {
+          "name": "<p>Mental status: a brief summary.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Orientation",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Judgment",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Memory",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Mood",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Safety issues / special concerns",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "<p>Personal habits: include use of make-up, hair care, clothing preferences (colors, fabric, size), shoes (brand and size), environmental preferences (light, color, temperature), music, sleeping habits, food preferences, attitudes towards spirituality, sexuality, money, exercise habits, endurance and personality characteristics.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Personal habits",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Background",
+      "fields": [
+        {
+          "name": "Birthplace",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Education",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Childhood description",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Adult places of residence",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Parents (include a description of the relationship)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Siblings",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Birth order",
+              "type": "TEXT"
+            },
+            {
+              "name": "Phone",
+              "type": "TEXT"
+            },
+            {
+              "name": "Address",
+              "type": "TEXT"
+            },
+            {
+              "name": "Date of death",
+              "type": "DATE"
+            }
+          ]
+        },
+        {
+          "name": "Marital status (names of spouses, years married, date of divorce or death)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Children",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Birth order",
+              "type": "TEXT"
+            },
+            {
+              "name": "Phone",
+              "type": "TEXT"
+            },
+            {
+              "name": "Address",
+              "type": "TEXT"
+            },
+            {
+              "name": "Relationship",
+              "type": "LONG_TEXT"
+            }
+          ]
+        },
+        {
+          "name": "Vocational history",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Recreational history and current interests",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Narrative (history, current situation, current issues and concerns, goals and expectations, assessment of the current situation, recent changes of behavior)",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Death certificate",
+      "fields": [
+        {
+          "name": "<p>Information for the death certificate.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "First name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Middle name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Last name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Sex",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Male"
+            },
+            {
+              "label": "Female"
+            }
+          ]
+        },
+        {
+          "name": "Address",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "City",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "County",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "State",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Zip",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Resided in this state since",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Prior residence in",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Years at prior residence",
+          "type": "NUMBER",
+          "required": false
+        },
+        {
+          "name": "Year entered the U.S. (if foreign born)",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Citizen of what country, or date of U.S. naturalization",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Social Security number",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Usual occupation",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Kind of business or industry",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Date of birth (death certificate)",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Place of birth (city, state, country)",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Education (death certificate)",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Marital status",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Never married"
+            },
+            {
+              "label": "Married"
+            },
+            {
+              "label": "Separated"
+            },
+            {
+              "label": "Divorced"
+            },
+            {
+              "label": "Widowed"
+            }
+          ]
+        },
+        {
+          "name": "Spouse's name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Wife's maiden name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Spouse's birth date",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Spouse's birthplace",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Place of marriage",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Date of marriage",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Father's full name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Father's birthplace",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Mother's full name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Mother's birthplace",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Children (death certificate)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "<p>If a veteran: store a copy of the honorable discharge with these papers.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Branch of service",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Serial #",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "\"C\" #",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Name of war(s)",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Rank or rate at discharge",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Date enlisted",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Date discharged",
+          "type": "DATE",
+          "required": false
+        },
+        {
+          "name": "Discharge on file at",
+          "type": "TEXT",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

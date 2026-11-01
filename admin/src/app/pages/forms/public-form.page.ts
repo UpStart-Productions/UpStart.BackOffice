@@ -171,17 +171,17 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
               <ng-template #whoTpl>
               <div class="flex flex-wrap gap-2 mb-3">
                   <div class="form-field flex-1">
-                    <label for="cpName">Your name@if (isIntake()) {<span class="task-form-required">*</span>}</label>
+                    <label for="cpName">Your name@if (isIntake()) {<span class="required-dot" aria-hidden="true"></span>}</label>
                     <input pInputText id="cpName" name="name" class="w-full" [(ngModel)]="name" autocomplete="name" />
                   </div>
                   @if (isIntake()) {
                     <div class="form-field flex-1">
-                      <label for="cpEmail2">Your email<span class="task-form-required">*</span></label>
+                      <label for="cpEmail2">Your email<span class="required-dot" aria-hidden="true"></span></label>
                       <input pInputText id="cpEmail2" name="email2" type="email" class="w-full" [(ngModel)]="email" [readonly]="!!form()?.verifiedEmail" autocomplete="email" />
                     </div>
                     @if (info()?.ask?.organization) {
                       <div class="form-field flex-1">
-                        <label for="cpOrg">Organization<span class="task-form-required">*</span></label>
+                        <label for="cpOrg">Organization<span class="required-dot" aria-hidden="true"></span></label>
                         <input pInputText id="cpOrg" name="organization" class="w-full" [(ngModel)]="organization" autocomplete="organization" />
                       </div>
                     }
@@ -336,6 +336,29 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
       font-size: var(--fs-md);
       font-weight: 600;
       margin: 1.25rem 0 0.75rem;
+    }
+    .login-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .login-actions .p-button {
+      width: auto;
+    }
+    .form-field label {
+      display: inline-flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .required-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--color-error, #d32f2f);
+      flex-shrink: 0;
     }
   `,
 })
