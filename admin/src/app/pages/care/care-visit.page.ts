@@ -9,6 +9,7 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import type { CareVisitDto } from '@upstart/back-office/shared';
 import { CareApi } from '../../core/care.api';
+import { FormFilesClient } from '../../core/form-files.client';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { dateKey } from '../../core/date.util';
 import { atLocal, formatDuration, normalizeValues, timeKey } from '../../ui/care-forms/care.types';
@@ -105,6 +106,8 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                       [value]="values[f.id] ?? null"
                       (valueChange)="values[f.id] = $event"
                       [disabled]="!v.canEdit"
+                      [fileUpload]="fileUpload()"
+                      [fileOpen]="fileOpen()"
                     />
                   }
                 </div>
@@ -137,10 +140,14 @@ export class CareVisitPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+  private readonly formFiles = inject(FormFilesClient);
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
   visit = signal<CareVisitDto | null>(null);
+  /** File questions on the visit checklist: upload to the checklist form, download through this visit. */
+  readonly fileUpload = computed(() => (this.visit()?.formId ? this.formFiles.uploader(this.visit()!.formId!) : null));
+  readonly fileOpen = computed(() => (this.visit() ? this.formFiles.opener(`/care/visits/${this.visit()!.id}/files`) : null));
   /** Back to the client (there is no separate visits list). */
   readonly backLink = computed(() => (this.visit() ? ['/clients', this.visit()!.clientId] : '/clients'));
   error = signal<string | null>(null);

@@ -1,10 +1,10 @@
 import {
-  BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Post, Put, Query, Req, UseGuards,
+  BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Post, Put, Query, Req, Res, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsDateString, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { allows, FREE_FORM_MODULE, isAdminRole, type CareVisitDto, type CareVisitListItemDto } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
@@ -12,6 +12,7 @@ import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { liveValues, mergeFormValues } from '../forms/form-fields.util';
+import { FormFilesService, formFilesPrefix } from '../forms/form-files.service';
 import { FormStructureService } from '../forms/form-structure.service';
 
 export class CreateVisitDto {
@@ -83,6 +84,7 @@ export class CareVisitsController {
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
     private readonly structure: FormStructureService,
+    private readonly files: FormFilesService,
   ) {}
 
   @Get('visits')
@@ -131,6 +133,13 @@ export class CareVisitsController {
   @Get('visit-form')
   async visitForm() {
     return { formId: (await this.checklistForm()).formId };
+  }
+
+  /** A file from this visit's checklist (signed in, and only when the user can see the visit). */
+  @Get('visits/:id/files')
+  async file(@Req() req: Request, @Res() res: Response, @Param('id') id: string, @Query('key') key?: string, @Query('download') download?: string) {
+    const visit = await this.find(req.user as UserContext, id);
+    await this.files.send(res, visit.values, key, download === '1');
   }
 
   @Get('visits/:id')
@@ -225,6 +234,7 @@ export class CareVisitsController {
       await tx.careVisit.delete({ where: { id } });
       if (visit.timeEntryId) await tx.timeEntry.deleteMany({ where: { id: visit.timeEntryId } });
     });
+    await this.files.deleteIn(visit.values);
     return { deleted: true };
   }
 
@@ -264,10 +274,10 @@ export class CareVisitsController {
   }
 
   private async mergeValues(stored: Record<string, unknown>, submitted: Record<string, unknown>) {
-    const { sections } = await this.checklistForm();
+    const { formId, sections } = await this.checklistForm();
     const fields = sections.flatMap((s) => s.fields);
     try {
-      return mergeFormValues(fields, stored ?? {}, submitted);
+      return mergeFormValues(fields, stored ?? {}, submitted, formId ? { filePrefix: formFilesPrefix(formId) } : {});
     } catch (err) {
       throw new BadRequestException(err instanceof Error ? err.message : 'Invalid value');
     }

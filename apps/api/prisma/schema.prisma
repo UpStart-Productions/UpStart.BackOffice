@@ -1926,6 +1926,8 @@ enum FormFieldType {
   CONTENT
   /// A repeating group: sub-fields (kept in `options`) filled in as rows; the answer is a list of rows.
   GROUP
+  /// File upload: `options` holds { multiple }; the answer is a list of uploaded files (private storage keys).
+  FILE
 }
 
 enum FormResponseStatus {

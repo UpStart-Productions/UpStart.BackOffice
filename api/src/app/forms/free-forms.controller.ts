@@ -1,7 +1,7 @@
-import { BadRequestException, Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import {
   allows, normalizeFormSettings, parseFormDefinition, publicSections, type FormDefinition, type FormScores, type FormSectionDto, type FormSnapshot, type FormSubmissionDto,
   type FormSubmissionMatchDto, type FormStaffPreviewDto, type FreeFormDto, type FreeFormListItemDto, type PendingSubmissionDto,
@@ -10,6 +10,7 @@ import { normalizeEmail } from '../communications/email-address.util';
 import { descriptionParts } from './form-description.util';
 import { createClientWithPerson } from './client-create.util';
 import { sanitizeFormAccess } from './form-access.util';
+import { FormFilesService } from './form-files.service';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
@@ -39,6 +40,7 @@ export class FreeFormsController {
     private readonly access: AccessService,
     private readonly structure: FormStructureService,
     private readonly links: FormLinksService,
+    private readonly files: FormFilesService,
   ) {}
 
   // ── Forms ──────────────────────────────────────────────────────────────────
@@ -186,6 +188,7 @@ export class FreeFormsController {
       canEdit: allows(user, 'forms', 'edit'),
       canDelete: allows(user, 'forms', 'delete'),
       access: sanitizeFormAccess(form.access),
+      hasAnswers: await this.structure.hasAnswers(form.id),
     };
   }
 
@@ -228,6 +231,7 @@ export class FreeFormsController {
       this.prisma.form.update({ where: { id }, data: { publishedVersionId: null } }),
       this.prisma.form.delete({ where: { id } }),
     ]);
+    await this.files.deleteForm(id);
     return { deleted: true };
   }
 
@@ -409,6 +413,13 @@ export class FreeFormsController {
     return rows.map((r) => this.submissionDto(user, r, form.name, current, createsClients));
   }
 
+  /** A file from this submission (signed in, with access to the form). ?download=1 saves it. */
+  @Get('submissions/:id/files')
+  async submissionFile(@Req() req: Request, @Res() res: Response, @Param('id') id: string, @Query('key') key?: string, @Query('download') download?: string) {
+    const r = await this.findSubmission(req.user as UserContext, id);
+    await this.files.send(res, r.values, key, download === '1');
+  }
+
   @Get('submissions/:id')
   async submission(@Req() req: Request, @Param('id') id: string): Promise<FormSubmissionDto> {
     const user = req.user as UserContext;
@@ -536,8 +547,9 @@ export class FreeFormsController {
 
   @Delete('submissions/:id')
   async deleteSubmission(@Req() req: Request, @Param('id') id: string) {
-    await this.findSubmission(req.user as UserContext, id);
+    const r = await this.findSubmission(req.user as UserContext, id);
     await this.prisma.formResponse.delete({ where: { id } });
+    await this.files.deleteIn(r.values);
     return { deleted: true };
   }
 

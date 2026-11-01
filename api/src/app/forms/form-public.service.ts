@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import {
   computeFormScores, normalizeFormSettings, publicSections,
-  type FormFieldDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto,
+  type FormFieldDto, type FormFileRef, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto,
   type FormScores, type FormScoring, type FormSectionDto, type FormSnapshot,
 } from '@upstart/back-office/shared';
 import { RateLimiter } from '../common/rate-limiter';
@@ -16,6 +16,7 @@ import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
 import { FormDestinations, PUBLIC_LINK_INCLUDE, type FormDestination, type PublicLink } from './form-destinations';
 import { PasscodeDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
 import { mergeFormValues } from './form-fields.util';
+import { FormFilesService, linkFilesPrefix, type UploadedFormFile } from './form-files.service';
 import { checkPasscode, formLinkUrl, maskEmail, newAccessToken, newEmailCode, sha256 } from './form-links.util';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 import { FormStructureService } from './form-structure.service';
@@ -46,12 +47,14 @@ export class FormPublicService {
   private readonly verifyLimiter = new RateLimiter(10, 15 * 60 * 1000);
   private readonly codeLimiter = new RateLimiter(5, 60 * 60 * 1000);
   private readonly submitLimiter = new RateLimiter(10, 10 * 60 * 1000);
+  private readonly uploadLimiter = new RateLimiter(40, 10 * 60 * 1000);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
     private readonly structure: FormStructureService,
     private readonly destinations: FormDestinations,
+    private readonly files: FormFilesService,
   ) {}
 
   /**
@@ -223,7 +226,7 @@ export class FormPublicService {
         if (ask.organization && !organization) throw new BadRequestException('Your organization is required');
       }
       const stored = link.kind === 'CLIENT' ? await destination.storedValues(link) : {};
-      const values = this.merge(fields, stored, dto.values);
+      const values = this.merge(fields, stored, dto.values, linkFilesPrefix(link.formId, link.id));
       const scores: FormScores | null = content.scoring?.enabled ? computeFormScores(content.sections, content.scoring, values) : null;
       const outcome = (await destination.submit(link, {
         values, name, email, phone, organization, versionId: link.kind === 'NEW' ? (link.form.publishedVersion?.id ?? null) : null, scores,
@@ -270,9 +273,24 @@ export class FormPublicService {
     });
   }
 
-  private merge(fields: FormFieldDto[], stored: Record<string, unknown>, submitted: Record<string, unknown>) {
+  /**
+   * Upload one file for a FILE question on this link (before sending). It goes to the link's own folder, and the
+   * submission may only use files from there.
+   */
+  uploadFile(req: PublicRequest, token: string, accessToken: string | undefined, file: UploadedFormFile | undefined): Promise<FormFileRef> {
+    const ip = req.ip;
+    return this.withLink(req, token, async (link) => {
+      if (!this.uploadLimiter.allow(`${link.id}:${ip}`)) throw new HttpException('Too many uploads. Try again in a few minutes.', HttpStatus.TOO_MANY_REQUESTS);
+      await this.access(link, accessToken);
+      const { sections } = await this.content(link);
+      if (!sections.some((s) => s.fields.some((f) => f.type === 'FILE'))) throw new BadRequestException('This form takes no files');
+      return this.files.store(linkFilesPrefix(link.formId, link.id), file);
+    });
+  }
+
+  private merge(fields: FormFieldDto[], stored: Record<string, unknown>, submitted: Record<string, unknown>, filePrefix: string) {
     try {
-      return mergeFormValues(fields, stored, submitted ?? {}, { requireAll: true });
+      return mergeFormValues(fields, stored, submitted ?? {}, { requireAll: true, filePrefix });
     } catch (err) {
       throw new BadRequestException(err instanceof Error ? err.message : 'Invalid value');
     }

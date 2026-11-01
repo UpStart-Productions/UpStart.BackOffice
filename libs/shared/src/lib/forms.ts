@@ -7,11 +7,12 @@
  * CONTENT is a text block, not a question: its `name` holds formatted text (HTML) and it never takes an answer.
  * GROUP is a repeating group: a few sub-fields filled in as rows (Add another); its answer is a list of rows.
  */
-export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'CONTENT' | 'GROUP';
-export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'GROUP', 'CONTENT'];
+export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'FILE' | 'CONTENT' | 'GROUP';
+export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'FILE', 'GROUP', 'CONTENT'];
 export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   CONTENT: 'Text block',
   GROUP: 'Repeating group',
+  FILE: 'File upload',
   TEXT: 'Text',
   LONG_TEXT: 'Long text',
   NUMBER: 'Number',
@@ -31,10 +32,48 @@ export const FORM_FIELD_TYPE_ICONS: Record<FormFieldType, string> = {
   MULTI_SELECT: 'list-checks',
   CHECKBOX: 'square-check-big',
   GROUP: 'rows-3',
+  FILE: 'paperclip',
 };
 
-/** What a repeating group's sub-field can be (no text blocks, no groups inside groups). */
-export type FormSubfieldType = Exclude<FormFieldType, 'CONTENT' | 'GROUP'>;
+/**
+ * File uploads (FILE): Word, PDF, Excel, PNG and JPG, up to 10 MB each; one file, or up to 10 when the field
+ * allows several. The answer is a list of uploaded files; the files themselves are private (signed-in downloads).
+ */
+export const FORM_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg'];
+export const FORM_FILE_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/png',
+  'image/jpeg',
+];
+/** The file picker's accept attribute. */
+export const FORM_FILE_ACCEPT = [...FORM_FILE_EXTENSIONS, ...FORM_FILE_MIME_TYPES].join(',');
+export const FORM_FILE_MAX_BYTES = 10 * 1024 * 1024;
+export const FORM_FILE_MAX_COUNT = 10;
+
+/** One uploaded file in an answer. `key` is the private storage key (never a public address). */
+export type FormFileRef = { key: string; name: string; size: number; type: string };
+
+/** Whether a file name and type are allowed (by extension; the type must match when the browser sends one). */
+export function isAllowedFormFile(name: string, type: string | null | undefined): boolean {
+  const dot = name.lastIndexOf('.');
+  const ext = dot >= 0 ? name.slice(dot).toLowerCase() : '';
+  if (!FORM_FILE_EXTENSIONS.includes(ext)) return false;
+  return !type || type === 'application/octet-stream' || FORM_FILE_MIME_TYPES.includes(type);
+}
+
+/** "1.2 MB" */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** What a repeating group's sub-field can be (no text blocks, groups or file uploads inside groups). */
+export type FormSubfieldType = Exclude<FormFieldType, 'CONTENT' | 'GROUP' | 'FILE'>;
 export const FORM_SUBFIELD_TYPES: FormSubfieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX'];
 /** Most sub-fields in a group, and most rows in one answer. */
 export const FORM_GROUP_MAX_SUBFIELDS = 12;
@@ -83,6 +122,8 @@ export type FormFieldDto = {
   scoreGroupId?: string | null;
   /** Repeating groups (GROUP): the sub-fields each row has. */
   subfields?: FormSubfieldDto[];
+  /** File uploads (FILE): several files (up to FORM_FILE_MAX_COUNT) instead of one. */
+  multiple?: boolean;
 };
 
 /** A sub-field as a field (to fill in with the same control). */
@@ -422,6 +463,8 @@ export function formatFormValue(field: FormFieldDto, value: unknown): string {
       if (!m) return String(value);
       return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
+    case 'FILE':
+      return Array.isArray(value) ? (value as FormFileRef[]).map((f) => f?.name).filter(Boolean).join(', ') : '';
     case 'GROUP': {
       // One line per row: "Sub-field: value; Sub-field: value".
       const rows = Array.isArray(value) ? (value as FormGroupRow[]) : [];
@@ -507,6 +550,8 @@ export type FreeFormDto = {
   canDelete: boolean;
   /** Client forms: who can see and fill in results on client pages (roleId -> read | edit; admins always edit). */
   access: FormAccess;
+  /** Someone has answered it: field types can no longer change. */
+  hasAnswers: boolean;
 };
 
 export type FormSubmissionListItemDto = {
@@ -617,6 +662,8 @@ export type FormDefinition = {
       scoreGroupId?: string | null;
       /** Repeating groups: the sub-fields (select sub-fields have options). */
       subfields?: { name: string; type: FormSubfieldType; options?: { label: string }[] }[];
+      /** File uploads: several files instead of one. */
+      multiple?: boolean;
     }[];
   }[];
 };
@@ -667,6 +714,7 @@ export function parseFormDefinition(input: unknown): FormDefinition {
         required: !!f.required,
         ...(options ? { options } : {}),
         ...(subfields ? { subfields } : {}),
+        ...(type === 'FILE' && f.multiple ? { multiple: true } : {}),
         scoreGroupId: type !== 'GROUP' && typeof f.scoreGroupId === 'string' && groupIds.has(f.scoreGroupId) ? f.scoreGroupId : null,
       };
     });

@@ -9,5 +9,6 @@
 - **Activity → Unfiled** has no duplicate-contact merge yet.
 - **Forms**: no page breaks or conditional questions yet, no file uploads, and questions can only be dragged within their section (to move one to another section, add it there and delete the old one). Earlier versions of a form can't be opened or restored; each submission shows the version it answered.
 - **Care**: no print or PDF of a visit. Schedule is a weekly list (no drag and drop or month view), open shifts can't be claimed by workers yet, and editing a repeating series means deleting it from a shift on and adding a new one. Add shift on a client's Care tab opens the Schedule rather than adding the shift in place.
-- **Client forms**: no history of earlier answers on a living copy (only who changed it last), no file uploads, and answers aren't searchable across clients yet (use a form's Submissions and Export Excel).
+- **Client forms**: no history of earlier answers on a living copy (only who changed it last), and answers aren't searchable across clients yet (use a form's Submissions and Export Excel).
+- **Form file uploads**: no virus scanning yet, no previews (files download), and file uploads can't be inside a repeating group. The form preview doesn't upload files.
 - Help guide content is a **bootstrap** — if the UI changed recently and this file was not updated, prefer the on-screen labels and ask an admin to update `docs/help-guide/`.

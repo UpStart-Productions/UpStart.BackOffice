@@ -7,8 +7,9 @@ import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormSubmissionDto, type FormSubmissionMatchDto } from '@upstart/back-office/shared';
+import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormFileRef, type FormSubmissionDto, type FormSubmissionMatchDto } from '@upstart/back-office/shared';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { FormFilesClient } from '../../core/form-files.client';
 import { FormsApi } from '../../core/forms.api';
 import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -121,7 +122,15 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
                         <div class="sa-item">
                           <dt class="sa-q">{{ f.name }}</dt>
                           <dd class="sa-a" [class.sa-empty]="!text">
-                            <span class="sa-text">{{ text || 'No answer' }}</span>
+                            @if (f.type === 'FILE' && text) {
+                              <span class="sa-text">
+                                @for (file of fileRefs(r.values[f.id]); track file.key; let last = $last) {
+                                  <button type="button" class="sa-file" (click)="openFile(file)">{{ file.name }}</button>@if (!last) {, }
+                                }
+                              </span>
+                            } @else {
+                              <span class="sa-text">{{ text || 'No answer' }}</span>
+                            }
                             @if (pts !== null) {
                               <span class="sa-points">{{ pts }} {{ pts === 1 ? 'point' : 'points' }}</span>
                             }
@@ -227,6 +236,17 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
+    .sa-file {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: var(--primary-color);
+      cursor: pointer;
+    }
+    .sa-file:hover {
+      text-decoration: underline;
+    }
     .sa-empty .sa-text {
       color: var(--text-color-secondary);
       font-weight: 400;
@@ -321,6 +341,17 @@ export class FormSubmissionPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly formFiles = inject(FormFilesClient);
+
+  /** An answer's uploaded files. */
+  fileRefs(v: unknown): FormFileRef[] {
+    return Array.isArray(v) ? (v as FormFileRef[]) : [];
+  }
+
+  /** Download one of this submission's files (signed in). */
+  openFile(file: FormFileRef) {
+    this.formFiles.opener(`${this.forms.base}/submissions/${this.id}/files`)(file);
+  }
 
   readonly statusTag = SUBMISSION_STATUS_TAG;
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';

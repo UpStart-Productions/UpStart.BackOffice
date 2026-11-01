@@ -9,6 +9,7 @@ import type { ClientFormResultDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ClientFormsApi } from '../../core/client-forms.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { FormFilesClient } from '../../core/form-files.client';
 import { normalizeValues } from '../../core/form-values.util';
 import { SessionService } from '../../core/session.service';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
@@ -84,6 +85,8 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                         [value]="values[f.id] ?? null"
                         (valueChange)="values[f.id] = $event"
                         [disabled]="r.myAccess !== 'edit'"
+                        [fileUpload]="fileUpload()"
+                        [fileOpen]="fileOpen()"
                       />
                     }
                   </div>
@@ -168,6 +171,10 @@ export class ClientFormResultPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
   private readonly session = inject(SessionService);
+  private readonly formFiles = inject(FormFilesClient);
+  /** File questions: upload to this form, download through this result. */
+  readonly fileUpload = computed(() => (this.record() ? this.formFiles.uploader(this.record()!.formId) : null));
+  readonly fileOpen = computed(() => (this.record() ? this.formFiles.opener(`/client-forms/records/${this.record()!.id}/files`) : null));
   /** People who can edit forms in Forms get a link to the form when it has no fields. */
   readonly canDesign = computed(() => this.session.can('forms', 'edit'));
 

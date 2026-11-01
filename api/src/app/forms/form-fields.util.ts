@@ -1,9 +1,48 @@
 import { randomUUID } from 'crypto';
-import type { FormFieldOption, FormFieldType, FormGroupRow, FormSubfieldDto, FormSubfieldType } from '@upstart/back-office/shared';
-import { FORM_GROUP_MAX_ROWS, FORM_GROUP_MAX_SUBFIELDS, FORM_SUBFIELD_TYPES, isSelectFieldType } from '@upstart/back-office/shared';
+import type { FormFieldOption, FormFieldType, FormFileRef, FormGroupRow, FormSubfieldDto, FormSubfieldType } from '@upstart/back-office/shared';
+import {
+  FORM_FILE_MAX_BYTES, FORM_FILE_MAX_COUNT, FORM_GROUP_MAX_ROWS, FORM_GROUP_MAX_SUBFIELDS, FORM_SUBFIELD_TYPES, isAllowedFormFile, isSelectFieldType,
+} from '@upstart/back-office/shared';
 import { coerceFieldValue, normalizeOptions } from '../task-manager/task-fields.util';
 
-type FieldDef = { id: string; name: string; type: FormFieldType; options: unknown; required?: boolean; subfields?: FormSubfieldDto[] };
+type FieldDef = { id: string; name: string; type: FormFieldType; options: unknown; required?: boolean; subfields?: FormSubfieldDto[]; multiple?: boolean };
+
+/**
+ * A file upload's answer: the uploaded files' references, checked. With `prefix`, every file must have been uploaded
+ * under it (this form, or this public link), so an answer can't point at someone else's file. Null when none.
+ */
+export function coerceFileValue(value: unknown, multiple: boolean, prefix?: string, known?: Set<string>): FormFileRef[] | null {
+  if (value === null || value === undefined || value === '') return null;
+  const list = Array.isArray(value) ? value : [value];
+  const max = multiple ? FORM_FILE_MAX_COUNT : 1;
+  if (list.length > max) throw new Error(multiple ? `${max} files at most` : 'One file only');
+  const out: FormFileRef[] = [];
+  for (const raw of list) {
+    const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+    const key = typeof r['key'] === 'string' ? r['key'] : '';
+    const name = typeof r['name'] === 'string' ? r['name'].slice(0, 255) : '';
+    const size = Number(r['size']);
+    const type = typeof r['type'] === 'string' ? r['type'].slice(0, 120) : '';
+    if (!key.startsWith('forms/') || key.includes('..') || !name || !Number.isFinite(size)) throw new Error('Upload the file again');
+    if (prefix && !key.startsWith(prefix) && !known?.has(key)) throw new Error('Upload the file again');
+    if (size > FORM_FILE_MAX_BYTES || !isAllowedFormFile(name, type)) throw new Error('That file type or size is not allowed');
+    out.push({ key, name, size, type });
+  }
+  return out.length ? out : null;
+}
+
+/** Every file referenced by an answer set (file fields and nothing else). */
+export function fileRefsIn(values: unknown): FormFileRef[] {
+  const src = (values && typeof values === 'object' ? values : {}) as Record<string, unknown>;
+  const out: FormFileRef[] = [];
+  for (const v of Object.values(src)) {
+    if (!Array.isArray(v)) continue;
+    for (const f of v) {
+      if (f && typeof f === 'object' && typeof (f as FormFileRef).key === 'string' && (f as FormFileRef).key.startsWith('forms/')) out.push(f as FormFileRef);
+    }
+  }
+  return out;
+}
 
 /**
  * A repeating group's sub-fields as stored (in the field's options column): [{ id, name, type, options }].
@@ -82,10 +121,17 @@ export function formFieldOptions(type: FormFieldType, input: unknown, withPoints
  * Validate one value for its field. Returns the value to store, or null to clear it.
  * Same rules as Task custom fields; long text allows more characters.
  */
-export function coerceFormFieldValue(type: FormFieldType, options: FormFieldOption[], value: unknown, subfields: FormSubfieldDto[] = []): unknown {
+export function coerceFormFieldValue(
+  type: FormFieldType,
+  options: FormFieldOption[],
+  value: unknown,
+  subfields: FormSubfieldDto[] = [],
+  file: { multiple?: boolean; prefix?: string; known?: Set<string> } = {},
+): unknown {
   // A text block takes no answer: anything sent for it is dropped.
   if (type === 'CONTENT') return null;
   if (type === 'GROUP') return coerceGroupValue(subfields, value);
+  if (type === 'FILE') return coerceFileValue(value, !!file.multiple, file.prefix, file.known);
   if (type === 'LONG_TEXT') {
     if (value === null || value === undefined || value === '') return null;
     if (typeof value !== 'string') throw new Error('Text field expects a string');
@@ -104,7 +150,8 @@ export function mergeFormValues(
   fields: FieldDef[],
   stored: Record<string, unknown>,
   submitted: Record<string, unknown>,
-  opts: { requireAll?: boolean } = {},
+  /** filePrefix: uploaded files must be under it (e.g. forms/{formId}/ or a public link's folder). */
+  opts: { requireAll?: boolean; filePrefix?: string } = {},
 ): Record<string, unknown> {
   const allIds = new Set(fields.map((f) => f.id));
   // Text blocks are never answered: they don't take or require values.
@@ -113,6 +160,8 @@ export function mergeFormValues(
   const out: Record<string, unknown> = {};
   // Keep only values of fields that still exist.
   for (const f of fields) if (stored[f.id] !== undefined && stored[f.id] !== null) out[f.id] = stored[f.id];
+  // Files already on the answer stay valid wherever they were uploaded (e.g. by staff, then a family link sends them back).
+  const known = new Set(fileRefsIn(stored).map((f) => f.key));
   for (const [id, raw] of Object.entries(submitted ?? {})) {
     const f = byId.get(id);
     if (!f) {
@@ -121,7 +170,11 @@ export function mergeFormValues(
     }
     let v: unknown;
     try {
-      v = coerceFormFieldValue(f.type, (f.options as FormFieldOption[] | null) ?? [], raw, f.subfields ?? []);
+      v = coerceFormFieldValue(f.type, (f.options as FormFieldOption[] | null) ?? [], raw, f.subfields ?? [], {
+        multiple: f.multiple,
+        prefix: opts.filePrefix,
+        known,
+      });
     } catch (err) {
       throw new Error(`${f.name}: ${err instanceof Error ? err.message : 'Invalid value'}`);
     }

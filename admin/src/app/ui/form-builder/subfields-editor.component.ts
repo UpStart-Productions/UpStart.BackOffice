@@ -1,4 +1,4 @@
-import { Component, computed, model } from '@angular/core';
+import { Component, computed, input, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -19,7 +19,7 @@ export type SubfieldDraft = { id: string; name: string; type: FormSubfieldType; 
 
 /**
  * The sub-fields of a repeating group in the field dialog: a name and type per sub-field (choices for selects),
- * Add sub-field, and delete. The type of a saved sub-field can't change.
+ * Add sub-field, and delete. Once the form has answers, a saved sub-field's type can't change.
  */
 @Component({
   selector: 'app-subfields-editor',
@@ -38,7 +38,7 @@ export type SubfieldDraft = { id: string; name: string; type: FormSubfieldType; 
               optionValue="value"
               [ngModel]="sf.type"
               (ngModelChange)="setType(i, $event)"
-              [disabled]="!!sf.id"
+              [disabled]="!!sf.id && typesLocked()"
               appendTo="body"
               [ariaLabel]="'Sub-field ' + (i + 1) + ' type'"
             >
@@ -100,6 +100,8 @@ export type SubfieldDraft = { id: string; name: string; type: FormSubfieldType; 
 })
 export class SubfieldsEditorComponent {
   subfields = model<SubfieldDraft[]>([]);
+  /** The form has answers: saved sub-fields keep their type. */
+  typesLocked = input(false);
 
   readonly typeOptions = FORM_SUBFIELD_TYPES.map((value) => ({ value, label: FORM_FIELD_TYPE_LABELS[value] }));
   readonly canAdd = computed(() => this.subfields().length < FORM_GROUP_MAX_SUBFIELDS);

@@ -7,7 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { TabsModule } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { isContentField, type FormFieldDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
+import { isContentField, type FormFieldDto, type FormFileRef, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
 import { environment } from '../../../environments/environment';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 
@@ -124,7 +124,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                         <p class="text-color-secondary cp-intro">{{ pg.intro }}</p>
                       }
                       @for (f of pg.fields; track f.id) {
-                        <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event; picked(f)" [showRequired]="true" [choices]="true" />
+                        <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event; picked(f)" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
                       }
                     } @else {
                       <p class="cp-kicker">Last step</p>
@@ -203,7 +203,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                   <p class="text-color-secondary cp-intro">{{ sec.description }}</p>
                 }
                 @for (f of sec.fields; track f.id) {
-                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" [choices]="true" />
+                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
                 }
               </ng-template>
               <div class="task-form-hp" aria-hidden="true">
@@ -559,6 +559,21 @@ export class PublicFormPage implements OnInit {
     }
     if (fatal || e?.status === 404 || e?.status === 410) this.step.set('error');
   }
+
+  /** File questions: upload one file through this link (with the link's access token). */
+  readonly uploadFile = async (file: File): Promise<FormFileRef> => {
+    const form = new FormData();
+    form.append('file', file);
+    const headers: Record<string, string> = {};
+    if (this.accessToken) headers['X-Form-Access'] = this.accessToken;
+    const res = await fetch(`${this.base}/files`, { method: 'POST', headers, body: form });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = Array.isArray(json?.message) ? json.message.join(', ') : json?.message;
+      throw new Error(msg || 'Upload failed');
+    }
+    return json as FormFileRef;
+  };
 
   private async call<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
     const headers: Record<string, string> = {};

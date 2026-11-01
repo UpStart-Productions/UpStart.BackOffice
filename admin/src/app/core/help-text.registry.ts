@@ -136,14 +136,15 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
   // Form builder (shared by every form)
   'form.builder.sections': 'Groups of fields on the form, e.g. Contact details, Background. Add a section, then add fields to it.',
-  'form.builder.fieldType': "What the field holds. The type can't be changed after the field is added.",
+  'form.builder.fieldType': "What the field holds. You can change it until someone answers the form; after that it's locked, because answers are stored in the type's shape.",
   'form.builder.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
   'form.builder.optionsScored':
     'The choices people can pick from, and the points each one is worth. Leave points empty on fields that are not scored.',
+  'form.builder.fileMultiple': 'Off: one file. On: up to 10. Word, PDF, Excel, PNG and JPG files up to 10 MB each.',
   'form.builder.subfields':
-    "The fields each row has, e.g. Name, Dosage and Frequency for a medication list. People click Add another for each row. A saved sub-field's type can't be changed; deleting one removes its answers.",
+    "The fields each row has, e.g. Name, Dosage and Frequency for a medication list. People click Add another for each row. Once the form has answers, a saved sub-field's type can't be changed; deleting one removes its answers.",
   'form.builder.scoreGroup': 'The score area this question counts toward. Results show a percentage for each area.',
-  'form.builder.required': 'People filling in the form through a public link must answer it (a repeating group needs at least one row). Staff can save with it empty.',
+  'form.builder.required': 'People filling in the form through a public link must answer it (a repeating group needs at least one row, a file upload at least one file). Staff can save with it empty.',
   // Forms area
   'forms.page':
     'Forms you build and share with a link: sign-ups, assessments, feedback. Each form has its own submissions. A form is live once you publish it.',

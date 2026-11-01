@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Delete, Get, NotFoundException, Param,
+  Body, Controller, Delete, Get, Inject, NotFoundException, Param,
   Post, Put, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -10,6 +10,8 @@ import { generatePortalToken } from '../portal/portal-token.util';
 import { toClientView } from '../portal/portal-client.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
+import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
+import { fileRefsIn } from '../forms/form-fields.util';
 import { ACCOUNT_JOURNEYS, AccountJourneyValue, CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
@@ -54,6 +56,7 @@ export class ClientsController {
     private readonly prisma: PrismaService,
     private readonly storageFolders: StorageFoldersService,
     private readonly access: AccessService,
+    @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
   /** 404 (not 403) for a client outside the user's reach, so ids can't be probed. */
@@ -307,7 +310,15 @@ export class ClientsController {
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
     await this.storageFolders.removeClientTree(id);
+    // Files uploaded on this client's form answers and visit checklists go with it.
+    const [responses, visits] = await Promise.all([
+      this.prisma.formResponse.findMany({ where: { clientId: id }, select: { values: true } }),
+      this.prisma.careVisit.findMany({ where: { clientId: id }, select: { values: true } }),
+    ]);
     await this.prisma.client.delete({ where: { id } });
+    for (const f of [...responses, ...visits].flatMap((r) => fileRefsIn(r.values))) {
+      await this.storage.delete(f.key).catch(() => undefined);
+    }
     return { deleted: true };
   }
 }

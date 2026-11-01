@@ -1,7 +1,17 @@
-import { Component, computed, input, model } from '@angular/core';
+import { Component, computed, input, model, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { FORM_GROUP_MAX_ROWS, subfieldAsField, type FormFieldDto, type FormGroupRow } from '@upstart/back-office/shared';
+import {
+  FORM_FILE_ACCEPT,
+  FORM_FILE_MAX_BYTES,
+  FORM_FILE_MAX_COUNT,
+  FORM_GROUP_MAX_ROWS,
+  formatFileSize,
+  subfieldAsField,
+  type FormFieldDto,
+  type FormFileRef,
+  type FormGroupRow,
+} from '@upstart/back-office/shared';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
@@ -9,6 +19,12 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { DateInputComponent } from '../date-input/date-input.component';
+import { SingleFileDropzoneComponent } from '../single-file-dropzone/single-file-dropzone.component';
+
+/** Uploads one file for a file question and returns its reference (staff or public API, by page). */
+export type FormFileUploader = (file: File) => Promise<FormFileRef>;
+/** Opens or downloads an uploaded file (signed-in pages only). */
+export type FormFileOpener = (ref: FormFileRef) => void;
 
 /**
  * The one control for a form field (label + input by type). Used on the record page in the
@@ -20,13 +36,72 @@ import { DateInputComponent } from '../date-input/date-input.component';
   selector: 'app-form-field-input',
   standalone: true,
   host: { class: 'form-field' },
-  imports: [FormsModule, ButtonModule, CheckboxModule, InputNumberModule, InputTextModule, MultiSelectModule, SelectModule, TextareaModule, DateInputComponent],
+  imports: [
+    FormsModule,
+    ButtonModule,
+    CheckboxModule,
+    InputNumberModule,
+    InputTextModule,
+    MultiSelectModule,
+    SelectModule,
+    TextareaModule,
+    DateInputComponent,
+    SingleFileDropzoneComponent,
+  ],
   template: `
     @let f = field();
     @let id = 'ff-' + idPrefix() + f.id;
     @if (f.type === 'CONTENT') {
       <!-- A text block: formatted text, no input. -->
       <div class="ff-text" [innerHTML]="f.name"></div>
+    } @else if (f.type === 'FILE') {
+      <!-- A file upload: the uploaded files, then a drop zone (Word, PDF, Excel, PNG, JPG). -->
+      <span class="ff-legend" [id]="id">{{ f.name }}@if (showRequired() && f.required) {<span class="ff-required">*</span>}</span>
+      <div class="ff-files">
+        @for (file of files(); track file.key) {
+          <div class="ff-file">
+            <i class="pi pi-paperclip" aria-hidden="true"></i>
+            @if (fileOpen()) {
+              <button type="button" class="ff-file-name ff-file-link" (click)="openFile(file)">{{ file.name }}</button>
+            } @else {
+              <span class="ff-file-name">{{ file.name }}</span>
+            }
+            <span class="ff-file-size">{{ size(file.size) }}</span>
+            @if (!disabled()) {
+              <p-button icon="pi pi-trash" [text]="true" severity="danger" size="small" [ariaLabel]="'Delete ' + file.name" (onClick)="removeFile(file)" />
+            }
+          </div>
+        } @empty {
+          @if (disabled()) {
+            <p class="ff-group-empty">None</p>
+          }
+        }
+        @if (!disabled() && canAddFile()) {
+          @if (fileUpload()) {
+            <app-single-file-dropzone
+              #fileDrop
+              [accept]="fileAccept"
+              [maxBytes]="fileMaxBytes"
+              [multiple]="!!f.multiple"
+              [emptyTitle]="f.multiple ? 'Files' : 'File'"
+              emptyHint="Drop a Word, PDF, Excel, PNG or JPG file, or click to browse"
+              selectedTitle="Uploading"
+              emptyIcon="pi-paperclip"
+              (fileChange)="uploadFiles($event ? [$event] : [])"
+              (filesChange)="uploadFiles($event)"
+              (invalidFile)="fileError.set($event)"
+            />
+          } @else {
+            <p class="ff-group-empty">Files can be added on the form itself.</p>
+          }
+        }
+        @if (uploading()) {
+          <p class="ff-group-empty"><i class="pi pi-spin pi-spinner mr-2" aria-hidden="true"></i>Uploading…</p>
+        }
+        @if (fileError(); as err) {
+          <p class="ff-file-error">{{ err }}</p>
+        }
+      </div>
     } @else if (f.type === 'GROUP') {
       <!-- A repeating group: a row of sub-fields per entry, Add another adds one. -->
       <span class="ff-legend" [id]="id">{{ f.name }}@if (showRequired() && f.required) {<span class="required-dot" aria-hidden="true"></span>}</span>
@@ -257,6 +332,46 @@ import { DateInputComponent } from '../date-input/date-input.component';
       margin: 0;
       color: var(--text-color-secondary);
     }
+    .ff-files {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .ff-file {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+    .ff-file .pi-paperclip {
+      color: var(--text-color-secondary);
+    }
+    .ff-file-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ff-file-link {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: var(--primary-color);
+      cursor: pointer;
+      text-align: left;
+    }
+    .ff-file-link:hover {
+      text-decoration: underline;
+    }
+    .ff-file-size {
+      color: var(--text-color-secondary);
+      flex-shrink: 0;
+    }
+    .ff-file-error {
+      margin: 0;
+      color: var(--p-red-500, #dc2626);
+    }
   `,
 })
 export class FormFieldInputComponent {
@@ -270,7 +385,51 @@ export class FormFieldInputComponent {
   /** Keeps input ids unique when the same field shows more than once (rows of a repeating group). */
   idPrefix = input('');
 
+  /** File uploads: how files are uploaded and opened on this page (no opener on public pages). */
+  fileUpload = input<FormFileUploader | null>(null);
+  fileOpen = input<FormFileOpener | null>(null);
+
   readonly maxRows = FORM_GROUP_MAX_ROWS;
+  readonly fileAccept = FORM_FILE_ACCEPT;
+  readonly fileMaxBytes = FORM_FILE_MAX_BYTES;
+  protected readonly uploading = signal(false);
+  protected readonly fileError = signal<string | null>(null);
+  private readonly fileDrop = viewChild<SingleFileDropzoneComponent>('fileDrop');
+  protected readonly files = computed<FormFileRef[]>(() => (Array.isArray(this.value()) && this.field().type === 'FILE' ? (this.value() as FormFileRef[]) : []));
+  protected readonly canAddFile = computed(() => this.files().length < (this.field().multiple ? FORM_FILE_MAX_COUNT : 1) && !this.uploading());
+
+  protected size(bytes: number) {
+    return formatFileSize(bytes);
+  }
+
+  protected openFile(file: FormFileRef) {
+    this.fileOpen()?.(file);
+  }
+
+  protected removeFile(file: FormFileRef) {
+    const next = this.files().filter((f) => f.key !== file.key);
+    this.value.set(next.length ? next : null);
+  }
+
+  /** Upload dropped files one by one (up to the field's limit) and add them to the answer. */
+  protected async uploadFiles(list: File[]) {
+    const upload = this.fileUpload();
+    if (!upload || !list.length) return;
+    const room = (this.field().multiple ? FORM_FILE_MAX_COUNT : 1) - this.files().length;
+    this.fileError.set(list.length > room ? `You can add ${room === 1 ? 'one more file' : room + ' more files'}.` : null);
+    this.uploading.set(true);
+    try {
+      for (const file of list.slice(0, Math.max(0, room))) {
+        const ref = await upload(file);
+        this.value.set([...this.files(), ref]);
+      }
+    } catch (err) {
+      this.fileError.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Upload failed');
+    } finally {
+      this.uploading.set(false);
+      this.fileDrop()?.reset();
+    }
+  }
   /** Repeating group: its sub-fields as fields, and the rows of the current value. */
   protected readonly subfields = computed(() => (this.field().subfields ?? []).map(subfieldAsField));
   protected readonly rows = computed<FormGroupRow[]>(() => (Array.isArray(this.value()) ? (this.value() as FormGroupRow[]) : []));

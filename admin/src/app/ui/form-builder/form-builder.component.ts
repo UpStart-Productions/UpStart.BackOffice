@@ -30,8 +30,8 @@ import { SubfieldDraft, SubfieldsEditorComponent } from './subfields-editor.comp
 
 type Field = FormFieldDto;
 type Section = FormSectionDto & { fields: Field[] };
-/** What the builder edits: any form's sections and fields. */
-export type BuilderForm = { id: string; sections: Section[] };
+/** What the builder edits: any form's sections and fields. With `hasAnswers`, field types are locked. */
+export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolean };
 
 /**
  * The one form builder: sections and fields of any form. Changes save right away.
@@ -123,6 +123,11 @@ export type BuilderForm = { id: string; sections: Section[] };
                     }
                   }
                 </div>
+                @if (f.type === 'FILE') {
+                  <div class="fb-field-options">
+                    <span class="fb-option"><span class="fb-option-label">{{ f.multiple ? 'Up to 10 files' : 'One file' }}</span></span>
+                  </div>
+                }
                 @if (f.type === 'GROUP' && f.subfields?.length) {
                   <div class="fb-field-options">
                     @for (sf of f.subfields; track sf.id) {
@@ -195,7 +200,8 @@ export type BuilderForm = { id: string; sections: Section[] };
           optionLabel="label"
           optionValue="value"
           [(ngModel)]="fieldType"
-          [disabled]="!!editingField"
+          (ngModelChange)="onTypeChange()"
+          [disabled]="!!editingField && !!form().hasAnswers"
           styleClass="w-full"
           appendTo="body"
         >
@@ -209,10 +215,16 @@ export type BuilderForm = { id: string; sections: Section[] };
           </ng-template>
         </p-select>
       </div>
+      @if (fieldType === 'FILE') {
+        <div class="flex align-items-center gap-2 mt-3">
+          <p-checkbox inputId="fbMultiple" [binary]="true" [(ngModel)]="fieldMultiple" />
+          <label for="fbMultiple">Allow several files (up to 10) <app-help-text key="form.builder.fileMultiple" /></label>
+        </div>
+      }
       @if (fieldType === 'GROUP') {
         <div class="form-field mt-3">
           <label>Sub-fields <app-help-text key="form.builder.subfields" /></label>
-          <app-subfields-editor [(subfields)]="fieldSubfields" />
+          <app-subfields-editor [(subfields)]="fieldSubfields" [typesLocked]="!!form().hasAnswers" />
         </div>
       }
       @if (isSelect(fieldType)) {
@@ -520,6 +532,8 @@ export class FormBuilderComponent {
   fieldOptions = signal<FieldOptionDraft[]>([]);
   /** Repeating group: its sub-fields. */
   fieldSubfields = signal<SubfieldDraft[]>([]);
+  /** File upload: several files instead of one. */
+  fieldMultiple = false;
 
   typeLabel(type: FormFieldType) {
     return FORM_FIELD_TYPE_LABELS[type];
@@ -618,6 +632,7 @@ export class FormBuilderComponent {
       { id: '', label: '' },
     ]);
     this.fieldSubfields.set([{ id: '', name: '', type: 'TEXT', options: [] }]);
+    this.fieldMultiple = false;
     this.fieldVisible = true;
   }
 
@@ -630,7 +645,14 @@ export class FormBuilderComponent {
     this.fieldScoreGroupId = f.scoreGroupId ?? null;
     this.fieldOptions.set(f.options.map((o) => ({ ...o })));
     this.fieldSubfields.set((f.subfields ?? []).map((sf) => ({ id: sf.id, name: sf.name, type: sf.type, options: sf.options.map((o) => ({ ...o })) })));
+    this.fieldMultiple = !!f.multiple;
     this.fieldVisible = true;
+  }
+
+  /** A new type needs its own settings: start choices and sub-fields when the field had none. */
+  onTypeChange() {
+    if (isSelectFieldType(this.fieldType) && !this.fieldOptions().length) this.fieldOptions.set([{ id: '', label: '' }, { id: '', label: '' }]);
+    if (this.fieldType === 'GROUP' && !this.fieldSubfields().length) this.fieldSubfields.set([{ id: '', name: '', type: 'TEXT', options: [] }]);
   }
 
   async saveField() {
@@ -664,6 +686,8 @@ export class FormBuilderComponent {
       ...(this.profile().scoring && this.fieldType !== 'GROUP' ? { scoreGroupId: this.fieldScoreGroupId } : {}),
       ...(options ? { options } : {}),
       ...(subfields ? { subfields } : {}),
+      ...(this.fieldType === 'FILE' ? { multiple: this.fieldMultiple } : {}),
+      ...(this.editingField && this.fieldType !== this.editingField.type ? { type: this.fieldType } : {}),
     };
     this.saving.set(true);
     try {

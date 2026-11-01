@@ -2,20 +2,20 @@
   "format": "ubo-form",
   "version": 1,
   "name": "Client Information Form",
-  "description": "Confidential. Everything about a client in one place: contacts and legal, insurance, health, end-of-life wishes, functional assessment, background and death certificate information.",
+  "description": "Confidential. Client intake: contacts and legal, insurance, health, end-of-life wishes, functional assessment, background and death certificate information.",
   "settings": {
     "layout": "steps",
     "review": true,
     "askOrganization": false,
-    "askPhone": false,
+    "askPhone": true,
     "resultsEmail": false,
     "cta": null,
     "thankYou": null,
     "client": {
       "enabled": true,
-      "copies": "living",
-      "createClients": false,
-      "category": "Client profile"
+      "copies": "each",
+      "createClients": true,
+      "category": "Intake"
     },
     "visitChecklist": false,
     "scoring": {
@@ -29,7 +29,7 @@
       "name": "Client and case",
       "fields": [
         {
-          "name": "<p><strong>Confidential.</strong> Keep this form up to date as things change.</p>",
+          "name": "<p><strong>Confidential.</strong></p>",
           "type": "CONTENT",
           "required": false
         },

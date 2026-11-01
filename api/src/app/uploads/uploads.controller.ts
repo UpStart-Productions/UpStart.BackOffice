@@ -41,7 +41,8 @@ export class UploadsController {
   async serve(@Param('path') path: string | string[], @Req() req: Request, @Res() res: Response) {
     const segments = Array.isArray(path) ? path : [path];
     const key = segments.join('/');
-    if (!key || key.includes('..')) {
+    // Form uploads (forms/...) are private: they're only served by the signed-in download of the answer they belong to.
+    if (!key || key.includes('..') || key.startsWith('forms/')) {
       throw new NotFoundException();
     }
 

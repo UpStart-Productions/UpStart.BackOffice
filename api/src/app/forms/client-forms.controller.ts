@@ -1,10 +1,10 @@
 import {
-  BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Patch, Post, Put, Req, UseGuards,
+  BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get, NotFoundException, Param, Patch, Post, Put, Query, Req, Res, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsObject, IsString } from 'class-validator';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import {
   isAdminRole,
   normalizeFormSettings,
@@ -21,6 +21,7 @@ import { ATTRIBUTION_INCLUDE, toRecordAttribution } from '../common/record-attri
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLinkDto } from './form.dto';
 import { sanitizeFormAccess } from './form-access.util';
+import { FormFilesService, formFilesPrefix } from './form-files.service';
 import { liveValues, mergeFormValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
@@ -86,6 +87,7 @@ export class ClientFormsController {
     private readonly access: AccessService,
     private readonly structure: FormStructureService,
     private readonly links: FormLinksService,
+    private readonly files: FormFilesService,
   ) {}
 
   /** The client page's Forms panel: the client's results the user can read, and the forms they can add. */
@@ -134,6 +136,13 @@ export class ClientFormsController {
     return { id: r.id };
   }
 
+  /** A file from this result (signed in, with Read on the form and the client in reach). ?download=1 saves it. */
+  @Get('records/:id/files')
+  async file(@Req() req: Request, @Res() res: Response, @Param('id') id: string, @Query('key') key?: string, @Query('download') download?: string) {
+    const { record } = await this.assertResult(req.user as UserContext, id, 'read');
+    await this.files.send(res, record.values, key, download === '1');
+  }
+
   @Get('records/:id')
   async get(@Req() req: Request, @Param('id') id: string): Promise<ClientFormResultDto> {
     const { level } = await this.assertResult(req.user as UserContext, id, 'read');
@@ -146,7 +155,7 @@ export class ClientFormsController {
     const fields = await this.structure.fields(record.formId);
     let values: Record<string, unknown>;
     try {
-      values = mergeFormValues(fields, record.values as Record<string, unknown>, dto.values ?? {});
+      values = mergeFormValues(fields, record.values as Record<string, unknown>, dto.values ?? {}, { filePrefix: formFilesPrefix(record.formId) });
     } catch (err) {
       throw new BadRequestException(err instanceof Error ? err.message : 'Invalid value');
     }
@@ -178,8 +187,9 @@ export class ClientFormsController {
 
   @Delete('records/:id')
   async remove(@Req() req: Request, @Param('id') id: string) {
-    await this.assertResult(req.user as UserContext, id, 'edit');
+    const { record } = await this.assertResult(req.user as UserContext, id, 'edit');
     await this.prisma.formResponse.delete({ where: { id } });
+    await this.files.deleteIn(record.values);
     return { deleted: true };
   }
 

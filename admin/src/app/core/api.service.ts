@@ -187,6 +187,19 @@ export class ApiService {
     }
   }
 
+  /** Authenticated GET of a file (e.g. a form upload) as a Blob. */
+  async fetchBlob(path: string, retriedAfterRefresh = false): Promise<Blob> {
+    const options = await this.auth.getHeaders({ method: 'GET' });
+    const res = await fetch(`${this.base}${path}`, options);
+    if (!res.ok) {
+      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+        return this.fetchBlob(path, true);
+      }
+      throw new ApiError(res.status, 'Could not open the file.');
+    }
+    return res.blob();
+  }
+
   async fetchPdfBlob(path: string, retriedAfterRefresh = false): Promise<Blob> {
     const options = await this.auth.getHeaders({ method: 'GET' });
     const res = await fetch(`${this.base}${path}`, options);

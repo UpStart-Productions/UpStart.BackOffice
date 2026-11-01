@@ -13,6 +13,8 @@ Uploads use a configurable backend: **local disk** (`STORAGE_PROVIDER=local`, de
 | `clients/` | `{clientId}/invoices/` | Invoice PDFs + `.keep` on client create |
 | `clients/` | `{clientId}/invoices/{displayNumber}.pdf` | Invoice PDF (saved on download, send, or update) |
 | `clients/` | `{clientId}/projects/{projectId}/` | Project files + `.keep` on project create |
+| `forms/` | `{formId}/{uuid}-{name}` | Form file uploads by staff (private: never served by `/api/uploads`; signed-in downloads only) |
+| `forms/` | `{formId}/links/{linkId}/{uuid}-{name}` | Form file uploads through a public link |
 
 Placeholder files use the name **`.keep`** (zero bytes) so empty prefixes appear as folders in the S3 console.
 

@@ -1,6 +1,10 @@
-import { Body, Controller, Get, Headers, Param, Post, Req, Res } from '@nestjs/common';
-import { ApiHeader, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Headers, Param, Post, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { memoryStorage } from 'multer';
+import { FORM_FILE_MAX_BYTES } from '@upstart/back-office/shared';
+import type { UploadedFormFile } from './form-files.service';
 import { FORM_EMBED_SCRIPT } from './form-embed.script';
 import { clientIp } from '../common/rate-limiter';
 import { FormPublicService, type PublicRequest } from './form-public.service';
@@ -50,6 +54,20 @@ export class FormPublicController {
     @Headers('x-care-access') legacy?: string,
   ) {
     return this.forms.form(pub(req), token, access ?? legacy);
+  }
+
+  /** One file for a file question (multipart "file"). Returns the reference to send with the answers. */
+  @Post(':token/files')
+  @ApiConsumes('multipart/form-data')
+  @ApiHeader({ name: 'X-Form-Access', required: false })
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: FORM_FILE_MAX_BYTES } }))
+  uploadFile(
+    @Req() req: Request,
+    @Param('token') token: string,
+    @UploadedFile() file: UploadedFormFile | undefined,
+    @Headers('x-form-access') access?: string,
+  ) {
+    return this.forms.uploadFile(pub(req), token, access, file);
   }
 
   @Post(':token/submit')

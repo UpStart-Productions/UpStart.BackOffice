@@ -39,6 +39,7 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     ':where(.ubo-form .ubo-step){color:var(--ubo-muted);margin:0 0 .25rem}',
     ':where(.ubo-form .ubo-nav){display:flex;gap:.75rem;flex-wrap:wrap}',
     ':where(.ubo-form .ubo-button--secondary){background:transparent;color:inherit;border:1px solid var(--ubo-border)}',
+    ':where(.ubo-form .ubo-file){padding:.35rem 0}',
     ':where(.ubo-form .ubo-group-row){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);padding:.75rem .75rem 0;margin:0 0 .75rem}',
     ':where(.ubo-form .ubo-group-remove){font:inherit;background:none;border:0;color:var(--ubo-muted);cursor:pointer;padding:0 0 .75rem;text-decoration:underline}',
     ':where(.ubo-form .ubo-panel){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);margin:0 0 .75rem;padding:0 1rem}',
@@ -126,8 +127,14 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     return box;
   }
 
-  /** One form field: returns { node, read() } where read() gives the value to send. onPick: a single choice was made. */
-  function field(f, onPick) {
+  var FILE_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg';
+  var FILE_MAX_BYTES = 10 * 1024 * 1024;
+
+  /**
+   * One form field: returns { node, read() } where read() gives the value to send. onPick: a single choice was made.
+   * filesUrl: where file questions upload (the link's /files address).
+   */
+  function field(f, onPick, filesUrl) {
     var id = 'ubo-' + (++uid);
     if (f.type === 'CONTENT') {
       return { node: richText(f.name), read: function () { return null; }, missing: function () { return false; }, name: '', content: true };
@@ -150,6 +157,50 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           return multi ? (picked.length ? picked : null) : (picked[0] || null);
         },
         missing: function () { return f.required && !inputs.some(function (i) { return i.checked; }); },
+        name: f.name
+      };
+    }
+    if (f.type === 'FILE') {
+      // A file upload: each chosen file uploads right away; the answer is the list of uploaded files.
+      var max = f.multiple ? 10 : 1;
+      var refs = [];
+      var list = el('div');
+      var status = el('p', { className: 'ubo-description' });
+      var picker = el('input', { id: id, type: 'file', accept: FILE_ACCEPT, multiple: f.multiple ? true : null });
+      function drawFiles() {
+        list.innerHTML = '';
+        refs.forEach(function (r, i) {
+          var rm = el('button', { type: 'button', className: 'ubo-group-remove', text: 'Remove' });
+          rm.addEventListener('click', function () { refs.splice(i, 1); drawFiles(); });
+          list.appendChild(el('div', { className: 'ubo-file' }, [el('span', { text: r.name + ' ' }), rm]));
+        });
+        picker.disabled = refs.length >= max;
+      }
+      picker.addEventListener('change', function () {
+        var chosen = Array.prototype.slice.call(picker.files || [], 0, Math.max(0, max - refs.length));
+        picker.value = '';
+        var next = Promise.resolve();
+        chosen.forEach(function (file) {
+          next = next.then(function () {
+            if (file.size > FILE_MAX_BYTES) throw new Error(file.name + ': files can be 10 MB at most');
+            status.textContent = 'Uploading ' + file.name + '…';
+            var body = new FormData();
+            body.append('file', file);
+            return fetch(filesUrl, { method: 'POST', body: body }).then(function (res) {
+              return res.json().catch(function () { return null; }).then(function (json) {
+                if (!res.ok) throw new Error(json && json.message ? (Array.isArray(json.message) ? json.message.join(', ') : json.message) : 'Upload failed');
+                refs.push(json);
+                drawFiles();
+              });
+            });
+          });
+        });
+        next.then(function () { status.textContent = ''; }, function (err) { status.textContent = err.message; });
+      });
+      return {
+        node: el('div', { className: 'ubo-field' }, [label(f.name, id, f.required), list, picker, status]),
+        read: function () { return refs.length ? refs.slice() : null; },
+        missing: function () { return f.required && !refs.length; },
         name: f.name
       };
     }
@@ -295,7 +346,7 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           }
           var own = [];
           s.fields.forEach(function (f) {
-            var x = field(f, f.type === 'SINGLE_SELECT' ? autoNext : null);
+            var x = field(f, f.type === 'SINGLE_SELECT' ? autoNext : null, base + '/files');
             if (!x.content) fields.push({ def: f, ui: x });
             own.push({ def: f, ui: x });
             if (layout === 'questions') {

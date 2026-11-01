@@ -37,16 +37,21 @@ export class CreateFieldDto {
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => OptionDto) options?: OptionDto[];
   /** Repeating groups: the sub-fields. */
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SubfieldDto) subfields?: SubfieldDto[];
+  /** File uploads: several files instead of one. */
+  @IsOptional() @IsBoolean() multiple?: boolean;
 }
 
-/** The type can't change once answers may exist. */
+/** The type can change only while nobody has answered the form (the form engine checks). */
 export class UpdateFieldDto {
   @IsOptional() @IsString() @MinLength(1) @MaxLength(20000) name?: string;
+  @IsOptional() @IsIn(FORM_FIELD_TYPES) type?: FormFieldType;
   @IsOptional() @IsBoolean() required?: boolean;
   @IsOptional() @IsString() @MaxLength(40) scoreGroupId?: string | null;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => OptionDto) options?: OptionDto[];
   /** Repeating groups: the sub-fields (ids kept for existing ones; their types can't change). */
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SubfieldDto) subfields?: SubfieldDto[];
+  /** File uploads: several files instead of one. */
+  @IsOptional() @IsBoolean() multiple?: boolean;
 }
 
 export class MoveDto {

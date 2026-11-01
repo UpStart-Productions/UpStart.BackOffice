@@ -18,6 +18,10 @@ export function fieldView(f: FieldRow): FormFieldDto {
   if (f.type === 'GROUP') {
     return { id: f.id, name: f.name, type: f.type, options: [], required: f.required, scoreGroupId: null, subfields: storedSubfields(f.options) };
   }
+  if (f.type === 'FILE') {
+    const multiple = !!(f.options && typeof f.options === 'object' && !Array.isArray(f.options) && (f.options as { multiple?: unknown }).multiple);
+    return { id: f.id, name: f.name, type: f.type, options: [], required: f.required, scoreGroupId: null, multiple };
+  }
   return {
     id: f.id, name: f.name, type: f.type, options: (f.options as FormFieldOption[] | null) ?? [], required: f.required,
     scoreGroupId: f.scoreGroupId ?? null,
@@ -91,6 +95,7 @@ export class FormStructureService {
         ...(f.subfields?.length
           ? { subfields: f.subfields.map((sf) => ({ name: sf.name, type: sf.type, ...(sf.options.length ? { options: sf.options.map((o) => ({ label: o.label })) } : {}) })) }
           : {}),
+        ...(f.type === 'FILE' && f.multiple ? { multiple: true } : {}),
         scoreGroupId: f.scoreGroupId ?? null,
       })),
     }));
@@ -129,6 +134,8 @@ export class FormStructureService {
           } catch (err) {
             throw new BadRequestException(`"${f.name}": ${err instanceof Error ? err.message : 'invalid sub-fields'}`);
           }
+        } else if (f.type === 'FILE') {
+          stored = { multiple: !!(f as { multiple?: boolean }).multiple };
         } else if (f.options) {
           stored = formFieldOptions(f.type, f.options, profile.scoring) as unknown as Prisma.InputJsonValue;
         }
@@ -138,7 +145,7 @@ export class FormStructureService {
             name: f.name,
             type: f.type,
             required: f.type !== 'CONTENT' && profile.required ? f.required : false,
-            scoreGroupId: f.type !== 'CONTENT' && f.type !== 'GROUP' && profile.scoring ? f.scoreGroupId ?? null : null,
+            scoreGroupId: isSelectFieldType(f.type) && profile.scoring ? f.scoreGroupId ?? null : null,
             options: stored,
             sortOrder: fi,
           },
@@ -195,7 +202,7 @@ export class FormStructureService {
     const profile = this.profile(section.form);
     if (!profile.fieldTypes.includes(dto.type)) throw new BadRequestException('This form does not take that type of field');
     const name = this.itemName(dto.type, dto.name);
-    const options: unknown[] = dto.type === 'GROUP' ? this.subfields(dto.subfields) : formFieldOptions(dto.type, dto.options, profile.scoring);
+    const options: unknown[] = dto.type === 'GROUP' ? this.subfields(dto.subfields) : dto.type === 'FILE' ? [] : formFieldOptions(dto.type, dto.options, profile.scoring);
     if (isSelectFieldType(dto.type) && !options.length) throw new BadRequestException('Add at least one option');
     const last = await this.prisma.formField.findFirst({ where: { sectionId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
     const f = await this.prisma.formField.create({
@@ -204,9 +211,57 @@ export class FormStructureService {
         name,
         type: dto.type,
         required: dto.type !== 'CONTENT' && profile.required && !!dto.required,
-        scoreGroupId: dto.type !== 'CONTENT' && dto.type !== 'GROUP' && profile.scoring ? dto.scoreGroupId || null : null,
-        options: options.length ? (options as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+        scoreGroupId: isSelectFieldType(dto.type) && profile.scoring ? dto.scoreGroupId || null : null,
+        options:
+          dto.type === 'FILE'
+            ? { multiple: !!dto.multiple }
+            : options.length
+              ? (options as unknown as Prisma.InputJsonValue)
+              : Prisma.DbNull,
         sortOrder: (last?.sortOrder ?? -1) + 1,
+      },
+      select: FIELD_SELECT,
+    });
+    return fieldView(f);
+  }
+
+  /**
+   * Whether anyone has answered the form yet: any submission or client result, and for the visit checklist any
+   * visit with checklist answers. Field types can change only before that (answers are stored in the type's shape).
+   */
+  async hasAnswers(formId: string): Promise<boolean> {
+    if (await this.prisma.formResponse.count({ where: { formId }, take: 1 })) return true;
+    const form = await this.prisma.form.findUnique({ where: { id: formId }, select: { settings: true } });
+    const settings = (form?.settings ?? {}) as { visitChecklist?: unknown };
+    if (!settings.visitChecklist) return false;
+    return (await this.prisma.careVisit.count({ where: { NOT: { values: { equals: {} } } }, take: 1 })) > 0;
+  }
+
+  /**
+   * Change a question's type (not text blocks). Only while nobody has answered the form. The new type's settings
+   * come from the same request (choices, sub-fields, several files); settings the new type doesn't have are dropped.
+   */
+  private async changeType(field: Awaited<ReturnType<FormStructureService['findField']>>, dto: UpdateFieldDto, profile: FormProfile): Promise<FormFieldDto> {
+    const type = dto.type!;
+    if (field.type === 'CONTENT' || type === 'CONTENT') throw new BadRequestException("A text block can't become a question, or a question a text block");
+    if (!profile.fieldTypes.includes(type)) throw new BadRequestException('This form does not take that type of field');
+    if (await this.hasAnswers(field.section.formId)) throw new BadRequestException("The type can't change once the form has answers");
+    let options: Prisma.InputJsonValue | typeof Prisma.DbNull = Prisma.DbNull;
+    if (type === 'GROUP') options = this.subfields(dto.subfields) as unknown as Prisma.InputJsonValue;
+    else if (type === 'FILE') options = { multiple: !!dto.multiple };
+    else if (isSelectFieldType(type)) {
+      const list = formFieldOptions(type, dto.options, profile.scoring);
+      if (!list.length) throw new BadRequestException('Add at least one option');
+      options = list as unknown as Prisma.InputJsonValue;
+    }
+    const f = await this.prisma.formField.update({
+      where: { id: field.id },
+      data: {
+        type,
+        options,
+        ...(dto.name !== undefined ? { name: this.itemName(type, dto.name) } : {}),
+        ...(dto.required !== undefined ? { required: profile.required && dto.required } : {}),
+        scoreGroupId: isSelectFieldType(type) && profile.scoring ? (dto.scoreGroupId ?? field.scoreGroupId) || null : null,
       },
       select: FIELD_SELECT,
     });
@@ -216,6 +271,7 @@ export class FormStructureService {
   async updateField(id: string, module: string, dto: UpdateFieldDto): Promise<FormFieldDto> {
     const field = await this.findField(id, module);
     const profile = this.profile(field.section.form);
+    if (dto.type !== undefined && dto.type !== field.type) return this.changeType(field, dto, profile);
     const data: Prisma.FormFieldUpdateInput = {};
     if (dto.name !== undefined) data.name = this.itemName(field.type, dto.name);
     if (field.type === 'CONTENT') {
@@ -224,8 +280,17 @@ export class FormStructureService {
       return fieldView(f);
     }
     if (dto.required !== undefined) data.required = profile.required && dto.required;
+    if (field.type === 'FILE') {
+      if (dto.multiple !== undefined) data.options = { multiple: dto.multiple };
+      const f = await this.prisma.formField.update({ where: { id }, data, select: FIELD_SELECT });
+      return fieldView(f);
+    }
     if (field.type === 'GROUP') {
-      if (dto.subfields !== undefined) data.options = this.subfields(dto.subfields, storedSubfields(field.options)) as unknown as Prisma.InputJsonValue;
+      if (dto.subfields !== undefined) {
+        // Saved sub-fields keep their type once the form has answers.
+        const keep = (await this.hasAnswers(field.section.formId)) ? storedSubfields(field.options) : [];
+        data.options = this.subfields(dto.subfields, keep) as unknown as Prisma.InputJsonValue;
+      }
       const f = await this.prisma.formField.update({ where: { id }, data, select: FIELD_SELECT });
       return fieldView(f);
     }
