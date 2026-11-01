@@ -57,7 +57,7 @@
       </p-tabs>
     }
     @if (tab() === 'care' && inCare()) {
-      <app-care-client-tab [clientId]="id()!" [overview]="careOverview()!" (overviewChange)="onCareChange($event)" />
+      <app-care-client-tab [clientId]="id()!" [clientName]="form.name" [overview]="careOverview()!" (overviewChange)="onCareChange($event)" />
     } @else {
     <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">
       <div class="stack" [class.span-2]="!isNew">
@@ -206,6 +206,8 @@
           </div>
 
           <app-people mode="organization" [clientId]="id()!" [compact]="true" />
+
+          <app-client-forms-panel [clientId]="id()!" />
 
           @if (isClient) {
             <div class="card card--side">

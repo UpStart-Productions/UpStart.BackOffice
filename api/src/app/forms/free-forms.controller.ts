@@ -1,10 +1,15 @@
-import { BadRequestException, Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 import {
-  allows, normalizeFormSettings, parseFormDefinition, type FormDefinition, type FormScores, type FormSectionDto, type FormSnapshot, type FormSubmissionDto, type FreeFormDto, type FreeFormListItemDto,
+  allows, normalizeFormSettings, parseFormDefinition, publicSections, type FormDefinition, type FormScores, type FormSectionDto, type FormSnapshot, type FormSubmissionDto,
+  type FormSubmissionMatchDto, type FormStaffPreviewDto, type FreeFormDto, type FreeFormListItemDto, type PendingSubmissionDto,
 } from '@upstart/back-office/shared';
+import { normalizeEmail } from '../communications/email-address.util';
+import { descriptionParts } from './form-description.util';
+import { createClientWithPerson } from './client-create.util';
+import { sanitizeFormAccess } from './form-access.util';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
@@ -58,6 +63,7 @@ export class FreeFormsController {
     const pendingBy = new Map(pending.map((p) => [p.formId, p._count._all]));
     const out: FreeFormListItemDto[] = [];
     for (const f of forms) {
+      const settings = normalizeFormSettings(f.settings);
       out.push({
         id: f.id,
         name: f.name,
@@ -68,9 +74,32 @@ export class FreeFormsController {
         pendingCount: pendingBy.get(f.id) ?? 0,
         updatedAt: f.updatedAt.toISOString(),
         createdByName: personName(f.createdBy),
+        isClientForm: settings.client.enabled,
+        clientCategory: settings.client.enabled ? settings.client.category : null,
+        visitChecklist: settings.visitChecklist,
       });
     }
     return out;
+  }
+
+  /** Submissions waiting for review across every form the user can see (Dashboard), newest first. */
+  @Get('pending')
+  async pending(@Req() req: Request): Promise<PendingSubmissionDto[]> {
+    const user = req.user as UserContext;
+    const rows = await this.prisma.formResponse.findMany({
+      where: { status: 'PENDING', form: { module: M, ...this.ownWhere(user) } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { form: { select: { name: true } } },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      formId: r.formId,
+      formName: r.form.name,
+      submitterName: r.submitterName,
+      submitterEmail: r.submitterEmail,
+      createdAt: r.createdAt.toISOString(),
+    }));
   }
 
   @Post('forms')
@@ -126,6 +155,21 @@ export class FreeFormsController {
     };
   }
 
+  /** How a new-response link will look with the current draft (fields and settings). */
+  @Get('forms/:id/preview')
+  async preview(@Req() req: Request, @Param('id') id: string): Promise<FormStaffPreviewDto> {
+    const form = await this.findForm(req.user as UserContext, id);
+    const live = await liveSnapshot(this.structure, form);
+    const settings = normalizeFormSettings(form.settings);
+    return {
+      formName: form.name,
+      ...descriptionParts(form.description),
+      layout: settings.layout,
+      sections: publicSections(live.sections.filter((s) => s.fields.length)),
+      ask: { organization: settings.askOrganization, phone: settings.askPhone },
+    };
+  }
+
   @Get('forms/:id')
   async get(@Req() req: Request, @Param('id') id: string): Promise<FreeFormDto> {
     const user = req.user as UserContext;
@@ -141,7 +185,14 @@ export class FreeFormsController {
       hasUnpublishedChanges: form.publishedVersion ? snapshotsDiffer(live, form.publishedVersion.snapshot) : true,
       canEdit: allows(user, 'forms', 'edit'),
       canDelete: allows(user, 'forms', 'delete'),
+      access: sanitizeFormAccess(form.access),
     };
+  }
+
+  /** Roles for Who can use it (client forms). */
+  @Get('roles')
+  async roles() {
+    return this.prisma.role.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } });
   }
 
   @Patch('forms/:id')
@@ -153,7 +204,18 @@ export class FreeFormsController {
       data.name = dto.name.trim();
     }
     if (dto.description !== undefined) data.description = dto.description?.trim() || null;
-    if (dto.settings !== undefined) data.settings = normalizeFormSettings(dto.settings) as unknown as Prisma.InputJsonValue;
+    if (dto.settings !== undefined) {
+      const settings = normalizeFormSettings(dto.settings);
+      data.settings = settings as unknown as Prisma.InputJsonValue;
+      // One visit checklist per tenant: turning it on here turns it off elsewhere.
+      if (settings.visitChecklist) {
+        const others = await this.prisma.form.findMany({ where: { module: M, id: { not: id }, settings: { path: ['visitChecklist'], equals: true } }, select: { id: true, settings: true } });
+        for (const o of others) {
+          await this.prisma.form.update({ where: { id: o.id }, data: { settings: { ...normalizeFormSettings(o.settings), visitChecklist: false } as unknown as Prisma.InputJsonValue } });
+        }
+      }
+    }
+    if (dto.access !== undefined) data.access = sanitizeFormAccess(dto.access) as unknown as Prisma.InputJsonValue;
     await this.prisma.form.update({ where: { id }, data });
     return this.get(req, id);
   }
@@ -312,13 +374,13 @@ export class FreeFormsController {
 
   // ── Submissions ────────────────────────────────────────────────────────────
 
-  /** A form's submissions. ?status=PENDING | ACTIVE | DISMISSED. */
+  /** A form's submissions. ?status=PENDING | ACTIVE | DISMISSED, ?clientId= one client's. */
   @Get('forms/:id/submissions')
-  async submissions(@Req() req: Request, @Param('id') formId: string, @Query('status') status?: string) {
+  async submissions(@Req() req: Request, @Param('id') formId: string, @Query('status') status?: string, @Query('clientId') clientId?: string) {
     await this.findForm(req.user as UserContext, formId);
     const st = SUBMISSION_STATUSES.find((s) => s === status);
     const rows = await this.prisma.formResponse.findMany({
-      where: { formId, ...(st ? { status: st } : {}) },
+      where: { formId, ...(st ? { status: st } : {}), ...(clientId ? { clientId } : {}) },
       orderBy: { createdAt: 'desc' },
       include: SUBMISSION_INCLUDE,
     });
@@ -328,17 +390,23 @@ export class FreeFormsController {
 
   /** Every submission with its answers, for the Excel export. ?status like the list. */
   @Get('forms/:id/submissions/export')
-  async exportSubmissions(@Req() req: Request, @Param('id') formId: string, @Query('status') status?: string): Promise<FormSubmissionDto[]> {
+  async exportSubmissions(
+    @Req() req: Request,
+    @Param('id') formId: string,
+    @Query('status') status?: string,
+    @Query('clientId') clientId?: string,
+  ): Promise<FormSubmissionDto[]> {
     const user = req.user as UserContext;
     const form = await this.findForm(user, formId);
     const st = SUBMISSION_STATUSES.find((s) => s === status);
     const rows = await this.prisma.formResponse.findMany({
-      where: { formId, ...(st ? { status: st } : {}) },
+      where: { formId, ...(st ? { status: st } : {}), ...(clientId ? { clientId } : {}) },
       orderBy: { createdAt: 'asc' },
       include: SUBMISSION_INCLUDE,
     });
     const current = rows.some((r) => !r.version) ? await this.structure.sections(formId) : [];
-    return rows.map((r) => this.submissionDto(user, r, form.name, current));
+    const createsClients = normalizeFormSettings(form.settings).client.createClients;
+    return rows.map((r) => this.submissionDto(user, r, form.name, current, createsClients));
   }
 
   @Get('submissions/:id')
@@ -346,11 +414,39 @@ export class FreeFormsController {
     const user = req.user as UserContext;
     const r = await this.findSubmission(user, id);
     const current = r.version ? [] : await this.structure.sections(r.formId);
-    return this.submissionDto(user, r, r.form.name, current);
+    const settings = normalizeFormSettings(r.form.settings);
+    return this.submissionDto(user, r, r.form.name, current, settings.client.enabled && settings.client.createClients);
+  }
+
+  /** Clients that may be who sent this submission: a person with the same email, a client with that email, or the same name. */
+  @Get('submissions/:id/matches')
+  async matches(@Req() req: Request, @Param('id') id: string): Promise<FormSubmissionMatchDto[]> {
+    const r = await this.findSubmission(req.user as UserContext, id);
+    const out = new Map<string, FormSubmissionMatchDto>();
+    const email = normalizeEmail(r.submitterEmail);
+    if (email) {
+      const people = await this.prisma.contactEmail.findMany({
+        where: { email },
+        select: { contact: { select: { firstName: true, lastName: true, accountLinks: { select: { client: { select: { id: true, name: true } } } } } } },
+        take: 10,
+      });
+      for (const p of people) {
+        const who = [p.contact.firstName, p.contact.lastName].filter(Boolean).join(' ');
+        for (const a of p.contact.accountLinks) out.set(a.client.id, { clientId: a.client.id, name: a.client.name, reason: `${who || email} has this email` });
+      }
+      const byEmail = await this.prisma.client.findMany({ where: { email: { equals: email, mode: 'insensitive' } }, select: { id: true, name: true }, take: 10 });
+      for (const c of byEmail) if (!out.has(c.id)) out.set(c.id, { clientId: c.id, name: c.name, reason: 'Same email' });
+    }
+    const name = r.submitterName?.trim();
+    if (name) {
+      const byName = await this.prisma.client.findMany({ where: { name: { equals: name, mode: 'insensitive' } }, select: { id: true, name: true }, take: 10 });
+      for (const c of byName) if (!out.has(c.id)) out.set(c.id, { clientId: c.id, name: c.name, reason: 'Same name' });
+    }
+    return [...out.values()].slice(0, 10);
   }
 
   /** `current`: the form's sections now, for submissions saved before versions. */
-  private submissionDto(user: UserContext, r: SubmissionRow, formName: string, current: FormSectionDto[]): FormSubmissionDto {
+  private submissionDto(user: UserContext, r: SubmissionRow, formName: string, current: FormSectionDto[], createsClients: boolean): FormSubmissionDto {
     const snap = r.version?.snapshot as unknown as FormSnapshot | undefined;
     const sections = snap?.sections ?? current;
     return {
@@ -363,12 +459,14 @@ export class FreeFormsController {
       scores: (r.scores as unknown as FormScores | null) ?? null,
       bands: bandsOf(r),
       canEdit: allows(user, 'forms', 'edit'),
+      createsClients,
     };
   }
 
   /**
    * Accept a submission: into a new Prospect (with a pipeline card and the respondent as its person, source Inbound)
-   * or an existing organization.
+   * or an existing organization. Client forms that create clients make a new client (with the respondent as its
+   * person) instead of a Prospect. A living client form can't go to a client that already has its copy.
    */
   @Post('submissions/:id/accept')
   @Action('edit')
@@ -376,12 +474,19 @@ export class FreeFormsController {
     const user = req.user as UserContext;
     const r = await this.findSubmission(user, id);
     if (r.status === 'ACTIVE' && r.clientId) throw new BadRequestException('This submission is already accepted');
+    const client = normalizeFormSettings(r.form.settings).client;
     let clientId: string;
     if (dto.mode === 'existing') {
       if (!dto.clientId) throw new BadRequestException('Pick an organization');
-      const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
-      if (!client) throw new NotFoundException('Organization not found');
-      clientId = client.id;
+      const existing = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
+      if (!existing) throw new NotFoundException('Organization not found');
+      clientId = existing.id;
+    } else if (client.enabled && client.createClients) {
+      const name = dto.name?.trim() || r.submitterName?.trim();
+      if (!name) throw new BadRequestException("Enter the client's name");
+      clientId = await this.prisma.$transaction((tx) =>
+        createClientWithPerson(tx, { name, personName: r.submitterName, email: r.submitterEmail, phone: r.submitterPhone }),
+      );
     } else {
       const name = dto.name?.trim() || r.submitterOrganization?.trim();
       if (!name) throw new BadRequestException('Enter the organization name');
@@ -402,7 +507,12 @@ export class FreeFormsController {
         return (await ensureLeadLinks(tx, lead.id)).clientId;
       });
     }
-    await this.prisma.formResponse.update({ where: { id }, data: { clientId, status: 'ACTIVE' } });
+    const living = client.enabled && client.copies === 'living';
+    if (living) {
+      const taken = await this.prisma.formResponse.findFirst({ where: { formId: r.formId, clientId, living: true, id: { not: id } }, select: { id: true } });
+      if (taken) throw new ConflictException(`That client already has ${r.form.name}. Open it and copy what you need, or dismiss this one.`);
+    }
+    await this.prisma.formResponse.update({ where: { id }, data: { clientId, status: 'ACTIVE', living } });
     return this.submission(req, id);
   }
 
@@ -447,7 +557,7 @@ export class FreeFormsController {
   private async findSubmission(user: UserContext, id: string) {
     const r = await this.prisma.formResponse.findFirst({
       where: { id, form: { module: M, ...this.ownWhere(user) } },
-      include: { ...SUBMISSION_INCLUDE, form: { select: { name: true } } },
+      include: { ...SUBMISSION_INCLUDE, form: { select: { name: true, settings: true } } },
     });
     if (!r) throw new NotFoundException('Submission not found');
     return r;

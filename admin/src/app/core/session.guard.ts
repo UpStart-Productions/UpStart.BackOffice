@@ -85,8 +85,11 @@ const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
   ['/organizations', 'clients'], ['/clients', 'clients'], ['/people', 'contacts'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'], ['/forms', 'forms'],
   ['/booking-types', 'bookings'], ['/inbox', 'inbox'], ['/activity', 'inbox'], ['/projects', 'projects'],
   ['/tasks', 'tasks'], ['/time-entry', 'time'], ['/expenses', 'expenses'], ['/invoices', 'invoices'],
-  ['/reports', 'reports'], ['/care/visits', 'visits'], ['/care/schedule', 'schedule'], ['/care', 'care'],
+  ['/reports', 'reports'], ['/care/visits', 'visits'], ['/schedule', 'schedule'], ['/care', 'care'],
 ];
+
+/** Pages that check access per record in the API, not by area: a client form result (per-form role access). */
+const OPEN_PREFIXES = ['/forms/results/'];
 
 /**
  * Sends users away from areas their role doesn't grant (admins pass; the API enforces the same), and everyone
@@ -96,6 +99,7 @@ const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
 export const areaGuard: CanActivateChildFn = async (_route, state) => {
   const me = await inject(SessionService).getReady();
   if (!me) return true;
+  if (OPEN_PREFIXES.some((p) => state.url.startsWith(p)) && !tasksOnly(me)) return true;
   const hit = AREA_BY_PREFIX.find(([prefix]) => state.url === prefix || state.url.startsWith(prefix + '/') || state.url.startsWith(prefix + '?'));
   // An area of a module that is off for this tenant doesn't exist, even for admins.
   if (hit && !areaEnabled(me.modules, hit[1])) return inject(Router).createUrlTree(['/dashboard']);

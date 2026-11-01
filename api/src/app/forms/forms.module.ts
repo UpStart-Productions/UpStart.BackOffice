@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ClientFormsController } from './client-forms.controller';
 import { FormDestinations } from './form-destinations';
 import { FormLinksService } from './form-links.service';
 import { FormEmbedController, FormPublicController, FormResultsController } from './form-public.controller';
@@ -14,7 +15,7 @@ import { FreeFormsController } from './free-forms.controller';
  */
 @Module({
   imports: [NotificationsModule],
-  controllers: [FormPublicController, FormResultsController, FormEmbedController, FreeFormsController],
+  controllers: [ClientFormsController, FormPublicController, FormResultsController, FormEmbedController, FreeFormsController],
   providers: [FormStructureService, FormLinksService, FormPublicService, FormDestinations, FreeFormDestination],
   exports: [FormStructureService, FormLinksService, FormDestinations],
 })

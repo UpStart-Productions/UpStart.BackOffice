@@ -5,24 +5,22 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
-import { TagModule } from 'primeng/tag';
-import type { CareRecordDto } from '@upstart/back-office/shared';
+import type { ClientFormResultDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { CareApi } from '../../core/care.api';
+import { ClientFormsApi } from '../../core/client-forms.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { normalizeValues } from '../../core/form-values.util';
 import { SessionService } from '../../core/session.service';
-import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
-import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
-import { CARE_KIND_LIST_TITLE, CARE_KIND_ROUTE, normalizeValues } from '../../ui/care-forms/care.types';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
+import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { PageComponent } from '../../ui/layout/page.component';
-import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
+import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
-/** One organization's copy of a Care form (or a public intake waiting for review). */
+/** One client's result of a client form: answers (Save), share link for living copies, move or delete. */
 @Component({
-  selector: 'app-care-record-page',
+  selector: 'app-client-form-result-page',
   standalone: true,
   imports: [
     DatePipe,
@@ -30,40 +28,25 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     RouterLink,
     ButtonModule,
     MessageModule,
-    TagModule,
     AppDialogModule,
-    AcceptResponseDialogComponent,
-    FormLinksComponent,
     FormFieldInputComponent,
+    FormLinksComponent,
     PageComponent,
+    OrganizationSelectComponent,
     RecordAttributionComponent,
     RowActionsMenuComponent,
-    OrganizationSelectComponent,
   ],
   template: `
-    <app-page [title]="pageTitle()" [backLink]="backLink()" [backLabel]="'Back to ' + backLabel()" helpKey="care.record.page">
+    <app-page [title]="pageTitle()" [backLink]="backLink()" backLabel="Back to client" helpKey="forms.result.page">
       <ng-container ngProjectAs="[pageTitleTrail]">
         @if (record()?.attribution) {
           <app-record-attribution [attribution]="record()!.attribution!" />
-        }
-      </ng-container>
-      <ng-container ngProjectAs="[pageMeta]">
-        @if (record(); as r) {
-          @if (r.status === 'PENDING') {
-            <p-tag value="Waiting for review" severity="warn" />
-          }
-          @if (r.clientId) {
-            <a [routerLink]="['/organizations', r.clientId]" class="text-primary">Open organization</a>
-          }
         }
       </ng-container>
       <ng-container ngProjectAs="[pageActions]">
         @if (record(); as r) {
           @if (r.myAccess === 'edit') {
             <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
-            @if (r.status === 'PENDING') {
-              <p-button label="Accept" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="openAccept()" />
-            }
             <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
           }
         }
@@ -76,15 +59,15 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
       @if (record(); as r) {
         <div class="grid grid-3">
           <div class="stack span-2">
-            @if (!r.sections.length) {
+            @if (!hasFields()) {
               <div class="card">
-                @if (canSetup()) {
+                @if (canDesign()) {
                   <div class="flex align-items-center gap-3 flex-wrap">
-                    <p class="m-0 flex-1">This form has no fields yet. Add sections and fields, or import a form file.</p>
-                    <a pButton label="Customize form" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/care/forms', r.formId]"></a>
+                    <p class="m-0 flex-1">This form has no fields yet.</p>
+                    <a pButton label="Open form" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" [routerLink]="['/forms', r.formId]"></a>
                   </div>
                 } @else {
-                  <p class="m-0">This form has no fields yet. Ask someone who sets up Care to add them.</p>
+                  <p class="m-0">This form has no fields yet. Ask someone who manages Forms to add them.</p>
                 }
               </div>
             }
@@ -109,11 +92,38 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             }
           </div>
           <div class="stack span-1">
-            @if (r.status === 'PENDING' || r.submitterName) {
+            <div class="card card--side">
+              <div class="card-header"><h3 class="card-title">Details</h3></div>
+              <div class="side-list">
+                <div class="side-list-row">
+                  <div class="side-list-body"><span class="side-list-title">Client</span></div>
+                  <a class="side-list-value text-primary" [routerLink]="['/clients', r.clientId]">{{ r.clientName }}</a>
+                </div>
+                @if (r.category) {
+                  <div class="side-list-row">
+                    <div class="side-list-body"><span class="side-list-title">Category</span></div>
+                    <span class="side-list-value">{{ r.category }}</span>
+                  </div>
+                }
+                <div class="side-list-row">
+                  <div class="side-list-body"><span class="side-list-title">Added</span></div>
+                  <span class="side-list-value">{{ r.createdAt | date: 'MMM d, y' }}</span>
+                </div>
+              </div>
+            </div>
+            @if (r.submitterName) {
               <div class="card card--side">
                 <div class="card-header"><h3 class="card-title">Submitted by</h3></div>
                 <div class="side-list">
-                  <div class="side-list-row"><div class="side-list-body"><span class="side-list-title">{{ r.submitterName }}</span><span class="side-list-detail">{{ r.submitterEmail }}</span>@if (r.submitterPhone) {<span class="side-list-detail">{{ r.submitterPhone }}</span>}</div></div>
+                  <div class="side-list-row">
+                    <div class="side-list-body">
+                      <span class="side-list-title">{{ r.submitterName }}</span>
+                      <span class="side-list-detail">{{ r.submitterEmail }}</span>
+                      @if (r.submitterPhone) {
+                        <span class="side-list-detail">{{ r.submitterPhone }}</span>
+                      }
+                    </div>
+                  </div>
                 </div>
               </div>
             }
@@ -123,34 +133,26 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                 <p class="m-0">{{ r.publicUpdatedBy }}, {{ r.publicUpdatedAt | date: 'MMM d, y, h:mm a' }}</p>
               </div>
             }
-            @if (r.clientId && r.myAccess === 'edit') {
+            @if (r.canShare) {
               <div class="card card--side">
-                <app-form-links apiBase="/care" [recordId]="r.id" helpKey="care.links.record" [compact]="true" />
+                <app-form-links [apiBase]="api.base" [recordId]="r.id" helpKey="forms.result.links" [compact]="true" />
               </div>
             }
           </div>
         </div>
       }
 
-      <p-dialog header="Change organization" [(visible)]="moveVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
-        <p class="mt-0">Moves this {{ record()?.formName }} and its share links from {{ record()?.clientName }} to another organization.</p>
+      <p-dialog header="Move to another client" [(visible)]="moveVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
+        <p class="mt-0">Moves this {{ record()?.formName }} from {{ record()?.clientName }} to another client.</p>
         <div class="form-field">
-          <label for="crMoveOrg">Organization</label>
-          <app-organization-select inputId="crMoveOrg" [(value)]="moveClientId" [exclude]="record()?.clientId ? [record()!.clientId!] : []" />
+          <label for="cfrMove">Client</label>
+          <app-organization-select inputId="cfrMove" [(value)]="moveClientId" [exclude]="record()?.clientId ? [record()!.clientId!] : []" />
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="moving()" (onClick)="moveVisible = false" />
           <p-button label="Move" icon="pi pi-arrow-right" [loading]="moving()" [disabled]="!moveClientId" (onClick)="move()" />
         </ng-template>
       </p-dialog>
-
-      <app-accept-response-dialog
-        header="Accept intake"
-        [(visible)]="acceptVisible"
-        [defaultName]="record()?.submitterName ?? ''"
-        [busy]="accepting()"
-        (accept)="accept($event)"
-      />
     </app-page>
   `,
   styles: `
@@ -159,46 +161,44 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     }
   `,
 })
-export class CareRecordPage implements OnInit {
-  private readonly care = inject(CareApi);
+export class ClientFormResultPage implements OnInit {
+  readonly api = inject(ClientFormsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
   private readonly session = inject(SessionService);
-  readonly canSetup = computed(() => this.session.can('care', 'setup'));
+  /** People who can edit forms in Forms get a link to the form when it has no fields. */
+  readonly canDesign = computed(() => this.session.can('forms', 'edit'));
 
-  record = signal<CareRecordDto | null>(null);
+  record = signal<ClientFormResultDto | null>(null);
   error = signal<string | null>(null);
   saving = signal(false);
-  accepting = signal(false);
   values: Record<string, unknown> = {};
   private saved = '';
 
-  acceptVisible = signal(false);
   moveVisible = false;
   moveClientId: string | null = null;
   moving = signal(false);
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
-  backLink = computed(() => CARE_KIND_ROUTE[this.record()?.kind ?? 'INTAKE']);
-  backLabel = computed(() => CARE_KIND_LIST_TITLE[this.record()?.kind ?? 'INTAKE']);
-  pageTitle = computed(() => {
+  readonly hasFields = computed(() => (this.record()?.sections ?? []).some((s) => s.fields.length));
+  readonly backLink = computed(() => (this.record()?.clientId ? `/clients/${this.record()!.clientId}` : '/clients'));
+  readonly pageTitle = computed(() => {
     const r = this.record();
-    if (!r) return 'Form';
-    return `${r.formName}: ${r.clientName ?? r.submitterName ?? 'Untitled'}`;
+    return r ? `${r.formName}: ${r.clientName ?? ''}` : 'Form';
   });
 
   async ngOnInit() {
     try {
-      this.apply(await this.care.record(this.id));
+      this.apply(await this.api.result(this.id));
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load');
     }
   }
 
-  private apply(r: CareRecordDto) {
+  private apply(r: ClientFormResultDto) {
     this.record.set(r);
     this.values = { ...r.values };
     this.saved = JSON.stringify(normalizeValues(this.values));
@@ -209,18 +209,9 @@ export class CareRecordPage implements OnInit {
   }
 
   headerActions(): RowActionItem[] {
-    const pending = this.record()?.status === 'PENDING';
     return [
-      ...(!pending && this.record()?.clientId
-        ? [{ id: 'move', label: 'Change organization', icon: 'pi pi-arrow-right-arrow-left', command: () => this.openMove() }]
-        : []),
-      {
-        id: 'delete',
-        label: pending ? 'Dismiss' : 'Delete',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        command: () => this.confirmDelete(),
-      },
+      { id: 'move', label: 'Move to another client', icon: 'pi pi-arrow-right-arrow-left', command: () => this.openMove() },
+      { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete() },
     ];
   }
 
@@ -233,7 +224,7 @@ export class CareRecordPage implements OnInit {
     if (!this.moveClientId) return;
     this.moving.set(true);
     try {
-      const r = await this.care.changeRecordClient(this.id, this.moveClientId);
+      const r = await this.api.changeClient(this.id, this.moveClientId);
       this.apply(r);
       this.moveVisible = false;
       this.toast.add({ severity: 'success', summary: 'Moved', detail: `Now on ${r.clientName}.` });
@@ -251,7 +242,7 @@ export class CareRecordPage implements OnInit {
       // Send every field: empty ones clear.
       const out: Record<string, unknown> = {};
       for (const s of this.record()?.sections ?? []) for (const f of s.fields) out[f.id] = this.values[f.id] ?? null;
-      this.apply(await this.care.saveRecord(this.id, out));
+      this.apply(await this.api.save(this.id, out));
       this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Form saved.' });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Save failed');
@@ -263,42 +254,17 @@ export class CareRecordPage implements OnInit {
   confirmDelete() {
     const r = this.record();
     if (!r) return;
-    const pending = r.status === 'PENDING';
     this.confirm.confirm({
-      header: pending ? 'Dismiss intake' : 'Confirm delete',
-      message: pending
-        ? `Dismiss this intake from ${r.submitterName ?? 'this person'}? It is deleted and cannot be brought back.`
-        : `Delete ${r.formName} for ${r.clientName}? Everything filled in is removed. This cannot be undone.`,
+      header: 'Confirm delete',
+      message: `Delete ${r.formName} for ${r.clientName}? Everything filled in is removed. This cannot be undone.`,
       accept: async () => {
         try {
-          await this.care.deleteRecord(r.id);
-          if (r.kind === 'INTAKE') void this.care.refreshPendingCount();
-          await this.router.navigate([CARE_KIND_ROUTE[r.kind]]);
+          await this.api.remove(r.id);
+          await this.router.navigate(['/clients', r.clientId]);
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : 'Failed' });
         }
       },
     });
-  }
-
-  openAccept() {
-    this.acceptVisible.set(true);
-  }
-
-  async accept(choice: AcceptResponseChoice) {
-    this.accepting.set(true);
-    try {
-      // Keep any unsaved edits.
-      if (this.isDirty()) await this.save();
-      const r = await this.care.accept(this.id, choice);
-      this.acceptVisible.set(false);
-      this.apply(r);
-      void this.care.refreshPendingCount();
-      this.toast.add({ severity: 'success', summary: 'Accepted', detail: `Intake added to ${r.clientName}.` });
-    } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not accept', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
-    } finally {
-      this.accepting.set(false);
-    }
   }
 }

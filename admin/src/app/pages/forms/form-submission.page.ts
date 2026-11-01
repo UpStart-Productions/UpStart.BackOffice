@@ -7,7 +7,7 @@ import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormSubmissionDto } from '@upstart/back-office/shared';
+import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormSubmissionDto, type FormSubmissionMatchDto } from '@upstart/back-office/shared';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
@@ -27,7 +27,7 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
         @if (s(); as r) {
           <p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" />
           @if (r.clientId) {
-            <a [routerLink]="['/organizations', r.clientId]" class="text-primary">Open organization</a>
+            <a [routerLink]="[r.createsClients ? '/clients' : '/organizations', r.clientId]" class="text-primary">{{ r.createsClients ? 'Open client' : 'Open organization' }}</a>
           }
         }
       </ng-container>
@@ -36,7 +36,7 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
           <app-row-actions-menu [items]="headerActions()" ariaLabel="Submission actions" />
           @if (r.canEdit) {
             @if (!r.clientId) {
-              <p-button label="Accept" icon="pi pi-check" (onClick)="acceptVisible.set(true)" />
+              <p-button label="Accept" icon="pi pi-check" (onClick)="openAccept()" />
             }
           }
         }
@@ -191,7 +191,9 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
       <app-accept-response-dialog
         header="Accept submission"
         [(visible)]="acceptVisible"
-        [defaultName]="s()?.submitterOrganization ?? s()?.submitterName ?? ''"
+        [defaultName]="s()?.createsClients ? (s()?.submitterName ?? '') : (s()?.submitterOrganization ?? s()?.submitterName ?? '')"
+        [createsClients]="!!s()?.createsClients"
+        [matches]="matches()"
         [busy]="busy()"
         (accept)="accept($event)"
       />
@@ -327,6 +329,7 @@ export class FormSubmissionPage implements OnInit {
   error = signal<string | null>(null);
   busy = signal(false);
   acceptVisible = signal(false);
+  matches = signal<FormSubmissionMatchDto[]>([]);
   view = signal<'answers' | 'results'>('answers');
 
   band = computed(() => {
@@ -388,6 +391,16 @@ export class FormSubmissionPage implements OnInit {
     );
     if (r.canEdit) items.push({ id: 'delete', label: 'Delete submission', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove() });
     return items;
+  }
+
+  /** Look up possible matches (same email or name), then open Accept. */
+  async openAccept() {
+    try {
+      this.matches.set(await this.forms.matches(this.id));
+    } catch {
+      this.matches.set([]);
+    }
+    this.acceptVisible.set(true);
   }
 
   async accept(choice: AcceptResponseChoice) {

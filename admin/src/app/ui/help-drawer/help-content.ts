@@ -84,8 +84,12 @@ const ORG_DETAIL: HelpArticle = {
       body: 'Turn on Portal enabled to give a client a bookmarkable link with no login or password. Copy it to share; Regenerate link makes the old one stop working.',
     },
     {
+      heading: 'Forms',
+      body: "The client's filled-in client forms (from Forms), grouped by category. Add form picks any client form your role can edit: a form with one living copy opens the client's copy, the others start a new dated one. Accepted public submissions show here too.",
+    },
+    {
       heading: 'Care (Care module)',
-      body: 'Add to care (clients only, when your role can edit the Care profile) puts a client in care and adds a Care tab next to Details. The Care tab shows the care status, next shift, last visit and hours this month, the Intake form and Care profile (Open or Start), recent visits (Start visit, Log past visit) and the next two weeks of shifts (Add shift). View all opens Visits or Schedule for this client. Change the status (Active, Paused, Ended) on the tab; Not in care removes the tab and keeps everything recorded.',
+      body: 'Add to care (clients only, roles with Care setup) puts a client in care and adds a Care tab next to Details. The Care tab shows the care status, next shift, last visit and hours this month, the visits (Start visit, Log past visit, Show all) and the next two weeks of shifts (Add shift, View all opens Office → Schedule for this client). Change the status (Active, Paused, Ended) on the tab; Not in care removes the tab and keeps everything recorded.',
     },
   ],
 };
@@ -205,7 +209,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Cards',
-        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Needs reply, Next steps, and Gone quiet; click an organization, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, or Bookings.',
+        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Needs reply, Next steps, and Gone quiet; click an organization, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. Pending submissions lists form submissions waiting for review in every form you can see; click one to review and accept it. My shifts (Care) lists your shifts for the next week, with Start visit on today\'s and Open visit once started. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, Bookings, Forms or the Schedule.',
       },
       {
         heading: "Mine / Everyone's",
@@ -225,7 +229,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'To do',
-        body: 'Needs reply: the latest email on a thread came from outside and nobody has answered. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Unfiled: captured email that could not be matched. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that organization here with its next step), snooze it, or mark No reply needed. How many days count is in Settings → Activity.',
+        body: 'Needs reply: the latest email on a thread came from outside and nobody has answered. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Unfiled: captured email that could not be matched. Form submissions (roles with Forms) opens Forms, where submissions wait for review. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that organization here with its next step), snooze it, or mark No reply needed. How many days count is in Settings → Activity.',
       },
       {
         heading: 'Filing unfiled email',
@@ -659,7 +663,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Choosing a period',
-        body: 'Pick Year, Month, Quarter or Date range, then Run report. Narrow to one client, and then one project, if you like.',
+        body: 'Pick Year, Month, Quarter or Date range, then Run report. Narrow to one client, and then one project, if you like. With Care on, Time narrows the time to Visit time (from visits) or Other time.',
       },
       {
         heading: 'Time',
@@ -672,6 +676,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       {
         heading: 'Tasks',
         body: 'Tasks created, completed and overdue in the period, by project.',
+      },
+      {
+        heading: 'Scheduled vs actual (Care)',
+        body: 'Per worker and client: hours on scheduled shifts against hours on finished visits, the difference, missed shifts (ended with no visit) and visits with no shift behind them.',
       },
     ],
   },
@@ -823,6 +831,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Draft: never published. Published: the links show the current form. Changes not published: the links still show the last published version.',
       },
       {
+        heading: 'Used for',
+        body: 'Client form (with its category): answers attach to clients and show on the client page. Visit checklist (Care): filled in on every visit.',
+      },
+      {
         heading: 'Who sees what',
         body: 'The Forms area on a role (Users → Roles): Own shows the forms that person created, All shows every form. Create, Edit and Delete are checkboxes. Admins see everything.',
       },
@@ -830,7 +842,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'forms/:id': {
     title: 'Form',
-    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring and Links below them. Click one to work on it. Submissions open from the Forms list.',
+    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring, Links and Who can use it below them. Click one to work on it. Submissions open from the Forms list.',
     sections: [
       {
         heading: 'Sections',
@@ -846,7 +858,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Settings',
-        body: 'Review submissions before they become prospects, ask for the organization or a phone number, email people their results, a thank-you message and a call to action. Click Save.',
+        body: 'Review submissions before accepting them, ask for the organization or a phone number, email people their results, a thank-you message and a call to action. Client form: Attach answers to a client, a Category, Copies per client (One living copy or New each time) and Public submissions can create new clients. With Care on: Use as the visit checklist. Click Save.',
+      },
+      {
+        heading: 'Who can use it',
+        body: 'Client forms: for each role pick None, Read or Edit for the answers on client pages, then Save. Admins can always edit.',
       },
       {
         heading: 'Scoring',
@@ -860,6 +876,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         heading: 'Public links',
         body: 'New link makes a link anyone can use, with No check, a Passcode or an Emailed code. Copy, open or revoke it from its ⋮ menu. Embed on a website (⋮ menu) gives a one-line code to paste into any website, the link key for developers, and Allowed websites (empty = any website).',
       },
+      {
+        heading: 'Preview',
+        body: 'Use Preview on the top bar (between Publish and Save) or in the ⋮ menu. You see the draft like a new public link. Answers are not saved. Field edits show as you save them; Details and Settings on screen are included even before Save.',
+      },
     ],
   },
   'forms/:id/submissions': {
@@ -868,7 +888,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Tabs',
-        body: 'Waiting for review (when the form reviews submissions), Accepted, Dismissed and All. Each row shows the score and profile on scored forms.',
+        body: 'Waiting for review (when the form reviews submissions), Accepted, Dismissed and All. Each row shows the client or organization it was accepted into, and the score and profile on scored forms. Pick a client in the filter to see only theirs.',
       },
       {
         heading: 'Export Excel',
@@ -890,7 +910,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Accept',
-        body: 'New organization creates a Prospect with a pipeline card (source Inbound) and the sender as its person. Existing organization attaches the submission to one you pick.',
+        body: 'Possible matches (a person or client with the same email, or a client with the same name) show at the top; Use attaches it there. New organization creates a Prospect with a pipeline card (source Inbound) and the sender as its person; client forms that create clients offer New client instead (the client, with the sender as its person). Existing attaches it to one you pick.',
       },
       {
         heading: 'Dismiss and delete',
@@ -899,96 +919,29 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     ],
   },
 
-  // ── Care (module) ─────────────────────────────────────
-  'care/clients': {
-    title: 'Clients in care',
-    intro: 'Every client in care. Click a client to open their Care tab.',
-    sections: [
-      {
-        heading: 'Current and Ended',
-        body: 'Current lists Active and Paused clients; Ended lists clients whose care has ended. Each row shows the care status, whether the care profile is started, the next shift and the last visit.',
-      },
-      {
-        heading: 'Add to care',
-        body: 'Pick a client (an organization with status Client) to put them in care; their Care tab opens. Starting an intake or care profile, or accepting an intake, also puts that client in care. Needs Edit on the Care profile.',
-      },
-      {
-        heading: 'Customize care profile',
-        body: 'Care setup: changes the Care profile form.',
-      },
-    ],
-  },
-  'care/intake': {
-    title: 'Intake',
-    intro: "Every organization's intake form, and intakes sent through a public link.",
-    sections: [
-      {
-        heading: 'Waiting for review',
-        body: 'Intakes sent through a public intake link land here first, with the person who sent it. Open one, check it, then Accept to attach it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing organization. Dismiss deletes it. Only people whose role can edit the Intake form and reach every organization see this tab.',
-      },
-      {
-        heading: 'New intake',
-        body: "Starts an intake form for an organization that has none yet, and puts that organization in care. You can also start one from a client's Care tab. Customize form (Care setup) changes the form and its public intake links.",
-      },
-    ],
-  },
-  'care/profiles': {
-    title: 'Care profiles',
-    intro: "Every organization's care profile, one living copy each.",
-    sections: [
-      {
-        heading: 'New care profile',
-        body: "Pick an organization to start its care profile (this also puts it in care). You can also start one from a client's Care tab. Customize form (Care setup) changes the form.",
-      },
-      {
-        heading: 'Who sees what',
-        body: 'Each form sets Read or Edit per role (Customize form). People only see organizations assigned to them unless their role has Organizations: All.',
-      },
-    ],
-  },
-  'care/records/:id': {
-    title: 'Care form',
-    intro: "One organization's copy of a Care form. It always shows the current answers.",
+  'forms/results/:id': {
+    title: 'Client form',
+    intro: "One client's answers to a client form. It opens from the Forms panel on the client's page.",
     sections: [
       {
         heading: 'Editing',
-        body: 'Change any answers and click Save at the top. Read-only roles see the form without Save.',
+        body: 'Change any answers and click Save at the top. Roles with Read see the answers without Save.',
       },
       {
         heading: 'Share link',
-        body: "New link makes a link to this organization's form for someone outside, such as family. Pick a check: No check, Passcode (share it separately) or Emailed code (sent to the address you enter). Links expire after 30 days unless you change it, and you can Revoke one anytime from its ⋮ menu. Changes made through a link save straight to the form and notify your team; the side panel shows who made the last one.",
+        body: "Forms with one living copy per client. New link makes a link to this client's copy for someone outside, such as family, with No check, a Passcode or an Emailed code. Links expire after 30 days unless you change it; revoke one from its ⋮ menu. Changes made through a link save straight to the form and notify your team.",
       },
       {
-        heading: 'Accept or dismiss',
-        body: 'An intake sent through a public intake link shows Waiting for review. Accept attaches it to a new or existing organization; Dismiss (⋮ menu) deletes it.',
-      },
-      {
-        heading: 'Change organization or delete',
-        body: "In the ⋮ menu. Change organization moves this copy, with its answers and share links, to another organization that doesn't have this form yet. Delete removes this organization's copy; the form stays.",
+        heading: 'Move or delete',
+        body: "In the ⋮ menu. Move to another client moves these answers (and a living copy's share links). Delete removes them; the form stays.",
       },
     ],
   },
-  'care/visits': {
-    title: 'Visits',
-    intro: 'Who visited which organization and when, with the visit log.',
-    sections: [
-      {
-        heading: 'Start visit',
-        body: 'Pick the organization and the visit starts now. Its page shows the visit log and notes; End visit records the end time and adds the hours to the timesheet. While a visit is in progress, a banner at the top links back to it. From the Schedule, Start visit on your own shift does the same and links the visit to the shift.',
-      },
-      {
-        heading: 'Log past visit',
-        body: 'Adds a visit that already happened: organization, date, start and end (and the worker, if your role sees everyone). Its time goes on the timesheet right away.',
-      },
-      {
-        heading: 'Who sees what',
-        body: "Visits Own: only your own visits. All: everyone's visits at the organizations you reach. Filter by period, worker and organization. Customize form (Care setup) changes the visit log checklist.",
-      },
-    ],
-  },
+
+  // ── Care (module) ─────────────────────────────────────
   'care/visits/:id': {
     title: 'Visit',
-    intro: 'One visit: when, the visit log and notes.',
+    intro: 'One visit: when, the visit checklist (a form set in Forms) and notes. Visits open from the Care tab on the client page, the Schedule or Dashboard → My shifts.',
     sections: [
       {
         heading: 'Time',
@@ -996,17 +949,17 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'End visit',
-        body: 'Shown while the visit is in progress. Saves the visit log and notes, sets the end to now and adds the hours to the timesheet.',
+        body: 'Shown while the visit is in progress. Saves the checklist and notes, sets the end to now and adds the hours to the timesheet.',
       },
     ],
   },
-  'care/schedule': {
+  schedule: {
     title: 'Schedule',
-    intro: 'A week of shifts. Use the arrows or This week to move around.',
+    intro: 'Office → Schedule (Care module): every caregiver\'s shifts for the week, across clients. Use the arrows or This week to move around. A client\'s own shifts are also on their Care tab.',
     sections: [
       {
         heading: 'Add shift',
-        body: 'Organization, worker (empty = open shift), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the worker already has a shift at that time, you get a warning. The worker gets a notification.',
+        body: 'Client, worker (empty = open shift), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the worker already has a shift at that time, you get a warning. The worker gets a notification.',
       },
       {
         heading: 'Shift menu',
@@ -1014,29 +967,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Who sees what',
-        body: "Schedule Own: only your own shifts, and you can only plan your own. All: everyone's shifts at the organizations you reach.",
-      },
-    ],
-  },
-  'care/forms/:id': {
-    title: 'Customize form',
-    intro: 'Opened with Customize form on Intake or Care profiles (Care setup). The column on the left lists the form\'s sections, then Settings, Who can use it and (Intake) Links. Drag sections to reorder them; + adds one.',
-    sections: [
-      {
-        heading: 'Who can use it',
-        body: 'For each role pick None, Read or Edit, then Save. Admins can always edit. The role also needs the Care area (Users → Roles), and people only see organizations assigned to them unless their role has Organizations: All.',
-      },
-      {
-        heading: 'Fields',
-        body: "Add a section, then Add field: a name, a type (Text, Long text, Number, Date, Single-select, Multi-select, Checkbox) and whether it is Required on public links. The type can't be changed later. Drag a field by its ☰ handle to reorder it; use the ⋮ menus to edit or delete (and to move sections). Deleting a field removes its answers from every record. These changes save right away.",
-      },
-      {
-        heading: 'Form files',
-        body: 'The ⋮ menu at the top: Export form file downloads the sections and fields; Import form file adds a file\'s sections and fields after the ones here, without changing anything already there. Use them to copy a setup to another UBO, such as a test site to your live one.',
-      },
-      {
-        heading: 'Public intake links',
-        body: 'Intake form only. New link makes a link anyone can use to send an intake, for example from your website, with No check, a Passcode, or an Emailed code to the person filling it in. Submissions wait under Intake → Waiting for review. Copy, open or revoke a link from its ⋮ menu.',
+        body: "Schedule Own: only your own shifts, and you can only plan your own. All: everyone's shifts at the clients you reach.",
       },
     ],
   },

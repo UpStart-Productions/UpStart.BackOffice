@@ -25,6 +25,8 @@ Each card has an icon and title in its header, a **⋯** handle for moving it, a
 - **My time**: a running timer (with a stop button), your hours today and this week, and this week's entries, newest first. Click a project, organization, or task to open it. **→** opens Time.
 - **Invoices**: amount outstanding, overdue amount, drafts to send, and the unpaid invoices that have a due date, soonest first. Click an invoice number or the client name to open it. **→** opens Invoices.
 - **Upcoming bookings**: confirmed bookings in the next week. If the booking is tied to a pipeline card, the guest name opens that card. **→** opens Bookings.
+- **Pending submissions** (roles with Forms): submissions waiting for review in every form you can see, newest first, with the form's name. Click one to review and accept it. **→** opens Forms.
+- **My shifts** (Care module, roles with Schedule): your shifts for the next week. **Start visit** on today's shifts starts the visit for that shift; **Open visit** once it's started. **→** opens the Schedule.
 
 ## Rearranging
 

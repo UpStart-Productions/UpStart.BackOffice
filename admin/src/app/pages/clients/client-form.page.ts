@@ -26,6 +26,7 @@ import { PeopleComponent } from '../../ui/people/people.component';
 import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { CareClientTabComponent } from '../../ui/care-forms/care-client-tab.component';
+import { ClientFormsPanelComponent } from '../../ui/client-forms/client-forms-panel.component';
 import { CareApi } from '../../core/care.api';
 import { areaLevel, type AccountJourney, type CareClientOverviewDto, type ClientDto, type RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
@@ -82,6 +83,7 @@ type ClientForm = {
     HelpTextComponent,
     RecordAttributionComponent,
     CareClientTabComponent,
+    ClientFormsPanelComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',

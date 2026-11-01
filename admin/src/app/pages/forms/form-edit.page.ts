@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -13,8 +13,10 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto,
+  areaEnabled, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, publicSections, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
+  type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto,
 } from '@upstart/back-office/shared';
+import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { downloadFormFile } from '../../core/form-file.util';
@@ -22,9 +24,9 @@ import { freeFormWorkspace } from './form-workspace.config';
 import { FormsApi } from '../../core/forms.api';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
+import { FormRespondViewComponent } from '../../ui/form-respond-view/form-respond-view.component';
 import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
-import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -49,45 +51,66 @@ const newId = () => Math.random().toString(36).slice(2, 10);
     TextareaModule,
     AppDialogModule,
     FormBuilderComponent,
+    FormRespondViewComponent,
     FormLinksComponent,
     HelpTextComponent,
-    PageComponent,
     RowActionsMenuComponent,
+    RouterLink,
   ],
   template: `
-    <app-page [title]="form()?.name ?? 'Form'" backLink="/forms" backLabel="Back to Forms" helpKey="forms.form.page">
-      <ng-container ngProjectAs="[pageMeta]">
+    <header class="page-header">
+      <div class="page-header-row">
+        <p-button
+          icon="pi pi-arrow-left"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          type="button"
+          class="page-header-back"
+          routerLink="/forms"
+          ariaLabel="Back to Forms"
+        />
+        <div class="page-header-title-block">
+          <h1 class="page-title page-header-title">
+            {{ form()?.name ?? 'Form' }}
+            <app-help-text key="forms.form.page" />
+          </h1>
+        </div>
         @if (form(); as f) {
-          @if (!f.published) {
-            <p-tag value="Draft" severity="secondary" />
-          } @else if (f.hasUnpublishedChanges) {
-            <p-tag value="Changes not published" severity="warn" />
-          } @else {
-            <p-tag value="Published" severity="success" />
-          }
-        }
-      </ng-container>
-      <ng-container ngProjectAs="[pageActions]">
-        @if (form(); as f) {
-          <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
-          @if (f.canEdit) {
-            @if (f.published && !f.hasUnpublishedChanges) {
-              <p-button label="Unpublish" icon="pi pi-eye-slash" severity="secondary" [outlined]="true" [loading]="publishing()" (onClick)="confirmUnpublish()" />
+          <div class="page-header-meta">
+            @if (!f.published) {
+              <p-tag value="Draft" severity="secondary" />
+            } @else if (f.hasUnpublishedChanges) {
+              <p-tag value="Changes not published" severity="warn" />
             } @else {
-              <p-button
-                [label]="f.published ? 'Publish changes' : 'Publish'"
-                icon="pi pi-send"
-                severity="secondary"
-                [outlined]="true"
-                [loading]="publishing()"
-                [disabled]="isDirty()"
-                (onClick)="publish()"
-              />
+              <p-tag value="Published" severity="success" />
             }
-            <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
-          }
+          </div>
+          <div class="page-header-actions">
+            <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
+            @if (f.canEdit) {
+              @if (f.published && !f.hasUnpublishedChanges) {
+                <p-button label="Unpublish" icon="pi pi-eye-slash" severity="secondary" [outlined]="true" [loading]="publishing()" (onClick)="confirmUnpublish()" />
+              } @else {
+                <p-button
+                  [label]="f.published ? 'Publish changes' : 'Publish'"
+                  icon="pi pi-send"
+                  severity="secondary"
+                  [outlined]="true"
+                  [loading]="publishing()"
+                  [disabled]="isDirty()"
+                  (onClick)="publish()"
+                />
+              }
+            }
+            <p-button label="Preview" icon="pi pi-eye" severity="secondary" [outlined]="true" (onClick)="openPreview()" />
+            @if (f.canEdit) {
+              <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+            }
+          </div>
         }
-      </ng-container>
+      </div>
+    </header>
 
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
@@ -120,7 +143,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
               </div>
               <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="ffReview" [binary]="true" [(ngModel)]="settings.review" [disabled]="!f.canEdit" />
-                <label for="ffReview">Review submissions before they become prospects <app-help-text key="forms.form.review" /></label>
+                <label for="ffReview">Review submissions before accepting them <app-help-text key="forms.form.review" /></label>
               </div>
               <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="ffOrg" [binary]="true" [(ngModel)]="settings.askOrganization" [disabled]="!f.canEdit" />
@@ -150,6 +173,42 @@ const newId = () => Math.random().toString(36).slice(2, 10);
               </div>
             </div>
           </div>
+
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Client form <app-help-text key="forms.form.client" /></h3></div>
+            <div class="showcase-flex-col">
+              <div class="flex align-items-center gap-2">
+                <p-checkbox inputId="ffClient" [binary]="true" [(ngModel)]="client.enabled" [disabled]="!f.canEdit" />
+                <label for="ffClient">Attach answers to a client</label>
+              </div>
+              @if (client.enabled) {
+                <div class="showcase-row">
+                  <div class="form-field showcase-half">
+                    <label for="ffCategory">Category <app-help-text key="forms.form.category" /></label>
+                    <input pInputText id="ffCategory" class="w-full" [(ngModel)]="category" [disabled]="!f.canEdit" placeholder="e.g. Intake, Client profile" />
+                  </div>
+                  <div class="form-field showcase-half">
+                    <label>Copies per client <app-help-text key="forms.form.copies" /></label>
+                    <p-selectbutton [options]="copiesOptions" optionLabel="label" optionValue="value" [(ngModel)]="client.copies" [allowEmpty]="false" [disabled]="!f.canEdit" />
+                  </div>
+                </div>
+                <div class="flex align-items-center gap-2">
+                  <p-checkbox inputId="ffCreates" [binary]="true" [(ngModel)]="client.createClients" [disabled]="!f.canEdit" />
+                  <label for="ffCreates">Public submissions can create new clients <app-help-text key="forms.form.createClients" /></label>
+                </div>
+              }
+            </div>
+          </div>
+
+          @if (careOn()) {
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Care</h3></div>
+              <div class="flex align-items-center gap-2">
+                <p-checkbox inputId="ffVisit" [binary]="true" [(ngModel)]="visitChecklist" [disabled]="!f.canEdit" />
+                <label for="ffVisit">Use as the visit checklist <app-help-text key="forms.form.visitChecklist" /></label>
+              </div>
+            </div>
+          }
 
             }
             @case ('scoring') {
@@ -221,10 +280,66 @@ const newId = () => Math.random().toString(36).slice(2, 10);
           </div>
 
             }
+            @case ('access') {
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Who can use it <app-help-text key="forms.form.access" /></h3>
+            </div>
+            @if (!client.enabled) {
+              <p class="mt-0">Applies when the form is a client form (Settings → Attach answers to a client).</p>
+            }
+            <p-table [value]="roles()" styleClass="table-bordered">
+              <ng-template pTemplate="header">
+                <tr><th>Role</th><th>Access</th></tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-r>
+                <tr>
+                  <td>{{ r.name }}</td>
+                  <td>
+                    <p-selectbutton
+                      [options]="levelOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      [ngModel]="levels()[r.id] ?? 'none'"
+                      (ngModelChange)="setLevel(r.id, $event)"
+                      [allowEmpty]="false"
+                      [disabled]="!f.canEdit"
+                      size="small"
+                    />
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="emptymessage">
+                <tr><td colspan="2">No roles yet.</td></tr>
+              </ng-template>
+            </p-table>
+          </div>
+            }
             @case ('links') {
           <div class="card">
             <app-form-links [apiBase]="forms.base" [formId]="f.id" title="Public links" helpKey="forms.form.links" />
           </div>
+            }
+            @case ('preview') {
+          <p-message
+            severity="info"
+            styleClass="w-full mb-3"
+            text="Preview only — answers are not saved. Fields reflect your saved edits; unsaved Details and Settings appear here too."
+          />
+          @if (previewView(); as pv) {
+            <div class="card form-preview-card">
+              <app-form-respond-view
+                [formName]="pv.formName"
+                [description]="pv.description"
+                [descriptionHtml]="pv.descriptionHtml"
+                [layout]="pv.layout"
+                [sections]="pv.sections"
+                [ask]="pv.ask"
+                [preview]="true"
+                idPrefix="form-edit-preview"
+              />
+            </div>
+          }
             }
             @default {
           @if (currentSection(); as sec) {
@@ -291,7 +406,11 @@ const newId = () => Math.random().toString(36).slice(2, 10);
           <p-button label="Save" icon="pi pi-check" [loading]="scoringSaving()" [disabled]="!groupName.trim()" (onClick)="saveGroupName()" />
         </ng-template>
       </p-dialog>
-    </app-page>
+  `,
+  styles: `
+    .form-preview-card {
+      max-width: 42rem;
+    }
   `,
 })
 export class FormEditPage implements OnInit {
@@ -301,6 +420,16 @@ export class FormEditPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly ws = inject(FormWorkspaceService);
+  private readonly session = inject(SessionService);
+
+  readonly copiesOptions = (Object.keys(FORM_CLIENT_COPIES_LABELS) as FormClientCopies[]).map((value) => ({ value, label: FORM_CLIENT_COPIES_LABELS[value] }));
+  readonly levelOptions: { value: FormAccessLevel | 'none'; label: string }[] = [
+    { value: 'none', label: 'None' },
+    { value: 'read', label: 'Read' },
+    { value: 'edit', label: 'Edit' },
+  ];
+  /** The Care module is on (visit checklist setting). */
+  readonly careOn = computed(() => areaEnabled(this.session.me()?.modules, 'visits'));
 
   readonly layoutOptions = (Object.keys(FORM_LAYOUT_LABELS) as FormLayout[]).map((value) => ({ value, label: FORM_LAYOUT_LABELS[value] }));
   private readonly query = toSignal(this.route.queryParamMap);
@@ -308,11 +437,27 @@ export class FormEditPage implements OnInit {
   readonly view = computed(() => {
     const f = this.form();
     const v = this.query()?.get('view');
-    if (v === 'settings' || v === 'scoring' || v === 'links') return v;
+    if (v === 'settings' || v === 'scoring' || v === 'links' || v === 'access' || v === 'preview') return v;
     if (v && f?.sections.some((x) => x.id === v)) return v;
     return f?.sections[0]?.id ?? 'settings';
   });
   readonly currentSection = computed(() => this.form()?.sections.find((x) => x.id === this.view()) ?? null);
+
+  /** Public-style preview from the draft on screen (includes unsaved Details / Settings). */
+  readonly previewView = computed(() => {
+    const f = this.form();
+    if (!f) return null;
+    const raw = this.description.trim() || f.description?.trim() || '';
+    const descriptionHtml = raw && /^\s*</.test(raw) ? raw : null;
+    return {
+      formName: this.name.trim() || f.name,
+      description: descriptionHtml ? null : raw || null,
+      descriptionHtml,
+      layout: this.layout,
+      sections: publicSections(f.sections.filter((s) => s.fields.length)),
+      ask: { organization: this.settings.askOrganization, phone: this.settings.askPhone },
+    };
+  });
 
   readonly profile = formProfile(FREE_FORM_MODULE, null);
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
@@ -333,6 +478,11 @@ export class FormEditPage implements OnInit {
   thankYou = '';
   ctaLabel = '';
   ctaUrl = '';
+  client: Omit<FormClientSettings, 'category'> = { enabled: false, copies: 'each', createClients: false };
+  category = '';
+  visitChecklist = false;
+  roles = signal<{ id: string; name: string }[]>([]);
+  levels = signal<FormAccess>({});
   private saved = '';
 
   // Scoring (saves right away)
@@ -355,6 +505,7 @@ export class FormEditPage implements OnInit {
 
   async ngOnInit() {
     this.ws.open(this.id, freeFormWorkspace(this.forms, this.id));
+    this.forms.roles().then((r) => this.roles.set(r), () => this.roles.set([]));
     try {
       this.apply(await this.forms.form(this.id));
     } catch (err) {
@@ -383,11 +534,18 @@ export class FormEditPage implements OnInit {
     this.thankYou = f.settings.thankYou ?? '';
     this.ctaLabel = f.settings.cta?.label ?? '';
     this.ctaUrl = f.settings.cta?.url ?? '';
+    this.client = { enabled: f.settings.client.enabled, copies: f.settings.client.copies, createClients: f.settings.client.createClients };
+    this.category = f.settings.client.category ?? '';
+    this.visitChecklist = f.settings.visitChecklist;
+    this.levels.set({ ...f.access });
     this.saved = this.snapshot();
   }
 
   private snapshot() {
-    return JSON.stringify({ n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYou.trim(), cl: this.ctaLabel.trim(), cu: this.ctaUrl.trim() });
+    return JSON.stringify({
+      n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYou.trim(), cl: this.ctaLabel.trim(), cu: this.ctaUrl.trim(),
+      c: this.client, cat: this.category.trim(), v: this.visitChecklist, a: this.levels(),
+    });
   }
 
   isDirty() {
@@ -403,8 +561,19 @@ export class FormEditPage implements OnInit {
       layout: this.layout,
       thankYou: this.thankYou.trim() || null,
       cta: this.ctaUrl.trim() ? { label: this.ctaLabel.trim() || 'Learn more', url: this.ctaUrl.trim() } : null,
+      client: { ...this.client, category: this.category.trim() || null },
+      visitChecklist: this.visitChecklist,
       scoring,
     };
+  }
+
+  setLevel(roleId: string, level: FormAccessLevel | 'none') {
+    this.levels.update((l) => {
+      const next = { ...l };
+      if (level === 'none') delete next[roleId];
+      else next[roleId] = level;
+      return next;
+    });
   }
 
   async save() {
@@ -415,7 +584,9 @@ export class FormEditPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
-      this.apply(await this.forms.update(this.id, { name: this.name.trim(), description: this.description.trim() || null, settings: this.settingsBody() }));
+      this.apply(
+        await this.forms.update(this.id, { name: this.name.trim(), description: this.description.trim() || null, settings: this.settingsBody(), access: this.levels() }),
+      );
       this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.name.trim()} saved.` });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');
@@ -456,8 +627,15 @@ export class FormEditPage implements OnInit {
     });
   }
 
+  openPreview() {
+    void this.router.navigate(['/forms', this.id], { queryParams: { view: 'preview' } });
+  }
+
   headerActions(): RowActionItem[] {
-    const items: RowActionItem[] = [{ id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() }];
+    const items: RowActionItem[] = [
+      { id: 'preview', label: 'Preview', icon: 'pi pi-eye', command: () => this.openPreview() },
+      { id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() },
+    ];
     const f = this.form();
     // With changes waiting, the header button publishes them; Unpublish moves here.
     if (f?.canEdit && f.published && f.hasUnpublishedChanges) {

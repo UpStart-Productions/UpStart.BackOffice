@@ -37,7 +37,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     RowActionsMenuComponent,
   ],
   template: `
-    <app-page [title]="title()" backLink="/care/visits" backLabel="Back to Visits" helpKey="care.visit.page">
+    <app-page [title]="title()" [backLink]="backLink()" backLabel="Back to client" helpKey="care.visit.page">
       <ng-container ngProjectAs="[pageMeta]">
         @if (visit(); as v) {
           @if (v.status === 'IN_PROGRESS') {
@@ -46,7 +46,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
           @if (v.invoiced) {
             <p-tag value="Invoiced" severity="secondary" />
           }
-          <a [routerLink]="['/organizations', v.clientId]" class="text-primary">Open organization</a>
+          <a [routerLink]="['/clients', v.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">Open client</a>
         }
       </ng-container>
       <ng-container ngProjectAs="[pageActions]">
@@ -141,6 +141,8 @@ export class CareVisitPage implements OnInit {
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
   visit = signal<CareVisitDto | null>(null);
+  /** Back to the client (there is no separate visits list). */
+  readonly backLink = computed(() => (this.visit() ? ['/clients', this.visit()!.clientId] : '/clients'));
   error = signal<string | null>(null);
   saving = signal(false);
   ending = signal(false);
@@ -240,7 +242,7 @@ export class CareVisitPage implements OnInit {
       accept: async () => {
         try {
           await this.care.deleteVisit(v.id);
-          await this.router.navigate(['/care/visits']);
+          await this.router.navigate(['/clients', v.clientId], { queryParams: { tab: 'care' } });
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : 'Failed' });
         }

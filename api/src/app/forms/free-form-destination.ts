@@ -6,13 +6,16 @@ import { MailService } from '../mail/mail.service';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { FormDestinations, type FormDestination, type PublicLink, type PublicSubmission } from './form-destinations';
+import { liveValues } from './form-fields.util';
+import { FormStructureService } from './form-structure.service';
 import { newAccessToken } from './form-links.util';
 import { M } from './free-forms.util';
 
 /**
- * Where free-standing forms' submissions go (Forms area). Each submission is kept with its version and
- * scores; with Review on it waits under Waiting for review. Staff are notified, and the respondent can be
- * emailed their results. Scored forms return a result token for the results page.
+ * Where Forms submissions go. New-response links: each submission is kept with its version and scores; with
+ * Review on it waits under Waiting for review. Staff are notified, and the respondent can be emailed their results.
+ * Scored forms return a result token for the results page. Client links (living client forms): the answers save
+ * straight to that client's copy.
  */
 @Injectable()
 export class FreeFormDestination implements FormDestination, OnModuleInit {
@@ -26,6 +29,7 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     private readonly destinations: FormDestinations,
     private readonly delivery: NotificationDeliveryService,
     private readonly mail: MailService,
+    private readonly structure: FormStructureService,
   ) {}
 
   onModuleInit() {
@@ -37,11 +41,15 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     return { organization: s.askOrganization, phone: s.askPhone };
   }
 
-  async storedValues() {
-    return {};
+  /** A client link starts from (and merges into) the client's living copy. */
+  async storedValues(link: PublicLink) {
+    if (link.kind !== 'CLIENT' || !link.clientId) return {};
+    const copy = await this.prisma.formResponse.findFirst({ where: { formId: link.formId, clientId: link.clientId, living: true }, select: { values: true } });
+    return liveValues(await this.structure.fields(link.formId), copy?.values);
   }
 
   async submit(link: PublicLink, sub: PublicSubmission) {
+    if (link.kind === 'CLIENT') return this.submitClientCopy(link, sub);
     const settings = normalizeFormSettings(link.form.settings);
     const resultToken = sub.scores ? newAccessToken() : null;
     const row = await this.prisma.formResponse.create({
@@ -68,6 +76,21 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     return { message: settings.thankYou ?? undefined, resultToken: resultToken ?? undefined };
   }
 
+  /** Someone outside (e.g. family) updated a client's living copy through its share link. */
+  private async submitClientCopy(link: PublicLink, sub: PublicSubmission) {
+    const clientId = link.clientId!;
+    const who = sub.email ?? sub.name ?? 'Someone with the link';
+    const data = { values: sub.values as Prisma.InputJsonValue, publicUpdatedAt: new Date(), publicUpdatedBy: who };
+    const existing = await this.prisma.formResponse.findFirst({ where: { formId: link.formId, clientId, living: true }, select: { id: true } });
+    const row = existing
+      ? await this.prisma.formResponse.update({ where: { id: existing.id }, data, select: { id: true } })
+      : await this.prisma.formResponse.create({ data: { formId: link.formId, clientId, living: true, ...data }, select: { id: true } });
+    const clientName = link.client?.name ?? 'a client';
+    await this.notifyUsers(link, row.id, `${link.form.name} updated: ${clientName}`, `${who} updated ${link.form.name} for ${clientName} through a link.`, [
+      'forms', 'results', row.id,
+    ]);
+  }
+
   /** Admins, people with Forms: All, and the form's creator. */
   private async notifyStaff(link: PublicLink, responseId: string, formName: string, sub: PublicSubmission, settings: FormSettings) {
     try {
@@ -88,6 +111,33 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
           title: `New ${formName}: ${who}`,
           body: settings.review ? `${who} sent ${formName}. Review it under Forms.` : `${who} sent ${formName}.`,
           meta: { entityType: 'form_response', entityId: responseId, route: ['forms', 'submissions', responseId], actionLabel: 'Open submission' },
+        })),
+      );
+    } catch (err) {
+      this.logger.warn(`Form notification failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /** Client-copy updates: admins, the form's creator, people with Forms: All and roles with Edit on the form. */
+  private async notifyUsers(link: PublicLink, responseId: string, title: string, body: string, route: string[]) {
+    try {
+      const editRoles = new Set(Object.entries((link.form.access ?? {}) as Record<string, string>).filter(([, l]) => l === 'edit').map(([id]) => id));
+      const users = await this.prisma.user.findMany({
+        where: { isActive: true, OR: [{ role: 'ADMIN' }, { role: 'USER' }] },
+        select: { id: true, role: true, roleId: true, tenantRole: { select: { permissions: true } } },
+      });
+      const targets = users.filter((u) => {
+        if (u.role === 'ADMIN' || u.id === link.form.createdById) return true;
+        if (u.roleId && editRoles.has(u.roleId)) return true;
+        return (u.tenantRole?.permissions as Record<string, string> | null)?.['forms'] === 'all';
+      });
+      await this.delivery.deliverMany(
+        targets.map((u) => ({
+          userId: u.id,
+          type: 'form_submission' as const,
+          title,
+          body,
+          meta: { entityType: 'form_response', entityId: responseId, route, actionLabel: 'Open' },
         })),
       );
     } catch (err) {

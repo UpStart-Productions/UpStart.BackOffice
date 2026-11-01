@@ -149,11 +149,13 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'A form file made with Export form file (on a form page), e.g. from another UBO. It creates a draft with the same fields, settings and scoring. Publish it when ready.',
   'forms.form.page':
     'Build the form here. Details and Settings save with Save; Scoring and Fields save right away. Public links show the published version, so publish again for changes to reach people.',
+  'forms.form.preview':
+    'See the draft the way a new public link will look. Answers are not saved. Use Preview on the top bar (between Publish and Save) or in the ⋮ menu.',
   'forms.form.description': 'Shown at the top of the form.',
   'forms.form.layout':
     'One page: everything on one scrolling page. Page by section: one section at a time with Next and Back. Page by question: one question or text block per screen; picking a single choice moves on by itself. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
   'forms.form.review':
-    'On: submissions wait under Waiting for review until you Accept them (into a new Prospect or an existing organization) or Dismiss them. Off: they are accepted as they come in.',
+    'On: submissions wait under Waiting for review until you Accept them (into a new Prospect, a new client for client forms that create clients, or an existing one) or Dismiss them. Off: they are accepted as they come in.',
   'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
   'forms.form.cta': 'A button on the results page and email, e.g. a link to book a call.',
   'forms.form.scoring':
@@ -165,34 +167,30 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
   'forms.submissions.page': 'Everything sent through this form. Open one to see the answers and score, then Accept or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
   'forms.submission.page':
-    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person) or an Existing one. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
+    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person), a New client (client forms that create clients) or an existing one, with possible matches by email or name. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
+  'forms.form.client':
+    "Client forms: answers attach to a client and show in the Forms panel on the client's page. Name the form anything (e.g. Services intake, Client profile).",
+  'forms.form.category': 'Groups client forms on the client page and in Add form, e.g. Intake, Client profile, Class registration. Optional.',
+  'forms.form.copies':
+    'One living copy: each client has one copy you keep up to date (like a profile); Add form opens it. New each time: every Add form or accepted submission is a new dated result (like an intake).',
+  'forms.form.createClients':
+    'When you Accept a public submission, New client creates the client (with the sender as its person). Off: Accept offers a new Prospect organization instead.',
+  'forms.form.visitChecklist': 'Care: caregivers fill this form in on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',
+  'forms.form.access':
+    "Client forms: per role None, Read or Edit for the answers on client pages. Admins can always edit. People only see clients they can reach (assigned to them unless their role has Organizations: All). Designing the form is the Forms area.",
+  'forms.result.page':
+    "One client's answers to a client form. Edit and Save. The ⋮ menu moves it to another client or deletes it. Forms with one living copy have Share link, so someone outside (e.g. family) can update it.",
+  'forms.result.links':
+    "A link to this client's copy of the form, e.g. for family to update it. Changes save straight to the form and notify your team.",
   // Care module
-  'care.form.page':
-    'Customize this form. The column on the left lists its sections, then Settings (name and description), Who can use it and (Intake) Links. Field changes save right away; Save is for the name, description and access. The ⋮ menu exports or imports a form file.',
-  'care.form.description': 'Shown at the top of the form on public links.',
-  'care.form.access':
-    'Per role: None, Read or Edit. Admins can always edit. People only see forms for organizations they can reach (the ones assigned to them unless their role has Organizations: All).',
-  'care.intake.page':
-    "Every organization's intake form. Waiting for review lists intakes sent through a public link; open one to Accept it into a new or existing organization, or Dismiss it. Customize form (Care setup) changes the form and its public links.",
-  'care.clients.page':
-    "Every client in care. Click one to open their Care tab (status, care profile, intake, visits and schedule). Add to care puts a client in care; Customize care profile (Care setup) changes the form.",
-  'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization; Customize form (Care setup) changes the form.",
-  'care.record.page':
-    "This organization's copy of the form. Edit and Save; Share link makes a link so someone outside (e.g. family) can update it.",
-  'care.visits.page':
-    'Visits: who visited which organization and when, with the visit log. Start visit begins one now; End visit on its page records the time on the timesheet. Log past visit adds one afterwards. Customize form (Care setup) changes the visit log checklist.',
   'care.visit.page':
-    'One visit: when, the visit log and notes. While it is in progress, End visit records the end time and adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.',
+    'One visit: when, the visit checklist and notes. While it is in progress, End visit records the end time and adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.',
   'care.visit.time': 'An end time earlier than the start counts as the next day (overnight visits).',
   'care.schedule.page':
     'Shifts for the week. Add shift plans a one-off or weekly repeating shift; the ⋮ menu on a shift edits, cancels, deletes, or starts the visit when it is your shift.',
   'care.schedule.worker': 'Leave empty for an open shift nobody has yet. The worker gets a notification when a shift is assigned to them.',
   'care.schedule.repeat':
     'Repeats on the days you pick, at the same local time, until the date you set (or keeps going). Each shift can still be edited on its own.',
-  'care.links.intake':
-    'Links anyone can use to send a new intake, e.g. on your website. Each one arrives under Care → Intake → Waiting for review.',
-  'care.links.record':
-    "A link to this organization's copy of the form, e.g. for family to update it. Changes save straight to the form and notify your team.",
   'form.links.verify':
     'No check: anyone with the link. Passcode: share it separately (phone or text). Emailed code: a code goes to an email address before the form opens.',
   'form.links.websites':

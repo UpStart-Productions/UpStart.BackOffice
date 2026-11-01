@@ -1,95 +1,13 @@
-import { inject, Injectable, signal } from '@angular/core';
-import type {
-  FormAccess,
-  FormAccessLevel,
-  FormDefinition,
-  CareClientListItemDto,
-  CareClientOverviewDto,
-  CareFormDto,
-  CareFormKind,
-  CareRecordDto,
-  CareRecordListItemDto,
-  CareShiftDto,
-  CareStatus,
-  CareVisitDto,
-  CareVisitListItemDto,
-} from '@upstart/back-office/shared';
+import { inject, Injectable } from '@angular/core';
+import type { CareClientOverviewDto, CareShiftDto, CareStatus, CareVisitDto, CareVisitListItemDto } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
 
-/** Care module API (forms setup, records, links) plus the pending-intake count for the nav badge. */
+/** Care module API: a client's care status, visits and the schedule. */
 @Injectable({ providedIn: 'root' })
 export class CareApi {
   private readonly api = inject(ApiService);
 
-  /** Public intakes waiting for review (nav badge). */
-  readonly pendingCount = signal(0);
-
-  form(id: string) {
-    return this.api.get<CareFormDto>(`/care/forms/${id}`);
-  }
-  updateForm(id: string, body: { name?: string; description?: string | null; access?: FormAccess }) {
-    return this.api.patch(`/care/forms/${id}`, body);
-  }
-  roles() {
-    return this.api.get<{ id: string; name: string }[]>('/care/roles');
-  }
-  addSection(formId: string, name: string) {
-    return this.api.post<{ id: string; name: string }>(`/care/forms/${formId}/sections`, { name });
-  }
-  reorderSections(formId: string, ids: string[]) {
-    return this.api.post(`/care/forms/${formId}/sections/order`, { ids });
-  }
-  /** The form's sections and fields as a form file. */
-  exportForm(id: string) {
-    return this.api.get<FormDefinition>(`/care/forms/${id}/export`);
-  }
-  /** Add a form file's sections and fields after the form's own. */
-  importForm(id: string, definition: FormDefinition) {
-    return this.api.post<{ sections: number; fields: number }>(`/care/forms/${id}/import`, { definition });
-  }
-
-  async records(kind: CareFormKind, status?: 'PENDING' | 'ACTIVE') {
-    const q = new URLSearchParams({ kind, ...(status ? { status } : {}) });
-    const res = await this.api.get<{ items: CareRecordListItemDto[]; myAccess: FormAccessLevel | null; formId: string | null; fieldCount: number; pendingCount: number }>(
-      `/care/records?${q}`,
-    );
-    if (kind === 'INTAKE') this.pendingCount.set(res.pendingCount);
-    return res;
-  }
-  async refreshPendingCount() {
-    try {
-      await this.records('INTAKE', 'PENDING');
-    } catch {
-      this.pendingCount.set(0);
-    }
-  }
-  record(id: string) {
-    return this.api.get<CareRecordDto>(`/care/records/${id}`);
-  }
-  createRecord(formId: string, clientId: string) {
-    return this.api.post<{ id: string }>('/care/records', { formId, clientId });
-  }
-  saveRecord(id: string, values: Record<string, unknown>) {
-    return this.api.put<CareRecordDto>(`/care/records/${id}`, { values });
-  }
-  /** Move an organization's record (with its share links) to another organization. */
-  changeRecordClient(id: string, clientId: string) {
-    return this.api.patch<CareRecordDto>(`/care/records/${id}/client`, { clientId });
-  }
-  deleteRecord(id: string) {
-    return this.api.delete(`/care/records/${id}`);
-  }
-  accept(id: string, body: { mode: 'new' | 'existing'; name?: string; clientId?: string }) {
-    return this.api.post<CareRecordDto>(`/care/records/${id}/accept`, body);
-  }
-
-  // ── Clients in care ────────────────────────────────────────────────────────
-
-  /** Care → Clients: every client in care the user reaches. */
-  careClients() {
-    return this.api.get<CareClientListItemDto[]>('/care/clients');
-  }
-  /** A client's Care tab: status and their Intake form / Care profile. */
+  /** A client's Care tab: status and whether the user may change it. */
   careClient(clientId: string) {
     return this.api.get<CareClientOverviewDto>(`/care/clients/${clientId}`);
   }
@@ -111,7 +29,7 @@ export class CareApi {
     return this.api.get<{ items: CareVisitListItemDto[]; inProgress: CareVisitListItemDto | null }>(`/care/visits?${q}`);
   }
   visitForm() {
-    return this.api.get<{ formId: string }>('/care/visit-form');
+    return this.api.get<{ formId: string | null }>('/care/visit-form');
   }
   visit(id: string) {
     return this.api.get<CareVisitDto>(`/care/visits/${id}`);

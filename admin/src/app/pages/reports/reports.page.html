@@ -20,6 +20,20 @@
             appendTo="body"
           />
         </div>
+        @if (careOn()) {
+          <div class="form-field report-filter-field" title="Show all time, only time from visits, or everything else">
+            <label for="reportTimeKind">Time</label>
+            <p-select
+              inputId="reportTimeKind"
+              [options]="timeKindOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="filters.timeKind"
+              styleClass="w-full"
+              appendTo="body"
+            />
+          </div>
+        }
         @if (filters.clientId) {
           <div
             class="form-field report-filter-field"
@@ -64,6 +78,9 @@
         <p-tab [value]="0" title="Hours worked in the selected period">Time</p-tab>
         <p-tab [value]="1" title="Invoices issued in the selected period">Invoices</p-tab>
         <p-tab [value]="2" title="Tasks created, completed, or overdue in the selected period">Tasks</p-tab>
+        @if (careOn()) {
+          <p-tab [value]="3" title="Scheduled shift hours against visited hours, per worker and client">Scheduled vs actual</p-tab>
+        }
       </p-tablist>
       <p-tabpanels>
         <p-tabpanel [value]="0">
@@ -481,6 +498,58 @@
             }
           }
         </p-tabpanel>
+        @if (careOn()) {
+          <p-tabpanel [value]="3">
+            @if (!hasRun()) {
+              <p class="text-muted report-empty">Choose a period and run the report to compare scheduled and visited hours.</p>
+            } @else if (loading()) {
+              <p class="text-muted report-empty">Loading…</p>
+            } @else if (!scheduleRows().length) {
+              <p class="text-muted report-empty">No shifts or visits in this period.</p>
+            } @else {
+              <p-table [value]="scheduleRows()" styleClass="table-bordered report-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Worker</th>
+                    <th>Client</th>
+                    <th>Scheduled</th>
+                    <th>Visited</th>
+                    <th>Difference</th>
+                    <th>Missed shifts</th>
+                    <th>Visits with no shift</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-r>
+                  <tr>
+                    <td>{{ r.workerName }}</td>
+                    <td><a [routerLink]="['/clients', r.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ r.clientName }}</a></td>
+                    <td>{{ formatMin(r.scheduledMin) }}</td>
+                    <td>{{ formatMin(r.visitedMin) }}</td>
+                    <td>
+                      @if (r.visitedMin - r.scheduledMin === 0) {
+                        0m
+                      } @else {
+                        <p-tag [value]="formatDiff(r.visitedMin - r.scheduledMin)" [severity]="r.visitedMin < r.scheduledMin ? 'warn' : 'info'" />
+                      }
+                    </td>
+                    <td>{{ r.missedShifts || '' }}</td>
+                    <td>{{ r.unscheduledVisits || '' }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="footer">
+                  <tr>
+                    <td colspan="2"><strong>Total</strong></td>
+                    <td><strong>{{ formatMin(scheduleTotals().scheduledMin) }}</strong></td>
+                    <td><strong>{{ formatMin(scheduleTotals().visitedMin) }}</strong></td>
+                    <td><strong>{{ formatDiff(scheduleTotals().visitedMin - scheduleTotals().scheduledMin) }}</strong></td>
+                    <td><strong>{{ scheduleTotals().missedShifts || '' }}</strong></td>
+                    <td><strong>{{ scheduleTotals().unscheduledVisits || '' }}</strong></td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            }
+          </p-tabpanel>
+        }
       </p-tabpanels>
     </p-tabs>
   </div>

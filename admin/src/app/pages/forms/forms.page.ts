@@ -61,6 +61,7 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             <tr>
               <th style="width: 3rem"></th>
               <th>Form</th>
+              <th>Used for</th>
               <th>Status</th>
               <th>Submissions</th>
               <th>Updated</th>
@@ -71,6 +72,14 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             <tr>
               <td><app-row-actions-menu [items]="rowActions(f)" ariaLabel="Form actions" /></td>
               <td><a [routerLink]="['/forms', f.id]" class="text-primary">{{ f.name }}</a></td>
+              <td>
+                @if (f.isClientForm) {
+                  <p-tag [value]="f.clientCategory ? 'Client form: ' + f.clientCategory : 'Client form'" severity="info" />
+                }
+                @if (f.visitChecklist) {
+                  <p-tag value="Visit checklist" severity="info" [class.ml-1]="f.isClientForm" />
+                }
+              </td>
               <td>
                 @if (f.publishedNumber === null) {
                   <p-tag value="Draft" severity="secondary" />
@@ -91,7 +100,7 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
-            <tr><td colspan="6">{{ loading() ? '' : 'No forms yet.' }}</td></tr>
+            <tr><td colspan="7">{{ loading() ? '' : 'No forms yet.' }}</td></tr>
           </ng-template>
         </p-table>
       </div>

@@ -1,8 +1,12 @@
-# Office (Clients, Projects, Tasks, Time, Expenses, Invoices, Forms)
+# Office (Clients, Projects, Tasks, Time, Schedule, Expenses, Invoices, Forms)
 
 ## Clients
 
 **Clients** lists the organizations you are working for (status Client). Active and Inactive show in the Status column. See the CRM guide for how clients, prospects and organizations relate.
+
+A client's page has a **Forms** panel: the client's filled-in client forms (intake, profile and so on), grouped by category. **Add form** picks any client form your role can edit; a form with one living copy per client opens the client's copy instead of adding another. See the Forms guide.
+
+With the Care module on, clients in care also get a **Care** tab (see the Care guide).
 
 ## Projects
 
@@ -25,6 +29,10 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 ## Time
 
 **Time** (Time entry) lists time entries. Add time from the list or related modals; tie entries to projects and tasks when applicable.
+
+## Schedule
+
+**Schedule** appears after Time when the Care module is on: every caregiver's shifts for the week, across clients. See the Care guide.
 
 ## Expenses
 

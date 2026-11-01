@@ -91,14 +91,11 @@ export type FormProfile = {
   scoring: boolean;
 };
 
-const ALL_FIELDS: FormProfile = { fieldTypes: FORM_FIELD_TYPES, required: true, newLinks: true, clientLinks: false, scoring: true };
+/** Forms in Forms. Client links are only offered for living client forms (the client-forms API checks that). */
+const ALL_FIELDS: FormProfile = { fieldTypes: FORM_FIELD_TYPES, required: true, newLinks: true, clientLinks: true, scoring: true };
 
 /** Profiles of module-owned forms, keyed "module:key". */
-export const FORM_PROFILES: Record<string, FormProfile> = {
-  'care:INTAKE': { fieldTypes: FORM_FIELD_TYPES, required: true, newLinks: true, clientLinks: true, scoring: false },
-  'care:CARE_PROFILE': { fieldTypes: FORM_FIELD_TYPES, required: true, newLinks: false, clientLinks: true, scoring: false },
-  'care:VISIT': { fieldTypes: FORM_FIELD_TYPES, required: true, newLinks: false, clientLinks: false, scoring: false },
-};
+export const FORM_PROFILES: Record<string, FormProfile> = {};
 
 /** Module of free-standing forms (the Forms area). */
 export const FREE_FORM_MODULE = 'forms';
@@ -194,6 +191,16 @@ export type FormPublicFormDto = {
   verifiedEmail: string | null;
 };
 
+/** Staff preview of a Forms draft (current fields and settings, not the published version). */
+export type FormStaffPreviewDto = {
+  formName: string;
+  description: string | null;
+  descriptionHtml: string | null;
+  layout: FormLayout;
+  sections: FormSectionDto[];
+  ask: { organization: boolean; phone: boolean };
+};
+
 // ── Free-standing forms (Forms area): settings, scoring, versions ────────────
 
 export type FormScoreGroup = { id: string; name: string };
@@ -227,9 +234,36 @@ export const FORM_LAYOUT_LABELS: Record<FormLayout, string> = {
   tabs: 'Tabs',
 };
 
+/**
+ * Client forms: answers (results) belong to a client and show on the client's page. The tenant names the form
+ * and its category freely (e.g. "Services intake" in Intake, "Client profile" in Profiles).
+ */
+export type FormClientSettings = {
+  /** Answers attach to a client. */
+  enabled: boolean;
+  /** living: one copy per client, kept up to date (like a profile). each: a new dated result each time (like an intake). */
+  copies: 'living' | 'each';
+  /** Public-link submissions can be accepted into a new client (with the sender as its person). */
+  createClients: boolean;
+  /** Groups the form on the client page and in lists. */
+  category: string | null;
+};
+
+export type FormClientCopies = FormClientSettings['copies'];
+export const FORM_CLIENT_COPIES_LABELS: Record<FormClientCopies, string> = {
+  living: 'One living copy',
+  each: 'New each time',
+};
+
+export const DEFAULT_FORM_CLIENT_SETTINGS: FormClientSettings = { enabled: false, copies: 'each', createClients: false, category: null };
+
 export type FormSettings = {
   /** How sections are shown on public pages. */
   layout: FormLayout;
+  /** Client forms (see FormClientSettings). */
+  client: FormClientSettings;
+  /** Care: this form is the checklist filled in on every visit (one form per tenant; the newest wins). */
+  visitChecklist: boolean;
   /** Submissions wait under Waiting for review (accept into a Prospect, or dismiss). Off: they are accepted as is. */
   review: boolean;
   /** Ask the respondent for their organization (used as the Prospect name). */
@@ -246,6 +280,8 @@ export type FormSettings = {
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
   layout: 'page',
+  client: DEFAULT_FORM_CLIENT_SETTINGS,
+  visitChecklist: false,
   review: true,
   askOrganization: false,
   askPhone: false,
@@ -276,8 +312,17 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     .filter((b: FormScoreBand) => b.id && b.label)
     .sort((a: FormScoreBand, b: FormScoreBand) => a.upTo - b.upTo);
   const cta = src['cta'] && typeof src['cta'] === 'object' && str(src['cta'].url, 1000) ? { label: str(src['cta'].label, 120) || 'Learn more', url: str(src['cta'].url, 1000) } : null;
+  const cl = (src['client'] && typeof src['client'] === 'object' ? src['client'] : {}) as Record<string, any>;
+  const client: FormClientSettings = {
+    enabled: !!cl['enabled'],
+    copies: cl['copies'] === 'living' ? 'living' : 'each',
+    createClients: !!cl['createClients'],
+    category: str(cl['category'], 60) || null,
+  };
   return {
     layout: FORM_LAYOUTS.includes(src['layout']) ? src['layout'] : DEFAULT_FORM_SETTINGS.layout,
+    client,
+    visitChecklist: !!src['visitChecklist'],
     review: src['review'] === undefined ? DEFAULT_FORM_SETTINGS.review : !!src['review'],
     askOrganization: !!src['askOrganization'],
     askPhone: !!src['askPhone'],
@@ -404,6 +449,10 @@ export type FreeFormListItemDto = {
   pendingCount: number;
   updatedAt: string;
   createdByName: string | null;
+  /** Client form category, or null (not a client form). */
+  clientCategory: string | null;
+  isClientForm: boolean;
+  visitChecklist: boolean;
 };
 
 export type FreeFormDto = {
@@ -416,6 +465,8 @@ export type FreeFormDto = {
   hasUnpublishedChanges: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  /** Client forms: who can see and fill in results on client pages (roleId -> read | edit; admins always edit). */
+  access: FormAccess;
 };
 
 export type FormSubmissionListItemDto = {
@@ -441,6 +492,67 @@ export type FormSubmissionDto = FormSubmissionListItemDto & {
   scores: FormScores | null;
   bands: FormScoreBand[];
   canEdit: boolean;
+  /** Client forms: Accept can create a new client (instead of a Prospect). */
+  createsClients: boolean;
+};
+
+/** A client that may be who sent a submission (same email, or same name). */
+export type FormSubmissionMatchDto = { clientId: string; name: string; reason: string };
+
+/** Submissions waiting for review across every form the user can see (Dashboard). */
+export type PendingSubmissionDto = {
+  id: string;
+  formId: string;
+  formName: string;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  createdAt: string;
+};
+
+// ── Client forms: results on a client's page ─────────────────────────────────
+
+/** A client form the user can add to a client. */
+export type ClientFormOptionDto = {
+  formId: string;
+  name: string;
+  category: string | null;
+  copies: FormClientCopies;
+  myAccess: FormAccessLevel;
+};
+
+export type ClientFormResultListItemDto = {
+  id: string;
+  formId: string;
+  formName: string;
+  category: string | null;
+  copies: FormClientCopies;
+  status: 'PENDING' | 'ACTIVE' | 'DISMISSED';
+  clientId: string | null;
+  clientName: string | null;
+  submitterName: string | null;
+  submitterEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+export type ClientFormResultDto = ClientFormResultListItemDto & {
+  values: Record<string, unknown>;
+  sections: FormSectionDto[];
+  submitterPhone: string | null;
+  publicUpdatedAt: string | null;
+  publicUpdatedBy: string | null;
+  myAccess: FormAccessLevel;
+  /** Share links (someone outside updates this copy): living forms only. */
+  canShare: boolean;
+  attribution?: import('./types').RecordAttributionDto;
+};
+
+/** The client page's Forms panel. */
+export type ClientFormsPanelDto = {
+  results: ClientFormResultListItemDto[];
+  /** Forms the user can add (Edit access). */
+  options: ClientFormOptionDto[];
 };
 
 // ── Form files (Export / Import) ─────────────────────────────────────────────

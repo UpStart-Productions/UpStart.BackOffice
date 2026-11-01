@@ -11,6 +11,8 @@ import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
+import { areaEnabled, type CareScheduledVsActualRowDto } from '@upstart/back-office/shared';
 import { chartColorMode, chartSeriesColors } from '../../core/chart-palette';
 import { PageComponent } from '../../ui/layout/page.component';
 import { dateKey, formatDurationMin, parseDateKey } from '../time-entry/timesheet.utils';
@@ -47,6 +49,8 @@ type TimeEntry = {
   } | null;
   client?: { id: string; name: string } | null;
   projectTask?: { id: string; name: string; isBillable: boolean } | null;
+  /** Care: the visit this time came from, if any. */
+  careVisit?: { id: string } | null;
 };
 
 type Invoice = {
@@ -129,6 +133,34 @@ type TaskProjectRow = {
 })
 export class ReportsPage implements OnInit {
   private readonly api = inject(ApiService);
+  private readonly session = inject(SessionService);
+
+  /** Care module on: the Time filter for visit time and the Scheduled vs actual tab. */
+  readonly careOn = computed(() => areaEnabled(this.session.me()?.modules, 'visits'));
+  readonly timeKindOptions = [
+    { label: 'All time', value: '' },
+    { label: 'Visit time', value: 'visits' },
+    { label: 'Other time', value: 'other' },
+  ];
+  /** Scheduled vs actual rows from the last run. */
+  readonly scheduleRows = signal<CareScheduledVsActualRowDto[]>([]);
+  readonly scheduleTotals = computed(() =>
+    this.scheduleRows().reduce(
+      (t, r) => ({
+        scheduledMin: t.scheduledMin + r.scheduledMin,
+        visitedMin: t.visitedMin + r.visitedMin,
+        missedShifts: t.missedShifts + r.missedShifts,
+        unscheduledVisits: t.unscheduledVisits + r.unscheduledVisits,
+      }),
+      { scheduledMin: 0, visitedMin: 0, missedShifts: 0, unscheduledVisits: 0 },
+    ),
+  );
+
+  /** Visited minus scheduled, e.g. "+1h 30m" or "-45m". */
+  formatDiff(min: number): string {
+    if (!min) return '0m';
+    return `${min > 0 ? '+' : '-'}${formatDurationMin(Math.abs(min))}`;
+  }
 
   @ViewChild('totalChartRef') totalChartRef?: UIChart;
   @ViewChild('billableChartRef') billableChartRef?: UIChart;
@@ -156,6 +188,8 @@ export class ReportsPage implements OnInit {
   filters = {
     clientId: '' as string,
     projectId: '' as string,
+    /** Care: '' all time, 'visits' time from visits only, 'other' everything else. */
+    timeKind: '' as '' | 'visits' | 'other',
   };
 
   private timeEntries = signal<TimeEntry[]>([]);
@@ -386,7 +420,7 @@ export class ReportsPage implements OnInit {
 
   async ngOnInit() {
     const [clients, projects] = await Promise.all([
-      this.api.get<Client[]>('/clients').catch(() => [] as Client[]),
+      this.api.get<Client[]>('/clients/lookup').catch(() => [] as Client[]),
       this.api.get<Project[]>('/projects').catch(() => [] as Project[]),
     ]);
     this.clients.set(clients);
@@ -443,11 +477,18 @@ export class ReportsPage implements OnInit {
       if (this.filters.projectId) taskParams.set('projectId', this.filters.projectId);
       if (this.filters.clientId) taskParams.set('clientId', this.filters.clientId);
 
-      const [entries, invoices, tasks] = await Promise.all([
+      const careParams = new URLSearchParams({ from: bounds.from.toISOString(), to: bounds.to.toISOString() });
+      if (this.filters.clientId) careParams.set('clientId', this.filters.clientId);
+      const [entries, invoices, tasks, schedule] = await Promise.all([
         this.api.get<TimeEntry[]>(`/time-entries?${params}`),
         this.api.get<Invoice[]>('/invoices'),
         this.api.get<TaskReport>(`/tm/reports/tasks?${taskParams}`).catch(() => null),
+        this.careOn()
+          ? this.api.get<CareScheduledVsActualRowDto[]>(`/care/reports/scheduled-vs-actual?${careParams}`).catch(() => [] as CareScheduledVsActualRowDto[])
+          : Promise.resolve([] as CareScheduledVsActualRowDto[]),
       ]);
+      this.scheduleRows.set(schedule);
+      const timeKind = this.careOn() ? this.filters.timeKind : '';
 
       const clientId = this.filters.clientId;
       const projectId = this.filters.projectId;
@@ -455,6 +496,8 @@ export class ReportsPage implements OnInit {
         entries.filter((e) => {
           if (clientId && (e.project?.client?.id ?? e.client?.id) !== clientId) return false;
           if (projectId && e.project?.id !== projectId) return false;
+          if (timeKind === 'visits' && !e.careVisit) return false;
+          if (timeKind === 'other' && e.careVisit) return false;
           return true;
         }),
       );

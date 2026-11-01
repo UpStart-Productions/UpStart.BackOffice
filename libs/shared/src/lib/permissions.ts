@@ -50,7 +50,7 @@ export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   expenses: 'Expenses',
   invoices: 'Invoices',
   reports: 'Reports',
-  care: 'Care forms',
+  care: 'Care',
   visits: 'Visits',
   schedule: 'Schedule',
 };
@@ -94,12 +94,12 @@ export const ACTION_LABELS: Record<RoleAction, string> = {
   setup: 'Setup',
 };
 
-/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types), Care (forms). */
+/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types), Care (who is in care). */
 export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings', 'care'];
 
 /**
- * Areas whose only checkbox is Setup. Care: what a role can read or edit is set per form (Customize fields),
- * and which clients by Clients reach (assigned clients unless Organizations is All).
+ * Areas whose only checkbox is Setup. Care: seeing a client's care status; Setup adds clients to care and changes
+ * their status. Which clients: Clients reach (assigned clients unless Organizations is All).
  */
 export const SETUP_ONLY_AREAS: readonly PermissionArea[] = ['care'];
 

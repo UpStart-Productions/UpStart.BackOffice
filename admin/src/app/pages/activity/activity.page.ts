@@ -15,6 +15,9 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { map } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { FormsApi } from '../../core/forms.api';
+import { SessionService } from '../../core/session.service';
+import { areaLevel } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import {
   ActivityFeedFilter,
@@ -183,6 +186,9 @@ function endOfDayIso(key: string): string | null {
               <div class="queue-grid">
                 @for (q of queueKeys; track q) {
                   <app-queue-card [label]="info[q].label" [count]="countOf(q)" [help]="info[q].help(thresholds())" [active]="queue() === q" (pick)="setQueue(q)" />
+                }
+                @if (canForms()) {
+                  <app-queue-card label="Form submissions" [count]="pendingSubmissions()" help="Waiting for review in Forms." link="/forms" />
                 }
               </div>
 
@@ -500,6 +506,11 @@ export class ActivityPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly formsApi = inject(FormsApi);
+  private readonly session = inject(SessionService);
+  /** Forms submissions waiting for review (a To do card that opens Forms). */
+  readonly canForms = computed(() => !!areaLevel(this.session.me(), 'forms'));
+  readonly pendingSubmissions = signal(0);
 
   private readonly params = toSignal(this.route.queryParamMap.pipe(map((p) => p)), { initialValue: this.route.snapshot.queryParamMap });
 
@@ -597,6 +608,7 @@ export class ActivityPage implements OnInit {
   }
 
   async ngOnInit() {
+    if (this.canForms()) this.formsApi.pending().then((r) => this.pendingSubmissions.set(r.length), () => this.pendingSubmissions.set(0));
     this.peopleLoading.set(true);
     const [orgs, people, team] = await Promise.all([
       this.api.get<Org[]>('/clients').catch(() => [] as Org[]),

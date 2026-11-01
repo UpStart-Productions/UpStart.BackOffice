@@ -5,7 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { IsDateString, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Request } from 'express';
-import { allows, isAdminRole, type CareVisitDto, type CareVisitListItemDto } from '@upstart/back-office/shared';
+import { allows, FREE_FORM_MODULE, isAdminRole, type CareVisitDto, type CareVisitListItemDto } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
@@ -13,7 +13,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { liveValues, mergeFormValues } from '../forms/form-fields.util';
 import { FormStructureService } from '../forms/form-structure.service';
-import { careForm, ensureCareForms } from './care-forms.util';
 
 export class CreateVisitDto {
   @IsString() clientId!: string;
@@ -128,7 +127,7 @@ export class CareVisitsController {
       .map((u) => ({ ...personRef(u), email: u.email, firstName: u.firstName, lastName: u.lastName }));
   }
 
-  /** The visit checklist form (for Customize form). */
+  /** The visit checklist form in Forms (null when none is set). */
   @Get('visit-form')
   async visitForm() {
     return { formId: (await this.checklistForm()).formId };
@@ -253,10 +252,14 @@ export class CareVisitsController {
     return !!(v.timeEntry?.invoiceLineItemId || v.timeEntry?.tenantInvoiceLineItemId);
   }
 
-  private async checklistForm() {
-    await ensureCareForms(this.prisma);
-    const form = await this.prisma.form.findFirst({ where: careForm('VISIT'), select: { id: true } });
-    if (!form) throw new NotFoundException('Visit log form missing');
+  /** The form in Forms set as the visit checklist (newest if several), or none: visits then have just times and notes. */
+  private async checklistForm(): Promise<{ formId: string | null; sections: Awaited<ReturnType<FormStructureService['sections']>> }> {
+    const form = await this.prisma.form.findFirst({
+      where: { module: FREE_FORM_MODULE, settings: { path: ['visitChecklist'], equals: true } },
+      orderBy: { updatedAt: 'desc' },
+      select: { id: true },
+    });
+    if (!form) return { formId: null, sections: [] };
     return { formId: form.id, sections: await this.structure.sections(form.id) };
   }
 

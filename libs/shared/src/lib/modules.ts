@@ -8,7 +8,7 @@ import type { PermissionArea } from './permissions';
  */
 export const MODULES = {
   bookings: { label: 'Bookings', areas: ['bookings'] },
-  /** In-home care: intake forms, care profiles (later visits, schedule, training). */
+  /** In-home care: who is in care, visits and the schedule (intake and profile forms are client forms in Forms). */
   care: { label: 'Care', areas: ['care', 'visits', 'schedule'] },
 } as const satisfies Record<string, { label: string; areas: readonly PermissionArea[] }>;
 

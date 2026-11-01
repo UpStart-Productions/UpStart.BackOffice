@@ -9,7 +9,7 @@ export type WorkspaceTool = { id: string; label: string; icon: string; route?: u
 
 /** How the open module's form behaves in the workspace: where it lives, its tools, and its API. */
 export type WorkspaceConfig = {
-  /** The form page, e.g. ['/forms', id] or ['/care/forms', id]. */
+  /** The form page, e.g. ['/forms', id]. */
   base: unknown[];
   tools: WorkspaceTool[];
   /** The view shown when the URL has none and the form has no sections. */

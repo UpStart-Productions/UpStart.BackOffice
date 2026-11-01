@@ -80,6 +80,7 @@ On a card's page, **Lane** changes its lane and **Open organization** (beside th
 - **Next steps**: every next step that is set, on organizations and pipeline cards, soonest first. Overdue ones have a red **Overdue** tag; due today has a **Due today** tag. Organizations without a next step are not listed (they don't need one).
 - **Gone quiet**: active clients nobody has contacted in 30 or more days.
 - **Unfiled**: captured email that could not be matched. **File…** one to an **Organization** or a **Pipeline card**; leave "Link the people on this email to the organization" on so their next email files itself.
+- **Form submissions** (roles with Forms): how many submissions are waiting for review across your forms. Click it to open Forms.
 
 **Mine** shows rows on threads you are on and next steps you own (or that have no owner); **Everyone's** shows all. Unfiled is the same for everyone. The ⋮ menu on a row: **Open timeline**, **Work on it** (shows that organization on this page with its next step), **Open pipeline card**, **No reply needed**, or **Snooze** (3 days, 1 week or 30 days). Admins change the 2 and 30 days in **Settings → Activity**.
 

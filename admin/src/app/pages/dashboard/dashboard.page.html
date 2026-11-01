@@ -307,6 +307,58 @@
               }
             </app-dashboard-panel>
           }
+
+          @case ('submissions') {
+            <app-dashboard-panel title="Pending submissions" icon="pi-file-edit" color="warning" link="/forms">
+              @if (submissions().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (submissions().error) {
+                <p class="side-list-empty">{{ submissions().error }}</p>
+              } @else if (submissions().data.length) {
+                <div class="side-list">
+                  @for (p of submissions().data; track p.id) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        <a class="side-list-title" [routerLink]="['/forms/submissions', p.id]">{{ p.submitterName ?? p.submitterEmail ?? 'Submission' }}</a>
+                        <span class="side-list-detail">{{ p.formName }}</span>
+                      </div>
+                      <span class="side-list-value">{{ submittedWhen(p) }}</span>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="side-list-empty">Nothing waiting for review.</p>
+              }
+            </app-dashboard-panel>
+          }
+
+          @case ('shifts') {
+            <app-dashboard-panel title="My shifts" icon="pi-calendar-clock" color="success" link="/schedule">
+              @if (shifts().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (shifts().error) {
+                <p class="side-list-empty">{{ shifts().error }}</p>
+              } @else if (myShifts().length) {
+                <div class="side-list">
+                  @for (s of myShifts(); track s.id) {
+                    <div class="side-list-row">
+                      <div class="side-list-body">
+                        <a class="side-list-title" [routerLink]="['/clients', s.clientId]" [queryParams]="{ tab: 'care' }">{{ s.clientName }}</a>
+                        <span class="side-list-detail">{{ shiftWhen(s) }}</span>
+                      </div>
+                      @if (s.visitId) {
+                        <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/care/visits', s.visitId]"></a>
+                      } @else if (canStartShift(s)) {
+                        <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="startingShift() === s.id" (onClick)="startShift(s)" />
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="side-list-empty">No shifts in the next week.</p>
+              }
+            </app-dashboard-panel>
+          }
         }
       </div>
     }

@@ -44,6 +44,8 @@ export type TimeEntry = {
   user?: { id: string; firstName?: string | null; lastName?: string | null; email: string } | null;
   projectTask?: { id: string; name: string; isBillable: boolean; source?: 'MANUAL' | 'ASANA' } | null;
   task?: TimeEntryTask | null;
+  /** Care: the visit this time came from, if any. */
+  careVisit?: { id: string } | null;
   attribution?: RecordAttributionDto;
 };
 

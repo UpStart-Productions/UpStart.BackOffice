@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -11,7 +11,6 @@ import {
   areaLevel,
   CARE_STATUS_LABELS,
   CARE_STATUSES,
-  type CareClientFormDto,
   type CareClientOverviewDto,
   type CareShiftDto,
   type CareStatus,
@@ -20,6 +19,7 @@ import {
 import { CareApi } from '../../core/care.api';
 import { SessionService } from '../../core/session.service';
 import { formatDuration } from './care.types';
+import { NewVisitDialogComponent } from './new-visit-dialog.component';
 
 /** p-tag severity per care status. */
 export const CARE_STATUS_SEVERITY: Record<CareStatus, 'success' | 'warn' | 'secondary'> = {
@@ -30,17 +30,17 @@ export const CARE_STATUS_SEVERITY: Record<CareStatus, 'success' | 'warn' | 'seco
 
 /** How far ahead the Schedule card looks. */
 const SCHEDULE_DAYS = 14;
-/** Visits listed on the tab (View all opens Care → Visits for this client). */
+/** Visits listed on the tab before Show all. */
 const RECENT_VISITS = 10;
 
 /**
- * A client's Care tab: status, summary, Intake form / Care profile, recent visits and upcoming shifts.
- * Each part shows only what the user's role allows (Care forms, Visits, Schedule).
+ * A client's Care tab: status, summary, visits and upcoming shifts. Each part shows only what the user's role
+ * allows (Care, Visits, Schedule). The client's forms are on the Details tab (Forms panel).
  */
 @Component({
   selector: 'app-care-client-tab',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TableModule, TagModule],
+  imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TableModule, TagModule, NewVisitDialogComponent],
   template: `
     <div class="grid grid-3">
       <div class="stack span-2">
@@ -49,14 +49,16 @@ const RECENT_VISITS = 10;
             <div class="card-header">
               <h3 class="card-title">Visits</h3>
               <div class="flex align-items-center gap-2">
-                <a pButton label="View all" severity="secondary" [text]="true" size="small" routerLink="/care/visits" [queryParams]="{ clientId: clientId() }"></a>
+                @if (visits().length > recentCount) {
+                  <p-button [label]="showAllVisits() ? 'Show recent' : 'Show all (' + visits().length + ')'" severity="secondary" [text]="true" size="small" (onClick)="showAllVisits.set(!showAllVisits())" />
+                }
                 @if (canCreateVisit()) {
-                  <a pButton label="Log past visit" icon="pi pi-history" severity="secondary" [outlined]="true" size="small" routerLink="/care/visits" [queryParams]="{ clientId: clientId(), new: 'log' }"></a>
-                  <a pButton label="Start visit" icon="pi pi-play" size="small" routerLink="/care/visits" [queryParams]="{ clientId: clientId(), new: 'start' }"></a>
+                  <p-button label="Log past visit" icon="pi pi-history" severity="secondary" [outlined]="true" size="small" (onClick)="openVisit('log')" />
+                  <p-button label="Start visit" icon="pi pi-play" size="small" (onClick)="openVisit('start')" />
                 }
               </div>
             </div>
-            <p-table [value]="recentVisits()" [loading]="visitsLoading()" styleClass="table-bordered">
+            <p-table [value]="shownVisits()" [loading]="visitsLoading()" styleClass="table-bordered">
               <ng-template pTemplate="header">
                 <tr>
                   <th>Date</th>
@@ -93,9 +95,9 @@ const RECENT_VISITS = 10;
             <div class="card-header">
               <h3 class="card-title">Schedule</h3>
               <div class="flex align-items-center gap-2">
-                <a pButton label="View all" severity="secondary" [text]="true" size="small" routerLink="/care/schedule" [queryParams]="{ clientId: clientId() }"></a>
+                <a pButton label="View all" severity="secondary" [text]="true" size="small" routerLink="/schedule" [queryParams]="{ clientId: clientId() }"></a>
                 @if (canCreateShift()) {
-                  <a pButton label="Add shift" icon="pi pi-plus" size="small" routerLink="/care/schedule" [queryParams]="{ clientId: clientId(), new: 1 }"></a>
+                  <a pButton label="Add shift" icon="pi pi-plus" size="small" routerLink="/schedule" [queryParams]="{ clientId: clientId(), new: 1 }"></a>
                 }
               </div>
             </div>
@@ -187,42 +189,18 @@ const RECENT_VISITS = 10;
           </div>
         </div>
 
-        @if (overview().forms.length) {
-          <div class="card card--side">
-            <div class="card-header"><h3 class="card-title">Forms</h3></div>
-            <div class="side-list">
-              @for (f of overview().forms; track f.formId) {
-                <div class="side-list-row">
-                  <div class="side-list-body">
-                    @if (f.recordId) {
-                      <a class="side-list-title" [routerLink]="['/care/records', f.recordId]">{{ f.name }}</a>
-                      <span class="side-list-detail">Updated {{ f.updatedAt | date: 'MMM d, y' }}</span>
-                    } @else {
-                      <span class="side-list-title">{{ f.name }}</span>
-                      <span class="side-list-detail">None yet</span>
-                    }
-                  </div>
-                  @if (f.recordId) {
-                    <a pButton label="Open" size="small" severity="secondary" [outlined]="true" [routerLink]="['/care/records', f.recordId]"></a>
-                  } @else if (f.myAccess === 'edit') {
-                    <p-button label="Start" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" [loading]="starting() === f.formId" (onClick)="start(f)" />
-                  }
-                </div>
-              }
-            </div>
-          </div>
-        }
       </div>
     </div>
+    <app-new-visit-dialog [(visible)]="visitVisible" [mode]="visitMode()" [clientId]="clientId()" [clientName]="clientName()" />
   `,
 })
 export class CareClientTabComponent {
   private readonly care = inject(CareApi);
   private readonly session = inject(SessionService);
-  private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
 
   clientId = input.required<string>();
+  clientName = input('');
   overview = input.required<CareClientOverviewDto>();
   /** The status changed (null: taken out of care). */
   overviewChange = output<CareClientOverviewDto>();
@@ -247,9 +225,12 @@ export class CareClientTabComponent {
   shifts = signal<CareShiftDto[]>([]);
   shiftsLoading = signal(false);
   savingStatus = signal(false);
-  starting = signal<string | null>(null);
+  readonly recentCount = RECENT_VISITS;
+  showAllVisits = signal(false);
+  visitVisible = signal(false);
+  visitMode = signal<'start' | 'log'>('start');
 
-  readonly recentVisits = computed(() => this.visits().slice(0, RECENT_VISITS));
+  readonly shownVisits = computed(() => (this.showAllVisits() ? this.visits() : this.visits().slice(0, RECENT_VISITS)));
   readonly lastVisit = computed(() => this.visits()[0] ?? null);
   readonly nextShift = computed(() => this.shifts().find((s) => s.status === 'SCHEDULED' && new Date(s.endAt) > new Date()) ?? null);
   readonly monthMinutes = computed(() => {
@@ -303,7 +284,7 @@ export class CareClientTabComponent {
       this.toast.add({
         severity: 'success',
         summary: 'Saved',
-        detail: status ? `Care status is ${CARE_STATUS_LABELS[status]}.` : 'Not in care. Their care records, visits and shifts are kept.',
+        detail: status ? `Care status is ${CARE_STATUS_LABELS[status]}.` : 'Not in care. Their visits and shifts are kept.',
       });
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not save', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
@@ -312,15 +293,8 @@ export class CareClientTabComponent {
     }
   }
 
-  async start(f: CareClientFormDto) {
-    this.starting.set(f.formId);
-    try {
-      const { id } = await this.care.createRecord(f.formId, this.clientId());
-      await this.router.navigate(['/care/records', id]);
-    } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not start', detail: err instanceof Error ? err.message : 'Failed' });
-    } finally {
-      this.starting.set(null);
-    }
+  openVisit(mode: 'start' | 'log') {
+    this.visitMode.set(mode);
+    this.visitVisible.set(true);
   }
 }

@@ -221,40 +221,18 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./pages/forms/form-edit.page').then((m) => m.FormEditPage),
       },
       {
-        path: 'care/intake',
-        loadComponent: () => import('./pages/care/care-records.page').then((m) => m.CareRecordsPage),
-        data: { kind: 'INTAKE' },
-      },
-      {
-        path: 'care/clients',
-        loadComponent: () => import('./pages/care/care-clients.page').then((m) => m.CareClientsPage),
-      },
-      {
-        path: 'care/profiles',
-        loadComponent: () => import('./pages/care/care-records.page').then((m) => m.CareRecordsPage),
-        data: { kind: 'CARE_PROFILE' },
-      },
-      {
-        path: 'care/records/:id',
-        loadComponent: () => import('./pages/care/care-record.page').then((m) => m.CareRecordPage),
-      },
-      {
-        path: 'care/visits',
-        loadComponent: () => import('./pages/care/care-visits.page').then((m) => m.CareVisitsPage),
+        path: 'forms/results/:id',
+        loadComponent: () => import('./pages/forms/client-form-result.page').then((m) => m.ClientFormResultPage),
       },
       {
         path: 'care/visits/:id',
         loadComponent: () => import('./pages/care/care-visit.page').then((m) => m.CareVisitPage),
       },
       {
-        path: 'care/schedule',
+        path: 'schedule',
         loadComponent: () => import('./pages/care/care-schedule.page').then((m) => m.CareSchedulePage),
       },
-      {
-        path: 'care/forms/:id',
-        loadComponent: () => import('./pages/care/care-form-edit.page').then((m) => m.CareFormEditPage),
-        canActivate: [actionGuard('care', 'setup')],
-      },
+      { path: 'care/schedule', pathMatch: 'full', redirectTo: 'schedule' },
       {
         path: 'settings',
         loadComponent: () =>

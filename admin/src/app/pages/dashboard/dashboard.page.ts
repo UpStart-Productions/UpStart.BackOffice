@@ -1,12 +1,14 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, effect, inject, OnDestroy, OnInit, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { areaLevel, type PermissionArea } from '@upstart/back-office/shared';
+import { areaLevel, type CareShiftDto, type PendingSubmissionDto, type PermissionArea } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
+import { CareApi } from '../../core/care.api';
+import { FormsApi } from '../../core/forms.api';
 import { ActivityQueues, CommunicationsApi, QueueRow, relativeTime } from '../../core/communications.api';
 import { SessionService } from '../../core/session.service';
 import { lastContactLabel } from '../../core/staleness.util';
@@ -47,7 +49,7 @@ type Booking = {
   lead: { id: string } | null;
 };
 
-type PanelId = 'tasks' | 'time' | 'activity' | 'invoices' | 'bookings';
+type PanelId = 'tasks' | 'time' | 'activity' | 'invoices' | 'bookings' | 'submissions' | 'shifts';
 type ActivityTab = 'replies' | 'nextSteps' | 'quiet';
 type Panel = { id: PanelId; area: PermissionArea; wide?: boolean };
 
@@ -61,6 +63,8 @@ const PANELS: Panel[] = [
   { id: 'time', area: 'time' },
   { id: 'invoices', area: 'invoices' },
   { id: 'bookings', area: 'bookings' },
+  { id: 'submissions', area: 'forms' },
+  { id: 'shifts', area: 'schedule' },
 ];
 
 /** Each person's panel order, per browser (same approach as Task Manager board prefs). */
@@ -120,6 +124,9 @@ export class DashboardPage implements OnInit, OnDestroy {
   private readonly tm = inject(TmApiService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(MessageService);
+  private readonly formsApi = inject(FormsApi);
+  private readonly care = inject(CareApi);
+  private readonly router = inject(Router);
 
   readonly scopeOptions = [
     { label: 'Mine', value: true },
@@ -132,6 +139,9 @@ export class DashboardPage implements OnInit, OnDestroy {
   readonly time = signal<Section<TimeEntry[]>>(section([]));
   readonly invoices = signal<Section<Invoice[]>>(section([]));
   readonly bookings = signal<Section<Booking[]>>(section([]));
+  readonly submissions = signal<Section<PendingSubmissionDto[]>>(section([]));
+  readonly shifts = signal<Section<CareShiftDto[]>>(section([]));
+  readonly startingShift = signal<string | null>(null);
 
   /** Ticks every second so the running timer counts up. */
   private readonly tick = signal(0);
@@ -282,6 +292,38 @@ export class DashboardPage implements OnInit, OnDestroy {
     });
   });
 
+  // ── My shifts (Care) ─────────────────────────────────────────────────────
+
+  /** My scheduled shifts from today through the lookahead, not cancelled. */
+  readonly myShifts = computed(() => this.shifts().data.filter((s) => s.status === 'SCHEDULED' && new Date(s.endAt).getTime() >= Date.now()));
+  /** Start visit shows on today's shifts that have no visit yet. */
+  canStartShift(s: CareShiftDto): boolean {
+    return !s.visitId && dateKey(new Date(s.startAt)) === dateKey(new Date());
+  }
+
+  shiftWhen(s: CareShiftDto): string {
+    const d = new Date(s.startAt);
+    const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${dueLabel(dateKey(d))} ${time}`;
+  }
+
+  /** Start the visit for one of my shifts and open it. */
+  async startShift(s: CareShiftDto) {
+    this.startingShift.set(s.id);
+    try {
+      const visit = await this.care.createVisit({ clientId: s.clientId, shiftId: s.id });
+      await this.router.navigate(['/care/visits', visit.id]);
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not start visit', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    } finally {
+      this.startingShift.set(null);
+    }
+  }
+
+  submittedWhen(p: PendingSubmissionDto): string {
+    return relativeTime(p.createdAt);
+  }
+
   constructor() {
     // Mine / Everyone's re-reads the queues; invoices filter in place.
     effect(() => {
@@ -299,6 +341,8 @@ export class DashboardPage implements OnInit, OnDestroy {
     if (this.can('time')) void this.loadTime();
     if (this.can('invoices')) void this.loadInvoices();
     if (this.can('bookings')) void this.loadBookings();
+    if (this.can('forms')) void this.loadSubmissions();
+    if (this.can('schedule')) void this.loadShifts();
   }
 
   ngOnDestroy() {
@@ -459,6 +503,26 @@ export class DashboardPage implements OnInit, OnDestroy {
       this.invoices.set({ loading: false, error: null, data: await this.api.get<Invoice[]>('/invoices') });
     } catch (err) {
       this.invoices.set({ loading: false, error: errorText(err, 'Could not load invoices'), data: [] });
+    }
+  }
+
+  private async loadSubmissions() {
+    try {
+      this.submissions.set({ loading: false, error: null, data: await this.formsApi.pending() });
+    } catch (err) {
+      this.submissions.set({ loading: false, error: errorText(err, 'Could not load submissions'), data: [] });
+    }
+  }
+
+  private async loadShifts() {
+    try {
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = addDays(from, LOOKAHEAD_DAYS);
+      const data = await this.care.shifts({ from: from.toISOString(), to: to.toISOString(), userId: this.session.me()?.id ?? null });
+      this.shifts.set({ loading: false, error: null, data });
+    } catch (err) {
+      this.shifts.set({ loading: false, error: errorText(err, 'Could not load shifts'), data: [] });
     }
   }
 

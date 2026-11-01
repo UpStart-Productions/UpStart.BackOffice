@@ -57,6 +57,8 @@ const entryInclude = {
     },
   },
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
+  /** Care: the visit this time came from (Reports can show visit time only). */
+  careVisit: { select: { id: true } },
   ...ATTRIBUTION_INCLUDE,
 };
 

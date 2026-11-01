@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import type {
-  FormDefinition, FormSettings, FormSubmissionDto, FormSubmissionListItemDto, FormSubmissionStatus, FreeFormDto, FreeFormListItemDto,
+  FormAccess, FormDefinition, FormSettings, FormStaffPreviewDto, FormSubmissionDto, FormSubmissionListItemDto, FormSubmissionMatchDto, FormSubmissionStatus, FreeFormDto,
+  FreeFormListItemDto, PendingSubmissionDto,
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
 
@@ -26,7 +27,10 @@ export class FormsApi {
   form(id: string) {
     return this.api.get<FreeFormDto>(`${this.base}/forms/${id}`);
   }
-  update(id: string, body: { name?: string; description?: string | null; settings?: FormSettings }) {
+  preview(id: string) {
+    return this.api.get<FormStaffPreviewDto>(`${this.base}/forms/${id}/preview`);
+  }
+  update(id: string, body: { name?: string; description?: string | null; settings?: FormSettings; access?: FormAccess }) {
     return this.api.patch<FreeFormDto>(`${this.base}/forms/${id}`, body);
   }
   remove(id: string) {
@@ -45,13 +49,32 @@ export class FormsApi {
     return this.api.post<FreeFormDto>(`${this.base}/forms/${id}/publish`, {});
   }
 
-  submissions(formId: string, status?: FormSubmissionStatus) {
-    const q = status ? `?status=${status}` : '';
+  /** Roles for Who can use it (client forms). */
+  roles() {
+    return this.api.get<{ id: string; name: string }[]>(`${this.base}/roles`);
+  }
+  /** Submissions waiting for review across every form the user can see (Dashboard). */
+  pending() {
+    return this.api.get<PendingSubmissionDto[]>(`${this.base}/pending`);
+  }
+  /** Clients that may be who sent a submission. */
+  matches(id: string) {
+    return this.api.get<FormSubmissionMatchDto[]>(`${this.base}/submissions/${id}/matches`);
+  }
+
+  submissions(formId: string, status?: FormSubmissionStatus, clientId?: string | null) {
+    const p = new URLSearchParams();
+    if (status) p.set('status', status);
+    if (clientId) p.set('clientId', clientId);
+    const q = p.toString() ? `?${p}` : '';
     return this.api.get<{ items: FormSubmissionListItemDto[]; pendingCount: number }>(`${this.base}/forms/${formId}/submissions${q}`);
   }
   /** Every submission with answers (for Export to Excel). */
-  exportSubmissions(formId: string, status?: FormSubmissionStatus) {
-    const q = status ? `?status=${status}` : '';
+  exportSubmissions(formId: string, status?: FormSubmissionStatus, clientId?: string | null) {
+    const p = new URLSearchParams();
+    if (status) p.set('status', status);
+    if (clientId) p.set('clientId', clientId);
+    const q = p.toString() ? `?${p}` : '';
     return this.api.get<FormSubmissionDto[]>(`${this.base}/forms/${formId}/submissions/export${q}`);
   }
   submission(id: string) {

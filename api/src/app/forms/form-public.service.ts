@@ -1,4 +1,4 @@
-import { htmlToPlainText } from '../task-manager/task-mentions.util';
+import { descriptionParts } from './form-description.util';
 import {
   BadRequestException, ForbiddenException, GoneException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
@@ -80,7 +80,7 @@ export class FormPublicService {
       if (link.revokedAt || (link.expiresAt && link.expiresAt < new Date())) {
         throw new GoneException('This link no longer works. Ask the organization that sent it for a new one.');
       }
-      if (destination.requiresPublished && !link.form.publishedVersion) throw new NotFoundException('This form is not available right now');
+      if (destination.requiresPublished && link.kind === 'NEW' && !link.form.publishedVersion) throw new NotFoundException('This form is not available right now');
       if (!originAllowed(req.origin, link.allowedOrigins)) throw new ForbiddenException('This form is not available on this website');
       return fn(link, destination);
     });
@@ -104,9 +104,12 @@ export class FormPublicService {
     return tenant?.name ?? 'Organization';
   }
 
-  /** What the link serves: the published version when there is one, otherwise the live fields. */
+  /**
+   * What the link serves: new-response links serve the published version when there is one; client links (one
+   * client's living copy) serve the live fields, the same ones staff fill in.
+   */
   private async content(link: PublicLink): Promise<{ name: string; description: string | null; sections: FormSectionDto[]; scoring: FormScoring | null }> {
-    const v = link.form.publishedVersion;
+    const v = link.kind === 'NEW' ? link.form.publishedVersion : null;
     if (v) {
       const snap = v.snapshot as unknown as FormSnapshot;
       return { name: snap.name, description: snap.description, sections: snap.sections ?? [], scoring: snap.scoring ?? null };
@@ -223,7 +226,7 @@ export class FormPublicService {
       const values = this.merge(fields, stored, dto.values);
       const scores: FormScores | null = content.scoring?.enabled ? computeFormScores(content.sections, content.scoring, values) : null;
       const outcome = (await destination.submit(link, {
-        values, name, email, phone, organization, versionId: link.form.publishedVersion?.id ?? null, scores,
+        values, name, email, phone, organization, versionId: link.kind === 'NEW' ? (link.form.publishedVersion?.id ?? null) : null, scores,
       })) as { message?: string; resultToken?: string } | undefined;
       await this.prisma.formLink.update({ where: { id: link.id }, data: { lastUsedAt: new Date() } });
       return {
@@ -282,11 +285,4 @@ export class FormPublicService {
     });
     return accessToken;
   }
-}
-
-/** A description written in the editor is HTML: send plain text for embeds and the HTML for UBO's own page. */
-function descriptionParts(description: string | null): { description: string | null; descriptionHtml: string | null } {
-  if (!description?.trim()) return { description: null, descriptionHtml: null };
-  if (!/^\s*</.test(description)) return { description, descriptionHtml: null };
-  return { description: htmlToPlainText(description, 10000) || null, descriptionHtml: description };
 }

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, effect, inject, OnInit, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService, type MenuItem } from 'primeng/api';
@@ -11,6 +11,7 @@ import { TagModule } from 'primeng/tag';
 import type { FormSubmissionListItemDto, FormSubmissionStatus } from '@upstart/back-office/shared';
 import { FormsApi } from '../../core/forms.api';
 import { PageComponent } from '../../ui/layout/page.component';
+import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { exportSubmissionsExcel } from './form-submission-export.util';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
@@ -22,7 +23,19 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
 @Component({
   selector: 'app-form-submissions-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, SplitButtonModule, MessageModule, TableModule, TabsModule, TagModule, PageComponent, ToolbarSearchFieldComponent],
+  imports: [
+    DatePipe,
+    FormsModule,
+    RouterLink,
+    SplitButtonModule,
+    MessageModule,
+    TableModule,
+    TabsModule,
+    TagModule,
+    OrganizationSelectComponent,
+    PageComponent,
+    ToolbarSearchFieldComponent,
+  ],
   template: `
     <app-page [title]="(formName() || 'Form') + ': Submissions'" backLink="/forms" backLabel="Back to Forms" helpKey="forms.submissions.page">
       <ng-container ngProjectAs="[pageActions]">
@@ -58,12 +71,15 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
           <div class="toolbar-search">
             <app-toolbar-search-field placeholder="Search by name, email or organization…" ariaLabel="Search submissions" [(ngModel)]="query" />
           </div>
+          <div class="sub-client-filter">
+            <app-organization-select inputId="subClient" [(value)]="clientId" />
+          </div>
         </div>
         <p-table [value]="filtered()" [loading]="loading()" styleClass="table-bordered" [paginator]="filtered().length > 50" [rows]="50">
           <ng-template pTemplate="header">
             <tr>
               <th>Submitted by</th>
-              <th>Organization</th>
+              <th>{{ isClientForm() ? 'Client' : 'Organization' }}</th>
               <th>Score</th>
               <th>Profile</th>
               <th>Status</th>
@@ -73,7 +89,13 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
           <ng-template pTemplate="body" let-r>
             <tr>
               <td><a [routerLink]="['/forms/submissions', r.id]" class="text-primary">{{ r.submitterName ?? r.submitterEmail ?? 'Untitled' }}</a></td>
-              <td>{{ r.clientName ?? r.submitterOrganization ?? '' }}</td>
+              <td>
+                @if (r.clientId) {
+                  <a [routerLink]="['/clients', r.clientId]" class="text-primary">{{ r.clientName }}</a>
+                } @else {
+                  {{ r.submitterOrganization ?? '' }}
+                }
+              </td>
               <td>{{ r.percent === null ? '' : round(r.percent) + '%' }}</td>
               <td>{{ r.bandLabel ?? '' }}</td>
               <td><p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" /></td>
@@ -87,6 +109,12 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
       </div>
     </app-page>
   `,
+  styles: `
+    .sub-client-filter {
+      width: 16rem;
+      max-width: 100%;
+    }
+  `,
 })
 export class FormSubmissionsPage implements OnInit {
   private readonly forms = inject(FormsApi);
@@ -99,6 +127,10 @@ export class FormSubmissionsPage implements OnInit {
   items = signal<FormSubmissionListItemDto[]>([]);
   pendingCount = signal(0);
   formName = signal('');
+  isClientForm = signal(false);
+  /** Only this client's submissions (filter). */
+  clientId = signal<string | null>(null);
+  private started = false;
   loading = signal(true);
   error = signal<string | null>(null);
   tab = signal<Tab>('pending');
@@ -117,7 +149,7 @@ export class FormSubmissionsPage implements OnInit {
     try {
       const status = tabOnly ? TAB_STATUS[this.tab()] : undefined;
       const [list, form] = await Promise.all([
-        this.forms.exportSubmissions(this.formId, status),
+        this.forms.exportSubmissions(this.formId, status, this.clientId()),
         this.forms.form(this.formId),
       ]);
       if (!list.length) {
@@ -151,16 +183,26 @@ export class FormSubmissionsPage implements OnInit {
     try {
       const f = await this.forms.form(this.formId);
       this.formName.set(f.name);
+      this.isClientForm.set(f.settings.client.enabled);
     } catch {
       // The list below reports the error.
     }
     await this.load();
+    this.started = true;
+  }
+
+  constructor() {
+    // Reload when the client filter changes (after the first load).
+    effect(() => {
+      this.clientId();
+      if (untracked(() => this.started)) void this.load();
+    });
   }
 
   async load() {
     this.loading.set(true);
     try {
-      const res = await this.forms.submissions(this.formId, TAB_STATUS[this.tab()]);
+      const res = await this.forms.submissions(this.formId, TAB_STATUS[this.tab()], this.clientId());
       this.items.set(res.items);
       this.pendingCount.set(res.pendingCount);
       this.error.set(null);

@@ -17,7 +17,6 @@ import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/
 import { TaskManagerStyleHostComponent } from '../task-manager/ui/task-manager-style-host.component';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { FormWorkspaceSidebarComponent } from '../ui/form-workspace/form-workspace-sidebar.component';
-import { CareApi } from '../core/care.api';
 import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
 import { AppUpdateService } from '../core/app-update.service';
@@ -25,7 +24,7 @@ import { AppUpdateService } from '../core/app-update.service';
 /** Routes rendered in the form workspace (icon rail + the form's sidebar): a form in Forms, and Care's Customize form. */
 export function isFormWorkspaceUrl(url: string): boolean {
   const path = url.split(/[?#]/)[0];
-  return /^\/forms\/(?!submissions(\/|$))[^/]+\/?$/.test(path) || /^\/care\/forms\/[^/]+\/?$/.test(path);
+  return /^\/forms\/(?!submissions(\/|$))[^/]+\/?$/.test(path);
 }
 
 /** Routes rendered in Task Manager mode (icon rail + task sidebar). */
@@ -59,7 +58,6 @@ export class ShellComponent implements OnInit {
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly comms = inject(CommunicationsApi);
-  private readonly care = inject(CareApi);
   private readonly appUpdate = inject(AppUpdateService);
   readonly layout = inject(LayoutService);
 
@@ -91,14 +89,12 @@ export class ShellComponent implements OnInit {
   readonly isTasksOnly = computed(() => tasksOnly(this.session.me()));
   readonly canInbox = computed(() => !!areaLevel(this.session.me(), 'inbox'));
   readonly canContacts = computed(() => !!areaLevel(this.session.me(), 'contacts'));
-  readonly canCare = computed(() => !!areaLevel(this.session.me(), 'care'));
 
   /** Keep the Activity badge fresh: refresh my To do count after every navigation. */
   private readonly refreshInboxCount = effect(() => {
     this.currentUrl();
     if (this.canInbox()) void this.comms.refreshActivityCount();
     if (this.canContacts()) void this.comms.refreshReviewCount();
-    if (this.canCare()) void this.care.refreshPendingCount();
   });
 
   navItems = computed<NavItem[]>(() => {
@@ -130,16 +126,11 @@ export class ShellComponent implements OnInit {
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
         { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
         { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },
+        // Care module: staff shifts across clients (a client's own visits and shifts are on its Care tab).
+        { area: 'schedule', label: 'Schedule', icon: 'pi-calendar-clock', route: '/schedule' },
         { area: 'expenses', label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
         { area: 'invoices', label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
         { area: 'forms', label: 'Forms', icon: 'pi-file-edit', route: '/forms' },
-      ]),
-      // Care module: intake, clients in care, visits and the schedule.
-      ...section('Care', [
-        { area: 'care', label: 'Intake', icon: 'pi-inbox', route: '/care/intake', badge: this.care.pendingCount() },
-        { area: 'care', label: 'Clients', icon: 'pi-id-card', route: '/care/clients' },
-        { area: 'visits', label: 'Visits', icon: 'pi-map-marker', route: '/care/visits' },
-        { area: 'schedule', label: 'Schedule', icon: 'pi-calendar-clock', route: '/care/schedule' },
       ]),
       ...section('Reports', [{ area: 'reports', label: 'Reports', icon: 'pi-chart-line', route: '/reports' }]),
     ];

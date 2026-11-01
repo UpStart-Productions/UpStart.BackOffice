@@ -78,8 +78,8 @@ function weekStartOf(d: Date): Date {
             </div>
           }
           <div class="form-field sched-filter">
-            <label for="schedOrg">Organization</label>
-            <app-organization-select inputId="schedOrg" [(value)]="clientId" />
+            <label for="schedOrg">Client</label>
+            <app-organization-select inputId="schedOrg" [(value)]="clientId" [clientsOnly]="true" />
           </div>
         </div>
 
@@ -114,8 +114,8 @@ function weekStartOf(d: Date): Date {
 
       <p-dialog [header]="editing ? 'Edit shift' : 'Add shift'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(32rem, 96vw)' }">
         <div class="form-field">
-          <label for="shOrg">Organization</label>
-          <app-organization-select inputId="shOrg" [(value)]="fClientId" />
+          <label for="shOrg">Client</label>
+          <app-organization-select inputId="shOrg" [(value)]="fClientId" [clientsOnly]="true" />
         </div>
         @if (seeAll()) {
           <div class="form-field mt-3">

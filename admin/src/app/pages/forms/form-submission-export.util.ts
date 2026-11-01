@@ -184,8 +184,10 @@ export function exportSubmissionsExcel(
   const areaName = new Map(areas.map((a) => [a.id, a.name]));
   const scored = form.scoring.enabled || list.some((s) => s.scores);
 
-  const who = (s: FormSubmissionDto): Cell[] => [new Date(s.createdAt), statusLabel(s), s.submitterName ?? '', s.submitterOrganization ?? '', s.submitterEmail ?? '', s.submitterPhone ?? '', s.versionNumber ?? ''];
-  const whoHead = ['Submitted', 'Status', 'Name', 'Organization', 'Email', 'Phone', 'Version'];
+  const who = (s: FormSubmissionDto): Cell[] => [
+    new Date(s.createdAt), statusLabel(s), s.clientName ?? '', s.submitterName ?? '', s.submitterOrganization ?? '', s.submitterEmail ?? '', s.submitterPhone ?? '', s.versionNumber ?? '',
+  ];
+  const whoHead = ['Submitted', 'Status', 'Client', 'Name', 'Organization', 'Email', 'Phone', 'Version'];
   const areaHead = areas.flatMap((a) => [`${a.name} points`, `${a.name} %`]);
   const areaCells = (s: FormSubmissionDto): Cell[] =>
     areas.flatMap((a): Cell[] => {

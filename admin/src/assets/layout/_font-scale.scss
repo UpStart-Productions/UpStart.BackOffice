@@ -88,3 +88,21 @@
   width: 0.875rem !important;
   height: 0.875rem !important;
 }
+
+/* Inline alerts (info, error, etc.) — match UI density, not browser/Prime default ~16px. */
+.p-message {
+  font-size: var(--fs-base) !important;
+}
+
+.p-message .p-message-text,
+.p-message-content {
+  font-size: inherit !important;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.p-message-icon {
+  font-size: var(--fs-md) !important;
+  width: 0.875rem !important;
+  height: 0.875rem !important;
+}
