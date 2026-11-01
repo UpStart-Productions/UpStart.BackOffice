@@ -173,7 +173,7 @@ const PROJECT_FORM: HelpArticle = {
     },
     {
       heading: 'People',
-      body: 'Same People panel as on a client: Add existing person (search) or Add new person. Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send. Your own staff can be added here too (tagged Team or Guest). They are saved right away, join the project's task board, show on the client, and are never invoice recipients.',
+      body: 'Same People panel as on a client: Add existing person (search) or Add new person. Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send. Your own staff can be added here too (tagged Team or Guest). They are saved right away, join the task board of the project, show on the client, and are never invoice recipients.',
     },
     {
       heading: 'Asana configuration',
