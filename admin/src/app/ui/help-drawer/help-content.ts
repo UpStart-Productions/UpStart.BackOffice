@@ -83,6 +83,10 @@ const ORG_DETAIL: HelpArticle = {
       heading: 'Client portal',
       body: 'Turn on Portal enabled to give a client a bookmarkable link with no login or password. Copy it to share; Regenerate link makes the old one stop working.',
     },
+    {
+      heading: 'Care (Care module)',
+      body: 'Add to care (clients only, when your role can edit the Care profile) puts a client in care and adds a Care tab next to Details. The Care tab shows the care status, next shift, last visit and hours this month, the Intake form and Care profile (Open or Start), recent visits (Start visit, Log past visit) and the next two weeks of shifts (Add shift). View all opens Visits or Schedule for this client. Change the status (Active, Paused, Ended) on the tab; Not in care removes the tab and keeps everything recorded.',
+    },
   ],
 };
 
@@ -896,6 +900,24 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
 
   // ── Care (module) ─────────────────────────────────────
+  'care/clients': {
+    title: 'Clients in care',
+    intro: 'Every client in care. Click a client to open their Care tab.',
+    sections: [
+      {
+        heading: 'Current and Ended',
+        body: 'Current lists Active and Paused clients; Ended lists clients whose care has ended. Each row shows the care status, whether the care profile is started, the next shift and the last visit.',
+      },
+      {
+        heading: 'Add to care',
+        body: 'Pick a client (an organization with status Client) to put them in care; their Care tab opens. Starting an intake or care profile, or accepting an intake, also puts that client in care. Needs Edit on the Care profile.',
+      },
+      {
+        heading: 'Customize care profile',
+        body: 'Care setup: changes the Care profile form.',
+      },
+    ],
+  },
   'care/intake': {
     title: 'Intake',
     intro: "Every organization's intake form, and intakes sent through a public link.",
@@ -906,7 +928,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'New intake',
-        body: 'Starts an intake form for an organization that has none yet. You can also start one from the Care card on the organization page. Customize form (Care setup) changes the form and its public intake links.',
+        body: "Starts an intake form for an organization that has none yet, and puts that organization in care. You can also start one from a client's Care tab. Customize form (Care setup) changes the form and its public intake links.",
       },
     ],
   },
@@ -916,7 +938,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New care profile',
-        body: 'Pick an organization to start its care profile. You can also start one from the Care card on the organization page. Customize form (Care setup) changes the form.',
+        body: "Pick an organization to start its care profile (this also puts it in care). You can also start one from a client's Care tab. Customize form (Care setup) changes the form.",
       },
       {
         heading: 'Who sees what',

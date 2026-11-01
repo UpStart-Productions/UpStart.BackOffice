@@ -16,7 +16,7 @@ import { CreateLinkDto } from '../forms/form.dto';
 import { liveValues, mergeFormValues } from '../forms/form-fields.util';
 import { FormLinksService } from '../forms/form-links.service';
 import { FormStructureService } from '../forms/form-structure.service';
-import { byCareKind, careForm, careKind, ensureCareForms } from './care-forms.util';
+import { careForm, careKind, ensureCareForms } from './care-forms.util';
 import { AcceptIntakeDto, ChangeRecordClientDto, CreateRecordDto, SaveValuesDto } from './care.dto';
 
 function personName(u: { firstName: string | null; lastName: string | null; name: string | null; email: string } | null): string | null {
@@ -96,33 +96,6 @@ export class CareRecordsController {
     return { items: rows.map(listItem), myAccess, formId: theForm.id, fieldCount, pendingCount };
   }
 
-  /** For the organization page: each form the user can use, and this organization's record if there is one. */
-  @Get('clients/:clientId')
-  async forClient(@Req() req: Request, @Param('clientId') clientId: string) {
-    const user = req.user as UserContext;
-    await this.care.assertClient(user, clientId);
-    await ensureCareForms(this.prisma);
-    const roleId = await this.care.roleId(user);
-    const forms = await this.prisma.form.findMany({
-      where: { module: CARE_FORM_MODULE, key: { in: CARE_RECORD_KINDS } },
-      include: { responses: { where: { clientId }, select: { id: true, updatedAt: true } } },
-    });
-    const out = [];
-    for (const f of byCareKind(forms)) {
-      const myAccess = await this.care.formAccess(user, f, roleId);
-      if (!myAccess) continue;
-      out.push({
-        formId: f.id,
-        kind: careKind(f),
-        name: f.name,
-        myAccess,
-        recordId: f.responses[0]?.id ?? null,
-        updatedAt: f.responses[0]?.updatedAt.toISOString() ?? null,
-      });
-    }
-    return out;
-  }
-
   /** Start an organization's copy of a form (returns the existing one if it's already there). */
   @Post('records')
   async create(@Req() req: Request, @Body() dto: CreateRecordDto) {
@@ -136,6 +109,7 @@ export class CareRecordsController {
     const existing = await this.prisma.formResponse.findFirst({ where: { formId: form.id, clientId: dto.clientId }, select: { id: true } });
     if (existing) return { id: existing.id };
     const r = await this.prisma.formResponse.create({ data: { formId: form.id, clientId: dto.clientId, living: true }, select: { id: true } });
+    await this.addToCare(dto.clientId);
     return { id: r.id };
   }
 
@@ -225,6 +199,7 @@ export class CareRecordsController {
     const taken = await this.prisma.formResponse.findFirst({ where: { formId: record.formId, clientId }, select: { id: true } });
     if (taken) throw new ConflictException('That organization already has an intake form. Open it and copy what you need, or dismiss this one.');
     await this.prisma.formResponse.update({ where: { id }, data: { clientId, status: 'ACTIVE' } });
+    await this.addToCare(clientId);
     return this.view(id, 'edit');
   }
 
@@ -247,6 +222,11 @@ export class CareRecordsController {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  /** Starting an intake or care profile puts a client that isn't in care into care (Active). */
+  private async addToCare(clientId: string) {
+    await this.prisma.client.updateMany({ where: { id: clientId, careStatus: null }, data: { careStatus: 'ACTIVE' } });
+  }
 
   private async view(id: string, level: 'read' | 'edit'): Promise<CareRecordDto> {
     const r = await this.prisma.formResponse.findUniqueOrThrow({ where: { id }, include: { ...LIST_INCLUDE, ...ATTRIBUTION_INCLUDE } });

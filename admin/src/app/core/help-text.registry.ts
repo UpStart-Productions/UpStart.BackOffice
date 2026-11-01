@@ -174,6 +174,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Per role: None, Read or Edit. Admins can always edit. People only see forms for organizations they can reach (the ones assigned to them unless their role has Organizations: All).',
   'care.intake.page':
     "Every organization's intake form. Waiting for review lists intakes sent through a public link; open one to Accept it into a new or existing organization, or Dismiss it. Customize form (Care setup) changes the form and its public links.",
+  'care.clients.page':
+    "Every client in care. Click one to open their Care tab (status, care profile, intake, visits and schedule). Add to care puts a client in care; Customize care profile (Care setup) changes the form.",
   'care.profiles.page': "Every organization's care profile. New care profile starts one for an organization; Customize form (Care setup) changes the form.",
   'care.record.page':
     "This organization's copy of the form. Edit and Save; Share link makes a link so someone outside (e.g. family) can update it.",

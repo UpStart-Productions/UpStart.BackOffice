@@ -29,3 +29,8 @@ export class AcceptIntakeDto {
   /** existing: the organization to attach the intake to. */
   @IsOptional() @IsString() clientId?: string;
 }
+
+export class SetCareStatusDto {
+  /** null takes the client out of care (their care records, visits and shifts stay). */
+  @IsOptional() @IsIn(['ACTIVE', 'PAUSED', 'ENDED']) status!: 'ACTIVE' | 'PAUSED' | 'ENDED' | null;
+}

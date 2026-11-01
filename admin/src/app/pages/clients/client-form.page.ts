@@ -6,6 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -24,8 +25,9 @@ import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
-import { CareClientCardComponent } from '../../ui/care-forms/care-client-card.component';
-import type { AccountJourney, ClientDto, RecordAttributionDto } from '@upstart/back-office/shared';
+import { CareClientTabComponent } from '../../ui/care-forms/care-client-tab.component';
+import { CareApi } from '../../core/care.api';
+import { areaLevel, type AccountJourney, type CareClientOverviewDto, type ClientDto, type RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
@@ -68,6 +70,7 @@ type ClientForm = {
     SelectModule,
     SelectButtonModule,
     TableModule,
+    TabsModule,
     TagModule,
     QuillModule,
     PageComponent,
@@ -78,7 +81,7 @@ type ClientForm = {
     TagInputComponent,
     HelpTextComponent,
     RecordAttributionComponent,
-    CareClientCardComponent,
+    CareClientTabComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',
@@ -90,6 +93,7 @@ export class ClientFormPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
   private readonly session = inject(SessionService);
+  private readonly care = inject(CareApi);
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
 
   readonly usStates = US_STATES;
@@ -120,6 +124,13 @@ export class ClientFormPage implements OnInit {
   projects = signal<ClientProject[]>([]);
   projectsLoading = signal(false);
   readonly attribution = signal<RecordAttributionDto | null>(null);
+
+  /** Care module: the client's care status and forms (null when the user has no Care area). */
+  readonly careOverview = signal<CareClientOverviewDto | null>(null);
+  readonly inCare = computed(() => !!this.careOverview()?.careStatus);
+  /** Details or Care (?tab=care opens Care). */
+  readonly tab = signal<'details' | 'care'>('details');
+  addingToCare = signal(false);
 
   form: ClientForm = {
     name: '',
@@ -233,12 +244,53 @@ export class ClientFormPage implements OnInit {
         this.attribution.set(client.attribution ?? null);
         this.savedSnapshot = this.snapshot();
         this.applyPortal(client);
-        await this.loadProjects();
+        await Promise.all([this.loadProjects(), this.loadCare()]);
+        if (params.get('tab') === 'care' && this.inCare()) this.tab.set('care');
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load client');
       }
     }
     this.loading.set(false);
+  }
+
+  /** Anyone with a Care area (Care forms, Visits or Schedule) gets the client's care overview. */
+  private async loadCare() {
+    const id = this.id();
+    const me = this.session.me();
+    if (!id || !(['care', 'visits', 'schedule'] as const).some((a) => !!areaLevel(me, a))) return;
+    try {
+      this.careOverview.set(await this.care.careClient(id));
+    } catch {
+      this.careOverview.set(null);
+    }
+  }
+
+  setTab(value: string | number | undefined) {
+    const tab = value === 'care' ? 'care' : 'details';
+    this.tab.set(tab);
+    void this.router.navigate([], { queryParams: { tab: tab === 'care' ? 'care' : null }, queryParamsHandling: 'merge', replaceUrl: true });
+  }
+
+  /** Add to care: status Active, then open the Care tab. */
+  async addToCare() {
+    const id = this.id();
+    if (!id || this.addingToCare()) return;
+    this.addingToCare.set(true);
+    try {
+      this.careOverview.set(await this.care.setCareStatus(id, 'ACTIVE'));
+      this.setTab('care');
+      this.toast.add({ severity: 'success', summary: 'Added to care', detail: `${this.form.name} is in care.` });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not add to care', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    } finally {
+      this.addingToCare.set(false);
+    }
+  }
+
+  /** The Care tab changed the status; taken out of care goes back to Details. */
+  onCareChange(overview: CareClientOverviewDto) {
+    this.careOverview.set(overview);
+    if (!overview.careStatus) this.setTab('details');
   }
 
   private async loadProjects() {

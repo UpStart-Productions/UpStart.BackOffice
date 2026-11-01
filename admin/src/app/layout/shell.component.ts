@@ -134,10 +134,10 @@ export class ShellComponent implements OnInit {
         { area: 'invoices', label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },
         { area: 'forms', label: 'Forms', icon: 'pi-file-edit', route: '/forms' },
       ]),
-      // Care module: intake, care profiles, visits and the schedule.
+      // Care module: intake, clients in care, visits and the schedule.
       ...section('Care', [
         { area: 'care', label: 'Intake', icon: 'pi-inbox', route: '/care/intake', badge: this.care.pendingCount() },
-        { area: 'care', label: 'Care profiles', icon: 'pi-id-card', route: '/care/profiles' },
+        { area: 'care', label: 'Clients', icon: 'pi-id-card', route: '/care/clients' },
         { area: 'visits', label: 'Visits', icon: 'pi-map-marker', route: '/care/visits' },
         { area: 'schedule', label: 'Schedule', icon: 'pi-calendar-clock', route: '/care/schedule' },
       ]),

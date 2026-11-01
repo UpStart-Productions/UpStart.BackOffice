@@ -5,6 +5,17 @@
 >
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
+      @if (!isNew && isClient && careOverview()?.canManage && !inCare()) {
+        <p-button
+          label="Add to care"
+          icon="pi pi-heart"
+          type="button"
+          severity="secondary"
+          [outlined]="true"
+          [loading]="addingToCare()"
+          (onClick)="addToCare()"
+        />
+      }
       @if (!isNew && form.journey !== 'CLIENT' && canEdit()) {
         <p-button
           label="Make client"
@@ -16,13 +27,15 @@
           (onClick)="makeClient()"
         />
       }
-      <p-button
-        label="Save"
-        icon="pi pi-check"
-        [loading]="saving()"
-        [disabled]="!isNew && !isDirty()"
-        (onClick)="save()"
-      />
+      @if (tab() === 'details') {
+        <p-button
+          label="Save"
+          icon="pi pi-check"
+          [loading]="saving()"
+          [disabled]="!isNew && !isDirty()"
+          (onClick)="save()"
+        />
+      }
     }
   </ng-container>
   <ng-container ngProjectAs="[pageTitleTrail]">
@@ -35,6 +48,17 @@
       <p-message severity="error" [text]="error()!" />
     </div>
   } @else if (!loading()) {
+    @if (inCare()) {
+      <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="client-tabs">
+        <p-tablist>
+          <p-tab value="details">Details</p-tab>
+          <p-tab value="care">Care</p-tab>
+        </p-tablist>
+      </p-tabs>
+    }
+    @if (tab() === 'care' && inCare()) {
+      <app-care-client-tab [clientId]="id()!" [overview]="careOverview()!" (overviewChange)="onCareChange($event)" />
+    } @else {
     <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">
       <div class="stack" [class.span-2]="!isNew">
       <form class="card" (ngSubmit)="save()">
@@ -183,8 +207,6 @@
 
           <app-people mode="organization" [clientId]="id()!" [compact]="true" />
 
-          <app-care-client-card [clientId]="id()!" />
-
           @if (isClient) {
             <div class="card card--side">
               <div class="card-header">
@@ -270,5 +292,6 @@
         </div>
       }
     </div>
+    }
   }
 </app-page>

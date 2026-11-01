@@ -102,3 +102,45 @@ export type CareShiftDto = {
 };
 
 export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// ── Clients in care ──────────────────────────────────────────────────────────
+
+/** Where a client is in care. A client that isn't in care has no status (null). */
+export type CareStatus = 'ACTIVE' | 'PAUSED' | 'ENDED';
+export const CARE_STATUSES: CareStatus[] = ['ACTIVE', 'PAUSED', 'ENDED'];
+export const CARE_STATUS_LABELS: Record<CareStatus, string> = {
+  ACTIVE: 'Active',
+  PAUSED: 'Paused',
+  ENDED: 'Ended',
+};
+
+/** One of the client's living forms (Intake form, Care profile) and the client's copy, if started. */
+export type CareClientFormDto = {
+  formId: string;
+  kind: CareFormKind;
+  name: string;
+  myAccess: FormAccessLevel;
+  recordId: string | null;
+  updatedAt: string | null;
+};
+
+/** The client page's Care tab: status, the forms and whether the user may change the status. */
+export type CareClientOverviewDto = {
+  clientId: string;
+  careStatus: CareStatus | null;
+  /** Only forms the user's role can open (empty without the Care forms area). */
+  forms: CareClientFormDto[];
+  /** Edit on the Care profile: add to care and change the status. */
+  canManage: boolean;
+};
+
+/** Care → Clients: a client in care. Next shift and last visit are limited to what the user may see. */
+export type CareClientListItemDto = {
+  clientId: string;
+  name: string;
+  careStatus: CareStatus;
+  hasCareProfile: boolean;
+  nextShiftAt: string | null;
+  nextShiftWorker: string | null;
+  lastVisitAt: string | null;
+};

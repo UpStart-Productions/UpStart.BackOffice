@@ -226,6 +226,10 @@ export const appRoutes: Route[] = [
         data: { kind: 'INTAKE' },
       },
       {
+        path: 'care/clients',
+        loadComponent: () => import('./pages/care/care-clients.page').then((m) => m.CareClientsPage),
+      },
+      {
         path: 'care/profiles',
         loadComponent: () => import('./pages/care/care-records.page').then((m) => m.CareRecordsPage),
         data: { kind: 'CARE_PROFILE' },

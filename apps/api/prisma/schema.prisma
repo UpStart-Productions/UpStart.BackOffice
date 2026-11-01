@@ -293,6 +293,8 @@ model Client {
   portalEnabled        Boolean        @default(false)
   portalToken          String?        @unique
   portalTokenCreatedAt DateTime?
+  /// Care module: null = not in care. Set from the client's Care tab or Care → Clients.
+  careStatus           CareStatus?
   createdByUserId      String?
   updatedByUserId      String?
   createdAt            DateTime       @default(now())
@@ -2135,6 +2137,13 @@ model FormLinkAccess {
 // ---------------------------------------------------------------------------------------------------------------
 // Care: visits (what happened, tied to time) and the schedule (shifts, optionally repeating weekly).
 // ---------------------------------------------------------------------------------------------------------------
+
+/// Where a client is in care. Not in care is null (most clients and every other organization).
+enum CareStatus {
+  ACTIVE
+  PAUSED
+  ENDED
+}
 
 enum CareVisitStatus {
   IN_PROGRESS

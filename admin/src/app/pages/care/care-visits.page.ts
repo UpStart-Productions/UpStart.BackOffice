@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -94,7 +94,7 @@ import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-di
           <ng-template pTemplate="body" let-v>
             <tr>
               <td><a [routerLink]="['/care/visits', v.id]" class="text-primary">{{ v.startedAt | date: 'EEE, MMM d' }}</a></td>
-              <td>{{ v.clientName }}</td>
+              <td><a [routerLink]="['/clients', v.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ v.clientName }}</a></td>
               @if (seeAll()) { <td>{{ v.worker.name }}</td> }
               <td>{{ v.startedAt | date: 'h:mm a' }}@if (v.endedAt) { – {{ v.endedAt | date: 'h:mm a' }}}</td>
               <td>{{ duration(v.durationMin) }}</td>
@@ -178,6 +178,7 @@ import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-di
 })
 export class CareVisitsPage implements OnInit {
   private readonly care = inject(CareApi);
+  private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
@@ -192,7 +193,8 @@ export class CareVisitsPage implements OnInit {
 
   period = signal(defaultPeriod());
   workerId = signal<string | null>(null);
-  clientId = signal<string | null>(null);
+  /** ?clientId= presets the filter (from a client's Care tab). */
+  clientId = signal<string | null>(this.route.snapshot.queryParamMap.get('clientId'));
 
   readonly seeAll = computed(() => this.session.me()?.role === 'ADMIN' || this.session.me()?.permissions?.visits === 'all');
   readonly canCreate = computed(() => this.session.can('visits', 'create'));
@@ -218,6 +220,9 @@ export class CareVisitsPage implements OnInit {
   }
 
   async ngOnInit() {
+    // ?new=start|log opens the new-visit dialog (from a client's Care tab).
+    const mode = this.route.snapshot.queryParamMap.get('new');
+    if ((mode === 'start' || mode === 'log') && this.canCreate() && !(mode === 'start' && this.inProgress())) this.openNew(mode);
     if (this.canSetup()) {
       this.care.visitForm().then((r) => this.formId.set(r.formId), () => undefined);
     }

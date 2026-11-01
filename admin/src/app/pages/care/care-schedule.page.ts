@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -92,7 +92,7 @@ function weekStartOf(d: Date): Date {
                 <div class="side-list-body">
                   <span class="side-list-title">
                     {{ s.startAt | date: 'h:mm a' }} – {{ s.endAt | date: 'h:mm a' }}
-                    <a [routerLink]="['/organizations', s.clientId]" class="text-primary">{{ s.clientName }}</a>
+                    <a [routerLink]="['/clients', s.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ s.clientName }}</a>
                   </span>
                   <span class="side-list-detail">
                     {{ s.worker?.name ?? 'Open shift' }}@if (s.repeatLabel) {, {{ s.repeatLabel }}}@if (s.notes) {, {{ s.notes }}}
@@ -210,6 +210,7 @@ function weekStartOf(d: Date): Date {
 })
 export class CareSchedulePage implements OnInit {
   private readonly care = inject(CareApi);
+  private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
@@ -222,7 +223,8 @@ export class CareSchedulePage implements OnInit {
   shifts = signal<CareShiftDto[]>([]);
   workers = signal<PeopleDirectoryOption[]>([]);
   workerId = signal<string | null>(null);
-  clientId = signal<string | null>(null);
+  /** ?clientId= presets the filter (from a client's Care tab). */
+  clientId = signal<string | null>(this.route.snapshot.queryParamMap.get('clientId'));
   error = signal<string | null>(null);
   saving = signal(false);
 
@@ -275,6 +277,8 @@ export class CareSchedulePage implements OnInit {
   }
 
   async ngOnInit() {
+    // ?new=1 opens Add shift (from a client's Care tab).
+    if (this.route.snapshot.queryParamMap.get('new') && this.canCreate()) this.openNew();
     if (this.seeAll()) {
       try {
         this.workers.set(teamUsersToOptions(await this.care.workers()));

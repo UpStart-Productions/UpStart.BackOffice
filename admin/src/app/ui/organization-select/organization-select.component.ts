@@ -37,17 +37,19 @@ export class OrganizationSelectComponent implements OnInit {
   inputId = input<string | undefined>(undefined);
   /** Organizations to leave out (e.g. ones that already have this form). */
   exclude = input<string[]>([]);
+  /** Only organizations with status Client (e.g. Add to care). */
+  clientsOnly = input(false);
 
-  private all = signal<{ id: string; name: string }[]>([]);
+  private all = signal<{ id: string; name: string; journey?: string }[]>([]);
   loading = signal(true);
   options = computed(() => {
     const skip = new Set(this.exclude());
-    return this.all().filter((o) => !skip.has(o.id));
+    return this.all().filter((o) => !skip.has(o.id) && (!this.clientsOnly() || o.journey === 'CLIENT'));
   });
 
   async ngOnInit() {
     try {
-      const rows = await this.api.get<{ id: string; name: string }[]>('/clients');
+      const rows = await this.api.get<{ id: string; name: string; journey?: string }[]>('/clients');
       this.all.set([...rows].sort((a, b) => a.name.localeCompare(b.name)));
     } catch {
       this.all.set([]);

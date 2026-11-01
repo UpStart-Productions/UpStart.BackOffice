@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { FormsModule } from '../forms/forms.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CareAccessService } from './care-access.service';
+import { CareClientsController } from './care-clients.controller';
 import { CareFormDestination } from './care-destination';
 import { CareFormsController } from './care-forms.controller';
 import { CareNotifyService } from './care-notify.service';
@@ -15,7 +16,7 @@ import { CareVisitsController } from './care-visits.controller';
  */
 @Module({
   imports: [NotificationsModule, FormsModule],
-  controllers: [CareFormsController, CareRecordsController, CareVisitsController, CareShiftsController],
+  controllers: [CareClientsController, CareFormsController, CareRecordsController, CareVisitsController, CareShiftsController],
   providers: [CareAccessService, CareNotifyService, CareFormDestination],
 })
 export class CareModule {}

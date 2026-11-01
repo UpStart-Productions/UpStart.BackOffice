@@ -3,24 +3,18 @@ import type {
   FormAccess,
   FormAccessLevel,
   FormDefinition,
+  CareClientListItemDto,
+  CareClientOverviewDto,
   CareFormDto,
   CareFormKind,
   CareRecordDto,
   CareRecordListItemDto,
   CareShiftDto,
+  CareStatus,
   CareVisitDto,
   CareVisitListItemDto,
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
-
-export type CareClientForm = {
-  formId: string;
-  kind: CareFormKind;
-  name: string;
-  myAccess: FormAccessLevel;
-  recordId: string | null;
-  updatedAt: string | null;
-};
 
 /** Care module API (forms setup, records, links) plus the pending-intake count for the nav badge. */
 @Injectable({ providedIn: 'root' })
@@ -88,8 +82,20 @@ export class CareApi {
   accept(id: string, body: { mode: 'new' | 'existing'; name?: string; clientId?: string }) {
     return this.api.post<CareRecordDto>(`/care/records/${id}/accept`, body);
   }
-  forClient(clientId: string) {
-    return this.api.get<CareClientForm[]>(`/care/clients/${clientId}`);
+
+  // ── Clients in care ────────────────────────────────────────────────────────
+
+  /** Care → Clients: every client in care the user reaches. */
+  careClients() {
+    return this.api.get<CareClientListItemDto[]>('/care/clients');
+  }
+  /** A client's Care tab: status and their Intake form / Care profile. */
+  careClient(clientId: string) {
+    return this.api.get<CareClientOverviewDto>(`/care/clients/${clientId}`);
+  }
+  /** Add to care (ACTIVE), pause, end, or take out of care (null). */
+  setCareStatus(clientId: string, status: CareStatus | null) {
+    return this.api.put<CareClientOverviewDto>(`/care/clients/${clientId}/status`, { status });
   }
 
   // ── Visits ─────────────────────────────────────────────────────────────────
