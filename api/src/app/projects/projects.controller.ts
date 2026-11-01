@@ -36,6 +36,7 @@ import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { UploadAvatarDto } from '../users/dto/user.dto';
+import { AddTeamMemberDto, assertTeamCandidate, projectTeam, teamCandidates } from '../team/team.util';
 
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -79,6 +80,37 @@ export class ProjectsController {
       include: activeTasksInclude,
       orderBy: { name: 'asc' },
     });
+  }
+
+  /** Staff who can be put on a project (People panel picker). */
+  @Get('team/candidates')
+  teamCandidates(@Req() req: Request) {
+    return teamCandidates(this.prisma, req.user as UserContext);
+  }
+
+  /** Staff on the project: its members, the same list as its task board. */
+  @Get(':id/team')
+  async team(@Req() req: Request, @Param('id') id: string) {
+    await this.reachable(req, id);
+    return projectTeam(this.prisma, id);
+  }
+
+  @Action('edit')
+  @Post(':id/team')
+  async addTeamMember(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
+    await this.reachable(req, id);
+    await assertTeamCandidate(this.prisma, req.user as UserContext, dto.userId);
+    const existing = await this.prisma.projectMember.findUnique({ where: { projectId_userId: { projectId: id, userId: dto.userId } } });
+    if (!existing) await this.prisma.projectMember.create({ data: { projectId: id, userId: dto.userId, role: 'EDITOR' } });
+    return projectTeam(this.prisma, id);
+  }
+
+  @Action('edit')
+  @Delete(':id/team/:userId')
+  async removeTeamMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    await this.reachable(req, id);
+    await this.prisma.projectMember.deleteMany({ where: { projectId: id, userId } });
+    return projectTeam(this.prisma, id);
   }
 
   @Post()

@@ -176,7 +176,7 @@ export class FreeFormsController {
     const user = req.user as UserContext;
     const form = await this.findForm(user, id);
     const live = await liveSnapshot(this.structure, form);
-    if (!live.sections.some((s) => s.fields.length)) throw new BadRequestException('Add at least one field before publishing');
+    if (!live.sections.some((s) => s.fields.some((f) => f.type !== 'CONTENT'))) throw new BadRequestException('Add at least one question before publishing');
     const last = await this.prisma.formVersion.findFirst({ where: { formId: id }, orderBy: { number: 'desc' }, select: { number: true } });
     await this.prisma.$transaction(async (tx) => {
       const v = await tx.formVersion.create({

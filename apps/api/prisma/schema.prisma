@@ -251,6 +251,7 @@ model User {
   usersUpdated              User[]                      @relation("UserUpdatedBy")
   orgProfilesCreated        OrganizationProfile[]       @relation("OrgProfileCreatedBy")
   orgProfilesUpdated        OrganizationProfile[]       @relation("OrgProfileUpdatedBy")
+  superUserRates            SuperUserRate[]
 
   @@unique([tenantId, email])
   @@index([email])
@@ -1664,6 +1665,7 @@ model Tenant {
   careVisits                  CareVisit[]
   careShifts                  CareShift[]
   careShiftSeries             CareShiftSeries[]
+  superUserRates              SuperUserRate[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -1918,6 +1920,8 @@ enum FormFieldType {
   SINGLE_SELECT
   MULTI_SELECT
   CHECKBOX
+  /// A text block, not a question: `name` holds formatted text (HTML); never answered.
+  CONTENT
 }
 
 enum FormResponseStatus {
@@ -1978,7 +1982,7 @@ model FormSection {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   formId    String
   name      String
-  /// Optional intro shown under the section title on public pages.
+  /// Old section intro (now a text block at the top of the section). Kept for published versions that still have one.
   description String? @db.Text
   sortOrder Float    @default(0)
   createdAt DateTime @default(now())
@@ -2227,5 +2231,22 @@ model CareShiftSeries {
   user   User?       @relation("CareShiftSeriesWorker", fields: [userId], references: [id], onDelete: SetNull)
   shifts CareShift[]
 
+  @@index([tenantId])
+}
+
+/// A super user's (platform operator's) pay rate in one tenant. Their single user row belongs to no
+/// tenant, so User.hourlyRate can't differ per tenant; this does. Used when they invoice the tenant.
+model SuperUserRate {
+  id         String   @id @default(cuid())
+  tenantId   String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  userId     String
+  hourlyRate Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
   @@index([tenantId])
 }

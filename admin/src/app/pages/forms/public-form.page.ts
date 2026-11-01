@@ -7,11 +7,13 @@ import { ButtonModule } from 'primeng/button';
 import { TabsModule } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import type { FormPublicFormDto, FormPublicLinkDto, FormPublicSubmitResultDto, FormResultDto } from '@upstart/back-office/shared';
+import { isContentField, type FormFieldDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
 import { environment } from '../../../environments/environment';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 
 type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done';
+/** One screen of a paged form; `section` null is "About you". */
+type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; question: boolean; intro?: string | null };
 
 /**
  * Public Care form (/care-form/:token): a new intake, or one organization's form (e.g. for family to
@@ -93,17 +95,42 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
               <div class="mb-3"></div>
             }
             <form class="login-form" (ngSubmit)="submit()">
-              @if (layout() !== 'steps') {
+              @if (!paged()) {
                 <ng-container *ngTemplateOutlet="whoTpl" />
               }
               @switch (layout()) {
                 @case ('steps') {
-                  @if (stepSection(); as sec) {
+                  @if (page(); as pg) {
                     <p class="cp-step">Step {{ sectionStep() + 1 }} of {{ stepCount() }}</p>
-                    <ng-container *ngTemplateOutlet="sectionTpl; context: { $implicit: sec }" />
-                  } @else {
-                    <h3 class="cp-section">About you</h3>
-                    <ng-container *ngTemplateOutlet="whoTpl" />
+                    @if (pg.section) {
+                      <ng-container *ngTemplateOutlet="sectionTpl; context: { $implicit: pg.section }" />
+                    } @else {
+                      <h3 class="cp-section">About you</h3>
+                      <ng-container *ngTemplateOutlet="whoTpl" />
+                    }
+                  }
+                }
+                @case ('questions') {
+                  @if (page(); as pg) {
+                    <div class="cp-progress" aria-hidden="true"><span [style.width.%]="progress()"></span></div>
+                    @if (pg.section) {
+                      <p class="cp-kicker">
+                        {{ pg.section.name }}
+                        @if (pg.question) {
+                          <span class="cp-count">Question {{ questionNumber() }} of {{ questionCount() }}</span>
+                        }
+                      </p>
+                      @if (pg.intro) {
+                        <p class="text-color-secondary cp-intro">{{ pg.intro }}</p>
+                      }
+                      @for (f of pg.fields; track f.id) {
+                        <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event; picked(f)" [showRequired]="true" [choices]="true" />
+                      }
+                    } @else {
+                      <p class="cp-kicker">Last step</p>
+                      <h3 class="cp-section">About you</h3>
+                      <ng-container *ngTemplateOutlet="whoTpl" />
+                    }
                   }
                 }
                 @case ('accordion') {
@@ -176,7 +203,7 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
                   <p class="text-color-secondary cp-intro">{{ sec.description }}</p>
                 }
                 @for (f of sec.fields; track f.id) {
-                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" />
+                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" [choices]="true" />
                 }
               </ng-template>
               <div class="task-form-hp" aria-hidden="true">
@@ -185,10 +212,10 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
               </div>
               @if (error()) { <p-message severity="error" styleClass="w-full mb-3" [text]="error()!" /> }
               <div class="login-actions">
-                @if (layout() === 'steps' && sectionStep() > 0) {
+                @if (paged() && sectionStep() > 0) {
                   <p-button label="Back" severity="secondary" [outlined]="true" (onClick)="back()" />
                 }
-                @if (layout() === 'steps' && sectionStep() < stepCount() - 1) {
+                @if (paged() && sectionStep() < stepCount() - 1) {
                   <p-button label="Next" (onClick)="next()" />
                 } @else {
                   <p-button type="submit" label="Send" [loading]="busy()" />
@@ -264,6 +291,35 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
     .cp-intro {
       margin: -0.25rem 0 1rem;
     }
+    /* Page by question: a slim progress bar, the section name and the question count. */
+    .cp-progress {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--surface-border);
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+    .cp-progress span {
+      display: block;
+      height: 100%;
+      background: var(--p-surface-600, #52525b);
+      transition: width 0.25s;
+    }
+    .cp-kicker {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      margin: 0 0 0.75rem;
+      color: var(--text-color-secondary);
+      font-size: var(--fs-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .cp-count {
+      text-transform: none;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
     /* A description written in the editor (paragraphs, lists, bold). */
     .cp-rich ::ng-deep p {
       margin: 0 0 0.5rem;
@@ -314,23 +370,58 @@ export class PublicFormPage implements OnInit {
 
   /** How the form's sections are shown (set on the form in UBO). */
   readonly layout = computed(() => this.form()?.layout ?? 'page');
-  /** Steps: the section shown (the last step is "About you" on new-response links). */
+  /** Page by section or by question: one screen at a time with Back and Next. */
+  readonly paged = computed(() => this.layout() === 'steps' || this.layout() === 'questions');
+  /**
+   * The screens: a section each (Page by section), or a question or text block each (Page by question).
+   * New-response links end with "About you" (section null).
+   */
+  readonly pages = computed<PublicPage[]>(() => {
+    const f = this.form();
+    if (!f) return [];
+    const out: PublicPage[] = [];
+    for (const s of f.sections) {
+      if (this.layout() === 'questions') {
+        if (s.description) out.push({ section: s, fields: [], question: false, intro: s.description });
+        for (const fld of s.fields) out.push({ section: s, fields: [fld], question: !isContentField(fld) });
+      } else {
+        out.push({ section: s, fields: s.fields, question: false });
+      }
+    }
+    if (this.isIntake()) out.push({ section: null, fields: [], question: false });
+    return out;
+  });
   readonly sectionStep = signal(0);
-  readonly stepCount = computed(() => (this.form()?.sections.length ?? 0) + (this.isIntake() ? 1 : 0));
-  readonly stepSection = computed(() => this.form()?.sections[this.sectionStep()] ?? null);
+  readonly stepCount = computed(() => this.pages().length);
+  readonly page = computed(() => this.pages()[this.sectionStep()] ?? null);
+  readonly questionCount = computed(() => this.pages().filter((p) => p.question).length);
+  /** This question's number (questions before it, plus one). */
+  readonly questionNumber = computed(() => this.pages().slice(0, this.sectionStep()).filter((p) => p.question).length + 1);
+  readonly progress = computed(() => {
+    const total = this.questionCount();
+    return total ? Math.round(((this.questionNumber() - 1) / total) * 100) : 0;
+  });
   /** Accordion and tabs: the open section. */
   openSection: string | number | undefined = undefined;
 
   next() {
-    const sec = this.stepSection();
-    const missing = sec?.fields.find((f) => f.required && isEmpty(this.values[f.id]));
+    const missing = this.page()?.fields.find((f) => f.required && !isContentField(f) && isEmpty(this.values[f.id]));
     if (missing) {
-      this.error.set(`${missing.name}: required`);
+      this.error.set(this.layout() === 'questions' ? 'Please answer this question' : `${missing.name}: required`);
       return;
     }
     this.error.set(null);
     this.sectionStep.update((n) => Math.min(n + 1, this.stepCount() - 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** Page by question: a single choice moves on by itself after a moment (Back fixes a wrong pick). */
+  picked(f: FormFieldDto) {
+    if (f.type !== 'SINGLE_SELECT' || this.layout() !== 'questions') return;
+    const at = this.sectionStep();
+    setTimeout(() => {
+      if (this.sectionStep() === at && this.sectionStep() < this.stepCount() - 1) this.next();
+    }, 350);
   }
 
   back() {
@@ -387,7 +478,7 @@ export class PublicFormPage implements OnInit {
 
   async submit() {
     // Enter on an earlier step moves on instead of sending.
-    if (this.layout() === 'steps' && this.sectionStep() < this.stepCount() - 1) {
+    if (this.paged() && this.sectionStep() < this.stepCount() - 1) {
       this.next();
       return;
     }

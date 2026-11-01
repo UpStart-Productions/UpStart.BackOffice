@@ -1,6 +1,6 @@
 import { BadRequestException, Body, ConflictException, Controller, Get, NotFoundException, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString, Matches, MaxLength, Min, MinLength, ValidateIf } from 'class-validator';
 import { Request } from 'express';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { UserContext } from '../common/app.types';
@@ -24,6 +24,8 @@ export class UpdateTenantDto {
   @IsOptional() @IsArray() @IsString({ each: true }) internalDomains?: string[];
   /** Module keys switched on. Turning one off hides it but keeps its data. */
   @IsOptional() @IsArray() @IsString({ each: true }) modules?: string[];
+  /** The calling super user's own pay rate in this tenant. Null clears it. */
+  @IsOptional() @ValidateIf((_, v) => v !== null) @IsNumber() @Min(0) myHourlyRate?: number | null;
 }
 
 @ApiTags('tenants')
@@ -63,17 +65,24 @@ export class TenantsController {
   /** Every tenant with details (platform admin page). */
   @Get()
   @UseGuards(RequireSuperGuard)
-  list() {
-    return this.prisma.tenant.findMany({
-      select: { id: true, name: true, slug: true, internalDomains: true, modules: true, createdAt: true },
-      orderBy: { name: 'asc' },
-    });
+  async list(@Req() req: Request) {
+    const user = req.user as UserContext;
+    const [tenants, rates] = await Promise.all([
+      this.prisma.tenant.findMany({
+        select: { id: true, name: true, slug: true, internalDomains: true, modules: true, createdAt: true },
+        orderBy: { name: 'asc' },
+      }),
+      // The caller's own rate in each tenant: across tenants, so unscoped (filtered to their own rows).
+      runUnscoped(() => this.prisma.superUserRate.findMany({ where: { userId: user.id }, select: { tenantId: true, hourlyRate: true } })),
+    ]);
+    const byTenant = new Map(rates.map((r) => [r.tenantId, Number(r.hourlyRate)]));
+    return tenants.map((t) => ({ ...t, myHourlyRate: byTenant.get(t.id) ?? null }));
   }
 
   /** Edit a tenant's name, slug (which is also its email capture address) and internal domains. */
   @Patch(':id')
   @UseGuards(RequireSuperGuard)
-  async update(@Param('id') id: string, @Body() dto: UpdateTenantDto) {
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateTenantDto) {
     const existing = await this.prisma.tenant.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Tenant not found');
     const data: { name?: string; slug?: string; internalDomains?: string[]; modules?: string[] } = {};
@@ -106,7 +115,23 @@ export class TenantsController {
         }
       });
     }
+    if (dto.myHourlyRate !== undefined) await this.setMyRate((req.user as UserContext).id, id, dto.myHourlyRate);
     return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains, modules: tenant.modules };
+  }
+
+  /** The super user's pay rate in a tenant (any tenant, not just the current one, so tenantId is explicit). */
+  private async setMyRate(userId: string, tenantId: string, rate: number | null) {
+    await runWithTenant(tenantId, async () => {
+      if (rate == null) {
+        await this.prisma.superUserRate.deleteMany({ where: { userId } });
+        return;
+      }
+      await this.prisma.superUserRate.upsert({
+        where: { tenantId_userId: { tenantId, userId } },
+        create: { userId, hourlyRate: rate },
+        update: { hourlyRate: rate },
+      });
+    });
   }
 
   /** Create a tenant and its primary inbound-email alias. Add its first admin from Users after switching in. */

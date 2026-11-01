@@ -24,6 +24,8 @@ export function formFieldOptions(type: FormFieldType, input: unknown, withPoints
  * Same rules as Task custom fields; long text allows more characters.
  */
 export function coerceFormFieldValue(type: FormFieldType, options: FormFieldOption[], value: unknown): unknown {
+  // A text block takes no answer: anything sent for it is dropped.
+  if (type === 'CONTENT') return null;
   if (type === 'LONG_TEXT') {
     if (value === null || value === undefined || value === '') return null;
     if (typeof value !== 'string') throw new Error('Text field expects a string');
@@ -44,13 +46,19 @@ export function mergeFormValues(
   submitted: Record<string, unknown>,
   opts: { requireAll?: boolean } = {},
 ): Record<string, unknown> {
+  const allIds = new Set(fields.map((f) => f.id));
+  // Text blocks are never answered: they don't take or require values.
+  fields = fields.filter((f) => f.type !== 'CONTENT');
   const byId = new Map(fields.map((f) => [f.id, f]));
   const out: Record<string, unknown> = {};
   // Keep only values of fields that still exist.
   for (const f of fields) if (stored[f.id] !== undefined && stored[f.id] !== null) out[f.id] = stored[f.id];
   for (const [id, raw] of Object.entries(submitted ?? {})) {
     const f = byId.get(id);
-    if (!f) throw new Error('Unknown field');
+    if (!f) {
+      if (allIds.has(id)) continue; // a text block
+      throw new Error('Unknown field');
+    }
     let v: unknown;
     try {
       v = coerceFormFieldValue(f.type, (f.options as FormFieldOption[] | null) ?? [], raw);

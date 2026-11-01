@@ -20,6 +20,7 @@ import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { resolveTimeEntryBillable } from '../projects/project-tasks.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { currentTenantId, runUnscoped } from '../tenancy/tenant-context';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { CreateTimeEntryDto } from './dto/create-time-entry.dto';
 import { ImportTimesheetDto } from './dto/import-timesheet.dto';
@@ -164,6 +165,15 @@ export class TimeEntriesController {
             select,
             orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
           });
+    if (this.access.level(user, 'time') === 'all') {
+      // Super users' rows belong to no tenant: include the ones who have logged time here.
+      const tenantId = currentTenantId();
+      const supers = await runUnscoped(() =>
+        this.prisma.user.findMany({ where: { isSuper: true, isActive: true, timeEntries: { some: { tenantId } } }, select }),
+      );
+      for (const s of supers) if (!rows.some((r) => r.id === s.id)) rows.push(s);
+      rows.sort((a, b) => (a.firstName ?? '').localeCompare(b.firstName ?? '') || (a.lastName ?? '').localeCompare(b.lastName ?? '') || a.email.localeCompare(b.email));
+    }
     return rows.map((u) => ({ ...u, avatarUrl: toPublicAssetUrl(u.avatarUrl) }));
   }
 

@@ -3,9 +3,11 @@
  * Modules that need forms (Care today, the Forms area next) use these; the engine never knows what a response is about.
  */
 
-export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX';
-export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX'];
+/** CONTENT is a text block, not a question: its `name` holds formatted text (HTML) and it never takes an answer. */
+export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'CONTENT';
+export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'CONTENT'];
 export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
+  CONTENT: 'Text block',
   TEXT: 'Text',
   LONG_TEXT: 'Long text',
   NUMBER: 'Number',
@@ -16,6 +18,7 @@ export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
 };
 /** Lucide icon name per field type (builder rows and the type picker). */
 export const FORM_FIELD_TYPE_ICONS: Record<FormFieldType, string> = {
+  CONTENT: 'pilcrow',
   TEXT: 'text-cursor-input',
   LONG_TEXT: 'text-align-start',
   NUMBER: 'hash',
@@ -24,6 +27,28 @@ export const FORM_FIELD_TYPE_ICONS: Record<FormFieldType, string> = {
   MULTI_SELECT: 'list-checks',
   CHECKBOX: 'square-check-big',
 };
+
+/** Longest text block (HTML). Question names stay short. */
+export const FORM_CONTENT_MAX = 20000;
+
+/** A text block: shown to people, never answered, counted, scored or exported. */
+export function isContentField(f: { type: FormFieldType }): boolean {
+  return f.type === 'CONTENT';
+}
+
+/** Plain text as text block HTML: blank lines start paragraphs, single line breaks stay. */
+export function plainTextToHtml(text: string): string {
+  const esc = text.trim().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc
+    .split(/\n{2,}/)
+    .map((p) => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+/** The fields that are questions (answerable), in order. */
+export function questionFields<T extends { type: FormFieldType }>(fields: T[]): T[] {
+  return fields.filter((f) => !isContentField(f));
+}
 
 export function isSelectFieldType(type: FormFieldType): boolean {
   return type === 'SINGLE_SELECT' || type === 'MULTI_SELECT';
@@ -188,14 +213,16 @@ export type FormScoreBand = {
 export type FormScoring = { enabled: boolean; groups: FormScoreGroup[]; bands: FormScoreBand[] };
 
 /**
- * How a form's sections are shown on public pages: all on one page, one at a time with Next and Back (steps),
- * collapsible (accordion), or a section switcher (tabs).
+ * How a form is shown on public pages: all on one page, one section per screen with Next and Back ('steps',
+ * shown as Page by section), one question or text block per screen ('questions'), collapsible sections
+ * (accordion), or a section switcher (tabs).
  */
-export type FormLayout = 'page' | 'steps' | 'accordion' | 'tabs';
-export const FORM_LAYOUTS: FormLayout[] = ['page', 'steps', 'accordion', 'tabs'];
+export type FormLayout = 'page' | 'steps' | 'questions' | 'accordion' | 'tabs';
+export const FORM_LAYOUTS: FormLayout[] = ['page', 'steps', 'questions', 'accordion', 'tabs'];
 export const FORM_LAYOUT_LABELS: Record<FormLayout, string> = {
   page: 'One page',
-  steps: 'Steps',
+  steps: 'Page by section',
+  questions: 'Page by question',
   accordion: 'Accordion',
   tabs: 'Tabs',
 };
@@ -312,7 +339,7 @@ export function computeFormScores(sections: FormSectionDto[], scoring: FormScori
 
 /** An answer as text: option labels for selects, Yes for a ticked checkbox, a readable date. Empty → ''. */
 export function formatFormValue(field: FormFieldDto, value: unknown): string {
-  if (value === null || value === undefined || value === '') return '';
+  if (isContentField(field) || value === null || value === undefined || value === '') return '';
   const label = (id: unknown) => field.options.find((o) => o.id === id)?.label ?? String(id);
   switch (field.type) {
     case 'SINGLE_SELECT':
@@ -455,8 +482,8 @@ export function parseFormDefinition(input: unknown): FormDefinition {
   const sections = (Array.isArray(src['sections']) ? src['sections'] : []).map((s: any, si: number) => {
     const sName = typeof s?.name === 'string' && s.name.trim() ? s.name.trim().slice(0, 120) : `Section ${si + 1}`;
     const fields = (Array.isArray(s?.fields) ? s.fields : []).map((f: any) => {
-      const fName = typeof f?.name === 'string' ? f.name.trim().slice(0, 400) : '';
-      if (!fName) throw new Error(`A field in "${sName}" has no name`);
+      const fName = typeof f?.name === 'string' ? f.name.trim().slice(0, f?.type === 'CONTENT' ? FORM_CONTENT_MAX : 400) : '';
+      if (!fName) throw new Error(f?.type === 'CONTENT' ? `A text block in "${sName}" is empty` : `A field in "${sName}" has no name`);
       if (!FORM_FIELD_TYPES.includes(f?.type)) throw new Error(`"${fName}" has an unknown type`);
       const type = f.type as FormFieldType;
       const options = isSelectFieldType(type)

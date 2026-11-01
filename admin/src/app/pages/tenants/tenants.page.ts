@@ -14,8 +14,9 @@ import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 
-type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; modules: string[]; createdAt: string };
+type TenantRow = { id: string; name: string; slug: string; internalDomains: string[]; modules: string[]; createdAt: string; myHourlyRate: number | null };
 
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -24,7 +25,7 @@ const slugify = (s: string) =>
 @Component({
   selector: 'app-tenants-page',
   standalone: true,
-  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, CheckboxModule, AppDialogModule, RowActionsMenuComponent, HelpTextComponent],
+  imports: [FormsModule, PageComponent, TableModule, ButtonModule, InputTextModule, MessageModule, TagModule, CheckboxModule, AppDialogModule, RowActionsMenuComponent, HelpTextComponent, MoneyInputComponent],
   template: `
     <app-page title="Tenants" helpKey="tenant.overview">
       <p-button pageActions label="Add tenant" icon="pi pi-plus" (onClick)="openAdd()" />
@@ -34,7 +35,7 @@ const slugify = (s: string) =>
       <div class="card">
         <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered">
           <ng-template pTemplate="header">
-            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th><th>Modules</th></tr>
+            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th><th>Modules</th><th>Your rate</th></tr>
           </ng-template>
           <ng-template pTemplate="body" let-t>
             <tr>
@@ -50,6 +51,7 @@ const slugify = (s: string) =>
                   @for (m of t.modules; track m) { <p-tag [value]="moduleLabel(m)" severity="secondary" /> } @empty { — }
                 </span>
               </td>
+              <td>{{ t.myHourlyRate != null ? '$' + t.myHourlyRate.toFixed(2) + '/hr' : '—' }}</td>
             </tr>
           </ng-template>
         </p-table>
@@ -77,6 +79,10 @@ const slugify = (s: string) =>
               <p-checkbox [inputId]="'t-mod-' + key" [binary]="true" [ngModel]="modules.includes(key)" (ngModelChange)="toggleModule(key, $event)" />
               <label [for]="'t-mod-' + key">{{ moduleLabel(key) }}</label>
             </div>
+          }
+          @if (editingId) {
+            <label for="t-my-rate" class="modules-label">Your hourly rate in this tenant (optional) <app-help-text key="tenant.myHourlyRate" /></label>
+            <app-money-input inputId="t-my-rate" [(ngModel)]="myHourlyRate" [min]="0" styleClass="w-full" inputStyleClass="w-full" />
           }
           @if (formError()) { <p-message severity="error" [text]="formError()!" /> }
         </div>
@@ -112,6 +118,7 @@ export class TenantsPage implements OnInit {
   modules: string[] = [];
   slugEdited = false;
   editingId: string | null = null;
+  myHourlyRate: number | null = null;
 
   ngOnInit() {
     void this.load();
@@ -143,6 +150,7 @@ export class TenantsPage implements OnInit {
     this.slug = t.slug;
     this.domains = t.internalDomains.join(', ');
     this.modules = [...t.modules];
+    this.myHourlyRate = t.myHourlyRate;
     this.slugEdited = true;
     this.formError.set(null);
     this.addVisible = true;
@@ -178,7 +186,7 @@ export class TenantsPage implements OnInit {
       const body = { name: this.name.trim(), slug: this.slug.trim(), internalDomains, modules: this.modules };
       if (this.editingId) {
         const old = this.tenants().find((t) => t.id === this.editingId);
-        await this.api.patch(`/tenants/${this.editingId}`, body);
+        await this.api.patch(`/tenants/${this.editingId}`, { ...body, myHourlyRate: this.myHourlyRate ?? null });
         // Keep the active tenant selection valid when its slug was changed.
         if (old && old.slug === this.tenant.currentSlug() && old.slug !== body.slug) {
           this.tenant.switchTo(body.slug);

@@ -12,8 +12,9 @@ import {
 } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-picker.loader';
+import { TeamApi, TeamMember, TeamScope } from '../../core/team.api';
 import { PeopleDirectoryEntry } from '../../pages/projects/people-directory.types';
-import { PeopleDirectoryOption } from '../../pages/projects/people-directory.util';
+import { PeopleDirectoryOption, toDirectoryOptions } from '../../pages/projects/people-directory.util';
 import { Person } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
@@ -96,7 +97,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               <div class="people-panel-org-row"><p-skeleton width="40%" height="1rem" /></div>
             }
           </div>
-        } @else if (orgPeople().length === 0) {
+        } @else if (orgPeople().length === 0 && teamRows().length === 0) {
           <div class="empty-state">
             <i class="pi pi-users" aria-hidden="true"></i>
             <p>No people linked yet.</p>
@@ -142,6 +143,31 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
             }
           </div>
         }
+        @for (m of teamRows(); track m.id) {
+          <div class="people-panel-org-row">
+            <div class="people-panel-org-main">
+              <div class="people-panel-org-name-line">
+                <app-person [name]="m.name" [firstName]="m.firstName" [lastName]="m.lastName" [email]="m.email" [avatarUrl]="m.avatarUrl" />
+                <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
+              </div>
+              @if (teamProjectsLine(m); as line) {
+                <span class="people-panel-meta">{{ line }}</span>
+              }
+              <app-copy-email [email]="m.email" [muted]="true" [block]="true" />
+            </div>
+            @if (m.direct && !readOnly()) {
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                severity="danger"
+                size="small"
+                class="people-panel-org-remove"
+                [attr.aria-label]="'Remove ' + m.name + ' from organization'"
+                (onClick)="confirmRemoveTeamMember(m)"
+              />
+            }
+          </div>
+        }
       } @else {
         @for (contact of projectContacts(); track $index; let rowIndex = $index) {
           <div class="people-panel-project-row">
@@ -164,7 +190,25 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               <app-row-actions-menu [items]="projectRowActions(rowIndex)" ariaLabel="Contact actions" />
             }
           </div>
-        } @empty {
+        }
+        @for (m of teamRows(); track m.id) {
+          <div class="people-panel-project-row">
+            <app-tm-avatar [person]="m" [size]="36" [showTitle]="false" />
+            <div class="people-panel-project-main">
+              <div class="people-panel-org-name-line">
+                <span class="people-panel-project-name">{{ m.name }}</span>
+                <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
+              </div>
+              <div class="people-panel-project-details">
+                <app-copy-email [email]="m.email" [muted]="true" />
+              </div>
+            </div>
+            @if (!readOnly()) {
+              <app-row-actions-menu [items]="teamRowActions(m)" ariaLabel="Team member actions" />
+            }
+          </div>
+        }
+        @if (projectContacts().length === 0 && teamRows().length === 0) {
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
         }
 
@@ -286,6 +330,7 @@ export class PeopleComponent {
   private readonly toast = inject(MessageService);
   private readonly router = inject(Router);
   private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly team = inject(TeamApi);
   private readonly createPersonModal = viewChild(CreatePersonModalComponent);
 
   readonly contactName = contactName;
@@ -311,6 +356,8 @@ export class PeopleComponent {
   /** `modal` opens the new-person dialog; `delegate` emits addPersonRequested for the host to show inline UI. */
   addPersonFlow = input<'modal' | 'delegate'>('modal');
   addPersonRequested = output<void>();
+  /** Show staff (Team) next to contacts and offer them in Add existing person. Off where the board's Share list already covers them. */
+  showTeam = input(true);
 
   /** Project mode only — current contact rows. */
   projectContacts = input<PeopleProjectContact[]>([]);
@@ -325,6 +372,9 @@ export class PeopleComponent {
   panelError = signal<string | null>(null);
 
   orgPeople = signal<ContactSummary[]>([]);
+  /** Staff on this client/project (see TeamApi). Saved right away, unlike the project contact draft. */
+  teamRows = signal<TeamMember[]>([]);
+  private teamCandidates: Person[] | null = null;
   orgLoading = signal(false);
   readonly skeletonRows = [1, 2];
 
@@ -336,11 +386,20 @@ export class PeopleComponent {
       void this.loadOrganizationPeople(id);
     });
     effect(() => {
+      const scope = this.teamScope();
+      if (!scope) {
+        this.teamRows.set([]);
+        return;
+      }
+      void this.loadTeam(scope);
+    });
+    effect(() => {
       this.mode();
       this.clientId();
       this.projectId();
       this.projectContacts();
       this.orgPeople();
+      this.teamRows();
       // Read-only panels have no picker, so skip loading its options.
       if (this.readOnly()) return;
       void this.reloadPickerOptions();
@@ -375,7 +434,9 @@ export class PeopleComponent {
     if (!option) return;
     this.panelError.set(null);
     try {
-      if (this.mode() === 'organization') {
+      if (option.id.startsWith('user:')) {
+        await this.addTeamMember(option);
+      } else if (this.mode() === 'organization') {
         await this.linkExistingToOrganization(option);
       } else {
         this.addProjectContactFromEntry(option);
@@ -562,6 +623,68 @@ export class PeopleComponent {
     });
   }
 
+  /** Where staff are saved: the client, or the saved project (a new project has none yet). */
+  private teamScope(): TeamScope | null {
+    if (!this.showTeam()) return null;
+    if (this.mode() === 'organization') {
+      const id = this.clientId();
+      return id ? { kind: 'clients', id } : null;
+    }
+    const id = this.projectId();
+    return id ? { kind: 'projects', id } : null;
+  }
+
+  private async loadTeam(scope: TeamScope) {
+    try {
+      this.teamRows.set(await this.team.list(scope));
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Failed to load team');
+    }
+  }
+
+  private async addTeamMember(option: PeopleDirectoryOption) {
+    const scope = this.teamScope();
+    if (!scope) {
+      this.toast.add({ severity: 'info', summary: 'Save first', detail: 'Save the project, then add team members.' });
+      return;
+    }
+    this.teamRows.set(await this.team.add(scope, option.id.slice('user:'.length)));
+    this.toast.add({ severity: 'success', summary: 'Person added', detail: option.displayName });
+  }
+
+  teamProjectsLine(m: TeamMember): string | null {
+    if (!m.projects.length) return null;
+    return `On ${m.projects.map((p) => p.name).join(', ')}`;
+  }
+
+  teamRowActions(m: TeamMember): RowActionItem[] {
+    return [
+      {
+        id: 'delete',
+        label: 'Remove',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmRemoveTeamMember(m),
+      },
+    ];
+  }
+
+  confirmRemoveTeamMember(m: TeamMember) {
+    const scope = this.teamScope();
+    if (!scope) return;
+    const where = scope.kind === 'projects' ? 'this project and its task board' : 'this organization';
+    this.confirmDelete.confirm({
+      message: `Remove "${m.name}" from ${where}?`,
+      accept: async () => {
+        try {
+          this.teamRows.set(await this.team.remove(scope, m.id));
+        } catch (err) {
+          this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
+        }
+      },
+    });
+  }
+
   private async loadOrganizationPeople(clientId: string) {
     this.orgLoading.set(true);
     this.panelError.set(null);
@@ -576,6 +699,15 @@ export class PeopleComponent {
     }
   }
 
+  private async loadTeamCandidates(): Promise<Person[]> {
+    if (!this.showTeam()) return [];
+    if (!this.teamCandidates) {
+      const kind = this.mode() === 'organization' ? 'clients' : 'projects';
+      this.teamCandidates = await this.team.candidates(kind).catch(() => [] as Person[]);
+    }
+    return this.teamCandidates;
+  }
+
   private async reloadPickerOptions() {
     this.pickerLoading.set(true);
     try {
@@ -585,12 +717,31 @@ export class PeopleComponent {
           : this.projectContacts()
               .map((r) => r.contactId)
               .filter((id): id is string => !!id);
-      this.pickerOptions.set(
-        await this.peoplePicker.loadCrmContacts({
+      const [contacts, staff] = await Promise.all([
+        this.peoplePicker.loadCrmContacts({
           excludeContactIds,
           excludeProjectId: this.projectId() ?? undefined,
         }),
+        this.loadTeamCandidates(),
+      ]);
+      // Staff already shown as a direct member can't be added again (project roll-ups on a client can).
+      const onTeam = new Set(this.teamRows().filter((m) => m.direct).map((m) => m.id));
+      const staffOptions = toDirectoryOptions(
+        staff
+          .filter((p) => !onTeam.has(p.id))
+          .map((p) => ({
+            id: `user:${p.id}`,
+            source: 'USER',
+            sourceLabel: p.isGuest ? 'Guest collaborator' : 'Team member',
+            firstName: p.firstName ?? '',
+            lastName: p.lastName ?? '',
+            email: p.email,
+            phone: '',
+            displayName: p.name,
+            avatarUrl: p.avatarUrl,
+          })),
       );
+      this.pickerOptions.set(toDirectoryOptions([...contacts, ...staffOptions]));
     } finally {
       this.pickerLoading.set(false);
     }

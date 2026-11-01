@@ -89,7 +89,17 @@ logic) are added to the profile type and switched on per profile.
   (`ui/form-workspace/`) instead of the task sidebar. `FormWorkspaceService` (core) shares the open form between the
   pages and the sidebar. The form page shows `?view=settings | scoring | links | <section id>` (default: first section);
   `app-form-builder` takes `[sectionId]` to show one section.
-- `FormSection.description` (migration `20261030170000_form_section_intro`): section intro, shown on public pages.
-- `FormSettings.layout`: `page | steps | accordion | tabs` (default `page`). Returned in `FormPublicFormDto.layout`; UBO's
-  public page (`pages/forms/public-form.page.ts`, PrimeNG accordion/tabs) and the embed script follow it. Steps put
-  "About you" last on new-response links.
+- Text blocks: field type `CONTENT` (migration `20261031170000_form_text_blocks`). `name` holds formatted text (Quill HTML,
+  up to `FORM_CONTENT_MAX`); no answer, Required, points or score area. `questionFields()` / `isContentField()` in shared
+  keep them out of answers, counts, scoring, submissions and exports; `mergeFormValues` ignores them. The builder adds them
+  with **Add text**. Public pages render them (UBO's page via Angular's sanitizer, the embed script and the website through
+  a safe-tag copy).
+- `FormSection.description` is retired: migration `20261031170100_section_intros_to_text_blocks` turned each intro into a
+  text block at the top of its section, and form files with section descriptions import them as text blocks. Published
+  snapshots may still carry one, so public pages still show it.
+- `FormSettings.layout`: `page | steps | questions | accordion | tabs` (default `page`). Labels: One page, Page by section
+  (`steps`), Page by question (`questions`), Accordion, Tabs. Returned in `FormPublicFormDto.layout`; UBO's public page
+  (`pages/forms/public-form.page.ts`) and the embed script follow it. Paged layouts put "About you" last on new-response
+  links. Page by question shows one question or text block per screen with a progress bar ("Question n of N", text blocks
+  not counted); a single choice moves on by itself after 350 ms. UBO's public page shows choices as a click list
+  (`app-form-field-input [choices]`).

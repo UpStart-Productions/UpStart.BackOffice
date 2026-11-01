@@ -48,7 +48,7 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
                   }
                   <span class="fw-num">{{ i + 1 }}</span>
                   <span class="tm-nav-label">{{ s.name }}</span>
-                  <span class="fw-count">{{ s.fields.length }}</span>
+                  <span class="fw-count">{{ questionCount(s.fields) }}</span>
                 </a>
                 <div class="fw-drag-placeholder" *cdkDragPlaceholder></div>
               </li>
@@ -149,6 +149,11 @@ export class FormWorkspaceSidebarComponent {
   addVisible = false;
   newName = '';
   adding = signal(false);
+
+  /** Questions in a section (text blocks don't count). */
+  questionCount(fields: { type: string }[]) {
+    return fields.filter((f) => f.type !== 'CONTENT').length;
+  }
 
   /** Whether the form page shows this view (?view=…; default: the first section, or the config's empty view). */
   isView(view: string) {

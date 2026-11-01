@@ -75,6 +75,7 @@ type ContactsView = 'list' | 'newPerson';
             [embeddedInDialog]="true"
             [projectContacts]="rows()"
             (projectContactsChange)="rows.set($event)"
+            [showTeam]="false"
           />
           <div class="form-actions mt-3">
             <button type="button" pButton label="Save" [loading]="busy()" (click)="save()"></button>

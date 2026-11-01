@@ -4,7 +4,7 @@ import { UserContext } from '../common/app.types';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { CreateNotificationInput, NotificationType } from '../notifications/notification.types';
 import { PrismaService } from '../prisma/prisma.service';
-import { personName } from './task-people.util';
+import { personName, superUserMembers } from './task-people.util';
 import { usersWithArea } from '../access/access.service';
 
 /** Admin-app route to a task in the Task Manager. */
@@ -68,6 +68,10 @@ export class TaskEventsService {
       },
       select: { id: true },
     });
+    // Super users on this board (their user row is outside the tenant).
+    for (const s of await superUserMembers(this.prisma, [task.projectId], recipients)) {
+      if (!allowed.some((a) => a.id === s.id)) allowed.push({ id: s.id });
+    }
     const projectName =
       task.project?.name ??
       (await this.prisma.project.findUnique({ where: { id: task.projectId }, select: { name: true } }))?.name;

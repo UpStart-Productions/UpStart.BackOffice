@@ -20,7 +20,8 @@ export class SectionDto {
 }
 
 export class CreateFieldDto {
-  @IsString() @MinLength(1) @MaxLength(400) name!: string;
+  /** A question, or a text block's formatted text (CONTENT; checked further by the form engine). */
+  @IsString() @MinLength(1) @MaxLength(20000) name!: string;
   @IsIn(FORM_FIELD_TYPES) type!: FormFieldType;
   @IsOptional() @IsBoolean() required?: boolean;
   /** Scored forms only: the score area. */
@@ -30,7 +31,7 @@ export class CreateFieldDto {
 
 /** The type can't change once answers may exist. */
 export class UpdateFieldDto {
-  @IsOptional() @IsString() @MinLength(1) @MaxLength(400) name?: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(20000) name?: string;
   @IsOptional() @IsBoolean() required?: boolean;
   @IsOptional() @IsString() @MaxLength(40) scoreGroupId?: string | null;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => OptionDto) options?: OptionDto[];

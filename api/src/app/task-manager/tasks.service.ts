@@ -24,7 +24,8 @@ import {
 } from './task-mappers';
 import { extractMentionedUserIds, htmlToPlainText } from './task-mentions.util';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
-import { personName, personSelect } from './task-people.util';
+import { personName, personSelect, superUserMembers } from './task-people.util';
+import { runUnscoped } from '../tenancy/tenant-context';
 
 const reportTaskInclude = {
   assignee: { select: personSelect },
@@ -415,7 +416,9 @@ export class TasksService {
       if (dto.assigneeId) await this.assertAssignable(dto.assigneeId, (await this.access.taskProjectIds(taskId)).all);
       data.assigneeId = dto.assigneeId;
       if (dto.assigneeId) {
-        const assignee = await this.prisma.user.findUniqueOrThrow({ where: { id: dto.assigneeId }, select: personSelect });
+        // Unscoped by id: assertAssignable above already checked this person may be assigned (incl. super users on the board).
+        const assigneeId = dto.assigneeId;
+        const assignee = await runUnscoped(() => this.prisma.user.findUniqueOrThrow({ where: { id: assigneeId }, select: personSelect }));
         activity.push(dto.assigneeId === user.id ? 'assigned this task to themselves' : `assigned to ${personName(assignee)}`);
       } else {
         activity.push('unassigned this task');
@@ -894,7 +897,9 @@ export class TasksService {
         OR: [usersWithArea('tasks', 'all'), { projectMemberships: { some: { projectId: { in: projectIds } } } }],
       },
     });
-    if (!ok) throw new BadRequestException('That person is not on this project');
+    if (!ok && !(await superUserMembers(this.prisma, projectIds, [userId])).length) {
+      throw new BadRequestException('That person is not on this project');
+    }
   }
 
   private async firstSectionId(projectId: string): Promise<string | undefined> {

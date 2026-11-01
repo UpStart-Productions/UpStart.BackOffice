@@ -1,4 +1,6 @@
 import { GUEST_ROLE } from '@upstart/back-office/shared';
+import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 
 export type PersonDto = {
   id: string;
@@ -56,4 +58,25 @@ export function toPerson(
     role: user.role,
     isGuest: user.tenantRole?.key === GUEST_ROLE.key,
   };
+}
+
+/**
+ * Super users (platform operators) keep one user row, outside the tenants they work in, so the
+ * tenant-scoped user queries never find them. They count as people on a board only where they are
+ * a member of it. This is the one lookup that reaches past the tenant filter for that, and it only
+ * returns super users on the given (already access-checked) projects.
+ */
+export async function superUserMembers(prisma: PrismaService, projectIds: string[], userIds?: string[]) {
+  if (!projectIds.length || (userIds && !userIds.length)) return [];
+  return runUnscoped(() =>
+    prisma.user.findMany({
+      where: {
+        isSuper: true,
+        isActive: true,
+        ...(userIds && { id: { in: userIds } }),
+        projectMemberships: { some: { projectId: { in: projectIds } } },
+      },
+      select: personSelect,
+    }),
+  );
 }

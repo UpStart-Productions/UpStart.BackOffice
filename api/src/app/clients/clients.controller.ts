@@ -16,6 +16,7 @@ import { AccessGuard, Area, Action } from '../access/access.guard';
 import { hasTagWhere, setClientTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
+import { AddTeamMemberDto, assertTeamCandidate, clientTeam, teamCandidates } from '../team/team.util';
 
 const clientSelect = {
   id: true,
@@ -59,6 +60,39 @@ export class ClientsController {
   private async assertReach(req: Request, id: string): Promise<void> {
     const ids = await this.access.clientIds(req.user as UserContext);
     if (ids !== null && !ids.includes(id)) throw new NotFoundException('Client not found');
+  }
+
+  /** Staff who can be put on a client (People panel picker). */
+  @Get('team/candidates')
+  teamCandidates(@Req() req: Request) {
+    return teamCandidates(this.prisma, req.user as UserContext);
+  }
+
+  /** Staff on the client: assigned directly, plus everyone on its projects (shown, not assigned). */
+  @Get(':id/team')
+  async team(@Req() req: Request, @Param('id') id: string) {
+    await this.assertReach(req, id);
+    return clientTeam(this.prisma, id);
+  }
+
+  /** Assign staff to the client. With Clients at "own", this is what lets them reach it. */
+  @Action('edit')
+  @Post(':id/team')
+  async addTeamMember(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
+    await this.assertReach(req, id);
+    if (!(await this.prisma.client.findUnique({ where: { id }, select: { id: true } }))) throw new NotFoundException('Client not found');
+    await assertTeamCandidate(this.prisma, req.user as UserContext, dto.userId);
+    const existing = await this.prisma.clientAssignment.findUnique({ where: { clientId_userId: { clientId: id, userId: dto.userId } } });
+    if (!existing) await this.prisma.clientAssignment.create({ data: { clientId: id, userId: dto.userId } });
+    return clientTeam(this.prisma, id);
+  }
+
+  @Action('edit')
+  @Delete(':id/team/:userId')
+  async removeTeamMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
+    await this.assertReach(req, id);
+    await this.prisma.clientAssignment.deleteMany({ where: { clientId: id, userId } });
+    return clientTeam(this.prisma, id);
   }
 
   /** Organizations. ?journey=CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */

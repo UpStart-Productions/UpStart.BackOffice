@@ -7,7 +7,7 @@ import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { formatFormValue, formFieldPoints, type FormFieldDto, type FormSubmissionDto } from '@upstart/back-office/shared';
+import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormSubmissionDto } from '@upstart/back-office/shared';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
@@ -110,11 +110,12 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
               }
             } @else {
               @for (sec of r.sections; track sec.id) {
-                @if (sec.fields.length) {
+                @let qs = questions(sec.fields);
+                @if (qs.length) {
                   <div class="card">
                     <div class="card-header"><h3 class="card-title">{{ sec.name }}</h3></div>
                     <dl class="sa-list">
-                      @for (f of sec.fields; track f.id) {
+                      @for (f of qs; track f.id) {
                         @let text = answer(f, r.values[f.id]);
                         @let pts = points(f, r.values[f.id]);
                         <div class="sa-item">
@@ -332,6 +333,11 @@ export class FormSubmissionPage implements OnInit {
     const r = this.s();
     return r?.scores?.bandId ? r.bands.find((b) => b.id === r.scores!.bandId) ?? null : null;
   });
+
+  /** The section's questions (text blocks have no answers). */
+  questions(fields: FormFieldDto[]) {
+    return questionFields(fields);
+  }
 
   answer(f: FormFieldDto, v: unknown) {
     return formatFormValue(f, v);

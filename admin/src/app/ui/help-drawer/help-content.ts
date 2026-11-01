@@ -65,7 +65,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'People',
-        body: 'The people at this organization. Click a name to open their People profile. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add existing person / Add new person. The red trash control on the right removes them from this organization only; they stay in People.',
+        body: 'The people at this organization. Click a name to open their People profile. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add existing person / Add new person. The red trash control on the right removes them from this organization only; they stay in People. Your own staff show here too, tagged Team (or Guest): add them with Add existing person to assign them to this organization, and everyone on its projects is listed with the projects they are on. Remove project staff from the project.',
     },
     {
       heading: 'Next step',
@@ -173,7 +173,7 @@ const PROJECT_FORM: HelpArticle = {
     },
     {
       heading: 'People',
-      body: 'Same People panel as on a client: Add existing person (search) or Add new person. Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send.',
+      body: 'Same People panel as on a client: Add existing person (search) or Add new person. Save the project to refresh names and photos from People. Row menu Open in People edits the profile. They appear as invoice recipients when you send. Your own staff can be added here too (tagged Team or Guest). They are saved right away, join the project's task board, show on the client, and are never invoice recipients.',
     },
     {
       heading: 'Asana configuration',
@@ -830,11 +830,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Sections',
-        body: 'Click a section to see its questions. + next to Sections adds one; drag sections up or down to reorder them. A section\'s ⋮ menu edits its name and intro (a line shown under the title) or deletes it. Add field adds a question; drag questions by their ☰ handle to reorder them.',
+        body: 'Click a section to see its questions. + next to Sections adds one; drag sections up or down to reorder them. A section\'s ⋮ menu renames or deletes it. Add field adds a question; Add text adds a text block (an intro or note people read, not answered or scored). Drag either by its ☰ handle to reorder it.',
       },
       {
         heading: 'How sections are shown',
-        body: 'In Settings: One page, Steps (one section at a time), Accordion or Tabs. The link page and the embed code follow it. Click Save.',
+        body: 'In Settings: One page, Page by section, Page by question (one question or text block per screen; a single choice moves on by itself), Accordion or Tabs. The link page and the embed code follow it. Click Save.',
       },
       {
         heading: 'Publish',

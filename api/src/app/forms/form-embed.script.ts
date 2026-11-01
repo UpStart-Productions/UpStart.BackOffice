@@ -2,7 +2,9 @@
 /**
  * The form embed script served at GET /api/form-embed.js (FormEmbedController). Plain browser JavaScript, no
  * build step: it is sent as written. Keep it free of backticks and dollar-brace (it lives in a String.raw template).
- * Layouts (FormSettings.layout): page, steps (one section at a time, About you last), accordion (details), tabs.
+ * Layouts (FormSettings.layout): page, steps (page by section, About you last), questions (page by question: one
+ * question or text block per screen, single choices move on by themselves), accordion (details), tabs.
+ * Text blocks (type CONTENT) are formatted text from the form's owner, cleaned to a short list of safe tags.
  */
 export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <script src=".../api/form-embed.js" data-ubo-form="LINK_TOKEN" async></script>
    Optional: data-target="#css-selector" (where to draw; default: right after the script),
@@ -42,7 +44,14 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     ':where(.ubo-form .ubo-panel[open] > summary){border-bottom:1px solid var(--ubo-border);margin-bottom:1rem}',
     ':where(.ubo-form .ubo-tabs){display:flex;gap:.25rem;overflow-x:auto;border-bottom:1px solid var(--ubo-border);margin:0 0 var(--ubo-gap)}',
     ':where(.ubo-form .ubo-tab){font:inherit;background:none;border:0;border-bottom:2px solid transparent;padding:.6rem .9rem;cursor:pointer;white-space:nowrap;color:var(--ubo-muted)}',
-    ':where(.ubo-form .ubo-tab[aria-selected=true]){border-bottom-color:var(--ubo-accent);color:inherit;font-weight:600}'
+    ':where(.ubo-form .ubo-tab[aria-selected=true]){border-bottom-color:var(--ubo-accent);color:inherit;font-weight:600}',
+    ':where(.ubo-form .ubo-text){margin:0 0 var(--ubo-gap);line-height:1.55}',
+    ':where(.ubo-form .ubo-text p){margin:0 0 .6rem}',
+    ':where(.ubo-form .ubo-text p:last-child){margin-bottom:0}',
+    ':where(.ubo-form .ubo-text ul,.ubo-form .ubo-text ol){margin:0 0 .6rem;padding-left:1.25rem}',
+    ':where(.ubo-form .ubo-progress){height:4px;background:var(--ubo-border);border-radius:2px;margin:0 0 var(--ubo-gap);overflow:hidden}',
+    ':where(.ubo-form .ubo-progress > span){display:block;height:100%;background:var(--ubo-accent);transition:width .25s}',
+    ':where(.ubo-form .ubo-kicker){color:var(--ubo-muted);font-size:.85em;text-transform:uppercase;letter-spacing:.04em;margin:0 0 .5rem}'
   ].join('\n');
 
   function el(tag, attrs, children) {
@@ -91,15 +100,43 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     return { node: el('div', { className: 'ubo-field' }, [label(labelText, id, required), input]), input: input };
   }
 
-  /** One form field: returns { node, read() } where read() gives the value to send. */
-  function field(f) {
+  /** A text block's formatted text, keeping only simple, safe tags (no scripts, styles or event handlers). */
+  var SAFE_TAGS = { P: 1, BR: 1, STRONG: 1, B: 1, EM: 1, I: 1, U: 1, S: 1, A: 1, UL: 1, OL: 1, LI: 1, H1: 1, H2: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, SPAN: 1 };
+  function richText(html) {
+    var box = el('div', { className: 'ubo-text' });
+    var src = new DOMParser().parseFromString('<div>' + (html || '') + '</div>', 'text/html').body.firstChild;
+    function copy(from, to) {
+      Array.prototype.forEach.call(from.childNodes, function (n) {
+        if (n.nodeType === 3) { to.appendChild(document.createTextNode(n.nodeValue)); return; }
+        if (n.nodeType !== 1) return;
+        if (n.tagName === 'SCRIPT' || n.tagName === 'STYLE') return;
+        if (!SAFE_TAGS[n.tagName]) { copy(n, to); return; }
+        var c = document.createElement(n.tagName.toLowerCase());
+        if (n.tagName === 'A') {
+          var href = n.getAttribute('href') || '';
+          if (/^(https?:|mailto:|tel:)/i.test(href)) { c.setAttribute('href', href); c.setAttribute('target', '_blank'); c.setAttribute('rel', 'noopener'); }
+        }
+        copy(n, c);
+        to.appendChild(c);
+      });
+    }
+    if (src) copy(src, box);
+    return box;
+  }
+
+  /** One form field: returns { node, read() } where read() gives the value to send. onPick: a single choice was made. */
+  function field(f, onPick) {
     var id = 'ubo-' + (++uid);
+    if (f.type === 'CONTENT') {
+      return { node: richText(f.name), read: function () { return null; }, missing: function () { return false; }, name: '', content: true };
+    }
     if (f.type === 'SINGLE_SELECT' || f.type === 'MULTI_SELECT') {
       var multi = f.type === 'MULTI_SELECT';
       var name = 'f-' + f.id;
       var inputs = [];
       var choices = f.options.map(function (o) {
         var input = el('input', { type: multi ? 'checkbox' : 'radio', name: name, value: o.id, required: !multi && f.required });
+        if (!multi && onPick) input.addEventListener('change', function () { onPick(); });
         inputs.push(input);
         return el('label', { className: 'ubo-choice' }, [input, el('span', { text: o.label })]);
       });
@@ -194,26 +231,49 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         var fields = [];
         var layout = form.layout || 'page';
         var whoBlock = el('div', { className: 'ubo-row' }, who);
-        // One block per section: its title (unless the layout shows it), intro and fields.
+        var paged = layout === 'steps' || layout === 'questions';
+        var pages = [];
+        var step = 0;
+        function autoNext() {
+          // Page by question: a single choice moves on by itself after a moment (Back fixes a wrong pick).
+          if (layout !== 'questions') return;
+          var at = step;
+          setTimeout(function () { if (step === at) nextBtn.click(); }, 350);
+        }
+        // One block per section: its title (unless the layout shows it), old-style intro, and its items.
         var blocks = form.sections.map(function (s, si) {
           var parts = [];
           if (layout === 'page' || layout === 'steps') parts.push(el('h3', { className: 'ubo-section', text: s.name }));
-          if (s.description) parts.push(el('p', { className: 'ubo-description', text: s.description }));
+          if (s.description) {
+            var intro = el('p', { className: 'ubo-description', text: s.description });
+            if (layout === 'questions') pages.push({ node: el('div', { className: 'ubo-section-body' }, [el('p', { className: 'ubo-kicker', text: s.name }), intro]), fields: [], question: false });
+            else parts.push(intro);
+          }
           var own = [];
-          s.fields.forEach(function (f) { var x = field(f); fields.push({ def: f, ui: x }); own.push({ def: f, ui: x }); parts.push(x.node); });
-          return { section: s, fields: own, node: el('div', { className: 'ubo-section-body', 'data-section': String(si) }, parts) };
+          s.fields.forEach(function (f) {
+            var x = field(f, f.type === 'SINGLE_SELECT' ? autoNext : null);
+            if (!x.content) fields.push({ def: f, ui: x });
+            own.push({ def: f, ui: x });
+            if (layout === 'questions') {
+              pages.push({ node: el('div', { className: 'ubo-section-body' }, [el('p', { className: 'ubo-kicker', text: s.name }), x.node]), fields: x.content ? [] : [{ def: f, ui: x }], question: !x.content });
+            } else parts.push(x.node);
+          });
+          return { section: s, fields: own.filter(function (x) { return !x.ui.content; }), node: el('div', { className: 'ubo-section-body', 'data-section': String(si) }, parts) };
         });
+        if (layout === 'steps') blocks.forEach(function (b) { pages.push({ node: b.node, fields: b.fields, question: false }); });
         var body = [];
-        var stepCount = blocks.length + (info.kind === 'NEW' ? 1 : 0);
-        var step = 0;
         var stepLabel = el('p', { className: 'ubo-step' });
+        var bar = el('span');
+        var progress = el('div', { className: 'ubo-progress', 'aria-hidden': 'true' }, [bar]);
         var backBtn = el('button', { type: 'button', className: 'ubo-button ubo-button--secondary', text: 'Back' });
         var nextBtn = el('button', { type: 'button', className: 'ubo-button', text: 'Next' });
         var aboutBlock = el('div', { className: 'ubo-section-body' }, [el('h3', { className: 'ubo-section', text: 'About you' }), whoBlock]);
-        if (layout === 'steps') {
-          body.push(stepLabel);
-          blocks.forEach(function (b) { body.push(b.node); });
-          if (info.kind === 'NEW') body.push(aboutBlock);
+        if (paged && info.kind === 'NEW') pages.push({ node: aboutBlock, fields: [], question: false, about: true });
+        var questionCount = pages.filter(function (p) { return p.question; }).length;
+        if (paged) {
+          body.push(layout === 'questions' ? progress : stepLabel);
+          if (layout === 'questions') body.push(stepLabel);
+          pages.forEach(function (p) { body.push(p.node); });
         } else if (layout === 'accordion') {
           body.push(whoBlock);
           blocks.forEach(function (b, i) {
@@ -239,11 +299,18 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           blocks.forEach(function (b) { body.push(b.node); });
         }
         function showStep() {
-          blocks.forEach(function (b, i) { b.node.hidden = i !== step; });
-          aboutBlock.hidden = step !== blocks.length;
-          stepLabel.textContent = 'Step ' + (step + 1) + ' of ' + stepCount;
+          pages.forEach(function (p, i) { p.node.hidden = i !== step; });
+          var page = pages[step];
+          if (layout === 'questions') {
+            var done = pages.slice(0, step).filter(function (p) { return p.question; }).length;
+            bar.style.width = (questionCount ? Math.round((done / questionCount) * 100) : 0) + '%';
+            stepLabel.textContent = page && page.question ? 'Question ' + (done + 1) + ' of ' + questionCount : page && page.about ? 'Last step' : '';
+            stepLabel.hidden = !stepLabel.textContent;
+          } else {
+            stepLabel.textContent = 'Step ' + (step + 1) + ' of ' + pages.length;
+          }
           backBtn.hidden = step === 0;
-          var last = step >= stepCount - 1;
+          var last = step >= pages.length - 1;
           nextBtn.hidden = last;
           button.hidden = !last;
         }
@@ -257,15 +324,15 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         ].concat(body, [
           el('div', { className: 'ubo-hp', 'aria-hidden': 'true' }, [hp]),
           errorBox,
-          layout === 'steps' ? el('div', { className: 'ubo-nav' }, [backBtn, nextBtn, button]) : button
+          paged ? el('div', { className: 'ubo-nav' }, [backBtn, nextBtn, button]) : button
         ]));
-        if (layout === 'steps') {
+        if (paged) {
           nextBtn.addEventListener('click', function () {
-            var b = blocks[step];
-            var miss = b ? b.fields.filter(function (x) { return x.ui.missing(); })[0] : null;
-            if (miss) { errorBox.textContent = miss.def.name + ': required'; errorBox.hidden = false; return; }
+            var p = pages[step];
+            var miss = p ? p.fields.filter(function (x) { return x.ui.missing(); })[0] : null;
+            if (miss) { errorBox.textContent = layout === 'questions' ? 'Please answer this question' : miss.def.name + ': required'; errorBox.hidden = false; return; }
             errorBox.hidden = true;
-            step = Math.min(step + 1, stepCount - 1);
+            step = Math.min(step + 1, pages.length - 1);
             showStep();
             root.scrollIntoView({ block: 'start', behavior: 'smooth' });
           });
@@ -279,7 +346,7 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         }
         formEl.addEventListener('submit', function (ev) {
           ev.preventDefault();
-          if (layout === 'steps' && step < stepCount - 1) { nextBtn.click(); return; }
+          if (paged && step < pages.length - 1) { nextBtn.click(); return; }
           errorBox.hidden = true;
           var missing = fields.filter(function (x) { return x.ui.missing(); })[0];
           var problem = (info.kind === 'NEW' && !nameIn.input.value.trim()) ? 'Your name is required'

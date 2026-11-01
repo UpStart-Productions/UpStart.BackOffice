@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  formProfile, isSelectFieldType, type FormDefinition, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
+  FORM_CONTENT_MAX, formProfile, isSelectFieldType, plainTextToHtml, type FormDefinition, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
 } from '@upstart/back-office/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFieldDto, UpdateFieldDto } from './form.dto';
@@ -106,17 +106,21 @@ export class FormStructureService {
     const start = (last?.sortOrder ?? -1) + 1;
     for (const [si, sec] of sections.entries()) {
       const section = await db.formSection.create({
-        data: { formId: form.id, name: sec.name, description: sec.description ?? null, sortOrder: start + si },
+        data: { formId: form.id, name: sec.name, sortOrder: start + si },
         select: { id: true },
       });
-      for (const [fi, f] of sec.fields.entries()) {
+      // An old-style section intro in the file becomes a text block at the top.
+      const items = sec.description?.trim()
+        ? [{ name: plainTextToHtml(sec.description), type: 'CONTENT' as const, required: false }, ...sec.fields]
+        : sec.fields;
+      for (const [fi, f] of items.entries()) {
         await db.formField.create({
           data: {
             sectionId: section.id,
             name: f.name,
             type: f.type,
-            required: profile.required ? f.required : false,
-            scoreGroupId: profile.scoring ? f.scoreGroupId ?? null : null,
+            required: f.type !== 'CONTENT' && profile.required ? f.required : false,
+            scoreGroupId: f.type !== 'CONTENT' && profile.scoring ? f.scoreGroupId ?? null : null,
             options: f.options ? (formFieldOptions(f.type, f.options, profile.scoring) as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
             sortOrder: fi,
           },
@@ -172,8 +176,7 @@ export class FormStructureService {
     const section = await this.findSection(sectionId, module);
     const profile = this.profile(section.form);
     if (!profile.fieldTypes.includes(dto.type)) throw new BadRequestException('This form does not take that type of field');
-    const name = dto.name.trim();
-    if (!name) throw new BadRequestException('Name is required');
+    const name = this.itemName(dto.type, dto.name);
     const options = formFieldOptions(dto.type, dto.options, profile.scoring);
     if (isSelectFieldType(dto.type) && !options.length) throw new BadRequestException('Add at least one option');
     const last = await this.prisma.formField.findFirst({ where: { sectionId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
@@ -182,8 +185,8 @@ export class FormStructureService {
         sectionId,
         name,
         type: dto.type,
-        required: profile.required && !!dto.required,
-        scoreGroupId: profile.scoring ? dto.scoreGroupId || null : null,
+        required: dto.type !== 'CONTENT' && profile.required && !!dto.required,
+        scoreGroupId: dto.type !== 'CONTENT' && profile.scoring ? dto.scoreGroupId || null : null,
         options: options.length ? (options as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
         sortOrder: (last?.sortOrder ?? -1) + 1,
       },
@@ -196,9 +199,11 @@ export class FormStructureService {
     const field = await this.findField(id, module);
     const profile = this.profile(field.section.form);
     const data: Prisma.FormFieldUpdateInput = {};
-    if (dto.name !== undefined) {
-      if (!dto.name.trim()) throw new BadRequestException('Name is required');
-      data.name = dto.name.trim();
+    if (dto.name !== undefined) data.name = this.itemName(field.type, dto.name);
+    if (field.type === 'CONTENT') {
+      // A text block has only its text.
+      const f = await this.prisma.formField.update({ where: { id }, data, select: FIELD_SELECT });
+      return fieldView(f);
     }
     if (dto.required !== undefined) data.required = profile.required && dto.required;
     if (dto.scoreGroupId !== undefined && profile.scoring) data.scoreGroupId = dto.scoreGroupId || null;
@@ -209,6 +214,19 @@ export class FormStructureService {
     }
     const f = await this.prisma.formField.update({ where: { id }, data, select: FIELD_SELECT });
     return fieldView(f);
+  }
+
+  /** A question's name (short), or a text block's formatted text (HTML, longer). */
+  private itemName(type: FormFieldType, raw: string): string {
+    const name = raw.trim();
+    if (type === 'CONTENT') {
+      if (!name.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()) throw new BadRequestException('The text block is empty');
+      if (name.length > FORM_CONTENT_MAX) throw new BadRequestException('The text block is too long');
+      return name;
+    }
+    if (!name) throw new BadRequestException('Name is required');
+    if (name.length > 400) throw new BadRequestException('The question is too long (400 characters at most)');
+    return name;
   }
 
   /** Deletes the field; its answers disappear from every response. */

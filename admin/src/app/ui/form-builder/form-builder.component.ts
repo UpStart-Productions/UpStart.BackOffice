@@ -1,6 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDragPreview, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { QuillModule } from 'ngx-quill';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -47,6 +48,7 @@ export type BuilderForm = { id: string; sections: Section[] };
     SelectModule,
     TextareaModule,
     TooltipModule,
+    QuillModule,
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
@@ -80,6 +82,7 @@ export type BuilderForm = { id: string; sections: Section[] };
           <app-row-actions-menu [items]="sectionActions(s, indexOf(s))" ariaLabel="Section actions" />
           <span class="fb-section-name">{{ s.name }}</span>
           <span class="flex-1"></span>
+          <p-button label="Add text" icon="pi pi-align-left" size="small" severity="secondary" [outlined]="true" (onClick)="openText(s, null)" />
           <p-button label="Add field" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNewField(s)" />
         </div>
         @if (s.description) {
@@ -93,6 +96,12 @@ export type BuilderForm = { id: string; sections: Section[] };
                 <app-row-actions-menu [items]="fieldActions(s, f)" ariaLabel="Field actions" />
               </span>
               <div class="fb-field-body">
+                @if (f.type === 'CONTENT') {
+                  <div class="fb-text-preview" [innerHTML]="f.name"></div>
+                  <div class="fb-field-meta">
+                    <span class="fb-chip"><nmp-lucide-icon [name]="typeIcon(f.type)" aria-hidden="true" /> {{ typeLabel(f.type) }}</span>
+                  </div>
+                } @else {
                 <div class="fb-field-name">{{ f.name }}</div>
                 <div class="fb-field-meta">
                   @if (profile().required) {
@@ -125,8 +134,9 @@ export type BuilderForm = { id: string; sections: Section[] };
                     }
                   </div>
                 }
+                }
               </div>
-              <div class="fb-drag-preview" *cdkDragPreview><i class="pi pi-bars"></i> {{ f.name }}</div>
+              <div class="fb-drag-preview" *cdkDragPreview><i class="pi pi-bars"></i> {{ f.type === 'CONTENT' ? 'Text block' : f.name }}</div>
               <div class="fb-drop-slot" *cdkDragPlaceholder></div>
             </div>
           } @empty {
@@ -143,13 +153,21 @@ export type BuilderForm = { id: string; sections: Section[] };
         <label for="fbSectionName">Name</label>
         <input pInputText id="fbSectionName" class="w-full" [(ngModel)]="sectionName" />
       </div>
-      <div class="form-field mt-3">
-        <label for="fbSectionIntro">Intro (optional) <app-help-text key="form.builder.sectionIntro" /></label>
-        <textarea pTextarea id="fbSectionIntro" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="sectionIntro"></textarea>
-      </div>
+      @if (editingSection?.description) {
+        <p class="mb-0 text-color-secondary">This section has an old-style intro. To change it, add a text block at the top of the section instead.</p>
+      }
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="sectionVisible = false" />
         <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!sectionName.trim()" (onClick)="saveSection()" />
+      </ng-template>
+    </p-dialog>
+
+    <p-dialog [header]="editingText ? 'Edit text block' : 'Add text block'" [(visible)]="textVisible" [modal]="true" [style]="{ width: 'min(40rem, 96vw)' }">
+      <p class="mt-0 text-color-secondary">Text people read, not a question: an intro, instructions or a note. On Page by question it gets its own screen.</p>
+      <quill-editor [(ngModel)]="textHtml" placeholder="Write something…" [styles]="{ 'min-height': '160px' }"></quill-editor>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="textVisible = false" />
+        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="textBlank()" (onClick)="saveText()" />
       </ng-template>
     </p-dialog>
 
@@ -279,6 +297,15 @@ export type BuilderForm = { id: string; sections: Section[] };
       display: flex;
       flex-direction: column;
       gap: 0.3rem;
+    }
+    .fb-text-preview {
+      color: var(--text-color-secondary);
+      line-height: 1.45;
+      max-height: 4.4em;
+      overflow: hidden;
+    }
+    .fb-text-preview ::ng-deep p {
+      margin: 0;
     }
     .fb-field-name {
       font-weight: 500;
@@ -418,9 +445,45 @@ export class FormBuilderComponent {
     return this.form().sections.findIndex((x) => x.id === s.id);
   }
 
+  /** Question types (text blocks have their own Add text button). */
   readonly typeOptions = computed(() =>
-    this.profile().fieldTypes.map((value) => ({ value, label: FORM_FIELD_TYPE_LABELS[value] })),
+    this.profile()
+      .fieldTypes.filter((value) => value !== 'CONTENT')
+      .map((value) => ({ value, label: FORM_FIELD_TYPE_LABELS[value] })),
   );
+
+  // Text blocks
+  textVisible = false;
+  textHtml: string | null = '';
+  editingText: Field | null = null;
+  private textSection: Section | null = null;
+
+  textBlank() {
+    return !(this.textHtml ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  }
+
+  openText(s: Section, f: Field | null) {
+    this.textSection = s;
+    this.editingText = f;
+    this.textHtml = f?.name ?? '';
+    this.textVisible = true;
+  }
+
+  async saveText() {
+    if (this.textBlank()) return;
+    const name = (this.textHtml ?? '').trim();
+    this.saving.set(true);
+    try {
+      if (this.editingText) await this.api.patch(`${this.apiBase()}/fields/${this.editingText.id}`, { name });
+      else if (this.textSection) await this.api.post(`${this.apiBase()}/sections/${this.textSection.id}/fields`, { name, type: 'CONTENT' });
+      this.textVisible = false;
+      this.changed.emit();
+    } catch (err) {
+      this.fail('Could not save text block', err);
+    } finally {
+      this.saving.set(false);
+    }
+  }
 
   adding = signal(false);
   saving = signal(false);
@@ -429,7 +492,6 @@ export class FormBuilderComponent {
   sectionVisible = false;
   editingSection: Section | null = null;
   sectionName = '';
-  sectionIntro = '';
 
   fieldVisible = false;
   fieldSection: Section | null = null;
@@ -466,7 +528,9 @@ export class FormBuilderComponent {
   }
 
   fieldActions(s: Section, f: Field): RowActionItem[] {
-    const items: RowActionItem[] = [{ id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEditField(s, f) }];
+    const items: RowActionItem[] = [
+      { id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => (f.type === 'CONTENT' ? this.openText(s, f) : this.openEditField(s, f)) },
+    ];
     items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteField(f) });
     return items;
   }
@@ -489,7 +553,6 @@ export class FormBuilderComponent {
   openEditSection(s: Section) {
     this.editingSection = s;
     this.sectionName = s.name;
-    this.sectionIntro = s.description ?? '';
     this.sectionVisible = true;
   }
 
@@ -497,10 +560,7 @@ export class FormBuilderComponent {
     if (!this.editingSection) return;
     this.saving.set(true);
     try {
-      await this.api.patch(`${this.apiBase()}/sections/${this.editingSection.id}`, {
-        name: this.sectionName.trim(),
-        description: this.sectionIntro.trim() || null,
-      });
+      await this.api.patch(`${this.apiBase()}/sections/${this.editingSection.id}`, { name: this.sectionName.trim() });
       this.sectionVisible = false;
       this.changed.emit();
     } catch (err) {
@@ -588,7 +648,8 @@ export class FormBuilderComponent {
 
   confirmDeleteField(f: Field) {
     this.confirmDelete.confirm({
-      message: `Delete "${f.name}"? Any answers to it are removed too. This cannot be undone.`,
+      message:
+        f.type === 'CONTENT' ? 'Delete this text block? This cannot be undone.' : `Delete "${f.name}"? Any answers to it are removed too. This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`${this.apiBase()}/fields/${f.id}`);

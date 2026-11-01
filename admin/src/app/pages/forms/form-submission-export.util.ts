@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { FORM_FIELD_TYPE_LABELS, formatFormValue, formFieldPoints, type FormFieldDto, type FormSectionDto, type FormSubmissionDto } from '@upstart/back-office/shared';
+import { FORM_FIELD_TYPE_LABELS, formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormSectionDto, type FormSubmissionDto } from '@upstart/back-office/shared';
 
 /** Download submissions: one as a PDF or Excel file, or many as an analysis workbook (Answers, Results, Questions). */
 
@@ -88,15 +88,16 @@ export function exportSubmissionPdf(s: FormSubmissionDto): void {
   }
 
   for (const sec of s.sections) {
-    if (!sec.fields.length) continue;
+    const qs = questionFields(sec.fields);
+    if (!qs.length) continue;
     ensure(40);
     text(sec.name, 13, true);
-    const scored = sec.fields.some((f) => formFieldPoints(f, null) !== null);
+    const scored = qs.some((f) => formFieldPoints(f, null) !== null);
     autoTable(pdf, {
       startY: y,
       margin: { left: margin, right: margin },
       head: [scored ? ['Question', 'Answer', 'Points'] : ['Question', 'Answer']],
-      body: sec.fields.map((f) => {
+      body: qs.map((f) => {
         const row = [f.name, formatFormValue(f, s.values[f.id]) || 'No answer'];
         if (scored) {
           const p = formFieldPoints(f, s.values[f.id]);
@@ -133,7 +134,7 @@ export function exportSubmissionExcel(s: FormSubmissionDto): void {
   }
 
   for (const sec of s.sections) {
-    for (const f of sec.fields) {
+    for (const f of questionFields(sec.fields)) {
       const p = formFieldPoints(f, s.values[f.id]);
       add(sec.name, f.name, formatFormValue(f, s.values[f.id]), p ?? '');
     }
@@ -173,9 +174,9 @@ export function exportSubmissionsExcel(
     questions.push(q);
     byId.set(field.id, q);
   };
-  for (const sec of form.sections) for (const f of sec.fields) addQ(f, sec.name, true);
+  for (const sec of form.sections) for (const f of questionFields(sec.fields)) addQ(f, sec.name, true);
   const newestFirst = [...list].sort((a, b) => (b.versionNumber ?? 0) - (a.versionNumber ?? 0) || b.createdAt.localeCompare(a.createdAt));
-  for (const s of newestFirst) for (const sec of s.sections) for (const f of sec.fields) addQ(f, sec.name, false);
+  for (const s of newestFirst) for (const sec of s.sections) for (const f of questionFields(sec.fields)) addQ(f, sec.name, false);
 
   // Score areas: the current form's, then any only earlier versions had.
   const areas: { id: string; name: string }[] = [...form.scoring.groups];
@@ -199,7 +200,7 @@ export function exportSubmissionsExcel(
   for (const s of list) {
     const base = who(s);
     for (const sec of s.sections) {
-      for (const f of sec.fields) {
+      for (const f of questionFields(sec.fields)) {
         const q = byId.get(f.id)!;
         const value = s.values[f.id];
         const row: Cell[] = [...base, sec.name, q.code, f.name, formatFormValue(f, value)];

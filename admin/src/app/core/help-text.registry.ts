@@ -130,11 +130,12 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Lowercase letters, numbers and dashes. Also used for email capture (slug@in.…).',
   'tenant.internalDomains':
     'Comma separated. Email from these domains is treated as the team, not contacts.',
+  'tenant.myHourlyRate':
+    "What you're paid per hour when you invoice this tenant for your own time. Leave blank to use your user rate.",
   'tenant.modules':
     'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
   // Form builder (shared by every form)
   'form.builder.sections': 'Groups of fields on the form, e.g. Contact details, Background. Add a section, then add fields to it.',
-  'form.builder.sectionIntro': 'A line or two shown under the section title, e.g. "Think about your last board report."',
   'form.builder.fieldType': "What the field holds. The type can't be changed after the field is added.",
   'form.builder.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
   'form.builder.optionsScored':
@@ -150,7 +151,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Build the form here. Details and Settings save with Save; Scoring and Fields save right away. Public links show the published version, so publish again for changes to reach people.',
   'forms.form.description': 'Shown at the top of the form.',
   'forms.form.layout':
-    'One page: everything on one scrolling page. Steps: one section at a time with Next and Back. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
+    'One page: everything on one scrolling page. Page by section: one section at a time with Next and Back. Page by question: one question or text block per screen; picking a single choice moves on by itself. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
   'forms.form.review':
     'On: submissions wait under Waiting for review until you Accept them (into a new Prospect or an existing organization) or Dismiss them. Off: they are accepted as they come in.',
   'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',

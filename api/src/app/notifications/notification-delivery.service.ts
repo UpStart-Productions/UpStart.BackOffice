@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { CreateNotificationInput } from './notification.types';
 import { NotificationsService } from './notifications.service';
 
@@ -33,10 +34,13 @@ export class NotificationDeliveryService {
     try {
       const prefs = await this.notifications.getEmailPreferences(input.userId);
       if (!prefs[input.type]) return;
-      const user = await this.prisma.user.findUnique({
-        where: { id: input.userId },
-        select: { email: true, isActive: true, firstName: true },
-      });
+      // By id, unscoped: a super user's row lives outside the tenant the notification belongs to.
+      const user = await runUnscoped(() =>
+        this.prisma.user.findUnique({
+          where: { id: input.userId },
+          select: { email: true, isActive: true, firstName: true },
+        }),
+      );
       if (!user?.email || !user.isActive) return;
 
       const route = (input.meta?.route ?? []).filter(Boolean).join('/').replace(/^\/+/, '');

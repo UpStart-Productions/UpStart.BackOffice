@@ -53,7 +53,7 @@ type TimeEntryForInvoice = Prisma.TimeEntryGetPayload<{
   include: {
     project: { select: { id: true; name: true; hourlyRate: true } };
     projectTask: { select: { id: true; name: true } };
-    user: { select: { hourlyRate: true } };
+    user: { select: { hourlyRate: true; isSuper: true } };
   };
 }>;
 
@@ -109,17 +109,24 @@ export class InvoiceFromTimeService {
       include: {
         project: { select: { id: true, name: true, hourlyRate: true } },
         projectTask: { select: { id: true, name: true } },
-        user: { select: { hourlyRate: true } },
+        user: { select: { hourlyRate: true, isSuper: true } },
       },
       orderBy: { startedAt: 'desc' },
     });
+    // Super users' pay rate in this tenant (Tenants page); their user rate is one value across every tenant.
+    const superRates = new Map<string, number>();
+    const superIds = [...new Set(entries.filter((e) => e.user.isSuper).map((e) => e.userId))];
+    if (tenant && superIds.length) {
+      const rows = await this.prisma.superUserRate.findMany({ where: { userId: { in: superIds } }, select: { userId: true, hourlyRate: true } });
+      for (const r of rows) superRates.set(r.userId, Number(r.hourlyRate));
+    }
 
     const missingRates: InvoicePreviewMissingRate[] = [];
     const byProject = new Map<string, InvoicePreviewProject>();
     const NO_PROJECT = 'No project';
 
     for (const entry of entries) {
-      const rate = tenant ? resolveTenantHourlyRate(entry) : resolveHourlyRate(entry);
+      const rate = tenant ? (superRates.get(entry.userId) ?? resolveTenantHourlyRate(entry)) : resolveHourlyRate(entry);
       if (rate == null) {
         missingRates.push({
           entryId: entry.id,

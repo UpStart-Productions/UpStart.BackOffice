@@ -75,7 +75,7 @@ export class CareRecordsController {
     const k: CareFormKind = kind === 'CARE_PROFILE' ? 'CARE_PROFILE' : 'INTAKE';
     const theForm = await this.prisma.form.findFirst({ where: careForm(k) });
     if (!theForm) return { items: [], myAccess: null, formId: null, fieldCount: 0, pendingCount: 0 };
-    const fieldCount = await this.prisma.formField.count({ where: { section: { formId: theForm.id } } });
+    const fieldCount = await this.prisma.formField.count({ where: { section: { formId: theForm.id }, type: { not: 'CONTENT' } } });
     const myAccess = await this.care.formAccess(user, theForm);
     if (!myAccess) return { items: [], myAccess: null, formId: theForm.id, fieldCount, pendingCount: 0 };
     const reach = await this.care.clientIds(user);

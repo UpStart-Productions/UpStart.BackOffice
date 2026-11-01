@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { currentTenantId } from '../tenancy/tenant-context';
+import { currentTenantId, runUnscoped } from '../tenancy/tenant-context';
 import puppeteer from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
@@ -27,6 +27,9 @@ type InvoiceData = {
   total: Numeric;
   billToName?: string | null;
   billToAddress?: string | null;
+  /** TENANT: a person billing the organization, so the PDF is from them, not from the organization. */
+  billTo?: string | null;
+  createdById?: string | null;
   client?: { name: string; email?: string | null; address?: string | null; city?: string | null; state?: string | null; zip?: string | null } | null;
   lineItems: LineItem[];
 };
@@ -54,10 +57,11 @@ export class PdfService {
     fromName: string,
     payUrl?: string | null,
   ): Promise<Buffer> {
-    const profile = await this.prisma.organizationProfile.findUnique({
-      where: { tenantId: currentTenantId() },
-    });
-    const html = await this.buildInvoiceHtml(invoice, fromName, profile, payUrl);
+    const person = invoice.billTo === 'TENANT' && invoice.createdById ? await this.submitter(invoice.createdById) : null;
+    const profile = person
+      ? null
+      : await this.prisma.organizationProfile.findUnique({ where: { tenantId: currentTenantId() } });
+    const html = await this.buildInvoiceHtml(invoice, fromName, profile, payUrl, person);
 
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
     const browser = await puppeteer.launch({
@@ -85,6 +89,16 @@ export class PdfService {
     }
   }
 
+  /** Who submitted an invoice to the organization. By id, unscoped: a super user's row belongs to no tenant. */
+  private async submitter(userId: string): Promise<{ name: string; email: string } | null> {
+    const u = await runUnscoped(() =>
+      this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, name: true, email: true } }),
+    );
+    if (!u) return null;
+    const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email;
+    return { name, email: u.email };
+  }
+
   private async buildInvoiceHtml(
     invoice: InvoiceData,
     fromName: string,
@@ -98,16 +112,17 @@ export class PdfService {
       phone?: string | null;
     } | null,
     payUrl?: string | null,
+    person?: { name: string; email: string } | null,
   ): Promise<string> {
-    const displayName = profile?.companyName?.trim() || fromName;
-    const logoUri = await this.resolveLogoDataUri(profile?.logoUrl);
-    const fallbackLogo = getUpstartLogoDataUri();
+    const displayName = person?.name || profile?.companyName?.trim() || fromName;
+    const logoUri = person ? null : await this.resolveLogoDataUri(profile?.logoUrl);
+    const fallbackLogo = person ? null : getUpstartLogoDataUri();
     const logoHtml = logoUri
       ? `<img src="${logoUri}" alt="${escapeHtml(displayName)}" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
       : fallbackLogo
         ? `<img src="${fallbackLogo}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
         : `<div class="company">${escapeHtml(displayName)}</div>`;
-    const fromDetails = formatFromDetails(profile);
+    const fromDetails = person ? escapeHtml(person.email) : formatFromDetails(profile);
 
     const projectSections = buildProjectSections(invoice.lineItems);
 

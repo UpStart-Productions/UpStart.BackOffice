@@ -19,7 +19,8 @@ import { projectRoute } from './task-events.service';
 import { normalizeOptions } from './task-fields.util';
 import { person, toField } from './task-mappers';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
-import { personName, personSelect } from './task-people.util';
+import { personName, personSelect, superUserMembers } from './task-people.util';
+import { runUnscoped } from '../tenancy/tenant-context';
 import { usersWithArea, teamUsersWhere, AccessService } from '../access/access.service';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
 import { ProjectContactInputDto } from '../projects/dto/project-contact.dto';
@@ -221,7 +222,10 @@ export class TaskProjectsService {
 
   async addMember(user: UserContext, projectId: string, dto: AddMemberDto) {
     await this.access.assertProject(user, projectId, 'manage');
-    const target = await this.prisma.user.findUnique({ where: { id: dto.userId }, select: { id: true, role: true, isActive: true } });
+    // A super user adding themselves: their user row lives outside this tenant.
+    const selfAsSuper = !!user.isSuper && dto.userId === user.id;
+    const findTarget = () => this.prisma.user.findUnique({ where: { id: dto.userId }, select: { id: true, role: true, isActive: true } });
+    const target = await (selfAsSuper ? runUnscoped(findTarget) : findTarget());
     if (!target || !target.isActive) throw new NotFoundException('User not found');
     if (target.role === 'CLIENT') throw new BadRequestException('Client portal users cannot join Task Manager projects');
     const existing = await this.prisma.projectMember.findUnique({
@@ -393,7 +397,10 @@ export class TaskProjectsService {
         ? { isActive: true, role: { in: ['ADMIN', 'USER'] } }
         : { isActive: true, OR: [usersWithArea('tasks', 'all'), { id: user.id }] };
     const users = await this.prisma.user.findMany({ where, select: personSelect, orderBy: [{ firstName: 'asc' }, { email: 'asc' }] });
-    return users.map(person);
+    if (!projectId) return users.map(person);
+    // Super users who joined this board (see superUserMembers).
+    const supers = (await superUserMembers(this.prisma, [projectId])).filter((s) => !users.some((u) => u.id === s.id));
+    return sortPeople([...users, ...supers]).map(person);
   }
 
   /**
@@ -408,6 +415,11 @@ export class TaskProjectsService {
       select: personSelect,
       orderBy: [{ firstName: 'asc' }, { email: 'asc' }],
     });
+    // A super user sees themselves here so they can join the board. Nobody else sees them.
+    if (user.isSuper && !users.some((u) => u.id === user.id)) {
+      const self = await runUnscoped(() => this.prisma.user.findUnique({ where: { id: user.id }, select: personSelect }));
+      if (self) return sortPeople([...users, self]).map(person);
+    }
     return users.map(person);
   }
 
@@ -572,4 +584,8 @@ export class TaskProjectsService {
       await this.prisma.user.update({ where: { id: userId }, data });
     }
   }
+}
+
+function sortPeople<T extends { firstName: string | null; email: string }>(people: T[]): T[] {
+  return [...people].sort((a, b) => (a.firstName ?? '').localeCompare(b.firstName ?? '') || a.email.localeCompare(b.email));
 }

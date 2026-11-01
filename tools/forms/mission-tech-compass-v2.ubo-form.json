@@ -4,7 +4,7 @@
   "name": "Mission Tech Compass",
   "description": "No grades, no judgment. Every nonprofit we work with has a version of this. As you answer, think of a real, recent example. It takes about 6 minutes.",
   "settings": {
-    "layout": "steps",
+    "layout": "questions",
     "review": true,
     "askOrganization": true,
     "askPhone": false,
@@ -101,8 +101,12 @@
   "sections": [
     {
       "name": "The Board Report Test",
-      "description": "Think about your last board or grant report, and how the numbers came together.",
       "fields": [
+        {
+          "name": "<p>Think about your last board or grant report, and how the numbers came together.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "Think about your last board or grant report. How did the numbers come together?",
           "type": "SINGLE_SELECT",
@@ -203,8 +207,12 @@
     },
     {
       "name": "Copy, Paste, Repeat",
-      "description": "Think about a typical week, and the information your team moves from place to place.",
       "fields": [
+        {
+          "name": "<p>Think about a typical week, and the information your team moves from place to place.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "When a new client, volunteer or donor reaches out, how many times does their information get typed in?",
           "type": "SINGLE_SELECT",
@@ -305,8 +313,12 @@
     },
     {
       "name": "Too Many Tabs",
-      "description": "Think about the tools your team opens every day.",
       "fields": [
+        {
+          "name": "<p>Think about the tools your team opens every day.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "How do your everyday tools (email, spreadsheets, forms, drives, a database) fit together?",
           "type": "SINGLE_SELECT",
@@ -383,8 +395,12 @@
     },
     {
       "name": "If Sally Won the Lottery",
-      "description": "Think about who keeps your technology running, and what they know that nobody else does.",
       "fields": [
+        {
+          "name": "<p>Think about who keeps your technology running, and what they know that nobody else does.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "If your go-to tech person left tomorrow, what would happen?",
           "type": "SINGLE_SELECT",
@@ -461,8 +477,12 @@
     },
     {
       "name": "Who Can See What?",
-      "description": "Think about who can open what, and what happens when someone leaves.",
       "fields": [
+        {
+          "name": "<p>Think about who can open what, and what happens when someone leaves.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "When someone leaves, how quickly do they lose access to email, drives and systems?",
           "type": "SINGLE_SELECT",
@@ -543,8 +563,12 @@
     },
     {
       "name": "Your Team",
-      "description": "This doesn't change your results. It helps us tailor our suggestions.",
       "fields": [
+        {
+          "name": "<p>This doesn't change your results. It helps us tailor our suggestions.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "If the right fix showed up, how much room does your team have right now?",
           "type": "SINGLE_SELECT",
@@ -668,8 +692,12 @@
     },
     {
       "name": "In Your Words",
-      "description": "Optional, but these answers are often the most useful part.",
       "fields": [
+        {
+          "name": "<p>Optional, but these answers are often the most useful part.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
         {
           "name": "What's one task you wish took half the time?",
           "type": "LONG_TEXT",
