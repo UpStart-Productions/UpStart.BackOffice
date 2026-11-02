@@ -20,9 +20,10 @@ function isImageUrl(url: string): boolean {
       gap: 0.65rem;
       min-height: 3.25rem;
       padding: 0.45rem 0.65rem;
-      border: 1.5px dashed var(--surface-border);
+      /* A light blue tint so it reads as a place to drop files (purple is for action buttons). */
+      border: 1.5px dashed color-mix(in srgb, var(--color-severity-info-text) 45%, var(--surface-border));
       border-radius: 8px;
-      background: var(--surface-ground);
+      background: var(--color-severity-info-bg);
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
       max-width: 16rem;
@@ -32,8 +33,8 @@ function isImageUrl(url: string): boolean {
       width: 100%;
     }
     .file-dropzone--active {
-      border-color: var(--primary-color);
-      background: color-mix(in srgb, var(--primary-color) 8%, var(--surface-ground));
+      border-color: var(--color-severity-info-text);
+      background: color-mix(in srgb, var(--color-severity-info-text) 14%, var(--color-severity-info-bg));
     }
     .file-dropzone-thumb {
       width: 2.25rem;
@@ -57,11 +58,8 @@ function isImageUrl(url: string): boolean {
     }
     .file-dropzone-icon {
       font-size: 1.1rem;
-      color: var(--text-color-secondary);
+      color: var(--color-severity-info-text);
       flex-shrink: 0;
-    }
-    .file-dropzone--active .file-dropzone-icon {
-      color: var(--primary-color);
     }
     .file-dropzone-remove {
       flex-shrink: 0;

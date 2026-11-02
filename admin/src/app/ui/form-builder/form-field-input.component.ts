@@ -77,12 +77,12 @@ export type FormFileOpener = (ref: FormFileRef) => void;
           }
         }
         @if (!disabled() && canAddFile()) {
-          @if (fileUpload()) {
             <app-single-file-dropzone
               #fileDrop
               [accept]="fileAccept"
               [maxBytes]="fileMaxBytes"
               [multiple]="!!f.multiple"
+              [fill]="true"
               [emptyTitle]="f.multiple ? 'Files' : 'File'"
               emptyHint="Drop a Word, PDF, Excel, PNG or JPG file, or click to browse"
               selectedTitle="Uploading"
@@ -91,9 +91,6 @@ export type FormFileOpener = (ref: FormFileRef) => void;
               (filesChange)="uploadFiles($event)"
               (invalidFile)="fileError.set($event)"
             />
-          } @else {
-            <p class="ff-group-empty">Files can be added on the form itself.</p>
-          }
         }
         @if (uploading()) {
           <p class="ff-group-empty"><i class="pi pi-spin pi-spinner mr-2" aria-hidden="true"></i>Uploading…</p>
@@ -411,10 +408,14 @@ export class FormFieldInputComponent {
     this.value.set(next.length ? next : null);
   }
 
-  /** Upload dropped files one by one (up to the field's limit) and add them to the answer. */
+  /**
+   * Upload dropped files one by one (up to the field's limit) and add them to the answer. Without an uploader
+   * (the form preview, which saves nothing) the files are only listed.
+   */
   protected async uploadFiles(list: File[]) {
-    const upload = this.fileUpload();
-    if (!upload || !list.length) return;
+    if (!list.length) return;
+    const upload: FormFileUploader =
+      this.fileUpload() ?? (async (file: File) => ({ key: `preview/${Date.now()}-${file.name}`, name: file.name, size: file.size, type: file.type }));
     const room = (this.field().multiple ? FORM_FILE_MAX_COUNT : 1) - this.files().length;
     this.fileError.set(list.length > room ? `You can add ${room === 1 ? 'one more file' : room + ' more files'}.` : null);
     this.uploading.set(true);
