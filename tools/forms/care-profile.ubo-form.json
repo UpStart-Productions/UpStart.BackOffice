@@ -1,0 +1,249 @@
+{
+  "format": "ubo-form",
+  "version": 1,
+  "name": "Care Profile",
+  "description": "Daily routines and preferences for caregivers: best times of day, hygiene, dressing, meals, medications, exercise and activities.",
+  "settings": {
+    "layout": "steps",
+    "review": true,
+    "askOrganization": false,
+    "askPhone": false,
+    "resultsEmail": false,
+    "cta": null,
+    "thankYou": null,
+    "client": {
+      "enabled": true,
+      "copies": "living",
+      "category": "Care profile"
+    },
+    "visitChecklist": false,
+    "scoring": {
+      "enabled": false,
+      "groups": [],
+      "bands": []
+    }
+  },
+  "sections": [
+    {
+      "name": "Best times of day",
+      "fields": [
+        {
+          "name": "Getting up in the morning",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "More challenging activities (when they're at their best)",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Going to bed",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Bathing",
+          "type": "TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Personal hygiene",
+      "fields": [
+        {
+          "name": "Brushing teeth (including flossing, Waterpik, etc.)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Showering/bathing (include any fragrance sensitivity)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Toileting",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Nail care (podiatrist, pedicures, manicures)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other (shaving, moisturizing, sunscreen, denture care, hearing aid care, etc.)",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Dressing",
+      "fields": [
+        {
+          "name": "Morning routine",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Night-time routine",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Clothing preferences",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Meals",
+      "fields": [
+        {
+          "name": "Favorite breakfast dishes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Favorite lunch dishes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Favorite dinner dishes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Dining-out preferences and favorite restaurants",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Food preferences, dislikes and allergies",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Dietary needs (low-sodium, sugar-free, etc.)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Medications and supplements",
+      "description": "How to give them only, including special instructions (for example, crushing and mixing with applesauce). Doses given are tracked separately.",
+      "fields": [
+        {
+          "name": "Oral medications and supplements",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Injections (insulin, etc.)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Topicals",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Allergies",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Exercise",
+      "fields": [
+        {
+          "name": "Indoor exercises and classes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Outdoor exercises and classes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Exercise equipment",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Activities",
+      "fields": [
+        {
+          "name": "Music",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Art",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Hobbies",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "TV shows",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Live performances",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Religious and spiritual life (church, synagogue, Bible studies, etc.)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Outings with friends",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Taking photos",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

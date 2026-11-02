@@ -15,6 +15,8 @@ export type NotificationType =
   | 'activity_forwarded'
   | 'activity_mention'
   | 'form_submission'
+  | 'client_form_submitted'
+  | 'form_attached'
   | 'care_form_submission'
   | 'care_shift_assigned';
 
@@ -34,6 +36,8 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'activity_forwarded',
   'activity_mention',
   'form_submission',
+  'client_form_submitted',
+  'form_attached',
   'care_form_submission',
   'care_shift_assigned',
 ];

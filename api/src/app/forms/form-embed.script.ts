@@ -317,12 +317,27 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     }
     if (f.type === 'CURRENCY') {
       var money = el('input', { id: id, type: 'text', inputmode: 'decimal', placeholder: '$0.00' });
+      var moneyMaxFrac = 2;
+      function sanitizeMoneyDraft(raw) {
+        var s = String(raw).replace(/[^\d.]/g, '');
+        var dot = s.indexOf('.');
+        if (dot !== -1) {
+          s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, '');
+          var frac = s.slice(dot + 1);
+          if (frac.length > moneyMaxFrac) s = s.slice(0, dot + 1 + moneyMaxFrac);
+        }
+        return s;
+      }
       function amount() {
         var t = money.value.replace(/[$,\s]/g, '');
         if (!t) return null;
         var n = Number(t);
         return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
       }
+      money.addEventListener('input', function () {
+        var next = sanitizeMoneyDraft(money.value);
+        if (next !== money.value) money.value = next;
+      });
       money.addEventListener('blur', function () {
         var n = amount();
         if (n !== null && !isNaN(n)) money.value = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

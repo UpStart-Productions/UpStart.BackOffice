@@ -19,7 +19,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { DateInputComponent } from '../date-input/date-input.component';
-import { MoneyInputComponent } from '../money-input/money-input.component';
+import { MoneyInputComponent, roundMoney } from '../money-input/money-input.component';
 import { PhoneInputComponent } from '../phone-input/phone-input.component';
 import { SsnInputComponent } from '../ssn-input/ssn-input.component';
 import { SingleFileDropzoneComponent } from '../single-file-dropzone/single-file-dropzone.component';
@@ -185,12 +185,15 @@ export type FormFileOpener = (ref: FormFileRef) => void;
         @case ('CURRENCY') {
           <app-money-input
             [inputId]="id"
-            [ngModel]="value() ?? null"
-            (ngModelChange)="value.set($event)"
+            name="currency"
+            [min]="0"
+            [minFractionDigits]="2"
             [maxFractionDigits]="2"
             styleClass="w-full"
             inputStyleClass="w-full"
             [disabled]="disabled()"
+            [ngModel]="$any(currencyAmount())"
+            (ngModelChange)="setCurrency($event)"
           />
         }
         @case ('PHONE') {
@@ -498,5 +501,21 @@ export class FormFieldInputComponent {
     } else {
       this.value.set(id);
     }
+  }
+
+  protected currencyAmount(): number | null {
+    const v = this.value();
+    if (v === null || v === undefined || v === '') {
+      return null;
+    }
+    const n = typeof v === 'number' ? v : Number(String(v).replace(/[$,\s]/g, ''));
+    if (!Number.isFinite(n)) {
+      return null;
+    }
+    return roundMoney(n, 2);
+  }
+
+  protected setCurrency(n: number | null) {
+    this.value.set(n == null ? null : roundMoney(n, 2));
   }
 }

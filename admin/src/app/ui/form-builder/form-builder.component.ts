@@ -180,7 +180,9 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
 
     <p-dialog [header]="editingText ? 'Edit text block' : 'Add text block'" [(visible)]="textVisible" [modal]="true" [style]="{ width: 'min(40rem, 96vw)' }">
       <p class="mt-0 text-color-secondary">Text people read, not a question: an intro, instructions or a note. On Page by question it gets its own screen.</p>
-      <quill-editor [(ngModel)]="textHtml" placeholder="Write something…" [styles]="{ 'min-height': '160px' }"></quill-editor>
+      <div class="form-field fb-text-quill">
+        <quill-editor [(ngModel)]="textHtml" placeholder="Write something…" [styles]="{ 'min-height': '160px' }"></quill-editor>
+      </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="textVisible = false" />
         <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="textBlank()" (onClick)="saveText()" />
@@ -189,7 +191,7 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
 
     <p-dialog [header]="editingField ? 'Edit field' : 'Add field'" [(visible)]="fieldVisible" [modal]="true" [style]="{ width: fieldType === 'GROUP' ? 'min(40rem, 96vw)' : 'min(30rem, 96vw)' }">
       <div class="form-field">
-        <label for="fbFieldName">Name</label>
+        <label for="fbFieldName">Label</label>
         <input pInputText id="fbFieldName" class="w-full" [(ngModel)]="fieldName" />
       </div>
       <div class="form-field mt-3">
@@ -446,6 +448,19 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
     .fb-section-intro {
       margin: 0 0 0.75rem;
       color: var(--text-color-secondary);
+    }
+    .fb-text-quill {
+      width: 100%;
+      margin-top: 0.75rem;
+    }
+    .fb-text-quill quill-editor {
+      display: block;
+      width: 100%;
+    }
+    .fb-text-quill ::ng-deep .ql-toolbar.ql-snow,
+    .fb-text-quill ::ng-deep .ql-container.ql-snow {
+      width: 100%;
+      box-sizing: border-box;
     }
   `,
 })

@@ -462,7 +462,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Email notifications',
-        body: 'In-app notifications always appear here. Notification settings chooses which also send an email. Assignments, @mentions, comments, completed tasks, projects and form submissions email by default; files attached, due date changes, moves and new subtasks on tasks you follow only show here unless you turn their email on. You follow a task you create, are assigned, comment on or are @mentioned in.',
+        body: 'In-app notifications always appear here. Notification settings chooses which also send an email. Assignments, @mentions, comments, completed tasks, projects, form submissions, submitted client forms and forms added to your clients email by default; files attached, due date changes, moves and new subtasks on tasks you follow only show here unless you turn their email on. You follow a task you create, are assigned, comment on or are @mentioned in.',
       },
     ],
   },

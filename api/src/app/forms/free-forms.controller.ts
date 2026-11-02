@@ -9,6 +9,8 @@ import {
 import { descriptionParts } from './form-description.util';
 import { createClientWithPerson } from './client-create.util';
 import { attachInfo, logFormActivity } from './form-attach.util';
+import { notifyFormAttached } from './form-notify.util';
+import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { sanitizeFormAccess } from './form-access.util';
 import { FormFilesService } from './form-files.service';
 import { AccessGuard, Action, Area } from '../access/access.guard';
@@ -41,6 +43,7 @@ export class FreeFormsController {
     private readonly structure: FormStructureService,
     private readonly links: FormLinksService,
     private readonly files: FormFilesService,
+    private readonly delivery: NotificationDeliveryService,
   ) {}
 
   // ── Forms ──────────────────────────────────────────────────────────────────
@@ -518,6 +521,7 @@ export class FreeFormsController {
     await this.prisma.formResponse.update({ where: { id }, data: { clientId, status: 'ACTIVE', living } });
     const sender = r.submitterName || r.submitterEmail;
     await logFormActivity(this.prisma, user, clientId, `${r.form.name} attached${sender ? ` (from ${sender})` : ''}`);
+    await notifyFormAttached(this.prisma, this.delivery, { form: r.form, responseId: id, clientId, actor: user });
     return this.submission(req, id);
   }
 

@@ -188,7 +188,7 @@ export type EmailPrefs = Record<
   | 'task_form_submission',
   boolean
 > &
-  Partial<Record<'form_submission' | 'care_form_submission' | 'care_shift_assigned', boolean>>;
+  Partial<Record<'form_submission' | 'client_form_submitted' | 'form_attached' | 'care_form_submission' | 'care_shift_assigned', boolean>>;
 
 // ── Forms ──────────────────────────────────────────────────────────────────
 

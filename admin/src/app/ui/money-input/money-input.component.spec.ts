@@ -9,5 +9,6 @@ describe('money-input draft parsing', () => {
   it('sanitizes extra decimals while typing', () => {
     expect(sanitizeMoneyDraft('.53', 4)).toBe('.53');
     expect(sanitizeMoneyDraft('0.53', 4)).toBe('0.53');
+    expect(sanitizeMoneyDraft('12.345', 2)).toBe('12.34');
   });
 });

@@ -25,6 +25,8 @@ const TYPE_ICON: Record<string, string> = {
   activity_forwarded: 'pi-send',
   activity_mention: 'pi-at',
   form_submission: 'pi-file-edit',
+  client_form_submitted: 'pi-file-check',
+  form_attached: 'pi-link',
   care_form_submission: 'pi-file-edit',
   care_shift_assigned: 'pi-calendar-plus',
 };
@@ -130,6 +132,8 @@ export class InboxPage implements OnInit {
     const me = this.session.me();
     const rows = [...this.basePrefRows];
     if (areaLevel(me, 'forms')) rows.push({ key: 'form_submission', label: 'A form in Forms gets a submission' });
+    rows.push({ key: 'client_form_submitted', label: 'A client form I can edit is submitted' });
+    rows.push({ key: 'form_attached', label: 'A form is added to a client assigned to me' });
     if (areaLevel(me, 'schedule')) rows.push({ key: 'care_shift_assigned', label: 'A shift is assigned to me' });
     return rows;
   });

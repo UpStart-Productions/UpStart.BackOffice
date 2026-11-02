@@ -25,6 +25,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateLinkDto } from './form.dto';
 import { sanitizeFormAccess } from './form-access.util';
 import { attachInfo, attachTargets, logFormActivity } from './form-attach.util';
+import { notifyFormAttached, notifyFormSubmitted } from './form-notify.util';
+import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { FormFilesService, formFilesPrefix } from './form-files.service';
 import { liveValues, mergeFormValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
@@ -95,6 +97,7 @@ export class ClientFormsController {
     private readonly structure: FormStructureService,
     private readonly links: FormLinksService,
     private readonly files: FormFilesService,
+    private readonly delivery: NotificationDeliveryService,
   ) {}
 
   /** The client page's Forms panel: the client's results the user can read, and the forms they can add. */
@@ -185,6 +188,7 @@ export class ClientFormsController {
       throw new BadRequestException(err instanceof Error ? err.message : 'Fill in the required questions');
     }
     await this.prisma.formResponse.update({ where: { id }, data: { submittedAt: new Date() } });
+    await notifyFormSubmitted(this.prisma, this.delivery, { form: record.form, responseId: id, clientId: record.clientId!, actor: req.user as UserContext });
     return this.view(id, 'edit');
   }
 
@@ -233,6 +237,7 @@ export class ClientFormsController {
     ]);
     await logFormActivity(this.prisma, user, record.clientId!, `${record.form.name} moved to ${client.name}`);
     await logFormActivity(this.prisma, user, client.id, `${record.form.name} moved here from ${from?.name ?? 'another record'}`);
+    await notifyFormAttached(this.prisma, this.delivery, { form: record.form, responseId: id, clientId: client.id, actor: user, moved: true });
     return this.view(id, 'edit');
   }
 

@@ -115,9 +115,9 @@ export function maskSsn(value: unknown): string {
   return d ? `***-**-${d.slice(-4)}` : '';
 }
 export function formatCurrency(value: unknown): string {
-  const n = typeof value === 'number' ? value : Number(value);
+  const n = typeof value === 'number' ? value : Number(String(value).replace(/[$,\s]/g, ''));
   if (!Number.isFinite(n)) return String(value ?? '');
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 /** Most sub-fields in a group, and most rows in one answer. */
 export const FORM_GROUP_MAX_SUBFIELDS = 12;

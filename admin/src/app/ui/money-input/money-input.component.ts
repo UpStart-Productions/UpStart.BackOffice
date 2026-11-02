@@ -1,15 +1,15 @@
-import { Component, forwardRef, input, signal } from '@angular/core';
-import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { AfterViewInit, Component, ElementRef, forwardRef, input, signal, viewChild } from '@angular/core';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 
 /**
  * Dollar amount entry without PrimeNG InputNumber keystroke logic (which breaks sub-$1 values like 0.53).
- * Type freely (.53 or 0.53); blur applies min/max and formats with grouping off.
+ * Masks while typing (same rules as expenses); blur applies min/max and formats with grouping off.
  */
 @Component({
   selector: 'app-money-input',
   standalone: true,
-  imports: [FormsModule, InputTextModule],
+  imports: [InputTextModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -23,6 +23,7 @@ import { InputTextModule } from 'primeng/inputtext';
   template: `
     <span class="money-input-prefix" aria-hidden="true">$</span>
     <input
+      #box
       pInputText
       type="text"
       inputmode="decimal"
@@ -32,8 +33,7 @@ import { InputTextModule } from 'primeng/inputtext';
       [class]="inputStyleClass()"
       [disabled]="inputDisabled"
       [placeholder]="placeholder()"
-      [ngModel]="displayText()"
-      (ngModelChange)="onTextChange($event)"
+      (input)="onInput()"
       (focus)="onFocus()"
       (blur)="onBlur()"
     />
@@ -70,7 +70,7 @@ import { InputTextModule } from 'primeng/inputtext';
     }
   `,
 })
-export class MoneyInputComponent implements ControlValueAccessor {
+export class MoneyInputComponent implements ControlValueAccessor, AfterViewInit {
   inputId = input<string>();
   name = input<string>();
   styleClass = input('');
@@ -89,24 +89,26 @@ export class MoneyInputComponent implements ControlValueAccessor {
   protected get inputDisabled(): boolean {
     return this.disabled() || this.formDisabled;
   }
+
   private readonly editing = signal(false);
   private readonly draft = signal('');
+  private readonly box = viewChild<ElementRef<HTMLInputElement>>('box');
 
   private onChange: (v: number | null) => void = () => {};
   private onTouched: () => void = () => {};
 
-  displayText(): string {
-    if (this.editing()) {
-      return this.draft();
-    }
-    return this.format(this.stored);
+  ngAfterViewInit() {
+    this.render();
   }
 
   writeValue(v: number | null): void {
     if (v == null || Number.isNaN(Number(v))) {
       this.stored = null;
     } else {
-      this.stored = Number(v);
+      this.stored = roundMoney(Number(v), this.maxFractionDigits());
+    }
+    if (!this.editing()) {
+      this.render();
     }
   }
 
@@ -124,14 +126,23 @@ export class MoneyInputComponent implements ControlValueAccessor {
 
   onFocus(): void {
     this.editing.set(true);
-    this.draft.set(this.stored == null ? '' : String(this.stored));
+    this.draft.set(this.stored == null ? '' : this.format(this.stored));
+    this.render();
   }
 
-  onTextChange(raw: string): void {
-    if (!this.editing()) {
+  onInput(): void {
+    const el = this.box()?.nativeElement;
+    if (!el || !this.editing()) {
       return;
     }
-    this.draft.set(sanitizeMoneyDraft(raw, this.maxFractionDigits()));
+    const next = sanitizeMoneyDraft(el.value, this.maxFractionDigits());
+    this.draft.set(next);
+    if (el.value !== next) {
+      const pos = el.selectionStart ?? next.length;
+      el.value = next;
+      const newPos = Math.min(pos, next.length);
+      el.setSelectionRange(newPos, newPos);
+    }
   }
 
   onBlur(): void {
@@ -145,6 +156,15 @@ export class MoneyInputComponent implements ControlValueAccessor {
     this.draft.set('');
     this.onChange(next);
     this.onTouched();
+    this.render();
+  }
+
+  private render(): void {
+    const el = this.box()?.nativeElement;
+    if (!el) {
+      return;
+    }
+    el.value = this.editing() ? this.draft() : this.format(this.stored);
   }
 
   private format(n: number | null): string {
@@ -191,6 +211,10 @@ export function parseMoneyDraft(
   if (opts.max != null && n > opts.max) {
     n = opts.max;
   }
-  const scale = 10 ** opts.maxFractionDigits;
+  return roundMoney(n, opts.maxFractionDigits);
+}
+
+export function roundMoney(n: number, maxFractionDigits: number): number {
+  const scale = 10 ** maxFractionDigits;
   return Math.round(n * scale) / scale;
 }

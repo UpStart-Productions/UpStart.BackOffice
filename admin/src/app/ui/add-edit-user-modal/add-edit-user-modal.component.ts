@@ -91,6 +91,7 @@ import { AvatarDropzoneComponent } from '../avatar-dropzone/avatar-dropzone.comp
               inputId="user-hourlyRate"
               formControlName="hourlyRate"
               [min]="0"
+              [maxFractionDigits]="4"
               styleClass="w-full"
               inputStyleClass="w-full"
             />

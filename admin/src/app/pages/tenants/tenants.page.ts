@@ -82,7 +82,7 @@ const slugify = (s: string) =>
           }
           @if (editingId) {
             <label for="t-my-rate" class="modules-label">Your hourly rate in this tenant (optional) <app-help-text key="tenant.myHourlyRate" /></label>
-            <app-money-input inputId="t-my-rate" [(ngModel)]="myHourlyRate" [min]="0" styleClass="w-full" inputStyleClass="w-full" />
+            <app-money-input inputId="t-my-rate" [(ngModel)]="myHourlyRate" [min]="0" [maxFractionDigits]="4" styleClass="w-full" inputStyleClass="w-full" />
           }
           @if (formError()) { <p-message severity="error" [text]="formError()!" /> }
         </div>
