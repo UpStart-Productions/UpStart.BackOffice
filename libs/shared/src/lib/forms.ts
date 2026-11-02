@@ -7,8 +7,21 @@
  * CONTENT is a text block, not a question: its `name` holds formatted text (HTML) and it never takes an answer.
  * GROUP is a repeating group: a few sub-fields filled in as rows (Add another); its answer is a list of rows.
  */
-export type FormFieldType = 'TEXT' | 'LONG_TEXT' | 'NUMBER' | 'DATE' | 'SINGLE_SELECT' | 'MULTI_SELECT' | 'CHECKBOX' | 'FILE' | 'CONTENT' | 'GROUP';
-export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'FILE', 'GROUP', 'CONTENT'];
+export type FormFieldType =
+  | 'TEXT'
+  | 'LONG_TEXT'
+  | 'NUMBER'
+  | 'CURRENCY'
+  | 'PHONE'
+  | 'SSN'
+  | 'DATE'
+  | 'SINGLE_SELECT'
+  | 'MULTI_SELECT'
+  | 'CHECKBOX'
+  | 'FILE'
+  | 'CONTENT'
+  | 'GROUP';
+export const FORM_FIELD_TYPES: FormFieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'CURRENCY', 'PHONE', 'SSN', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX', 'FILE', 'GROUP', 'CONTENT'];
 export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   CONTENT: 'Text block',
   GROUP: 'Repeating group',
@@ -16,6 +29,9 @@ export const FORM_FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   TEXT: 'Text',
   LONG_TEXT: 'Long text',
   NUMBER: 'Number',
+  CURRENCY: 'Currency',
+  PHONE: 'Phone',
+  SSN: 'SSN',
   DATE: 'Date',
   SINGLE_SELECT: 'Single-select',
   MULTI_SELECT: 'Multi-select',
@@ -27,6 +43,9 @@ export const FORM_FIELD_TYPE_ICONS: Record<FormFieldType, string> = {
   TEXT: 'text-cursor-input',
   LONG_TEXT: 'text-align-start',
   NUMBER: 'hash',
+  CURRENCY: 'circle-dollar-sign',
+  PHONE: 'phone',
+  SSN: 'id-card',
   DATE: 'calendar-days',
   SINGLE_SELECT: 'circle-dot',
   MULTI_SELECT: 'list-checks',
@@ -74,7 +93,32 @@ export function formatFileSize(bytes: number): string {
 
 /** What a repeating group's sub-field can be (no text blocks, groups or file uploads inside groups). */
 export type FormSubfieldType = Exclude<FormFieldType, 'CONTENT' | 'GROUP' | 'FILE'>;
-export const FORM_SUBFIELD_TYPES: FormSubfieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX'];
+export const FORM_SUBFIELD_TYPES: FormSubfieldType[] = ['TEXT', 'LONG_TEXT', 'NUMBER', 'CURRENCY', 'PHONE', 'SSN', 'DATE', 'SINGLE_SELECT', 'MULTI_SELECT', 'CHECKBOX'];
+
+/**
+ * Phone (PHONE): US numbers, 10 digits, stored as (503) 555-1234. SSN: 9 digits, stored as 123-45-6789 and shown
+ * masked (***-**-****) on screen; exports and printouts show ***-**-6789. Currency: a number with 2 decimals.
+ */
+export function formatPhoneDigits(digits: string): string {
+  const d = digits.replace(/\D/g, '').slice(0, 10);
+  if (d.length <= 3) return d.length ? `(${d}` : '';
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+export function formatSsnDigits(digits: string): string {
+  const d = digits.replace(/\D/g, '').slice(0, 9);
+  return d.length <= 3 ? d : d.length <= 5 ? `${d.slice(0, 3)}-${d.slice(3)}` : `${d.slice(0, 3)}-${d.slice(3, 5)}-${d.slice(5)}`;
+}
+/** An SSN with only the last 4 digits showing (***-**-6789). */
+export function maskSsn(value: unknown): string {
+  const d = String(value ?? '').replace(/\D/g, '');
+  return d ? `***-**-${d.slice(-4)}` : '';
+}
+export function formatCurrency(value: unknown): string {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n)) return String(value ?? '');
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
 /** Most sub-fields in a group, and most rows in one answer. */
 export const FORM_GROUP_MAX_SUBFIELDS = 12;
 export const FORM_GROUP_MAX_ROWS = 200;
@@ -454,7 +498,7 @@ export function computeFormScores(sections: FormSectionDto[], scoring: FormScori
   };
 }
 
-/** An answer as text: option labels for selects, Yes for a ticked checkbox, a readable date. Empty → ''. */
+/** An answer as text: option labels for selects, Yes for a ticked checkbox, a readable date, $ amounts, SSNs masked (***-**-6789). Empty → ''. */
 export function formatFormValue(field: FormFieldDto, value: unknown): string {
   if (isContentField(field) || value === null || value === undefined || value === '') return '';
   const label = (id: unknown) => field.options.find((o) => o.id === id)?.label ?? String(id);
@@ -470,6 +514,10 @@ export function formatFormValue(field: FormFieldDto, value: unknown): string {
       if (!m) return String(value);
       return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
+    case 'CURRENCY':
+      return formatCurrency(value);
+    case 'SSN':
+      return maskSsn(value);
     case 'FILE':
       return Array.isArray(value) ? (value as FormFileRef[]).map((f) => f?.name).filter(Boolean).join(', ') : '';
     case 'GROUP': {

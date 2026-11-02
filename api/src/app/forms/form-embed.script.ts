@@ -40,6 +40,7 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
     ':where(.ubo-form .ubo-nav){display:flex;gap:.75rem;flex-wrap:wrap}',
     ':where(.ubo-form .ubo-button--secondary){background:transparent;color:inherit;border:1px solid var(--ubo-border)}',
     ':where(.ubo-form .ubo-file){padding:.35rem 0}',
+    ':where(.ubo-form .ubo-inline){display:flex;gap:.5rem;align-items:center}',
     ':where(.ubo-form .ubo-group-row){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);padding:.75rem .75rem 0;margin:0 0 .75rem}',
     ':where(.ubo-form .ubo-group-remove){font:inherit;background:none;border:0;color:var(--ubo-muted);cursor:pointer;padding:0 0 .75rem;text-decoration:underline}',
     ':where(.ubo-form .ubo-panel){border:1px solid var(--ubo-border);border-radius:var(--ubo-radius);margin:0 0 .75rem;padding:0 1rem}',
@@ -252,6 +253,84 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         node: el('div', { className: 'ubo-field' }, [el('label', { className: 'ubo-choice', 'for': id }, [box, el('span', { text: f.name })])]),
         read: function () { return box.checked ? true : null; },
         missing: function () { return f.required && !box.checked; },
+        name: f.name
+      };
+    }
+    if (f.type === 'PHONE' || f.type === 'SSN') {
+      // Phone: (503) 555-1234 as you type. SSN: 123-45-6789 shown as ***-**-****, each digit hidden a second
+      // after it's typed; the eye shows or hides it.
+      var isSsn = f.type === 'SSN';
+      var max = isSsn ? 9 : 10;
+      var digits = '';
+      var fresh = {};
+      var shown = false;
+      var hideTimer = null;
+      var box = el('input', { id: id, type: isSsn ? 'text' : 'tel', inputmode: isSsn ? 'numeric' : 'tel', autocomplete: isSsn ? 'off' : 'tel', placeholder: isSsn ? '***-**-****' : '(555) 555-5555' });
+      function fmt(d) {
+        if (isSsn) return d.length <= 3 ? d : d.length <= 5 ? d.slice(0, 3) + '-' + d.slice(3) : d.slice(0, 3) + '-' + d.slice(3, 5) + '-' + d.slice(5);
+        if (!d.length) return '';
+        if (d.length <= 3) return '(' + d;
+        if (d.length <= 6) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+        return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+      }
+      function display() {
+        if (!isSsn) return fmt(digits);
+        var m = '';
+        for (var k = 0; k < digits.length; k++) m += shown || fresh[k] ? digits.charAt(k) : '*';
+        return fmt(m);
+      }
+      function slots(t) { return t.replace(isSsn ? /[^\d*]/g : /\D/g, '').length; }
+      box.addEventListener('input', function () {
+        var before = display();
+        var after = box.value;
+        var p = 0;
+        while (p < before.length && p < after.length && before.charAt(p) === after.charAt(p)) p++;
+        var q = 0;
+        while (q < before.length - p && q < after.length - p && before.charAt(before.length - 1 - q) === after.charAt(after.length - 1 - q)) q++;
+        var removed = before.slice(p, before.length - q);
+        var inserted = after.slice(p, after.length - q).replace(/\D/g, '');
+        var start = slots(before.slice(0, p));
+        var cut = slots(removed);
+        if (removed && !cut && !inserted && start > 0) { start -= 1; cut = 1; }
+        if (!isSsn && !digits && inserted.length === 11 && inserted.charAt(0) === '1') inserted = inserted.slice(1);
+        digits = (digits.slice(0, start) + inserted + digits.slice(start + cut)).slice(0, max);
+        fresh = {};
+        for (var k = start; k < Math.min(max, start + inserted.length); k++) fresh[k] = true;
+        box.value = display();
+        if (isSsn && inserted) {
+          if (hideTimer) clearTimeout(hideTimer);
+          hideTimer = setTimeout(function () { fresh = {}; box.value = display(); }, 1000);
+        }
+      });
+      var parts = [box];
+      if (isSsn) {
+        var eye = el('button', { type: 'button', className: 'ubo-button ubo-button--secondary', text: 'Show' });
+        eye.addEventListener('click', function () { shown = !shown; eye.textContent = shown ? 'Hide' : 'Show'; box.value = display(); });
+        parts = [el('div', { className: 'ubo-inline' }, [box, eye])];
+      }
+      return {
+        node: el('div', { className: 'ubo-field' }, [label(f.name, id, f.required)].concat(parts)),
+        read: function () { return digits.length === max ? fmt(digits) : null; },
+        missing: function () { return (f.required && digits.length !== max) || (digits.length > 0 && digits.length !== max); },
+        name: f.name
+      };
+    }
+    if (f.type === 'CURRENCY') {
+      var money = el('input', { id: id, type: 'text', inputmode: 'decimal', placeholder: '$0.00' });
+      function amount() {
+        var t = money.value.replace(/[$,\s]/g, '');
+        if (!t) return null;
+        var n = Number(t);
+        return isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+      }
+      money.addEventListener('blur', function () {
+        var n = amount();
+        if (n !== null && !isNaN(n)) money.value = '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      });
+      return {
+        node: el('div', { className: 'ubo-field' }, [label(f.name, id, f.required), money]),
+        read: function () { var n = amount(); return n === null || isNaN(n) ? null : n; },
+        missing: function () { var n = amount(); return (f.required && n === null) || (n !== null && isNaN(n)); },
         name: f.name
       };
     }

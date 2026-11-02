@@ -19,6 +19,9 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { DateInputComponent } from '../date-input/date-input.component';
+import { MoneyInputComponent } from '../money-input/money-input.component';
+import { PhoneInputComponent } from '../phone-input/phone-input.component';
+import { SsnInputComponent } from '../ssn-input/ssn-input.component';
 import { SingleFileDropzoneComponent } from '../single-file-dropzone/single-file-dropzone.component';
 
 /** Uploads one file for a file question and returns its reference (staff or public API, by page). */
@@ -46,6 +49,9 @@ export type FormFileOpener = (ref: FormFileRef) => void;
     SelectModule,
     TextareaModule,
     DateInputComponent,
+    MoneyInputComponent,
+    PhoneInputComponent,
+    SsnInputComponent,
     SingleFileDropzoneComponent,
   ],
   template: `
@@ -175,6 +181,23 @@ export type FormFileOpener = (ref: FormFileRef) => void;
             inputStyleClass="w-full"
             [disabled]="disabled()"
           />
+        }
+        @case ('CURRENCY') {
+          <app-money-input
+            [inputId]="id"
+            [ngModel]="value() ?? null"
+            (ngModelChange)="value.set($event)"
+            [maxFractionDigits]="2"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+            [disabled]="disabled()"
+          />
+        }
+        @case ('PHONE') {
+          <app-phone-input [inputId]="id" [value]="$any(value()) ?? null" (valueChange)="value.set($event)" [disabled]="disabled()" />
+        }
+        @case ('SSN') {
+          <app-ssn-input [inputId]="id" [value]="$any(value()) ?? null" (valueChange)="value.set($event)" [disabled]="disabled()" />
         }
         @case ('DATE') {
           <app-date-input [inputId]="id" [ngModel]="value() ?? ''" (ngModelChange)="value.set($event || null)" [disabled]="disabled()" />

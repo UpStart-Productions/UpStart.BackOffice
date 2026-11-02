@@ -430,6 +430,8 @@
 
 .tm-my-row {
   grid-template-columns: minmax(280px, 1fr) minmax(140px, 220px) 120px;
+  // Fit the page: long task names cut off with … instead of widening the row (narrow screens still scroll).
+  min-width: 540px;
 
   .tm-row-main {
     padding-left: 2.25rem;

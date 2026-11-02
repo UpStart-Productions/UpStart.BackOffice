@@ -1918,6 +1918,12 @@ enum FormFieldType {
   TEXT
   LONG_TEXT
   NUMBER
+  /// A dollar amount (number, 2 decimals).
+  CURRENCY
+  /// A US phone number, stored as (503) 555-1234.
+  PHONE
+  /// A Social Security number, stored as 123-45-6789; masked on screen.
+  SSN
   DATE
   SINGLE_SELECT
   MULTI_SELECT

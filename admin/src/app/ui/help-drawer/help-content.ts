@@ -870,7 +870,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Fields',
-        body: "Add a section, then Add field: a name, a type, Required, and on scored forms the points per choice and the score area. You can change a field's type until someone answers the form; then it's locked. Changes save right away.",
+        body: "Add a section, then Add field: a name, a type, Required, and on scored forms the points per choice and the score area. You can change a field's type until someone answers the form; then it's locked. Currency, Phone (US, formatted as you type) and SSN (shown as ***-**-****, with an eye to show it) are their own types. Changes save right away.",
       },
       {
         heading: 'Public links',

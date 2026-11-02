@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import type { FormFieldOption, FormFieldType, FormFileRef, FormGroupRow, FormSubfieldDto, FormSubfieldType } from '@upstart/back-office/shared';
 import {
-  FORM_FILE_MAX_BYTES, FORM_FILE_MAX_COUNT, FORM_GROUP_MAX_ROWS, FORM_GROUP_MAX_SUBFIELDS, FORM_SUBFIELD_TYPES, isAllowedFormFile, isSelectFieldType,
+  FORM_FILE_MAX_BYTES, FORM_FILE_MAX_COUNT, formatPhoneDigits, formatSsnDigits, FORM_GROUP_MAX_ROWS, FORM_GROUP_MAX_SUBFIELDS, FORM_SUBFIELD_TYPES, isAllowedFormFile, isSelectFieldType,
 } from '@upstart/back-office/shared';
 import { coerceFieldValue, normalizeOptions } from '../task-manager/task-fields.util';
 
@@ -138,6 +138,25 @@ export function coerceFormFieldValue(
     return value.trim() ? value.slice(0, 20000) : null;
   }
   if (type === 'TEXT' && typeof value === 'string' && !value.trim()) return null;
+  if (type === 'CURRENCY') {
+    if (value === null || value === undefined || value === '') return null;
+    const n = typeof value === 'number' ? value : Number(String(value).replace(/[$,\s]/g, ''));
+    if (!Number.isFinite(n) || Math.abs(n) > 1e12) throw new Error('Enter an amount');
+    return Math.round(n * 100) / 100;
+  }
+  if (type === 'PHONE' || type === 'SSN') {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value !== 'string' && typeof value !== 'number') throw new Error('Enter a number');
+    let d = String(value).replace(/\D/g, '');
+    if (!d) return null;
+    if (type === 'PHONE') {
+      if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+      if (d.length !== 10) throw new Error('Enter a 10-digit phone number');
+      return formatPhoneDigits(d);
+    }
+    if (d.length !== 9) throw new Error('Enter all 9 digits');
+    return formatSsnDigits(d);
+  }
   return coerceFieldValue(type, options, value);
 }
 

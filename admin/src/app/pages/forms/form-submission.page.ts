@@ -16,12 +16,13 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { exportSubmissionExcel, exportSubmissionPdf } from './form-submission-export.util';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
+import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
 
 /** One submission of a free-standing form: answers as text, results (score, profile, areas), who sent it; Export, Accept, Dismiss. */
 @Component({
   selector: 'app-form-submission-page',
   standalone: true,
-  imports: [DatePipe, RouterLink, ButtonModule, MessageModule, ProgressBarModule, TabsModule, TagModule, AcceptResponseDialogComponent, PageComponent, RowActionsMenuComponent],
+  imports: [DatePipe, RouterLink, ButtonModule, MessageModule, ProgressBarModule, TabsModule, TagModule, AcceptResponseDialogComponent, PageComponent, RowActionsMenuComponent, SsnTextComponent],
   template: `
     <app-page [title]="pageTitle()" [backLink]="backLink()" [backLabel]="'Back to submissions'" helpKey="forms.submission.page">
       <ng-container ngProjectAs="[pageMeta]">
@@ -132,6 +133,8 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
                                   <button type="button" class="sa-file" (click)="openFile(file)">{{ file.name }}</button>@if (!last) {, }
                                 }
                               </span>
+                            } @else if (f.type === 'SSN' && text) {
+                              <app-ssn-text [value]="$any(r.values[f.id])" />
                             } @else {
                               <span class="sa-text">{{ text || 'No answer' }}</span>
                             }
