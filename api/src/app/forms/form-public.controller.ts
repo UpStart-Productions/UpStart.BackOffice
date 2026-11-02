@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Post, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Query, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiConsumes, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
@@ -8,7 +8,7 @@ import type { UploadedFormFile } from './form-files.service';
 import { FORM_EMBED_SCRIPT } from './form-embed.script';
 import { clientIp } from '../common/rate-limiter';
 import { FormPublicService, type PublicRequest } from './form-public.service';
-import { PasscodeDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
+import { PasscodeDto, PublicDraftDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
 
 function pub(req: Request): PublicRequest {
   const origin = req.headers.origin;
@@ -52,8 +52,16 @@ export class FormPublicController {
     @Param('token') token: string,
     @Headers('x-form-access') access?: string,
     @Headers('x-care-access') legacy?: string,
+    @Query('draft') draft?: string,
   ) {
-    return this.forms.form(pub(req), token, access ?? legacy);
+    return this.forms.form(pub(req), token, access ?? legacy, draft);
+  }
+
+  /** Auto-save: the answers changed since the last save. New-response links get a draft token on the first save. */
+  @Post(':token/draft')
+  @ApiHeader({ name: 'X-Form-Access', required: false })
+  draft(@Req() req: Request, @Param('token') token: string, @Body() dto: PublicDraftDto, @Headers('x-form-access') access?: string) {
+    return this.forms.saveDraft(pub(req), token, access, dto);
   }
 
   /** One file for a file question (multipart "file"). Returns the reference to send with the answers. */

@@ -31,7 +31,7 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
   - **Ask for their organization** and **Ask for a phone number**: extra questions next to name and email (name and email are always asked).
   - **Email people their results**: after sending, people get an email with their results, or your thank-you message on forms without scoring.
   - **Thank-you message** and **Call to action** (a label and a link, e.g. to book a call) shown after sending and in the results email.
-  - **Client form** (see Client forms below): **Attach answers to a client**, **Category**, **Copies per client** and **Public submissions can create new clients**.
+  - **Client form** (see Client forms below): **Attach answers to a client**, **Category** and **Copies per client**.
   - **Care** (Care module on): **Use as the visit checklist**. Caregivers fill this form in on every visit. One form at a time: turning it on here turns it off on the others.
 - **Scoring** and **Fields** save right away.
 - **Publish** makes the current fields and scoring the version people see. After changes, the button reads **Publish changes**; until you click it, the links keep showing the earlier version. Each submission keeps the version it answered.
@@ -43,14 +43,20 @@ A client form's answers belong to a client and show in the **Forms** panel on th
 
 - **Attach answers to a client** (Settings) makes the form a client form.
 - **Category** (optional): groups forms on the client page and in Add form, e.g. Intake, Client profile.
-- **Copies per client**: **One living copy** (each client has one copy, kept up to date, like a profile; Add form opens it) or **New each time** (every Add form or accepted submission is a new, dated result, like an intake).
-- **Public submissions can create new clients**: Accept on a public submission offers **New client** (creates the client, with the sender as its person) instead of a new Prospect.
+- **Copies per client**: **One living copy** (each client has one copy, kept up to date, like a profile; Add form opens it) or **New each time** (every Add form or attached submission is a new, dated result, like an intake).
 - **Who can use it**: per role **None**, **Read** or **Edit** for the answers on client pages. Admins can always edit. Designing the form is the Forms area as usual.
 - The Forms list shows **Client form** (with its category) and **Visit checklist** in the **Used for** column.
 
-On a client's page, **Add form** picks a client form and opens it. Its page has the answers (**Save** at the top) and **Details** (client, category, when it was added). The ⋮ menu has **Move to another client** and **Delete**. Forms with one living copy also have **Share link**: a link to this client's copy for someone outside, such as family, with No check, a Passcode or an Emailed code (30 days by default). Changes made through it save straight to the form and notify the team.
+On a client's page, **Add form** picks a client form and opens it. Its page has the answers and **Details** (client, category, when it was added). The ⋮ menu has **Move**, **Share link** and **Delete**.
 
-The same form can be on your website: each public submission is its own result. It waits under **Waiting for review**; open it and **Accept** it into a client (see Submissions). Accepted, it shows on that client's page.
+- **Auto-save**: answers save as you go, wherever a form is filled in (here, on a public link, on a website, on a visit). The top bar shows **Saving…**, **Saved** or **Not saved** (it keeps retrying). Several people can work on the same form at once; each change saves just that answer.
+- **In progress** / **Submitted**: a form is In progress until someone clicks **Submit** (required questions must be answered). **Reopen** sets it back to In progress. Changes after Submit still save.
+- **Share link**: a link to this result for someone outside, such as family, with No check, a Passcode or an Emailed code (30 days by default). What they enter saves straight to it and notifies the team.
+- **Move**: opens the attach dialog (see Submissions) to pick another client or organization.
+
+The same form can be on your website: each public submission is its own result. It waits under **Waiting for review**; open it and **Attach** it (see Submissions). Attached, it shows on that client's page.
+
+Results of other forms attached to a client or organization also show in its **Forms** panel, for people who can see Forms.
 
 ## Scoring
 
@@ -78,7 +84,7 @@ New link also has **Allowed websites**. The **Websites** column on the links lis
 
 ## Submissions
 
-Open **Submissions** from the Forms list (the count, or **Submissions** in a form's ⋮ menu). It's separate from building the form. Tabs: **Waiting for review**, **Accepted**, **Dismissed**, **All**. The **Client** (or **Organization**) column shows where each was accepted; pick a client in the filter to see only theirs. Submissions waiting for review in every form also show on the Dashboard (**Pending submissions**) and as a **Form submissions** card in Activity → To do. **Export Excel** downloads a workbook for analysis outside UBO: click it for every submission, or use the arrow for **This tab only**. It has three sheets:
+Open **Submissions** from the Forms list (the count, or **Submissions** in a form's ⋮ menu). It's separate from building the form. Tabs: **In progress**, **Waiting for review**, **Attached**, **Dismissed**, **All**. **In progress** holds forms someone started on a public link or website but hasn't sent yet (they're saved from the first answer and are never removed automatically; delete the ones you don't need). The **Client** (or **Organization**) column shows where each was attached; pick a client in the filter to see only theirs. Submissions waiting for review in every form also show on the Dashboard (**Pending submissions**) and as a **Form submissions** card in Activity → To do. **Export Excel** downloads a workbook for analysis outside UBO: click it for every submission, or use the arrow for **This tab only**. It has three sheets:
 
 - **Answers**: one row per answer, with when it came in, its status, the client it was accepted into and who sent it, then the section, question code (Q1, Q2…), question and answer. On scored forms each row also has the answer's points and the question's score area.
 - **Results** (scored forms): one row per submission with the total points, total score %, profile and each score area.
@@ -86,6 +92,11 @@ Open **Submissions** from the Forms list (the count, or **Submissions** in a for
 
 - **Export PDF** (⋮ menu) downloads who sent it, the results and every answer. **Export Excel** gives the same as a sheet, one row per question.
 
-- **Accept**: **Possible matches** at the top (a person or client with the sender's email, or a client with the same name); **Use** attaches it there. **New organization** creates a Prospect with that name (the sender's organization by default), a pipeline card with source Inbound, and the sender as its person. On client forms that create clients, **New client** creates the client (the sender's name by default) with the sender as its person. **Existing** attaches the submission to one you pick. A form with one living copy can't be accepted into a client that already has its copy. **Open organization** (or **Open client**) goes there afterwards.
+- **Attach**: picks the client or organization the answers belong to.
+  - **Suggestions** (when there's a match on the sender's email or name): **Use** selects one.
+  - **Clients / Organizations / All** narrows the search (client forms start on Clients). Each record shows its status and people.
+  - **New client** creates a client, and **New organization** a Prospect with a pipeline card (source Inbound); both get the sender as their person.
+  - **Next** shows a check: the record's name and which roles will be able to see the answers. **Attach to [name]** finishes. The same dialog moves a result (**Move to [name]**).
+  - Attaching and moving add a note to the record's Activity. A form with one living copy can't go to a client that already has its copy.
 - **Dismiss** (⋮ menu) sets it aside under **Dismissed**; **Restore** (⋮ menu) brings it back.
 - **Delete** (⋮ menu) removes it and its results link for good.

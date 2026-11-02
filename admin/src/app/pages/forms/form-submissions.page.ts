@@ -8,7 +8,7 @@ import { MessageModule } from 'primeng/message';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import type { FormSubmissionListItemDto, FormSubmissionStatus } from '@upstart/back-office/shared';
+import type { FormSubmissionFilter, FormSubmissionListItemDto } from '@upstart/back-office/shared';
 import { FormsApi } from '../../core/forms.api';
 import { PageComponent } from '../../ui/layout/page.component';
 import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
@@ -16,8 +16,14 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
 import { exportSubmissionsExcel } from './form-submission-export.util';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
 
-type Tab = 'pending' | 'accepted' | 'dismissed' | 'all';
-const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PENDING', accepted: 'ACTIVE', dismissed: 'DISMISSED', all: undefined };
+type Tab = 'pending' | 'progress' | 'accepted' | 'dismissed' | 'all';
+const TAB_STATUS: Record<Tab, FormSubmissionFilter | undefined> = {
+  pending: 'PENDING',
+  progress: 'IN_PROGRESS',
+  accepted: 'ACTIVE',
+  dismissed: 'DISMISSED',
+  all: undefined,
+};
 
 /** A form's submissions: Waiting for review, Accepted, Dismissed, All. */
 @Component({
@@ -62,7 +68,13 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
                 <span class="count-badge ml-2">{{ pendingCount() }}</span>
               }
             </p-tab>
-            <p-tab value="accepted">Accepted</p-tab>
+            <p-tab value="progress">
+              In progress
+              @if (inProgressCount()) {
+                <span class="count-badge count-badge--info ml-2">{{ inProgressCount() }}</span>
+              }
+            </p-tab>
+            <p-tab value="accepted">Attached</p-tab>
             <p-tab value="dismissed">Dismissed</p-tab>
             <p-tab value="all">All</p-tab>
           </p-tablist>
@@ -98,7 +110,13 @@ const TAB_STATUS: Record<Tab, FormSubmissionStatus | undefined> = { pending: 'PE
               </td>
               <td>{{ r.percent === null ? '' : round(r.percent) + '%' }}</td>
               <td>{{ r.bandLabel ?? '' }}</td>
-              <td><p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" /></td>
+              <td>
+                @if (!r.submittedAt) {
+                  <p-tag value="In progress" severity="info" />
+                } @else {
+                  <p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" />
+                }
+              </td>
               <td>{{ r.createdAt | date: 'MMM d, y, h:mm a' }}</td>
             </tr>
           </ng-template>
@@ -126,6 +144,7 @@ export class FormSubmissionsPage implements OnInit {
 
   items = signal<FormSubmissionListItemDto[]>([]);
   pendingCount = signal(0);
+  inProgressCount = signal(0);
   formName = signal('');
   isClientForm = signal(false);
   /** Only this client's submissions (filter). */
@@ -205,6 +224,7 @@ export class FormSubmissionsPage implements OnInit {
       const res = await this.forms.submissions(this.formId, TAB_STATUS[this.tab()], this.clientId());
       this.items.set(res.items);
       this.pendingCount.set(res.pendingCount);
+      this.inProgressCount.set(res.inProgressCount ?? 0);
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load');

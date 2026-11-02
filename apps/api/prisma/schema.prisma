@@ -2070,6 +2070,10 @@ model FormResponse {
   /// Last change made through a public link (no staff user): when and by whom (name or verified email).
   publicUpdatedAt       DateTime?
   publicUpdatedBy       String?
+  /// When it was submitted (Submit/Send). Null: In progress (forms auto-save from the first answer).
+  submittedAt           DateTime?
+  /// A public new-response draft: sha256 of the token the browser keeps to keep saving and send it.
+  draftTokenHash        String?            @unique
   createdByUserId       String?
   updatedByUserId       String?
   createdAt             DateTime           @default(now())
@@ -2080,6 +2084,7 @@ model FormResponse {
   client    Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdBy User?        @relation("FormResponseCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   updatedBy User?        @relation("FormResponseUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  links     FormLink[]
 
   // Living copies: unique (formId, clientId) WHERE living (partial index, see migration 20261030120000_forms_area).
   @@index([formId, clientId])
@@ -2095,6 +2100,8 @@ model FormLink {
   kind         FormLinkKind
   /// CLIENT only.
   clientId     String?
+  /// CLIENT: the one result the link fills in. Null: the client's living copy of the form.
+  responseId   String?
   token        String         @unique
   label        String?
   verify       FormLinkVerify @default(NONE)
@@ -2111,10 +2118,12 @@ model FormLink {
 
   form     Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
   client   Client?          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  response FormResponse?    @relation(fields: [responseId], references: [id], onDelete: Cascade)
   accesses FormLinkAccess[]
 
   @@index([formId])
   @@index([clientId])
+  @@index([responseId])
   @@index([tenantId])
 }
 

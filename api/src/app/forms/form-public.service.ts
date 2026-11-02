@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import {
   computeFormScores, normalizeFormSettings, publicSections,
-  type FormFieldDto, type FormFileRef, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto,
+  type FormFieldDto, type FormFileRef, type FormPublicDraftDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto,
   type FormScores, type FormScoring, type FormSectionDto, type FormSnapshot,
 } from '@upstart/back-office/shared';
 import { RateLimiter } from '../common/rate-limiter';
@@ -14,7 +14,7 @@ import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
 import { FormDestinations, PUBLIC_LINK_INCLUDE, type FormDestination, type PublicLink } from './form-destinations';
-import { PasscodeDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
+import { PasscodeDto, PublicDraftDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
 import { mergeFormValues } from './form-fields.util';
 import { FormFilesService, linkFilesPrefix, type UploadedFormFile } from './form-files.service';
 import { checkPasscode, formLinkUrl, maskEmail, newAccessToken, newEmailCode, sha256 } from './form-links.util';
@@ -48,6 +48,8 @@ export class FormPublicService {
   private readonly codeLimiter = new RateLimiter(5, 60 * 60 * 1000);
   private readonly submitLimiter = new RateLimiter(10, 10 * 60 * 1000);
   private readonly uploadLimiter = new RateLimiter(40, 10 * 60 * 1000);
+  /** Auto-save fires often (a moment after each change). */
+  private readonly draftLimiter = new RateLimiter(600, 10 * 60 * 1000);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -192,18 +194,86 @@ export class FormPublicService {
     });
   }
 
-  form(req: PublicRequest, token: string, accessToken: string | undefined): Promise<FormPublicFormDto> {
+  /** The form to fill in. `draftToken` (new-response links): pick up an auto-saved draft from this browser. */
+  form(req: PublicRequest, token: string, accessToken: string | undefined, draftToken?: string): Promise<FormPublicFormDto> {
     return this.withLink(req, token, async (link, destination) => {
       const access = await this.access(link, accessToken);
       const { sections } = await this.content(link);
-      const values = link.kind === 'CLIENT' ? await destination.storedValues(link) : {};
+      let values: Record<string, unknown> = {};
+      let submitter: FormPublicFormDto['submitter'] = null;
+      let submittedAt: string | null = null;
+      if (link.kind === 'CLIENT') {
+        values = await destination.storedValues(link);
+        submittedAt = (await destination.submittedAt(link))?.toISOString() ?? null;
+      } else if (draftToken) {
+        const draft = await this.findDraft(link, draftToken);
+        if (draft) {
+          values = draft.values as Record<string, unknown>;
+          submitter = { name: draft.submitterName, email: draft.submitterEmail, phone: draft.submitterPhone, organization: draft.submitterOrganization };
+        }
+      }
       return {
         layout: normalizeFormSettings(link.form.settings).layout,
         sections: publicSections(sections.filter((s) => s.fields.length)),
         values,
         verifiedEmail: access?.email ?? null,
+        submitter,
+        submittedAt,
       };
     });
+  }
+
+  /** A new-response link's draft from its token (still In progress), or null. */
+  private async findDraft(link: PublicLink, draftToken: string) {
+    return this.prisma.formResponse.findFirst({
+      where: { draftTokenHash: sha256(draftToken), formId: link.formId, submittedAt: null },
+      select: { id: true, values: true, submitterName: true, submitterEmail: true, submitterPhone: true, submitterOrganization: true },
+    });
+  }
+
+  /**
+   * Auto-save: merge the changed answers into the draft (new-response links; the first save starts it and returns
+   * its token) or into the client link's result. No required checks until Send / Submit.
+   */
+  saveDraft(req: PublicRequest, token: string, accessToken: string | undefined, dto: PublicDraftDto): Promise<FormPublicDraftDto> {
+    const ip = req.ip;
+    return this.withLink(req, token, async (link, destination) => {
+      if (!this.draftLimiter.allow(`${link.id}:${ip}`)) throw new HttpException('Too many saves. Try again in a few minutes.', HttpStatus.TOO_MANY_REQUESTS);
+      const access = await this.access(link, accessToken);
+      const content = await this.content(link);
+      const fields = content.sections.flatMap((s) => s.fields);
+      const submitter = {
+        name: dto.submitter?.name?.trim() || null,
+        email: access?.email ?? normalizeEmail(dto.submitter?.email),
+        phone: dto.submitter?.phone?.trim() || null,
+        organization: dto.submitter?.organization?.trim() || null,
+      };
+      const versionId = link.kind === 'NEW' ? (link.form.publishedVersion?.id ?? null) : null;
+      const savedAt = new Date().toISOString();
+      if (link.kind === 'CLIENT') {
+        const stored = await destination.storedValues(link);
+        const values = this.mergeDraft(fields, stored, dto.values, linkFilesPrefix(link.formId, link.id));
+        await destination.saveDraft(link, { values, ...submitter, versionId }, null);
+        return { draftToken: null, savedAt };
+      }
+      const draft = dto.draftToken ? await this.findDraft(link, dto.draftToken) : null;
+      const values = this.mergeDraft(fields, (draft?.values as Record<string, unknown>) ?? {}, dto.values, linkFilesPrefix(link.formId, link.id));
+      if (draft) {
+        await destination.saveDraft(link, { values, ...submitter, versionId }, draft.id);
+        return { draftToken: dto.draftToken!, savedAt };
+      }
+      const newToken = newAccessToken();
+      await destination.saveDraft(link, { values, ...submitter, versionId, tokenHash: sha256(newToken) }, null);
+      return { draftToken: newToken, savedAt };
+    });
+  }
+
+  private mergeDraft(fields: FormFieldDto[], stored: Record<string, unknown>, submitted: Record<string, unknown>, filePrefix: string) {
+    try {
+      return mergeFormValues(fields, stored, submitted ?? {}, { filePrefix });
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'Invalid value');
+    }
   }
 
   submit(req: PublicRequest, token: string, accessToken: string | undefined, dto: PublicSubmitDto): Promise<FormPublicSubmitResultDto> {
@@ -225,12 +295,15 @@ export class FormPublicService {
         if (!email) throw new BadRequestException('A valid email address is required');
         if (ask.organization && !organization) throw new BadRequestException('Your organization is required');
       }
-      const stored = link.kind === 'CLIENT' ? await destination.storedValues(link) : {};
+      const draft = link.kind === 'NEW' && dto.draftToken ? await this.findDraft(link, dto.draftToken) : null;
+      const stored = link.kind === 'CLIENT' ? await destination.storedValues(link) : ((draft?.values as Record<string, unknown>) ?? {});
       const values = this.merge(fields, stored, dto.values, linkFilesPrefix(link.formId, link.id));
       const scores: FormScores | null = content.scoring?.enabled ? computeFormScores(content.sections, content.scoring, values) : null;
-      const outcome = (await destination.submit(link, {
-        values, name, email, phone, organization, versionId: link.kind === 'NEW' ? (link.form.publishedVersion?.id ?? null) : null, scores,
-      })) as { message?: string; resultToken?: string } | undefined;
+      const outcome = (await destination.submit(
+        link,
+        { values, name, email, phone, organization, versionId: link.kind === 'NEW' ? (link.form.publishedVersion?.id ?? null) : null, scores },
+        draft?.id ?? null,
+      )) as { message?: string; resultToken?: string } | undefined;
       await this.prisma.formLink.update({ where: { id: link.id }, data: { lastUsedAt: new Date() } });
       return {
         ...thanks,

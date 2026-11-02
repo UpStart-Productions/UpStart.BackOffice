@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import type {
-  FormAccess, FormDefinition, FormSettings, FormStaffPreviewDto, FormSubmissionDto, FormSubmissionListItemDto, FormSubmissionMatchDto, FormSubmissionStatus, FreeFormDto,
+  FormAccess, FormDefinition, FormSettings, FormStaffPreviewDto, FormSubmissionDto, FormSubmissionListItemDto, FormAttachInfoDto, FormSubmissionFilter, FreeFormDto,
   FreeFormListItemDto, PendingSubmissionDto,
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
@@ -57,20 +57,20 @@ export class FormsApi {
   pending() {
     return this.api.get<PendingSubmissionDto[]>(`${this.base}/pending`);
   }
-  /** Clients that may be who sent a submission. */
-  matches(id: string) {
-    return this.api.get<FormSubmissionMatchDto[]>(`${this.base}/submissions/${id}/matches`);
+  /** Attach dialog: suggested records and who will see the response. */
+  attachInfo(id: string) {
+    return this.api.get<FormAttachInfoDto>(`${this.base}/submissions/${id}/attach-info`);
   }
 
-  submissions(formId: string, status?: FormSubmissionStatus, clientId?: string | null) {
+  submissions(formId: string, status?: FormSubmissionFilter, clientId?: string | null) {
     const p = new URLSearchParams();
     if (status) p.set('status', status);
     if (clientId) p.set('clientId', clientId);
     const q = p.toString() ? `?${p}` : '';
-    return this.api.get<{ items: FormSubmissionListItemDto[]; pendingCount: number }>(`${this.base}/forms/${formId}/submissions${q}`);
+    return this.api.get<{ items: FormSubmissionListItemDto[]; pendingCount: number; inProgressCount: number }>(`${this.base}/forms/${formId}/submissions${q}`);
   }
   /** Every submission with answers (for Export to Excel). */
-  exportSubmissions(formId: string, status?: FormSubmissionStatus, clientId?: string | null) {
+  exportSubmissions(formId: string, status?: FormSubmissionFilter, clientId?: string | null) {
     const p = new URLSearchParams();
     if (status) p.set('status', status);
     if (clientId) p.set('clientId', clientId);
@@ -80,7 +80,7 @@ export class FormsApi {
   submission(id: string) {
     return this.api.get<FormSubmissionDto>(`${this.base}/submissions/${id}`);
   }
-  accept(id: string, body: { mode: 'new' | 'existing'; name?: string; clientId?: string }) {
+  accept(id: string, body: { mode: 'new' | 'existing'; newKind?: 'client' | 'organization'; name?: string; clientId?: string }) {
     return this.api.post<FormSubmissionDto>(`${this.base}/submissions/${id}/accept`, body);
   }
   dismiss(id: string) {

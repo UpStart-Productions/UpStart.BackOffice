@@ -68,5 +68,6 @@ export function submissionItem(r: SubmissionRow): FormSubmissionListItemDto {
     clientId: r.clientId,
     clientName: r.client?.name ?? null,
     createdAt: r.createdAt.toISOString(),
+    submittedAt: r.submittedAt?.toISOString() ?? null,
   };
 }

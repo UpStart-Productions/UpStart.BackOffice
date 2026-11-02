@@ -190,10 +190,6 @@ const newId = () => Math.random().toString(36).slice(2, 10);
                     <p-selectbutton [options]="copiesOptions" optionLabel="label" optionValue="value" [(ngModel)]="client.copies" [allowEmpty]="false" [disabled]="!f.canEdit" />
                   </div>
                 </div>
-                <div class="flex align-items-center gap-2">
-                  <p-checkbox inputId="ffCreates" [binary]="true" [(ngModel)]="client.createClients" [disabled]="!f.canEdit" />
-                  <label for="ffCreates">Public submissions can create new clients <app-help-text key="forms.form.createClients" /></label>
-                </div>
               }
             </div>
           </div>
@@ -434,7 +430,7 @@ export class FormEditPage implements OnInit {
   thankYou = '';
   ctaLabel = '';
   ctaUrl = '';
-  client: Omit<FormClientSettings, 'category'> = { enabled: false, copies: 'each', createClients: false };
+  client: Omit<FormClientSettings, 'category'> = { enabled: false, copies: 'each' };
   category = '';
   visitChecklist = false;
   roles = signal<{ id: string; name: string }[]>([]);
@@ -490,7 +486,7 @@ export class FormEditPage implements OnInit {
     this.thankYou = f.settings.thankYou ?? '';
     this.ctaLabel = f.settings.cta?.label ?? '';
     this.ctaUrl = f.settings.cta?.url ?? '';
-    this.client = { enabled: f.settings.client.enabled, copies: f.settings.client.copies, createClients: f.settings.client.createClients };
+    this.client = { enabled: f.settings.client.enabled, copies: f.settings.client.copies };
     this.category = f.settings.client.category ?? '';
     this.visitChecklist = f.settings.visitChecklist;
     this.levels.set({ ...f.access });

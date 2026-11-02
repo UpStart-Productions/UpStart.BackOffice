@@ -36,9 +36,28 @@ export interface FormDestination {
   ask(link: PublicLink): { organization: boolean; phone: boolean };
   /** Answers a CLIENT link starts from (and merges into). */
   storedValues(link: PublicLink): Promise<Record<string, unknown>>;
-  /** Save the submission. */
-  submit(link: PublicLink, submission: PublicSubmission): Promise<SubmitOutcome>;
+  /** Save the submission. `draftId`: a new-response link's auto-saved draft to finish instead of creating a response. */
+  submit(link: PublicLink, submission: PublicSubmission, draftId?: string | null): Promise<SubmitOutcome>;
+  /**
+   * Auto-save (no required checks). New-response links: create the draft (draftId null; returns its id) or update it.
+   * Client links: save into the link's result.
+   */
+  saveDraft(link: PublicLink, draft: PublicDraft, draftId: string | null): Promise<{ id: string }>;
+  /** Client links: when the link's result was submitted (null: In progress). */
+  submittedAt(link: PublicLink): Promise<Date | null>;
 }
+
+/** An auto-saved draft: answers so far and who they said they are (anything may be missing). */
+export type PublicDraft = {
+  values: Record<string, unknown>;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  organization: string | null;
+  versionId: string | null;
+  /** New-response links: sha256 of the token the browser keeps (first save only). */
+  tokenHash?: string;
+};
 
 /** Modules register their destination when they start. */
 @Injectable()

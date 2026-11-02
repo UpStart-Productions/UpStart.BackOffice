@@ -5,7 +5,7 @@ import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { FormDestinations, type FormDestination, type PublicLink, type PublicSubmission } from './form-destinations';
+import { FormDestinations, type FormDestination, type PublicDraft, type PublicLink, type PublicSubmission } from './form-destinations';
 import { liveValues } from './form-fields.util';
 import { FormStructureService } from './form-structure.service';
 import { newAccessToken } from './form-links.util';
@@ -41,34 +41,74 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     return { organization: s.askOrganization, phone: s.askPhone };
   }
 
-  /** A client link starts from (and merges into) the client's living copy. */
-  async storedValues(link: PublicLink) {
-    if (link.kind !== 'CLIENT' || !link.clientId) return {};
-    const copy = await this.prisma.formResponse.findFirst({ where: { formId: link.formId, clientId: link.clientId, living: true }, select: { values: true } });
-    return liveValues(await this.structure.fields(link.formId), copy?.values);
+  /** A client link's result: the one it was made for, or (older links) the client's living copy. */
+  private async clientTarget(link: PublicLink): Promise<{ id: string; values: unknown; submittedAt: Date | null } | null> {
+    if (link.kind !== 'CLIENT' || !link.clientId) return null;
+    const select = { id: true, values: true, submittedAt: true } as const;
+    if (link.responseId) return this.prisma.formResponse.findFirst({ where: { id: link.responseId, formId: link.formId }, select });
+    return this.prisma.formResponse.findFirst({ where: { formId: link.formId, clientId: link.clientId, living: true }, select });
   }
 
-  async submit(link: PublicLink, sub: PublicSubmission) {
+  /** A client link starts from (and merges into) its result. */
+  async storedValues(link: PublicLink) {
+    const target = await this.clientTarget(link);
+    if (!target) return {};
+    return liveValues(await this.structure.fields(link.formId), target.values);
+  }
+
+  async submittedAt(link: PublicLink) {
+    return (await this.clientTarget(link))?.submittedAt ?? null;
+  }
+
+  async saveDraft(link: PublicLink, d: PublicDraft, draftId: string | null): Promise<{ id: string }> {
+    const now = new Date();
+    if (link.kind === 'CLIENT') {
+      const who = d.email ?? d.name ?? 'Someone with the link';
+      const target = await this.clientTarget(link);
+      const data = { values: d.values as Prisma.InputJsonValue, publicUpdatedAt: now, publicUpdatedBy: who };
+      if (target) return this.prisma.formResponse.update({ where: { id: target.id }, data, select: { id: true } });
+      return this.prisma.formResponse.create({ data: { formId: link.formId, clientId: link.clientId!, living: true, ...data }, select: { id: true } });
+    }
+    const submitter = {
+      submitterName: d.name,
+      submitterEmail: d.email,
+      submitterPhone: d.phone,
+      submitterOrganization: d.organization,
+      publicUpdatedAt: now,
+      publicUpdatedBy: d.name ?? d.email,
+    };
+    if (draftId) {
+      return this.prisma.formResponse.update({ where: { id: draftId }, data: { values: d.values as Prisma.InputJsonValue, ...submitter }, select: { id: true } });
+    }
+    // The first answer starts a draft: In progress (not submitted), waiting under Submissions until it's sent.
+    return this.prisma.formResponse.create({
+      data: { formId: link.formId, versionId: d.versionId, status: 'PENDING', values: d.values as Prisma.InputJsonValue, draftTokenHash: d.tokenHash, ...submitter },
+      select: { id: true },
+    });
+  }
+
+  async submit(link: PublicLink, sub: PublicSubmission, draftId?: string | null) {
     if (link.kind === 'CLIENT') return this.submitClientCopy(link, sub);
     const settings = normalizeFormSettings(link.form.settings);
     const resultToken = sub.scores ? newAccessToken() : null;
-    const row = await this.prisma.formResponse.create({
-      data: {
-        formId: link.formId,
-        versionId: sub.versionId,
-        status: settings.review ? 'PENDING' : 'ACTIVE',
-        values: sub.values as Prisma.InputJsonValue,
-        scores: sub.scores ? (sub.scores as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
-        resultToken,
-        submitterName: sub.name,
-        submitterEmail: sub.email,
-        submitterPhone: sub.phone,
-        submitterOrganization: sub.organization,
-        publicUpdatedAt: new Date(),
-        publicUpdatedBy: sub.name,
-      },
-      select: { id: true },
-    });
+    const finished = {
+      versionId: sub.versionId,
+      status: settings.review ? ('PENDING' as const) : ('ACTIVE' as const),
+      values: sub.values as Prisma.InputJsonValue,
+      scores: sub.scores ? (sub.scores as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+      resultToken,
+      submitterName: sub.name,
+      submitterEmail: sub.email,
+      submitterPhone: sub.phone,
+      submitterOrganization: sub.organization,
+      publicUpdatedAt: new Date(),
+      publicUpdatedBy: sub.name,
+      submittedAt: new Date(),
+      draftTokenHash: null,
+    };
+    const row = draftId
+      ? await this.prisma.formResponse.update({ where: { id: draftId }, data: finished, select: { id: true } })
+      : await this.prisma.formResponse.create({ data: { formId: link.formId, ...finished }, select: { id: true } });
     const snap = link.form.publishedVersion?.snapshot as unknown as FormSnapshot | undefined;
     const formName = snap?.name ?? link.form.name;
     await this.notifyStaff(link, row.id, formName, sub, settings);
@@ -76,17 +116,18 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     return { message: settings.thankYou ?? undefined, resultToken: resultToken ?? undefined };
   }
 
-  /** Someone outside (e.g. family) updated a client's living copy through its share link. */
+  /** Someone outside (e.g. family) submitted a client's result through its share link. */
   private async submitClientCopy(link: PublicLink, sub: PublicSubmission) {
     const clientId = link.clientId!;
     const who = sub.email ?? sub.name ?? 'Someone with the link';
-    const data = { values: sub.values as Prisma.InputJsonValue, publicUpdatedAt: new Date(), publicUpdatedBy: who };
-    const existing = await this.prisma.formResponse.findFirst({ where: { formId: link.formId, clientId, living: true }, select: { id: true } });
+    const now = new Date();
+    const data = { values: sub.values as Prisma.InputJsonValue, publicUpdatedAt: now, publicUpdatedBy: who, submittedAt: now };
+    const existing = await this.clientTarget(link);
     const row = existing
       ? await this.prisma.formResponse.update({ where: { id: existing.id }, data, select: { id: true } })
       : await this.prisma.formResponse.create({ data: { formId: link.formId, clientId, living: true, ...data }, select: { id: true } });
     const clientName = link.client?.name ?? 'a client';
-    await this.notifyUsers(link, row.id, `${link.form.name} updated: ${clientName}`, `${who} updated ${link.form.name} for ${clientName} through a link.`, [
+    await this.notifyUsers(link, row.id, `${link.form.name} submitted: ${clientName}`, `${who} submitted ${link.form.name} for ${clientName} through a link.`, [
       'forms', 'results', row.id,
     ]);
   }

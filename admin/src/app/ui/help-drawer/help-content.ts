@@ -85,7 +85,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Forms',
-      body: "The client's filled-in client forms (from Forms), grouped by category. Add form picks any client form your role can edit: a form with one living copy opens the client's copy, the others start a new dated one. Accepted public submissions show here too.",
+      body: "The client's filled-in client forms (from Forms), grouped by category. Add form picks any client form your role can edit: a form with one living copy opens the client's copy, the others start a new dated one. Attached public submissions show here too, with In progress or Submitted.",
     },
     {
       heading: 'Care (Care module)',
@@ -858,7 +858,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Settings',
-        body: 'Review submissions before accepting them, ask for the organization or a phone number, email people their results, a thank-you message and a call to action. Client form: Attach answers to a client, a Category, Copies per client (One living copy or New each time) and Public submissions can create new clients. With Care on: Use as the visit checklist. Click Save.',
+        body: 'Review submissions before accepting them, ask for the organization or a phone number, email people their results, a thank-you message and a call to action. Client form: Attach answers to a client, a Category, Copies per client (One living copy or New each time). With Care on: Use as the visit checklist. Click Save.',
       },
       {
         heading: 'Who can use it',
@@ -888,7 +888,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Tabs',
-        body: 'Waiting for review (when the form reviews submissions), Accepted, Dismissed and All. Each row shows the client or organization it was accepted into, and the score and profile on scored forms. Pick a client in the filter to see only theirs.',
+        body: 'In progress (started on a public link or website but not sent yet; never removed automatically), Waiting for review (when the form reviews submissions), Attached, Dismissed and All. Each row shows the client or organization it was attached to, and the score and profile on scored forms. Pick a client in the filter to see only theirs.',
       },
       {
         heading: 'Export Excel',
@@ -909,8 +909,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'In the ⋮ menu: Export PDF (who sent it, results and every answer) or Export Excel (the same, one row per question).',
       },
       {
-        heading: 'Accept',
-        body: 'Possible matches (a person or client with the same email, or a client with the same name) show at the top; Use attaches it there. New organization creates a Prospect with a pipeline card (source Inbound) and the sender as its person; client forms that create clients offer New client instead (the client, with the sender as its person). Existing attaches it to one you pick.',
+        heading: 'Attach',
+        body: 'Pick the client or organization it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Organizations / All narrows the search. New client or New organization (a Prospect with a pipeline card) creates one with the sender as its person. Next shows who will be able to see the answers; Attach to [name] finishes and adds a note to its Activity.',
       },
       {
         heading: 'Dismiss and delete',
@@ -925,15 +925,15 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Editing',
-        body: 'Change any answers and click Save at the top. Roles with Read see the answers without Save.',
+        body: 'Answers save as you change them (Saving…, Saved or Not saved at the top). Several people can work on it at once. Submit marks it Submitted once the required questions are answered; Reopen sets it back to In progress. Roles with Read only see the answers.',
       },
       {
         heading: 'Share link',
-        body: "Forms with one living copy per client. New link makes a link to this client's copy for someone outside, such as family, with No check, a Passcode or an Emailed code. Links expire after 30 days unless you change it; revoke one from its ⋮ menu. Changes made through a link save straight to the form and notify your team.",
+        body: "New link makes a link to this result for someone outside, such as family, with No check, a Passcode or an Emailed code. Links expire after 30 days unless you change it; revoke one from its ⋮ menu. Changes made through a link save straight to the form and notify your team.",
       },
       {
         heading: 'Move or delete',
-        body: "In the ⋮ menu. Move to another client moves these answers (and a living copy's share links). Delete removes them; the form stays.",
+        body: "In the ⋮ menu. Move picks another client or organization (with the same check as Attach) and takes its share links along. Delete removes the answers; the form stays.",
       },
     ],
   },
@@ -941,15 +941,15 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── Care (module) ─────────────────────────────────────
   'care/visits/:id': {
     title: 'Visit',
-    intro: 'One visit: when, the visit checklist (a form set in Forms) and notes. Visits open from the Care tab on the client page, the Schedule or Dashboard → My shifts.',
+    intro: 'One visit: when, the visit checklist (a form set in Forms) and notes. Everything saves as you go. Visits open from the Care tab on the client page, the Schedule or Dashboard → My shifts.',
     sections: [
       {
         heading: 'Time',
-        body: "Change the date, start or end and Save; the time entry on the timesheet follows. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked and the visit can't be deleted.",
+        body: "Change the date, start or end; it saves on its own and the time entry on the timesheet follows. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked and the visit can't be deleted.",
       },
       {
         heading: 'End visit',
-        body: 'Shown while the visit is in progress. Saves the checklist and notes, sets the end to now and adds the hours to the timesheet.',
+        body: 'Shown while the visit is in progress. Sets the end to now and adds the hours to the timesheet.',
       },
     ],
   },

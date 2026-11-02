@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { formProfile, normalizeOrigins, type FormLinkKind } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { normalizeEmail } from '../communications/email-address.util';
@@ -17,7 +18,7 @@ const CLIENT_LINK_DAYS = 30;
 export class FormLinksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(where: { formId: string; clientId?: string }) {
+  async list(where: Prisma.FormLinkWhereInput) {
     const rows = await this.prisma.formLink.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -28,7 +29,8 @@ export class FormLinksService {
 
   async create(
     user: UserContext,
-    target: { formId: string; kind: FormLinkKind; clientId: string | null },
+    /** CLIENT links: `responseId` is the one result the link fills in (null: the client's living copy). */
+    target: { formId: string; kind: FormLinkKind; clientId: string | null; responseId?: string | null },
     dto: CreateLinkDto,
   ) {
     const form = await this.prisma.form.findUnique({ where: { id: target.formId }, select: { module: true, key: true } });
@@ -53,6 +55,7 @@ export class FormLinksService {
         formId: target.formId,
         kind: target.kind,
         clientId: target.clientId,
+        responseId: target.responseId ?? null,
         token: newLinkToken(),
         label: dto.label?.trim() || null,
         verify: dto.verify,

@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -10,9 +10,11 @@ import { TextareaModule } from 'primeng/textarea';
 import type { CareVisitDto } from '@upstart/back-office/shared';
 import { CareApi } from '../../core/care.api';
 import { FormFilesClient } from '../../core/form-files.client';
+import { AutoSaver } from '../../core/auto-saver';
+import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { dateKey } from '../../core/date.util';
-import { atLocal, formatDuration, normalizeValues, timeKey } from '../../ui/care-forms/care.types';
+import { atLocal, formatDuration, timeKey } from '../../ui/care-forms/care.types';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
@@ -35,6 +37,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     FormFieldInputComponent,
     HelpTextComponent,
     PageComponent,
+    SaveStatusComponent,
     RowActionsMenuComponent,
   ],
   template: `
@@ -53,12 +56,10 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
       <ng-container ngProjectAs="[pageActions]">
         @if (visit(); as v) {
           @if (v.canEdit) {
+            <app-save-status [state]="saver.state()" />
             <app-row-actions-menu [items]="headerActions()" ariaLabel="Visit actions" />
             @if (v.status === 'IN_PROGRESS') {
-              <p-button label="Save" icon="pi pi-check" severity="secondary" [outlined]="true" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
               <p-button label="End visit" icon="pi pi-stop-circle" [loading]="ending()" (onClick)="end()" />
-            } @else {
-              <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
             }
           }
         }
@@ -76,18 +77,18 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
               <div class="showcase-row">
                 <div class="form-field showcase-half">
                   <label for="cvDate">Date</label>
-                  <app-date-input inputId="cvDate" [(ngModel)]="date" [disabled]="!timesEditable()" />
+                  <app-date-input inputId="cvDate" [(ngModel)]="date" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
                 </div>
                 <div class="form-field cv-time">
                   <label for="cvStart">Start</label>
-                  <input pInputText id="cvStart" type="time" class="w-full" [(ngModel)]="start" [disabled]="!timesEditable()" />
+                  <input pInputText id="cvStart" type="time" class="w-full" [(ngModel)]="start" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
                 </div>
                 <div class="form-field cv-time">
                   <label for="cvEnd">End</label>
                   @if (v.status === 'IN_PROGRESS') {
                     <input pInputText id="cvEnd" class="w-full" value="In progress" disabled />
                   } @else {
-                    <input pInputText id="cvEnd" type="time" class="w-full" [(ngModel)]="endTime" [disabled]="!timesEditable()" />
+                    <input pInputText id="cvEnd" type="time" class="w-full" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
                   }
                 </div>
               </div>
@@ -104,7 +105,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                       [class.cv-wide]="f.type === 'LONG_TEXT' || f.type === 'CONTENT' || f.type === 'GROUP'"
                       [field]="f"
                       [value]="values[f.id] ?? null"
-                      (valueChange)="values[f.id] = $event"
+                      (valueChange)="onChange(f, $event)"
                       [disabled]="!v.canEdit"
                       [fileUpload]="fileUpload()"
                       [fileOpen]="fileOpen()"
@@ -117,7 +118,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             <div class="card">
               <div class="form-field">
                 <label for="cvNotes">Notes</label>
-                <textarea pTextarea id="cvNotes" class="w-full" rows="4" [autoResize]="true" [(ngModel)]="notes" [disabled]="!v.canEdit"></textarea>
+                <textarea pTextarea id="cvNotes" class="w-full" rows="4" [autoResize]="true" [(ngModel)]="notes" (ngModelChange)="saver.change('notes', $event)" [disabled]="!v.canEdit"></textarea>
               </div>
             </div>
           </div>
@@ -134,7 +135,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     }
   `,
 })
-export class CareVisitPage implements OnInit {
+export class CareVisitPage implements OnInit, OnDestroy {
   private readonly care = inject(CareApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -151,15 +152,27 @@ export class CareVisitPage implements OnInit {
   /** Back to the client (there is no separate visits list). */
   readonly backLink = computed(() => (this.visit() ? ['/clients', this.visit()!.clientId] : '/clients'));
   error = signal<string | null>(null);
-  saving = signal(false);
   ending = signal(false);
+
+  /** Auto-save: changed checklist answers (v:<field id>), notes, and the times (when they're complete). */
+  readonly saver = new AutoSaver<unknown>(async (changes) => {
+    const values: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(changes)) if (k.startsWith('v:')) values[k.slice(2)] = v;
+    const body = {
+      ...('times' in changes && this.timesEditable() && this.date && this.start ? this.times() : {}),
+      ...('notes' in changes ? { notes: this.notes.trim() || null } : {}),
+      ...(Object.keys(values).length ? { values } : {}),
+    };
+    const v = await this.care.updateVisit(this.id, body);
+    // Keep what's on screen; take the server's times, duration and lock state.
+    this.visit.set(v);
+  });
 
   date = '';
   start = '';
   endTime = '';
   notes = '';
   values: Record<string, unknown> = {};
-  private saved = '';
 
   readonly duration = formatDuration;
   title = computed(() => (this.visit() ? `Visit: ${this.visit()!.clientName}` : 'Visit'));
@@ -181,15 +194,23 @@ export class CareVisitPage implements OnInit {
     this.endTime = v.endedAt ? timeKey(new Date(v.endedAt)) : '';
     this.notes = v.notes ?? '';
     this.values = { ...v.values };
-    this.saved = this.snapshot();
   }
 
-  private snapshot() {
-    return JSON.stringify({ d: this.date, s: this.start, e: this.endTime, n: this.notes.trim(), v: normalizeValues(this.values) });
+  ngOnDestroy() {
+    void this.saver.flush().catch(() => undefined);
+    this.saver.destroy();
   }
 
-  isDirty() {
-    return this.snapshot() !== this.saved;
+  /** A checklist answer changed: save it (picks right away; typing a moment after it stops). */
+  onChange(f: { id: string; type: string }, value: unknown) {
+    this.values[f.id] = value;
+    const typing = f.type === 'TEXT' || f.type === 'LONG_TEXT' || f.type === 'NUMBER' || f.type === 'GROUP';
+    this.saver.change(`v:${f.id}`, value ?? null, !typing);
+  }
+
+  /** Date, start or end changed: save once they make a full time. */
+  timesChanged() {
+    if (this.date && this.start) this.saver.change('times', true);
   }
 
   private allValues() {
@@ -210,28 +231,12 @@ export class CareVisitPage implements OnInit {
     return [{ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', disabled: !!this.visit()?.invoiced, command: () => this.confirmDelete() }];
   }
 
-  async save() {
-    this.saving.set(true);
-    this.error.set(null);
-    try {
-      const body = { ...(this.timesEditable() ? this.times() : {}), notes: this.notes.trim() || null, values: this.allValues() };
-      this.apply(await this.care.updateVisit(this.id, body));
-      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Visit saved.' });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Save failed');
-    } finally {
-      this.saving.set(false);
-    }
-  }
-
   async end() {
     this.ending.set(true);
     this.error.set(null);
     try {
-      // A changed start time is saved first, then the visit ends now.
-      if (this.timesEditable() && this.start !== timeKey(new Date(this.visit()!.startedAt))) {
-        await this.care.updateVisit(this.id, { startedAt: this.times().startedAt });
-      }
+      // Everything typed so far is saved first, then the visit ends now.
+      await this.saver.flush();
       this.apply(await this.care.endVisit(this.id, { notes: this.notes.trim() || null, values: this.allValues() }));
       this.toast.add({ severity: 'success', summary: 'Visit ended', detail: 'Its time was added to the timesheet.' });
     } catch (err) {

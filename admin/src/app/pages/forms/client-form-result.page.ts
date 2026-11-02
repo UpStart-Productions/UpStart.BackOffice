@@ -1,25 +1,30 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
-import type { ClientFormResultDto } from '@upstart/back-office/shared';
+import { TagModule } from 'primeng/tag';
+import type { ClientFormResultDto, FormAttachInfoDto } from '@upstart/back-office/shared';
+import { AutoSaver } from '../../core/auto-saver';
+import { AcceptResponseDialogComponent, type AcceptResponseChoice } from '../../ui/form-builder/accept-response-dialog.component';
+import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ClientFormsApi } from '../../core/client-forms.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormFilesClient } from '../../core/form-files.client';
-import { normalizeValues } from '../../core/form-values.util';
 import { SessionService } from '../../core/session.service';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { PageComponent } from '../../ui/layout/page.component';
-import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
-/** One client's result of a client form: answers (Save), share link for living copies, move or delete. */
+/**
+ * One record's result of a client form: answers auto-save as they change (several people can work on it), Submit when
+ * it's complete (Reopen to go back to In progress), share link for someone outside to fill it in, move or delete.
+ */
 @Component({
   selector: 'app-client-form-result-page',
   standalone: true,
@@ -33,22 +38,38 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     FormFieldInputComponent,
     FormLinksComponent,
     PageComponent,
-    OrganizationSelectComponent,
+    AcceptResponseDialogComponent,
+    SaveStatusComponent,
+    TagModule,
     RecordAttributionComponent,
     RowActionsMenuComponent,
   ],
   template: `
-    <app-page [title]="pageTitle()" [backLink]="backLink()" backLabel="Back to client" helpKey="forms.result.page">
+    <app-page [title]="pageTitle()" [backLink]="backLink()" backLabel="Back" helpKey="forms.result.page">
       <ng-container ngProjectAs="[pageTitleTrail]">
         @if (record()?.attribution) {
           <app-record-attribution [attribution]="record()!.attribution!" />
         }
       </ng-container>
+      <ng-container ngProjectAs="[pageMeta]">
+        @if (record(); as r) {
+          @if (r.submittedAt) {
+            <p-tag value="Submitted" severity="success" />
+          } @else {
+            <p-tag value="In progress" severity="info" />
+          }
+        }
+      </ng-container>
       <ng-container ngProjectAs="[pageActions]">
         @if (record(); as r) {
           @if (r.myAccess === 'edit') {
+            <app-save-status [state]="saver.state()" />
             <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
-            <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+            @if (r.submittedAt) {
+              <p-button label="Reopen" icon="pi pi-undo" severity="secondary" [outlined]="true" [loading]="submitting()" (onClick)="reopen()" />
+            } @else {
+              <p-button label="Submit" icon="pi pi-check" [loading]="submitting()" (onClick)="submit()" />
+            }
           }
         }
       </ng-container>
@@ -83,7 +104,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                         [class.cr-wide]="f.type === 'LONG_TEXT' || f.type === 'CONTENT' || f.type === 'GROUP'"
                         [field]="f"
                         [value]="values[f.id] ?? null"
-                        (valueChange)="values[f.id] = $event"
+                        (valueChange)="onChange(f, $event)"
                         [disabled]="r.myAccess !== 'edit'"
                         [fileUpload]="fileUpload()"
                         [fileOpen]="fileOpen()"
@@ -145,17 +166,16 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         </div>
       }
 
-      <p-dialog header="Move to another client" [(visible)]="moveVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
-        <p class="mt-0">Moves this {{ record()?.formName }} from {{ record()?.clientName }} to another client.</p>
-        <div class="form-field">
-          <label for="cfrMove">Client</label>
-          <app-organization-select inputId="cfrMove" [(value)]="moveClientId" [exclude]="record()?.clientId ? [record()!.clientId!] : []" />
-        </div>
-        <ng-template pTemplate="footer">
-          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="moving()" (onClick)="moveVisible = false" />
-          <p-button label="Move" icon="pi pi-arrow-right" [loading]="moving()" [disabled]="!moveClientId" (onClick)="move()" />
-        </ng-template>
-      </p-dialog>
+      <app-accept-response-dialog
+        [(visible)]="moveVisible"
+        [move]="true"
+        [formName]="record()?.formName ?? ''"
+        [isClientForm]="true"
+        [excludeId]="record()?.clientId ?? null"
+        [info]="moveInfo()"
+        [busy]="moving()"
+        (accept)="move($event)"
+      />
     </app-page>
   `,
   styles: `
@@ -164,7 +184,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
     }
   `,
 })
-export class ClientFormResultPage implements OnInit {
+export class ClientFormResultPage implements OnInit, OnDestroy {
   readonly api = inject(ClientFormsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -180,13 +200,19 @@ export class ClientFormResultPage implements OnInit {
 
   record = signal<ClientFormResultDto | null>(null);
   error = signal<string | null>(null);
-  saving = signal(false);
+  submitting = signal(false);
   values: Record<string, unknown> = {};
-  private saved = '';
 
-  moveVisible = false;
-  moveClientId: string | null = null;
+  moveVisible = signal(false);
+  moveInfo = signal<FormAttachInfoDto | null>(null);
   moving = signal(false);
+
+  /** Auto-save: only the answers that changed go up, so people working on different parts don't overwrite each other. */
+  readonly saver = new AutoSaver<unknown>(async (changes) => {
+    const r = await this.api.save(this.id, changes);
+    // Keep what's on screen (newer typing); take the server's bookkeeping (who changed it, when).
+    this.record.set({ ...r, values: this.record()?.values ?? r.values });
+  });
 
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
@@ -208,32 +234,44 @@ export class ClientFormResultPage implements OnInit {
   private apply(r: ClientFormResultDto) {
     this.record.set(r);
     this.values = { ...r.values };
-    this.saved = JSON.stringify(normalizeValues(this.values));
   }
 
-  isDirty() {
-    return JSON.stringify(normalizeValues(this.values)) !== this.saved;
+  ngOnDestroy() {
+    void this.saver.flush().catch(() => undefined);
+    this.saver.destroy();
+  }
+
+  /** An answer changed: save it (picks, checkboxes and files right away; typing a moment after it stops). */
+  onChange(f: { id: string; type: string }, value: unknown) {
+    this.values[f.id] = value;
+    const typing = f.type === 'TEXT' || f.type === 'LONG_TEXT' || f.type === 'NUMBER' || f.type === 'GROUP';
+    this.saver.change(f.id, value ?? null, !typing);
   }
 
   headerActions(): RowActionItem[] {
     return [
-      { id: 'move', label: 'Move to another client', icon: 'pi pi-arrow-right-arrow-left', command: () => this.openMove() },
+      { id: 'move', label: 'Move to another client or organization', icon: 'pi pi-arrow-right-arrow-left', command: () => void this.openMove() },
       { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete() },
     ];
   }
 
-  openMove() {
-    this.moveClientId = null;
-    this.moveVisible = true;
+  async openMove() {
+    try {
+      this.moveInfo.set(await this.api.moveInfo(this.id));
+    } catch {
+      this.moveInfo.set(null);
+    }
+    this.moveVisible.set(true);
   }
 
-  async move() {
-    if (!this.moveClientId) return;
+  async move(choice: AcceptResponseChoice) {
+    if (!choice.clientId) return;
     this.moving.set(true);
     try {
-      const r = await this.api.changeClient(this.id, this.moveClientId);
+      await this.saver.flush();
+      const r = await this.api.changeClient(this.id, choice.clientId);
       this.apply(r);
-      this.moveVisible = false;
+      this.moveVisible.set(false);
       this.toast.add({ severity: 'success', summary: 'Moved', detail: `Now on ${r.clientName}.` });
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not move', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
@@ -242,19 +280,30 @@ export class ClientFormResultPage implements OnInit {
     }
   }
 
-  async save() {
-    this.saving.set(true);
+  /** Submit: everything saved first, then required questions are checked. */
+  async submit() {
+    this.submitting.set(true);
     this.error.set(null);
     try {
-      // Send every field: empty ones clear.
-      const out: Record<string, unknown> = {};
-      for (const s of this.record()?.sections ?? []) for (const f of s.fields) out[f.id] = this.values[f.id] ?? null;
-      this.apply(await this.api.save(this.id, out));
-      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Form saved.' });
+      await this.saver.flush();
+      this.apply(await this.api.submit(this.id));
+      this.toast.add({ severity: 'success', summary: 'Submitted', detail: `${this.record()?.formName} is submitted.` });
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Save failed');
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not submit');
     } finally {
-      this.saving.set(false);
+      this.submitting.set(false);
+    }
+  }
+
+  async reopen() {
+    this.submitting.set(true);
+    try {
+      await this.saver.flush();
+      this.apply(await this.api.reopen(this.id));
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not reopen');
+    } finally {
+      this.submitting.set(false);
     }
   }
 

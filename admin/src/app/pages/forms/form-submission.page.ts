@@ -7,7 +7,7 @@ import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormFileRef, type FormSubmissionDto, type FormSubmissionMatchDto } from '@upstart/back-office/shared';
+import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormFileRef, type FormAttachInfoDto, type FormSubmissionDto } from '@upstart/back-office/shared';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormFilesClient } from '../../core/form-files.client';
 import { FormsApi } from '../../core/forms.api';
@@ -26,9 +26,13 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
     <app-page [title]="pageTitle()" [backLink]="backLink()" [backLabel]="'Back to submissions'" helpKey="forms.submission.page">
       <ng-container ngProjectAs="[pageMeta]">
         @if (s(); as r) {
-          <p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" />
+          @if (!r.submittedAt) {
+            <p-tag value="In progress" severity="info" />
+          } @else {
+            <p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" />
+          }
           @if (r.clientId) {
-            <a [routerLink]="[r.createsClients ? '/clients' : '/organizations', r.clientId]" class="text-primary">{{ r.createsClients ? 'Open client' : 'Open organization' }}</a>
+            <a [routerLink]="['/organizations', r.clientId]" class="text-primary">Open {{ r.clientName }}</a>
           }
         }
       </ng-container>
@@ -37,7 +41,7 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
           <app-row-actions-menu [items]="headerActions()" ariaLabel="Submission actions" />
           @if (r.canEdit) {
             @if (!r.clientId) {
-              <p-button label="Accept" icon="pi pi-check" (onClick)="openAccept()" />
+              <p-button label="Attach" icon="pi pi-check" (onClick)="openAccept()" />
             }
           }
         }
@@ -198,11 +202,12 @@ import { SUBMISSION_STATUS_TAG } from './forms.types';
       }
 
       <app-accept-response-dialog
-        header="Accept submission"
         [(visible)]="acceptVisible"
-        [defaultName]="s()?.createsClients ? (s()?.submitterName ?? '') : (s()?.submitterOrganization ?? s()?.submitterName ?? '')"
-        [createsClients]="!!s()?.createsClients"
-        [matches]="matches()"
+        [defaultName]="s()?.isClientForm ? (s()?.submitterName ?? '') : (s()?.submitterOrganization ?? s()?.submitterName ?? '')"
+        [isClientForm]="!!s()?.isClientForm"
+        [formName]="s()?.formName ?? ''"
+        [sender]="s()?.submitterName ?? s()?.submitterEmail ?? null"
+        [info]="attachInfo()"
         [busy]="busy()"
         (accept)="accept($event)"
       />
@@ -360,7 +365,7 @@ export class FormSubmissionPage implements OnInit {
   error = signal<string | null>(null);
   busy = signal(false);
   acceptVisible = signal(false);
-  matches = signal<FormSubmissionMatchDto[]>([]);
+  attachInfo = signal<FormAttachInfoDto | null>(null);
   view = signal<'answers' | 'results'>('answers');
 
   band = computed(() => {
@@ -427,9 +432,9 @@ export class FormSubmissionPage implements OnInit {
   /** Look up possible matches (same email or name), then open Accept. */
   async openAccept() {
     try {
-      this.matches.set(await this.forms.matches(this.id));
+      this.attachInfo.set(await this.forms.attachInfo(this.id));
     } catch {
-      this.matches.set([]);
+      this.attachInfo.set(null);
     }
     this.acceptVisible.set(true);
   }
@@ -439,7 +444,7 @@ export class FormSubmissionPage implements OnInit {
       const r = await this.forms.accept(this.id, choice);
       this.s.set(r);
       this.acceptVisible.set(false);
-      this.toast.add({ severity: 'success', summary: 'Accepted', detail: `Added to ${r.clientName}.` });
+      this.toast.add({ severity: 'success', summary: 'Attached', detail: `Attached to ${r.clientName}.` });
     }, 'Could not accept');
   }
 

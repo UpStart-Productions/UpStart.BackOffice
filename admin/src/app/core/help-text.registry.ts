@@ -158,7 +158,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.layout':
     'One page: everything on one scrolling page. Page by section: one section at a time with Next and Back. Page by question: one question or text block per screen; picking a single choice moves on by itself. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
   'forms.form.review':
-    'On: submissions wait under Waiting for review until you Accept them (into a new Prospect, a new client for client forms that create clients, or an existing one) or Dismiss them. Off: they are accepted as they come in.',
+    'On: submissions wait under Waiting for review until you Attach them (to a client or organization, new or existing) or Dismiss them. Off: they are attached as they come in.',
   'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
   'forms.form.cta': 'A button on the results page and email, e.g. a link to book a call.',
   'forms.form.scoring':
@@ -168,23 +168,21 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Profiles by score, e.g. 0–25% Finding Your Bearings. Each has what it means, next steps and an optional download. People see the profile their percentage falls in.',
   'forms.form.bandUpTo': 'The highest percentage for this profile. The profile with the highest number also covers everything above it.',
   'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
-  'forms.submissions.page': 'Everything sent through this form. Open one to see the answers and score, then Accept or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
+  'forms.submissions.page': 'Everything sent through this form. In progress holds forms started but not sent yet. Open one to see the answers and score, then Attach or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
   'forms.submission.page':
-    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Accept adds it to a New organization (a Prospect with a pipeline card and the sender as its person), a New client (client forms that create clients) or an existing one, with possible matches by email or name. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
+    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Attach picks the client or organization it belongs to (or a new one), then shows who will see it before you confirm. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
   'forms.form.client':
     "Client forms: answers attach to a client and show in the Forms panel on the client's page. Name the form anything (e.g. Services intake, Client profile).",
   'forms.form.category': 'Groups client forms on the client page and in Add form, e.g. Intake, Client profile, Class registration. Optional.',
   'forms.form.copies':
-    'One living copy: each client has one copy you keep up to date (like a profile); Add form opens it. New each time: every Add form or accepted submission is a new dated result (like an intake).',
-  'forms.form.createClients':
-    'When you Accept a public submission, New client creates the client (with the sender as its person). Off: Accept offers a new Prospect organization instead.',
+    'One living copy: each client has one copy you keep up to date (like a profile); Add form opens it. New each time: every Add form or attached submission is a new dated result (like an intake).',
   'forms.form.visitChecklist': 'Care: caregivers fill this form in on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',
   'forms.form.access':
     "Client forms: per role None, Read or Edit for the answers on client pages. Admins can always edit. People only see clients they can reach (assigned to them unless their role has Organizations: All). Designing the form is the Forms area.",
   'forms.result.page':
-    "One client's answers to a client form. Edit and Save. The ⋮ menu moves it to another client or deletes it. Forms with one living copy have Share link, so someone outside (e.g. family) can update it.",
+    "One client's answers to a client form. Answers save as you go; Submit when done. The ⋮ menu has Move, Share link (for someone outside, e.g. family) and Delete.",
   'forms.result.links':
-    "A link to this client's copy of the form, e.g. for family to update it. Changes save straight to the form and notify your team.",
+    "A link to this result, e.g. for family to fill it in. Changes save straight to the form and notify your team.",
   // Care module
   'care.visit.page':
     'One visit: when, the visit checklist and notes. While it is in progress, End visit records the end time and adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.',

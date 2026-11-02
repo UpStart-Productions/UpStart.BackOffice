@@ -6,8 +6,11 @@ import { Prisma } from '@prisma/client';
 import { IsObject, IsString } from 'class-validator';
 import { Request, Response } from 'express';
 import {
+  allows,
   isAdminRole,
   normalizeFormSettings,
+  type FormAttachInfoDto,
+  type FormAttachTargetDto,
   type ClientFormOptionDto,
   type ClientFormResultDto,
   type ClientFormResultListItemDto,
@@ -21,6 +24,7 @@ import { ATTRIBUTION_INCLUDE, toRecordAttribution } from '../common/record-attri
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLinkDto } from './form.dto';
 import { sanitizeFormAccess } from './form-access.util';
+import { attachInfo, attachTargets, logFormActivity } from './form-attach.util';
 import { FormFilesService, formFilesPrefix } from './form-files.service';
 import { liveValues, mergeFormValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
@@ -60,6 +64,8 @@ function listItem(r: ListRow): ClientFormResultListItemDto {
     formName: r.form.name,
     category: settings.client.category,
     copies: settings.client.copies,
+    isClientForm: settings.client.enabled,
+    submittedAt: r.submittedAt?.toISOString() ?? null,
     status: r.status,
     clientId: r.clientId,
     clientName: r.client?.name ?? null,
@@ -72,9 +78,10 @@ function listItem(r: ListRow): ClientFormResultListItemDto {
 }
 
 /**
- * Client forms on client pages: a client's results, adding one, viewing and editing it, and share links for
- * living copies. Each form sets Read or Edit per role (admins always edit); Clients reach applies. Results waiting
- * for review (public submissions not yet accepted) are handled in Forms, not here.
+ * Client forms on client and organization pages: a record's results, adding one, viewing and editing it (auto-saved),
+ * Submit / Reopen, moving it, and share links. Each form sets Read or Edit per role (admins always edit); Clients reach
+ * applies. The page's Forms panel also lists other forms' responses attached to the record, for people with Forms.
+ * Responses waiting for review (public submissions not yet attached) are handled in Forms, not here.
  */
 @ApiTags('client-forms')
 @ApiBearerAuth()
@@ -106,13 +113,17 @@ export class ClientFormsController {
       const s = normalizeFormSettings(f.settings).client;
       if (level === 'edit') options.push({ formId: f.id, name: f.name, category: s.category, copies: s.copies, myAccess: level });
     }
-    const rows = readable.size
-      ? await this.prisma.formResponse.findMany({
-          where: { clientId, status: 'ACTIVE', formId: { in: [...readable] } },
-          orderBy: { createdAt: 'desc' },
-          include: LIST_INCLUDE,
-        })
-      : [];
+    // Other forms' responses attached here (e.g. an assessment accepted into an organization): people with Forms.
+    const otherForms = allows(user, 'forms', 'view') ? { form: { module: M, NOT: { settings: { path: ['client', 'enabled'], equals: true } } } } : null;
+    const rows = await this.prisma.formResponse.findMany({
+      where: {
+        clientId,
+        status: 'ACTIVE',
+        OR: [...(readable.size ? [{ formId: { in: [...readable] } }] : []), ...(otherForms ? [otherForms] : [])],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: LIST_INCLUDE,
+    });
     options.sort((a, b) => (a.category ?? '').localeCompare(b.category ?? '') || a.name.localeCompare(b.name));
     return { results: rows.map(listItem), options };
   }
@@ -163,7 +174,43 @@ export class ClientFormsController {
     return this.view(id, 'edit');
   }
 
-  /** Move a result to another client (e.g. it was added to the wrong one). A living copy's share links go along. */
+  /** Submit: the answers are complete (required questions checked). It stays editable; Reopen marks it In progress again. */
+  @Post('records/:id/submit')
+  async submit(@Req() req: Request, @Param('id') id: string) {
+    const { record } = await this.assertResult(req.user as UserContext, id, 'edit');
+    const fields = await this.structure.fields(record.formId);
+    try {
+      mergeFormValues(fields, record.values as Record<string, unknown>, {}, { requireAll: true });
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'Fill in the required questions');
+    }
+    await this.prisma.formResponse.update({ where: { id }, data: { submittedAt: new Date() } });
+    return this.view(id, 'edit');
+  }
+
+  @Post('records/:id/reopen')
+  async reopen(@Req() req: Request, @Param('id') id: string) {
+    await this.assertResult(req.user as UserContext, id, 'edit');
+    await this.prisma.formResponse.update({ where: { id }, data: { submittedAt: null } });
+    return this.view(id, 'edit');
+  }
+
+  /** The Move dialog: who will see the result where it goes (no suggestions: it's already attached). */
+  @Get('records/:id/attach-info')
+  async moveInfo(@Req() req: Request, @Param('id') id: string): Promise<FormAttachInfoDto> {
+    const user = req.user as UserContext;
+    const { record } = await this.assertResult(user, id, 'edit');
+    const info = await attachInfo(this.prisma, record.form, { name: null, email: null }, await this.access.clientIds(user));
+    return info;
+  }
+
+  /** Every client and organization the user reaches, with status, tags and people (Attach and Move pickers). */
+  @Get('targets')
+  async targets(@Req() req: Request): Promise<FormAttachTargetDto[]> {
+    return attachTargets(this.prisma, await this.access.clientIds(req.user as UserContext));
+  }
+
+  /** Move a result to another client or organization (e.g. it was added to the wrong one). Its share links go along. */
   @Patch('records/:id/client')
   async changeClient(@Req() req: Request, @Param('id') id: string, @Body() dto: ChangeResultClientDto) {
     const user = req.user as UserContext;
@@ -172,16 +219,20 @@ export class ClientFormsController {
     await this.assertClient(user, dto.clientId);
     const client = await this.prisma.client.findFirst({ where: { id: dto.clientId }, select: { id: true, name: true } });
     if (!client) throw new NotFoundException('Client not found');
+    const from = await this.prisma.client.findUnique({ where: { id: record.clientId! }, select: { name: true } });
     if (record.living) {
       const taken = await this.prisma.formResponse.findFirst({ where: { formId: record.formId, clientId: client.id, living: true }, select: { id: true } });
       if (taken) throw new ConflictException(`${client.name} already has ${record.form.name}`);
     }
     await this.prisma.$transaction([
       this.prisma.formResponse.update({ where: { id }, data: { clientId: client.id } }),
+      this.prisma.formLink.updateMany({ where: { responseId: id }, data: { clientId: client.id } }),
       ...(record.living
-        ? [this.prisma.formLink.updateMany({ where: { formId: record.formId, clientId: record.clientId }, data: { clientId: client.id } })]
+        ? [this.prisma.formLink.updateMany({ where: { formId: record.formId, clientId: record.clientId, responseId: null }, data: { clientId: client.id } })]
         : []),
     ]);
+    await logFormActivity(this.prisma, user, record.clientId!, `${record.form.name} moved to ${client.name}`);
+    await logFormActivity(this.prisma, user, client.id, `${record.form.name} moved here from ${from?.name ?? 'another record'}`);
     return this.view(id, 'edit');
   }
 
@@ -195,20 +246,21 @@ export class ClientFormsController {
 
   // ── Share links (living copies) ────────────────────────────────────────────
 
+  /** This result's share links (and, for a living copy, links made before links pointed at one result). */
   @Get('records/:id/links')
   async recordLinks(@Req() req: Request, @Param('id') id: string) {
     const { record } = await this.assertResult(req.user as UserContext, id, 'edit');
-    if (!record.living) return [];
-    return this.links.list({ formId: record.formId, clientId: record.clientId! });
+    return this.links.list({
+      OR: [{ responseId: id }, ...(record.living ? [{ formId: record.formId, clientId: record.clientId!, kind: 'CLIENT' as const, responseId: null }] : [])],
+    });
   }
 
-  /** A link to this client's copy for someone outside (e.g. family) to update it. */
+  /** A link to this result for someone outside (e.g. family) to fill it in over time; it auto-saves. */
   @Post('records/:id/links')
   async createRecordLink(@Req() req: Request, @Param('id') id: string, @Body() dto: CreateLinkDto) {
     const user = req.user as UserContext;
     const { record } = await this.assertResult(user, id, 'edit');
-    if (!record.living) throw new BadRequestException('Share links are for forms with one living copy per client');
-    return this.links.create(user, { formId: record.formId, kind: 'CLIENT', clientId: record.clientId! }, dto);
+    return this.links.create(user, { formId: record.formId, kind: 'CLIENT', clientId: record.clientId!, responseId: record.id }, dto);
   }
 
   @Post('links/:id/revoke')
@@ -278,7 +330,7 @@ export class ClientFormsController {
       publicUpdatedAt: r.publicUpdatedAt?.toISOString() ?? null,
       publicUpdatedBy: r.publicUpdatedBy,
       myAccess: level,
-      canShare: r.living && level === 'edit',
+      canShare: level === 'edit',
       attribution: toRecordAttribution(r),
     };
   }

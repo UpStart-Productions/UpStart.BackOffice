@@ -38,8 +38,8 @@ Each part shows only what the role allows: visits need **Visits**, shifts need *
 
 A visit's page has the time, the **visit checklist** and notes.
 
-- **End visit**: saves the checklist and notes, sets the end to now and adds the hours to the worker's timesheet (no project, billable), so they invoice like any other time.
-- Change times, the checklist or notes and click **Save**; the time entry follows. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted. The ⋮ menu has **Delete** (also deletes its time entry).
+- **End visit**: sets the end to now and adds the hours to the worker's timesheet (no project, billable), so they invoice like any other time.
+- Times, the checklist and notes save as you change them; the time entry follows. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted. The ⋮ menu has **Delete** (also deletes its time entry).
 - **Open client** goes to the client's Care tab.
 
 **Visit checklist**: a form in Forms with **Use as the visit checklist** turned on (Settings) is filled in on every visit, for example meals, medication reminder, mood and activities. One form at a time. With none set, visits have just the times and notes.

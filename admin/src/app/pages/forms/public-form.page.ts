@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AccordionModule } from 'primeng/accordion';
@@ -7,9 +7,11 @@ import { ButtonModule } from 'primeng/button';
 import { TabsModule } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { isContentField, type FormFieldDto, type FormFileRef, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
+import { isContentField, type FormFieldDto, type FormFileRef, type FormPublicDraftDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
 import { environment } from '../../../environments/environment';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
+import { AutoSaver } from '../../core/auto-saver';
+import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
 
 type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done';
 /** One screen of a paged form; `section` null is "About you". */
@@ -22,7 +24,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
 @Component({
   selector: 'app-public-form-page',
   standalone: true,
-  imports: [NgTemplateOutlet, FormsModule, AccordionModule, ButtonModule, InputTextModule, MessageModule, TabsModule, FormFieldInputComponent],
+  imports: [NgTemplateOutlet, FormsModule, AccordionModule, ButtonModule, InputTextModule, MessageModule, TabsModule, FormFieldInputComponent, SaveStatusComponent],
   styleUrls: ['../login/login.page.scss', '../task-form/task-form.page.scss'],
   template: `
     <div class="login-page">
@@ -124,7 +126,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                         <p class="text-color-secondary cp-intro">{{ pg.intro }}</p>
                       }
                       @for (f of pg.fields; track f.id) {
-                        <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event; picked(f)" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
+                        <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="onChange(f, $event); picked(f)" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
                       }
                     } @else {
                       <p class="cp-kicker">Last step</p>
@@ -172,23 +174,23 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
               <div class="flex flex-wrap gap-2 mb-3">
                   <div class="form-field flex-1">
                     <label for="cpName">Your name@if (isIntake()) {<span class="required-dot" aria-hidden="true"></span>}</label>
-                    <input pInputText id="cpName" name="name" class="w-full" [(ngModel)]="name" autocomplete="name" />
+                    <input pInputText id="cpName" name="name" class="w-full" [(ngModel)]="name" (ngModelChange)="aboutYouChanged()" autocomplete="name" />
                   </div>
                   @if (isIntake()) {
                     <div class="form-field flex-1">
                       <label for="cpEmail2">Your email<span class="required-dot" aria-hidden="true"></span></label>
-                      <input pInputText id="cpEmail2" name="email2" type="email" class="w-full" [(ngModel)]="email" [readonly]="!!form()?.verifiedEmail" autocomplete="email" />
+                      <input pInputText id="cpEmail2" name="email2" type="email" class="w-full" [(ngModel)]="email" (ngModelChange)="aboutYouChanged()" [readonly]="!!form()?.verifiedEmail" autocomplete="email" />
                     </div>
                     @if (info()?.ask?.organization) {
                       <div class="form-field flex-1">
                         <label for="cpOrg">Organization<span class="required-dot" aria-hidden="true"></span></label>
-                        <input pInputText id="cpOrg" name="organization" class="w-full" [(ngModel)]="organization" autocomplete="organization" />
+                        <input pInputText id="cpOrg" name="organization" class="w-full" [(ngModel)]="organization" (ngModelChange)="aboutYouChanged()" autocomplete="organization" />
                       </div>
                     }
                     @if (info()?.ask?.phone) {
                       <div class="form-field flex-1">
                         <label for="cpPhone">Phone</label>
-                        <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" autocomplete="tel" />
+                        <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" (ngModelChange)="aboutYouChanged()" autocomplete="tel" />
                       </div>
                     }
                   }
@@ -203,7 +205,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                   <p class="text-color-secondary cp-intro">{{ sec.description }}</p>
                 }
                 @for (f of sec.fields; track f.id) {
-                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="values[f.id] = $event" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
+                  <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="onChange(f, $event)" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
                 }
               </ng-template>
               <div class="task-form-hp" aria-hidden="true">
@@ -211,14 +213,18 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                 <input id="cp-website" name="website" tabindex="-1" autocomplete="off" [(ngModel)]="website" />
               </div>
               @if (error()) { <p-message severity="error" styleClass="w-full mb-3" [text]="error()!" /> }
+              @if (form()?.submittedAt) {
+                <p class="text-color-secondary">This form was submitted. Changes you make still save.</p>
+              }
               <div class="login-actions">
+                <app-save-status [state]="saver.state()" />
                 @if (paged() && sectionStep() > 0) {
                   <p-button label="Back" severity="secondary" [outlined]="true" (onClick)="back()" />
                 }
                 @if (paged() && sectionStep() < stepCount() - 1) {
                   <p-button label="Next" (onClick)="next()" />
                 } @else {
-                  <p-button type="submit" label="Send" [loading]="busy()" />
+                  <p-button type="submit" [label]="isIntake() ? 'Send' : 'Submit'" [loading]="busy()" />
                 }
               </div>
             </form>
@@ -366,7 +372,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
  * The public page for any form link (Care's /care-form/:token and /form/:token): optional passcode or emailed
  * code, the form, then thanks. Scored forms also show the results.
  */
-export class PublicFormPage implements OnInit {
+export class PublicFormPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly token = this.route.snapshot.paramMap.get('token') ?? '';
   private readonly base = `${environment.apiBaseUrl}/form-links/${encodeURIComponent(this.token)}`;
@@ -390,6 +396,52 @@ export class PublicFormPage implements OnInit {
   organization = '';
   website = '';
   values: Record<string, unknown> = {};
+
+  /** New-response links: this browser's auto-saved draft (kept so a closed tab can pick up where it left off). */
+  private get draftKey() {
+    return `ubo-form-draft:${this.token}`;
+  }
+  private draftToken: string | null = null;
+
+  /**
+   * Auto-save: every answer saves a moment after it changes (picks, checkboxes and files right away). New-response
+   * links start a draft on the first answer; client links save into their result. Several people can share a link:
+   * each save sends just what changed.
+   */
+  readonly saver = new AutoSaver<unknown>(async (changes) => {
+    const values: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(changes)) if (k.startsWith('v:')) values[k.slice(2)] = v;
+    const r = await this.call<FormPublicDraftDto>('POST', '/draft', {
+      ...(this.draftToken ? { draftToken: this.draftToken } : {}),
+      values,
+      submitter: { name: this.name.trim(), email: this.email.trim(), phone: this.phone.trim(), organization: this.organization.trim() },
+    });
+    if (r.draftToken && r.draftToken !== this.draftToken) {
+      this.draftToken = r.draftToken;
+      try {
+        localStorage.setItem(this.draftKey, r.draftToken);
+      } catch {
+        // Saving still works; this browser just won't pick it up again after closing.
+      }
+    }
+  });
+
+  ngOnDestroy() {
+    void this.saver.flush().catch(() => undefined);
+    this.saver.destroy();
+  }
+
+  /** An answer changed: keep it and save it. */
+  onChange(f: FormFieldDto, value: unknown) {
+    this.values[f.id] = value;
+    const typing = f.type === 'TEXT' || f.type === 'LONG_TEXT' || f.type === 'NUMBER' || f.type === 'GROUP';
+    this.saver.change(`v:${f.id}`, value ?? null, !typing);
+  }
+
+  /** Name, email, phone or organization changed: saved with the draft (only once something is answered). */
+  aboutYouChanged() {
+    if (this.draftToken || !this.isIntake()) this.saver.change('about', true);
+  }
 
   /** How the form's sections are shown (set on the form in UBO). */
   readonly layout = computed(() => this.form()?.layout ?? 'page');
@@ -506,12 +558,22 @@ export class PublicFormPage implements OnInit {
       return;
     }
     await this.run(async () => {
+      await this.saver.flush();
       const r = await this.call<FormPublicSubmitResultDto>('POST', '/submit', {
+        ...(this.draftToken ? { draftToken: this.draftToken } : {}),
         values: this.values,
         submitter: { name: this.name.trim(), email: this.email.trim(), phone: this.phone.trim(), organization: this.organization.trim() },
         website: this.website,
       });
       this.doneMessage.set(r.message);
+      if (this.isIntake()) {
+        this.draftToken = null;
+        try {
+          localStorage.removeItem(this.draftKey);
+        } catch {
+          // Nothing to clean up.
+        }
+      }
       if (r.resultToken) {
         try {
           const res = await fetch(`${environment.apiBaseUrl}/form-results/${encodeURIComponent(r.resultToken)}`);
@@ -526,9 +588,25 @@ export class PublicFormPage implements OnInit {
   }
 
   private async loadForm() {
-    const f = await this.call<FormPublicFormDto>('GET', '/form');
+    if (this.isIntake()) {
+      try {
+        this.draftToken = localStorage.getItem(this.draftKey);
+      } catch {
+        this.draftToken = null;
+      }
+    }
+    const f = await this.call<FormPublicFormDto>('GET', this.draftToken ? `/form?draft=${encodeURIComponent(this.draftToken)}` : '/form');
     this.form.set(f);
     this.values = { ...f.values };
+    if (f.submitter) {
+      this.name = f.submitter.name ?? '';
+      this.email = f.submitter.email ?? '';
+      this.phone = f.submitter.phone ?? '';
+      this.organization = f.submitter.organization ?? '';
+    } else if (this.draftToken && !Object.keys(f.values).length) {
+      // The draft is gone (sent, or removed by the organization): start fresh.
+      this.draftToken = null;
+    }
     this.sectionStep.set(0);
     this.openSection = f.sections[0]?.id;
     if (f.verifiedEmail) this.email = f.verifiedEmail;

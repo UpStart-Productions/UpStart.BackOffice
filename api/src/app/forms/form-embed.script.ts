@@ -412,7 +412,7 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
         var hp = el('input', { type: 'text', name: 'website', tabindex: '-1', autocomplete: 'off' });
         var errorBox = el('p', { className: 'ubo-error', role: 'alert' });
         errorBox.hidden = true;
-        var button = el('button', { type: 'submit', className: 'ubo-button', text: 'Send' });
+        var button = el('button', { type: 'submit', className: 'ubo-button', text: info.kind === 'NEW' ? 'Send' : 'Submit' });
         var formEl = el('form', { novalidate: true }, [
           el('h2', { text: info.formName }),
           info.description ? el('p', { className: 'ubo-description', text: info.description }) : null
@@ -421,6 +421,45 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           errorBox,
           paged ? el('div', { className: 'ubo-nav' }, [backBtn, nextBtn, button]) : button
         ]));
+        // Auto-save: answers save a moment after each change. New-response links start a draft on the first answer
+        // (kept for this page visit); client links save into their result.
+        var draftToken = null;
+        var saveTimer = null;
+        var saving = Promise.resolve();
+        function collect() {
+          var values = {};
+          fields.forEach(function (x) { values[x.def.id] = x.ui.read(); });
+          return values;
+        }
+        function submitter() {
+          return {
+            name: nameIn.input.value.trim(), email: emailIn.input.value.trim(),
+            organization: orgIn ? orgIn.input.value.trim() : undefined, phone: phoneIn ? phoneIn.input.value.trim() : undefined
+          };
+        }
+        function saveDraft() {
+          saveTimer = null;
+          var values = collect();
+          var started = Object.keys(values).some(function (k) { return values[k] !== null; });
+          if (info.kind === 'NEW' && !draftToken && !started) return saving;
+          saving = saving.then(function () {
+            var body = { values: values, submitter: submitter() };
+            if (draftToken) body.draftToken = draftToken;
+            return apiCall(base, 'POST', '/draft', body).then(function (res) {
+              if (res && res.draftToken) draftToken = res.draftToken;
+            });
+          }).catch(function () {
+            // Try again a little later; Send also includes every answer.
+            if (!saveTimer) saveTimer = setTimeout(saveDraft, 5000);
+          });
+          return saving;
+        }
+        function queueSave() {
+          if (saveTimer) clearTimeout(saveTimer);
+          saveTimer = setTimeout(saveDraft, 800);
+        }
+        formEl.addEventListener('input', queueSave);
+        formEl.addEventListener('change', queueSave);
         if (paged) {
           nextBtn.addEventListener('click', function () {
             var p = pages[step];
@@ -452,13 +491,11 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           var values = {};
           fields.forEach(function (x) { var v = x.ui.read(); if (v !== null) values[x.def.id] = v; });
           button.disabled = true;
-          apiCall(base, 'POST', '/submit', {
-            values: values,
-            submitter: {
-              name: nameIn.input.value.trim(), email: emailIn.input.value.trim(),
-              organization: orgIn ? orgIn.input.value.trim() : undefined, phone: phoneIn ? phoneIn.input.value.trim() : undefined
-            },
-            website: hp.value
+          if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+          saving.then(function () {
+            var body = { values: values, submitter: submitter(), website: hp.value };
+            if (draftToken) body.draftToken = draftToken;
+            return apiCall(base, 'POST', '/submit', body);
           }).then(function (res) {
             emit('ubo-form:submitted', { message: res.message, resultToken: res.resultToken || null });
             if (redirect && res.resultToken) { location.href = redirect.replace('{token}', encodeURIComponent(res.resultToken)); return; }

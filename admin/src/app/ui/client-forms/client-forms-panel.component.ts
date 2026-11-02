@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { TagModule } from 'primeng/tag';
 import type { ClientFormOptionDto, ClientFormResultListItemDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ClientFormsApi } from '../../core/client-forms.api';
@@ -18,7 +19,7 @@ type Group = { category: string; results: ClientFormResultListItemDto[] };
 @Component({
   selector: 'app-client-forms-panel',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, AppDialogModule],
+  imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TagModule, AppDialogModule],
   template: `
     @if (loaded() && (results().length || options().length)) {
       <div class="card card--side">
@@ -36,9 +37,14 @@ type Group = { category: string; results: ClientFormResultListItemDto[] };
             @for (r of g.results; track r.id) {
               <div class="side-list-row">
                 <div class="side-list-body">
-                  <a class="side-list-title" [routerLink]="['/forms/results', r.id]">{{ r.formName }}</a>
+                  <a class="side-list-title" [routerLink]="r.isClientForm ? ['/forms/results', r.id] : ['/forms/submissions', r.id]">{{ r.formName }}</a>
                   <span class="side-list-detail">{{ r.copies === 'living' ? 'Updated ' + (r.updatedAt | date: 'MMM d, y') : (r.createdAt | date: 'MMM d, y') }}</span>
                 </div>
+                @if (r.submittedAt) {
+                  <p-tag value="Submitted" severity="success" />
+                } @else {
+                  <p-tag value="In progress" severity="info" />
+                }
               </div>
             }
           </div>

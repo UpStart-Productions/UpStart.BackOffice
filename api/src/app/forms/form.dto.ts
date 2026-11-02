@@ -104,7 +104,17 @@ class SubmitterDto {
   @IsOptional() @IsString() @MaxLength(200) organization?: string;
 }
 
+/** Auto-save on a public link: answers changed since the last save (merged into what's saved). */
+export class PublicDraftDto {
+  /** New-response links: the draft's token from the first save (kept in the browser). */
+  @IsOptional() @IsString() @MaxLength(200) draftToken?: string;
+  @IsObject() values!: Record<string, unknown>;
+  @IsOptional() @ValidateNested() @Type(() => SubmitterDto) submitter?: SubmitterDto;
+}
+
 export class PublicSubmitDto {
+  /** New-response links: send this auto-saved draft (instead of starting a new response). */
+  @IsOptional() @IsString() @MaxLength(200) draftToken?: string;
   @IsObject() values!: Record<string, unknown>;
   @IsOptional() @ValidateNested() @Type(() => SubmitterDto) submitter?: SubmitterDto;
   /** Honeypot: people never see it, bots fill it in. */

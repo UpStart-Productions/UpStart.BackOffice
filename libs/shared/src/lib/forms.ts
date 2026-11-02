@@ -254,7 +254,17 @@ export type FormPublicFormDto = {
   values: Record<string, unknown>;
   /** Email proven with a code (new response); shown read-only on the form. */
   verifiedEmail: string | null;
+  /** New-response links resuming a draft: who they said they are so far. */
+  submitter?: { name: string | null; email: string | null; phone: string | null; organization: string | null } | null;
+  /** Client links: the result was already submitted (it can still be updated). */
+  submittedAt?: string | null;
 };
+
+/**
+ * Auto-save on a public link (POST /form-links/:token/draft). New-response links start a draft on the first answer
+ * and get a token to keep saving it (kept in the browser); client links save into their result.
+ */
+export type FormPublicDraftDto = { draftToken: string | null; savedAt: string };
 
 /** Staff preview of a Forms draft (current fields and settings, not the published version). */
 export type FormStaffPreviewDto = {
@@ -308,8 +318,6 @@ export type FormClientSettings = {
   enabled: boolean;
   /** living: one copy per client, kept up to date (like a profile). each: a new dated result each time (like an intake). */
   copies: 'living' | 'each';
-  /** Public-link submissions can be accepted into a new client (with the sender as its person). */
-  createClients: boolean;
   /** Groups the form on the client page and in lists. */
   category: string | null;
 };
@@ -320,7 +328,7 @@ export const FORM_CLIENT_COPIES_LABELS: Record<FormClientCopies, string> = {
   each: 'New each time',
 };
 
-export const DEFAULT_FORM_CLIENT_SETTINGS: FormClientSettings = { enabled: false, copies: 'each', createClients: false, category: null };
+export const DEFAULT_FORM_CLIENT_SETTINGS: FormClientSettings = { enabled: false, copies: 'each', category: null };
 
 export type FormSettings = {
   /** How sections are shown on public pages. */
@@ -381,7 +389,6 @@ export function normalizeFormSettings(input: unknown): FormSettings {
   const client: FormClientSettings = {
     enabled: !!cl['enabled'],
     copies: cl['copies'] === 'living' ? 'living' : 'each',
-    createClients: !!cl['createClients'],
     category: str(cl['category'], 60) || null,
   };
   return {
@@ -521,6 +528,8 @@ export type FormResultDto = {
 // ── Admin DTOs ───────────────────────────────────────────────────────────────
 
 export type FormSubmissionStatus = 'PENDING' | 'ACTIVE' | 'DISMISSED';
+/** Submissions list filter: a status, or IN_PROGRESS (started, not submitted yet). */
+export type FormSubmissionFilter = FormSubmissionStatus | 'IN_PROGRESS';
 
 export type FreeFormListItemDto = {
   id: string;
@@ -566,6 +575,8 @@ export type FormSubmissionListItemDto = {
   clientId: string | null;
   clientName: string | null;
   createdAt: string;
+  /** Null: In progress (auto-saved, not submitted yet). */
+  submittedAt: string | null;
 };
 
 export type FormSubmissionDto = FormSubmissionListItemDto & {
@@ -577,12 +588,27 @@ export type FormSubmissionDto = FormSubmissionListItemDto & {
   scores: FormScores | null;
   bands: FormScoreBand[];
   canEdit: boolean;
-  /** Client forms: Accept can create a new client (instead of a Prospect). */
-  createsClients: boolean;
+  /** A client form: the Attach dialog starts on Clients (others start on Organizations). */
+  isClientForm: boolean;
 };
 
 /** A client that may be who sent a submission (same email, or same name). */
 export type FormSubmissionMatchDto = { clientId: string; name: string; reason: string };
+
+/** A client or organization a response can be attached to (pickers and suggestions). */
+export type FormAttachTargetDto = { clientId: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'NONE'; tags: string[]; people: string[]; reason?: string };
+
+/** Who will be able to see a response once it's attached (shown before confirming). */
+export type FormAttachVisibilityDto = {
+  /** Client forms: roles with Read or Edit (admins always). Other forms: people with the Forms area. */
+  roles: { name: string; level: 'read' | 'edit' }[];
+  /** People outside Organizations: All only see records assigned to them. */
+  limitedToAssigned: boolean;
+  isClientForm: boolean;
+};
+
+/** The Attach response dialog: suggestions and visibility. */
+export type FormAttachInfoDto = { matches: FormAttachTargetDto[]; visibility: FormAttachVisibilityDto };
 
 /** Submissions waiting for review across every form the user can see (Dashboard). */
 export type PendingSubmissionDto = {
@@ -619,6 +645,10 @@ export type ClientFormResultListItemDto = {
   createdAt: string;
   updatedAt: string;
   updatedByName: string | null;
+  /** Null: In progress (auto-saved, not submitted yet). */
+  submittedAt: string | null;
+  /** False: a form that isn't a client form (e.g. an assessment accepted into an organization); opens as a submission. */
+  isClientForm: boolean;
 };
 
 export type ClientFormResultDto = ClientFormResultListItemDto & {
@@ -628,7 +658,7 @@ export type ClientFormResultDto = ClientFormResultListItemDto & {
   publicUpdatedAt: string | null;
   publicUpdatedBy: string | null;
   myAccess: FormAccessLevel;
-  /** Share links (someone outside updates this copy): living forms only. */
+  /** Share links (someone outside fills in this result). */
   canShare: boolean;
   attribution?: import('./types').RecordAttributionDto;
 };
