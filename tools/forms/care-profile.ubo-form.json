@@ -6,22 +6,19 @@
   "settings": {
     "layout": "steps",
     "review": true,
-    "askOrganization": false,
-    "askPhone": false,
     "resultsEmail": false,
-    "cta": null,
     "thankYou": null,
     "client": {
       "enabled": true,
-      "copies": "living",
-      "category": "Care profile"
+      "copies": "living"
     },
     "visitChecklist": false,
     "scoring": {
       "enabled": false,
       "groups": [],
       "bands": []
-    }
+    },
+    "usedFor": "Care profile"
   },
   "sections": [
     {

@@ -6,14 +6,8 @@
   "settings": {
     "layout": "questions",
     "review": true,
-    "askOrganization": true,
-    "askPhone": false,
     "resultsEmail": true,
-    "thankYou": null,
-    "cta": {
-      "label": "Schedule a Discovery Chat",
-      "url": "https://heyupstart.com/book-discovery-chat/"
-    },
+    "thankYou": "<p>Thanks for taking the Mission Tech Compass! Want to talk through your results? <a href=\"https://heyupstart.com/book-discovery-chat/\">Schedule a Discovery Chat</a>.</p>",
     "scoring": {
       "enabled": true,
       "groups": [
@@ -707,6 +701,11 @@
           "name": "What would your team do with 10 extra hours a week?",
           "type": "LONG_TEXT",
           "required": false
+        },
+        {
+          "name": "Organization",
+          "type": "TEXT",
+          "required": true
         }
       ]
     }

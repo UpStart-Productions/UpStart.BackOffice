@@ -1,0 +1,360 @@
+{
+  "format": "ubo-form",
+  "version": 1,
+  "name": "Caregiver Quick Reference",
+  "description": "Who to call, the medical team, health basics, and how the home runs, for the caregivers working with this client.",
+  "settings": {
+    "layout": "steps",
+    "usedFor": "Caregiver reference",
+    "review": true,
+    "resultsEmail": false,
+    "thankYou": null,
+    "client": {
+      "enabled": true,
+      "copies": "living"
+    },
+    "visitChecklist": false,
+    "scoring": {
+      "enabled": false,
+      "groups": [],
+      "bands": []
+    }
+  },
+  "sections": [
+    {
+      "name": "Personal contacts",
+      "fields": [
+        {
+          "name": "<p>Everyone below can be reached by phone, text and email. In an emergency, call them in the order listed. <strong>In a life-threatening emergency, always call 9-1-1 first.</strong></p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Family, guardian or appointed person (in calling order)",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Phone",
+              "type": "PHONE"
+            },
+            {
+              "name": "Email",
+              "type": "TEXT"
+            }
+          ]
+        },
+        {
+          "name": "Care manager name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Care manager phone",
+          "type": "PHONE",
+          "required": false
+        },
+        {
+          "name": "Care manager email",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "<p>Contact the daily money manager only if the family asks you to.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Daily money manager name",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Daily money manager phone",
+          "type": "PHONE",
+          "required": false
+        },
+        {
+          "name": "Daily money manager email",
+          "type": "TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Medical team",
+      "fields": [
+        {
+          "name": "<p>The main health care contacts, with phone numbers for appointments, nurses and prescriptions. If another hospital is closer to the home and would be used in an emergency, list both.</p><p>Keep insurance cards, photo ID and payment cards together in a purse or wallet that goes along whenever you go out.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Medical contacts",
+          "type": "GROUP",
+          "required": false,
+          "subfields": [
+            {
+              "name": "Type",
+              "type": "SINGLE_SELECT",
+              "options": [
+                {
+                  "label": "Primary hospital"
+                },
+                {
+                  "label": "Other hospital"
+                },
+                {
+                  "label": "Primary care physician"
+                },
+                {
+                  "label": "Dentist"
+                },
+                {
+                  "label": "Optometrist"
+                },
+                {
+                  "label": "Pharmacy"
+                },
+                {
+                  "label": "Other"
+                }
+              ]
+            },
+            {
+              "name": "Name",
+              "type": "TEXT"
+            },
+            {
+              "name": "Address",
+              "type": "TEXT"
+            },
+            {
+              "name": "Phone",
+              "type": "PHONE"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "fields": [
+        {
+          "name": "Allergies",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Diagnoses",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Code status",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "DNR"
+            },
+            {
+              "label": "Full code"
+            },
+            {
+              "label": "POLST"
+            }
+          ]
+        },
+        {
+          "name": "Organ donor",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            {
+              "label": "Yes"
+            },
+            {
+              "label": "No"
+            }
+          ]
+        },
+        {
+          "name": "Current medication list",
+          "type": "FILE",
+          "required": false
+        },
+        {
+          "name": "Photo ID",
+          "type": "FILE",
+          "required": false
+        },
+        {
+          "name": "Insurance cards",
+          "type": "FILE",
+          "required": false,
+          "multiple": true
+        },
+        {
+          "name": "POLST",
+          "type": "FILE",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Household security and finances",
+      "fields": [
+        {
+          "name": "<p>Don't enter card numbers, account numbers or passwords. Note where things are kept and how they're used.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Where the spare house key is kept",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Garage key or lock information",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Debit card",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Credit card",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "True Link card (reloadable)",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Amazon account",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Bank information",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Check-writing",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Cash",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Receipts",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Workers' comp insurance policy number",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Home services",
+      "fields": [
+        {
+          "name": "House-cleaning company",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Landscaping company",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Pest management",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    },
+    {
+      "name": "Technology in the home",
+      "fields": [
+        {
+          "name": "<p>Don't enter logins or passwords here. Note where they're kept.</p>",
+          "type": "CONTENT",
+          "required": false
+        },
+        {
+          "name": "Where logins and passwords are kept",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Modem location",
+          "type": "TEXT",
+          "required": false
+        },
+        {
+          "name": "Wi-Fi",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "TV and remotes",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Computers and tablets",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Music and sound systems",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Home alarm system",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Cell phone, landline and voicemail",
+          "type": "LONG_TEXT",
+          "required": false
+        },
+        {
+          "name": "Other",
+          "type": "LONG_TEXT",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

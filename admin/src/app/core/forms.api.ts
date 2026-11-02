@@ -21,6 +21,10 @@ export class FormsApi {
   import(definition: unknown, name?: string) {
     return this.api.post<{ id: string }>(`${this.base}/forms/import`, { definition, ...(name ? { name } : {}) });
   }
+  /** Add a form file's sections after the form's own (nothing existing changes). */
+  importInto(id: string, definition: unknown) {
+    return this.api.post<{ sections: number; fields: number }>(`${this.base}/forms/${id}/import`, { definition });
+  }
   export(id: string) {
     return this.api.get<FormDefinition>(`${this.base}/forms/${id}/export`);
   }

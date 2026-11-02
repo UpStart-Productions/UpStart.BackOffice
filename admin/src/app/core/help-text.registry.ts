@@ -160,7 +160,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.review':
     'On: submissions wait under Waiting for review until you Attach them (to a client or organization, new or existing) or Dismiss them. Off: they are attached as they come in.',
   'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
-  'forms.form.cta': 'A button on the results page and email, e.g. a link to book a call.',
+  'forms.form.thankYou':
+    'Shown after someone sends the form, and in the email when Email people their results is on. Add links here, e.g. to book a call. Empty: "Thanks! … was sent to …".',
   'forms.form.scoring':
     'Give answer choices points (in each select field). People get a percentage of the points possible, the profile for that percentage, and a percentage per score area.',
   'forms.form.scoreAreas': 'Groups of questions scored together, e.g. Workflows, Data, Security. Pick a question\'s area when you edit the field.',
@@ -172,8 +173,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.submission.page':
     'One submission: the answers, the results (total score, profile and score areas) and who sent it. Attach picks the client or organization it belongs to (or a new one), then shows who will see it before you confirm. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
   'forms.form.client':
-    "Client forms: answers attach to a client and show in the Forms panel on the client's page. Name the form anything (e.g. Services intake, Client profile).",
-  'forms.form.category': 'Groups client forms on the client page and in Add form, e.g. Intake, Client profile, Class registration. Optional.',
+    "Client forms: answers attach to a client and show in the Forms panel on the client's page. Name the form anything.",
+  'forms.form.usedFor': 'Your own note on what this form is for. It shows in the Used for column of the Forms list. Optional.',
   'forms.form.copies':
     'One living copy: each client has one copy you keep up to date (like a profile); Add form opens it. New each time: every Add form or attached submission is a new dated result (like an intake).',
   'forms.form.visitChecklist': 'Care: caregivers fill this form in on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',

@@ -4,7 +4,7 @@
 
 **Clients** lists the organizations you are working for (status Client). Active and Inactive show in the Status column. See the CRM guide for how clients, prospects and organizations relate.
 
-A client's page has a **Forms** panel: the client's filled-in client forms (intake, profile and so on), grouped by category. **Add form** picks any client form your role can edit; a form with one living copy per client opens the client's copy instead of adding another. See the Forms guide.
+A client's page has a **Forms** panel: the client's filled-in forms. **Add form** lists the client forms your role can edit that this client doesn't have yet. See the Forms guide.
 
 With the Care module on, clients in care also get a **Care** tab (see the Care guide).
 

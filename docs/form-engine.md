@@ -46,7 +46,7 @@ logic) are added to the profile type and switched on per profile.
 
 ## Forms area (free-standing forms)
 
-- Module `forms`, key null, `Form.settings` = `FormSettings` (review, ask organization/phone, results email, thank-you, CTA, scoring).
+- Module `forms`, key null, `Form.settings` = `FormSettings` (review, results email, thank-you as cleaned HTML, scoring). Public links ask name and email only; anything else is a question.
 - Area `forms` (core, ownable: Own = `createdById`). API `FreeFormsController` at `/form-admin/...` (`/forms` is taken by Task Forms).
 - Scoring: `computeFormScores` (shared) on submit against the published snapshot; `publicSections` strips points before
   anything goes to a public page. Bands are picked by `upTo` (percent, inclusive); the last band catches the rest.

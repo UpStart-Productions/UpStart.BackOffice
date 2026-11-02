@@ -326,7 +326,6 @@ export class FormPublicService {
       const bands = [...(snap.scoring?.bands ?? [])].sort((a, b) => a.upTo - b.upTo);
       const index = bands.findIndex((b) => b.id === scores.bandId);
       const band = index >= 0 ? bands[index] : null;
-      const settings = normalizeFormSettings(r.form.settings);
       return {
         formName: snap.name,
         organizationName: await this.organizationName(found.tenantId),
@@ -341,7 +340,6 @@ export class FormPublicService {
           : null,
         bands: bands.map((b) => ({ id: b.id, label: b.label })),
         groups: scores.groups,
-        cta: settings.cta,
       };
     });
   }

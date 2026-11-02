@@ -379,7 +379,6 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
       parts.push(el('h4', { text: 'By area' }));
       r.groups.forEach(function (g) { parts.push(el('div', { className: 'ubo-area' }, [el('span', { text: g.name }), el('strong', { text: Math.round(g.percent) + '%' })])); });
     }
-    if (r.cta) parts.push(el('p', null, [el('a', { className: 'ubo-button', href: r.cta.url, text: r.cta.label })]));
     return el('div', { className: 'ubo-results' }, parts);
   }
 
@@ -593,7 +592,7 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           }).then(function (res) {
             emit('ubo-form:submitted', { message: res.message, resultToken: res.resultToken || null });
             if (redirect && res.resultToken) { location.href = redirect.replace('{token}', encodeURIComponent(res.resultToken)); return; }
-            var done = [el('h2', { text: 'Thank you' }), el('p', { text: res.message })];
+            var done = [el('h2', { text: 'Thank you' }), richText(res.message)];
             show(done);
             root.scrollIntoView({ block: 'start', behavior: 'smooth' });
             if (res.resultToken) {

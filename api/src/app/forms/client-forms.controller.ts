@@ -54,7 +54,7 @@ const LIST_INCLUDE = {
 } as const;
 type ListRow = Prisma.FormResponseGetPayload<{ include: typeof LIST_INCLUDE }>;
 
-type FormRow = { id: string; name: string; access: unknown; settings: unknown };
+type FormRow = { id: string; name: string; access: unknown; settings: unknown; publishedVersionId?: string | null };
 
 function listItem(r: ListRow): ClientFormResultListItemDto {
   const settings = normalizeFormSettings(r.form.settings);
@@ -64,7 +64,6 @@ function listItem(r: ListRow): ClientFormResultListItemDto {
     id: r.id,
     formId: r.formId,
     formName: r.form.name,
-    category: settings.client.category,
     copies: settings.client.copies,
     isClientForm: settings.client.enabled,
     submittedAt: r.submittedAt?.toISOString() ?? null,
@@ -114,7 +113,8 @@ export class ClientFormsController {
       if (!level) continue;
       readable.add(f.id);
       const s = normalizeFormSettings(f.settings).client;
-      if (level === 'edit') options.push({ formId: f.id, name: f.name, category: s.category, copies: s.copies, myAccess: level });
+      // Only published forms can be added (drafts are still being built).
+      if (level === 'edit' && f.publishedVersionId) options.push({ formId: f.id, name: f.name, copies: s.copies, myAccess: level });
     }
     // Other forms' responses attached here (e.g. an assessment accepted into an organization): people with Forms.
     const otherForms = allows(user, 'forms', 'view') ? { form: { module: M, NOT: { settings: { path: ['client', 'enabled'], equals: true } } } } : null;
@@ -127,7 +127,7 @@ export class ClientFormsController {
       orderBy: { createdAt: 'desc' },
       include: LIST_INCLUDE,
     });
-    options.sort((a, b) => (a.category ?? '').localeCompare(b.category ?? '') || a.name.localeCompare(b.name));
+    options.sort((a, b) => a.name.localeCompare(b.name));
     return { results: rows.map(listItem), options };
   }
 
@@ -137,6 +137,7 @@ export class ClientFormsController {
     const user = req.user as UserContext;
     const form = await this.prisma.form.findFirst({ where: { id: dto.formId, module: M } });
     if (!form || !normalizeFormSettings(form.settings).client.enabled) throw new NotFoundException('Form not found');
+    if (!form.publishedVersionId) throw new BadRequestException('Publish this form before adding it to a client');
     if ((await this.formAccess(user, form)) !== 'edit') throw new NotFoundException('Form not found');
     await this.assertClient(user, dto.clientId);
     const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
@@ -283,7 +284,7 @@ export class ClientFormsController {
   private async clientForms(): Promise<FormRow[]> {
     const forms = await this.prisma.form.findMany({
       where: { module: M, settings: { path: ['client', 'enabled'], equals: true } },
-      select: { id: true, name: true, access: true, settings: true },
+      select: { id: true, name: true, access: true, settings: true, publishedVersionId: true },
       orderBy: { name: 'asc' },
     });
     return forms;

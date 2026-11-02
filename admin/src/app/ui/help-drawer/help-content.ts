@@ -85,7 +85,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Forms',
-      body: "The client's filled-in client forms (from Forms), grouped by category. Add form picks any client form your role can edit: a form with one living copy opens the client's copy, the others start a new dated one. Attached public submissions show here too, with In progress or Submitted.",
+      body: "The client's filled-in forms (from Forms). Add form lists the published client forms your role can edit that this client doesn't have yet. Attached public submissions show here too, with In progress or Submitted.",
     },
     {
       heading: 'Care (Care module)',
@@ -832,7 +832,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Used for',
-        body: 'Client form (with its category): answers attach to clients and show on the client page. Visit checklist (Care): filled in on every visit.',
+        body: 'What each form is for, as typed in its Settings (Used for).',
       },
       {
         heading: 'Who sees what',
@@ -849,6 +849,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Click a section to see its questions. + next to Sections adds one; drag sections up or down to reorder them. A section\'s ⋮ menu renames or deletes it. Add field adds a question; Add text adds a text block (an intro or note people read, not answered or scored). Drag either by its ☰ handle to reorder it.',
       },
       {
+        heading: 'Import form file',
+        body: "In the ⋮ menu. Adds a form file's sections and questions after this form's own. It only adds: nothing on the form changes, including its answers, name and settings. Score areas from the file don't carry over.",
+      },
+      {
         heading: 'How sections are shown',
         body: 'In Settings: One page, Page by section, Page by question (one question or text block per screen; a single choice moves on by itself), Accordion or Tabs. The link page and the embed code follow it. Click Save.',
       },
@@ -858,7 +862,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Settings',
-        body: 'Review submissions before accepting them, ask for the organization or a phone number, email people their results, a thank-you message and a call to action. Client form: Attach answers to a client, a Category, Copies per client (One living copy or New each time). With Care on: Use as the visit checklist. Click Save.',
+        body: 'Review submissions before attaching them, email people their results, and a thank-you message (formatted, with links, e.g. to book a call). Used for: your own note on what the form is for. Client form: Attach answers to a client and Copies per client (One living copy or New each time). With Care on: Use as the visit checklist. Click Save.',
       },
       {
         heading: 'Who can use it',

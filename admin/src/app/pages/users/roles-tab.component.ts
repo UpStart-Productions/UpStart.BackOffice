@@ -129,7 +129,7 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
       <div class="form">
         <label for="role-name">Name</label>
         <input pInputText id="role-name" [(ngModel)]="name" placeholder="Caregiver" class="w-full" />
-        <table class="grid">
+        <table class="role-grid">
           <thead>
             <tr>
               <th>Area</th>
@@ -215,10 +215,10 @@ const LEVEL_LABEL: Record<Level, string> = { none: 'None', own: 'Own', all: 'All
   `,
   styles: `
     .form { display: flex; flex-direction: column; gap: 0.5rem; }
-    .grid { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
-    .grid th { text-align: left; font-size: var(--fs-sm); color: var(--text-color-secondary); font-weight: 600; padding: 0.25rem 0.5rem; }
-    .grid td { padding: 0.375rem 0.5rem; border-top: 1px solid var(--surface-border); }
-    .grid .check { text-align: center; width: 4.5rem; }
+    .role-grid { width: 100%; border-collapse: collapse; margin-top: 0.75rem; }
+    .role-grid th { text-align: left; font-size: var(--fs-sm); color: var(--text-color-secondary); font-weight: 600; padding: 0.25rem 0.5rem; }
+    .role-grid td { padding: 0.375rem 0.5rem; border-top: 1px solid var(--surface-border); }
+    .role-grid .check { text-align: center; width: 4.5rem; }
     .preset-icon { display: inline-flex; vertical-align: middle; margin-left: 0.5rem; color: var(--p-amber-500, #f59e0b); cursor: help; }
     .role-col { width: 14rem; white-space: nowrap; }
     .caps { display: flex; flex-wrap: wrap; gap: 0.375rem; }

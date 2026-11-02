@@ -36,9 +36,9 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     this.destinations.register(this);
   }
 
-  ask(link: PublicLink) {
-    const s = normalizeFormSettings(link.form.settings);
-    return { organization: s.askOrganization, phone: s.askPhone };
+  /** Name and email only: anything else (organization, phone) is a question on the form. */
+  ask(_link: PublicLink) {
+    return { organization: false, phone: false };
   }
 
   /** A client link's result: the one it was made for, or (older links) the client's living copy. */
@@ -211,6 +211,12 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
             .join('')}</table>`,
         );
       }
+      // The thank-you message (formatted text, links included): first on a plain thank-you, after the results otherwise.
+      if (settings.thankYou) {
+        const block = `<div style="margin:0 0 12px;font-size:15px;line-height:1.55;color:#2d2d2d;">${settings.thankYou}</div>`;
+        if (scores) parts.push(block);
+        else parts.unshift(block);
+      }
       const html = wrapClientEmail({
         title: scores ? `Your ${formName} results` : `Thanks for sending ${formName}`,
         subtitle: org,
@@ -219,10 +225,11 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
           ? band
             ? `Your result: ${band.label} (${Math.round(scores.percent)}%).`
             : `Your score: ${Math.round(scores.percent)}%.`
-          : settings.thankYou ?? `We received ${formName}. Thank you!`,
+          : settings.thankYou
+            ? undefined
+            : `We received ${formName}. Thank you!`,
         facts: scores ? [{ label: 'Score', value: `${Math.round(scores.percent)}%` }, ...(band ? [{ label: 'Profile', value: band.label }] : [])] : [],
         extraHtml: parts.join(''),
-        ...(settings.cta ? { action: { href: settings.cta.url, label: settings.cta.label } } : {}),
       });
       await this.mail.sendRaw({ to: sub.email!, subject: scores ? `Your ${formName} results` : `Thanks for sending ${formName}`, html });
     } catch (err) {

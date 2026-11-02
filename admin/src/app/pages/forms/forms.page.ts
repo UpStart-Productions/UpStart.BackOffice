@@ -72,14 +72,7 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             <tr>
               <td><app-row-actions-menu [items]="rowActions(f)" ariaLabel="Form actions" /></td>
               <td><a [routerLink]="['/forms', f.id]" class="text-primary">{{ f.name }}</a></td>
-              <td>
-                @if (f.isClientForm) {
-                  <p-tag [value]="f.clientCategory ? 'Client form: ' + f.clientCategory : 'Client form'" severity="info" />
-                }
-                @if (f.visitChecklist) {
-                  <p-tag value="Visit checklist" severity="info" [class.ml-1]="f.isClientForm" />
-                }
-              </td>
+              <td>{{ f.usedFor }}</td>
               <td>
                 @if (f.publishedNumber === null) {
                   <p-tag value="Draft" severity="secondary" />

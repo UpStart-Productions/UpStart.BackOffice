@@ -353,17 +353,12 @@ export const FORM_LAYOUT_LABELS: Record<FormLayout, string> = {
   tabs: 'Tabs',
 };
 
-/**
- * Client forms: answers (results) belong to a client and show on the client's page. The tenant names the form
- * and its category freely (e.g. "Services intake" in Intake, "Client profile" in Profiles).
- */
+/** Client forms: answers (results) belong to a client and show on the client's page. */
 export type FormClientSettings = {
   /** Answers attach to a client. */
   enabled: boolean;
   /** living: one copy per client, kept up to date (like a profile). each: a new dated result each time (like an intake). */
   copies: 'living' | 'each';
-  /** Groups the form on the client page and in lists. */
-  category: string | null;
 };
 
 export type FormClientCopies = FormClientSettings['copies'];
@@ -372,7 +367,7 @@ export const FORM_CLIENT_COPIES_LABELS: Record<FormClientCopies, string> = {
   each: 'New each time',
 };
 
-export const DEFAULT_FORM_CLIENT_SETTINGS: FormClientSettings = { enabled: false, copies: 'each', category: null };
+export const DEFAULT_FORM_CLIENT_SETTINGS: FormClientSettings = { enabled: false, copies: 'each' };
 
 export type FormSettings = {
   /** How sections are shown on public pages. */
@@ -383,14 +378,11 @@ export type FormSettings = {
   visitChecklist: boolean;
   /** Submissions wait under Waiting for review (accept into a Prospect, or dismiss). Off: they are accepted as is. */
   review: boolean;
-  /** Ask the respondent for their organization (used as the Prospect name). */
-  askOrganization: boolean;
-  askPhone: boolean;
+  /** What the form is for, in the tenant's words (the Forms list's Used for column). Optional. */
+  usedFor: string | null;
   /** Email the respondent their results (scored forms) or a copy of the thank-you. */
   resultsEmail: boolean;
-  /** Call to action on the results page and email, e.g. Schedule a discovery chat. */
-  cta: { label: string; url: string } | null;
-  /** Shown after submitting. Empty: "Thanks! … was sent to …". */
+  /** Shown after submitting and in the results email: formatted text (HTML, cleaned). Empty: "Thanks! … was sent to …". */
   thankYou: string | null;
   scoring: FormScoring;
 };
@@ -400,13 +392,46 @@ export const DEFAULT_FORM_SETTINGS: FormSettings = {
   client: DEFAULT_FORM_CLIENT_SETTINGS,
   visitChecklist: false,
   review: true,
-  askOrganization: false,
-  askPhone: false,
+  usedFor: null,
   resultsEmail: false,
-  cta: null,
   thankYou: null,
   scoring: { enabled: false, groups: [], bands: [] },
 };
+
+const SAFE_HTML_TAGS = new Set(['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'blockquote']);
+
+/**
+ * Formatted text (Quill) cleaned for pages and emails: only simple tags, no attributes except a link's
+ * http(s)/mailto/tel address. Scripts and styles are dropped with their content.
+ */
+export function cleanFormHtml(html: string): string {
+  return html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<\/?([a-zA-Z0-9]+)([^>]*)>/g, (tag, name: string, attrs: string) => {
+      const t = name.toLowerCase();
+      if (!SAFE_HTML_TAGS.has(t)) return '';
+      if (tag.startsWith('</')) return `</${t}>`;
+      if (t === 'a') {
+        const m = /href\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/i.exec(attrs);
+        const href = (m?.[2] ?? m?.[3] ?? m?.[4] ?? '').trim();
+        return /^(https?:|mailto:|tel:)/i.test(href) ? `<a href="${href.replace(/"/g, '&quot;')}" target="_blank" rel="noopener">` : '<a>';
+      }
+      return `<${t}>`;
+    });
+}
+
+/** Whether formatted text has any words in it. */
+export function htmlHasText(html: string | null | undefined): boolean {
+  return !!(html ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
+
+/** The thank-you as clean HTML (older plain-text messages become paragraphs). */
+function thankYouHtml(v: unknown): string | null {
+  if (typeof v !== 'string' || !htmlHasText(v)) return null;
+  const html = /<[a-z][^>]*>/i.test(v) ? cleanFormHtml(v.trim()) : plainTextToHtml(v);
+  return html.slice(0, 8000) || null;
+}
 
 /** Stored settings with defaults filled in and junk dropped. */
 export function normalizeFormSettings(input: unknown): FormSettings {
@@ -428,23 +453,20 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     }))
     .filter((b: FormScoreBand) => b.id && b.label)
     .sort((a: FormScoreBand, b: FormScoreBand) => a.upTo - b.upTo);
-  const cta = src['cta'] && typeof src['cta'] === 'object' && str(src['cta'].url, 1000) ? { label: str(src['cta'].label, 120) || 'Learn more', url: str(src['cta'].url, 1000) } : null;
   const cl = (src['client'] && typeof src['client'] === 'object' ? src['client'] : {}) as Record<string, any>;
   const client: FormClientSettings = {
     enabled: !!cl['enabled'],
     copies: cl['copies'] === 'living' ? 'living' : 'each',
-    category: str(cl['category'], 60) || null,
   };
   return {
     layout: FORM_LAYOUTS.includes(src['layout']) ? src['layout'] : DEFAULT_FORM_SETTINGS.layout,
     client,
     visitChecklist: !!src['visitChecklist'],
     review: src['review'] === undefined ? DEFAULT_FORM_SETTINGS.review : !!src['review'],
-    askOrganization: !!src['askOrganization'],
-    askPhone: !!src['askPhone'],
+    // Older forms kept this as the client form's category.
+    usedFor: str(src['usedFor'], 80) || str(cl['category'], 80) || null,
     resultsEmail: !!src['resultsEmail'],
-    cta,
-    thankYou: str(src['thankYou'], 2000) || null,
+    thankYou: thankYouHtml(src['thankYou']),
     scoring: { enabled: !!sc['enabled'], groups, bands },
   };
 }
@@ -570,7 +592,6 @@ export type FormResultDto = {
   /** Every band in order (for a scale like Finding Your Bearings → Strong Foundation). */
   bands: { id: string; label: string }[];
   groups: FormGroupScore[];
-  cta: { label: string; url: string } | null;
 };
 
 // ── Admin DTOs ───────────────────────────────────────────────────────────────
@@ -589,8 +610,8 @@ export type FreeFormListItemDto = {
   pendingCount: number;
   updatedAt: string;
   createdByName: string | null;
-  /** Client form category, or null (not a client form). */
-  clientCategory: string | null;
+  /** What the form is for (typed on the form's Settings). */
+  usedFor: string | null;
   isClientForm: boolean;
   visitChecklist: boolean;
 };
@@ -674,7 +695,6 @@ export type PendingSubmissionDto = {
 export type ClientFormOptionDto = {
   formId: string;
   name: string;
-  category: string | null;
   copies: FormClientCopies;
   myAccess: FormAccessLevel;
 };
@@ -683,7 +703,6 @@ export type ClientFormResultListItemDto = {
   id: string;
   formId: string;
   formName: string;
-  category: string | null;
   copies: FormClientCopies;
   status: 'PENDING' | 'ACTIVE' | 'DISMISSED';
   clientId: string | null;

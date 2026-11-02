@@ -233,7 +233,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
             <div class="task-form-done">
               <i class="pi pi-check-circle"></i>
               <h2 class="page-title task-form-title">Sent</h2>
-              <p class="text-color-secondary mb-0">{{ doneMessage() }}</p>
+              <div class="text-color-secondary" [innerHTML]="doneMessage()"></div>
             </div>
             @if (result(); as r) {
               <div class="cp-result">
@@ -260,9 +260,6 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                   @for (g of r.groups; track g.id) {
                     <div class="cp-result-row"><span>{{ g.name }}</span><strong>{{ round(g.percent) }}%</strong></div>
                   }
-                }
-                @if (r.cta; as c) {
-                  <div class="login-actions mt-3"><a pButton [href]="c.url" [label]="c.label"></a></div>
                 }
               </div>
             }

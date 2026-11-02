@@ -1,8 +1,9 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
+import { QuillModule } from 'ngx-quill';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -13,13 +14,14 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  areaEnabled, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
-  type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto,
+  areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
+  type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto, type FormDefinition,
 } from '@upstart/back-office/shared';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { downloadFormFile } from '../../core/form-file.util';
+import { downloadFormFile, readFormFile } from '../../core/form-file.util';
+import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { freeFormWorkspace } from './form-workspace.config';
 import { FormsApi } from '../../core/forms.api';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
@@ -54,6 +56,8 @@ const newId = () => Math.random().toString(36).slice(2, 10);
     HelpTextComponent,
     RowActionsMenuComponent,
     RouterLink,
+    SingleFileDropzoneComponent,
+    QuillModule,
   ],
   template: `
     <header class="page-header">
@@ -136,6 +140,10 @@ const newId = () => Math.random().toString(36).slice(2, 10);
             <div class="card-header"><h3 class="card-title">Settings</h3></div>
             <div class="showcase-flex-col">
               <div class="form-field">
+                <label for="ffUsedFor">Used for <app-help-text key="forms.form.usedFor" /></label>
+                <input pInputText id="ffUsedFor" class="w-full" [(ngModel)]="usedFor" [disabled]="!f.canEdit" maxlength="80" />
+              </div>
+              <div class="form-field">
                 <label>How sections are shown <app-help-text key="forms.form.layout" /></label>
                 <p-selectbutton [options]="layoutOptions" optionLabel="label" optionValue="value" [(ngModel)]="layout" [allowEmpty]="false" [disabled]="!f.canEdit" />
               </div>
@@ -144,30 +152,12 @@ const newId = () => Math.random().toString(36).slice(2, 10);
                 <label for="ffReview">Review submissions before accepting them <app-help-text key="forms.form.review" /></label>
               </div>
               <div class="flex align-items-center gap-2">
-                <p-checkbox inputId="ffOrg" [binary]="true" [(ngModel)]="settings.askOrganization" [disabled]="!f.canEdit" />
-                <label for="ffOrg">Ask for their organization</label>
-              </div>
-              <div class="flex align-items-center gap-2">
-                <p-checkbox inputId="ffPhone" [binary]="true" [(ngModel)]="settings.askPhone" [disabled]="!f.canEdit" />
-                <label for="ffPhone">Ask for a phone number</label>
-              </div>
-              <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="ffEmail" [binary]="true" [(ngModel)]="settings.resultsEmail" [disabled]="!f.canEdit" />
                 <label for="ffEmail">Email people their results <app-help-text key="forms.form.resultsEmail" /></label>
               </div>
               <div class="form-field">
-                <label for="ffThanks">Thank-you message</label>
-                <textarea pTextarea id="ffThanks" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="thankYou" [disabled]="!f.canEdit" placeholder="Thanks! Your answers were sent."></textarea>
-              </div>
-              <div class="showcase-row">
-                <div class="form-field showcase-half">
-                  <label for="ffCtaLabel">Call to action <app-help-text key="forms.form.cta" /></label>
-                  <input pInputText id="ffCtaLabel" class="w-full" [(ngModel)]="ctaLabel" [disabled]="!f.canEdit" placeholder="e.g. Schedule a discovery chat" />
-                </div>
-                <div class="form-field showcase-half">
-                  <label for="ffCtaUrl">Call to action link</label>
-                  <input pInputText id="ffCtaUrl" class="w-full" [(ngModel)]="ctaUrl" [disabled]="!f.canEdit" placeholder="https://" />
-                </div>
+                <label>Thank-you message <app-help-text key="forms.form.thankYou" /></label>
+                <quill-editor [(ngModel)]="thankYou" [readOnly]="!f.canEdit" placeholder="Thanks! Your answers were sent." [styles]="{ 'min-height': '120px' }"></quill-editor>
               </div>
             </div>
           </div>
@@ -180,15 +170,9 @@ const newId = () => Math.random().toString(36).slice(2, 10);
                 <label for="ffClient">Attach answers to a client</label>
               </div>
               @if (client.enabled) {
-                <div class="showcase-row">
-                  <div class="form-field showcase-half">
-                    <label for="ffCategory">Category <app-help-text key="forms.form.category" /></label>
-                    <input pInputText id="ffCategory" class="w-full" [(ngModel)]="category" [disabled]="!f.canEdit" placeholder="e.g. Intake, Client profile" />
-                  </div>
-                  <div class="form-field showcase-half">
-                    <label>Copies per client <app-help-text key="forms.form.copies" /></label>
-                    <p-selectbutton [options]="copiesOptions" optionLabel="label" optionValue="value" [(ngModel)]="client.copies" [allowEmpty]="false" [disabled]="!f.canEdit" />
-                  </div>
+                <div class="form-field">
+                  <label>Copies per client <app-help-text key="forms.form.copies" /></label>
+                  <p-selectbutton [options]="copiesOptions" optionLabel="label" optionValue="value" [(ngModel)]="client.copies" [allowEmpty]="false" [disabled]="!f.canEdit" />
                 </div>
               }
             </div>
@@ -369,6 +353,30 @@ const newId = () => Math.random().toString(36).slice(2, 10);
         </ng-template>
       </p-dialog>
 
+      <p-dialog header="Import form file" [(visible)]="importVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
+        <p class="mt-0">The file's sections and questions are added after this form's current ones. Nothing already on the form changes, including its answers, name and settings.</p>
+        <app-single-file-dropzone
+          #importDrop
+          accept=".json,application/json"
+          [maxBytes]="2 * 1024 * 1024"
+          emptyTitle="Form file"
+          emptyHint="Drop a form file (.json) or click to browse"
+          selectedTitle="Form file"
+          emptyIcon="pi-file-import"
+          (fileChange)="readImport($event)"
+          (invalidFile)="importError.set($event)"
+        />
+        @if (importError()) {
+          <small class="text-red-600">{{ importError() }}</small>
+        } @else if (importDef(); as def) {
+          <small>Adds {{ importFieldCount() }} fields in {{ def.sections.length }} sections</small>
+        }
+        <ng-template pTemplate="footer">
+          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="importing()" (onClick)="importVisible = false" />
+          <p-button label="Add to form" icon="pi pi-check" [loading]="importing()" [disabled]="!importDef() || !!importError()" (onClick)="importFile()" />
+        </ng-template>
+      </p-dialog>
+
       <p-dialog header="Rename score area" [(visible)]="groupVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
         <div class="form-field">
           <label for="grName">Name</label>
@@ -424,14 +432,12 @@ export class FormEditPage implements OnInit {
   name = '';
   description = '';
   layout: FormLayout = 'page';
-  settings: Pick<FormSettings, 'review' | 'askOrganization' | 'askPhone' | 'resultsEmail'> = {
-    review: true, askOrganization: false, askPhone: false, resultsEmail: false,
+  settings: Pick<FormSettings, 'review' | 'resultsEmail'> = {
+    review: true, resultsEmail: false,
   };
-  thankYou = '';
-  ctaLabel = '';
-  ctaUrl = '';
-  client: Omit<FormClientSettings, 'category'> = { enabled: false, copies: 'each' };
-  category = '';
+  thankYou: string | null = '';
+  client: FormClientSettings = { enabled: false, copies: 'each' };
+  usedFor = '';
   visitChecklist = false;
   roles = signal<{ id: string; name: string }[]>([]);
   levels = signal<FormAccess>({});
@@ -482,12 +488,10 @@ export class FormEditPage implements OnInit {
     this.layout = f.settings.layout;
     this.name = f.name;
     this.description = f.description ?? '';
-    this.settings = { review: f.settings.review, askOrganization: f.settings.askOrganization, askPhone: f.settings.askPhone, resultsEmail: f.settings.resultsEmail };
+    this.settings = { review: f.settings.review, resultsEmail: f.settings.resultsEmail };
     this.thankYou = f.settings.thankYou ?? '';
-    this.ctaLabel = f.settings.cta?.label ?? '';
-    this.ctaUrl = f.settings.cta?.url ?? '';
     this.client = { enabled: f.settings.client.enabled, copies: f.settings.client.copies };
-    this.category = f.settings.client.category ?? '';
+    this.usedFor = f.settings.usedFor ?? '';
     this.visitChecklist = f.settings.visitChecklist;
     this.levels.set({ ...f.access });
     this.saved = this.snapshot();
@@ -495,9 +499,14 @@ export class FormEditPage implements OnInit {
 
   private snapshot() {
     return JSON.stringify({
-      n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYou.trim(), cl: this.ctaLabel.trim(), cu: this.ctaUrl.trim(),
-      c: this.client, cat: this.category.trim(), v: this.visitChecklist, a: this.levels(),
+      n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYouValue(),
+      c: this.client, u: this.usedFor.trim(), v: this.visitChecklist, a: this.levels(),
     });
+  }
+
+  /** The thank-you as saved: the editor's HTML, or null when it has no words. */
+  private thankYouValue() {
+    return htmlHasText(this.thankYou) ? (this.thankYou ?? '').trim() : null;
   }
 
   isDirty() {
@@ -511,9 +520,9 @@ export class FormEditPage implements OnInit {
       ...s,
       ...this.settings,
       layout: this.layout,
-      thankYou: this.thankYou.trim() || null,
-      cta: this.ctaUrl.trim() ? { label: this.ctaLabel.trim() || 'Learn more', url: this.ctaUrl.trim() } : null,
-      client: { ...this.client, category: this.category.trim() || null },
+      thankYou: this.thankYouValue(),
+      client: { ...this.client },
+      usedFor: this.usedFor.trim() || null,
       visitChecklist: this.visitChecklist,
       scoring,
     };
@@ -583,12 +592,58 @@ export class FormEditPage implements OnInit {
     window.open(`/forms/${this.id}/preview`, '_blank', 'noopener');
   }
 
+  // Import form file (adds sections after the form's own)
+  importVisible = false;
+  readonly importDef = signal<FormDefinition | null>(null);
+  readonly importError = signal('');
+  readonly importing = signal(false);
+  private readonly importDrop = viewChild<SingleFileDropzoneComponent>('importDrop');
+
+  openImport() {
+    this.importDef.set(null);
+    this.importError.set('');
+    this.importDrop()?.reset();
+    this.importVisible = true;
+  }
+
+  async readImport(file: File | null) {
+    this.importDef.set(null);
+    this.importError.set('');
+    if (!file) return;
+    try {
+      this.importDef.set(await readFormFile(file));
+    } catch (err) {
+      this.importError.set(err instanceof Error ? err.message : 'That file could not be read.');
+    }
+  }
+
+  importFieldCount() {
+    return this.importDef()?.sections.reduce((n, s) => n + s.fields.length, 0) ?? 0;
+  }
+
+  async importFile() {
+    const def = this.importDef();
+    if (!def) return;
+    this.importing.set(true);
+    try {
+      const r = await this.forms.importInto(this.id, def);
+      this.importVisible = false;
+      await this.reload();
+      this.toast.add({ severity: 'success', summary: 'Imported', detail: `Added ${r.fields} fields in ${r.sections} sections.` });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not import', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    } finally {
+      this.importing.set(false);
+    }
+  }
+
   headerActions(): RowActionItem[] {
     const items: RowActionItem[] = [
       { id: 'preview', label: 'Preview', icon: 'pi pi-eye', command: () => this.openPreview() },
       { id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() },
     ];
     const f = this.form();
+    if (f?.canEdit) items.splice(1, 0, { id: 'import', label: 'Import form file', icon: 'pi pi-file-import', command: () => this.openImport() });
     // With changes waiting, the header button publishes them; Unpublish moves here.
     if (f?.canEdit && f.published && f.hasUnpublishedChanges) {
       items.push({ id: 'unpublish', label: 'Unpublish', icon: 'pi pi-eye-slash', command: () => this.confirmUnpublish() });

@@ -8,7 +8,7 @@ The Care module is switched on per organization by the platform operator. It doe
 - The **Scheduled vs actual** tab and a **Time** filter (visit time) in Reports.
 - **Use as the visit checklist** in a form's Settings (Forms).
 
-Intake forms, care or client profiles and other forms about clients are ordinary **client forms** in **Forms** (see the Forms guide), so you can have as many as you need and name them anything.
+Forms about clients are ordinary **client forms** in **Forms** (see the Forms guide), so you can have as many as you need and name them anything.
 
 ## Who sees what
 

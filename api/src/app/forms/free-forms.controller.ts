@@ -80,7 +80,7 @@ export class FreeFormsController {
         updatedAt: f.updatedAt.toISOString(),
         createdByName: personName(f.createdBy),
         isClientForm: settings.client.enabled,
-        clientCategory: settings.client.enabled ? settings.client.category : null,
+        usedFor: settings.usedFor,
         visitChecklist: settings.visitChecklist,
       });
     }
@@ -146,6 +146,25 @@ export class FreeFormsController {
     return { id };
   }
 
+  /**
+   * Add a form file's sections and questions after this form's own (never replaces anything, so answers are safe).
+   * The form keeps its name, settings, links and access; score areas from the file don't carry over.
+   */
+  @Post('forms/:id/import')
+  @Action('edit')
+  async importInto(@Req() req: Request, @Param('id') id: string, @Body() dto: ImportFreeFormDto) {
+    const form = await this.findForm(req.user as UserContext, id);
+    let def: FormDefinition;
+    try {
+      def = parseFormDefinition(dto.definition);
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'This form file could not be read');
+    }
+    const sections = def.sections.map((s) => ({ ...s, fields: s.fields.map((f) => ({ ...f, scoreGroupId: null })) }));
+    await this.touch(form.id, this.prisma.$transaction((tx) => this.structure.addDefinitionSections({ id: form.id, module: M, key: null }, sections, tx)));
+    return { sections: sections.length, fields: sections.reduce((n, s) => n + s.fields.length, 0) };
+  }
+
   /** The form as a file (its current fields and settings, not necessarily what's published). */
   @Get('forms/:id/export')
   async export(@Req() req: Request, @Param('id') id: string): Promise<FormDefinition> {
@@ -171,7 +190,7 @@ export class FreeFormsController {
       ...descriptionParts(form.description),
       layout: settings.layout,
       sections: publicSections(live.sections.filter((s) => s.fields.length)),
-      ask: { organization: settings.askOrganization, phone: settings.askPhone },
+      ask: { organization: false, phone: false },
     };
   }
 

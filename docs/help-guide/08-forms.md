@@ -12,6 +12,7 @@
 
 - On a form page, **⋮ → Export form file** downloads the form (fields, settings, scoring and profiles) as a `.json` file.
 - **New form → Start from a form file** creates a draft from such a file, e.g. on another UBO. Leave Name empty to use the file's name. Review it, then **Publish**.
+- On an existing form, **⋮ → Import form file** adds the file's sections and questions **after** the form's own. It only adds: nothing already on the form changes (questions, answers, name, settings, links). Score areas from the file don't carry over. Publish to put the new questions live.
 
 ## The Forms list
 
@@ -30,10 +31,10 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
 - **Settings**:
   - **How sections are shown** on the form's pages: **One page** (everything on one scrolling page), **Page by section** (one section at a time with Next and Back, then About you), **Page by question** (one question or text block per screen with a progress bar; picking a single choice moves on by itself, and Back fixes a wrong pick), **Accordion** (sections open one at a time) or **Tabs** (a tab per section). Public pages show choices as a list to click. The form's link page and the embed code follow it; websites that draw the form with their own code get it too.
   - **Review submissions before accepting them**: submissions wait under **Waiting for review**. Turned off, they are accepted as they come in.
-  - **Ask for their organization** and **Ask for a phone number**: extra questions next to name and email (name and email are always asked).
-  - **Email people their results**: after sending, people get an email with their results, or your thank-you message on forms without scoring.
-  - **Thank-you message** and **Call to action** (a label and a link, e.g. to book a call) shown after sending and in the results email.
-  - **Client form** (see Client forms below): **Attach answers to a client**, **Category** and **Copies per client**.
+  - Name and email are always asked on public links. For anything else (organization, phone), add a question to the form.
+  - **Email people their results**: after sending, people get an email with their results (scored forms) and your thank-you message.
+  - **Thank-you message**: formatted text shown after sending and in that email. Put links here, e.g. to book a call.
+  - **Client form** (see Client forms below): **Attach answers to a client** and **Copies per client**.
   - **Care** (Care module on): **Use as the visit checklist**. Caregivers fill this form in on every visit. One form at a time: turning it on here turns it off on the others.
 - **Scoring** and **Fields** save right away.
 - **Publish** makes the current fields and scoring the version people see. After changes, the button reads **Publish changes**; until you click it, the links keep showing the earlier version. Each submission keeps the version it answered.
@@ -41,15 +42,14 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
 
 ## Client forms
 
-A client form's answers belong to a client and show in the **Forms** panel on the client's page. Use them for intake forms, client or care profiles, class registrations, anything about a client. Name each form whatever you like; nothing about it is fixed.
+A client form's answers belong to a client and show in the **Forms** panel on the client's page. Use them for anything about a client. Name each form whatever you like; nothing about it is fixed.
 
 - **Attach answers to a client** (Settings) makes the form a client form.
-- **Category** (optional): groups forms on the client page and in Add form, e.g. Intake, Client profile.
 - **Copies per client**: **One living copy** (each client has one copy, kept up to date, like a profile; Add form opens it) or **New each time** (every Add form or attached submission is a new, dated result, like an intake).
 - **Who can use it**: per role **None**, **Read** or **Edit** for the answers on client pages. Admins can always edit. Designing the form is the Forms area as usual.
-- The Forms list shows **Client form** (with its category) and **Visit checklist** in the **Used for** column.
+- **Used for** (Settings, any form, optional): your own note on what the form is for. It's the **Used for** column of the Forms list.
 
-On a client's page, **Add form** picks a client form and opens it. Its page has the answers and **Details** (client, category, when it was added). The ⋮ menu has **Move**, **Share link** and **Delete**.
+On a client's page, **Add form** picks a published client form the client doesn't have yet and opens it. Drafts don't show until they're published. Its page has the answers and **Details** (client, when it was added). The ⋮ menu has **Move**, **Share link** and **Delete**.
 
 - **Auto-save**: answers save as you go, wherever a form is filled in (here, on a public link, on a website, on a visit). The top bar shows **Saving…**, **Saved** or **Not saved** (it keeps retrying). Several people can work on the same form at once; each change saves just that answer.
 - **In progress** / **Submitted**: a form is In progress until someone clicks **Submit** (required questions must be answered). **Reopen** sets it back to In progress. Changes after Submit still save.

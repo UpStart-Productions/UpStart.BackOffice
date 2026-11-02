@@ -123,12 +123,6 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                   <div class="side-list-body"><span class="side-list-title">Client</span></div>
                   <a class="side-list-value text-primary" [routerLink]="['/clients', r.clientId]">{{ r.clientName }}</a>
                 </div>
-                @if (r.category) {
-                  <div class="side-list-row">
-                    <div class="side-list-body"><span class="side-list-title">Category</span></div>
-                    <span class="side-list-value">{{ r.category }}</span>
-                  </div>
-                }
                 <div class="side-list-row">
                   <div class="side-list-body"><span class="side-list-title">Added</span></div>
                   <span class="side-list-value">{{ r.createdAt | date: 'MMM d, y' }}</span>

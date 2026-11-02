@@ -6,23 +6,19 @@
   "settings": {
     "layout": "steps",
     "review": true,
-    "askOrganization": false,
-    "askPhone": true,
     "resultsEmail": false,
-    "cta": null,
     "thankYou": null,
     "client": {
       "enabled": true,
-      "copies": "each",
-      "createClients": true,
-      "category": "Intake"
+      "copies": "each"
     },
     "visitChecklist": false,
     "scoring": {
       "enabled": false,
       "groups": [],
       "bands": []
-    }
+    },
+    "usedFor": "Intake"
   },
   "sections": [
     {
