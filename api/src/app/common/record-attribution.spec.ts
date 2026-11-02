@@ -14,7 +14,7 @@ describe('applyAttributionToArgs', () => {
     });
   });
 
-  it('uses relation connect when nested creates are present', () => {
+  it('uses plain IDs even when nested child creates are present', () => {
     const data: Record<string, unknown> = {
       firstName: 'Ann',
       emails: { create: { email: 'a@x.test', isPrimary: true } },
@@ -22,10 +22,10 @@ describe('applyAttributionToArgs', () => {
     attributionAls.run({ userId: 'u1' }, () => {
       applyAttributionToArgs('Contact', 'create', { data });
     });
-    expect(data.createdByUserId).toBeUndefined();
-    expect(data.updatedByUserId).toBeUndefined();
-    expect(data.createdBy).toEqual({ connect: { id: 'u1' } });
-    expect(data.updatedBy).toEqual({ connect: { id: 'u1' } });
+    expect(data.createdByUserId).toBe('u1');
+    expect(data.updatedByUserId).toBe('u1');
+    expect(data.createdBy).toBeUndefined();
+    expect(data.updatedBy).toBeUndefined();
   });
 
   it('maps Invoice createdById on simple creates', () => {

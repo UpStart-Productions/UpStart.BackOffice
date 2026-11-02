@@ -23,42 +23,15 @@ const WHERE_OPS = new Set([
 ]);
 
 /**
- * Checked creates (anything with a nested relation) reject scalar foreign keys.
- * `clientId` must become `client: { connect: { id } }`. Every relation here references `id`.
+ * Add the tenant to one create payload as a plain `tenantId`, matching how the app writes creates
+ * (plain IDs, with nested creates only for child lists). The caller's data is never rewritten.
  */
-function promoteScalarFks(fields: readonly { name: string; kind: string }[], data: Json): Json {
-  const out: Json = { ...data };
-  const relations = fields.filter((f) => f.kind === 'object' && f.name !== 'tenant');
-  for (const key of Object.keys(out)) {
-    if (key === 'id' || !key.endsWith('Id')) continue;
-    const exact = relations.find((f) => `${f.name}Id` === key);
-    const prefixed = relations.filter(
-      (f) => key.startsWith(f.name) && key.length > f.name.length + 2,
-    );
-    const relation = exact?.name ?? (prefixed.length === 1 ? prefixed[0].name : null);
-    if (!relation) continue;
-    const value = out[key];
-    delete out[key];
-    if (relation in out || value == null) continue;
-    out[relation] = { connect: { id: value } };
-  }
-  return out;
-}
-
-/** Add the tenant to one create payload, picking the input style Prisma will accept. */
 export function withTenant(model: string, data: Json, tenantId: string): Json {
-  const m = models.get(model);
-  if (!m || !hasTenant(model)) return data;
-  // Checked input (uses relation fields) can't also carry a scalar FK, so connect relations instead.
-  const usesRelations = m.fields.some((f) => f.kind === 'object' && f.name !== 'tenant' && f.name in data);
-  let out: Json = usesRelations ? promoteScalarFks(m.fields, data) : { ...data };
-  if ('tenantId' in out || 'tenant' in out) {
-    // caller supplied one: never trust it
-    delete out.tenantId;
-    delete out.tenant;
-  }
-  if (usesRelations) out.tenant = { connect: { id: tenantId } };
-  else out.tenantId = tenantId;
+  if (!hasTenant(model)) return data;
+  const out: Json = { ...data };
+  // caller supplied one: never trust it
+  delete out.tenant;
+  out.tenantId = tenantId;
   return scopeNested(model, out, tenantId);
 }
 
