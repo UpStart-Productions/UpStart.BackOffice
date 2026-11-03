@@ -96,9 +96,9 @@ function isOrgCategoryEnum(value: string): value is import('@prisma/client').Org
 
 type PersonEdit = {
   organization?: string;
-  email?: string;
-  phone?: string;
-  website?: string;
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
   category?: string | null;
 };
 
@@ -116,13 +116,13 @@ export async function applyLeadEditsToLinks(
     clientData.name = edit.organization.trim();
   }
   if (edit.email !== undefined) {
-    clientData.email = edit.email.trim() || null;
+    clientData.email = edit.email?.trim() || null;
   }
   if (edit.phone !== undefined) {
-    clientData.phone = edit.phone.trim() || null;
+    clientData.phone = edit.phone?.trim() || null;
   }
   if (edit.website !== undefined) {
-    clientData.website = edit.website.trim() || null;
+    clientData.website = edit.website?.trim() || null;
   }
   if (edit.category !== undefined) {
     clientData.category =

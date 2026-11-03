@@ -192,25 +192,35 @@ export class LeadDetailPage implements OnInit {
     this.attribution.set((lead['attribution'] as RecordAttributionDto | undefined) ?? null);
   }
 
+  /** Primary / warm panels persist via their own API calls — do not overwrite unsaved main-form fields. */
   onLeadContactPanelUpdated(lead: Record<string, unknown>) {
-    this.patchForm(lead);
-    this.savedSnapshot = this.snapshot();
+    this.contactId.set((lead['primaryContactId'] as string) ?? null);
+    this.contactAvatarUrl.set((lead['contactAvatarUrl'] as string) ?? null);
+    this.primaryContactName.set((lead['primaryContact'] as string) ?? '');
+    this.primaryContactEmail.set((lead['primaryContactEmail'] as string) ?? null);
+    this.warmConnectionContactId.set((lead['warmConnectionContactId'] as string) ?? null);
   }
 
   private buildPayload() {
-    const e = (v: string) => v.trim() || undefined;
+    /** Empty optional fields must be `null` — `undefined` is omitted from JSON and the API keeps the old value. */
+    const opt = (v: string | null | undefined) => {
+      if (v == null) return null;
+      const t = v.trim();
+      return t || null;
+    };
+    const optDate = (v: string) => (v.trim() ? v.trim() : null);
     return {
       organization: this.form.organization.trim(),
-      email: e(this.form.email),
-      phone: this.form.phone?.trim() || undefined,
-      website: e(this.form.website),
-      stageId: this.form.stageId || undefined,
-      source: this.form.source || undefined,
-      category: this.form.category || undefined,
+      email: opt(this.form.email),
+      phone: opt(this.form.phone),
+      website: opt(this.form.website),
+      stageId: this.form.stageId || null,
+      source: this.form.source || null,
+      category: opt(this.form.category),
       serviceInterests: this.serviceInterests(),
-      nextAction: this.form.nextAction?.trim() || undefined,
-      nextActionDate: this.form.nextActionDate || undefined,
-      lastContactDate: this.form.lastContactDate || undefined,
+      nextAction: opt(this.form.nextAction),
+      nextActionDate: optDate(this.form.nextActionDate),
+      lastContactDate: optDate(this.form.lastContactDate),
       warmConnectionContactId: this.warmConnectionContactId(),
     };
   }
@@ -276,6 +286,9 @@ export class LeadDetailPage implements OnInit {
       if (!leadId) throw new Error('Could not start a new lead');
       this.id.set(leadId);
       this.patchForm(lead);
+      if (this.form.organization === NEW_LEAD_PLACEHOLDER_ORG) {
+        this.form.organization = '';
+      }
       this.savedSnapshot = this.snapshot();
       const urlTree = this.router.createUrlTree(['/pipeline', leadId], {
         queryParams: this.route.snapshot.queryParams,
