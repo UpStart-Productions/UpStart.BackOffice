@@ -16,9 +16,8 @@ import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Popover } from 'primeng/popover';
-import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
+import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-directory.util';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
@@ -45,7 +44,7 @@ import {
     DatePickerModule,
     FormsModule,
     PageComponent,
-    AppPopoverModule,
+    InlineCalendarPopoverComponent,
     PeopleSelectComponent,
     TimeEntryModalComponent,
   ],
@@ -292,7 +291,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     void this.loadWeekIfNeeded();
   }
 
-  jumpToDay(date: Date, popover: Popover) {
+  jumpToDay(date: Date, popover: InlineCalendarPopoverComponent) {
     this.selectedDay.set(new Date(date));
     popover.hide();
     void this.loadWeekIfNeeded();

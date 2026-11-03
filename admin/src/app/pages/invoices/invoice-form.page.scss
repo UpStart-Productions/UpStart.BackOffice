@@ -1,3 +1,20 @@
+.invoice-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-end;
+
+  .form-field {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
+}
+
+.invoice-tax-field {
+  flex: 0 1 11rem;
+  max-width: 14rem;
+}
+
 .invoice-generate-hint {
   margin-top: 0;
 }

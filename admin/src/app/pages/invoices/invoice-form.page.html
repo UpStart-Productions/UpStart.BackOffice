@@ -44,10 +44,10 @@
       <div class="card">
         <div class="showcase-flex-col">
           <div class="form-field showcase-full">
-            <label for="billTo">Bill to</label>
             <p-selectbutton
               inputId="billTo"
-              [options]="billToOptions"
+              aria-label="Bill to"
+              [options]="billToOptions()"
               optionLabel="label"
               optionValue="value"
               [ngModel]="form.billTo"
@@ -76,21 +76,23 @@
             />
           </div>
           @if (billingTenant || isDraftEdit) {
-            <div class="form-field showcase-full">
-              <label for="billToName">Bill-to name @if (billingTenant) { <span class="required-dot" aria-hidden="true"></span> }</label>
-              <input pInputText id="billToName" [(ngModel)]="form.billToName" class="w-full" />
-            </div>
-            <div class="form-field showcase-full">
-              <label for="billToEmail">Bill-to email <app-help-text key="invoice.billToEmail" /></label>
-              <input pInputText id="billToEmail" type="email" [(ngModel)]="form.billToEmail" class="w-full" />
+            <div class="invoice-inline-row">
+              <div class="form-field">
+                <label for="billToName">Bill-to name @if (billingTenant) { <span class="required-dot" aria-hidden="true"></span> }</label>
+                <input pInputText id="billToName" [(ngModel)]="form.billToName" class="w-full" />
+              </div>
+              <div class="form-field">
+                <label for="billToEmail">Bill-to email <app-help-text key="invoice.billToEmail" /></label>
+                <input pInputText id="billToEmail" type="email" [(ngModel)]="form.billToEmail" class="w-full" />
+              </div>
             </div>
             <div class="form-field showcase-full">
               <label for="billToAddress">Bill-to address</label>
               <textarea pTextarea id="billToAddress" rows="3" [(ngModel)]="form.billToAddress" class="w-full"></textarea>
             </div>
           }
-          <div class="showcase-row">
-            <div class="form-field showcase-half">
+          <div class="invoice-inline-row">
+            <div class="form-field">
               <label for="issueDate">Issue Date</label>
               <app-date-input
                 inputId="issueDate"
@@ -98,22 +100,22 @@
                 [disabled]="isDraftEdit"
               />
             </div>
-            <div class="form-field showcase-half">
+            <div class="form-field">
               <label for="dueDate">Due Date</label>
               <app-date-input inputId="dueDate" [(ngModel)]="form.dueDate" />
             </div>
-          </div>
-          <div class="form-field showcase-full">
-            <label for="taxRate">Tax Rate (e.g. 0.0875 for 8.75%)</label>
-            <input
-              pInputText
-              id="taxRate"
-              type="number"
-              [(ngModel)]="form.taxRate"
-              step="0.0001"
-              class="w-full"
-              placeholder="0.0875"
-            />
+            <div class="form-field invoice-tax-field">
+              <label for="taxRate">Tax Rate (e.g. 0.0875 for 8.75%)</label>
+              <input
+                pInputText
+                id="taxRate"
+                type="number"
+                [(ngModel)]="form.taxRate"
+                step="0.0001"
+                class="w-full"
+                placeholder="0.0875"
+              />
+            </div>
           </div>
           <div class="form-field showcase-full">
             <label for="notes">Notes</label>

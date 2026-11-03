@@ -1,6 +1,54 @@
 // Overlay panels append to body — global styles required.
 
-.timesheet-date-popover .cal-day.has-time {
+.app-popover.app-popover-inline-calendar {
+  width: 16.5rem;
+  max-width: calc(100vw - 2rem);
+
+  .p-popover-content {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+  }
+}
+
+.inline-calendar-popover {
+  width: 100%;
+
+  .p-datepicker {
+    display: block;
+    border: none;
+    width: 100%;
+  }
+
+  .p-datepicker-panel-inline {
+    border: none;
+    box-shadow: none;
+    outline: none;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+  }
+
+  .p-datepicker-calendar-container,
+  .p-datepicker-calendar,
+  .p-datepicker-day-view {
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .p-datepicker-day {
+    width: 100%;
+    max-width: 1.75rem;
+    margin-inline: auto;
+  }
+}
+
+.app-popover-inline-calendar .p-datepicker:has(.p-datepicker-panel-inline) {
+  display: block;
+  width: 100%;
+}
+
+.inline-calendar-popover .cal-day.has-time {
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }

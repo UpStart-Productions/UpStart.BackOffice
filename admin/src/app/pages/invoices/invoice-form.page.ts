@@ -23,6 +23,7 @@ import { PeriodPickerComponent } from '../../ui/period-picker/period-picker.comp
 import { defaultPeriod } from '../../core/period.util';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { TenantBrandingService } from '../../core/tenant-branding.service';
 
 type Client = { id: string; name: string };
 type Project = { id: string; name: string; clientId: string | null };
@@ -100,11 +101,15 @@ export class InvoiceFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
   private readonly session = inject(SessionService);
+  private readonly tenantBranding = inject(TenantBrandingService);
 
-  readonly billToOptions = [
-    { label: 'A client', value: 'CLIENT' as BillTo },
-    { label: 'Our organization', value: 'TENANT' as BillTo },
-  ];
+  readonly billToOptions = computed(() => {
+    const tenant = this.tenantBranding.companyName().trim() || 'organization';
+    return [
+      { label: 'To a client', value: 'CLIENT' as BillTo },
+      { label: `To ${tenant}`, value: 'TENANT' as BillTo },
+    ];
+  });
 
 
   id = signal<string | null>(null);

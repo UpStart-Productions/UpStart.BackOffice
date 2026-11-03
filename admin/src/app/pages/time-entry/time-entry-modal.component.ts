@@ -2,9 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Popover } from 'primeng/popover';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { AppPopoverModule } from '../../core/app-popover.module';
+import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
@@ -34,7 +33,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
   imports: [
     FormsModule,
     AppDialogModule,
-    AppPopoverModule,
+    InlineCalendarPopoverComponent,
     ButtonModule,
     TextareaModule,
     SelectModule,
@@ -69,20 +68,14 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
             <i class="pi pi-calendar" aria-hidden="true"></i>
             <span>{{ entryDayLabel() }}</span>
           </button>
-          <p-popover
-            #entryDayPopover
-            appendTo="body"
-            appCenterPopoverCaret
-            styleClass="entry-day-popover"
-            [dismissable]="true"
-          >
+          <app-inline-calendar-popover #entryDayPopover>
             <p-datepicker
               [inline]="true"
               [ngModel]="entryDay()"
               [defaultDate]="entryDay()"
               (onSelect)="pickEntryDay($event, entryDayPopover)"
             />
-          </p-popover>
+          </app-inline-calendar-popover>
         </div>
       </ng-template>
       <div class="entry-form">
@@ -832,7 +825,7 @@ export class TimeEntryModalComponent {
     this.entryDay.set(next);
   }
 
-  pickEntryDay(date: Date, popover: Popover) {
+  pickEntryDay(date: Date, popover: InlineCalendarPopoverComponent) {
     this.onEntryDayChange(date);
     popover.hide();
   }

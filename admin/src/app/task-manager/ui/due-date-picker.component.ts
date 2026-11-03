@@ -1,8 +1,7 @@
 import { Component, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
-import { Popover } from 'primeng/popover';
-import { AppPopoverModule } from '../../core/app-popover.module';
+import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { dateKey, parseDateKey } from '../../core/date.util';
 import { addDaysKey, todayKey } from '../core/tm-format.util';
 
@@ -10,26 +9,24 @@ import { addDaysKey, todayKey } from '../core/tm-format.util';
 @Component({
   selector: 'app-tm-due-date-picker',
   standalone: true,
-  imports: [FormsModule, AppPopoverModule, DatePickerModule],
+  imports: [FormsModule, DatePickerModule, InlineCalendarPopoverComponent],
   template: `
-    <p-popover #pop appendTo="body" appCenterPopoverCaret styleClass="tm-popover tm-popover-date">
-      <div class="tm-date-picker">
-        <div class="tm-date-quick">
-          <button type="button" (click)="pick(today())">Today</button>
-          <button type="button" (click)="pick(addDays(1))">Tomorrow</button>
-          <button type="button" (click)="pick(nextMonday())">Next week</button>
-          @if (value()) {
-            <button type="button" class="tm-date-clear" (click)="pick(null)">Clear</button>
-          }
-        </div>
-        <p-datepicker [inline]="true" [ngModel]="value()" (ngModelChange)="onDate($event)" />
+    <app-inline-calendar-popover #pop>
+      <div class="tm-date-quick">
+        <button type="button" (click)="pick(today())">Today</button>
+        <button type="button" (click)="pick(addDays(1))">Tomorrow</button>
+        <button type="button" (click)="pick(nextMonday())">Next week</button>
+        @if (value()) {
+          <button type="button" class="tm-date-clear" (click)="pick(null)">Clear</button>
+        }
       </div>
-    </p-popover>
+      <p-datepicker [inline]="true" [ngModel]="value()" (ngModelChange)="onDate($event)" />
+    </app-inline-calendar-popover>
   `,
 })
 export class TmDueDatePickerComponent {
   picked = output<string | null>();
-  private readonly pop = viewChild.required<Popover>('pop');
+  private readonly pop = viewChild.required<InlineCalendarPopoverComponent>('pop');
   value = signal<Date | null>(null);
 
   open(event: Event, current: string | null) {

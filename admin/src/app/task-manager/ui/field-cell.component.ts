@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePickerModule } from 'primeng/datepicker';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
+import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { dateKey, parseDateKey } from '../../core/date.util';
 import { dueLabel, fieldOptionChipColors } from '../core/tm-format.util';
 import { FieldOption, TmField } from '../core/tm.types';
@@ -11,7 +12,7 @@ import { FieldOption, TmField } from '../core/tm.types';
 @Component({
   selector: 'app-tm-field-cell',
   standalone: true,
-  imports: [FormsModule, AppPopoverModule, DatePickerModule],
+  imports: [FormsModule, AppPopoverModule, DatePickerModule, InlineCalendarPopoverComponent],
   host: { class: 'tm-field-cell-host' },
   template: `
     @switch (field().type) {
@@ -93,12 +94,12 @@ import { FieldOption, TmField } from '../core/tm.types';
       </ul>
     </p-popover>
 
-    <p-popover #datePop appendTo="body" appCenterPopoverCaret styleClass="tm-popover tm-popover-date">
+    <app-inline-calendar-popover #datePop>
       <p-datepicker [inline]="true" [ngModel]="dateValue()" (ngModelChange)="pickDate($event)" />
       @if (value()) {
         <button type="button" class="tm-picker-item tm-picker-clear" (click)="clear(); datePop.hide()">Clear</button>
       }
-    </p-popover>
+    </app-inline-calendar-popover>
   `,
 })
 export class TmFieldCellComponent {
@@ -112,7 +113,7 @@ export class TmFieldCellComponent {
   editing = signal(false);
   textDraft: string | number | null = '';
   private readonly optionsPop = viewChild.required<Popover>('optionsPop');
-  private readonly datePop = viewChild.required<Popover>('datePop');
+  private readonly datePop = viewChild.required<InlineCalendarPopoverComponent>('datePop');
 
   selectedIds = computed<string[]>(() => {
     const v = this.value();

@@ -103,59 +103,13 @@
   max-height: 14rem;
 }
 
-// Due date + custom date field calendars: fixed popover width, grid fills the popover only.
-.tm-popover.tm-popover-date {
-  width: 16.5rem;
-  max-width: calc(100vw - 2rem);
-
-  .p-popover-content {
-    width: 100%;
-    box-sizing: border-box;
-  }
-}
-
-.tm-date-picker {
-  width: 100%;
-
-  .p-datepicker {
-    display: block;
-    border: none;
-    width: 100%;
-  }
-
-  .p-datepicker-panel-inline {
-    border: none;
-    box-shadow: none;
-    outline: none;
-    background: transparent;
-    padding: 0;
-    width: 100%;
-  }
-
-  .p-datepicker-calendar-container,
-  .p-datepicker-calendar,
-  .p-datepicker-day-view {
-    width: 100%;
-    table-layout: fixed;
-  }
-
-  .p-datepicker-day {
-    width: 100%;
-    max-width: 1.75rem;
-    margin-inline: auto;
-  }
-}
-
-.tm-popover-date .p-datepicker:has(.p-datepicker-panel-inline) {
-  display: block;
-  width: 100%;
-}
-
 .tm-date-quick {
   display: flex;
   gap: 0.35rem;
   flex-wrap: wrap;
   margin-bottom: 0.4rem;
+  padding: 0.5rem 0.5rem 0;
+  box-sizing: border-box;
 
   button {
     border: 1px solid var(--tm-border);
