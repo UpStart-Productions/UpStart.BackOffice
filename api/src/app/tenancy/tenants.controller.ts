@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RequireSuperGuard } from './require-super.guard';
 import { runUnscoped, runWithTenant } from './tenant-context';
 import { ensurePresetRoles } from '../access/role-presets.util';
+import { createStarterPipeline } from '../pipelines/pipeline-lanes.util';
 import { DEFAULT_MODULES, sanitizeModules } from '@upstart/back-office/shared';
 
 export class CreateTenantDto {
@@ -94,7 +95,18 @@ export class TenantsController {
     if (dto.internalDomains !== undefined) {
       data.internalDomains = [...new Set(dto.internalDomains.map((d) => d.trim().toLowerCase()).filter(Boolean))];
     }
-    if (dto.modules !== undefined) data.modules = sanitizeModules(dto.modules);
+    if (dto.modules !== undefined) {
+      data.modules = sanitizeModules(dto.modules);
+      // Switching Bookings off takes the tenant's public booking pages down, so only allow it once none are live.
+      if (existing.modules.includes('bookings') && !data.modules.includes('bookings')) {
+        const live = await runWithTenant(id, () => this.prisma.bookingType.count({ where: { isActive: true } }));
+        if (live) {
+          throw new ConflictException(
+            `This tenant has ${live} active booking page${live === 1 ? '' : 's'}. Turn ${live === 1 ? 'it' : 'them'} off in Bookings before switching the module off.`,
+          );
+        }
+      }
+    }
     const slugChanged = dto.slug !== undefined && dto.slug !== existing.slug;
     if (slugChanged) {
       if (await this.prisma.tenant.findUnique({ where: { slug: dto.slug } })) {
@@ -151,9 +163,10 @@ export class TenantsController {
       const taken = await this.prisma.inboundAlias.findUnique({ where: { alias: dto.slug } });
       if (!taken) await this.prisma.inboundAlias.create({ data: { alias: dto.slug, tenantId: tenant.id, isPrimary: true } });
     });
-    // Preset roles and Business settings company name (tenant display name).
+    // Preset roles, the starter pipeline and Business settings company name (tenant display name).
     await runWithTenant(tenant.id, async () => {
       await ensurePresetRoles(this.prisma);
+      await createStarterPipeline(this.prisma);
       await this.prisma.organizationProfile.create({ data: { companyName: name } });
     });
     return { id: tenant.id, name: tenant.name, slug: tenant.slug, internalDomains: tenant.internalDomains, modules: tenant.modules };

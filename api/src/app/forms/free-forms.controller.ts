@@ -465,7 +465,7 @@ export class FreeFormsController {
   async attachInfo(@Req() req: Request, @Param('id') id: string): Promise<FormAttachInfoDto> {
     const user = req.user as UserContext;
     const r = await this.findSubmission(user, id);
-    return attachInfo(this.prisma, r.form, { name: r.submitterName, email: r.submitterEmail }, await this.access.clientIds(user));
+    return attachInfo(this.prisma, r.form);
   }
 
   /** `current`: the form's sections now, for submissions saved before versions. */

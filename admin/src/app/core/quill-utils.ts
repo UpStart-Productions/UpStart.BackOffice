@@ -1,5 +1,4 @@
 import { environment } from '../../environments/environment';
-import { preparePersonCardNotesHtml } from './quill-person-card-render';
 
 /**
  * Replaces non-breaking spaces in Quill HTML with regular spaces so text wraps correctly.
@@ -153,24 +152,10 @@ export function patchNgxQuillBreakableSpaces(QuillEditorBaseClass: object): void
     let normalized = currentValue;
     if (format === 'html' && typeof currentValue === 'string') {
       normalized = resolveQuillContentAssetUrls(
-        quillHtmlToBreakable(preparePersonCardNotesHtml(currentValue)),
+        quillHtmlToBreakable(currentValue),
       );
     }
+    // Display only: loading a value never changes the form's model.
     originalWriteValue.call(this, normalized);
-    if (
-      format === 'html' &&
-      typeof normalized === 'string' &&
-      normalized !== currentValue &&
-      typeof this.onModelChange === 'function'
-    ) {
-      queueMicrotask(() => {
-        if (typeof this.onModelChange !== 'function') return;
-        if (this.quillEditor) {
-          this.onModelChange(this.valueGetter()(this.quillEditor));
-        } else {
-          this.onModelChange(normalized);
-        }
-      });
-    }
   };
 }

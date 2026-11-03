@@ -1,4 +1,3 @@
-import { preparePersonCardNotesHtml } from './quill-person-card-render';
 import { quillHtmlToBreakable } from './quill-utils';
 
 /** True when a Quill/HTML value has no visible text. */
@@ -15,5 +14,5 @@ export function isEmptyRichText(value: string | null | undefined): boolean {
 export function richTextOrUndefined(value: string | null | undefined): string | undefined {
   if (isEmptyRichText(value)) return undefined;
   const html = value as string;
-  return quillHtmlToBreakable(preparePersonCardNotesHtml(html)).trim();
+  return quillHtmlToBreakable(html).trim();
 }

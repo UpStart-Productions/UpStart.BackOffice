@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLaneDto, UpdateLaneDto } from './dto/pipelines.dto';
-import { ensurePipelines, laneFields, STARTER_LANES } from './pipeline-lanes.util';
+import { laneFields, STARTER_LANES } from './pipeline-lanes.util';
 
 /**
  * Tenant-defined relationship pipelines and their lanes. There are no won/lost stages; cards move
@@ -13,7 +13,6 @@ export class PipelinesService {
 
   /** Every pipeline with its lanes in order and how many active (not archived) cards each lane holds. */
   async list() {
-    await ensurePipelines(this.prisma);
     const pipelines = await this.prisma.pipeline.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       include: {

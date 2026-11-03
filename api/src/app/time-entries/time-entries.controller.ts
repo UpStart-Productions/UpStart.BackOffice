@@ -30,7 +30,13 @@ import {
   parseTimesheetCsv,
   startedStoppedAt,
 } from './timesheet-csv.util';
-import { assertTmTaskInProject } from './time-entry-task.util';
+import {
+  assertTimeEntryTaskIds,
+  enrichTimeEntry,
+  resolveTimeEntryTaskIds,
+  syncTimeEntryWorkTasks,
+  timeEntryWorkTasksInclude,
+} from './time-entry-work-tasks.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 
@@ -59,6 +65,7 @@ const entryInclude = {
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
   /** Care: the visit this time came from (Reports can show visit time only). */
   careVisit: { select: { id: true } },
+  workTasks: timeEntryWorkTasksInclude,
   ...ATTRIBUTION_INCLUDE,
 };
 
@@ -80,8 +87,13 @@ const entryIncludeWithoutUser = {
       parent: { select: { id: true, name: true } },
     },
   },
+  workTasks: timeEntryWorkTasksInclude,
   ...ATTRIBUTION_INCLUDE,
 };
+
+function presentEntry<T extends Parameters<typeof enrichTimeEntry>[0]>(entry: T) {
+  return withAttribution(enrichTimeEntry(entry), entry);
+}
 
 @ApiTags('time-entries')
 @ApiBearerAuth()
@@ -151,7 +163,7 @@ export class TimeEntriesController {
       },
       include: entryInclude,
       orderBy: { startedAt: 'desc' },
-    });
+    }).then((rows) => rows.map((row) => enrichTimeEntry(row)));
   }
 
   /** People whose time this user can view: just themselves at 'own', everyone at 'all'. */
@@ -284,31 +296,33 @@ export class TimeEntriesController {
     const startedAt = new Date(dto.startedAt);
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
-    if (dto.taskId) {
-      if (!links.projectId) throw new BadRequestException('A task needs a project');
-      await assertTmTaskInProject(this.prisma, links.projectId, dto.taskId);
-    }
+    const taskIds = resolveTimeEntryTaskIds(dto) ?? [];
+    await assertTimeEntryTaskIds(this.prisma, links.projectId, taskIds);
 
     const isBillable = links.projectId
       ? await resolveTimeEntryBillable(this.prisma, links.projectId, dto.projectTaskId, dto.isBillable)
       : (dto.isBillable ?? true);
 
-    return this.prisma.timeEntry.create({
-      data: {
-        userId: user.id,
-        projectId: links.projectId,
-        clientId: links.clientId,
-        projectTaskId: dto.projectTaskId,
-        taskId: dto.taskId,
-        description: dto.description,
-        startedAt,
-        stoppedAt,
-        durationMin,
-        isBillable,
-        hourlyRate: dto.hourlyRate,
-      },
-      include: entryIncludeWithoutUser,
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.timeEntry.create({
+        data: {
+          userId: user.id,
+          projectId: links.projectId,
+          clientId: links.clientId,
+          projectTaskId: dto.projectTaskId,
+          taskId: taskIds[0] ?? null,
+          description: dto.description,
+          startedAt,
+          stoppedAt,
+          durationMin,
+          isBillable,
+          hourlyRate: dto.hourlyRate,
+        },
+      });
+      await syncTimeEntryWorkTasks(tx, row.id, taskIds);
+      return tx.timeEntry.findUniqueOrThrow({ where: { id: row.id }, include: entryIncludeWithoutUser });
     });
+    return enrichTimeEntry(created);
   }
 
   @Action('edit')
@@ -358,7 +372,7 @@ export class TimeEntriesController {
       include: entryInclude,
     });
     if (!entry) throw new NotFoundException('Time entry not found');
-    return withAttribution(entry, entry);
+    return presentEntry(entry);
   }
 
   @Put(':id')
@@ -376,41 +390,53 @@ export class TimeEntriesController {
       : { projectId: entry.projectId, clientId: entry.clientId };
     const projectId = links.projectId;
     const projectTaskId = dto.projectTaskId !== undefined ? dto.projectTaskId : entry.projectTaskId ?? undefined;
-    const taskId = dto.taskId !== undefined ? dto.taskId || null : entry.taskId;
+    const resolvedTaskIds = resolveTimeEntryTaskIds(dto);
+    const taskIds =
+      resolvedTaskIds !== undefined
+        ? resolvedTaskIds
+        : linksChanged && !projectId
+          ? []
+          : undefined;
     const startedAt = dto.startedAt ? new Date(dto.startedAt) : entry.startedAt;
     const stoppedAt = dto.stoppedAt ? new Date(dto.stoppedAt) : entry.stoppedAt ?? undefined;
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
 
-    if (taskId) {
-      if (!projectId) throw new BadRequestException('A task needs a project');
-      await assertTmTaskInProject(this.prisma, projectId, taskId);
+    if (taskIds !== undefined) {
+      await assertTimeEntryTaskIds(this.prisma, projectId, taskIds);
     }
 
     const isBillable = projectId
       ? await resolveTimeEntryBillable(this.prisma, projectId, projectTaskId, dto.isBillable ?? entry.isBillable)
       : (dto.isBillable ?? entry.isBillable);
 
-    const updated = await this.prisma.timeEntry.update({
-      where: { id },
-      data: {
-        ...(linksChanged && {
-          projectId: links.projectId,
-          clientId: links.clientId,
-          ...(links.projectId ? {} : { projectTaskId: null, taskId: null }),
-        }),
-        ...(dto.projectTaskId !== undefined && { projectTaskId: dto.projectTaskId }),
-        ...(dto.taskId !== undefined && { taskId: dto.taskId || null }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.startedAt !== undefined && { startedAt }),
-        ...(dto.stoppedAt !== undefined && { stoppedAt, durationMin }),
-        ...(dto.isBillable !== undefined || dto.projectTaskId !== undefined || linksChanged
-          ? { isBillable }
-          : {}),
-        ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
-      },
-      include: entryIncludeWithoutUser,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.timeEntry.update({
+        where: { id },
+        data: {
+          ...(linksChanged && {
+            projectId: links.projectId,
+            clientId: links.clientId,
+            ...(links.projectId ? {} : { projectTaskId: null, taskId: null }),
+          }),
+          ...(dto.projectTaskId !== undefined && { projectTaskId: dto.projectTaskId }),
+          ...(taskIds !== undefined && { taskId: taskIds[0] ?? null }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.startedAt !== undefined && { startedAt }),
+          ...(dto.stoppedAt !== undefined && { stoppedAt, durationMin }),
+          ...(dto.isBillable !== undefined || dto.projectTaskId !== undefined || linksChanged
+            ? { isBillable }
+            : {}),
+          ...(dto.hourlyRate !== undefined && { hourlyRate: dto.hourlyRate }),
+        },
+      });
+      if (taskIds !== undefined) {
+        await syncTimeEntryWorkTasks(tx, id, taskIds);
+      } else if (linksChanged && !projectId) {
+        await syncTimeEntryWorkTasks(tx, id, []);
+      }
+      return tx.timeEntry.findUniqueOrThrow({ where: { id }, include: entryIncludeWithoutUser });
     });
-    return withAttribution(updated, updated);
+    return presentEntry(updated);
   }
 
   @Delete(':id')

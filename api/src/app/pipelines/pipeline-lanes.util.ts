@@ -20,9 +20,8 @@ const toLane = (s: { id: string; pipelineId: string; legacyKey: LeadStage | null
   legacyKey: s.legacyKey,
 });
 
-/** Give the tenant its first pipeline (with starter lanes) if it has none. */
-export async function ensurePipelines(db: PipelineDb): Promise<void> {
-  if ((await db.pipeline.count()) > 0) return;
+/** A new tenant's first pipeline, with the starter lanes. Called once, at tenant setup. */
+export async function createStarterPipeline(db: PipelineDb): Promise<void> {
   await db.pipeline.create({
     data: {
       name: 'Pipeline',
@@ -34,21 +33,17 @@ export async function ensurePipelines(db: PipelineDb): Promise<void> {
 
 /** The first lane of a pipeline (default: the tenant's first pipeline). */
 export async function firstLane(db: PipelineDb, pipelineId?: string | null): Promise<Lane> {
-  await ensurePipelines(db);
   const stage = await db.pipelineStage.findFirst({
     where: pipelineId ? { pipelineId } : {},
     orderBy: pipelineId ? [{ sortOrder: 'asc' }] : [{ pipeline: { sortOrder: 'asc' } }, { pipeline: { createdAt: 'asc' } }, { sortOrder: 'asc' }],
     select: laneSelect,
   });
-  if (stage) return toLane(stage);
-  // A pipeline with no lanes (shouldn't happen: the last lane can't be deleted). Give it one.
-  const pid = pipelineId ?? (await db.pipeline.findFirstOrThrow({ orderBy: { sortOrder: 'asc' }, select: { id: true } })).id;
-  return toLane(await db.pipelineStage.create({ data: { pipelineId: pid, name: 'New', sortOrder: 0 }, select: laneSelect }));
+  if (!stage) throw new Error(pipelineId ? `Pipeline ${pipelineId} has no lanes` : 'This tenant has no pipeline lanes');
+  return toLane(stage);
 }
 
 /** The lane that came from an old fixed stage (first pipeline first), else the default first lane. */
 export async function laneForLegacy(db: PipelineDb, key: LeadStage): Promise<Lane> {
-  await ensurePipelines(db);
   const stage = await db.pipelineStage.findFirst({
     where: { legacyKey: key },
     orderBy: [{ pipeline: { sortOrder: 'asc' } }, { pipeline: { createdAt: 'asc' } }],

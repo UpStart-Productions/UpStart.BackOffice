@@ -205,8 +205,7 @@ export class ClientFormsController {
   async moveInfo(@Req() req: Request, @Param('id') id: string): Promise<FormAttachInfoDto> {
     const user = req.user as UserContext;
     const { record } = await this.assertResult(user, id, 'edit');
-    const info = await attachInfo(this.prisma, record.form, { name: null, email: null }, await this.access.clientIds(user));
-    return info;
+    return attachInfo(this.prisma, record.form);
   }
 
   /** Every client and organization the user reaches, with status, tags and people (Attach and Move pickers). */

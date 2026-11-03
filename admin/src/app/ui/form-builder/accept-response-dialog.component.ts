@@ -34,31 +34,8 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
   template: `
     <p-dialog [header]="move() ? 'Move response' : 'Attach response'" [(visible)]="visible" [modal]="true" [style]="{ width: 'min(34rem, 96vw)' }">
       @if (step() === 'pick') {
-        @if (info()?.matches?.length) {
-          <div class="form-field">
-            <label>Suggestions</label>
-            <div class="side-list">
-              @for (m of info()!.matches; track m.clientId) {
-                <div class="side-list-row">
-                  <div class="side-list-body">
-                    <span class="side-list-title">{{ m.name }} <p-tag [value]="status(m)" [severity]="m.journey === 'CLIENT' ? 'info' : 'secondary'" /></span>
-                    <span class="side-list-detail">{{ m.reason }}</span>
-                  </div>
-                  <p-button
-                    [label]="selected()?.clientId === m.clientId ? 'Selected' : 'Use'"
-                    size="small"
-                    severity="secondary"
-                    [outlined]="selected()?.clientId !== m.clientId"
-                    (onClick)="select(m)"
-                  />
-                </div>
-              }
-            </div>
-          </div>
-        }
-
         @if (!newKind()) {
-          <div class="form-field" [class.mt-3]="info()?.matches?.length">
+          <div class="form-field">
             <p-selectbutton [options]="kindOptions" optionLabel="label" optionValue="value" [ngModel]="kind()" (ngModelChange)="kind.set($event)" [allowEmpty]="false" />
           </div>
           <div class="form-field mt-3">
@@ -95,7 +72,7 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
             </div>
           }
         } @else {
-          <div class="form-field" [class.mt-3]="info()?.matches?.length">
+          <div class="form-field">
             <label for="arName">{{ newKind() === 'client' ? 'New client name' : 'New organization name' }}</label>
             <input pInputText id="arName" class="w-full" [(ngModel)]="name" />
             <small class="text-color-secondary">

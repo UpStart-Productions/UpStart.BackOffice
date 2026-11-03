@@ -7,6 +7,16 @@ export type LeadLinksDb = Pick<
   'client' | 'contact' | 'contactEmail' | 'contactAccount' | 'lead'
 >;
 
+/**
+ * The email to put on a new Contact: null when another Contact already has it (emails are unique per tenant).
+ * Never links to that Contact; the new one just goes without the email.
+ */
+export async function freeContactEmail(db: Pick<Prisma.TransactionClient, 'contactEmail'>, email: string | null): Promise<string | null> {
+  if (!email) return null;
+  const taken = await db.contactEmail.findFirst({ where: { email }, select: { id: true } });
+  return taken ? null : email;
+}
+
 /** First/last name from the free-text person on a lead; falls back to the email's local part. */
 export function splitPersonName(
   name: string | null | undefined,
@@ -23,8 +33,8 @@ export function splitPersonName(
 
 /**
  * Make sure a lead has an Account and (when it names someone) a Contact, and link them.
- * Idempotent: existing links are kept. A new Account is a Prospect; an Account with the same
- * name (case-insensitive) is reused rather than duplicated.
+ * Idempotent: existing links are kept. Missing ones are always created new (a Prospect Account and
+ * a new Contact); nothing is ever matched to existing records by name or email.
  */
 export async function ensureLeadLinks(
   db: LeadLinksDb,
@@ -35,28 +45,20 @@ export async function ensureLeadLinks(
 
   let clientId = lead.clientId ?? lead.convertedClientId;
   if (!clientId) {
-    const name = lead.organization.trim();
-    const existing = await db.client.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } },
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
-    clientId =
-      existing?.id ??
-      (
-        await db.client.create({
-          data: {
-            name,
-            email: normalizeEmail(lead.email) ?? undefined,
-            phone: lead.phone?.trim() || undefined,
-            website: lead.website ?? undefined,
-            category: lead.category ?? undefined,
-            journey: 'PROSPECT',
-            lastContactAt: lead.lastContactDate ?? undefined,
-          },
-          select: { id: true },
-        })
-      ).id;
+    clientId = (
+      await db.client.create({
+        data: {
+          name: lead.organization.trim(),
+          email: normalizeEmail(lead.email) ?? undefined,
+          phone: lead.phone?.trim() || undefined,
+          website: lead.website ?? undefined,
+          category: lead.category ?? undefined,
+          journey: 'PROSPECT',
+          lastContactAt: lead.lastContactDate ?? undefined,
+        },
+        select: { id: true },
+      })
+    ).id;
   }
 
   let contactId = lead.primaryContactId;
@@ -64,23 +66,19 @@ export async function ensureLeadLinks(
     const email = normalizeEmail(lead.email);
     const person = splitPersonName(lead.primaryContact, email);
     if (person) {
-      const byEmail = email
-        ? await db.contactEmail.findFirst({ where: { email }, select: { contactId: true } })
-        : null;
-      contactId =
-        byEmail?.contactId ??
-        (
-          await db.contact.create({
-            data: {
-              firstName: person.firstName,
-              lastName: person.lastName,
-              phone: lead.phone?.trim() || undefined,
-              lastContactAt: lead.lastContactDate ?? undefined,
-              ...(email ? { emails: { create: { email, isPrimary: true } } } : {}),
-            },
-            select: { id: true },
-          })
-        ).id;
+      const contactEmail = await freeContactEmail(db, email);
+      contactId = (
+        await db.contact.create({
+          data: {
+            firstName: person.firstName,
+            lastName: person.lastName,
+            phone: lead.phone?.trim() || undefined,
+            lastContactAt: lead.lastContactDate ?? undefined,
+            ...(contactEmail ? { emails: { create: { email: contactEmail, isPrimary: true } } } : {}),
+          },
+          select: { id: true },
+        })
+      ).id;
     }
   }
   if (contactId) {

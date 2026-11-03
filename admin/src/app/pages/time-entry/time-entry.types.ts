@@ -37,6 +37,8 @@ export type TimeEntry = {
   isBillable: boolean;
   projectTaskId?: string;
   taskId?: string | null;
+  /** Task Manager work tasks tagged on this entry (one or more). */
+  tasks?: TimeEntryTask[];
   /** Optional: time can be logged without a project. */
   project: Project | null;
   /** The project's client, or one picked directly when there is no project. */

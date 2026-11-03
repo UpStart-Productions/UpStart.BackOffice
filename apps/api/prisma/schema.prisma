@@ -713,6 +713,7 @@ model TimeEntry {
   client                Client?          @relation(fields: [clientId], references: [id], onDelete: SetNull)
   projectTask           ProjectTask?     @relation(fields: [projectTaskId], references: [id], onDelete: SetNull)
   task                  Task?            @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  workTasks             TimeEntryWorkTask[]
   invoiceLineItem       InvoiceLineItem? @relation("ClientInvoiceTime", fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
   tenantInvoiceLineItem InvoiceLineItem? @relation("TenantInvoiceTime", fields: [tenantInvoiceLineItemId], references: [id], onDelete: SetNull)
   careVisit             CareVisit?
@@ -1327,6 +1328,7 @@ model Task {
   attachments  TaskAttachment[]
   fieldValues  TaskCustomFieldValue[]
   timeEntries  TimeEntry[]
+  timeEntryWorkTasks TimeEntryWorkTask[] @relation("TimeEntryWorkTasks")
   /// Extra projects this task also appears in (Asana multi-homing). projectId stays the home project.
   projectLinks TaskProjectLink[]
   tags         TaskTag[]
@@ -1335,6 +1337,18 @@ model Task {
   @@index([parentTaskId, sortOrder])
   @@index([assigneeId, isCompleted, dueOn])
   @@index([tenantId])
+}
+
+/// Task Manager work tasks linked to a time entry (one entry can tag several tasks).
+model TimeEntryWorkTask {
+  timeEntryId String
+  taskId      String
+  sortOrder   Int       @default(0)
+  timeEntry   TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  task        Task      @relation("TimeEntryWorkTasks", fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([timeEntryId, taskId])
+  @@index([taskId])
 }
 
 model TaskFollower {

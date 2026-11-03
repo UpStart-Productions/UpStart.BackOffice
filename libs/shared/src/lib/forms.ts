@@ -661,11 +661,8 @@ export type FormSubmissionDto = FormSubmissionListItemDto & {
   isClientForm: boolean;
 };
 
-/** A client that may be who sent a submission (same email, or same name). */
-export type FormSubmissionMatchDto = { clientId: string; name: string; reason: string };
-
-/** A client or organization a response can be attached to (pickers and suggestions). */
-export type FormAttachTargetDto = { clientId: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'NONE'; tags: string[]; people: string[]; reason?: string };
+/** A client or organization a response can be attached to (pickers). */
+export type FormAttachTargetDto = { clientId: string; name: string; journey: 'PROSPECT' | 'CLIENT' | 'NONE'; tags: string[]; people: string[] };
 
 /** Who will be able to see a response once it's attached (shown before confirming). */
 export type FormAttachVisibilityDto = {
@@ -677,7 +674,7 @@ export type FormAttachVisibilityDto = {
 };
 
 /** The Attach response dialog: suggestions and visibility. */
-export type FormAttachInfoDto = { matches: FormAttachTargetDto[]; visibility: FormAttachVisibilityDto };
+export type FormAttachInfoDto = { visibility: FormAttachVisibilityDto };
 
 /** Submissions waiting for review across every form the user can see (Dashboard). */
 export type PendingSubmissionDto = {

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsNumber, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsNumber, IsDateString, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -9,6 +9,8 @@ export class CreateTimeEntryDto {
   @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string | null;
   @ApiPropertyOptional() @IsString() @IsOptional() projectTaskId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() taskId?: string;
+  /** Task Manager work tasks (several per entry). When set, taskId is kept as the first id for older clients. */
+  @ApiPropertyOptional({ type: [String] }) @IsArray() @IsString({ each: true }) @IsOptional() taskIds?: string[];
   @ApiPropertyOptional() @IsString() @IsOptional() description?: string;
   @ApiProperty() @IsDateString() startedAt!: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() stoppedAt?: string;

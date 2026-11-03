@@ -8,7 +8,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
 import { ensureLeadLinks } from './lead-links.util';
 import { laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
-import { normalizeWebsiteDomain } from './lead-website.util';
 
 @ApiTags('leads')
 @Controller('leads')
@@ -18,22 +17,12 @@ export class LeadsIngestController {
   /**
    * Ingest a lead from an external service (e.g. Donor Readiness Audit Lambda).
    * Protected by x-api-key header via ServiceKeyGuard — no Cognito JWT required.
-   * Deduplicates by normalized website domain.
+   * Every call makes a new lead; nothing is matched to existing leads.
    */
   @Post('ingest')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ServiceKeyGuard)
   async ingest(@Body() dto: IngestLeadDto) {
-    const domain = normalizeWebsiteDomain(dto.website);
-
-    const existing = await this.prisma.lead.findFirst({
-      where: { website: { contains: domain } },
-      select: { id: true, organization: true },
-    });
-    if (existing) {
-      return { duplicate: true, leadId: existing.id, organization: existing.organization };
-    }
-
     const primaryContact = [dto.firstName, dto.lastName].filter(Boolean).join(' ') || undefined;
     const auditDate      = dto.auditDate ? new Date(dto.auditDate) : new Date();
     const nextActionDate = new Date(auditDate);

@@ -100,10 +100,13 @@ describe.skipIf(!SQL || !pglite || !socket)('tenant isolation (real Postgres)', 
     expect(email.tenantId).toBe(A);
   });
 
-  it('handles relation-style (checked) creates', async () => {
+  it('creates with plain IDs (the one supported style); relation-style connects are rejected', async () => {
     const client = await inA(() => prisma.client.findFirstOrThrow({ where: { code: 'ACME' } }));
-    const p = await inA(() => prisma.project.create({ data: { name: 'Site', client: { connect: { id: client.id } } } }));
+    const p = await inA(() => prisma.project.create({ data: { name: 'Site', clientId: client.id } }));
     expect(p.tenantId).toBe(A);
+    await expect(
+      inA(() => prisma.project.create({ data: { name: 'Site 2', client: { connect: { id: client.id } } } })),
+    ).rejects.toThrow();
   });
 
   it('keeps per-tenant singleton settings separate (upsert)', async () => {

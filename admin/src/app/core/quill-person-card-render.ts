@@ -125,43 +125,6 @@ export function personCardValueFromDom(node: HTMLElement): QuillPersonCardValue 
   };
 }
 
-function personCardFingerprint(card: Element): string {
-  const v = personCardValueFromDom(card as HTMLElement);
-  return [v.name, v.role ?? '', v.email, v.phone].join('|').replace(/\s+/g, ' ').trim().toLowerCase();
-}
-
-/** Drop unpacked duplicate lines saved after a person card (legacy div / clipboard glitches). */
-export function preparePersonCardNotesHtml(html: string): string {
-  if (!html?.trim() || !/bo-person-card|ql-person-card/i.test(html)) return html;
-  if (typeof DOMParser === 'undefined') return html;
-
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const cards = Array.from(doc.querySelectorAll('.bo-person-card, .ql-person-card'));
-  for (const card of cards) {
-    const fp = personCardFingerprint(card);
-    if (!fp || fp === '|||') continue;
-
-    let sibling = card.nextElementSibling;
-    while (
-      sibling &&
-      !sibling.classList.contains('bo-person-card') &&
-      !sibling.classList.contains('ql-person-card')
-    ) {
-      const next = sibling.nextElementSibling;
-      const sibText = (sibling.textContent ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
-      const parts = fp.split('|').filter(Boolean);
-      const looksLikeUnpack = parts.length > 0 && parts.every((part) => sibText.includes(part));
-      if (looksLikeUnpack) {
-        sibling.remove();
-        sibling = next;
-        continue;
-      }
-      break;
-    }
-  }
-  return doc.body.innerHTML;
-}
-
 /** Stable HTML for note storage (no Quill embed wrapper nodes). */
 export function personCardExportOuterHtml(value: QuillPersonCardValue): string {
   const node = document.createElement('span');

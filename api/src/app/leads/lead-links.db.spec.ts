@@ -68,15 +68,21 @@ describe.skipIf(!SQL || !pglite || !socket)('lead links (real Postgres)', () => 
     expect(saved).toMatchObject({ clientId: account.id, primaryContactId: contact.id });
   });
 
-  it('reuses the Account (case-insensitive name) and the Contact (same email) for a second lead', async () => {
+  it('never matches a second lead to existing records by name or email', async () => {
     const second = await inT(() =>
       prisma.lead.create({ data: { organization: 'ACME', primaryContact: 'Ana L.', email: 'ana@acme.com' } }),
     );
     const links = await inT(() => ensureLeadLinks(prisma, second.id));
-    expect(await inT(() => prisma.client.count({ where: { name: { equals: 'acme', mode: 'insensitive' } } }))).toBe(1);
-    expect(await inT(() => prisma.contact.count())).toBe(1);
     const first = await inT(() => prisma.lead.findFirstOrThrow({ where: { organization: 'Acme' } }));
-    expect(links).toEqual({ clientId: first.clientId, primaryContactId: first.primaryContactId });
+    expect(links.clientId).not.toBe(first.clientId);
+    expect(links.primaryContactId).not.toBe(first.primaryContactId);
+    // The email already belongs to the first Contact, so the new Contact goes without it.
+    const contact = await inT(() => prisma.contact.findUniqueOrThrow({ where: { id: links.primaryContactId! }, include: { emails: true } }));
+    expect(contact.emails).toEqual([]);
+    // Clean up so later tests see only the first lead's records.
+    await inT(() => prisma.lead.delete({ where: { id: second.id } }));
+    await inT(() => prisma.contact.delete({ where: { id: links.primaryContactId! } }));
+    await inT(() => prisma.client.delete({ where: { id: links.clientId } }));
   });
 
   it('is idempotent and a lead with no person gets an Account only', async () => {

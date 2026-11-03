@@ -22,7 +22,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-directory.util';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
-import type { ClientOption, Project, TimeEntry } from './time-entry.types';
+import type { ClientOption, Project, TimeEntry, TimeEntryTask } from './time-entry.types';
 import {
   addDays,
   dateKey,
@@ -469,5 +469,14 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   formatMin(min: number): string {
     return formatDurationMin(min);
+  }
+
+  workTasks(entry: TimeEntry): TimeEntryTask[] {
+    if (entry.tasks?.length) return entry.tasks;
+    return entry.task ? [entry.task] : [];
+  }
+
+  workTaskLine(task: TimeEntryTask): string {
+    return task.parent?.name ? `${task.parent.name} › ${task.name}` : task.name;
   }
 }

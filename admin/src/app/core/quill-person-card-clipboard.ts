@@ -1,5 +1,5 @@
 import Delta from 'quill-delta';
-import { personCardValueFromDom, preparePersonCardNotesHtml } from './quill-person-card-render';
+import { personCardValueFromDom } from './quill-person-card-render';
 
 const MATCHER_SELECTOR = '.bo-person-card, .ql-person-card';
 const patchedClipboards = new WeakSet<object>();
@@ -19,11 +19,6 @@ export function registerPersonCardClipboard(Quill: typeof import('quill').defaul
 
   if (patchedClipboards.has(Clipboard)) return;
   patchedClipboards.add(Clipboard);
-
-  const originalConvertHTML = Clipboard.prototype.convertHTML;
-  Clipboard.prototype.convertHTML = function (html: string) {
-    return originalConvertHTML.call(this, preparePersonCardNotesHtml(html));
-  };
 
   const defaultsMatchers = Clipboard.DEFAULTS.matchers ?? [];
   const hasMatcher = defaultsMatchers.some((entry) => entry[0] === MATCHER_SELECTOR);

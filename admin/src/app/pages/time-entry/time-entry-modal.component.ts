@@ -5,6 +5,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { Popover } from 'primeng/popover';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { AppPopoverModule } from '../../core/app-popover.module';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
@@ -16,7 +17,7 @@ import {
   sanitizeDurationInput,
 } from './timesheet.utils';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
-import type { ClientOption, Project, TimeEntry, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
+import type { ClientOption, Project, TimeEntry, TimeEntryTask, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 
@@ -36,6 +37,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
     ButtonModule,
     TextareaModule,
     SelectModule,
+    MultiSelectModule,
     DatePickerModule,
     RecordAttributionComponent,
   ],
@@ -160,33 +162,23 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
 
         @if (showWorkTaskField()) {
           <div class="form-field">
-            <label for="entry-work-task">Work task</label>
-            <p-select
+            <label for="entry-work-task">Work tasks</label>
+            <p-multiselect
               inputId="entry-work-task"
               [options]="tmTaskOptions()"
               optionLabel="label"
               optionValue="id"
-              [ngModel]="tmTaskId()"
-              (ngModelChange)="onTmTaskChange($event)"
+              [ngModel]="tmTaskIds()"
+              (ngModelChange)="onTmTasksChange($event)"
               [filter]="true"
               filterBy="label,name"
               filterPlaceholder="Search tasks…"
-              [showClear]="true"
-              placeholder="Select a task"
+              placeholder="Select tasks"
+              display="chip"
               styleClass="w-full entry-work-task-select"
               panelStyleClass="entry-work-task-select-panel"
               appendTo="body"
             >
-              <ng-template #selectedItem let-option>
-                @if (option) {
-                  <span class="entry-work-task-option">
-                    <span class="entry-work-task-name">{{ option.name }}</span>
-                    @if (option.parent?.name) {
-                      <span class="entry-work-task-parent">{{ option.parent.name }}</span>
-                    }
-                  </span>
-                }
-              </ng-template>
               <ng-template #item let-option>
                 <span class="entry-work-task-option">
                   <span class="entry-work-task-name">{{ option.name }}</span>
@@ -195,7 +187,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
                   }
                 </span>
               </ng-template>
-            </p-select>
+            </p-multiselect>
           </div>
         }
 
@@ -478,7 +470,7 @@ export class TimeEntryModalComponent {
   clientId = signal('');
   manualTaskId = signal('');
   asanaTaskId = signal('');
-  tmTaskId = signal('');
+  tmTaskIds = signal<string[]>([]);
   tmTaskOptions = signal<TmTaskOption[]>([]);
   notes = signal('');
   durationInput = signal('');
@@ -515,7 +507,7 @@ export class TimeEntryModalComponent {
   );
 
   readonly hasSelectedTask = computed(
-    () => !!(this.manualTaskId() || this.asanaTaskId() || this.tmTaskId()),
+    () => !!(this.manualTaskId() || this.asanaTaskId() || this.tmTaskIds().length),
   );
 
   readonly canSubmit = computed(() => {
@@ -587,7 +579,7 @@ export class TimeEntryModalComponent {
         this.clientId.set('');
         this.manualTaskId.set('');
         this.asanaTaskId.set('');
-        this.tmTaskId.set('');
+        this.tmTaskIds.set([]);
         this.tmTaskOptions.set([]);
         this.notes.set('');
         this.durationInput.set('');
@@ -603,7 +595,7 @@ export class TimeEntryModalComponent {
         if (project?.asanaSectionGid && this.asanaConnected()) {
           void this.syncAsanaTasksIfNeeded(project.id);
         }
-        void this.loadTmTaskOptions(projectId, options.entry?.task ?? null);
+        void this.loadTmTaskOptions(projectId, options.entry?.tasks ?? (options.entry?.task ? [options.entry.task] : []));
       }
     });
   }
@@ -618,7 +610,8 @@ export class TimeEntryModalComponent {
   }
 
   private setTmTaskFromEntry(entry: TimeEntry) {
-    this.tmTaskId.set(entry.taskId ?? entry.task?.id ?? '');
+    const ids = (entry.tasks?.length ? entry.tasks : entry.task ? [entry.task] : []).map((t) => t.id);
+    this.tmTaskIds.set(ids);
   }
 
   private setTaskIdsFromEntry(entry: TimeEntry) {
@@ -681,7 +674,7 @@ export class TimeEntryModalComponent {
       this.projectId.set('');
       this.manualTaskId.set('');
       this.asanaTaskId.set('');
-      this.tmTaskId.set('');
+      this.tmTaskIds.set([]);
       this.tmTaskOptions.set([]);
       return;
     }
@@ -693,7 +686,7 @@ export class TimeEntryModalComponent {
     this.projectId.set(p.id);
     this.manualTaskId.set('');
     this.asanaTaskId.set('');
-    this.tmTaskId.set('');
+    this.tmTaskIds.set([]);
     this.tmTaskOptions.set([]);
     const manual = (p.tasks ?? []).filter((t) => t.source !== 'ASANA');
     if (manual.length === 1) {
@@ -709,14 +702,14 @@ export class TimeEntryModalComponent {
     this.manualTaskId.set(taskId);
     if (taskId) {
       this.asanaTaskId.set('');
-      this.tmTaskId.set('');
+      this.tmTaskIds.set([]);
     }
   }
 
-  onTmTaskChange(taskId: string | null) {
-    const id = taskId ?? '';
-    this.tmTaskId.set(id);
-    if (id) {
+  onTmTasksChange(taskIds: string[] | null) {
+    const ids = taskIds ?? [];
+    this.tmTaskIds.set(ids);
+    if (ids.length) {
       this.manualTaskId.set('');
       this.asanaTaskId.set('');
     }
@@ -792,7 +785,7 @@ export class TimeEntryModalComponent {
     this.asanaTaskId.set(taskId);
     if (taskId) {
       this.manualTaskId.set('');
-      this.tmTaskId.set('');
+      this.tmTaskIds.set([]);
     }
 
     if (!taskId) return;
@@ -893,7 +886,7 @@ export class TimeEntryModalComponent {
     return this.projects().find((p) => p.id === projectId)?.inTaskManager === true;
   }
 
-  async loadTmTaskOptions(projectId: string, selected?: TimeEntry['task']) {
+  async loadTmTaskOptions(projectId: string, selected: TimeEntryTask[] = []) {
     if (!this.projectInTaskManager(projectId)) {
       this.tmTaskOptions.set([]);
       return;
@@ -909,16 +902,18 @@ export class TimeEntryModalComponent {
         parent: null,
       }));
       let options = hits.map((row) => this.toTmTaskOption(row));
-      if (selected && !options.some((o) => o.id === selected.id)) {
-        options = [
-          this.toTmTaskOption({
-            id: selected.id,
-            name: selected.name,
-            project: { id: projectId, name: this.selectedProject()?.name ?? '' },
-            parent: selected.parent ?? null,
-          }),
-          ...options,
-        ];
+      for (const sel of selected) {
+        if (!options.some((o) => o.id === sel.id)) {
+          options = [
+            this.toTmTaskOption({
+              id: sel.id,
+              name: sel.name,
+              project: { id: projectId, name: this.selectedProject()?.name ?? '' },
+              parent: sel.parent ?? null,
+            }),
+            ...options,
+          ];
+        }
       }
       this.tmTaskOptions.set(options);
     } catch {
@@ -941,7 +936,8 @@ export class TimeEntryModalComponent {
       projectId: projectId || null,
       clientId: projectId ? null : this.clientId() || null,
       description: this.notes().trim() || undefined,
-      taskId: this.tmTaskId() || null,
+      taskIds: this.tmTaskIds().length ? this.tmTaskIds() : null,
+      taskId: this.tmTaskIds()[0] ?? null,
     };
     const projectTaskId = this.selectedProjectTaskId();
     if (projectTaskId) payload['projectTaskId'] = projectTaskId;

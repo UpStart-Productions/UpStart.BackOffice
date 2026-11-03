@@ -2,7 +2,7 @@ import {
   Body, Controller, Get, NotFoundException, Param, Post, UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { ArtifactType, LeadStage } from '@prisma/client';
+import { ArtifactType } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutomationNoteDto } from './dto/automation-note.dto';
@@ -46,15 +46,19 @@ export class LeadsAutomationController {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * List NEW_LEAD pipeline entries, ordered so leads that have never been
+   * List new leads (cards in the first lane of their pipeline), ordered so leads that have never been
    * picked (lastContactDate is null) come first, then by oldest
    * lastContactDate. The caller should pick randomly from the leading
    * group of "least recently picked" entries.
    */
   @Get('new-leads')
   async listNewLeads() {
+    const pipelines = await this.prisma.pipeline.findMany({
+      select: { stages: { orderBy: { sortOrder: 'asc' }, take: 1, select: { id: true } } },
+    });
+    const firstLaneIds = pipelines.flatMap((p) => p.stages.map((s) => s.id));
     const leads = await this.prisma.lead.findMany({
-      where: { stage: LeadStage.NEW_LEAD, archivedAt: null },
+      where: { stageId: { in: firstLaneIds }, archivedAt: null },
       orderBy: [
         { lastContactDate: { sort: 'asc', nulls: 'first' } },
         { organization: 'asc' },

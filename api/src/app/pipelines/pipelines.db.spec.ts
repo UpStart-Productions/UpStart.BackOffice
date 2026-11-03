@@ -11,7 +11,7 @@ import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { tenantExtension } from '../tenancy/prisma-tenant.extension';
 import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
-import { firstLane, laneFields, laneForLegacy } from './pipeline-lanes.util';
+import { createStarterPipeline, firstLane, laneFields, laneForLegacy } from './pipeline-lanes.util';
 import { PipelinesService } from './pipelines.service';
 
 const SQL = process.env.TENANT_TEST_SCHEMA_SQL;
@@ -51,6 +51,8 @@ describe.skipIf(!SQL || !pglite || !socket)('pipelines (real Postgres)', () => {
       await raw.tenant.create({ data: { id: T, name: 'P', slug: 'p' } });
       await raw.tenant.create({ data: { id: U, name: 'Q', slug: 'q' } });
     });
+    // Tenant setup creates the starter pipeline (tenants.controller / add-tenant).
+    await inT(() => createStarterPipeline(prisma as never));
   }, 60_000);
 
   afterAll(async () => {
@@ -58,14 +60,16 @@ describe.skipIf(!SQL || !pglite || !socket)('pipelines (real Postgres)', () => {
     await server?.stop();
   });
 
-  it('gives a tenant with no pipeline the four starter lanes, once', async () => {
+  it('lists the starter pipeline from setup, and reading never creates one', async () => {
     const first = await inT(() => svc.list());
     const again = await inT(() => svc.list());
     expect(first).toHaveLength(1);
     expect(first[0].stages.map((s) => s.name)).toEqual(['New Lead', 'Discovery', 'Proposal Sent', 'On Hold']);
     expect(again).toHaveLength(1);
-    // Another tenant sees none of it.
+    // Another tenant sees none of it, and listing doesn't create one for them.
+    expect(await runWithTenant(U, () => svc.list())).toEqual([]);
     expect(await runWithTenant(U, () => prisma.pipelineStage.count())).toBe(0);
+    await expect(runWithTenant(U, () => firstLane(prisma as never))).rejects.toThrow('no pipeline lanes');
   });
 
   it('adds, renames and reorders lanes', async () => {

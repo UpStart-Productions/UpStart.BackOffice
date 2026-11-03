@@ -28,12 +28,11 @@ import {
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpsertBookingTypeDto } from './dto/upsert-booking-type.dto';
 import {
-  normalizeWebsiteDomain,
   normalizeWebsiteForStorage,
 } from '../leads/lead-website.util';
 import { ensureLeadLinks } from '../leads/lead-links.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
-import { findLane, firstLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
+import { findLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
 
 export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
 
@@ -161,7 +160,7 @@ export class BookingService {
       if (conflict) throw new ConflictException('That time was just booked');
 
       const lead = type.createLead
-        ? await this.upsertLead(tx, dto, startAt, type)
+        ? await this.createLead(tx, dto, startAt, type)
         : null;
 
       return tx.booking.create({
@@ -437,7 +436,7 @@ export class BookingService {
     return admin.id;
   }
 
-  private async upsertLead(
+  private async createLead(
     tx: Prisma.TransactionClient,
     dto: CreateBookingDto,
     startAt: Date,
@@ -448,21 +447,6 @@ export class BookingService {
     const website = dto.guestWebsite?.trim()
       ? normalizeWebsiteForStorage(dto.guestWebsite)
       : undefined;
-    const domain = website ? normalizeWebsiteDomain(website) : '';
-
-    let lead = domain
-      ? await tx.lead.findFirst({
-          where: { website: { contains: domain, mode: 'insensitive' } },
-          orderBy: { updatedAt: 'desc' },
-        })
-      : null;
-
-    if (!lead) {
-      lead = await tx.lead.findFirst({
-        where: { email: { equals: email, mode: 'insensitive' } },
-        orderBy: { updatedAt: 'desc' },
-      });
-    }
 
     const callDate = startAt.toISOString().slice(0, 10);
     const noteTitle = type.pipelineNoteTitle ?? type.name;
@@ -499,36 +483,13 @@ export class BookingService {
       lastContactDate: new Date(),
     };
 
-    if (lead) {
-      // As before: a card still in its pipeline's first lane moves to the booking type's lane; others stay put.
-      const first = lead.pipelineId ? await firstLane(tx, lead.pipelineId) : null;
-      const moveLane = !lead.stageId || first?.stageId === lead.stageId;
-      const updated = await tx.lead.update({
-        where: { id: lead.id },
-        data: {
-          organization: org || lead.organization,
-          primaryContact: dto.guestName.trim(),
-          email: lead.email ?? email,
-          ...(website ? { website: lead.website ?? website } : {}),
-          ...(moveLane ? laneFields(typeLane) : {}),
-          source: lead.source ?? type.leadSource,
-          nextAction: `${type.name} scheduled`,
-          nextActionDate: startAt,
-          lastContactDate: new Date(),
-          artifacts: { create: artifacts },
-        },
-      });
-      await ensureLeadLinks(tx, updated.id);
-      return updated;
-    }
-
     const created = await tx.lead.create({
       data: {
         ...leadFields,
         artifacts: { create: artifacts },
       },
     });
-    // The booking's guest becomes a Contact on a Prospect Account (or joins the existing Account).
+    // Every booking is a new card, with a new Prospect Account and Contact. Nothing is matched by name or email.
     await ensureLeadLinks(tx, created.id);
     return created;
   }

@@ -23,8 +23,9 @@ const WHERE_OPS = new Set([
 ]);
 
 /**
- * Add the tenant to one create payload as a plain `tenantId`, matching how the app writes creates
- * (plain IDs, with nested creates only for child lists). The caller's data is never rewritten.
+ * Add the tenant to one create payload as a plain `tenantId`. The caller's data is never rewritten.
+ * Rule: creates on tenant models use plain IDs (`clientId: x`, nested creates for child lists).
+ * Relation-style parent writes (`client: { connect }`) are rejected by Prisma; write the ID instead.
  */
 export function withTenant(model: string, data: Json, tenantId: string): Json {
   if (!hasTenant(model)) return data;

@@ -108,7 +108,7 @@ export class LeadsController {
           lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : undefined,
         },
       });
-      // Every pipeline item has an Account (a Prospect unless the name matches an existing one).
+      // Every pipeline item has its own new Prospect Account.
       await ensureLeadLinks(tx, created.id);
       return tx.lead.findUniqueOrThrow({ where: { id: created.id }, include: linkInclude });
     });
