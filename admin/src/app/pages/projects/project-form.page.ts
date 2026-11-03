@@ -164,6 +164,8 @@ export class ProjectFormPage implements OnInit {
 
   /** Everything Save writes, as last loaded or saved; Save stays off until something differs. */
   private savedSnapshot = '';
+  /** Bumps when plain `form` / Asana link fields change (not backed by signals). */
+  private readonly formRevision = signal(0);
 
   private snapshot() {
     return JSON.stringify({
@@ -175,8 +177,27 @@ export class ProjectFormPage implements OnInit {
     });
   }
 
-  isDirty() {
+  touchForm() {
+    this.formRevision.update((n) => n + 1);
+  }
+
+  /** Tracks signal-backed lists plus form edits so header Save enables reliably. */
+  readonly isDirty = computed(() => {
+    this.formRevision();
+    this.manualTasks();
+    this.contactRows();
+    this.asanaTasks();
     return this.snapshot() !== this.savedSnapshot;
+  });
+
+  private patchSavedSnapshotManual() {
+    try {
+      const base = JSON.parse(this.savedSnapshot) as Record<string, unknown>;
+      base['manual'] = this.manualTasks();
+      this.savedSnapshot = JSON.stringify(base);
+    } catch {
+      this.savedSnapshot = this.snapshot();
+    }
   }
 
   contactSummary(): string {
@@ -261,16 +282,14 @@ export class ProjectFormPage implements OnInit {
     const asana = tasks.filter((t) => t.source === 'ASANA' && t.isActive);
     const taskBillable = (value: boolean) => (projectBillable ? value : false);
     this.manualTasks.set(
-      manual.length > 0
-        ? manual.map((t, i) => ({
-            id: t.id,
-            name: t.name,
-            source: t.source,
-            isBillable: taskBillable(t.isBillable),
-            sortOrder: t.sortOrder ?? i,
-            isActive: t.isActive ?? true,
-          }))
-        : this.defaultTasks(),
+      manual.map((t, i) => ({
+        id: t.id,
+        name: t.name,
+        source: t.source,
+        isBillable: taskBillable(t.isBillable),
+        sortOrder: t.sortOrder ?? i,
+        isActive: t.isActive ?? true,
+      })),
     );
     this.asanaTasks.set(
       asana.map((t, i) => ({
@@ -295,6 +314,7 @@ export class ProjectFormPage implements OnInit {
   }
 
   onProjectBillableChange(isBillable: boolean) {
+    this.touchForm();
     this.form.isBillable = isBillable;
     if (!isBillable) {
       this.manualTasks.update((tasks) =>
@@ -378,6 +398,7 @@ export class ProjectFormPage implements OnInit {
   }
 
   async onAsanaProjectChange(projectGid: string | null) {
+    this.touchForm();
     this.asanaLink.projectGid = projectGid;
     this.asanaLink.sectionGids = [];
     this.asanaSections.set([]);
@@ -389,6 +410,7 @@ export class ProjectFormPage implements OnInit {
   }
 
   onAsanaSectionsChange(sectionGids: string[] | null) {
+    this.touchForm();
     this.asanaLink.sectionGids = sectionGids ?? [];
     if (this.asanaLink.sectionGids.length > 0) {
       this.asanaSectionValidationError.set(null);
@@ -494,6 +516,7 @@ export class ProjectFormPage implements OnInit {
       );
     }
     this.taskModalVisible.set(false);
+    void this.persistManualTasksIfEditing();
   }
 
   taskRowActions(index: number): RowActionItem[] {
@@ -514,6 +537,14 @@ export class ProjectFormPage implements OnInit {
     ];
   }
 
+  onDefaultTaskBillableChange(index: number, isBillable: boolean) {
+    this.manualTasks.update((list) =>
+      list.map((task, i) => (i === index ? { ...task, isBillable } : task)),
+    );
+    this.touchForm();
+    void this.persistManualTasksIfEditing();
+  }
+
   confirmRemoveTask(index: number) {
     const task = this.manualTasks()[index];
     const label = task.name.trim() || 'this task';
@@ -521,6 +552,7 @@ export class ProjectFormPage implements OnInit {
       message: `Remove task "${label}"?`,
       accept: () => {
         this.manualTasks.update((list) => list.filter((_, i) => i !== index));
+        void this.persistManualTasksIfEditing();
       },
     });
   }
@@ -530,6 +562,7 @@ export class ProjectFormPage implements OnInit {
       header: 'Unlink Asana',
       message: 'Remove the Asana board link from this project? Synced Asana tasks will be hidden from timesheets.',
       accept: () => {
+        this.touchForm();
         this.asanaLink.projectGid = null;
         this.asanaLink.sectionGids = [];
         this.asanaSections.set([]);
@@ -613,6 +646,61 @@ export class ProjectFormPage implements OnInit {
     }
   }
 
+  private manualTasksForSave():
+    | { ok: true; tasks: ProjectTaskDraft[] }
+    | { ok: false; message: string } {
+    const taskDrafts = this.manualTasks()
+      .map((t) => ({ ...t, name: t.name.trim() }))
+      .filter((t) => t.name)
+      .map((t) => ({
+        ...t,
+        isBillable: this.form.isBillable ? t.isBillable : false,
+      }));
+
+    const duplicateNames = taskDrafts.some(
+      (t, i, arr) => arr.findIndex((x) => x.name.toLowerCase() === t.name.toLowerCase()) !== i,
+    );
+    if (duplicateNames) {
+      return { ok: false, message: 'Default task names must be unique' };
+    }
+    return { ok: true, tasks: taskDrafts };
+  }
+
+  private async persistManualTasksIfEditing() {
+    const projectId = this.id();
+    if (!projectId || this.isNew) return;
+
+    const parsed = this.manualTasksForSave();
+    if (!parsed.ok) {
+      this.error.set(parsed.message);
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Tasks not saved',
+        detail: parsed.message,
+      });
+      return;
+    }
+
+    try {
+      await this.api.put(`/projects/${projectId}/tasks`, {
+        tasks: parsed.tasks.map((t, i) => ({
+          id: t.id,
+          name: t.name,
+          isBillable: t.isBillable,
+          sortOrder: i,
+          isActive: t.isActive,
+        })),
+      });
+      const refreshed = await this.api.get<ProjectResponse>(`/projects/${projectId}`);
+      this.splitTasks(refreshed.tasks ?? []);
+      this.patchSavedSnapshotManual();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save default tasks';
+      this.error.set(message);
+      this.toast.add({ severity: 'error', summary: 'Tasks not saved', detail: message });
+    }
+  }
+
   private projectPayload() {
     return {
       clientId: this.form.clientId || null,
@@ -627,6 +715,7 @@ export class ProjectFormPage implements OnInit {
   }
 
   onClientChange(clientId: string | null) {
+    this.touchForm();
     this.form.clientId = clientId ?? '';
     if (this.isNew && clientId) {
       this.form.defaultExpenseBillable = true;
@@ -648,21 +737,12 @@ export class ProjectFormPage implements OnInit {
     }
     this.asanaSectionValidationError.set(null);
 
-    const taskDrafts = this.manualTasks()
-      .map((t) => ({ ...t, name: t.name.trim() }))
-      .filter((t) => t.name)
-      .map((t) => ({
-        ...t,
-        isBillable: this.form.isBillable ? t.isBillable : false,
-      }));
-
-    const duplicateNames = taskDrafts.some(
-      (t, i, arr) => arr.findIndex((x) => x.name.toLowerCase() === t.name.toLowerCase()) !== i,
-    );
-    if (duplicateNames) {
-      this.error.set('Manual task names must be unique');
+    const manualSave = this.manualTasksForSave();
+    if (!manualSave.ok) {
+      this.error.set(manualSave.message);
       return;
     }
+    const taskDrafts = manualSave.tasks;
 
     const duplicateEmails = this.contactPayload().some(
       (contact, index, arr) =>

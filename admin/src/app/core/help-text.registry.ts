@@ -55,7 +55,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'When someone logs a new expense on this project, start with Reimbursable on or off. They can still change it on each expense.',
   'project.defaultExpenseBillable':
     'When someone logs a new expense on this project, start with Billable to client on or off. They can still change it on each expense.',
-  'project.manualTasks': 'Billable and non-billable tasks for timesheet entries on this project.',
+  'project.defaultTasks': 'Billable and non-billable default tasks for timesheet entries on this project.',
   'project.asanaConfig':
     'Link an Asana board and one or more sections. Incomplete tasks from those sections appear on timesheets.',
   'project.asanaTasksSynced':
@@ -244,4 +244,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   // Pipeline card
   'lead.primaryContact': 'The main person at this organization for this opportunity.',
   'lead.warmConnect': 'Someone who can introduce you to this organization.',
+
+  // Time entry
+  'timeEntry.notes':
+    'Required when no project task, work task, or Asana task is selected. Optional when at least one task is selected.',
 };

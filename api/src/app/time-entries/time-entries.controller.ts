@@ -31,6 +31,7 @@ import {
   startedStoppedAt,
 } from './timesheet-csv.util';
 import {
+  assertTimeEntryHasTaskOrDescription,
   assertTimeEntryTaskIds,
   enrichTimeEntry,
   resolveTimeEntryTaskIds,
@@ -298,6 +299,7 @@ export class TimeEntriesController {
     const durationMin = stoppedAt ? computeDurationMin(startedAt, stoppedAt) : undefined;
     const taskIds = resolveTimeEntryTaskIds(dto) ?? [];
     await assertTimeEntryTaskIds(this.prisma, links.projectId, taskIds);
+    assertTimeEntryHasTaskOrDescription(dto.projectTaskId, taskIds, dto.description);
 
     const isBillable = links.projectId
       ? await resolveTimeEntryBillable(this.prisma, links.projectId, dto.projectTaskId, dto.isBillable)
@@ -404,6 +406,16 @@ export class TimeEntriesController {
     if (taskIds !== undefined) {
       await assertTimeEntryTaskIds(this.prisma, projectId, taskIds);
     }
+
+    const effectiveTaskIds =
+      taskIds ??
+      (await this.prisma.timeEntryWorkTask.findMany({
+        where: { timeEntryId: id },
+        orderBy: { sortOrder: 'asc' },
+        select: { taskId: true },
+      })).map((r) => r.taskId);
+    const effectiveDescription = dto.description !== undefined ? dto.description : entry.description;
+    assertTimeEntryHasTaskOrDescription(projectTaskId, effectiveTaskIds, effectiveDescription);
 
     const isBillable = projectId
       ? await resolveTimeEntryBillable(this.prisma, projectId, projectTaskId, dto.isBillable ?? entry.isBillable)

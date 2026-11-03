@@ -62,7 +62,7 @@
 
           <div class="card card--side project-side-card">
             <div class="card-header">
-              <h3 class="card-title">Manual tasks <app-help-text key="project.manualTasks" /></h3>
+              <h3 class="card-title">Default Tasks <app-help-text key="project.defaultTasks" /></h3>
               <p-button
                 type="button"
                 label="Add"
@@ -98,7 +98,14 @@
       </div>
       <div class="form-field showcase-full">
         <label for="name">Project Name <span class="required-dot" aria-hidden="true"></span></label>
-        <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" />
+        <input
+          pInputText
+          id="name"
+          name="name"
+          [(ngModel)]="form.name"
+          (ngModelChange)="touchForm()"
+          class="w-full"
+        />
       </div>
       <div class="form-field showcase-full">
         <label for="description">Description</label>
@@ -106,6 +113,7 @@
           id="description"
           name="description"
           [(ngModel)]="form.description"
+          (ngModelChange)="touchForm()"
           placeholder="Project description…"
           [styles]="{ 'min-height': '140px' }"
           (onEditorCreated)="onDescriptionEditor($event)"
@@ -124,6 +132,7 @@
               inputId="hourlyRate"
               name="hourlyRate"
               [(ngModel)]="form.hourlyRate"
+              (ngModelChange)="touchForm()"
               [min]="0"
               [minFractionDigits]="2"
               [maxFractionDigits]="2"
@@ -151,6 +160,7 @@
           <div class="flex align-items-center gap-2">
             <p-toggleSwitch
               [(ngModel)]="form.defaultExpenseReimbursable"
+              (ngModelChange)="touchForm()"
               name="defaultExpenseReimbursable"
             />
             <label>Reimbursable</label>
@@ -158,6 +168,7 @@
           <div class="flex align-items-center gap-2">
             <p-toggleSwitch
               [(ngModel)]="form.defaultExpenseBillable"
+              (ngModelChange)="touchForm()"
               name="defaultExpenseBillable"
             />
             <label>Billable to client</label>
@@ -183,14 +194,23 @@
       <div class="side-row">
         <div class="side-row-main">
           <span class="side-row-title">{{ task.name || 'Unnamed task' }}</span>
-          @if (form.isBillable) {
-            <span class="text-color-secondary text-sm">{{ task.isBillable ? 'Billable' : 'Non-billable' }}</span>
-          }
         </div>
-        <app-row-actions-menu [items]="taskRowActions(rowIndex)" ariaLabel="Task actions" />
+        <div class="side-row-trailing">
+          @if (form.isBillable) {
+            <div class="side-row-billable">
+              <label [for]="'default-task-billable-' + rowIndex">Billable</label>
+              <p-toggleSwitch
+                [ngModel]="task.isBillable"
+                (ngModelChange)="onDefaultTaskBillableChange(rowIndex, $event)"
+                [inputId]="'default-task-billable-' + rowIndex"
+              />
+            </div>
+          }
+          <app-row-actions-menu [items]="taskRowActions(rowIndex)" ariaLabel="Task actions" />
+        </div>
       </div>
     } @empty {
-      <p class="text-color-secondary mt-0 mb-0">No manual tasks yet.</p>
+      <p class="text-color-secondary mt-0 mb-0">No default tasks yet.</p>
     }
   </ng-template>
 
@@ -325,6 +345,7 @@
                   <td>
                     <p-toggleSwitch
                       [(ngModel)]="task.isBillable"
+                      (ngModelChange)="touchForm()"
                       [name]="'asana-task-billable-' + rowIndex"
                       [disabled]="!form.isBillable"
                     />

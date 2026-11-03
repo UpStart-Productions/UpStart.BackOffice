@@ -64,6 +64,26 @@
   word-break: break-word;
 }
 
+.side-row-trailing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.side-row-billable {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+
+  label {
+    margin: 0;
+    font-size: var(--fs-sm);
+    color: var(--text-color-secondary);
+    white-space: nowrap;
+  }
+}
+
 .side-row--with-avatar .side-row-main {
   flex: 1 1 auto;
   min-width: 0;
@@ -148,8 +168,10 @@
 
 .project-billing-toggles {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
 }
 
 .project-billing-toggles label,

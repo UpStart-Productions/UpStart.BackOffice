@@ -20,6 +20,7 @@ import { TmApiService } from '../../task-manager/core/tm-api.service';
 import type { ClientOption, Project, TimeEntry, TimeEntryTask, TmTaskOption, TmTaskSearchHit } from './time-entry.types';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
 function tmTaskLabel(task: { name: string; parent?: { name: string } | null }): string {
   return task.parent?.name ? `${task.parent.name} › ${task.name}` : task.name;
@@ -40,6 +41,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
     MultiSelectModule,
     DatePickerModule,
     RecordAttributionComponent,
+    HelpTextComponent,
   ],
   template: `
     <p-dialog
@@ -213,7 +215,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
         }
 
         <div class="form-field">
-          <label for="entry-notes">Notes (optional)</label>
+          <label for="entry-notes">Notes <app-help-text key="timeEntry.notes" /></label>
           <textarea
             pTextarea
             id="entry-notes"
@@ -499,20 +501,13 @@ export class TimeEntryModalComponent {
     () => this.asanaConnected() && !!this.selectedProject()?.asanaSectionGid,
   );
 
-  readonly requiresTask = computed(
-    () =>
-      this.manualTasks().length > 0 ||
-      this.showAsanaTaskPicker() ||
-      (!!this.projectId() && this.tmTaskOptions().length > 0),
-  );
-
   readonly hasSelectedTask = computed(
     () => !!(this.manualTaskId() || this.asanaTaskId() || this.tmTaskIds().length),
   );
 
   readonly canSubmit = computed(() => {
-    if (this.requiresTask() && !this.hasSelectedTask()) return false;
-    return true;
+    if (this.hasSelectedTask()) return true;
+    return this.notes().trim().length > 0;
   });
 
   readonly selectableProjects = computed(() => {
@@ -538,7 +533,7 @@ export class TimeEntryModalComponent {
 
   readonly canSave = computed(() => {
     const parsed = parseDurationInput(this.durationInput());
-    return parsed !== null && parsed > 0;
+    return parsed !== null && parsed > 0 && this.canSubmit();
   });
 
   private resolve: ((result: TimeEntryModalResult) => void) | null = null;
@@ -923,12 +918,10 @@ export class TimeEntryModalComponent {
     }
   }
 
-  private assertTaskSelectedForSave(): boolean {
-    if (this.requiresTask() && !this.hasSelectedTask()) {
-      this.error.set('Choose a task, work task, or Asana task.');
-      return false;
-    }
-    return true;
+  private assertCanSubmit(): boolean {
+    if (this.canSubmit()) return true;
+    this.error.set('Add notes when no task is selected.');
+    return false;
   }
 
   private entryPayload(projectId: string) {
@@ -946,7 +939,7 @@ export class TimeEntryModalComponent {
 
   async saveEntry() {
     const projectId = this.projectId();
-    if (!this.assertTaskSelectedForSave()) return;
+    if (!this.assertCanSubmit()) return;
 
     const existing = this.editingEntry();
     let durationMin: number;
@@ -1010,7 +1003,7 @@ export class TimeEntryModalComponent {
 
   async startTimer() {
     const projectId = this.projectId();
-    if (!this.assertTaskSelectedForSave()) return;
+    if (!this.assertCanSubmit()) return;
 
     this.saving.set(true);
     this.error.set(null);

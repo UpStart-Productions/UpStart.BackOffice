@@ -16,7 +16,7 @@ Under **New expense defaults**, set **Reimbursable** and **Billable to client** 
 
 On a project, the **People** panel matches the client page: **Add existing person** or **Add new person**, then **Save** the project to sync details from People. Use **Open in People** on a row to edit someone. Legacy project-only contacts should be removed and re-added from People. **Add existing person** also lists your staff: adding one puts them on the project right away (no Save needed), tagged **Team** or **Guest**. Project staff are the same people as its task board members, they also show on the client's People panel, and they are never invoice recipients. Remove them from the row menu. On a new project, save it first, then add staff.
 
-When the project is in **Task Manager**, a **Tasks** card appears above **Manual tasks**: up to five open tasks by due date; click a task name or **Open in Tasks** for the full project. **Manual tasks** are still the list used on timesheets (including Asana-synced names when configured).
+When the project is in **Task Manager**, a **Tasks** card appears above **Default tasks**: up to five open tasks by due date; click a task name or **Open in Tasks** for the full project. **Default tasks** are still the list used on timesheets (including Asana-synced names when configured).
 
 ## Tasks
 

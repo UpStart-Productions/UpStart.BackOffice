@@ -196,8 +196,8 @@ const PROJECT_FORM: HelpArticle = {
       body: 'When this project is in Task Manager, the Tasks card shows up to five open tasks sorted by due date. Click a task name to open it in Task Manager, or use Open in Tasks for the full board.',
     },
     {
-      heading: 'Manual tasks',
-      body: 'Tasks you can pick when tracking time on this project, billable or not. Use Add or the row menu to create or edit a task in a dialog. Use these when the work isn\'t in Asana.',
+      heading: 'Default tasks',
+      body: 'Default tasks you can pick when tracking time on this project, billable or not. Use Add or the row menu to create or edit a task in a dialog. Use these when the work isn\'t in Asana.',
     },
   ],
 };

@@ -266,6 +266,7 @@ export class ProjectsController {
     });
   }
 
+  @Action('edit')
   @Put(':id/tasks')
   async syncTasks(@Req() req: Request, @Param('id') id: string, @Body() dto: SyncProjectTasksDto) {
     const existing = await this.reachable(req, id);
