@@ -10,6 +10,7 @@ import { MessageModule } from 'primeng/message';
 import { isContentField, type FormFieldDto, type FormFileRef, type FormPublicDraftDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
 import { environment } from '../../../environments/environment';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
+import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
 import { AutoSaver } from '../../core/auto-saver';
 import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
 
@@ -24,7 +25,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
 @Component({
   selector: 'app-public-form-page',
   standalone: true,
-  imports: [NgTemplateOutlet, FormsModule, AccordionModule, ButtonModule, InputTextModule, MessageModule, TabsModule, FormFieldInputComponent, SaveStatusComponent],
+  imports: [NgTemplateOutlet, FormsModule, AccordionModule, ButtonModule, InputTextModule, MessageModule, TabsModule, FormFieldInputComponent, PhoneInputComponent, SaveStatusComponent],
   styleUrls: ['../login/login.page.scss', '../task-form/task-form.page.scss'],
   template: `
     <div class="login-page">
@@ -190,7 +191,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                     @if (info()?.ask?.phone) {
                       <div class="form-field flex-1">
                         <label for="cpPhone">Phone</label>
-                        <input pInputText id="cpPhone" name="phone" class="w-full" [(ngModel)]="phone" (ngModelChange)="aboutYouChanged()" autocomplete="tel" />
+                        <app-phone-input inputId="cpPhone" [value]="phone || null" (valueChange)="phone = $event ?? ''; aboutYouChanged()" />
                       </div>
                     }
                   }

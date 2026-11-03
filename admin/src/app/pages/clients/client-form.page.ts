@@ -30,6 +30,7 @@ import { ClientFormsPanelComponent } from '../../ui/client-forms/client-forms-pa
 import { CareApi } from '../../core/care.api';
 import { areaLevel, type AccountJourney, type CareClientOverviewDto, type ClientDto, type RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
+import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
 type ClientProject = {
@@ -39,8 +40,6 @@ type ClientProject = {
   isActive: boolean;
   hourlyRate?: number | null;
 };
-
-type NewOrgType = 'prospect' | 'client' | 'partner';
 
 type ClientForm = {
   name: string;
@@ -75,6 +74,7 @@ type ClientForm = {
     TagModule,
     QuillModule,
     PageComponent,
+    PhoneInputComponent,
     ArtifactsPanelComponent,
     ActivityTimelineComponent,
     NextStepComponent,
@@ -99,20 +99,10 @@ export class ClientFormPage implements OnInit {
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
 
   readonly usStates = US_STATES;
-  readonly journeyOptions = (Object.keys(ACCOUNT_JOURNEY_LABELS) as AccountJourney[])
-    .filter((value) => value !== 'NONE')
-    .map((value) => ({
-      value,
-      label: ACCOUNT_JOURNEY_LABELS[value],
-    }));
-
-  /** What a new organization is. Partner is status Other plus the Partner tag; Prospect also gets a pipeline card. */
-  readonly typeOptions: { value: NewOrgType; label: string }[] = [
-    { value: 'prospect', label: 'Prospect' },
-    { value: 'client', label: 'Client' },
-    { value: 'partner', label: 'Partner' },
+  readonly journeyOptions: { value: AccountJourney; label: string }[] = [
+    { value: 'CLIENT', label: 'Client' },
+    { value: 'NONE', label: 'Partner / other' },
   ];
-  newType: NewOrgType = 'prospect';
   /** Where Back and Cancel go: Clients when opened from there, else Organizations. */
   backLink = '/organizations';
 
@@ -225,17 +215,14 @@ export class ClientFormPage implements OnInit {
     if (!id) {
       if (this.isClientFlow) {
         this.form.journey = 'CLIENT';
-        this.newType = 'client';
       } else {
-        const type = params.get('type') as NewOrgType | null;
-        const journey = params.get('journey');
-        this.setNewType(
-          type && ['prospect', 'client', 'partner'].includes(type)
-            ? type
-            : journey === 'CLIENT'
-              ? 'client'
-              : 'prospect',
-        );
+        const type = params.get('type');
+        if (type === 'partner') {
+          this.form.journey = 'NONE';
+          this.form.tags = ['Partner'];
+        } else {
+          this.form.journey = 'CLIENT';
+        }
       }
     }
     if (id) {
@@ -324,10 +311,7 @@ export class ClientFormPage implements OnInit {
         this.toast.add({
           severity: 'success',
           summary: 'Saved',
-          detail:
-            this.form.journey === 'PROSPECT'
-              ? `${created.name} added, with a card in the first lane of the pipeline.`
-              : `${created.name} added.`,
+          detail: `${created.name} added.`,
         });
         const detailPath = this.backLink === '/clients' ? '/clients' : '/organizations';
         await this.router.navigate([detailPath, created.id], { replaceUrl: true });
@@ -344,14 +328,6 @@ export class ClientFormPage implements OnInit {
     }
   }
 
-  /** New-organization type: sets status, and the Partner tag for partners. */
-  setNewType(type: NewOrgType) {
-    this.newType = type;
-    this.form.journey = type === 'prospect' ? 'PROSPECT' : type === 'client' ? 'CLIENT' : 'NONE';
-    const others = this.form.tags.filter((t) => t.toLowerCase() !== 'partner');
-    this.form.tags = type === 'partner' ? ['Partner', ...others] : others;
-  }
-
   /** Projects and Client portal show only for clients. */
   get isClient(): boolean {
     return this.form.journey === 'CLIENT';
@@ -360,7 +336,9 @@ export class ClientFormPage implements OnInit {
   /** Page title. */
   get pageTitle(): string {
     if (!this.isNew) return this.form.name || 'Organization';
-    return this.newType === 'client' ? 'New client' : 'New organization';
+    if (this.isClientFlow || this.form.journey === 'CLIENT') return 'New client';
+    if (this.form.tags.some((t) => t.toLowerCase() === 'partner')) return 'New partner';
+    return 'New organization';
   }
 
   /** Flip a prospect or other organization to Client. Copies nothing; reversible from the Status field. */

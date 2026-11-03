@@ -2,7 +2,7 @@
 
 ## Clients
 
-**Clients** lists the organizations you are working for (status Client). Active and Inactive show in the Status column. See the CRM guide for how clients, prospects and organizations relate.
+**Clients** lists the organizations you are working for (status Client). Active and Inactive show in the Status column. See the CRM guide for how the Pipeline, clients and organizations relate.
 
 A client's page has a **Forms** panel: the client's filled-in forms. **Add form** lists the client forms your role can edit that this client doesn't have yet. See the Forms guide.
 

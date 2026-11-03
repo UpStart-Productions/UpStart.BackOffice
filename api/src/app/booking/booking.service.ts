@@ -30,7 +30,6 @@ import { UpsertBookingTypeDto } from './dto/upsert-booking-type.dto';
 import {
   normalizeWebsiteForStorage,
 } from '../leads/lead-website.util';
-import { ensureLeadLinks } from '../leads/lead-links.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { findLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
 
@@ -489,8 +488,6 @@ export class BookingService {
         artifacts: { create: artifacts },
       },
     });
-    // Every booking is a new card, with a new Prospect Account and Contact. Nothing is matched by name or email.
-    await ensureLeadLinks(tx, created.id);
     return created;
   }
 

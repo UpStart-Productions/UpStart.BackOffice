@@ -10,4 +10,4 @@ export type PeopleProjectContact = {
   avatarUrl?: string | null;
 };
 
-export type PeoplePanelMode = 'organization' | 'project';
+export type PeoplePanelMode = 'organization' | 'project' | 'lead';

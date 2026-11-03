@@ -9,7 +9,9 @@ import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
-import { applyLeadEditsToLinks, ensureLeadLinks, leadPersonView } from './lead-links.util';
+import { applyLeadEditsToLinks, leadPersonView, warmConnectionLabel } from './lead-links.util';
+import { linkLeadPerson, listLeadPeople, unlinkLeadPerson } from './lead-people.util';
+import { promoteLeadToOrganization } from './lead-promote.util';
 import { findLane, firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
@@ -24,21 +26,58 @@ const linkInclude = {
       id: true,
       firstName: true,
       lastName: true,
+      title: true,
       avatarUrl: true,
       phone: true,
       emails: { select: { email: true, isPrimary: true }, orderBy: { createdAt: 'asc' as const } },
+      accountLinks: { select: { clientId: true, role: true } },
     },
+  },
+  warmConnectionContact: {
+    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
   },
 } as const;
 
+type LeadRow = {
+  contact?: Parameters<typeof leadPersonView>[0]['contact'];
+  warmConnectionContact?: { firstName: string; lastName: string | null; avatarUrl: string | null } | null;
+  warmConnection: string | null;
+  warmConnectionContactId: string | null;
+  primaryContactId: string | null;
+  clientId: string | null;
+  primaryContact: string | null;
+  email: string | null;
+  phone: string | null;
+  contactRole: string | null;
+};
+
 /** The lead with person fields read from its Contact, and the bulky contact row left out. */
-function toLeadView<T extends { contact?: unknown; primaryContact: string | null; email: string | null; phone: string | null; contactRole: string | null }>(
-  lead: T,
-) {
-  const { contact, ...rest } = lead;
+function toLeadView<T extends LeadRow>(lead: T) {
+  const { contact, warmConnectionContact, ...rest } = lead;
   const avatar = (contact as { avatarUrl?: string | null } | null | undefined)?.avatarUrl ?? null;
-  const view = { ...rest, ...leadPersonView(lead as never), contactAvatarUrl: toPublicAssetUrl(avatar) };
+  const person = leadPersonView(lead);
+  const view = {
+    ...rest,
+    ...person,
+    primaryContactId: lead.primaryContactId,
+    warmConnectionContactId: lead.warmConnectionContactId,
+    warmConnection: warmConnectionLabel(lead.warmConnection, warmConnectionContact),
+    contactAvatarUrl: toPublicAssetUrl(avatar),
+    warmConnectionAvatarUrl: toPublicAssetUrl(warmConnectionContact?.avatarUrl ?? null),
+  };
   return withAttribution(lead, view);
+}
+
+async function contactDisplayName(
+  db: { contact: PrismaService['contact'] },
+  contactId: string,
+): Promise<string> {
+  const c = await db.contact.findUnique({
+    where: { id: contactId },
+    select: { firstName: true, lastName: true },
+  });
+  if (!c) throw new NotFoundException('Person not found');
+  return [c.firstName, c.lastName].filter(Boolean).join(' ');
 }
 
 /** The lane a create/update asks for: an explicit lane, a legacy stage, or (on create) a pipeline's first lane. */
@@ -86,10 +125,49 @@ export class LeadsController {
     return leads.map(toLeadView);
   }
 
+  /** Distinct category and next-action strings already used on pipeline cards (for creatable pickers). */
+  @Get('meta/suggestions')
+  async suggestions() {
+    const [categoryRows, nextRows] = await Promise.all([
+      this.prisma.lead.findMany({
+        where: { category: { not: null } },
+        select: { category: true },
+        distinct: ['category'],
+      }),
+      this.prisma.lead.findMany({
+        where: { nextAction: { not: null } },
+        select: { nextAction: true },
+      }),
+    ]);
+    const nextActions = new Set<string>();
+    for (const row of nextRows) {
+      const text = row.nextAction?.trim();
+      if (text) nextActions.add(text);
+    }
+    return {
+      categories: categoryRows.map((r) => r.category).filter((c): c is string => !!c),
+      nextActions: [...nextActions].sort((a, b) => a.localeCompare(b)),
+    };
+  }
+
   @Post()
   async create(@Body() dto: CreateLeadDto) {
     const lead = await this.prisma.$transaction(async (tx) => {
       const lane = (await requestedLane(tx, dto, true)) as Lane;
+      let primaryPatch: { primaryContactId?: string; primaryContact?: string } = {};
+      if (dto.primaryContactId) {
+        primaryPatch = {
+          primaryContactId: dto.primaryContactId,
+          primaryContact: await contactDisplayName(tx, dto.primaryContactId),
+        };
+      }
+      let warmPatch: { warmConnectionContactId?: string; warmConnection?: string } = {};
+      if (dto.warmConnectionContactId) {
+        warmPatch = {
+          warmConnectionContactId: dto.warmConnectionContactId,
+          warmConnection: await contactDisplayName(tx, dto.warmConnectionContactId),
+        };
+      }
       const created = await tx.lead.create({
         data: {
           ...laneFields(lane),
@@ -101,6 +179,8 @@ export class LeadsController {
           website: dto.website,
           source: dto.source,
           warmConnection: dto.warmConnection,
+          ...primaryPatch,
+          ...warmPatch,
           category: dto.category,
           serviceInterests: dto.serviceInterests ?? [],
           nextAction: dto.nextAction,
@@ -108,8 +188,6 @@ export class LeadsController {
           lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : undefined,
         },
       });
-      // Every pipeline item has its own new Prospect Account.
-      await ensureLeadLinks(tx, created.id);
       return tx.lead.findUniqueOrThrow({ where: { id: created.id }, include: linkInclude });
     });
     return toLeadView(lead);
@@ -125,18 +203,70 @@ export class LeadsController {
     return toLeadView(lead);
   }
 
+  /** People on the pipeline card (before or after an organization link). */
+  @Get(':id/people')
+  async people(@Param('id') id: string) {
+    const lead = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, primaryContactId: true } });
+    if (!lead) throw new NotFoundException('Lead not found');
+    const rows = await listLeadPeople(this.prisma, id);
+    return rows.map((c) => ({
+      ...c,
+      avatarUrl: toPublicAssetUrl(c.avatarUrl),
+      isLeadPrimary: c.id === lead.primaryContactId,
+    }));
+  }
+
+  @Action('edit')
+  @Post(':id/people')
+  async addPerson(@Param('id') id: string, @Body() body: { contactId: string }) {
+    if (!body.contactId?.trim()) throw new BadRequestException('contactId is required');
+    await this.prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.findUnique({ where: { id }, select: { id: true } });
+      if (!lead) throw new NotFoundException('Lead not found');
+      await linkLeadPerson(tx, id, body.contactId.trim());
+    });
+    return this.people(id);
+  }
+
+  @Action('edit')
+  @Delete(':id/people/:contactId')
+  async removePerson(@Param('id') id: string, @Param('contactId') contactId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.findUnique({ where: { id }, select: { id: true } });
+      if (!lead) throw new NotFoundException('Lead not found');
+      await unlinkLeadPerson(tx, id, contactId);
+    });
+    return { removed: true };
+  }
+
   /**
-   * The people on this card's account (primary person first), for "View contacts" on the board.
+   * The people on this card, for "View people" on the board.
    * Readable with Pipeline access alone, so pipeline users don't need the Contacts area.
    */
   @Get(':id/contacts')
   async contacts(@Param('id') id: string) {
     const lead = await this.prisma.lead.findUnique({
       where: { id },
-      select: { clientId: true, primaryContactId: true, client: { select: { name: true } } },
+      select: { organization: true, clientId: true, primaryContactId: true, client: { select: { name: true } } },
     });
     if (!lead) throw new NotFoundException('Lead not found');
-    if (!lead.clientId) return { accountName: null, contacts: [] };
+    if (!lead.clientId) {
+      const rows = await listLeadPeople(this.prisma, id);
+      const contacts = rows.map((c) => {
+        const primaryEmail = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
+        return {
+          id: c.id,
+          name: [c.firstName, c.lastName].filter(Boolean).join(' '),
+          role: c.title ?? null,
+          email: primaryEmail?.email ?? null,
+          phone: c.phone,
+          avatarUrl: toPublicAssetUrl(c.avatarUrl),
+          isActive: c.isActive,
+          isLeadContact: c.id === lead.primaryContactId,
+        };
+      }).sort((a, b) => Number(b.isLeadContact) - Number(a.isLeadContact) || a.name.localeCompare(b.name));
+      return { accountName: lead.organization, contacts };
+    }
     const links = await this.prisma.contactAccount.findMany({
       where: { clientId: lead.clientId },
       select: {
@@ -181,6 +311,29 @@ export class LeadsController {
     if (!existing) throw new NotFoundException('Lead not found');
     const lead = await this.prisma.$transaction(async (tx) => {
       const lane = await requestedLane(tx, dto, false);
+      let primaryContactPatch: { primaryContactId?: string | null; primaryContact?: string } = {};
+      if (dto.primaryContactId !== undefined) {
+        if (dto.primaryContactId) {
+          await linkLeadPerson(tx, id, dto.primaryContactId);
+          primaryContactPatch = {
+            primaryContactId: dto.primaryContactId,
+            primaryContact: await contactDisplayName(tx, dto.primaryContactId),
+          };
+        } else {
+          primaryContactPatch = { primaryContactId: null };
+        }
+      }
+      let warmPatch: { warmConnectionContactId?: string | null; warmConnection?: string | null } = {};
+      if (dto.warmConnectionContactId !== undefined) {
+        if (dto.warmConnectionContactId) {
+          warmPatch = {
+            warmConnectionContactId: dto.warmConnectionContactId,
+            warmConnection: await contactDisplayName(tx, dto.warmConnectionContactId),
+          };
+        } else {
+          warmPatch = { warmConnectionContactId: null, warmConnection: null };
+        }
+      }
       await tx.lead.update({
         where: { id },
         data: {
@@ -193,20 +346,18 @@ export class LeadsController {
           ...(dto.website !== undefined && { website: dto.website }),
           ...(dto.source !== undefined && { source: dto.source }),
           ...(dto.warmConnection !== undefined && { warmConnection: dto.warmConnection }),
+          ...primaryContactPatch,
+          ...warmPatch,
           ...(dto.category !== undefined && { category: dto.category }),
           ...(dto.serviceInterests !== undefined && { serviceInterests: dto.serviceInterests }),
           ...(dto.nextAction !== undefined && { nextAction: dto.nextAction }),
           ...(dto.nextActionDate !== undefined && { nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : null }),
           ...(dto.lastContactDate !== undefined && { lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : null }),
+          ...(dto.clientId !== undefined && { clientId: dto.clientId || null }),
         },
       });
-      const links = await ensureLeadLinks(tx, id);
-      await applyLeadEditsToLinks(
-        tx,
-        { id, clientId: links.clientId, primaryContactId: links.primaryContactId },
-        existing.organization,
-        dto,
-      );
+      const updatedLead = await tx.lead.findUniqueOrThrow({ where: { id }, select: { clientId: true } });
+      await applyLeadEditsToLinks(tx, { id, clientId: updatedLead.clientId }, existing.organization, dto);
       return tx.lead.findUniqueOrThrow({ where: { id }, include: linkInclude });
     });
     return toLeadView(lead);
@@ -257,21 +408,32 @@ export class LeadsController {
     if (!lead) throw new NotFoundException('Lead not found');
 
     const code = dto.code?.trim().toUpperCase();
-    const client = await this.prisma.$transaction(async (tx) => {
-      const { clientId } = await ensureLeadLinks(tx, id);
-      if (code) {
-        const taken = await tx.client.findFirst({ where: { code, id: { not: clientId } }, select: { id: true } });
-        if (taken) throw new ConflictException(`Client code "${code}" is already in use`);
+    if (code) {
+      const taken = await this.prisma.client.findFirst({ where: { code }, select: { id: true } });
+      if (taken && taken.id !== lead.clientId) {
+        throw new ConflictException(`Client code "${code}" is already in use`);
       }
-      // The lead's files show on the Account too.
-      await tx.artifact.updateMany({ where: { leadId: id, clientId: null }, data: { clientId } });
+    }
+    const client = await this.prisma.$transaction(async (tx) => {
+      const clientId = await promoteLeadToOrganization(tx, id, { journey: 'CLIENT', code });
       await tx.lead.update({ where: { id }, data: { archivedAt: lead.archivedAt ?? new Date() } });
-      return tx.client.update({
-        where: { id: clientId },
-        data: { journey: 'CLIENT', ...(code ? { code } : {}) },
-      });
+      return tx.client.findUniqueOrThrow({ where: { id: clientId } });
     });
     await this.storageFolders.ensureClientFolders(client.id);
+    return client;
+  }
+
+  /** Add the card's organization as a Partner (Other + Partner tag) and archive the card. */
+  @Action('edit')
+  @Post(':id/promote-partner')
+  async promotePartner(@Param('id') id: string) {
+    const lead = await this.prisma.lead.findUnique({ where: { id } });
+    if (!lead) throw new NotFoundException('Lead not found');
+    const client = await this.prisma.$transaction(async (tx) => {
+      const clientId = await promoteLeadToOrganization(tx, id, { journey: 'NONE', tags: ['Partner'] });
+      await tx.lead.update({ where: { id }, data: { archivedAt: lead.archivedAt ?? new Date() } });
+      return tx.client.findUniqueOrThrow({ where: { id: clientId } });
+    });
     return client;
   }
 }

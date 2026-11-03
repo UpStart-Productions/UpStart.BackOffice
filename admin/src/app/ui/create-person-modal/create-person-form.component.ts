@@ -2,6 +2,7 @@ import { Component, computed, inject, input, output, signal, viewChild } from '@
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { PhoneInputComponent } from '../phone-input/phone-input.component';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
@@ -24,6 +25,7 @@ type OrgOption = { id: string; name: string };
     FormsModule,
     ButtonModule,
     InputTextModule,
+    PhoneInputComponent,
     MessageModule,
     SelectModule,
     TagInputComponent,
@@ -89,7 +91,7 @@ type OrgOption = { id: string; name: string };
         </div>
         <div class="form-field">
           <label for="nPhone">Phone</label>
-          <input pInputText id="nPhone" type="tel" [(ngModel)]="form.phone" class="w-full" autocomplete="tel" />
+          <app-phone-input inputId="nPhone" [value]="form.phone || null" (valueChange)="form.phone = $event ?? ''" />
         </div>
       </div>
       <div class="form-row">

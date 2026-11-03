@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body, Controller, Delete, Get, Inject, NotFoundException, Param,
   Post, Put, Query, Req, UseGuards,
 } from '@nestjs/common';
@@ -17,7 +18,6 @@ import { UpdateClientDto } from './dto/update-client.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { hasTagWhere, setClientTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
-import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { AddTeamMemberDto, assertTeamCandidate, clientTeam, teamCandidates } from '../team/team.util';
 
 const clientSelect = {
@@ -113,7 +113,7 @@ export class ClientsController {
     const clients = await this.prisma.client.findMany({
       where: {
         ...(reach ? { id: reach } : {}),
-        ...(journeys.length ? { journey: { in: journeys } } : {}),
+        ...(journeys.length ? { journey: { in: journeys } } : { journey: { not: 'PROSPECT' } }),
         ...hasTagWhere(tag ?? role),
       },
       orderBy: { name: 'asc' },
@@ -158,13 +158,13 @@ export class ClientsController {
     });
   }
 
-  /**
-   * New organization. A Prospect also gets a card in the pipeline's first lane (unless
-   * addToPipeline is false), so prospects always show up on the board.
-   */
+  /** New organization (client or partner/other). Pipeline cards are not created from here. */
   @Post()
   async create(@Body() dto: CreateClientDto, @Req() req: Request) {
     const journey = dto.journey ?? 'CLIENT';
+    if (journey === 'PROSPECT') {
+      throw new BadRequestException('Prospect is not a valid organization status. Add opportunities on the Pipeline.');
+    }
     const client = await this.prisma.$transaction(async (tx) => {
       const created = await tx.client.create({
         data: {
@@ -184,19 +184,6 @@ export class ClientsController {
         select: { id: true },
       });
       if (dto.tags?.length) await setClientTags(tx, created.id, dto.tags);
-      if (journey === 'PROSPECT' && dto.addToPipeline !== false) {
-        const lane = await firstLane(tx);
-        await tx.lead.create({
-          data: {
-            ...laneFields(lane),
-            organization: dto.name,
-            clientId: created.id,
-            email: dto.email,
-            phone: dto.phone,
-            website: dto.website,
-          },
-        });
-      }
       return tx.client.findUniqueOrThrow({ where: { id: created.id }, select: clientSelect });
     });
     const user = req.user as UserContext;

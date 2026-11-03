@@ -16,7 +16,6 @@ import { FormFilesService } from './form-files.service';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
-import { ensureLeadLinks } from '../leads/lead-links.util';
 import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFieldDto, CreateLinkDto, MoveDto, OrderDto, SectionDto, UpdateFieldDto, UpdateLinkDto } from './form.dto';
@@ -487,9 +486,9 @@ export class FreeFormsController {
   }
 
   /**
-   * Accept a submission: into a new Prospect (with a pipeline card and the respondent as its person, source Inbound)
-   * or an existing organization. Client forms that create clients make a new client (with the respondent as its
-   * person) instead of a Prospect. A living client form can't go to a client that already has its copy.
+   * Accept a submission: attach to an existing organization, create a client (with the respondent as its person),
+   * or add a pipeline card only (source Inbound; no CRM organization until promote or attach). A living client form
+   * can't go to a client that already has its copy.
    */
   @Post('submissions/:id/accept')
   @Action('edit')
@@ -515,9 +514,9 @@ export class FreeFormsController {
     } else {
       const name = dto.name?.trim() || r.submitterOrganization?.trim();
       if (!name) throw new BadRequestException('Enter the organization name');
-      clientId = await this.prisma.$transaction(async (tx) => {
+      await this.prisma.$transaction(async (tx) => {
         const lane = await firstLane(tx);
-        const lead = await tx.lead.create({
+        await tx.lead.create({
           data: {
             ...laneFields(lane),
             organization: name,
@@ -527,10 +526,10 @@ export class FreeFormsController {
             source: 'INBOUND',
             nextAction: `Follow up on ${r.form.name}`,
           },
-          select: { id: true },
         });
-        return (await ensureLeadLinks(tx, lead.id)).clientId;
+        await tx.formResponse.update({ where: { id }, data: { status: 'ACTIVE', clientId: null, living: false } });
       });
+      return this.submission(req, id);
     }
     const living = client.enabled && client.copies === 'living';
     if (living) {

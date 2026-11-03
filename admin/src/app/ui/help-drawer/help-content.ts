@@ -49,7 +49,7 @@ const ORG_DETAIL: HelpArticle = {
   sections: [
     {
       heading: 'Status',
-      body: 'Prospect, Client or Other. A pipeline card makes an organization a Prospect, and Make client makes it a Client. When status is Client, Active or Inactive says whether you are still working together. Client turns on projects, time and invoices.',
+      body: 'Client or Partner / other, below Notes on the Details form. Make client on a pipeline card creates or updates the organization as a Client. Client turns on projects, time and invoices.',
     },
     {
       heading: 'Tags',
@@ -57,7 +57,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Make client',
-      body: 'Turns a prospect or other organization into a client. Any open pipeline card for it is archived, since the opportunity is won. Nothing is copied.',
+      body: 'Turns a partner / other organization into a client. Any open pipeline card for it is archived, since the opportunity is won.',
     },
     {
       heading: 'Invoice Code',
@@ -96,11 +96,11 @@ const ORG_DETAIL: HelpArticle = {
 
 const NEW_ORG: HelpArticle = {
   title: 'New organization',
-  intro: 'Add an organization. Only the name is required.',
+  intro: 'Add a client or partner. Only the name is required. Open opportunities belong on the Pipeline instead.',
   sections: [
     {
-      heading: 'Type',
-      body: 'Prospect also puts a card in the first lane of the pipeline. Client turns on projects, time and invoices. Partner adds the Partner tag and stays off the pipeline.',
+      heading: 'Client or partner',
+      body: 'New client turns on projects, time and invoices. New partner adds the Partner tag. Neither adds a pipeline card.',
     },
     {
       heading: 'Tags',
@@ -114,8 +114,12 @@ const LEAD_DETAIL: HelpArticle = {
   intro: 'One opportunity: who it\'s with, where it stands, and what happens next.',
   sections: [
     {
-      heading: 'Organization and person',
-      body: 'Every card belongs to an organization, and its contact is a real person in People. If the organization name matches an existing one, the card joins it; otherwise a new organization is created as a Prospect. Open organization goes to its page.',
+      heading: 'Organization and contacts',
+      body: 'The main form is the organization (name, email, phone, website, category, service interest, next action, and dates). On the right, Primary Contact and Warm Connect are separate panels: pick or add a person in each. Person details live on the person record. After Make client or Make partner, Open organization goes to that record.',
+    },
+    {
+      heading: 'Category and next action',
+      body: 'Both fields offer common choices and let you type a new value; new entries are saved for your team to pick later.',
     },
     {
       heading: 'Lane',
@@ -130,8 +134,8 @@ const LEAD_DETAIL: HelpArticle = {
       body: 'How long since the last logged email, call or note. Logging activity below keeps it current.',
     },
     {
-      heading: 'Make client and Archive',
-      body: 'Make client when they sign on: the organization becomes a Client and the card leaves the board (archived, history kept). Archive takes a card off the board when it\'s going nowhere. Restore either one from the Archived view.',
+      heading: 'Make client, Make partner, and Archive',
+      body: 'Make client when they sign on: creates the organization as a Client, copies people, and archives the card. Make partner adds the organization with the Partner tag and archives the card. Archive takes a card off the board when it\'s going nowhere. Restore from the Archived view.',
     },
     {
       heading: 'Activity and files',
@@ -252,7 +256,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Cards',
-        body: 'Each card leads with its next step and due date, then how long since the last contact. A red warning icon means the next step is overdue; hover it for the date. View people in the card menu lists everyone at the organization.',
+        body: 'Each card leads with its next step and due date, then how long since the last contact. A red warning icon means the next step is overdue; hover it for the date. View people in the card menu lists everyone on the card.',
       },
       {
         heading: 'Moving cards',
@@ -260,7 +264,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'New Lead',
-        body: 'Adds a card to the first lane. If the organization matches an existing one, the card joins it; otherwise a new Prospect organization is created. Adding a Prospect on the Organizations page also creates a card here.',
+        body: 'Opens the full card right away (including the People panel) and adds it to the first lane. Replace the placeholder organization name and Save. CRM → Organizations only gets a record after Make client or Make partner.',
       },
       {
         heading: 'Editing lanes',
@@ -281,19 +285,19 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   organizations: {
     title: 'Organizations',
-    intro: 'Every organization you deal with: prospects, clients, partners and anyone else.',
+    intro: 'Clients, partners and other organizations you have added — not every open pipeline opportunity.',
     sections: [
       {
         heading: 'Filters',
-        body: 'The type dropdown defaults to Any Type, or choose Prospects, Clients or Other. The tag list narrows to one tag, such as Partner. Filters stay in the page address, so you can bookmark a view.',
+        body: 'The type dropdown defaults to Any Type, or choose Clients or Partner / other. The tag list narrows to one tag, such as Partner. Filters stay in the page address, so you can bookmark a view.',
       },
       {
         heading: 'Status',
-        body: 'Set for you: a pipeline card makes an organization a Prospect, and Make client makes it a Client. Mark a client Inactive on the organization page when the work ends.',
+        body: 'Make client on a pipeline card creates the Client record. Mark a client Inactive on the organization page when the work ends.',
       },
       {
-        heading: 'New Organization',
-        body: 'Choose a type. Prospect also adds a card to the pipeline. Partner adds the Partner tag and stays off the pipeline.',
+        heading: 'New client and New partner',
+        body: 'Add an organization directly. For someone you are still trying to win, use Pipeline → New Lead instead.',
       },
     ],
   },
@@ -306,7 +310,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Who shows here',
-        body: 'Organizations with status Client. Active and Inactive show in the Status column. Prospects are on the Pipeline, and everyone else is under CRM → Organizations.',
+        body: 'Organizations with status Client. Active and Inactive show in the Status column. Open opportunities are on the Pipeline until you Make client.',
       },
       {
         heading: 'New Client',
@@ -383,7 +387,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Pipeline',
-        body: 'A booking creates or updates a pipeline card, so the guest shows up in People at a Prospect organization. The booking type decides which lane.',
+        body: 'A booking creates or updates a pipeline card; the guest is linked on the card and in People. The booking type decides which lane.',
       },
       {
         heading: 'Booking types',
@@ -914,7 +918,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Attach',
-        body: 'Pick the client or organization it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Organizations / All narrows the search. New client or New organization (a Prospect with a pipeline card) creates one with the sender as its person. Next shows who will be able to see the answers; Attach to [name] finishes and adds a note to its Activity.',
+        body: 'Pick the client or organization it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Organizations / All narrows the search. New client creates a client with the sender as its person. New organization adds a pipeline card only (sender on the card\'s People). Next shows who will be able to see the answers; Attach to [name] finishes and adds a note to its Activity.',
       },
       {
         heading: 'Dismiss and delete',

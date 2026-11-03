@@ -6,7 +6,6 @@ import { ArtifactType, LeadSource, LeadStage } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
-import { ensureLeadLinks } from './lead-links.util';
 import { laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
 
 @ApiTags('leads')
@@ -59,7 +58,6 @@ export class LeadsIngestController {
           },
         },
       });
-      await ensureLeadLinks(tx, created.id);
       return created;
     });
 

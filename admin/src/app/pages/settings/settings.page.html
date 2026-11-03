@@ -113,13 +113,10 @@
             <div class="showcase-row">
               <div class="form-field showcase-half">
                 <label for="businessPhone">Phone</label>
-                <input
-                  pInputText
-                  id="businessPhone"
-                  name="businessPhone"
-                  type="tel"
-                  class="w-full"
-                  [(ngModel)]="businessForm.phone"
+                <app-phone-input
+                  inputId="businessPhone"
+                  [value]="businessForm.phone || null"
+                  (valueChange)="businessForm.phone = $event ?? ''"
                 />
               </div>
               <div class="form-field showcase-half">

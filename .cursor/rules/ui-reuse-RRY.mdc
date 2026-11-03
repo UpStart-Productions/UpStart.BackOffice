@@ -29,8 +29,8 @@ Use what already exists before writing CSS: the shared app classes and PrimeNG c
 
 ## When adding a new surface
 
-- Prefer extending an existing `app-*` component with an optional input.
-- If nothing fits, add **one** new component under `admin/src/app/ui/` and wire **all** call sites to it in the same task.
+- **Default:** extend an existing `app-*` component with an optional input (see `no-custom-components.mdc`).
+- Add a **new** component under `admin/src/app/ui/` only when the user asked for it, or nothing equivalent exists and extension is clearly wrong — then wire **all** call sites in the same task.
 - Update the relevant `.cursor/rules/` entry (e.g. combo-search-select, people picker) so the next agent finds the canonical control.
 
 ## People panel (canonical — rubber stamp)

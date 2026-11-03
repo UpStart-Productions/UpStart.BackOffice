@@ -13,6 +13,7 @@ import {
   type FormSectionDto,
 } from '@upstart/back-office/shared';
 import { FormFieldInputComponent } from '../form-builder/form-field-input.component';
+import { PhoneInputComponent } from '../phone-input/phone-input.component';
 
 type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; question: boolean; intro?: string | null };
 
@@ -32,6 +33,7 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
     MessageModule,
     TabsModule,
     FormFieldInputComponent,
+    PhoneInputComponent,
   ],
   styleUrls: ['../../pages/task-form/task-form.page.scss'],
   template: `
@@ -155,7 +157,7 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
             @if (ask().phone) {
               <div class="form-field flex-1">
                 <label [for]="id('phone')">Phone</label>
-                <input pInputText [id]="id('phone')" name="phone" class="w-full" [(ngModel)]="phone" autocomplete="tel" />
+                <app-phone-input [inputId]="id('phone')" [value]="phone || null" (valueChange)="phone = $event ?? ''" />
               </div>
             }
           }

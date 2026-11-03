@@ -1,0 +1,17 @@
+---
+description: No new UI components unless the user asks or nothing equivalent exists
+alwaysApply: true
+---
+
+# No new components by default
+
+Do **not** add a new `app-*` component (or feature-local duplicate of a shared control) unless:
+
+1. **The user explicitly asks** for a new component, or  
+2. **It is obvious** after searching (`admin/src/app/ui/`, grep, `.cursor/rules/*.mdc`) that **nothing equivalent exists** and extending the canonical one with an input would be the wrong shape.
+
+When the need is “same control, different label, title, or one field” → **extend the existing component** (inputs/outputs), same layout and behavior. Do not reimplement picker + list + actions in a one-off panel.
+
+If you believe a new shared component is warranted, **say so in chat first** unless the user already approved that direction.
+
+See also `ui-reuse-RRY.mdc`.

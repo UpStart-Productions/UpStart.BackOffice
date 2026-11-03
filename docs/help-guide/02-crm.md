@@ -2,7 +2,7 @@
 
 How the pieces fit:
 
-- **Organizations** are every organization you deal with: prospects, clients, partners and anyone else.
+- **Organizations** are clients, partners and other organizations you have added (not every pipeline opportunity).
 - **People** are every person. A person can belong to one or more organizations, or none.
 - **Pipeline** holds opportunities: organizations you are trying to win. Current clients are not on it.
 - **Clients** (under **Office**) is the working list of organizations you are doing work for. It is the same records as Organizations, limited to clients.
@@ -12,33 +12,29 @@ Everything about one organization (people, emails, files, pipeline cards, projec
 
 ## Status and tags
 
-Every organization has a **Status**: Prospect, Client or Other.
+Every organization has a **Status**: **Client** or **Partner / other**.
 
-- A pipeline card makes its organization a **Prospect** automatically.
-- **Make client** (on a pipeline card or an organization) makes it a **Client**, and any open pipeline card for it is archived, because the opportunity is won.
-- When status is **Client**, **Active** or **Inactive** says whether you are still working together. Set Inactive on the organization page when the work ends; projects and history stay.
-- **Other** is anyone not in a sales relationship, such as a partner or vendor.
+- Pipeline cards are opportunities only. Saving a card does **not** add an organization to your list.
+- **Make client** on a card creates (or links) the organization as a **Client**, copies people onto it, and archives the card because the opportunity is won.
+- **Make partner** on a card creates the organization with the **Partner** tag and archives the card.
+- When status is **Client**, **Active** or **Inactive** on the Office → **Clients** list says whether you are still working together; projects and history stay either way.
 - Client turns on projects, time and invoices.
 
 **Tags** say what an organization or person is to you: Partner, Vendor, Referral source, or anything you type. Organizations and people share the same tags. Press Enter in the Tags field to add one. Tags are set by hand; nothing changes them automatically. A partner can also be a client.
 
 ## Organizations
 
-**Organizations** (CRM menu) lists every organization. Filter with the **type** dropdown (**Any Type**, Prospects, Clients, Other) and the tag list (for example **Partner**). The row menu has **Make client**, **Edit** and **Delete**.
+**Organizations** (CRM menu) lists organizations you have added. Filter with the **type** dropdown (**Any Type**, Clients, Partner / other) and the tag list (for example **Partner**). The row menu has **Make client**, **Edit** and **Delete**.
 
-**New Organization** asks for a **Type**:
+**New client** and **New partner** at the top add an organization directly (no pipeline card). For someone you are still trying to win, use **Pipeline → New Lead** instead.
 
-- **Prospect** also adds a card to the first lane of the pipeline.
-- **Client** turns on projects, time and invoices.
-- **Partner** adds the Partner tag and stays off the pipeline.
-
-On an organization's page: Status (Prospect, Client, or Other), Active or Inactive when status is Client, Tags, Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, the Client portal link, Projects, People, a **Next step** panel on the right, Activity and Files. **Add new person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page. Each linked person shows name (link to their People profile), role or title, and email; the red trash control on the right **Remove from organization** (they stay in People). Your own staff show on the People panel too, tagged **Team** (or **Guest** for outside collaborators). Pick a staff member in **Add existing person** to assign them to the organization; with Clients set to Own, that is what lets them reach it. Everyone on the organization's projects is also listed, with the projects they are on; remove them from the project instead.
+On an organization's page: Invoice Code (prepended to invoice numbers, only needed once you invoice), contact details, Notes, then **Status** and **Tags**, the Client portal link, Projects, People, a **Next step** panel on the right, Activity and Files. **Add new person** on the People panel opens a dialog where you can create someone new or link an existing person from Back Office without leaving the page. Each linked person shows name (link to their People profile), role or title, and email; the red trash control on the right **Remove from organization** (they stay in People). Your own staff show on the People panel too, tagged **Team** (or **Guest** for outside collaborators). Pick a staff member in **Add existing person** to assign them to the organization; with Clients set to Own, that is what lets them reach it. Everyone on the organization's projects is also listed, with the projects they are on; remove them from the project instead.
 
 **Activity** lists emails, calls, meetings and notes. The box at the top logs a **Note**, **Call** or **Meeting** in one line: pick the type, type what happened, **Log it**. Type **@** to mention a teammate or one of the organization's people (the full form takes @ too). Everyone mentioned is added to who was involved, and mentioned teammates get a notification. Tick **Set the next step** to set the organization's next step at the same time. **More details…** opens the full form (pick the type at the top of the dialog). **Include people's activity** (on by default) also shows calls, meetings and notes logged on this organization's people that aren't filed to any organization; those are labelled "From [name]'s activity". An email filed to another organization never shows here, even if one of this organization's people was on it. Email threads show their newest message with "earlier messages in this thread" to expand. **Open full view** opens Activity for this organization. On a call, **Who called** is We called, They called, or Internal. The activity shows the caller, then an arrow, then who was called. On a meeting, **Where** is the place or link, such as Zoom or their office. **Notes / next steps** is a formatted note: bold, lists, and links. **Who was involved** lists **Our team** and that organization's people, so you can record who on your side talked with whom. **All**, **Emails**, **Calls**, **Meetings** and **Notes** is a menu above the list, with Search beside it. Search looks only at the type you picked, including when nothing is logged yet. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC'd on the thread. The same panel is on a pipeline card. On a person's page, Activity shows everything that person took part in, and you can log on the person. It is filed to their organization when they belong to exactly one; otherwise it stays on the person and shows on each of their organizations with Include people's activity on.
 
 ## Clients
 
-**Clients** (Office menu) shows organizations with status Client. The **Status** column is Active or Inactive. **New Client** adds an organization as a client straight away. Prospects are not here; they are on the Pipeline.
+**Clients** (Office menu) shows organizations with status Client. The **Status** column is Active or Inactive. **New Client** adds an organization as a client straight away. Open opportunities stay on the Pipeline until you **Make client**.
 
 ## People
 
@@ -50,7 +46,7 @@ On a person's page: name, email, title, phone, LinkedIn and personal URL, **Tags
 
 The **Pipeline** holds opportunities only. People move through lanes as conversations happen, sometimes over months. There are no won or lost lanes: when someone signs on, use **Make client** (the card leaves the board, archived with its history); when it is going nowhere, **Archive** the card.
 
-Every card belongs to an organization (a new Prospect unless the name matches an existing one) and its person is a real person in People. **New Lead** adds a card to the first lane. Adding a Prospect on the Organizations page also adds a card. Drag cards between lanes; lanes track the conversation and do not change status. A current client can get a new card later, for a new piece of work.
+Each card is its own opportunity: organization name and contact details on the card, people on the **People** panel (real records in **People**). **New Lead** opens the full card immediately (People included) and adds it to the first lane; enter the organization name and **Save**. Link an existing organization with **Open organization** after **Make client** or by promoting the card. Drag cards between lanes; lanes track the conversation and do not change status. A current client can get a new card later for another piece of work.
 
 Each card leads with the **next step**: what you plan to do next and its due date, then how long since the last contact ("Contacted 12 days ago", or "No contact"). A red warning icon next to the card's menu means the next step is overdue; hover it for the date. The card menu's **View people** lists everyone at the card's organization with role, email and phone.
 
@@ -64,11 +60,11 @@ Each card leads with the **next step**: what you plan to do next and its due dat
 
 **Archived:** switch **Board / Archived** on the left to see won and archived cards. **Restore** puts a card back on the board. **Delete** removes the card for good.
 
-On a card's page, **Lane** changes its lane and **Open organization** (beside the title) goes to the organization. **Make client** and **Save** are at the top right; **Save** turns on once something has changed. **Archive** / **Restore** are in the ⋮ menu beside them.
+On a card's page, the main form is the **organization** (name, email, phone, website, category, service interest, next action, and dates). On the right, **Primary Contact** and **Warm Connect** are separate panels — pick or add a person in each. Person details are on the person record when you add or open them. **Category** and **Next action** are preset lists; you can type a new value and it is saved for next time. **Lane** changes the card's lane. After **Make client** or **Make partner**, **Open organization** beside the title goes to that record. **Make client**, **Make partner**, and **Save** are at the top right; **Save** turns on once something has changed. **Archive** / **Restore** are in the ⋮ menu beside them.
 
 ## Bookings
 
-**Bookings** is a module: it only appears when it is switched on for your organization. **Bookings** manages appointment types and bookings. A booking creates or updates a pipeline card, so the guest appears in People at a Prospect organization. Each booking type's **Pipeline lane** says which lane new cards go into (blank means the first lane). A card that is still in its pipeline's first lane moves to that lane when the person books; cards further along stay put. Booking types (the **Booking types** tab) are visible to roles with Bookings **Setup**.
+**Bookings** is a module: it only appears when it is switched on for your organization. **Bookings** manages appointment types and bookings. A booking creates or updates a pipeline card; the guest is tracked on that card and in **People**. Each booking type's **Pipeline lane** says which lane new cards go into (blank means the first lane). A card that is still in its pipeline's first lane moves to that lane when the person books; cards further along stay put. Booking types (the **Booking types** tab) are visible to roles with Bookings **Setup**.
 
 ## Activity
 

@@ -10,6 +10,7 @@ import {
   ContactSummary,
   contactName,
 } from '../../core/communications.api';
+import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-picker.loader';
 import { TeamApi, TeamMember, TeamScope } from '../../core/team.api';
@@ -56,7 +57,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       @if (showPanelTitle() || (!controlsAfterList() && mode() === 'project')) {
         <div class="card-header">
           @if (showPanelTitle()) {
-            <h3 class="card-title">People @if (hintKey()) { <app-help-text [key]="hintKey()!" /> }</h3>
+            <h3 class="card-title">{{ panelTitle() ?? 'People' }} @if (hintKey()) { <app-help-text [key]="hintKey()!" /> }</h3>
           }
           @if (!controlsAfterList() && !readOnly()) {
             <p-button
@@ -90,14 +91,14 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         </div>
       }
 
-      @if (mode() === 'organization') {
+      @if (mode() === 'organization' || mode() === 'lead') {
         @if (orgLoading() && orgPeople().length === 0) {
           <div aria-busy="true" aria-label="Loading people">
             @for (n of skeletonRows; track n) {
               <div class="people-panel-org-row"><p-skeleton width="40%" height="1rem" /></div>
             }
           </div>
-        } @else if (orgPeople().length === 0 && teamRows().length === 0) {
+        } @else if (orgPeople().length === 0 && (mode() === 'lead' || teamRows().length === 0)) {
           <div class="empty-state">
             <i class="pi pi-users" aria-hidden="true"></i>
             <p>No people linked yet.</p>
@@ -116,6 +117,9 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
                   [personId]="c.id"
                   [link]="['/people', c.id]"
                 />
+                @if (primaryContactPickerEnabled() && primaryContactId() === c.id) {
+                  <p-tag value="Primary contact" severity="info" />
+                }
                 @if (c.autoCreated) {
                   <p-tag value="New" severity="info" />
                 }
@@ -130,16 +134,8 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               }
               <app-copy-email [email]="c.emails[0]?.email" [muted]="true" [block]="true" />
             </div>
-            @if (clientId() && !readOnly()) {
-              <p-button
-                icon="pi pi-trash"
-                [text]="true"
-                severity="danger"
-                size="small"
-                class="people-panel-org-remove"
-                [attr.aria-label]="'Remove ' + contactName(c) + ' from organization'"
-                (onClick)="confirmUnlinkFromOrg(c)"
-              />
+            @if ((clientId() || leadId()) && !readOnly()) {
+              <app-row-actions-menu [items]="orgContactActions(c)" ariaLabel="Person actions" />
             }
           </div>
         }
@@ -237,6 +233,8 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
           </div>
         }
       }
+
+      <ng-content select="[peoplePanelExtra]" />
     </div>
 
     @if (addPersonFlow() === 'modal') {
@@ -325,6 +323,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
   `,
 })
 export class PeopleComponent {
+  private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
   private readonly peoplePicker = inject(PeoplePickerLoader);
   private readonly toast = inject(MessageService);
@@ -339,6 +338,8 @@ export class PeopleComponent {
   mode = input.required<PeoplePanelMode>();
   /** Organization id (required for organization mode). Also used when creating/linking from project. */
   clientId = input<string | null>(null);
+  /** Pipeline card id (required for lead mode). */
+  leadId = input<string | null>(null);
   /** Side-panel layout (narrow column). */
   compact = input(false);
   /** Optional registry key for panel help (? icon on the title). */
@@ -358,6 +359,17 @@ export class PeopleComponent {
   addPersonRequested = output<void>();
   /** Show staff (Team) next to contacts and offer them in Add existing person. Off where the board's Share list already covers them. */
   showTeam = input(true);
+  /** Pipeline lead: highlight and allow changing the card's primary contact person. */
+  primaryContactPickerEnabled = input(false);
+  primaryContactId = input<string | null>(null);
+  warmConnectionContactId = input<string | null>(null);
+  /** When set on a lead panel, this panel manages only that one role (Primary Contact / Warm Connect). */
+  leadContactSlot = input<'primary' | 'warm' | null>(null);
+  /** Replaces the default "People" heading (pipeline card side panels). */
+  panelTitle = input<string | null>(null);
+  setPrimaryContact = output<string>();
+  /** Emitted when a slot panel updates the lead (primary or warm connection). */
+  leadUpdated = output<Record<string, unknown>>();
 
   /** Project mode only — current contact rows. */
   projectContacts = input<PeopleProjectContact[]>([]);
@@ -386,6 +398,18 @@ export class PeopleComponent {
       void this.loadOrganizationPeople(id);
     });
     effect(() => {
+      if (this.mode() !== 'lead') return;
+      const id = this.leadId();
+      if (!id) return;
+      if (this.leadContactSlot()) {
+        this.primaryContactId();
+        this.warmConnectionContactId();
+        void this.loadLeadSlotPerson();
+      } else {
+        void this.loadLeadPeople(id);
+      }
+    });
+    effect(() => {
       const scope = this.teamScope();
       if (!scope) {
         this.teamRows.set([]);
@@ -412,6 +436,37 @@ export class PeopleComponent {
     return c.accountLinks.find((l) => l.clientId === id)?.role ?? null;
   }
 
+  orgContactActions(c: ContactSummary): RowActionItem[] {
+    if (this.leadContactSlot()) {
+      return [
+        {
+          id: 'remove',
+          label: 'Remove',
+          icon: 'pi pi-trash',
+          severity: 'danger',
+          command: () => this.confirmClearLeadSlot(),
+        },
+      ];
+    }
+    const items: RowActionItem[] = [];
+    if (this.primaryContactPickerEnabled() && this.primaryContactId() !== c.id) {
+      items.push({
+        id: 'primary',
+        label: 'Set as primary contact',
+        icon: 'pi pi-star',
+        command: () => this.setPrimaryContact.emit(c.id),
+      });
+    }
+    items.push({
+      id: 'remove',
+      label: this.mode() === 'lead' ? 'Remove from card' : 'Remove from organization',
+      icon: 'pi pi-trash',
+      severity: 'danger',
+      command: () => this.confirmUnlinkFromOrg(c),
+    });
+    return items;
+  }
+
   async openNewPerson() {
     if (this.addPersonFlow() === 'delegate') {
       this.addPersonRequested.emit();
@@ -422,6 +477,16 @@ export class PeopleComponent {
     if (!created) return;
     if (this.mode() === 'organization' && clientId) {
       await this.loadOrganizationPeople(clientId);
+    } else if (this.mode() === 'lead') {
+      const leadId = this.leadId();
+      if (leadId) {
+        await this.api.post(`/leads/${leadId}/people`, { contactId: created.id });
+        if (this.leadContactSlot()) {
+          await this.assignLeadSlot(created.id);
+        } else {
+          await this.loadLeadPeople(leadId);
+        }
+      }
     } else if (this.mode() === 'project') {
       this.addProjectContactFromSummary(created);
     }
@@ -438,6 +503,8 @@ export class PeopleComponent {
         await this.addTeamMember(option);
       } else if (this.mode() === 'organization') {
         await this.linkExistingToOrganization(option);
+      } else if (this.mode() === 'lead') {
+        await this.linkExistingToLead(option);
       } else {
         this.addProjectContactFromEntry(option);
       }
@@ -573,19 +640,152 @@ export class PeopleComponent {
 
   confirmUnlinkFromOrg(c: ContactSummary) {
     const clientId = this.clientId();
-    if (!clientId) return;
+    const leadId = this.leadId();
+    if (!clientId && !leadId) return;
+    const scope = this.mode() === 'lead' ? 'this pipeline card' : 'this organization';
     this.confirmDelete.confirm({
-      message: `Remove "${contactName(c)}" from this organization? The person stays in People.`,
+      message: `Remove "${contactName(c)}" from ${scope}? The person stays in People.`,
       accept: async () => {
         try {
-          await this.comms.unlinkAccount(c.id, clientId);
-          await this.loadOrganizationPeople(clientId);
+          if (this.mode() === 'lead' && leadId) {
+            await this.api.delete(`/leads/${leadId}/people/${c.id}`);
+            await this.loadLeadPeople(leadId);
+          } else if (clientId) {
+            await this.comms.unlinkAccount(c.id, clientId);
+            await this.loadOrganizationPeople(clientId);
+          }
           void this.reloadPickerOptions();
         } catch (err) {
           this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
         }
       },
     });
+  }
+
+  private async loadLeadPeople(leadId: string) {
+    this.orgLoading.set(true);
+    this.panelError.set(null);
+    try {
+      type LeadPersonRow = {
+        id: string;
+        firstName: string;
+        lastName: string | null;
+        title: string | null;
+        phone: string | null;
+        avatarUrl: string | null;
+        isActive: boolean;
+        autoCreated: boolean;
+        emails: { email: string; isPrimary: boolean }[];
+        accountLinks?: ContactSummary['accountLinks'];
+      };
+      const rows = await this.api.get<LeadPersonRow[]>(`/leads/${leadId}/people`);
+      this.orgPeople.set(
+        rows.map((r) => ({
+          id: r.id,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          title: r.title,
+          phone: r.phone,
+          avatarUrl: r.avatarUrl,
+          isActive: r.isActive,
+          autoCreated: r.autoCreated,
+          notes: null,
+          tags: [],
+          lastContactAt: null,
+          emails: r.emails.map((e) => ({ id: e.email, email: e.email, isPrimary: e.isPrimary })),
+          accountLinks: r.accountLinks ?? [],
+        })),
+      );
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Failed to load people');
+      this.orgPeople.set([]);
+    } finally {
+      this.orgLoading.set(false);
+    }
+  }
+
+  private async linkExistingToLead(option: PeopleDirectoryOption) {
+    const leadId = this.leadId();
+    if (!leadId) return;
+    const contactId = contactIdFromDirectoryId(option.id);
+    if (!contactId) {
+      this.toast.add({ severity: 'warn', summary: 'People only', detail: 'Choose someone from People.' });
+      return;
+    }
+    try {
+      await this.api.post(`/leads/${leadId}/people`, { contactId });
+    } catch {
+      /* already on card */
+    }
+    if (this.leadContactSlot()) {
+      await this.assignLeadSlot(contactId, option.displayName);
+    } else {
+      await this.loadLeadPeople(leadId);
+      this.toast.add({ severity: 'success', summary: 'Person added', detail: option.displayName });
+    }
+    void this.reloadPickerOptions();
+  }
+
+  private leadSlotPatch(contactId: string | null): Record<string, unknown> {
+    return this.leadContactSlot() === 'warm'
+      ? { warmConnectionContactId: contactId }
+      : { primaryContactId: contactId };
+  }
+
+  private async assignLeadSlot(contactId: string, displayName?: string) {
+    const leadId = this.leadId();
+    if (!leadId || !this.leadContactSlot()) return;
+    const updated = await this.api.put<Record<string, unknown>>(`/leads/${leadId}`, this.leadSlotPatch(contactId));
+    this.leadUpdated.emit(updated);
+    await this.loadLeadSlotPerson();
+    this.toast.add({
+      severity: 'success',
+      summary: 'Updated',
+      detail: displayName ?? 'Person',
+    });
+  }
+
+  confirmClearLeadSlot() {
+    const slot = this.leadContactSlot();
+    if (!slot) return;
+    const label = slot === 'primary' ? 'primary contact' : 'warm connect';
+    this.confirmDelete.confirm({
+      message: `Remove this person as ${label}? They stay in People.`,
+      accept: async () => {
+        const leadId = this.leadId();
+        if (!leadId) return;
+        try {
+          const updated = await this.api.put<Record<string, unknown>>(`/leads/${leadId}`, this.leadSlotPatch(null));
+          this.leadUpdated.emit(updated);
+          await this.loadLeadSlotPerson();
+          this.toast.add({ severity: 'success', summary: 'Removed' });
+        } catch (err) {
+          this.panelError.set(err instanceof Error ? err.message : 'Could not remove');
+        }
+      },
+    });
+  }
+
+  private async loadLeadSlotPerson() {
+    const slot = this.leadContactSlot();
+    const leadId = this.leadId();
+    if (!slot || !leadId) return;
+    const contactId = slot === 'primary' ? this.primaryContactId() : this.warmConnectionContactId();
+    this.orgLoading.set(true);
+    this.panelError.set(null);
+    try {
+      if (!contactId) {
+        this.orgPeople.set([]);
+        return;
+      }
+      const c = await this.comms.contact(contactId);
+      this.orgPeople.set([c]);
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Failed to load person');
+      this.orgPeople.set([]);
+    } finally {
+      this.orgLoading.set(false);
+    }
   }
 
   projectRowActions(index: number): RowActionItem[] {

@@ -1,5 +1,5 @@
 <app-page
-  [title]="isNew ? 'New Lead' : (form.organization || 'Lead')"
+  [title]="pageTitle"
   backLink="/pipeline"
   backLabel="Back to Pipeline"
 >
@@ -10,144 +10,183 @@
     @if (!isNew && archivedAt()) {
       <p-tag value="Archived" severity="secondary" />
     }
-    @if (contactId(); as cid) {
-      <app-person
-        [name]="form.primaryContact"
-        [email]="form.email"
-        [avatarUrl]="contactAvatarUrl()"
-        [personId]="cid"
-        [link]="['/people', cid]"
-      />
-    }
     @if (account(); as acct) {
       <a [routerLink]="['/organizations', acct.id]" class="text-primary">Open organization</a>
     }
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
-    @if (!loading() && !error()) {
-      @if (!isNew && canEdit()) {
+    @if (!loading()) {
+      @if (id() && canEdit()) {
         <app-row-actions-menu [items]="headerActions()" ariaLabel="Lead actions" />
       }
-      @if (!isNew && !isConverted && canEdit()) {
+      @if (id() && !isConverted && !orgClientId() && canEdit()) {
+        <p-button label="Make partner" icon="pi pi-users" severity="secondary" [outlined]="true" [loading]="promoting()" (onClick)="promotePartner()" />
+      }
+      @if (id() && !isConverted && canEdit()) {
         <p-button label="Make client" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="showConvertDialog.set(true)" />
       }
-      @if (isNew || canEdit()) {
-        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isNew && !isDirty()" (onClick)="save()" />
+      @if (id() && canEdit()) {
+        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
       }
     }
   </ng-container>
   <ng-container ngProjectAs="[pageTitleTrail]">
-    @if (!isNew) {
+    @if (id()) {
       <app-record-attribution [attribution]="attribution()" />
     }
   </ng-container>
 
-  @if (error()) {
-    <div class="card">
-      <p-message severity="error" [text]="error()!" />
-    </div>
-  } @else if (!loading()) {
+  @if (!loading()) {
+    @if (error()) {
+      <div class="card mb-3">
+        <p-message severity="error" [text]="error()!" />
+        @if (!id() && routeId() === 'new') {
+          <p-button class="mt-2" label="Try again" size="small" severity="secondary" (onClick)="retryBootstrap()" />
+        }
+      </div>
+    }
 
-    <form class="card" (ngSubmit)="save()">
-      <div class="showcase-flex-col">
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="organization">Organization <span class="required-dot" aria-hidden="true"></span></label>
-            <input pInputText id="organization" name="organization" [(ngModel)]="form.organization" class="w-full" placeholder="Nonprofit Name" />
-          </div>
-          <div class="form-field showcase-half">
-            <label for="stage">Lane</label>
-            <p-select inputId="stage" name="stage" [(ngModel)]="form.stageId" [options]="stages()" optionLabel="label" optionValue="value" placeholder="First lane" styleClass="w-full" />
-          </div>
-        </div>
+    <div class="grid grid-3">
+      <div class="stack span-2">
+        <form class="card" (ngSubmit)="save()">
+          <div class="showcase-flex-col">
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="organization">Organization <span class="required-dot" aria-hidden="true"></span></label>
+                <input pInputText id="organization" name="organization" [(ngModel)]="form.organization" class="w-full" placeholder="Nonprofit Name" />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="stage">Lane</label>
+                <p-select inputId="stage" name="stage" [(ngModel)]="form.stageId" [options]="stages()" optionLabel="label" optionValue="value" placeholder="First lane" styleClass="w-full" appendTo="body" />
+              </div>
+            </div>
 
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="primaryContact">Primary Contact</label>
-            <input pInputText id="primaryContact" name="primaryContact" [(ngModel)]="form.primaryContact" class="w-full" />
-          </div>
-          <div class="form-field showcase-half">
-            <label for="contactRole">Role / Title</label>
-            <input pInputText id="contactRole" name="contactRole" [(ngModel)]="form.contactRole" class="w-full" />
-          </div>
-        </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="email">Email</label>
+                <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="phone">Phone</label>
+                <app-phone-input inputId="phone" [value]="form.phone" (valueChange)="form.phone = $event" />
+              </div>
+            </div>
 
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="email">Email</label>
-            <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
-          </div>
-          <div class="form-field showcase-half">
-            <label for="phone">Phone</label>
-            <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
-          </div>
-        </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="website">Website</label>
+                <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="source">Contact Source <app-help-text key="lead.contactSource" /></label>
+                <p-select inputId="source" name="source" [(ngModel)]="form.source" [options]="sources" optionLabel="label" optionValue="value" placeholder="Select contact source" [showClear]="true" styleClass="w-full" appendTo="body" />
+              </div>
+            </div>
 
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="website">Website</label>
-            <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
-          </div>
-          <div class="form-field showcase-half">
-            <label for="warmConnection">Warm Connection <app-help-text key="lead.warmConnection" /></label>
-            <input pInputText id="warmConnection" name="warmConnection" [(ngModel)]="form.warmConnection" class="w-full" />
-          </div>
-        </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="category">Category</label>
+                <app-creatable-select
+                  inputId="category"
+                  name="category"
+                  [(value)]="form.category"
+                  [options]="categoryOptions()"
+                  placeholder="Select category"
+                />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="lastContactDate">Last Contact</label>
+                <app-date-input inputId="lastContactDate" name="lastContactDate" [(ngModel)]="form.lastContactDate" />
+              </div>
+            </div>
 
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="source">Contact Source <app-help-text key="lead.contactSource" /></label>
-            <p-select inputId="source" name="source" [(ngModel)]="form.source" [options]="sources" optionLabel="label" optionValue="value" placeholder="Select contact source" [showClear]="true" styleClass="w-full" />
-          </div>
-          <div class="form-field showcase-half">
-            <label for="category">Category</label>
-            <p-select inputId="category" name="category" [(ngModel)]="form.category" [options]="categories" optionLabel="label" optionValue="value" placeholder="Select category" [showClear]="true" styleClass="w-full" />
-          </div>
-        </div>
+            <div class="form-field showcase-full">
+              <label>Service Interest <app-help-text key="lead.serviceInterest" /></label>
+              <div class="service-interest-pills">
+                @for (svc of serviceOptions; track svc) {
+                  <button
+                    type="button"
+                    class="service-interest-pill"
+                    [class.service-interest-pill--selected]="serviceInterests().includes(svc)"
+                    (click)="toggleServiceInterest(svc)"
+                  >{{ svc }}</button>
+                }
+              </div>
+            </div>
 
-        <div class="form-field showcase-full">
-          <label>Service Interest <app-help-text key="lead.serviceInterest" /></label>
-          <div class="service-interest-pills">
-            @for (svc of serviceOptions; track svc) {
-              <button
-                type="button"
-                class="service-interest-pill"
-                [class.service-interest-pill--selected]="serviceInterests().includes(svc)"
-                (click)="toggleServiceInterest(svc)"
-              >{{ svc }}</button>
-            }
-          </div>
-        </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="nextAction">Next Action <app-help-text key="lead.nextAction" /></label>
+                <app-creatable-select
+                  inputId="nextAction"
+                  name="nextAction"
+                  [(value)]="form.nextAction"
+                  [options]="nextActionOptions()"
+                  placeholder="Select or type next action"
+                />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="nextActionDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
+                <app-date-input inputId="nextActionDate" name="nextActionDate" [(ngModel)]="form.nextActionDate" />
+              </div>
+            </div>
 
-        <div class="showcase-row">
-          <div class="form-field showcase-half">
-            <label for="lastContactDate">Last Contact</label>
-            <app-date-input inputId="lastContactDate" name="lastContactDate" [(ngModel)]="form.lastContactDate" />
           </div>
-          <div class="form-field showcase-half">
-            <label for="nextActionDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
-            <app-date-input inputId="nextActionDate" name="nextActionDate" [(ngModel)]="form.nextActionDate" />
-          </div>
-        </div>
+        </form>
 
-        <div class="form-field showcase-full">
-          <label for="nextAction">Next Action <app-help-text key="lead.nextAction" /></label>
-          <input pInputText id="nextAction" name="nextAction" [(ngModel)]="form.nextAction" class="w-full" />
-        </div>
+        @if (id()) {
+          @if (account(); as acct) {
+            <app-activity-timeline [clientId]="acct.id" [organizationName]="acct.name" />
+          } @else {
+            <app-activity-timeline [leadId]="id()!" [organizationName]="form.organization" />
+          }
 
+          <app-artifacts-panel [leadId]="id()!" />
+        }
       </div>
 
-    </form>
-
-    @if (!isNew) {
-      @if (account(); as acct) {
-        <app-activity-timeline [clientId]="acct.id" [organizationName]="acct.name" />
-      } @else {
-        <app-activity-timeline [leadId]="id()!" [organizationName]="form.organization" />
-      }
-
-      <app-artifacts-panel [leadId]="id()!" />
-    }
+      <div class="stack span-1">
+        @if (id(); as leadId) {
+          <app-people
+            mode="lead"
+            panelTitle="Primary Contact"
+            hintKey="lead.primaryContact"
+            leadContactSlot="primary"
+            [leadId]="leadId"
+            [primaryContactId]="contactId()"
+            [compact]="true"
+            [showTeam]="false"
+            [primaryContactPickerEnabled]="false"
+            (leadUpdated)="onLeadContactPanelUpdated($event)"
+          />
+          <app-people
+            mode="lead"
+            panelTitle="Warm Connect"
+            hintKey="lead.warmConnect"
+            leadContactSlot="warm"
+            [leadId]="leadId"
+            [warmConnectionContactId]="warmConnectionContactId()"
+            [compact]="true"
+            [showTeam]="false"
+            [primaryContactPickerEnabled]="false"
+            (leadUpdated)="onLeadContactPanelUpdated($event)"
+          />
+        } @else {
+          <div class="card card--side">
+            <div class="card-header">
+              <h3 class="card-title">Primary Contact</h3>
+            </div>
+            <p class="text-color-secondary m-0">Starting this card…</p>
+          </div>
+          <div class="card card--side">
+            <div class="card-header">
+              <h3 class="card-title">Warm Connect</h3>
+            </div>
+            <p class="text-color-secondary m-0">Starting this card…</p>
+          </div>
+        }
+      </div>
+    </div>
   }
 </app-page>
 

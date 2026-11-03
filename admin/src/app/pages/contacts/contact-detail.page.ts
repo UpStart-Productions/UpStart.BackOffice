@@ -22,11 +22,13 @@ import { OrganizationLinksComponent } from '../../ui/organization-links/organiza
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
+import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
 
 @Component({
   selector: 'app-contact-detail-page',
   standalone: true,
-  imports: [PersonComponent, 
+  imports: [PersonComponent,
+    PhoneInputComponent,
     FormsModule,
     ButtonModule,
     InputTextModule,
@@ -103,7 +105,7 @@ import { RecordAttributionComponent } from '../../ui/record-attribution/record-a
                 <div class="form-row">
                   <div class="form-field">
                     <label for="phone">Phone</label>
-                    <input pInputText id="phone" type="tel" [(ngModel)]="form.phone" class="w-full" autocomplete="tel" />
+                    <app-phone-input inputId="phone" [value]="form.phone || null" (valueChange)="form.phone = $event ?? ''" />
                   </div>
                   <div class="form-field">
                     <label for="linkedInUrl">LinkedIn URL</label>

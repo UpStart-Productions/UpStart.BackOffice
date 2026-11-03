@@ -336,13 +336,14 @@ model Lead {
   stage             LeadStage    @default(NEW_LEAD)
   source            LeadSource?
   warmConnection    String?
-  category          OrgCategory?
+  warmConnectionContactId String?
+  category          String?
   serviceInterests  String[]
   nextAction        String?      @db.Text
   nextActionDate    DateTime?
   lastContactDate   DateTime?
   convertedClientId String?      @unique
-  /// The Account this pipeline item belongs to. Every lead has one (a Prospect until you make it a client).
+  /// Linked organization, only after Make client/partner or an explicit link — not created on save.
   clientId          String?
   /// The lead's person. Source of truth for name, email and phone; the text columns above are a legacy mirror.
   primaryContactId  String?
@@ -361,18 +362,37 @@ model Lead {
 
   convertedClient Client?        @relation("LeadConverted", fields: [convertedClientId], references: [id])
   client          Client?        @relation("LeadAccount", fields: [clientId], references: [id])
-  contact         Contact?       @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+  contact               Contact?       @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
+  warmConnectionContact Contact?       @relation("LeadWarmConnection", fields: [warmConnectionContactId], references: [id], onDelete: SetNull)
   pipeline        Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   pipelineStage   PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
   artifacts       Artifact[]
   bookings        Booking[]
   interactions    Interaction[]
+  leadContacts    LeadContact[]
 
   @@index([stage])
   @@index([pipelineId, stageId])
   @@index([clientId])
   @@index([primaryContactId])
+  @@index([warmConnectionContactId])
   @@index([tenantId])
+}
+
+/// Person linked to a pipeline card before the card is promoted to an organization.
+model LeadContact {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("")
+  leadId    String
+  contactId String
+  createdAt DateTime @default(now())
+
+  lead    Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, contactId])
+  @@index([leadId])
+  @@index([contactId])
 }
 
 /// A relationship pipeline. Each tenant defines its own pipelines and lanes; there are no won/lost stages.
@@ -1712,9 +1732,11 @@ model Contact {
   emails          ContactEmail[]
   accountLinks    ContactAccount[]
   participants    InteractionParticipant[]
-  leads           Lead[]
+  leads                  Lead[]
+  leadsAsWarmConnection  Lead[] @relation("LeadWarmConnection")
   tags            ContactTag[]
   projectContacts ProjectContact[]
+  leadContactLinks LeadContact[]
 
   @@index([tenantId, lastName, firstName])
 }

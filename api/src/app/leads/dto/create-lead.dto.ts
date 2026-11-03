@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LeadStage, LeadSource, OrgCategory } from '@prisma/client';
+import { LeadStage, LeadSource } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -28,6 +28,17 @@ export class CreateLeadDto {
   @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() website?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() warmConnection?: string;
+
+  @ApiPropertyOptional({ description: 'Primary contact person (People panel)' })
+  @IsString()
+  @IsOptional()
+  primaryContactId?: string;
+
+  @ApiPropertyOptional({ description: 'Warm introduction contact (People panel)' })
+  @IsString()
+  @IsOptional()
+  warmConnectionContactId?: string | null;
+
   @ApiPropertyOptional() @IsString() @IsOptional() nextAction?: string;
 
   /** Legacy fixed stage. Prefer stageId; this maps to the lane that came from it. */
@@ -51,10 +62,10 @@ export class CreateLeadDto {
   @IsOptional()
   source?: LeadSource;
 
-  @ApiPropertyOptional({ enum: OrgCategory })
-  @IsEnum(OrgCategory)
+  @ApiPropertyOptional({ description: 'Preset code or custom category label' })
+  @IsString()
   @IsOptional()
-  category?: OrgCategory;
+  category?: string;
 
   @ApiPropertyOptional({ type: [String] })
   @IsArray()
@@ -64,4 +75,9 @@ export class CreateLeadDto {
 
   @ApiPropertyOptional() @IsDateString() @IsOptional() nextActionDate?: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() lastContactDate?: string;
+
+  @ApiPropertyOptional({ description: 'Link this card to an existing organization' })
+  @IsString()
+  @IsOptional()
+  clientId?: string | null;
 }

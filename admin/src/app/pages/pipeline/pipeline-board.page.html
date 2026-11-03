@@ -145,7 +145,7 @@
                     <div class="pipeline-card-contact">
                       <app-person
                         [name]="lead.primaryContact"
-                        [email]="lead.email"
+                        [email]="lead.primaryContactEmail ?? lead.email"
                         [avatarUrl]="lead.contactAvatarUrl"
                         [personId]="lead.primaryContactId ?? lead.id"
                         [subtitle]="lead.contactRole"

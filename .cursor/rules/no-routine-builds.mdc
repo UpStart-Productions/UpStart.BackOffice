@@ -1,0 +1,15 @@
+---
+description: Do not run full project builds after every edit; user runs dev locally
+alwaysApply: true
+---
+
+# No routine builds
+
+The user runs `npm run dev` themselves. Do **not** run `nx run admin:build`, `nx run api:build`, or similar full builds after each change.
+
+Run a build (or targeted tests) only when:
+- The user asks for a build or CI check
+- You are finishing a task and need to verify compile errors you cannot see another way
+- A hook or commit requires it
+
+Prefer code review and `ReadLints` on touched files over rebuilding the whole app.

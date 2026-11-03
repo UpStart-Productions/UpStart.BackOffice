@@ -66,7 +66,10 @@ type StatusFilter = 'all' | AccountJourney;
   template: `
     <app-page title="Organizations">
       @if (canCreate()) {
-        <a pageActions pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
+        <ng-container ngProjectAs="[pageActions]">
+          <a pageActions pButton label="New partner" icon="pi pi-plus" severity="secondary" [outlined]="true" routerLink="/organizations/new" [queryParams]="{ type: 'partner' }"></a>
+          <a pageActions pButton label="New client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client' }"></a>
+        </ng-container>
       }
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
@@ -118,7 +121,7 @@ type StatusFilter = 'all' | AccountJourney;
               <td><app-row-actions-menu [items]="rowActions(org)" ariaLabel="Organization actions" /></td>
               <td><a [routerLink]="['/organizations', org.id]" class="text-primary">{{ org.name }}</a></td>
               <td>
-                <p-tag [value]="statusLabel(org)" [severity]="org.journey === 'CLIENT' ? 'success' : org.journey === 'PROSPECT' ? 'info' : 'secondary'" />
+                <p-tag [value]="statusLabel(org)" [severity]="org.journey === 'CLIENT' ? 'success' : 'secondary'" />
               </td>
               <td>
                 <div class="org-tags">
@@ -152,9 +155,8 @@ export class OrganizationsListPage implements OnInit {
   readonly canDelete = computed(() => this.session.can('clients', 'delete'));
 
   readonly typeFilterOptions: { value: AccountJourney; label: string }[] = [
-    { value: 'PROSPECT', label: 'Prospects' },
     { value: 'CLIENT', label: 'Clients' },
-    { value: 'NONE', label: 'Other' },
+    { value: 'NONE', label: 'Partner / other' },
   ];
 
   private readonly validStatusFilters = new Set<StatusFilter>(['all', ...this.typeFilterOptions.map((o) => o.value)]);
@@ -207,6 +209,8 @@ export class OrganizationsListPage implements OnInit {
   }
 
   statusLabel(org: OrganizationRow): string {
+    if (org.journey === 'PROSPECT') return 'Legacy';
+    if (org.journey === 'NONE' && org.tags.some((t) => t.toLowerCase() === 'partner')) return 'Partner';
     return ACCOUNT_JOURNEY_LABELS[org.journey];
   }
 

@@ -76,7 +76,7 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
             <label for="arName">{{ newKind() === 'client' ? 'New client name' : 'New organization name' }}</label>
             <input pInputText id="arName" class="w-full" [(ngModel)]="name" />
             <small class="text-color-secondary">
-              {{ newKind() === 'client' ? 'Creates a client, with the sender as its person.' : 'Creates a Prospect organization with a pipeline card, with the sender as its person.' }}
+              {{ newKind() === 'client' ? 'Creates a client, with the sender as its person.' : 'Adds a pipeline card (Inbound); the sender is linked on the card. No organization list entry until you Make client or attach to an existing one.' }}
             </small>
           </div>
           <p-button label="Pick an existing one instead" [text]="true" size="small" (onClick)="newKind.set(null)" />

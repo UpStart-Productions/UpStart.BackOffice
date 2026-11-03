@@ -86,7 +86,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
 
   // Organizations / clients
   'organization.newType':
-    'Prospect adds a pipeline card in the first lane. Client turns on projects, time and invoices. Partner is tagged only — not on the pipeline.',
+    'Client turns on projects, time and invoices. Partner is tagged only. Open opportunities belong on the Pipeline (New Lead), not here.',
   'organization.journey':
     'Client turns on projects, time and invoices. Make client on a pipeline card sets this for you.',
   'organization.clientActive':
@@ -240,4 +240,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'login.tempPassword': 'Your account uses a temporary password. Set a new password to continue.',
   'login.resetRequest': "Enter your email and we'll send a code to reset your password.",
   'login.resetConfirm': 'Enter the code from your email and your new password.',
+
+  // Pipeline card
+  'lead.primaryContact': 'The main person at this organization for this opportunity.',
+  'lead.warmConnect': 'Someone who can introduce you to this organization.',
 };

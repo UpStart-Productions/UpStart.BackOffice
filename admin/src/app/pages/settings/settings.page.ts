@@ -26,6 +26,7 @@ import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/
 import { ActivitySettingsComponent } from '../../ui/activity-settings/activity-settings.component';
 import { SessionService } from '../../core/session.service';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
+import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
 
 interface ServiceKey {
   id:         string;
@@ -116,6 +117,7 @@ interface SettingsStatusIcon {
     ExpensesInvoicingSettingsComponent,
     ActivitySettingsComponent,
     AvatarDropzoneComponent,
+    PhoneInputComponent,
     RecordAttributionComponent,
   ],
   templateUrl: './settings.page.html',

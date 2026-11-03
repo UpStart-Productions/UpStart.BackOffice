@@ -251,11 +251,6 @@ export const appRoutes: Route[] = [
           import('./pages/pipeline/pipeline-board.page').then((m) => m.PipelineBoardPage),
       },
       {
-        path: 'pipeline/new',
-        loadComponent: () =>
-          import('./pages/pipeline/lead-detail.page').then((m) => m.LeadDetailPage),
-      },
-      {
         path: 'pipeline/:id',
         loadComponent: () =>
           import('./pages/pipeline/lead-detail.page').then((m) => m.LeadDetailPage),

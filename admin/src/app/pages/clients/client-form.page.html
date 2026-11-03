@@ -67,46 +67,6 @@
             <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
             <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
           </div>
-          @if (!isClientFlow) {
-            <div class="showcase-row">
-              <div class="form-field showcase-half">
-                @if (isNew) {
-                  <label for="orgType">Type <app-help-text key="organization.newType" /></label>
-                  <p-selectbutton
-                    inputId="orgType"
-                    name="orgType"
-                    [options]="typeOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    [ngModel]="newType"
-                    (ngModelChange)="setNewType($event)"
-                    [allowEmpty]="false"
-                  />
-                } @else {
-                  <label for="journey">Status <app-help-text key="organization.journey" /></label>
-                  <p-selectbutton
-                    inputId="journey"
-                    name="journey"
-                    [options]="journeyOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    [(ngModel)]="form.journey"
-                    [allowEmpty]="false"
-                  />
-                  @if (form.journey === 'CLIENT') {
-                    <label class="flex align-items-center gap-2 mt-2" for="clientActive">
-                      <p-toggleswitch inputId="clientActive" name="isActive" [(ngModel)]="form.isActive" />
-                      <span>{{ form.isActive ? 'Active client' : 'Inactive client' }} <app-help-text key="organization.clientActive" /></span>
-                    </label>
-                  }
-                }
-              </div>
-              <div class="form-field showcase-half">
-                <label for="orgTags">Tags <app-help-text key="organization.tags" /></label>
-                <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
-              </div>
-            </div>
-          }
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
@@ -129,7 +89,7 @@
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="phone">Phone</label>
-              <input pInputText id="phone" name="phone" [(ngModel)]="form.phone" class="w-full" />
+              <app-phone-input inputId="phone" [value]="form.phone || null" (valueChange)="form.phone = $event ?? ''" />
             </div>
             <div class="form-field showcase-half">
               <label for="website">Website</label>
@@ -179,7 +139,28 @@
               (onEditorCreated)="onNotesEditor($event)"
             ></quill-editor>
           </div>
-          @if (isClientFlow) {
+          @if (!isClientFlow) {
+            <div class="showcase-row">
+              @if (!isNew) {
+                <div class="form-field showcase-half">
+                  <label for="journey">Status <app-help-text key="organization.journey" /></label>
+                  <p-selectbutton
+                    inputId="journey"
+                    name="journey"
+                    [options]="journeyOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [(ngModel)]="form.journey"
+                    [allowEmpty]="false"
+                  />
+                </div>
+              }
+              <div class="form-field" [class.showcase-half]="!isNew" [class.showcase-full]="isNew">
+                <label for="orgTags">Tags <app-help-text key="organization.tags" /></label>
+                <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
+              </div>
+            </div>
+          } @else {
             <div class="form-field showcase-full">
               <label for="clientTags">Tags <app-help-text key="organization.tags" /></label>
               <app-crm-tag-input [(tags)]="form.tags" inputId="clientTags" />

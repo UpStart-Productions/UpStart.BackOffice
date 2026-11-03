@@ -24,7 +24,7 @@ export class UpdateFreeFormDto {
 
 export class AcceptSubmissionDto {
   @IsIn(['new', 'existing']) mode!: 'new' | 'existing';
-  /** new: a client (the sender as its person) or an organization (a Prospect with a pipeline card). */
+  /** new: a client (the sender as its person) or a pipeline card only (Inbound). */
   @IsOptional() @IsIn(['client', 'organization']) newKind?: 'client' | 'organization';
   /** new: its name. */
   @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;

@@ -30,6 +30,7 @@ export type Lead = {
   organization: string;
   primaryContact?: string;
   primaryContactId?: string | null;
+  primaryContactEmail?: string | null;
   contactAvatarUrl?: string | null;
   contactRole?: string;
   email?: string;
