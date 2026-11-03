@@ -97,12 +97,5 @@ export async function resolveTimeEntryBillable(
     return task.isBillable;
   }
 
-  const activeTaskCount = await prisma.projectTask.count({
-    where: { projectId, isActive: true },
-  });
-  if (activeTaskCount > 0) {
-    throw new BadRequestException('A task is required for this project');
-  }
-
   return isBillable ?? true;
 }

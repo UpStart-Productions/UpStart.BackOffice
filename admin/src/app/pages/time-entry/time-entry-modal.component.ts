@@ -277,7 +277,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
                 pButton
                 label="Save"
                 [loading]="saving()"
-                [disabled]="!canSubmit() || saving()"
+                [disabled]="saving()"
                 (click)="saveEntry()"
               ></button>
             } @else {
@@ -287,7 +287,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
                   pButton
                   label="Save entry"
                   [loading]="saving()"
-                  [disabled]="!canSubmit() || saving()"
+                  [disabled]="saving()"
                   (click)="saveEntry()"
                 ></button>
               }
@@ -299,7 +299,7 @@ export type TimeEntryModalResult = 'saved' | 'started' | 'deleted' | 'cancelled'
                 severity="success"
                 [outlined]="true"
                 [loading]="saving()"
-                [disabled]="!canSubmit() || saving()"
+                [disabled]="saving()"
                 (click)="startTimer()"
               ></button>
             }
@@ -501,15 +501,6 @@ export class TimeEntryModalComponent {
     () => this.asanaConnected() && !!this.selectedProject()?.asanaSectionGid,
   );
 
-  readonly hasSelectedTask = computed(
-    () => !!(this.manualTaskId() || this.asanaTaskId() || this.tmTaskIds().length),
-  );
-
-  readonly canSubmit = computed(() => {
-    if (this.hasSelectedTask()) return true;
-    return this.notes().trim().length > 0;
-  });
-
   readonly selectableProjects = computed(() => {
     const editingProjectId = this.editingEntry()?.project?.id;
     return this.projects().filter(
@@ -533,7 +524,7 @@ export class TimeEntryModalComponent {
 
   readonly canSave = computed(() => {
     const parsed = parseDurationInput(this.durationInput());
-    return parsed !== null && parsed > 0 && this.canSubmit();
+    return parsed !== null && parsed > 0;
   });
 
   private resolve: ((result: TimeEntryModalResult) => void) | null = null;
@@ -918,12 +909,6 @@ export class TimeEntryModalComponent {
     }
   }
 
-  private assertCanSubmit(): boolean {
-    if (this.canSubmit()) return true;
-    this.error.set('Add notes when no task is selected.');
-    return false;
-  }
-
   private entryPayload(projectId: string) {
     const payload: Record<string, unknown> = {
       projectId: projectId || null,
@@ -939,8 +924,6 @@ export class TimeEntryModalComponent {
 
   async saveEntry() {
     const projectId = this.projectId();
-    if (!this.assertCanSubmit()) return;
-
     const existing = this.editingEntry();
     let durationMin: number;
     const trimmed = this.durationInput().trim();
@@ -1003,8 +986,6 @@ export class TimeEntryModalComponent {
 
   async startTimer() {
     const projectId = this.projectId();
-    if (!this.assertCanSubmit()) return;
-
     this.saving.set(true);
     this.error.set(null);
 

@@ -44,19 +44,6 @@ export async function assertTimeEntryTaskIds(prisma: PrismaService, projectId: s
   }
 }
 
-/** Task, work task, or Asana task — otherwise notes (description) are required. */
-export function assertTimeEntryHasTaskOrDescription(
-  projectTaskId: string | null | undefined,
-  taskIds: string[],
-  description: string | null | undefined,
-) {
-  const hasTask = !!(projectTaskId?.trim()) || taskIds.length > 0;
-  if (hasTask) return;
-  if (!description?.trim()) {
-    throw new BadRequestException('Add notes when no task is selected.');
-  }
-}
-
 export async function syncTimeEntryWorkTasks(tx: Prisma.TransactionClient, timeEntryId: string, taskIds: string[]) {
   await tx.timeEntryWorkTask.deleteMany({ where: { timeEntryId } });
   if (taskIds.length) {

@@ -246,6 +246,5 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'lead.warmConnect': 'Someone who can introduce you to this organization.',
 
   // Time entry
-  'timeEntry.notes':
-    'Required when no project task, work task, or Asana task is selected. Optional when at least one task is selected.',
+  'timeEntry.notes': 'Optional description of what you worked on.',
 };
