@@ -120,7 +120,6 @@ export class InvoiceFormPage implements OnInit {
   error = signal<string | null>(null);
   generateMessage = signal<string | null>(null);
   missingRates = signal<InvoicePreview['missingRates']>([]);
-  periodLabel = signal<string | null>(null);
   clients = signal<Client[]>([]);
   projects = signal<Project[]>([]);
   filteredProjects = signal<Project[]>([]);
@@ -141,6 +140,7 @@ export class InvoiceFormPage implements OnInit {
     issueDate: new Date().toISOString().slice(0, 10),
     dueDate: '',
     notes: '',
+    /** Percent for display (e.g. 8.75); converted to/from API decimal on save/load. */
     taxRate: null as number | null,
   };
 
@@ -168,7 +168,10 @@ export class InvoiceFormPage implements OnInit {
   /** Hide per-row project when Generate from time already filters to one project. */
   get hideLineProjectColumn() { return !!this.generate.projectId; }
   get subtotal() { return this.lineItems().reduce((s, i) => s + i.amount, 0); }
-  get taxAmount() { return this.form.taxRate ? this.subtotal * this.form.taxRate : 0; }
+  get taxAmount() {
+    const rate = this.taxRateDecimalFromForm();
+    return rate ? this.subtotal * rate : 0;
+  }
   get total() { return this.subtotal + this.taxAmount; }
 
   async ngOnInit() {
@@ -217,7 +220,7 @@ export class InvoiceFormPage implements OnInit {
           issueDate: inv.issueDate.slice(0, 10),
           dueDate: inv.dueDate?.slice(0, 10) ?? '',
           notes: inv.notes ?? '',
-          taxRate: inv.taxRate ?? null,
+          taxRate: this.taxRatePercentFromApi(inv.taxRate),
         };
         this.lineItems.set(
           inv.lineItems.map((li) => ({
@@ -245,6 +248,20 @@ export class InvoiceFormPage implements OnInit {
   }
 
   get billingTenant() { return this.form.billTo === 'TENANT'; }
+
+  /** API stores 0.0875 for 8.75%. */
+  private taxRatePercentFromApi(decimal: number | null | undefined): number | null {
+    if (decimal == null) return null;
+    return Math.round(Number(decimal) * 10000) / 100;
+  }
+
+  private taxRateDecimalFromForm(): number | undefined {
+    const raw = this.form.taxRate;
+    if (raw == null) return undefined;
+    const percent = Number(raw);
+    if (!Number.isFinite(percent) || percent <= 0) return undefined;
+    return percent / 100;
+  }
 
   /** Switching to the organization prefills its bill-to (editable); switching to a client clears it (the client's details are used). */
   async onBillToChange(billTo: BillTo) {
@@ -326,7 +343,6 @@ export class InvoiceFormPage implements OnInit {
       }
 
       const preview = await this.api.get<InvoicePreview>(`/invoices/preview?${params}`);
-      this.periodLabel.set(preview.period.label);
       this.missingRates.set(preview.missingRates);
 
       if (!preview.canGenerate) {
@@ -407,7 +423,7 @@ export class InvoiceFormPage implements OnInit {
           issueDate: this.form.issueDate,
           dueDate: this.form.dueDate || undefined,
           notes: richTextOrUndefined(this.form.notes),
-          taxRate: this.form.taxRate || undefined,
+          taxRate: this.taxRateDecimalFromForm(),
           lineItems,
         });
         this.toast.add({
@@ -422,7 +438,7 @@ export class InvoiceFormPage implements OnInit {
           ...this.billToPayload(),
           notes: richTextOrUndefined(this.form.notes) ?? '',
           dueDate: this.form.dueDate || undefined,
-          taxRate: this.form.taxRate ?? undefined,
+          taxRate: this.taxRateDecimalFromForm(),
           lineItems,
         });
         if (updated?.attribution) {
