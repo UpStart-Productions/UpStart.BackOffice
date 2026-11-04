@@ -10,6 +10,7 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
@@ -78,6 +79,7 @@ export class LeadDetailPage implements OnInit {
   private readonly router = inject(Router);
   private readonly location = inject(Location);
   private readonly toast = inject(MessageService);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
   private bootstrapInFlight = false;
 
   id = signal<string | null>(null);
@@ -98,6 +100,7 @@ export class LeadDetailPage implements OnInit {
   private readonly pipelinesApi = inject(PipelinesApi);
   private readonly session = inject(SessionService);
   readonly canEdit = computed(() => this.session.can('pipeline', 'edit'));
+  readonly canDelete = computed(() => this.session.can('pipeline', 'delete'));
   pipelines = signal<PipelineSummary[]>([]);
   pipelineId = signal<string | null>(null);
   archivedAt = signal<string | null>(null);
@@ -157,11 +160,26 @@ export class LeadDetailPage implements OnInit {
     return this.snapshot() !== this.savedSnapshot;
   }
 
-  readonly headerActions = computed<RowActionItem[]>(() => [
-    this.archivedAt()
-      ? { id: 'restore', label: 'Restore', icon: 'pi pi-replay', command: () => this.toggleArchive() }
-      : { id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.toggleArchive() },
-  ]);
+  readonly headerActions = computed<RowActionItem[]>(() => {
+    const actions: RowActionItem[] = [];
+    if (this.canEdit()) {
+      actions.push(
+        this.archivedAt()
+          ? { id: 'restore', label: 'Restore', icon: 'pi pi-replay', command: () => this.toggleArchive() }
+          : { id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.toggleArchive() },
+      );
+    }
+    if (this.canDelete()) {
+      actions.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeleteLead(),
+      });
+    }
+    return actions;
+  });
   get isConverted() { return this.account()?.journey === 'CLIENT'; }
 
   private patchForm(lead: Record<string, unknown>) {
@@ -363,6 +381,23 @@ export class LeadDetailPage implements OnInit {
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not update');
     }
+  }
+
+  confirmDeleteLead() {
+    const id = this.id();
+    if (!id) return;
+    const name = this.form.organization.trim() || 'this entry';
+    this.confirmDelete.confirm({
+      message: `Delete "${name}"? This cannot be undone. Archive keeps it instead.`,
+      accept: async () => {
+        try {
+          await this.api.delete(`/leads/${id}`);
+          await this.router.navigate(['/pipeline']);
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message : 'Delete failed');
+        }
+      },
+    });
   }
 
   async promotePartner() {

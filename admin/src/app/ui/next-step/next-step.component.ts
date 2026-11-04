@@ -9,7 +9,10 @@ import { TagModule } from 'primeng/tag';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CommunicationsApi, NextStep, TeamMember } from '../../core/communications.api';
 import { dateKey, parseDateKey } from '../../core/date.util';
+import { NextActionOptionsLoader } from '../../core/next-action-options.loader';
+import { CreatableSelectComponent } from '../creatable-select/creatable-select.component';
 import { DateInputComponent } from '../date-input/date-input.component';
+import { HelpTextComponent } from '../help-text/help-text.component';
 import { PersonComponent } from '../person/person.component';
 
 type OwnerOption = { id: string; label: string; firstName: string | null; lastName: string | null; avatarUrl: string | null };
@@ -22,7 +25,19 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
 @Component({
   selector: 'app-next-step',
   standalone: true,
-  imports: [FormsModule, AppDialogModule, ButtonModule, InputTextModule, MessageModule, SelectModule, TagModule, DateInputComponent, PersonComponent],
+  imports: [
+    FormsModule,
+    AppDialogModule,
+    ButtonModule,
+    InputTextModule,
+    MessageModule,
+    SelectModule,
+    TagModule,
+    CreatableSelectComponent,
+    HelpTextComponent,
+    DateInputComponent,
+    PersonComponent,
+  ],
   template: `
     <div
       class="next-step"
@@ -34,7 +49,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
       }
       @if (step()?.text; as text) {
         @if (variant() === 'line') {
-          <span class="next-step-label">Next step:</span>
+          <span class="next-step-label">Next action:</span>
         }
         <span class="next-step-text">{{ text }}</span>
         @if (step()?.date) {
@@ -57,14 +72,14 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
       } @else if (loaded()) {
         @if (canEdit()) {
           <span class="next-step-actions">
-            <p-button label="Set next step" icon="pi pi-plus" size="small" (onClick)="openEdit()" />
+            <p-button label="Set next action" icon="pi pi-plus" size="small" (onClick)="openEdit()" />
           </span>
         }
       }
     </div>
 
     <p-dialog
-      header="Next step"
+      header="Next action"
       [(visible)]="editVisible"
       [modal]="true"
       [draggable]="false"
@@ -75,11 +90,16 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
     >
       <div class="next-step-form">
         <div class="form-field">
-          <label for="nextStepText">What happens next</label>
-          <input pInputText id="nextStepText" [(ngModel)]="draftText" [ngModelOptions]="{ standalone: true }" class="w-full" placeholder="e.g. Send the revised proposal" />
+          <label for="nextStepText">Next Action <app-help-text key="lead.nextAction" /></label>
+          <app-creatable-select
+            inputId="nextStepText"
+            [(value)]="draftText"
+            [options]="nextActionOptions.options()"
+            placeholder="Select or type next action"
+          />
         </div>
         <div class="form-field">
-          <label for="nextStepDate">When</label>
+          <label for="nextStepDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
           <app-date-input inputId="nextStepDate" [(ngModel)]="draftDate" [ngModelOptions]="{ standalone: true }" />
         </div>
         <div class="form-field">
@@ -116,7 +136,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
           <p-button label="Clear" severity="secondary" [text]="true" [disabled]="busy()" (onClick)="clear()" />
         }
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="busy()" (onClick)="editVisible = false" />
-        <p-button label="Save" icon="pi pi-check" [loading]="busy()" [disabled]="!draftText.trim()" (onClick)="save()" />
+        <p-button label="Save" icon="pi pi-check" [loading]="busy()" [disabled]="!draftText?.trim()" (onClick)="save()" />
       </ng-template>
     </p-dialog>
   `,
@@ -148,6 +168,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
 export class NextStepComponent {
   private readonly comms = inject(CommunicationsApi);
   private readonly toast = inject(MessageService);
+  readonly nextActionOptions = inject(NextActionOptionsLoader);
 
   clientId = input.required<string>();
   canEdit = input(true);
@@ -161,7 +182,7 @@ export class NextStepComponent {
   owners = signal<OwnerOption[]>([]);
 
   editVisible = false;
-  draftText = '';
+  draftText: string | null = '';
   draftDate = '';
   draftOwnerId: string | null = null;
 
@@ -179,6 +200,7 @@ export class NextStepComponent {
   });
 
   constructor() {
+    this.nextActionOptions.load();
     effect(() => {
       const id = this.clientId();
       this.comms.activityChanged();
@@ -197,6 +219,7 @@ export class NextStepComponent {
   }
 
   async openEdit() {
+    this.nextActionOptions.load();
     const s = this.step();
     this.draftText = s?.text ?? '';
     this.draftDate = s?.date ? dateKey(new Date(s.date)) : '';
@@ -226,7 +249,7 @@ export class NextStepComponent {
       day?.setHours(12, 0, 0, 0);
       const date = day ? day.toISOString() : null;
       this.step.set(
-        await this.comms.setNextStep(this.clientId(), { text: this.draftText.trim(), date, ownerId: this.draftOwnerId }),
+        await this.comms.setNextStep(this.clientId(), { text: this.draftText?.trim() ?? '', date, ownerId: this.draftOwnerId }),
       );
       this.editVisible = false;
       this.comms.notifyActivityChanged();

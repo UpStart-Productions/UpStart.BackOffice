@@ -16,7 +16,7 @@
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading()) {
-      @if (id() && canEdit()) {
+      @if (id() && (canEdit() || canDelete())) {
         <app-row-actions-menu [items]="headerActions()" ariaLabel="Lead actions" />
       }
       @if (id() && !isConverted && !orgClientId() && canEdit()) {

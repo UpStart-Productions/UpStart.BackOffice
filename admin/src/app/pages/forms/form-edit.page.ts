@@ -21,7 +21,10 @@ import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
+import { fileIconClass, isPdfFile, isRasterImage } from '../../core/file-type.util';
 import { downloadFormFile, readFormFile } from '../../core/form-file.util';
+import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
 import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { freeFormWorkspace } from './form-workspace.config';
 import { FormsApi } from '../../core/forms.api';
@@ -63,7 +66,24 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
     RouterLink,
     SingleFileDropzoneComponent,
     QuillModule,
+    FileViewerDialogComponent,
   ],
+  styles: `
+    .profile-resource-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      max-width: 100%;
+    }
+    .profile-resource-icon {
+      flex-shrink: 0;
+      color: var(--text-color-secondary);
+    }
+    .profile-resource-link {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  `,
   template: `
     <header class="page-header">
       <div class="page-header-row">
@@ -252,7 +272,18 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
                     <td>{{ b.label }}</td>
                     <td>{{ bandRange(i) }}</td>
                     <td>{{ b.nextSteps.length }}</td>
-                    <td>{{ profileResourceSummary(b) }}</td>
+                    <td>
+                      @if (b.assetUrl) {
+                        <span class="profile-resource-cell">
+                          <i class="pi {{ profileResourceIcon(b) }} profile-resource-icon" aria-hidden="true"></i>
+                          <a
+                            class="text-primary profile-resource-link"
+                            [href]="profileResourceHref(b) ?? '#'"
+                            (click)="openProfileResource(b, $event)"
+                          >{{ profileResourceTitle(b) }}</a>
+                        </span>
+                      }
+                    </td>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="emptymessage">
@@ -434,6 +465,8 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
           <p-button label="Save" icon="pi pi-check" [loading]="scoringSaving()" [disabled]="!groupName.trim()" (onClick)="saveGroupName()" />
         </ng-template>
       </p-dialog>
+
+      <app-file-viewer-dialog [file]="profileResourceViewer()" (closed)="profileResourceViewer.set(null)" />
   `,
 })
 export class FormEditPage implements OnInit {
@@ -509,6 +542,7 @@ export class FormEditPage implements OnInit {
   profileResourceKind: FormScoreBandAssetKind = 'link';
   profileResourceFile: File | null = null;
   profileResourceError = signal<string | null>(null);
+  profileResourceViewer = signal<ViewerFile | null>(null);
   private readonly profileResourceDropzone = viewChild<SingleFileDropzoneComponent>('profileResourceDrop');
   bandSteps = '';
 
@@ -805,9 +839,75 @@ export class FormEditPage implements OnInit {
     return { id: '', label: '', upTo: 100, description: '', nextSteps: [], assetKind: null, assetUrl: null, assetLabel: null };
   }
 
-  profileResourceSummary(b: FormScoreBand): string {
+  profileResourceTitle(b: FormScoreBand): string {
     if (!b.assetUrl) return '';
-    return b.assetLabel?.trim() || (b.assetKind === 'file' ? 'File' : 'Link');
+    return b.assetLabel?.trim() || (this.profileResourceStorageKind(b) === 'file' ? 'File' : 'Link');
+  }
+
+  profileResourceStorageKind(b: FormScoreBand): 'link' | 'file' {
+    if (b.assetKind === 'file' || b.assetUrl?.startsWith('/api/uploads/')) return 'file';
+    return 'link';
+  }
+
+  profileResourceIcon(b: FormScoreBand): string {
+    if (this.profileResourceStorageKind(b) === 'link') return 'pi-link';
+    return fileIconClass(this.profileResourceFileName(b), null);
+  }
+
+  profileResourceFileName(b: FormScoreBand): string {
+    const label = b.assetLabel?.trim();
+    if (label) return label;
+    const url = b.assetUrl?.trim() ?? '';
+    const path = url.split('?')[0] ?? '';
+    const seg = path.split('/').pop();
+    return seg || 'File';
+  }
+
+  profileResourceHref(b: FormScoreBand): string | null {
+    const url = b.assetUrl?.trim();
+    if (!url) return null;
+    if (this.profileResourceStorageKind(b) === 'link') return url;
+    return resolveAssetUrl(url);
+  }
+
+  openProfileResource(b: FormScoreBand, event: MouseEvent) {
+    const href = this.profileResourceHref(b);
+    if (!href) return;
+    if (this.profileResourceStorageKind(b) === 'link') {
+      event.preventDefault();
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    const name = this.profileResourceFileName(b);
+    const pdf = isPdfFile(name, null) || isPdfFile(href, null);
+    const image = isRasterImage(name, null) || isRasterImage(href, null);
+    if (pdf || image) {
+      event.preventDefault();
+      this.profileResourceViewer.set({ name, kind: pdf ? 'pdf' : 'image', url: href });
+      return;
+    }
+    event.preventDefault();
+    void this.downloadProfileResource(href, name);
+  }
+
+  private async downloadProfileResource(url: string, name: string) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Download failed');
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = name;
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err) {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Download failed',
+        detail: err instanceof Error ? err.message : 'Could not download the file',
+      });
+    }
   }
 
   existingProfileResourceUrl(): string | null {

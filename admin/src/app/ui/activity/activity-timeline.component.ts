@@ -41,7 +41,10 @@ import { PersonComponent } from '../person/person.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 import { ToolbarSearchFieldComponent } from '../toolbar-search-field/toolbar-search-field.component';
 import { DateInputComponent } from '../date-input/date-input.component';
+import { CreatableSelectComponent } from '../creatable-select/creatable-select.component';
+import { HelpTextComponent } from '../help-text/help-text.component';
 import { parseDateKey } from '../../core/date.util';
+import { NextActionOptionsLoader } from '../../core/next-action-options.loader';
 import { isBlankHtml, mentionQuillModules } from '../../task-manager/core/tm-mentions';
 
 /** One timeline row: an item, and for an email thread how many messages it holds. */
@@ -124,6 +127,8 @@ function nowForInput(): string {
     RouterLink,
     CheckboxModule,
     TagModule,
+    CreatableSelectComponent,
+    HelpTextComponent,
     DateInputComponent,
     AppDialogModule,
     ButtonModule,
@@ -146,9 +151,16 @@ function nowForInput(): string {
           <h3 class="text-lg font-semibold mb-0">Activity</h3>
           @if (fullViewParams(); as qp) {
             <div class="activity-header-actions">
-              <a routerLink="/activity" [queryParams]="qp" class="activity-full-link">
-                <i class="pi pi-window-maximize" aria-hidden="true"></i> Open full view
-              </a>
+              <a
+                pButton
+                label="Open full view"
+                icon="pi pi-window-maximize"
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                routerLink="/activity"
+                [queryParams]="qp"
+              ></a>
             </div>
           }
         </div>
@@ -167,25 +179,30 @@ function nowForInput(): string {
           <quill-editor
             class="quick-log-text"
             [(ngModel)]="quickText"
-            [modules]="quickModules"
+            [modules]="logQuillModules"
             [placeholder]="quickPlaceholder() + ' Type @ to mention someone.'"
-            [styles]="{ 'min-height': '64px' }"
+            [styles]="{ 'min-height': '120px' }"
             (onEditorCreated)="onLogBodyEditor($event)"
             aria-label="What happened"
           />
           @if (canSetFollowUp()) {
             <div class="quick-log-follow">
               <p-checkbox inputId="quickFollow" [(ngModel)]="quickFollow" [binary]="true" />
-              <label for="quickFollow">Set the next step</label>
+              <label for="quickFollow">Set the next action</label>
             </div>
             @if (quickFollow) {
               <div class="quick-log-next">
                 <div class="form-field quick-log-next-text">
-                  <label for="quickNextText">Next step</label>
-                  <input pInputText id="quickNextText" [(ngModel)]="quickNextText" class="w-full" placeholder="e.g. Send the revised proposal" />
+                  <label for="quickNextAction">Next Action <app-help-text key="lead.nextAction" /></label>
+                  <app-creatable-select
+                    inputId="quickNextAction"
+                    [(value)]="quickNextAction"
+                    [options]="nextActionOptions.options()"
+                    placeholder="Select or type next action"
+                  />
                 </div>
                 <div class="form-field quick-log-next-date">
-                  <label for="quickNextDate">When</label>
+                  <label for="quickNextDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
                   <app-date-input inputId="quickNextDate" [(ngModel)]="quickNextDate" />
                 </div>
               </div>
@@ -377,7 +394,7 @@ function nowForInput(): string {
               id="logBody"
               name="logBody"
               [(ngModel)]="logBody"
-              [modules]="dialogModules"
+              [modules]="logQuillModules"
               placeholder="Notes, next steps… Type @ to mention someone."
               [styles]="{ 'min-height': '140px' }"
               (onEditorCreated)="onLogBodyEditor($event)"
@@ -600,9 +617,10 @@ function nowForInput(): string {
   styles: `
     .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
-    .activity-full-link { display: inline-flex; align-items: center; gap: 0.4rem; text-decoration: none; font-weight: 500; }
     .quick-log { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--surface-border, #e5e7eb); border-radius: 0.5rem; background: var(--surface-50, #f9fafb); }
-    .quick-log-text { display: block; background: var(--surface-0, #fff); }
+    .quick-log-text { display: block; background: var(--surface-0, #fff); border-radius: var(--border-radius, 6px); }
+    :host ::ng-deep .quick-log-text .ql-container { border-bottom-left-radius: var(--border-radius, 6px); border-bottom-right-radius: var(--border-radius, 6px); }
+    :host ::ng-deep .quick-log-text .ql-toolbar { border-top-left-radius: var(--border-radius, 6px); border-top-right-radius: var(--border-radius, 6px); background: var(--surface-0, #fff); }
     .quick-log-follow { display: flex; align-items: center; gap: 0.5rem; }
     .quick-log-next { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     .quick-log-next-text { flex: 2 1 16rem; min-width: 0; }
@@ -720,6 +738,7 @@ export class ActivityTimelineComponent {
   private readonly tasks = inject(TmApiService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
+  readonly nextActionOptions = inject(NextActionOptionsLoader);
 
   clientId = input<string | null>();
   leadId = input<string | null>();
@@ -855,13 +874,12 @@ export class ActivityTimelineComponent {
     });
     return [...this.teamOptions().map(toPerson), ...this.contactOptions().map(toPerson)];
   }
-  readonly quickModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()), { toolbar: false });
-  readonly dialogModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()));
+  readonly logQuillModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()));
 
   quickType: 'CALL' | 'MEETING' | 'NOTE' = 'NOTE';
   quickText = '';
   quickFollow = false;
-  quickNextText = '';
+  quickNextAction: string | null = null;
   quickNextDate = '';
   quickSaving = signal(false);
   quickError = signal<string | null>(null);
@@ -946,6 +964,9 @@ export class ActivityTimelineComponent {
       const canLog = this.canLog();
       this.clientId();
       if (canLog) untracked(() => void this.loadPeople());
+    });
+    effect(() => {
+      if (this.canSetFollowUp()) untracked(() => this.nextActionOptions.load());
     });
   }
 
@@ -1149,8 +1170,8 @@ export class ActivityTimelineComponent {
       this.quickError.set('Type what happened first.');
       return;
     }
-    if (this.quickFollow && !this.quickNextText.trim()) {
-      this.quickError.set('Add the next step, or untick Set the next step.');
+    if (this.quickFollow && !this.quickNextAction?.trim()) {
+      this.quickError.set('Add the next action, or untick Set the next action.');
       return;
     }
     this.quickSaving.set(true);
@@ -1159,18 +1180,18 @@ export class ActivityTimelineComponent {
       await this.comms.log({
         type: this.quickType,
         ...this.logTarget(),
-        bodyText: text,
+        bodyText: richTextOrUndefined(text),
         direction: this.quickType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
       });
       const clientId = this.clientId();
       if (this.quickFollow && clientId) {
         const day = this.quickNextDate ? parseDateKey(this.quickNextDate) : null;
         day?.setHours(12, 0, 0, 0);
-        await this.comms.setNextStep(clientId, { text: this.quickNextText.trim(), date: day ? day.toISOString() : null });
+        await this.comms.setNextStep(clientId, { text: this.quickNextAction!.trim(), date: day ? day.toISOString() : null });
       }
       this.quickText = '';
       this.quickFollow = false;
-      this.quickNextText = '';
+      this.quickNextAction = null;
       this.quickNextDate = '';
       this.toast.add({ severity: 'success', summary: 'Logged', detail: 'Added to the timeline.' });
       this.comms.notifyActivityChanged();

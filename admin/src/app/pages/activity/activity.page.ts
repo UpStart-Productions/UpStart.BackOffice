@@ -341,7 +341,7 @@ function endOfDayIso(key: string): string | null {
           @if (org(); as o) {
             <div class="card card--side">
               <div class="card-header">
-                <h3 class="card-title">Next step</h3>
+                <h3 class="card-title">Next action</h3>
               </div>
               <app-next-step [clientId]="o.id" variant="panel" />
             </div>
