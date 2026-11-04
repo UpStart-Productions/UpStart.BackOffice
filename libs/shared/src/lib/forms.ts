@@ -389,16 +389,39 @@ export type FormSettings = {
   resultsEmail: boolean;
   /** Shown after submitting and in the results email: formatted text (HTML, cleaned). Empty: "Thanks! … was sent to …". */
   thankYou: string | null;
-  /** Results email: a call-to-action box with a button (e.g. book a call). Null: none. */
-  emailCta: FormEmailCta | null;
-  /** Results email: formatted text in a box at the bottom (e.g. a note about another service). Null: none. */
-  emailFooter: string | null;
-  /** An image (https URL, e.g. a logo) at the top of the email's bottom note. Null: none. */
-  emailFooterImageUrl: string | null;
+  /**
+   * Results email: the name of an email template kept outside UBO (Amazon SES) to send instead of the built-in
+   * email. UBO fills it with the person's results (see FormResultsEmailData). Null: the built-in email.
+   */
+  resultsEmailTemplate: string | null;
   scoring: FormScoring;
 };
 
-export type FormEmailCta = { heading: string | null; text: string | null; label: string; url: string };
+/** What a results email template is filled with (SES template data; Handlebars-style {{name}}, {{#each}}, {{#if}}). */
+export type FormResultsEmailData = {
+  formName: string;
+  organizationName: string;
+  firstName: string;
+  name: string;
+  email: string;
+  submitterOrganization: string;
+  /** Rounded percentage, e.g. 42. Empty when the form isn't scored. */
+  score: number | null;
+  hasScore: boolean;
+  profile: string;
+  profileDescription: string;
+  nextSteps: string[];
+  hasNextSteps: boolean;
+  /** The profile's resource (e.g. a PDF guide); empty when it has none. */
+  assetUrl: string;
+  assetLabel: string;
+  groups: { name: string; percent: number }[];
+  hasGroups: boolean;
+  /** The token for the results page link, e.g. https://example.org/results/?r={{resultToken}}. */
+  resultToken: string;
+  /** The form's thank-you message (HTML; use {{{thankYouHtml}}}). */
+  thankYouHtml: string;
+};
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
   layout: 'page',
@@ -408,9 +431,7 @@ export const DEFAULT_FORM_SETTINGS: FormSettings = {
   usedFor: null,
   resultsEmail: false,
   thankYou: null,
-  emailCta: null,
-  emailFooter: null,
-  emailFooterImageUrl: null,
+  resultsEmailTemplate: null,
   scoring: { enabled: false, groups: [], bands: [] },
 };
 
@@ -447,16 +468,6 @@ function thankYouHtml(v: unknown): string | null {
   if (typeof v !== 'string' || !htmlHasText(v)) return null;
   const html = /<[a-z][^>]*>/i.test(v) ? cleanFormHtml(v.trim()) : plainTextToHtml(v);
   return html.slice(0, 8000) || null;
-}
-
-/** The email call-to-action: needs a button label and an http(s) link. */
-function emailCtaOf(v: unknown, str: (v: unknown, max?: number) => string): FormEmailCta | null {
-  if (!v || typeof v !== 'object') return null;
-  const o = v as Record<string, unknown>;
-  const label = str(o['label'], 80);
-  const url = str(o['url'], 1000);
-  if (!label || !/^https?:\/\//i.test(url)) return null;
-  return { heading: str(o['heading'], 120) || null, text: str(o['text'], 600) || null, label, url };
 }
 
 /** Stored settings with defaults filled in and junk dropped. */
@@ -506,9 +517,7 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     usedFor: str(src['usedFor'], 80) || str(cl['category'], 80) || null,
     resultsEmail: !!src['resultsEmail'],
     thankYou: thankYouHtml(src['thankYou']),
-    emailCta: emailCtaOf(src['emailCta'], str),
-    emailFooter: thankYouHtml(src['emailFooter']),
-    emailFooterImageUrl: /^https:\/\//i.test(str(src['emailFooterImageUrl'], 1000)) ? str(src['emailFooterImageUrl'], 1000) : null,
+    resultsEmailTemplate: /^[A-Za-z0-9_-]{1,64}$/.test(str(src['resultsEmailTemplate'], 64)) ? str(src['resultsEmailTemplate'], 64) : null,
     scoring: { enabled: !!sc['enabled'], groups, bands },
   };
 }

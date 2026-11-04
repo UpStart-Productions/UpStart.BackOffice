@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { normalizeFormSettings, type FormScores, type FormSettings, type FormSnapshot } from '@upstart/back-office/shared';
+import { normalizeFormSettings, type FormResultsEmailData, type FormScores, type FormSettings, type FormSnapshot } from '@upstart/back-office/shared';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
@@ -11,27 +11,6 @@ import { FormStructureService } from './form-structure.service';
 import { newAccessToken } from './form-links.util';
 import { absolutePublicAssetUrl } from '../storage/asset-url.util';
 import { M } from './free-forms.util';
-
-/** The results email's call-to-action box: brand gradient, lime button (matches the site's results page). */
-export function emailCtaHtml(cta: { heading: string | null; text: string | null; label: string; url: string }): string {
-  return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
-      <tr><td style="background:#4f46e5;background-image:linear-gradient(135deg,#2563eb,#9333ea);border-radius:12px;padding:28px;color:#ffffff;">
-        ${cta.heading ? `<p style="margin:0 0 10px;font-size:20px;line-height:1.3;font-weight:700;color:#ffffff;">${escapeHtml(cta.heading)}</p>` : ''}
-        ${cta.text ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#ffffff;opacity:0.92;">${escapeHtml(cta.text)}</p>` : ''}
-        <a href="${escapeHtml(cta.url)}" style="display:inline-block;background:#c4f547;color:#2d2d2d;text-decoration:none;font-weight:600;font-size:15px;padding:12px 24px;border-radius:8px;">${escapeHtml(cta.label)}</a>
-      </td></tr>
-    </table>`;
-}
-
-/** The results email's bottom note: formatted text in a light box. */
-export function emailFooterHtml(html: string, imageUrl?: string | null): string {
-  const body = html
-    .replace(/<p>/g, '<p style="margin:0 0 8px;">')
-    .replace(/<a /g, '<a style="color:#7c3aed;font-weight:600;text-decoration:none;" ');
-  const img = imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" height="40" style="display:block;height:40px;width:auto;border:0;margin:0 0 12px;" />` : '';
-  return `<div style="background:#f5f3ff;border-radius:10px;padding:20px;font-size:14px;line-height:1.55;color:#2d2d2d;">${img}${body}</div>`;
-}
 
 /**
  * Where Forms submissions go. New-response links: each submission is kept with its version and scores; with
@@ -134,7 +113,10 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     const snap = link.form.publishedVersion?.snapshot as unknown as FormSnapshot | undefined;
     const formName = snap?.name ?? link.form.name;
     await this.notifyStaff(link, row.id, formName, sub, settings);
-    if (settings.resultsEmail && sub.email) await this.emailRespondent(formName, sub, settings, snap);
+    if (settings.resultsEmail && sub.email) {
+      if (settings.resultsEmailTemplate) await this.emailRespondentTemplate(formName, sub, settings, snap, resultToken);
+      else await this.emailRespondent(formName, sub, settings, snap);
+    }
     return { message: settings.thankYou ?? undefined, resultToken: resultToken ?? undefined };
   }
 
@@ -208,6 +190,39 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     }
   }
 
+  /** The results email from a template kept outside UBO (Amazon SES), filled with the person's results. */
+  private async emailRespondentTemplate(formName: string, sub: PublicSubmission, settings: FormSettings, snap: FormSnapshot | undefined, resultToken: string | null) {
+    try {
+      const scores = sub.scores as FormScores | null;
+      const band = scores?.bandId ? snap?.scoring.bands.find((b) => b.id === scores.bandId) : null;
+      const groups = (scores?.groups ?? []).map((g) => ({ name: g.name, percent: Math.round(g.percent) }));
+      const data: FormResultsEmailData = {
+        formName,
+        organizationName: (await this.organizationName()) ?? '',
+        firstName: sub.name?.split(/\s+/)[0] ?? '',
+        name: sub.name ?? '',
+        email: sub.email ?? '',
+        submitterOrganization: sub.organization ?? '',
+        score: scores ? Math.round(scores.percent) : null,
+        hasScore: !!scores,
+        profile: band?.label ?? '',
+        profileDescription: band?.description ?? '',
+        nextSteps: band?.nextSteps ?? [],
+        hasNextSteps: !!band?.nextSteps.length,
+        assetUrl: absolutePublicAssetUrl(band?.assetUrl) ?? '',
+        assetLabel: band?.assetLabel || 'Download your guide',
+        groups,
+        hasGroups: groups.length > 0,
+        resultToken: resultToken ?? '',
+        thankYouHtml: settings.thankYou ?? '',
+      };
+      const res = await this.mail.sendTemplated({ to: sub.email!, template: settings.resultsEmailTemplate!, data });
+      if (!res.sent) this.logger.warn(`Results email template ${settings.resultsEmailTemplate} failed: ${res.error}`);
+    } catch (err) {
+      this.logger.warn(`Results email failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   private async emailRespondent(formName: string, sub: PublicSubmission, settings: FormSettings, snap: FormSnapshot | undefined) {
     try {
       const org = await this.organizationName();
@@ -240,8 +255,6 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
         if (scores) parts.push(block);
         else parts.unshift(block);
       }
-      const cta = settings.emailCta;
-      if (cta) parts.push(emailCtaHtml(cta));
       const html = wrapClientEmail({
         title: scores ? `Your ${formName} results` : `Thanks for sending ${formName}`,
         subtitle: org,
@@ -255,7 +268,6 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
             : `We received ${formName}. Thank you!`,
         facts: scores ? [{ label: 'Score', value: `${Math.round(scores.percent)}%` }, ...(band ? [{ label: 'Profile', value: band.label }] : [])] : [],
         extraHtml: parts.join(''),
-        promoHtml: settings.emailFooter ? emailFooterHtml(settings.emailFooter, settings.emailFooterImageUrl) : undefined,
       });
       await this.mail.sendRaw({ to: sub.email!, subject: scores ? `Your ${formName} results` : `Thanks for sending ${formName}`, html });
     } catch (err) {

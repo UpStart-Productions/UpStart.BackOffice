@@ -26,8 +26,6 @@ export function wrapClientEmail(params: {
   actionNote?: string;
   extraHtml?: string;
   closing?: string;
-  /** A box under the message, above the contact footer (e.g. a note about another service). */
-  promoHtml?: string;
 }): string {
   const facts = (params.facts ?? []).filter((f) => f.value.trim());
   const factCols = facts
@@ -90,7 +88,6 @@ export function wrapClientEmail(params: {
       ${params.extraHtml ?? ''}
       ${params.closing ? `<p style="margin:28px 0 0;font-size:15px;color:#2d2d2d;">${escapeHtml(params.closing)}</p>` : ''}
     </div>
-    ${params.promoHtml ? `<div style="padding:0 32px 28px;">${params.promoHtml}</div>` : ''}
     <div style="padding:0 32px 28px;">
       <hr style="border:none;border-top:1px solid #e5e5e5;margin:0 0 16px;" />
       <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#6b6b6b;">

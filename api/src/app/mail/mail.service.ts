@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SendRawEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import { SendRawEmailCommand, SendTemplatedEmailCommand, SESClient } from '@aws-sdk/client-ses';
 import { resolveExplicitAwsCredentials } from '../common/aws-credentials.util';
 import { getUpstartLogoPng } from '../invoices/brand-logo';
 import { EMAIL_BRAND, buildInvoiceEmailHtml, buildPaymentReceiptHtml, publicFromName } from './email-layout';
@@ -87,6 +87,25 @@ export class MailService {
     replyTo?: string;
   }): Promise<{ sent: boolean; error?: string }> {
     return this.sendMime(params);
+  }
+
+  /** Send an email from an SES template (designed outside UBO), filled with `data`. */
+  async sendTemplated(params: { to: string; template: string; data: object; replyTo?: string }): Promise<{ sent: boolean; error?: string }> {
+    try {
+      await this.ses.send(
+        new SendTemplatedEmailCommand({
+          Source: `${this.fromName} <${this.fromEmail}>`,
+          Destination: { ToAddresses: [params.to] },
+          ...(params.replyTo ? { ReplyToAddresses: [params.replyTo] } : {}),
+          Template: params.template,
+          TemplateData: JSON.stringify(params.data),
+        }),
+      );
+      return { sent: true };
+    } catch (err) {
+      this.logger.error(`Failed to send templated email ${params.template}: ${String(err)}`);
+      return { sent: false, error: String(err) };
+    }
   }
 
   async sendWithAttachment(params: {

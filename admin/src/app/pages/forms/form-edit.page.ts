@@ -180,6 +180,12 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
                 <p-checkbox inputId="ffEmail" [binary]="true" [(ngModel)]="settings.resultsEmail" [disabled]="!f.canEdit" />
                 <label for="ffEmail">Email people their results <app-help-text key="forms.form.resultsEmail" /></label>
               </div>
+              @if (settings.resultsEmail) {
+                <div class="form-field">
+                  <label for="ffEmailTemplate">Email template (optional) <app-help-text key="forms.form.resultsEmailTemplate" /></label>
+                  <input pInputText id="ffEmailTemplate" class="w-full" [(ngModel)]="resultsEmailTemplate" [disabled]="!f.canEdit" placeholder="e.g. mtc_results" maxlength="64" />
+                </div>
+              }
               <div class="form-field">
                 <label>Thank-you message <app-help-text key="forms.form.thankYou" /></label>
                 <quill-editor [(ngModel)]="thankYou" [readOnly]="!f.canEdit" placeholder="Thanks! Your answers were sent." [styles]="{ 'min-height': '120px' }"></quill-editor>
@@ -517,6 +523,7 @@ export class FormEditPage implements OnInit {
     review: true, resultsEmail: false,
   };
   thankYou: string | null = '';
+  resultsEmailTemplate = '';
   client: FormClientSettings = { enabled: false, copies: 'each' };
   usedFor = '';
   visitChecklist = false;
@@ -582,6 +589,7 @@ export class FormEditPage implements OnInit {
     this.description = f.description ?? '';
     this.settings = { review: f.settings.review, resultsEmail: f.settings.resultsEmail };
     this.thankYou = f.settings.thankYou ?? '';
+    this.resultsEmailTemplate = f.settings.resultsEmailTemplate ?? '';
     this.client = { enabled: f.settings.client.enabled, copies: f.settings.client.copies };
     this.usedFor = f.settings.usedFor ?? '';
     this.visitChecklist = f.settings.visitChecklist;
@@ -591,7 +599,7 @@ export class FormEditPage implements OnInit {
 
   private snapshot() {
     return JSON.stringify({
-      n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYouValue(),
+      n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYouValue(), et: this.resultsEmailTemplate.trim(),
       c: this.client, u: this.usedFor.trim(), v: this.visitChecklist, a: this.levels(),
     });
   }
@@ -613,6 +621,7 @@ export class FormEditPage implements OnInit {
       ...this.settings,
       layout: this.layout,
       thankYou: this.thankYouValue(),
+      resultsEmailTemplate: this.resultsEmailTemplate.trim() || null,
       client: { ...this.client },
       usedFor: this.usedFor.trim() || null,
       visitChecklist: this.visitChecklist,

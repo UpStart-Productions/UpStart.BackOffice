@@ -33,6 +33,7 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
   - **Review submissions before accepting them**: submissions wait under **Waiting for review**. Turned off, they are accepted as they come in.
   - Name and email are always asked on public links. For anything else (organization, phone), add a question to the form.
   - **Email people their results**: after sending, people get an email with their results (scored forms) and your thank-you message.
+  - **Email template** (optional, shows when Email people their results is on): the name of an Amazon SES email template to send instead of the built-in email. UBO fills it with `firstName`, `name`, `submitterOrganization`, `formName`, `organizationName`, `score`, `profile`, `profileDescription`, `nextSteps` (list), `assetUrl` and `assetLabel` (the profile's guide), `groups` (list of `name` and `percent`), `resultToken` (for a results page link) and `thankYouHtml`, plus `hasScore`, `hasNextSteps` and `hasGroups` for `{{#if}}`.
   - **Thank-you message**: formatted text shown after sending and in that email. Put links here, e.g. to book a call.
   - **Client form** (see Client forms below): **Attach answers to a client** and **Copies per client**.
   - **Care** (Care module on): **Use as the visit checklist**. Caregivers fill this form in on every visit. One form at a time: turning it on here turns it off on the others.
