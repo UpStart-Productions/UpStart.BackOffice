@@ -48,8 +48,12 @@ const ORG_DETAIL: HelpArticle = {
   intro: 'Everything about one organization lives here: details, tags, people, projects, emails and files.',
   sections: [
     {
+      heading: 'Services, products and focus',
+      body: 'Below Notes: Services and Products are free-form lists (press Enter to add each). Focus areas are preset sectors such as Recovery or Education. Public listing marks the organization for a public partner or network site that reads it from Back Office.',
+    },
+    {
       heading: 'Status',
-      body: 'Client or Partner / other, below Notes on the Details form. Make client on a pipeline card creates or updates the organization as a Client. Client turns on projects, time and invoices.',
+      body: 'Client or Partner / other, below those fields on the Details form. Make client on a pipeline card creates or updates the organization as a Client. Client turns on projects, time and invoices.',
     },
     {
       heading: 'Tags',

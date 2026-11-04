@@ -28,7 +28,16 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { CareClientTabComponent } from '../../ui/care-forms/care-client-tab.component';
 import { ClientFormsPanelComponent } from '../../ui/client-forms/client-forms-panel.component';
 import { CareApi } from '../../core/care.api';
-import { areaLevel, type AccountJourney, type CareClientOverviewDto, type ClientDto, type RecordAttributionDto } from '@upstart/back-office/shared';
+import {
+  areaLevel,
+  type AccountJourney,
+  type CareClientOverviewDto,
+  type ClientDto,
+  type OrgFocusCategory,
+  type RecordAttributionDto,
+} from '@upstart/back-office/shared';
+import { MultiSelectModule } from 'primeng/multiselect';
+import { PIPELINE_CATEGORY_PRESETS } from '../../core/pipeline-vocabulary';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
@@ -54,6 +63,10 @@ type ClientForm = {
   zip: string;
   website: string;
   notes: string;
+  services: string[];
+  products: string[];
+  focusCategories: OrgFocusCategory[];
+  isPublicFeatured: boolean;
   isActive: boolean;
 };
 
@@ -69,6 +82,7 @@ type ClientForm = {
     ToggleSwitchModule,
     SelectModule,
     SelectButtonModule,
+    MultiSelectModule,
     TableModule,
     TabsModule,
     TagModule,
@@ -99,6 +113,9 @@ export class ClientFormPage implements OnInit {
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
 
   readonly usStates = US_STATES;
+  readonly focusCategoryOptions = PIPELINE_CATEGORY_PRESETS;
+  /** Free-form lists; no CRM tag catalog. */
+  readonly emptyTagSuggestions: string[] = [];
   readonly journeyOptions: { value: AccountJourney; label: string }[] = [
     { value: 'CLIENT', label: 'Client' },
     { value: 'NONE', label: 'Partner / other' },
@@ -137,6 +154,10 @@ export class ClientFormPage implements OnInit {
     zip: '',
     website: '',
     notes: '',
+    services: [],
+    products: [],
+    focusCategories: [],
+    isPublicFeatured: false,
     isActive: true,
   };
 
@@ -178,6 +199,10 @@ export class ClientFormPage implements OnInit {
       zip: this.str(client.zip),
       website: this.str(client.website),
       notes: this.str(client.notes),
+      services: [...(client.services ?? [])],
+      products: [...(client.products ?? [])],
+      focusCategories: [...(client.focusCategories ?? [])],
+      isPublicFeatured: !!client.isPublicFeatured,
       isActive: client.isActive,
     };
   }
@@ -202,6 +227,10 @@ export class ClientFormPage implements OnInit {
       zip: emptyToUndefined(this.form.zip),
       website: emptyToUndefined(this.form.website),
       notes: richTextOrUndefined(this.form.notes),
+      services: this.form.services,
+      products: this.form.products,
+      focusCategories: this.form.focusCategories,
+      isPublicFeatured: this.form.isPublicFeatured,
       isActive: this.form.isActive,
     };
   }

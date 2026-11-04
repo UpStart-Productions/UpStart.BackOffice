@@ -30,6 +30,26 @@ export const ACCOUNT_JOURNEY_LABELS: Record<AccountJourney, string> = {
 /** Suggested CRM tags for organizations and people; tags are free-form, these just save typing. */
 export const CRM_TAG_SUGGESTIONS = ['Network', 'Partner', 'Referral source', 'Vendor'] as const;
 
+/** Nonprofit focus areas (OrgCategory on Client.focusCategories). */
+export const ORG_FOCUS_CATEGORIES = [
+  'RECOVERY',
+  'FAMILY',
+  'YOUTH',
+  'FAITH',
+  'HEALTH',
+  'DISABILITY',
+  'EDUCATION',
+  'JOBS_WORKFORCE',
+  'PETS',
+  'FUNDING',
+  'HUNGER',
+  'VIOLENCE',
+  'ACTIVITIES',
+  'OTHER',
+] as const;
+
+export type OrgFocusCategory = (typeof ORG_FOCUS_CATEGORIES)[number];
+
 export type ClientDto = {
   id: string;
   name: string;
@@ -37,6 +57,10 @@ export type ClientDto = {
   journey: AccountJourney;
   /** CRM tag names (Partner, Vendor...). */
   tags: string[];
+  services?: string[];
+  products?: string[];
+  focusCategories?: OrgFocusCategory[];
+  isPublicFeatured?: boolean;
   isReferralReady?: boolean;
   email?: string | null;
   phone?: string | null;

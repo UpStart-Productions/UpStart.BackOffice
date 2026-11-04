@@ -139,6 +139,48 @@
               (onEditorCreated)="onNotesEditor($event)"
             ></quill-editor>
           </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="orgServices">Services <app-help-text key="organization.services" /></label>
+              <app-tag-input
+                inputId="orgServices"
+                [(tags)]="form.services"
+                [suggestionNames]="emptyTagSuggestions"
+                placeholder="Add a service…"
+              />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="orgProducts">Products <app-help-text key="organization.products" /></label>
+              <app-tag-input
+                inputId="orgProducts"
+                [(tags)]="form.products"
+                [suggestionNames]="emptyTagSuggestions"
+                placeholder="Add a product…"
+              />
+            </div>
+          </div>
+          <div class="form-field showcase-full">
+            <label for="orgFocus">Focus areas <app-help-text key="organization.focusAreas" /></label>
+            <p-multiselect
+              inputId="orgFocus"
+              name="focusCategories"
+              [options]="focusCategoryOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="form.focusCategories"
+              placeholder="Select focus areas…"
+              [showClear]="true"
+              styleClass="w-full"
+            />
+          </div>
+          <div class="flex align-items-center gap-2">
+            <p-toggleSwitch
+              inputId="isPublicFeatured"
+              name="isPublicFeatured"
+              [(ngModel)]="form.isPublicFeatured"
+            />
+            <label for="isPublicFeatured">Public listing <app-help-text key="organization.publicListing" /></label>
+          </div>
           @if (!isClientFlow) {
             <div class="showcase-row">
               @if (!isNew) {

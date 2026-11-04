@@ -1,6 +1,7 @@
 import { IsString, IsEmail, IsOptional, IsBoolean, IsArray, IsIn, Length } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
+import { ORG_FOCUS_CATEGORIES } from '@upstart/back-office/shared';
 
 const emptyToUndefined = ({ value }: { value: unknown }) =>
   typeof value === 'string' && value.trim() === '' ? undefined : value;
@@ -35,5 +36,13 @@ export class CreateClientDto {
   @ApiPropertyOptional() @IsString() @IsOptional() zip?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() website?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
+  @ApiPropertyOptional({ type: [String], description: 'Services this organization offers or is known for.' })
+  @IsArray() @IsString({ each: true }) @IsOptional() services?: string[];
+  @ApiPropertyOptional({ type: [String], description: 'Products this organization offers or is known for.' })
+  @IsArray() @IsString({ each: true }) @IsOptional() products?: string[];
+  @ApiPropertyOptional({ enum: ORG_FOCUS_CATEGORIES, isArray: true, description: 'Focus areas (nonprofit sectors).' })
+  @IsArray() @IsIn(ORG_FOCUS_CATEGORIES, { each: true }) @IsOptional() focusCategories?: (typeof ORG_FOCUS_CATEGORIES)[number][];
+  @ApiPropertyOptional({ description: 'Include on a public partner or network listing when that site reads this flag.' })
+  @IsBoolean() @IsOptional() isPublicFeatured?: boolean;
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isActive?: boolean;
 }

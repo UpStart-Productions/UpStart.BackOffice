@@ -93,6 +93,11 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Inactive keeps projects and history; use it when you are not actively working together.',
   'organization.tags': 'Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.',
   'organization.invoiceCode': 'Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.',
+  'organization.services': 'What this organization offers or is known for. Press Enter to add each service.',
+  'organization.products': 'Products this organization offers or is known for. Press Enter to add each one.',
+  'organization.focusAreas': 'Nonprofit sectors this organization works in, such as Recovery or Education.',
+  'organization.publicListing':
+    'When on, this organization can appear on a public partner or network listing that reads this flag from Back Office.',
   'organization.clientPortal':
     'A bookmarkable link for your client. No login or password. Turn on Portal enabled to share the link.',
 
