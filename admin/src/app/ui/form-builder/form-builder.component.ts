@@ -579,8 +579,29 @@ export class FormBuilderComponent {
     const items: RowActionItem[] = [
       { id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => (f.type === 'CONTENT' ? this.openText(s, f) : this.openEditField(s, f)) },
     ];
+    const sections = this.form().sections;
+    if (sections.length > 1) {
+      items.push({
+        kind: 'select',
+        id: 'section',
+        icon: 'pi pi-list',
+        ariaLabel: 'Section',
+        options: sections.map((sec) => ({ label: sec.name, value: sec.id })),
+        value: s.id,
+        onChange: (sectionId) => void this.moveFieldToSection(f, sectionId),
+      });
+    }
     items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteField(f) });
     return items;
+  }
+
+  async moveFieldToSection(f: Field, sectionId: string) {
+    try {
+      await this.api.patch(`${this.apiBase()}/fields/${f.id}`, { sectionId });
+      this.changed.emit();
+    } catch (err) {
+      this.fail('Could not move to that section', err);
+    }
   }
 
   async addSection() {

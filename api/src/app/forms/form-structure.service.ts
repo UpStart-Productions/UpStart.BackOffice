@@ -269,7 +269,10 @@ export class FormStructureService {
   }
 
   async updateField(id: string, module: string, dto: UpdateFieldDto): Promise<FormFieldDto> {
-    const field = await this.findField(id, module);
+    let field = await this.findField(id, module);
+    if (dto.sectionId !== undefined && dto.sectionId !== field.sectionId) {
+      field = await this.moveFieldToSection(field, dto.sectionId, module);
+    }
     const profile = this.profile(field.section.form);
     if (dto.type !== undefined && dto.type !== field.type) return this.changeType(field, dto, profile);
     const data: Prisma.FormFieldUpdateInput = {};
@@ -340,6 +343,26 @@ export class FormStructureService {
       this.prisma.formField.update({ where: { id: rid }, data: { sortOrder } }),
     );
     return { moved: true };
+  }
+
+  /** Put the field at the end of another section on the same form. */
+  private async moveFieldToSection(
+    field: Awaited<ReturnType<FormStructureService['findField']>>,
+    sectionId: string,
+    module: string,
+  ) {
+    const target = await this.findSection(sectionId, module);
+    if (target.formId !== field.section.formId) throw new BadRequestException('That section is on another form');
+    const last = await this.prisma.formField.findFirst({
+      where: { sectionId },
+      orderBy: { sortOrder: 'desc' },
+      select: { sortOrder: true },
+    });
+    return this.prisma.formField.update({
+      where: { id: field.id },
+      data: { sectionId, sortOrder: (last?.sortOrder ?? -1) + 1 },
+      include: { section: { include: { form: true } } },
+    });
   }
 
   /** Drag and drop: put a form's sections in this order (every section id, once). */

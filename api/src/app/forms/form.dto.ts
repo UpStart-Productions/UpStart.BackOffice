@@ -52,6 +52,8 @@ export class UpdateFieldDto {
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SubfieldDto) subfields?: SubfieldDto[];
   /** File uploads: several files instead of one. */
   @IsOptional() @IsBoolean() multiple?: boolean;
+  /** Move the question or text block to another section on the same form. */
+  @IsOptional() @IsString() sectionId?: string;
 }
 
 export class MoveDto {
