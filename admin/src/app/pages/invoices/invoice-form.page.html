@@ -139,34 +139,32 @@
           </h4>
 
           <div class="showcase-flex-col">
-            <div class="form-field showcase-full">
-              <label for="genProjectId">Project (optional)</label>
-              <p-select
-                inputId="genProjectId"
-                [options]="filteredProjects()"
-                optionLabel="name"
-                optionValue="id"
-                [(ngModel)]="generate.projectId"
-                [disabled]="!billingTenant && !form.clientId"
-                [placeholder]="form.clientId ? 'All projects for client' : 'All projects'"
-                [showClear]="true"
-                styleClass="w-full"
-                appendTo="body"
-              />
-            </div>
-
-            <div class="invoice-period-row">
+            <div class="invoice-generate-filters-row">
               <app-period-picker idPrefix="genPeriod" [(value)]="period" />
-            </div>
-
-            <div class="invoice-generate-actions">
-              <p-button
-                label="Generate from time"
-                icon="pi pi-clock"
-                [loading]="generating()"
-                [disabled]="!form.clientId"
-                (click)="generateFromTime()"
-              />
+              <div class="form-field invoice-generate-project-field">
+                <label for="genProjectId">Project (optional)</label>
+                <p-select
+                  inputId="genProjectId"
+                  [options]="filteredProjects()"
+                  optionLabel="name"
+                  optionValue="id"
+                  [(ngModel)]="generate.projectId"
+                  [disabled]="!billingTenant && !form.clientId"
+                  [placeholder]="form.clientId ? 'All projects for client' : 'All projects'"
+                  [showClear]="true"
+                  styleClass="w-full"
+                  appendTo="body"
+                />
+              </div>
+              <div class="invoice-generate-run">
+                <p-button
+                  label="Generate from time"
+                  icon="pi pi-clock"
+                  [loading]="generating()"
+                  [disabled]="!form.clientId"
+                  (click)="generateFromTime()"
+                />
+              </div>
             </div>
 
             @if (generateMessage()) {
