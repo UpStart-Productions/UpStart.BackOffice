@@ -918,7 +918,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Attach',
-        body: 'Pick the client or organization it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Organizations / All narrows the search. New client creates a client with the sender as its person. New organization adds a pipeline card only (sender on the card\'s People). Next shows who will be able to see the answers; Attach to [name] finishes and adds a note to its Activity.',
+        body: 'Pick the client or organization it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Organizations / All narrows the search. New client creates a client with the sender as its person. New pipeline card adds an Inbound card only (sender on the card\'s People, with a link back to the response and, for scored forms, a note of the profile and score). Next shows who will be able to see the answers; Attach to [name] (or Add to pipeline) finishes and adds a note to its Activity.',
       },
       {
         heading: 'Dismiss and delete',

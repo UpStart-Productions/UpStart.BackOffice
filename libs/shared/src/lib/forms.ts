@@ -389,8 +389,16 @@ export type FormSettings = {
   resultsEmail: boolean;
   /** Shown after submitting and in the results email: formatted text (HTML, cleaned). Empty: "Thanks! … was sent to …". */
   thankYou: string | null;
+  /** Results email: a call-to-action box with a button (e.g. book a call). Null: none. */
+  emailCta: FormEmailCta | null;
+  /** Results email: formatted text in a box at the bottom (e.g. a note about another service). Null: none. */
+  emailFooter: string | null;
+  /** An image (https URL, e.g. a logo) at the top of the email's bottom note. Null: none. */
+  emailFooterImageUrl: string | null;
   scoring: FormScoring;
 };
+
+export type FormEmailCta = { heading: string | null; text: string | null; label: string; url: string };
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
   layout: 'page',
@@ -400,6 +408,9 @@ export const DEFAULT_FORM_SETTINGS: FormSettings = {
   usedFor: null,
   resultsEmail: false,
   thankYou: null,
+  emailCta: null,
+  emailFooter: null,
+  emailFooterImageUrl: null,
   scoring: { enabled: false, groups: [], bands: [] },
 };
 
@@ -436,6 +447,16 @@ function thankYouHtml(v: unknown): string | null {
   if (typeof v !== 'string' || !htmlHasText(v)) return null;
   const html = /<[a-z][^>]*>/i.test(v) ? cleanFormHtml(v.trim()) : plainTextToHtml(v);
   return html.slice(0, 8000) || null;
+}
+
+/** The email call-to-action: needs a button label and an http(s) link. */
+function emailCtaOf(v: unknown, str: (v: unknown, max?: number) => string): FormEmailCta | null {
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  const label = str(o['label'], 80);
+  const url = str(o['url'], 1000);
+  if (!label || !/^https?:\/\//i.test(url)) return null;
+  return { heading: str(o['heading'], 120) || null, text: str(o['text'], 600) || null, label, url };
 }
 
 /** Stored settings with defaults filled in and junk dropped. */
@@ -485,6 +506,9 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     usedFor: str(src['usedFor'], 80) || str(cl['category'], 80) || null,
     resultsEmail: !!src['resultsEmail'],
     thankYou: thankYouHtml(src['thankYou']),
+    emailCta: emailCtaOf(src['emailCta'], str),
+    emailFooter: thankYouHtml(src['emailFooter']),
+    emailFooterImageUrl: /^https:\/\//i.test(str(src['emailFooterImageUrl'], 1000)) ? str(src['emailFooterImageUrl'], 1000) : null,
     scoring: { enabled: !!sc['enabled'], groups, bands },
   };
 }

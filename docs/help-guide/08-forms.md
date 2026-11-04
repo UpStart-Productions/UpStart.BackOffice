@@ -97,7 +97,7 @@ Open **Submissions** from the Forms list (the count, or **Submissions** in a for
 - **Attach**: picks the client or organization the answers belong to.
   - **Suggestions** (when there's a match on the sender's email or name): **Use** selects one.
   - **Clients / Organizations / All** narrows the search (client forms start on Clients). Each record shows its status and people.
-  - **New client** creates a client with the sender as its person. **New organization** adds a pipeline card only (source Inbound); the sender is linked on the card's People panel — no organization list entry until you **Make client** or attach to an existing one.
+  - **New client** creates a client with the sender as its person. **New pipeline card** adds a pipeline card only (source Inbound); the sender is linked on the card's People panel, and the card gets a link back to the response plus a note with the profile and score (scored forms) — no organization list entry until you **Make client** or attach to an existing one.
   - **Next** shows a check: the record's name and which roles will be able to see the answers. **Attach to [name]** finishes. The same dialog moves a result (**Move to [name]**).
   - Attaching and moving add a note to the record's Activity. A form with one living copy can't go to a client that already has its copy.
 - **Dismiss** (⋮ menu) sets it aside under **Dismissed**; **Restore** (⋮ menu) brings it back.

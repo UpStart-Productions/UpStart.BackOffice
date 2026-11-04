@@ -24,7 +24,7 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
 /**
  * The one dialog for putting a form response on a record: Attach (a submission) or Move (a result to another record).
  * Suggestions only select; the picker filters by Clients / Organizations / All and shows each record's status (and a
- * client's people); New client / New organization (Attach only). Nothing is saved until the confirmation step, which
+ * client's people); New client / New pipeline card (Attach only). Nothing is saved until the confirmation step, which
  * names the record and says who will be able to see the response. The caller does the API call.
  */
 @Component({
@@ -68,15 +68,15 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
           @if (!move()) {
             <div class="flex gap-2 mt-3">
               <p-button label="New client" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="startNew('client')" />
-              <p-button label="New organization" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="startNew('organization')" />
+              <p-button label="New pipeline card" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="startNew('organization')" />
             </div>
           }
         } @else {
           <div class="form-field">
-            <label for="arName">{{ newKind() === 'client' ? 'New client name' : 'New organization name' }}</label>
+            <label for="arName">{{ newKind() === 'client' ? 'New client name' : 'Organization name' }}</label>
             <input pInputText id="arName" class="w-full" [(ngModel)]="name" />
             <small class="text-color-secondary">
-              {{ newKind() === 'client' ? 'Creates a client, with the sender as its person.' : 'Adds a pipeline card (Inbound); the sender is linked on the card. No organization list entry until you Make client or attach to an existing one.' }}
+              {{ newKind() === 'client' ? 'Creates a client, with the sender as its person.' : 'Adds an Inbound card to your pipeline, with the sender on it and a link back to this response. No organization list entry until you Make client or attach it to an existing one.' }}
             </small>
           </div>
           <p-button label="Pick an existing one instead" [text]="true" size="small" (onClick)="newKind.set(null)" />
@@ -109,7 +109,7 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
           <p-button label="Next" icon="pi pi-arrow-right" iconPos="right" [disabled]="!canNext()" (onClick)="step.set('confirm')" />
         } @else {
           <p-button label="Back" severity="secondary" [text]="true" [disabled]="busy()" (onClick)="step.set('pick')" />
-          <p-button [label]="(move() ? 'Move to ' : 'Attach to ') + targetName()" icon="pi pi-check" [loading]="busy()" (onClick)="submit()" />
+          <p-button [label]="newKind() === 'organization' ? 'Add to pipeline' : (move() ? 'Move to ' : 'Attach to ') + targetName()" icon="pi pi-check" [loading]="busy()" (onClick)="submit()" />
         }
       </ng-template>
     </p-dialog>
@@ -229,7 +229,7 @@ export class AcceptResponseDialogComponent {
 
   targetKindLabel() {
     if (this.newKind() === 'client') return 'new client';
-    if (this.newKind() === 'organization') return 'new organization';
+    if (this.newKind() === 'organization') return 'new pipeline card';
     const s = this.selected();
     return s ? targetStatus(s) : '';
   }

@@ -10,7 +10,7 @@ import { descriptionParts } from './form-description.util';
 import { createClientWithPerson } from './client-create.util';
 import { attachInfo, logFormActivity } from './form-attach.util';
 import { notifyFormAttached } from './form-notify.util';
-import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
+import { adminAppBaseUrl, NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { sanitizeFormAccess } from './form-access.util';
 import { FormFilesService } from './form-files.service';
 import { AccessGuard, Action, Area } from '../access/access.guard';
@@ -514,6 +514,14 @@ export class FreeFormsController {
     } else {
       const name = dto.name?.trim() || r.submitterOrganization?.trim();
       if (!name) throw new BadRequestException('Enter the organization name');
+      // The card links back to the response, with a note of the profile and score for scored forms.
+      const scores = r.scores as unknown as FormScores | null;
+      const band = scores?.bandId ? bandsOf(r).find((x) => x.id === scores.bandId) : null;
+      const submitted = (r.submittedAt ?? r.createdAt).toISOString().slice(0, 10);
+      const note = [
+        `Created from a ${r.form.name} submission on ${submitted}.`,
+        band ? `Profile: ${band.label}${scores ? ` (${scores.percent}%)` : ''}` : scores ? `Score: ${scores.percent}%` : null,
+      ].filter(Boolean).join('\n');
       await this.prisma.$transaction(async (tx) => {
         const lane = await firstLane(tx);
         await tx.lead.create({
@@ -525,6 +533,12 @@ export class FreeFormsController {
             phone: r.submitterPhone,
             source: 'INBOUND',
             nextAction: `Follow up on ${r.form.name}`,
+            artifacts: {
+              create: [
+                { type: 'NOTE', title: 'Lead Source', content: note },
+                { type: 'LINK', title: `${r.form.name} response`, url: `${adminAppBaseUrl()}/forms/submissions/${id}` },
+              ],
+            },
           },
         });
         await tx.formResponse.update({ where: { id }, data: { status: 'ACTIVE', clientId: null, living: false } });
