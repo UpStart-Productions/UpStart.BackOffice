@@ -8,6 +8,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormFileRef, type FormAttachInfoDto, type FormSubmissionDto } from '@upstart/back-office/shared';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormFilesClient } from '../../core/form-files.client';
 import { FormsApi } from '../../core/forms.api';
@@ -94,8 +95,8 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
                       }
                     </ul>
                   }
-                  @if (b.assetUrl) {
-                    <a [href]="b.assetUrl" target="_blank" rel="noopener" class="text-primary"><i class="pi pi-file-pdf mr-1"></i>{{ b.assetLabel || 'Download' }}</a>
+                  @if (bandAssetHref(b); as href) {
+                    <a [href]="href" target="_blank" rel="noopener" class="text-primary"><i class="pi pi-file-pdf mr-1"></i>{{ b.assetLabel || 'Download' }}</a>
                   }
                 }
               </div>
@@ -375,6 +376,10 @@ export class FormSubmissionPage implements OnInit {
     const r = this.s();
     return r?.scores?.bandId ? r.bands.find((b) => b.id === r.scores!.bandId) ?? null : null;
   });
+
+  bandAssetHref(b: { assetUrl: string | null }) {
+    return resolveAssetUrl(b.assetUrl);
+  }
 
   /** The section's questions (text blocks have no answers). */
   questions(fields: FormFieldDto[]) {

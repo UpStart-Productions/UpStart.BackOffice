@@ -324,6 +324,9 @@ export type FormStaffPreviewDto = {
 
 export type FormScoreGroup = { id: string; name: string };
 
+/** Optional resource on a profile: an external link or an uploaded file (stored under `/api/uploads/…`). */
+export type FormScoreBandAssetKind = 'link' | 'file';
+
 /** A profile band: responses scoring up to `upTo` percent (inclusive) get it. The last band catches the rest. */
 export type FormScoreBand = {
   id: string;
@@ -331,7 +334,9 @@ export type FormScoreBand = {
   upTo: number;
   description: string;
   nextSteps: string[];
-  /** A download for this band (e.g. a PDF guide). */
+  /** Link or uploaded file; omitted on older forms (treated as link when `assetUrl` is set). */
+  assetKind?: FormScoreBandAssetKind | null;
+  /** Link URL, or the uploaded file's public API path. */
   assetUrl: string | null;
   assetLabel: string | null;
 };
@@ -442,15 +447,28 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     .map((g: any) => ({ id: str(g?.id, 40), name: str(g?.name, 120) }))
     .filter((g: FormScoreGroup) => g.id && g.name);
   const bands: FormScoreBand[] = (Array.isArray(sc['bands']) ? sc['bands'] : [])
-    .map((b: any) => ({
-      id: str(b?.id, 40),
-      label: str(b?.label, 120),
-      upTo: Math.max(0, Math.min(100, Number(b?.upTo) || 0)),
-      description: str(b?.description),
-      nextSteps: (Array.isArray(b?.nextSteps) ? b.nextSteps : []).map((x: unknown) => str(x, 400)).filter(Boolean).slice(0, 20),
-      assetUrl: str(b?.assetUrl, 1000) || null,
-      assetLabel: str(b?.assetLabel, 120) || null,
-    }))
+    .map((b: any) => {
+      const assetUrl = str(b?.assetUrl, 1000) || null;
+      const rawKind = b?.assetKind;
+      const assetKind: FormScoreBandAssetKind | null =
+        rawKind === 'file' || rawKind === 'link'
+          ? rawKind
+          : assetUrl?.startsWith('/api/uploads/')
+            ? 'file'
+            : assetUrl
+              ? 'link'
+              : null;
+      return {
+        id: str(b?.id, 40),
+        label: str(b?.label, 120),
+        upTo: Math.max(0, Math.min(100, Number(b?.upTo) || 0)),
+        description: str(b?.description),
+        nextSteps: (Array.isArray(b?.nextSteps) ? b.nextSteps : []).map((x: unknown) => str(x, 400)).filter(Boolean).slice(0, 20),
+        assetKind,
+        assetUrl,
+        assetLabel: str(b?.assetLabel, 120) || null,
+      };
+    })
     .filter((b: FormScoreBand) => b.id && b.label)
     .sort((a: FormScoreBand, b: FormScoreBand) => a.upTo - b.upTo);
   const cl = (src['client'] && typeof src['client'] === 'object' ? src['client'] : {}) as Record<string, any>;

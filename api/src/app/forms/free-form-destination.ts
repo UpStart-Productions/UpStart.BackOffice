@@ -9,6 +9,7 @@ import { FormDestinations, type FormDestination, type PublicDraft, type PublicLi
 import { liveValues } from './form-fields.util';
 import { FormStructureService } from './form-structure.service';
 import { newAccessToken } from './form-links.util';
+import { absolutePublicAssetUrl } from '../storage/asset-url.util';
 import { M } from './free-forms.util';
 
 /**
@@ -199,8 +200,9 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
           parts.push('<p style="margin:0 0 6px;font-weight:600;">Recommended next steps</p>');
           parts.push(`<ul style="margin:0 0 12px;padding-left:20px;">${band.nextSteps.map((n) => `<li>${escapeHtml(n)}</li>`).join('')}</ul>`);
         }
-        if (band.assetUrl) {
-          parts.push(`<p style="margin:0 0 12px;"><a href="${escapeHtml(band.assetUrl)}">${escapeHtml(band.assetLabel || 'Download your guide')}</a></p>`);
+        const assetHref = absolutePublicAssetUrl(band.assetUrl);
+        if (assetHref) {
+          parts.push(`<p style="margin:0 0 12px;"><a href="${escapeHtml(assetHref)}">${escapeHtml(band.assetLabel || 'Download your guide')}</a></p>`);
         }
       }
       if (scores?.groups.length) {

@@ -13,6 +13,7 @@ import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
+import { absolutePublicAssetUrl } from '../storage/asset-url.util';
 import { FormDestinations, PUBLIC_LINK_INCLUDE, type FormDestination, type PublicLink } from './form-destinations';
 import { PasscodeDto, PublicDraftDto, PublicSubmitDto, SendCodeDto, VerifyCodeDto } from './form.dto';
 import { mergeFormValues } from './form-fields.util';
@@ -336,7 +337,16 @@ export class FormPublicService {
         max: scores.max,
         percent: scores.percent,
         band: band
-          ? { id: band.id, label: band.label, description: band.description, nextSteps: band.nextSteps, assetUrl: band.assetUrl, assetLabel: band.assetLabel, index }
+          ? {
+              id: band.id,
+              label: band.label,
+              description: band.description,
+              nextSteps: band.nextSteps,
+              assetKind: band.assetKind ?? null,
+              assetUrl: absolutePublicAssetUrl(band.assetUrl),
+              assetLabel: band.assetLabel,
+              index,
+            }
           : null,
         bands: bands.map((b) => ({ id: b.id, label: b.label })),
         groups: scores.groups,

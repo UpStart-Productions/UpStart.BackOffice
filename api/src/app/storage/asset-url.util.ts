@@ -19,3 +19,14 @@ export function toPublicAssetUrl(stored: string | null | undefined): string | nu
   }
   return stored;
 }
+
+/** Absolute href for emails and embeds (upload paths are stored as `/api/uploads/…`). */
+export function absolutePublicAssetUrl(stored: string | null | undefined): string | null {
+  const url = toPublicAssetUrl(stored);
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url) || url.startsWith('mailto:') || url.startsWith('tel:')) return url;
+  if (!url.startsWith('/')) return url;
+  const apiBase = process.env.API_BASE_URL?.trim().replace(/\/$/, '') ?? '';
+  const origin = apiBase.replace(/\/api\/?$/, '') || `http://localhost:${process.env.PORT?.trim() || '3001'}`;
+  return `${origin}${url}`;
+}

@@ -65,7 +65,7 @@ Results of other forms attached to a client or organization also show in its **F
 Turn on **Score this form**, then:
 
 1. **Score areas**: groups of questions scored together (for example Workflows, People, Data). Optional: without areas the form still gets one overall score.
-2. **Profiles**: results by percentage, for example 0–25% Finding Your Bearings, 26–50% Gaining Traction. Each profile has a name, **Scores up to (%)**, what it means, recommended next steps (one per line) and an optional download link. The profile with the highest number also covers anything above it.
+2. **Profiles**: results by percentage, for example 0–25% Finding Your Bearings, 26–50% Gaining Traction. Each profile has a name, **Scores up to (%)**, what it means, recommended next steps (one per line) and an optional **Profile resource** (**Link** with a URL and label, or **File** with an upload and label). The profile with the highest number also covers anything above it.
 3. In **Fields**, edit each single-select or multi-select question: give each choice its **points** and pick the question's **Score area**. Questions without points don't count.
 
 People's score is the percentage of the points possible. A single-select counts the chosen choice; a multi-select adds up the chosen choices.

@@ -15,8 +15,9 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
   areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
-  type FormLayout, type FormScoreBand, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto, type FormDefinition,
+  type FormLayout, type FormScoreBand, type FormScoreBandAssetKind, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto, type FormDefinition,
 } from '@upstart/back-office/shared';
+import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -31,6 +32,10 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
+
+const PROFILE_RESOURCE_ACCEPT =
+  '.pdf,.doc,.docx,.txt,.xlsx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation';
+const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
 
 /**
  * One free-standing form: details and settings (Save), scoring and fields (save right away), Publish, public links.
@@ -235,7 +240,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
               </div>
               <p-table [value]="scoring().bands" styleClass="table-bordered">
                 <ng-template pTemplate="header">
-                  <tr><th style="width: 3rem"></th><th>Profile</th><th>Score range</th><th>Next steps</th><th>Download</th></tr>
+                  <tr><th style="width: 3rem"></th><th>Profile</th><th>Score range</th><th>Next steps</th><th>Resource</th></tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-b let-i="rowIndex">
                   <tr>
@@ -247,7 +252,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
                     <td>{{ b.label }}</td>
                     <td>{{ bandRange(i) }}</td>
                     <td>{{ b.nextSteps.length }}</td>
-                    <td>{{ b.assetUrl ? (b.assetLabel || 'Yes') : '' }}</td>
+                    <td>{{ profileResourceSummary(b) }}</td>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="emptymessage">
@@ -337,15 +342,57 @@ const newId = () => Math.random().toString(36).slice(2, 10);
           <label for="bdSteps">Recommended next steps (one per line)</label>
           <textarea pTextarea id="bdSteps" class="w-full" rows="4" [autoResize]="true" [(ngModel)]="bandSteps"></textarea>
         </div>
-        <div class="showcase-row mt-3">
-          <div class="form-field showcase-half">
-            <label for="bdAsset">Download link</label>
-            <input pInputText id="bdAsset" class="w-full" [(ngModel)]="band.assetUrl" placeholder="https://…/guide.pdf" />
+        <div class="form-field mt-3">
+          <div class="flex align-items-center gap-2 mb-2">
+            <span class="font-medium">Profile resource</span>
+            <app-help-text key="forms.form.profileResource" />
+            <span class="flex-1"></span>
+            <p-selectbutton
+              [options]="profileResourceKindOptions"
+              optionLabel="label"
+              optionValue="value"
+              [(ngModel)]="profileResourceKind"
+              (ngModelChange)="onProfileResourceKindChange($event)"
+              [allowEmpty]="false"
+              size="small"
+            />
           </div>
-          <div class="form-field showcase-half">
-            <label for="bdAssetLabel">Download label</label>
-            <input pInputText id="bdAssetLabel" class="w-full" [(ngModel)]="band.assetLabel" placeholder="Download PDF guide" />
-          </div>
+          @if (profileResourceKind === 'link') {
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="bdAssetUrl">URL</label>
+                <input pInputText id="bdAssetUrl" class="w-full" [(ngModel)]="band.assetUrl" placeholder="https://…/guide.pdf" />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="bdAssetLabel">Label</label>
+                <input pInputText id="bdAssetLabel" class="w-full" [(ngModel)]="band.assetLabel" placeholder="Download PDF guide" />
+              </div>
+            </div>
+          } @else {
+            <div class="form-field">
+              <label>File</label>
+              <app-single-file-dropzone
+                #profileResourceDrop
+                [fill]="true"
+                [accept]="profileResourceAccept"
+                [maxBytes]="profileResourceMaxBytes"
+                emptyTitle="Profile resource"
+                emptyHint="Drop a file or click to browse"
+                selectedTitle="Profile resource"
+                emptyIcon="pi-file-pdf"
+                [existingUrl]="existingProfileResourceUrl()"
+                (fileChange)="onProfileResourceFile($event)"
+                (invalidFile)="onProfileResourceInvalid($event)"
+              />
+              @if (profileResourceError()) {
+                <small class="text-red-600">{{ profileResourceError() }}</small>
+              }
+            </div>
+            <div class="form-field mt-3">
+              <label for="bdAssetLabelFile">Label</label>
+              <input pInputText id="bdAssetLabelFile" class="w-full" [(ngModel)]="band.assetLabel" placeholder="Download PDF guide" />
+            </div>
+          }
         </div>
         <ng-template pTemplate="footer">
           <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="scoringSaving()" (onClick)="bandVisible = false" />
@@ -391,6 +438,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 })
 export class FormEditPage implements OnInit {
   readonly forms = inject(FormsApi);
+  private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
@@ -452,6 +500,16 @@ export class FormEditPage implements OnInit {
   bandVisible = false;
   editingBand: FormScoreBand | null = null;
   band: FormScoreBand = this.blankBand();
+  readonly profileResourceKindOptions: { value: FormScoreBandAssetKind; label: string }[] = [
+    { value: 'link', label: 'Link' },
+    { value: 'file', label: 'File' },
+  ];
+  readonly profileResourceAccept = PROFILE_RESOURCE_ACCEPT;
+  readonly profileResourceMaxBytes = PROFILE_RESOURCE_MAX_BYTES;
+  profileResourceKind: FormScoreBandAssetKind = 'link';
+  profileResourceFile: File | null = null;
+  profileResourceError = signal<string | null>(null);
+  private readonly profileResourceDropzone = viewChild<SingleFileDropzoneComponent>('profileResourceDrop');
   bandSteps = '';
 
   constructor() {
@@ -744,7 +802,42 @@ export class FormEditPage implements OnInit {
   }
 
   private blankBand(): FormScoreBand {
-    return { id: '', label: '', upTo: 100, description: '', nextSteps: [], assetUrl: null, assetLabel: null };
+    return { id: '', label: '', upTo: 100, description: '', nextSteps: [], assetKind: null, assetUrl: null, assetLabel: null };
+  }
+
+  profileResourceSummary(b: FormScoreBand): string {
+    if (!b.assetUrl) return '';
+    return b.assetLabel?.trim() || (b.assetKind === 'file' ? 'File' : 'Link');
+  }
+
+  existingProfileResourceUrl(): string | null {
+    const url = this.band.assetUrl?.trim();
+    if (!url) return null;
+    if (this.profileResourceKind !== 'file') return null;
+    if (url.startsWith('/api/uploads/') || this.band.assetKind === 'file') return url;
+    return null;
+  }
+
+  onProfileResourceKindChange(kind: FormScoreBandAssetKind) {
+    this.profileResourceKind = kind;
+    this.profileResourceError.set(null);
+    this.profileResourceFile = null;
+    this.profileResourceDropzone()?.clear();
+    if (kind === 'link' && (this.band.assetKind === 'file' || this.band.assetUrl?.startsWith('/api/uploads/'))) {
+      this.band.assetUrl = '';
+    }
+    if (kind === 'file' && this.band.assetKind === 'link' && this.band.assetUrl && !this.band.assetUrl.startsWith('/api/uploads/')) {
+      this.band.assetUrl = '';
+    }
+  }
+
+  onProfileResourceFile(file: File | null) {
+    this.profileResourceFile = file;
+    this.profileResourceError.set(null);
+  }
+
+  onProfileResourceInvalid(message: string) {
+    this.profileResourceError.set(message);
   }
 
   /** "0–25%", "26–50%", …, the last one "76–100%". */
@@ -766,10 +859,42 @@ export class FormEditPage implements OnInit {
     this.editingBand = b;
     this.band = b ? { ...b, assetUrl: b.assetUrl ?? '', assetLabel: b.assetLabel ?? '' } : this.blankBand();
     this.bandSteps = (b?.nextSteps ?? []).join('\n');
+    this.profileResourceKind =
+      b?.assetKind === 'file' || b?.assetKind === 'link'
+        ? b.assetKind
+        : b?.assetUrl?.startsWith('/api/uploads/')
+          ? 'file'
+          : 'link';
+    this.profileResourceFile = null;
+    this.profileResourceError.set(null);
     this.bandVisible = true;
   }
 
   async saveBand() {
+    this.profileResourceError.set(null);
+    let assetUrl = this.band.assetUrl?.trim() || null;
+    let assetKind: FormScoreBandAssetKind | null = null;
+
+    if (this.profileResourceKind === 'link') {
+      assetKind = assetUrl ? 'link' : null;
+    } else {
+      if (this.profileResourceFile) {
+        try {
+          const res = await this.api.uploadFile<{ url: string }>('/uploads/content-file', this.profileResourceFile);
+          assetUrl = res.url?.trim() || null;
+          assetKind = assetUrl ? 'file' : null;
+        } catch (err) {
+          this.profileResourceError.set(err instanceof Error ? err.message : 'Upload failed');
+          return;
+        }
+      } else if (assetUrl?.startsWith('/api/uploads/')) {
+        assetKind = 'file';
+      } else {
+        assetUrl = null;
+        assetKind = null;
+      }
+    }
+
     const next: FormScoreBand = {
       ...this.band,
       id: this.editingBand?.id ?? newId(),
@@ -777,7 +902,8 @@ export class FormEditPage implements OnInit {
       upTo: Math.max(0, Math.min(100, Number(this.band.upTo) || 0)),
       description: this.band.description.trim(),
       nextSteps: this.bandSteps.split('\n').map((x) => x.trim()).filter(Boolean),
-      assetUrl: this.band.assetUrl?.trim() || null,
+      assetKind,
+      assetUrl,
       assetLabel: this.band.assetLabel?.trim() || null,
     };
     const others = this.scoring().bands.filter((x) => x.id !== next.id);

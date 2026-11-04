@@ -166,7 +166,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Give answer choices points (in each select field). People get a percentage of the points possible, the profile for that percentage, and a percentage per score area.',
   'forms.form.scoreAreas': 'Groups of questions scored together, e.g. Workflows, Data, Security. Pick a question\'s area when you edit the field.',
   'forms.form.bands':
-    'Profiles by score, e.g. 0–25% Finding Your Bearings. Each has what it means, next steps and an optional download. People see the profile their percentage falls in.',
+    'Profiles by score, e.g. 0–25% Finding Your Bearings. Each has what it means, next steps and an optional profile resource. People see the profile their percentage falls in.',
+  'forms.form.profileResource':
+    'Optional link or uploaded file people can open from their results (and in the results email). Use Label for the link text.',
   'forms.form.bandUpTo': 'The highest percentage for this profile. The profile with the highest number also covers everything above it.',
   'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
   'forms.submissions.page': 'Everything sent through this form. In progress holds forms started but not sent yet. Open one to see the answers and score, then Attach or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
