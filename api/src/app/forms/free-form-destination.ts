@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { normalizeFormSettings, type FormResultsEmailData, type FormScores, type FormSettings, type FormSnapshot } from '@upstart/back-office/shared';
+import { normalizeFormSettings, type FormScores, type FormSettings, type FormSnapshot } from '@upstart/back-office/shared';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
@@ -113,11 +113,8 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
     const snap = link.form.publishedVersion?.snapshot as unknown as FormSnapshot | undefined;
     const formName = snap?.name ?? link.form.name;
     await this.notifyStaff(link, row.id, formName, sub, settings);
-    if (settings.resultsEmail && sub.email) {
-      if (settings.resultsEmailTemplate) await this.emailRespondentTemplate(formName, sub, settings, snap, resultToken);
-      else await this.emailRespondent(formName, sub, settings, snap);
-    }
-    return { message: settings.thankYou ?? undefined, resultToken: resultToken ?? undefined };
+    if (settings.resultsEmail && sub.email) await this.emailRespondent(formName, sub, settings, snap);
+    return { message: settings.thankYou ?? undefined, resultToken: resultToken ?? undefined, responseId: row.id };
   }
 
   /** Someone outside (e.g. family) submitted a client's result through its share link. */
@@ -187,39 +184,6 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
       );
     } catch (err) {
       this.logger.warn(`Form notification failed: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  /** The results email from a template kept outside UBO (Amazon SES), filled with the person's results. */
-  private async emailRespondentTemplate(formName: string, sub: PublicSubmission, settings: FormSettings, snap: FormSnapshot | undefined, resultToken: string | null) {
-    try {
-      const scores = sub.scores as FormScores | null;
-      const band = scores?.bandId ? snap?.scoring.bands.find((b) => b.id === scores.bandId) : null;
-      const groups = (scores?.groups ?? []).map((g) => ({ name: g.name, percent: Math.round(g.percent) }));
-      const data: FormResultsEmailData = {
-        formName,
-        organizationName: (await this.organizationName()) ?? '',
-        firstName: sub.name?.split(/\s+/)[0] ?? '',
-        name: sub.name ?? '',
-        email: sub.email ?? '',
-        submitterOrganization: sub.organization ?? '',
-        score: scores ? Math.round(scores.percent) : null,
-        hasScore: !!scores,
-        profile: band?.label ?? '',
-        profileDescription: band?.description ?? '',
-        nextSteps: band?.nextSteps ?? [],
-        hasNextSteps: !!band?.nextSteps.length,
-        assetUrl: absolutePublicAssetUrl(band?.assetUrl) ?? '',
-        assetLabel: band?.assetLabel || 'Download your guide',
-        groups,
-        hasGroups: groups.length > 0,
-        resultToken: resultToken ?? '',
-        thankYouHtml: settings.thankYou ?? '',
-      };
-      const res = await this.mail.sendTemplated({ to: sub.email!, template: settings.resultsEmailTemplate!, data });
-      if (!res.sent) this.logger.warn(`Results email template ${settings.resultsEmailTemplate} failed: ${res.error}`);
-    } catch (err) {
-      this.logger.warn(`Results email failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

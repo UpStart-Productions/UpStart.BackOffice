@@ -19,7 +19,8 @@ export type PublicSubmission = {
 };
 
 /** What a destination tells the respondent after saving. */
-export type SubmitOutcome = { message?: string; resultToken?: string } | void;
+/** `responseId`: the saved response (website email senders look it up with a service key). */
+export type SubmitOutcome = { message?: string; resultToken?: string; responseId?: string } | void;
 
 /**
  * What a module does with its forms' public submissions. The engine handles links, verification and

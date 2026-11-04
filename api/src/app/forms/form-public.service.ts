@@ -304,12 +304,13 @@ export class FormPublicService {
         link,
         { values, name, email, phone, organization, versionId: link.kind === 'NEW' ? (link.form.publishedVersion?.id ?? null) : null, scores },
         draft?.id ?? null,
-      )) as { message?: string; resultToken?: string } | undefined;
+      )) as { message?: string; resultToken?: string; responseId?: string } | undefined;
       await this.prisma.formLink.update({ where: { id: link.id }, data: { lastUsedAt: new Date() } });
       return {
         ...thanks,
         ...(outcome?.message ? { message: outcome.message } : {}),
         ...(outcome?.resultToken ? { resultToken: outcome.resultToken } : {}),
+        ...(outcome?.responseId ? { responseId: outcome.responseId } : {}),
       };
     });
   }

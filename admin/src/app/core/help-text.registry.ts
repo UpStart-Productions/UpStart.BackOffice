@@ -160,8 +160,6 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.review':
     'On: submissions wait under Waiting for review until you Attach them (to a client or organization, new or existing) or Dismiss them. Off: they are attached as they come in.',
   'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
-  'forms.form.resultsEmailTemplate':
-    'The name of an email template set up in Amazon SES (letters, numbers, - and _). When set, people get that email instead of the built-in one, filled with their results: name, score, profile, next steps, guide link and scores by area. Empty: the built-in email.',
   'forms.form.thankYou':
     'Shown after someone sends the form, and in the email when Email people their results is on. Add links here, e.g. to book a call. Empty: "Thanks! … was sent to …".',
   'forms.form.scoring':

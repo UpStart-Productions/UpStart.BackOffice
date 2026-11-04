@@ -289,6 +289,30 @@ export type FormPublicSubmitResultDto = {
   message: string;
   /** Scored forms: opens the results (GET /form-results/:token). */
   resultToken?: string;
+  /** The saved response (new-response links). Not a secret: reading it needs a service key (GET /service/form-responses/:id). */
+  responseId?: string;
+};
+
+/** One answer, ready to show (GET /service/form-responses/:id). */
+export type FormResponseAnswerDto = { fieldId: string; section: string; label: string; value: string };
+
+/** A response for a service (e.g. the website's email sender), read with a service key. */
+export type FormServiceResponseDto = {
+  id: string;
+  formId: string;
+  formName: string;
+  organizationName: string;
+  submittedAt: string;
+  submitter: { name: string; firstName: string; email: string; phone: string; organization: string };
+  /** Every answer in form order (text blocks, files and sensitive numbers left out). */
+  answers: FormResponseAnswerDto[];
+  /** Scored forms; null otherwise. */
+  score: number | null;
+  profile: { label: string; description: string; nextSteps: string[]; assetUrl: string; assetLabel: string } | null;
+  groups: { name: string; percent: number }[];
+  /** For a results page link (scored forms); empty otherwise. */
+  resultToken: string;
+  thankYouHtml: string;
 };
 
 export type FormPublicFormDto = {
@@ -389,38 +413,7 @@ export type FormSettings = {
   resultsEmail: boolean;
   /** Shown after submitting and in the results email: formatted text (HTML, cleaned). Empty: "Thanks! … was sent to …". */
   thankYou: string | null;
-  /**
-   * Results email: the name of an email template kept outside UBO (Amazon SES) to send instead of the built-in
-   * email. UBO fills it with the person's results (see FormResultsEmailData). Null: the built-in email.
-   */
-  resultsEmailTemplate: string | null;
   scoring: FormScoring;
-};
-
-/** What a results email template is filled with (SES template data; Handlebars-style {{name}}, {{#each}}, {{#if}}). */
-export type FormResultsEmailData = {
-  formName: string;
-  organizationName: string;
-  firstName: string;
-  name: string;
-  email: string;
-  submitterOrganization: string;
-  /** Rounded percentage, e.g. 42. Empty when the form isn't scored. */
-  score: number | null;
-  hasScore: boolean;
-  profile: string;
-  profileDescription: string;
-  nextSteps: string[];
-  hasNextSteps: boolean;
-  /** The profile's resource (e.g. a PDF guide); empty when it has none. */
-  assetUrl: string;
-  assetLabel: string;
-  groups: { name: string; percent: number }[];
-  hasGroups: boolean;
-  /** The token for the results page link, e.g. https://example.org/results/?r={{resultToken}}. */
-  resultToken: string;
-  /** The form's thank-you message (HTML; use {{{thankYouHtml}}}). */
-  thankYouHtml: string;
 };
 
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
@@ -431,7 +424,6 @@ export const DEFAULT_FORM_SETTINGS: FormSettings = {
   usedFor: null,
   resultsEmail: false,
   thankYou: null,
-  resultsEmailTemplate: null,
   scoring: { enabled: false, groups: [], bands: [] },
 };
 
@@ -517,7 +509,6 @@ export function normalizeFormSettings(input: unknown): FormSettings {
     usedFor: str(src['usedFor'], 80) || str(cl['category'], 80) || null,
     resultsEmail: !!src['resultsEmail'],
     thankYou: thankYouHtml(src['thankYou']),
-    resultsEmailTemplate: /^[A-Za-z0-9_-]{1,64}$/.test(str(src['resultsEmailTemplate'], 64)) ? str(src['resultsEmailTemplate'], 64) : null,
     scoring: { enabled: !!sc['enabled'], groups, bands },
   };
 }
