@@ -192,7 +192,14 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
     <p-dialog [header]="editingField ? 'Edit field' : 'Add field'" [(visible)]="fieldVisible" [modal]="true" [style]="{ width: fieldType === 'GROUP' ? 'min(40rem, 96vw)' : 'min(30rem, 96vw)' }">
       <div class="form-field">
         <label for="fbFieldName">Label</label>
-        <input pInputText id="fbFieldName" class="w-full" [(ngModel)]="fieldName" />
+        <textarea
+          pTextarea
+          id="fbFieldName"
+          class="w-full fb-field-label-input"
+          rows="3"
+          [(ngModel)]="fieldName"
+          [autoResize]="false"
+        ></textarea>
       </div>
       <div class="form-field mt-3">
         <label for="fbFieldType">Type <app-help-text key="form.builder.fieldType" /></label>
