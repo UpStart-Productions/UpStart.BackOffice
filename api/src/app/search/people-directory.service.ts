@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { personName } from '../task-manager/task-people.util';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
+import { tryTenantId } from '../tenancy/tenant-context';
+import { clientIdsMatchingServiceOrProduct, contactTextOr } from './text-search.util';
 
 export type PeopleDirectoryEntry = {
   /** Stable key for UI (deduped). */
@@ -107,19 +109,13 @@ export class PeopleDirectoryService {
     const cap = Math.min(Math.max(limit, 1), MAX_LIMIT);
     const take = q.length >= 2 ? SEARCH_PER_SOURCE : BROWSE_PER_SOURCE;
     const textFilter = q.length >= 2;
+    const tenantId = tryTenantId() ?? 'default';
+    const catalogClientIds = textFilter
+      ? await clientIdsMatchingServiceOrProduct(this.prisma, tenantId, q)
+      : [];
 
     if (crmOnly) {
-      const contactWhere = textFilter
-        ? {
-            OR: [
-              { emails: { some: { email: contains(q) } } },
-              { firstName: contains(q) },
-              { lastName: contains(q) },
-              { phone: contains(q) },
-              { accountLinks: { some: { client: { name: contains(q) } } } },
-            ],
-          }
-        : {};
+      const contactWhere = textFilter ? { OR: contactTextOr(q, catalogClientIds) } : {};
       const crmContacts = await this.prisma.contact.findMany({
         where: contactWhere,
         include: {
@@ -176,17 +172,7 @@ export class PeopleDirectoryService {
           ...(excludeProjectId ? { projectId: { not: excludeProjectId } } : {}),
         };
 
-    const contactWhere = textFilter
-      ? {
-          OR: [
-            { emails: { some: { email: contains(q) } } },
-            { firstName: contains(q) },
-            { lastName: contains(q) },
-            { phone: contains(q) },
-            { accountLinks: { some: { client: { name: contains(q) } } } },
-          ],
-        }
-      : {};
+    const contactWhere = textFilter ? { OR: contactTextOr(q, catalogClientIds) } : {};
 
     // Lead people are Contacts now; only leads with no linked Contact still appear here.
     const leadWhere = {

@@ -16,7 +16,22 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { InputIconModule } from 'primeng/inputicon';
 import { ApiService } from '../../core/api.service';
 
-type SearchResultType = 'client' | 'project' | 'invoice' | 'lead';
+type SearchResultType =
+  | 'client'
+  | 'contact'
+  | 'project'
+  | 'task'
+  | 'timeEntry'
+  | 'expense'
+  | 'form'
+  | 'formResponse'
+  | 'invoice'
+  | 'lead'
+  | 'booking'
+  | 'careVisit'
+  | 'careShift'
+  | 'interaction'
+  | 'user';
 
 type SearchResultItem = {
   type: SearchResultType;
@@ -25,6 +40,9 @@ type SearchResultItem = {
   detail: string;
   meta: string | null;
   status?: string;
+  clientId?: string | null;
+  leadId?: string | null;
+  projectId?: string | null;
 };
 
 type SearchResultGroup = {
@@ -73,7 +91,7 @@ type SearchResultGroup = {
             [showEmptyMessage]="true"
             scrollHeight="none"
             appendTo="body"
-            placeholder="Search clients, projects, invoices, leads…"
+            placeholder="Search across Back Office…"
             styleClass="global-search-autocomplete"
             panelStyleClass="global-search-panel"
             emptyMessage="No results found"
@@ -233,15 +251,41 @@ export class GlobalSearchComponent {
   private routeFor(item: SearchResultItem): string {
     switch (item.type) {
       case 'client':
-        return `/clients/${item.id}`;
+        return `/organizations/${item.id}`;
+      case 'contact':
+        return `/people/${item.id}`;
       case 'project':
         return `/projects/${item.id}`;
+      case 'task':
+        return item.projectId
+          ? `/tasks/projects/${item.projectId}/tasks/${item.id}`
+          : '/tasks';
+      case 'timeEntry':
+        return '/time-entry';
+      case 'expense':
+        return '/expenses';
+      case 'form':
+        return `/forms/${item.id}`;
+      case 'formResponse':
+        return item.clientId ? `/forms/results/${item.id}` : `/forms/submissions/${item.id}`;
       case 'invoice':
         return item.status === 'DRAFT'
           ? `/invoices/${item.id}/edit`
           : `/invoices/${item.id}`;
       case 'lead':
         return `/pipeline/${item.id}`;
+      case 'booking':
+        return '/bookings';
+      case 'careVisit':
+        return `/care/visits/${item.id}`;
+      case 'careShift':
+        return '/schedule';
+      case 'interaction':
+        if (item.clientId) return `/organizations/${item.clientId}`;
+        if (item.leadId) return `/pipeline/${item.leadId}`;
+        return '/activity';
+      case 'user':
+        return '/users';
     }
   }
 }

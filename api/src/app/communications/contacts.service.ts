@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { clientIdsMatchingServiceOrProduct, insensitiveContains } from '../search/text-search.util';
 import { DEFAULT_TENANT_ID } from './communications.constants';
 import {
   AddContactEmailDto, CreateContactDto, LinkContactAccountDto, UpdateContactDto,
@@ -41,6 +42,7 @@ export class ContactsService {
 
   async list(opts: { q?: string; clientId?: string; review?: boolean; tag?: string; limit?: string | number } = {}) {
     const q = opts.q?.trim();
+    const orgIds = q ? await clientIdsMatchingServiceOrProduct(this.prisma, TENANT, q) : [];
     const rows = await this.prisma.contact.findMany({
       where: {
         tenantId: TENANT,
@@ -50,9 +52,11 @@ export class ContactsService {
         ...(q
           ? {
               OR: [
-                { firstName: { contains: q, mode: 'insensitive' as const } },
-                { lastName: { contains: q, mode: 'insensitive' as const } },
+                { firstName: insensitiveContains(q) },
+                { lastName: insensitiveContains(q) },
                 { emails: { some: { email: { contains: q.toLowerCase() } } } },
+                { accountLinks: { some: { client: { name: insensitiveContains(q) } } } },
+                ...(orgIds.length ? [{ accountLinks: { some: { clientId: { in: orgIds } } } }] : []),
               ],
             }
           : {}),
@@ -182,4 +186,5 @@ export class ContactsService {
     const client = await this.prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
     if (!client) throw new NotFoundException('Client not found.');
   }
+
 }

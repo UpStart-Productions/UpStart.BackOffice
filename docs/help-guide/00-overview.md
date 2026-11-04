@@ -32,7 +32,7 @@ Every page has the same header above its content:
 
 ## Top bar
 
-- **Search** (magnifying glass): expands to search clients, projects, invoices, leads
+- **Search** (magnifying glass): organizations, people, projects, tasks, time, expenses, forms and submissions, invoices, pipeline, bookings, care visits and schedule, activity, and team (admins)—only in areas you can access
 - **Help** (question mark): opens a help panel on the right with a short guide to the page you're on. It follows you as you move between pages. At the bottom, **Contact Support** sends a message to UpStart support (support@heyupstart.com); you'll get a reply by email. Some form fields also have a small ⓘ icon; hover it for a one-line explanation.
 - **User avatar** (top bar): opens account menu with email, role, Sign out; **Return to my account** when impersonating
 - **JD** (Back Office guide, bottom-left): in-app help chat when configured by a super user

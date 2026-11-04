@@ -65,7 +65,7 @@ import { SessionService } from '../../core/session.service';
           </div>
           <div class="toolbar-search">
             <app-toolbar-search-field
-              placeholder="Search by name or email…"
+              placeholder="Search name, email, or organization…"
               ariaLabel="Search people"
               [ngModel]="query"
               (ngModelChange)="onSearch($event)"
