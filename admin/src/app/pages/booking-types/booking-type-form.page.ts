@@ -32,6 +32,7 @@ type BookingTypeDto = {
   publicPageUrl: string;
   calendarEventTitle: string;
   createLead: boolean;
+  sendGuestConfirmation: boolean;
   leadStage: string;
   leadStageId?: string | null;
   leadSource: string;
@@ -129,6 +130,7 @@ export class BookingTypeFormPage implements OnInit {
     publicPageUrl: '',
     calendarEventTitle: '',
     createLead: true,
+    sendGuestConfirmation: true,
     leadStageId: null as string | null,
     leadSource: 'INBOUND',
     pipelineNoteTitle: '',
@@ -233,6 +235,7 @@ export class BookingTypeFormPage implements OnInit {
       publicPageUrl: data.publicPageUrl,
       calendarEventTitle: data.calendarEventTitle,
       createLead: data.createLead,
+      sendGuestConfirmation: data.sendGuestConfirmation ?? true,
       leadStageId: data.leadStageId ?? null,
       leadSource: data.leadSource,
       pipelineNoteTitle: data.pipelineNoteTitle ?? '',

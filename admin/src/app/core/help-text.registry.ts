@@ -23,6 +23,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'bookingType.minimumNotice': 'How many hours ahead a slot must be. Slots sooner than this are hidden.',
   'bookingType.horizon': 'How many days into the future people can book.',
   'bookingType.publicPageUrl': 'Used for cancel links in confirmation emails.',
+  'bookingType.guestEmail':
+    'On: Back Office emails the guest a confirmation with a calendar file. Turn off only when your website sends its own confirmation. You get the new-booking email either way.',
   'bookingType.pipelineLane':
     'Lane for new cards. A card still in the first lane moves here when the person books; cards further along stay put. Blank means the first lane.',
   'bookingType.leadSource': 'Contact source recorded on cards this booking type creates.',

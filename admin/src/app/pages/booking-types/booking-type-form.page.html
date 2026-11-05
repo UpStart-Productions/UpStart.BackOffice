@@ -138,6 +138,10 @@
           <label for="btEventTitle">Google Calendar event title</label>
           <input pInputText id="btEventTitle" class="w-full" [(ngModel)]="form.calendarEventTitle" name="btEventTitle" />
         </div>
+        <div class="form-field flex align-items-center gap-2">
+          <p-toggleSwitch [(ngModel)]="form.sendGuestConfirmation" name="btGuestEmail" inputId="btGuestEmail" />
+          <label for="btGuestEmail">Send guest confirmation email <app-help-text key="bookingType.guestEmail" /></label>
+        </div>
       </div>
     </div>
 

@@ -91,6 +91,11 @@ export class UpsertBookingTypeDto {
   @IsOptional()
   createLead?: boolean;
 
+  @ApiPropertyOptional({ description: 'Back Office emails the guest a confirmation (off when the website sends it)' })
+  @IsBoolean()
+  @IsOptional()
+  sendGuestConfirmation?: boolean;
+
   @ApiPropertyOptional({ enum: LeadStage, description: 'Legacy; prefer leadStageId' })
   @IsEnum(LeadStage)
   @IsOptional()

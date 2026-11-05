@@ -64,7 +64,7 @@ On a card's page, the main form is the **organization** (name, email, phone, web
 
 ## Bookings
 
-**Bookings** is a module: it only appears when it is switched on for your organization. **Bookings** manages appointment types and bookings. A booking creates or updates a pipeline card; the guest is tracked on that card and in **People**. Each booking type's **Pipeline lane** says which lane new cards go into (blank means the first lane). A card that is still in its pipeline's first lane moves to that lane when the person books; cards further along stay put. Booking types (the **Booking types** tab) are visible to roles with Bookings **Setup**.
+**Bookings** is a module: it only appears when it is switched on for your organization. **Bookings** manages appointment types and bookings. A booking creates or updates a pipeline card; the guest is tracked on that card and in **People**. Each booking type's **Pipeline lane** says which lane new cards go into (blank means the first lane). A card that is still in its pipeline's first lane moves to that lane when the person books; cards further along stay put. Booking types (the **Booking types** tab) are visible to roles with Bookings **Setup**. Each booking type has **Send guest confirmation email** (on by default): Back Office emails the guest a confirmation with a calendar file. Turn it off only when your website sends its own confirmation; the host still gets the new-booking email.
 
 ## Activity
 

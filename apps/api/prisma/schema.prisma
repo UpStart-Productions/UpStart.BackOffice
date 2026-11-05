@@ -961,6 +961,8 @@ model BookingType {
   publicPageUrl      String
   calendarEventTitle String         @default("Meeting")
   createLead         Boolean        @default(true)
+  /// Back Office emails the guest a confirmation. Off when another service (e.g. the website) sends it.
+  sendGuestConfirmation Boolean     @default(true)
   leadStage          LeadStage      @default(DISCOVERY)
   /// Lane a booking puts the lead in (falls back to the first lane of the first pipeline).
   leadStageId        String?

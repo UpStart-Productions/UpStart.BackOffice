@@ -46,6 +46,7 @@ type BookingTypeDetail = {
   publicPageUrl: string;
   calendarEventTitle: string;
   createLead: boolean;
+  sendGuestConfirmation: boolean;
   leadStage: string;
   leadStageId?: string | null;
   leadSource: string;

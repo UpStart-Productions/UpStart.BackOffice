@@ -19,7 +19,7 @@ import { buildBookingEmailHtml, escapeHtml } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoogleCalendarService } from '../google-calendar/google-calendar.service';
-import { buildBookingIcs } from './booking-ics.util';
+import { bookingGuestDetails, normalizePublicPageUrl } from './booking-guest-email.util';
 import {
   dateKeyInTimezone,
   formatSlotLabel,
@@ -39,10 +39,6 @@ type BookingTypeWithRules = BookingType & {
   availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
   host: { email: string; name: string | null; firstName: string | null };
 };
-
-function normalizePublicPageUrl(url: string): string {
-  return url.trim().replace(/\/$/, '');
-}
 
 function normalizeSlug(slug: string): string {
   return slug.trim().toLowerCase();
@@ -285,6 +281,7 @@ export class BookingService {
           ),
           calendarEventTitle: dto.calendarEventTitle?.trim() || dto.name.trim(),
           createLead: dto.createLead ?? true,
+          sendGuestConfirmation: dto.sendGuestConfirmation ?? true,
           leadStage: dto.leadStage ?? LeadStage.DISCOVERY,
           leadStageId: await this.laneIdOrNull(tx, dto.leadStageId),
           leadSource: dto.leadSource ?? LeadSource.INBOUND,
@@ -347,6 +344,7 @@ export class BookingService {
             calendarEventTitle: dto.calendarEventTitle.trim(),
           }),
           ...(dto.createLead !== undefined && { createLead: dto.createLead }),
+          ...(dto.sendGuestConfirmation !== undefined && { sendGuestConfirmation: dto.sendGuestConfirmation }),
           ...(dto.leadStage !== undefined && { leadStage: dto.leadStage }),
           ...(dto.leadStageId !== undefined && { leadStageId: await this.laneIdOrNull(this.prisma, dto.leadStageId) }),
           ...(dto.leadSource !== undefined && { leadSource: dto.leadSource }),
@@ -509,22 +507,8 @@ export class BookingService {
   }
 
   private async sendConfirmationEmails(booking: Booking, type: BookingTypeWithRules) {
-    const displayTz = booking.guestTimezone ?? type.timezone;
-    const when = formatSlotLabel(booking.startAt, displayTz);
-    const cancelUrl = `${normalizePublicPageUrl(type.publicPageUrl)}?cancel=${booking.cancelToken}`;
-    const hostName = type.host.name ?? type.host.firstName ?? 'Host';
     const fromEmail = process.env.MAIL_FROM_EMAIL?.trim() || 'hello@heyupstart.com';
-
-    const guestHtml = buildBookingEmailHtml({
-      title: 'Booking confirmed',
-      greeting: `Hi ${booking.guestName},`,
-      intro: `Your ${type.name} is confirmed.`,
-      facts: [
-        { label: 'When', value: when },
-        { label: 'Meeting', value: type.name },
-      ],
-      extraHtml: `<p style="margin:20px 0 0;font-size:14px;color:#6b6b6b;"><a href="${escapeHtml(cancelUrl)}" style="color:#5469d4;font-weight:600;text-decoration:none;">Cancel or rebook this meeting.</a></p>`,
-    });
+    const { when, cancelUrl, hostName, ics } = bookingGuestDetails({ booking, type, fromEmail });
 
     const hostHtml = buildBookingEmailHtml({
       title: 'New booking',
@@ -537,31 +521,33 @@ export class BookingService {
       extraHtml: `${booking.guestMessage ? `<p style="margin:20px 0 0;padding-left:12px;border-left:3px solid #7c3aed;color:#6b6b6b;font-size:14px;line-height:1.5;">${escapeHtml(booking.guestMessage)}</p>` : ''}<p style="margin:20px 0 0;font-size:14px;color:#6b6b6b;">Guest email: <a href="mailto:${escapeHtml(booking.guestEmail)}" style="color:#5469d4;font-weight:600;text-decoration:none;">${escapeHtml(booking.guestEmail)}</a></p>`,
     });
 
-    const ics = buildBookingIcs({
-      uid: `booking-${booking.id}@${fromEmail.split('@')[1] ?? 'example.com'}`,
-      startAt: booking.startAt,
-      endAt: booking.endAt,
-      title: type.calendarEventTitle,
-      description: booking.guestMessage ?? type.name,
-      organizerEmail: fromEmail,
-      organizerName: hostName,
-      attendeeEmail: booking.guestEmail,
-      attendeeName: booking.guestName,
-    });
+    // Off when another service (e.g. the tenant's website) sends the guest confirmation; see the service API.
+    if (type.sendGuestConfirmation) {
+      const guestHtml = buildBookingEmailHtml({
+        title: 'Booking confirmed',
+        greeting: `Hi ${booking.guestName},`,
+        intro: `Your ${type.name} is confirmed.`,
+        facts: [
+          { label: 'When', value: when },
+          { label: 'Meeting', value: type.name },
+        ],
+        extraHtml: `<p style="margin:20px 0 0;font-size:14px;color:#6b6b6b;"><a href="${escapeHtml(cancelUrl)}" style="color:#5469d4;font-weight:600;text-decoration:none;">Cancel or rebook this meeting.</a></p>`,
+      });
 
-    const guestResult = await this.mail.sendWithAttachment({
-      to: booking.guestEmail,
-      subject: `Confirmed: ${type.name} on ${when}`,
-      html: guestHtml,
-      attachment: {
-        filename: 'booking.ics',
-        content: Buffer.from(ics, 'utf8'),
-        contentType: 'text/calendar; method=REQUEST',
-      },
-    });
+      const guestResult = await this.mail.sendWithAttachment({
+        to: booking.guestEmail,
+        subject: `Confirmed: ${type.name} on ${when}`,
+        html: guestHtml,
+        attachment: {
+          filename: 'booking.ics',
+          content: Buffer.from(ics, 'utf8'),
+          contentType: 'text/calendar; method=REQUEST',
+        },
+      });
 
-    if (!guestResult.sent) {
-      this.logger.warn(`Guest confirmation email failed: ${guestResult.error}`);
+      if (!guestResult.sent) {
+        this.logger.warn(`Guest confirmation email failed: ${guestResult.error}`);
+      }
     }
 
     const hostResult = await this.mail.sendRaw({
@@ -619,6 +605,7 @@ export class BookingService {
       publicPageUrl: type.publicPageUrl,
       calendarEventTitle: type.calendarEventTitle,
       createLead: type.createLead,
+      sendGuestConfirmation: type.sendGuestConfirmation,
       leadStage: type.leadStage,
       leadStageId: type.leadStageId,
       leadSource: type.leadSource,
