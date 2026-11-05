@@ -235,11 +235,11 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       }
 
       <ng-content select="[peoplePanelExtra]" />
-    </div>
 
-    @if (addPersonFlow() === 'modal') {
-      <app-create-person-modal />
-    }
+      @if (addPersonFlow() === 'modal') {
+        <app-create-person-modal />
+      }
+    </div>
   `,
   styles: `
     .people-panel-picker {

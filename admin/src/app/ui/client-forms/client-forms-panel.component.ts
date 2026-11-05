@@ -48,27 +48,35 @@ import { ClientFormsApi } from '../../core/client-forms.api';
       </div>
     }
 
-    <p-dialog header="Add form" [(visible)]="addVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
-      <div class="form-field">
-        <label for="cfAddForm">Form</label>
-        <p-select
-          inputId="cfAddForm"
-          [options]="addable()"
-          optionLabel="name"
-          optionValue="formId"
-          [(ngModel)]="addFormId"
-          [filter]="true"
-          filterBy="name"
-          placeholder="Search and select…"
-          styleClass="w-full"
-          appendTo="body"
-        />
-      </div>
-      <ng-template pTemplate="footer">
-        <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="adding()" (onClick)="addVisible = false" />
-        <p-button label="Add" icon="pi pi-check" [loading]="adding()" [disabled]="!addFormId" (onClick)="add()" />
-      </ng-template>
-    </p-dialog>
+    @if (addVisible) {
+      <p-dialog
+        header="Add form"
+        [(visible)]="addVisible"
+        [modal]="true"
+        appendTo="body"
+        [style]="{ width: 'min(28rem, 96vw)' }"
+      >
+        <div class="form-field">
+          <label for="cfAddForm">Form</label>
+          <p-select
+            inputId="cfAddForm"
+            [options]="addable()"
+            optionLabel="name"
+            optionValue="formId"
+            [(ngModel)]="addFormId"
+            [filter]="true"
+            filterBy="name"
+            placeholder="Search and select…"
+            styleClass="w-full"
+            appendTo="body"
+          />
+        </div>
+        <ng-template pTemplate="footer">
+          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="adding()" (onClick)="addVisible = false" />
+          <p-button label="Add" icon="pi pi-check" [loading]="adding()" [disabled]="!addFormId" (onClick)="add()" />
+        </ng-template>
+      </p-dialog>
+    }
   `,
 })
 export class ClientFormsPanelComponent {

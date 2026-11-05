@@ -21,7 +21,6 @@ import type Quill from 'quill';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
-import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
@@ -91,7 +90,6 @@ type ClientForm = {
     PhoneInputComponent,
     ArtifactsPanelComponent,
     ActivityTimelineComponent,
-    NextStepComponent,
     PeopleComponent,
     TagInputComponent,
     HelpTextComponent,

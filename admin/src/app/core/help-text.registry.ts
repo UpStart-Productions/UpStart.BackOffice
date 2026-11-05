@@ -99,7 +99,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'organization.publicListing':
     'When on, this organization can appear on a public partner or network listing that reads this flag from Back Office.',
   'organization.clientPortal':
-    'A bookmarkable link for your client. No login or password. Turn on Portal enabled to share the link.',
+    'A bookmarkable link for your client. No login or password. Turn on Client portal enabled to share the link.',
 
   // Settings — business
   'settings.business.profile':

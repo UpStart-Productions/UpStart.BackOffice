@@ -144,7 +144,7 @@ const RECENT_VISITS = 10;
         }
       </div>
 
-      <div class="stack span-1">
+      <div class="side-panel-stack span-1">
         <div class="card card--side">
           <div class="card-header"><h3 class="card-title">Care</h3></div>
           <div class="side-list">

@@ -1,0 +1,27 @@
+# Side panel column (right-hand detail pages)
+
+Use **`side-panel-stack`** for the right column on grid detail layouts — not bare `stack` with ad hoc spacing.
+
+## Markup
+
+```html
+<div class="grid grid-3">
+  <div class="stack span-2"> …main… </div>
+  <div class="side-panel-stack span-1"> … </div>
+</div>
+```
+
+Styles: `admin/src/assets/layout/_side-panels.scss` (2rem gap between panels).
+
+## Panels
+
+- **Inline:** `<div class="card card--side">` with optional `card-header` / `card-title`.
+- **Shared component:** one `.card.card--side` root inside the host. Register the host in `$side-panel-hosts` in `_side-panels.scss` (`display: contents` when a card is present; host hidden when not).
+- **Order:** do not place optional/empty panel hosts between always-visible panels (e.g. put Forms after Projects on org detail).
+- **Dialogs:** `appendTo="body"` and render with `@if (visible)` — never leave an always-mounted `p-dialog` in the stack.
+
+## Do not
+
+- Per-page margin hacks or alternate gap classes on the side column.
+- Multiple layout roots or modals left in the stack without `appendTo="body"`.
+- Add a new side-panel wrapper without registering it in `$side-panel-hosts`.

@@ -49,7 +49,7 @@ const ORG_DETAIL: HelpArticle = {
   sections: [
     {
       heading: 'Services, products and focus',
-      body: 'Below Notes: Services and Products are free-form lists (press Enter to add each). Focus areas are preset sectors such as Recovery or Education. Public listing marks the organization for a public partner or network site that reads it from Back Office.',
+      body: 'Below Notes: Services and Products are free-form lists (press Enter to add each). Focus areas are preset sectors such as Recovery or Education.',
     },
     {
       heading: 'Status',
@@ -73,7 +73,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Next action',
-      body: 'The Next action panel on the right: what happens next, when, and who owns it (same picker as Pipeline Next Action). Set next action or Edit to change it. Done records "Done: …" on the timeline, clears it and asks for the next one. Next actions show on Activity → To do → Next steps, overdue ones in red.',
+      body: 'Set and update the next action on Activity: pick this organization at the top of the page, or choose Work on it from Activity → To do. You can also tick Set the next action when logging in the Activity panel below (same picker as Pipeline Next Action). Done records "Done: …" on the timeline, clears it, and asks for the next one. Every next action shows on Activity → To do → Next steps, with overdue ones in red.',
     },
     {
       heading: 'Activity',
@@ -84,8 +84,8 @@ const ORG_DETAIL: HelpArticle = {
       body: 'Upload files (drag and drop works), add links, or write notes that stay with the organization.',
     },
     {
-      heading: 'Client portal',
-      body: 'Turn on Portal enabled to give a client a bookmarkable link with no login or password. Copy it to share; Regenerate link makes the old one stop working.',
+      heading: 'Public Settings',
+      body: 'Public listing marks the organization for a public partner or network site that reads it from Back Office (save Details to apply). For clients, Client portal enabled gives a bookmarkable link with no login or password; copy it to share. Regenerate link makes the old one stop working.',
     },
     {
       heading: 'Forms',

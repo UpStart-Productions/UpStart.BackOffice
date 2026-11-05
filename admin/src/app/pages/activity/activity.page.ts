@@ -337,7 +337,7 @@ function endOfDayIso(key: string): string | null {
       </div>
 
       @if (hasContext()) {
-        <aside class="stack" aria-label="Details">
+        <aside class="side-panel-stack" aria-label="Details">
           @if (org(); as o) {
             <div class="card card--side">
               <div class="card-header">

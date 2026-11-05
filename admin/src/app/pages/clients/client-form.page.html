@@ -173,14 +173,6 @@
               styleClass="w-full"
             />
           </div>
-          <div class="flex align-items-center gap-2">
-            <p-toggleSwitch
-              inputId="isPublicFeatured"
-              name="isPublicFeatured"
-              [(ngModel)]="form.isPublicFeatured"
-            />
-            <label for="isPublicFeatured">Public listing <app-help-text key="organization.publicListing" /></label>
-          </div>
           @if (!isClientFlow) {
             <div class="showcase-row">
               @if (!isNew) {
@@ -220,17 +212,8 @@
       </div>
 
       @if (!isNew) {
-        <div class="stack span-1">
-          <div class="card card--side">
-            <div class="card-header">
-              <h3 class="card-title">Next action</h3>
-            </div>
-            <app-next-step [clientId]="id()!" [canEdit]="canEdit()" variant="panel" />
-          </div>
-
+        <div class="side-panel-stack span-1">
           <app-people mode="organization" [clientId]="id()!" [compact]="true" />
-
-          <app-client-forms-panel [clientId]="id()!" />
 
           @if (isClient) {
             <div class="card card--side">
@@ -268,11 +251,23 @@
                 }
               }
             </div>
+          }
 
-            <div class="card card--side">
-              <div class="card-header">
-                <h3 class="card-title">Client portal</h3>
-              </div>
+          <app-client-forms-panel [clientId]="id()!" />
+
+          <div class="card card--side">
+            <div class="card-header">
+              <h3 class="card-title">Public Settings</h3>
+            </div>
+            <div class="flex align-items-center gap-2 mb-3">
+              <p-toggleSwitch
+                inputId="isPublicFeatured"
+                name="isPublicFeatured"
+                [(ngModel)]="form.isPublicFeatured"
+              />
+              <label for="isPublicFeatured">Public listing <app-help-text key="organization.publicListing" /></label>
+            </div>
+            @if (isClient) {
               <div class="flex align-items-center gap-2 mb-3">
                 <p-toggleSwitch
                   inputId="portalEnabled"
@@ -280,7 +275,7 @@
                   (ngModelChange)="onPortalToggle($event)"
                   [disabled]="portalBusy()"
                 />
-                <label for="portalEnabled">Portal enabled <app-help-text key="organization.clientPortal" /></label>
+                <label for="portalEnabled">Client portal enabled <app-help-text key="organization.clientPortal" /></label>
               </div>
               @if (portalEnabled() && portalUrl()) {
                 <div class="form-field">
@@ -312,8 +307,8 @@
                   ></button>
                 </div>
               }
-            </div>
-          }
+            }
+          </div>
         </div>
       }
     </div>

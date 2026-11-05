@@ -151,7 +151,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
               }
             }
           </div>
-          <div class="stack span-1">
+          <div class="side-panel-stack span-1">
             <div class="card card--side">
               <div class="card-header"><h3 class="card-title">Submitted by</h3></div>
               <div class="side-list">

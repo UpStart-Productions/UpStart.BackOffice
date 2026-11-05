@@ -23,6 +23,7 @@ export type CreatePersonModalOptions = {
       [resizable]="false"
       [closable]="!personForm()?.saving()"
       [style]="{ width: 'min(32rem, 96vw)' }"
+      appendTo="body"
       (onShow)="onShow()"
     >
       <app-create-person-form
