@@ -244,7 +244,12 @@ export class TaskFormsService {
     for (const file of files) {
       const key = `${projectRootPrefix(project.clientId, form.projectId)}/tasks/${task.id}/${randomUUID()}${extname(file.originalname)}`;
       try {
-        await this.storage.upload({ buffer: file.buffer, key, mimeType: file.mimetype });
+        await this.storage.upload({
+          buffer: file.buffer,
+          key,
+          mimeType: file.mimetype,
+          originalFilename: file.originalname,
+        });
         await this.prisma.taskAttachment.create({
           data: { taskId: task.id, uploadedById: who.user?.id ?? null, fileName: file.originalname.slice(0, 255), fileUrl: key, fileSize: file.size, mimeType: file.mimetype },
         });

@@ -363,7 +363,14 @@ export type FormScoreBand = {
   /** Link URL, or the uploaded file's public API path. */
   assetUrl: string | null;
   assetLabel: string | null;
+  /** Original uploaded file name (file resources); used when Label is empty or for downloads. */
+  assetFileName?: string | null;
 };
+
+/** Display / download name for a profile resource file (not external links). */
+export function scoreBandResourceFileName(b: Pick<FormScoreBand, 'assetFileName' | 'assetLabel'>): string {
+  return b.assetFileName?.trim() || b.assetLabel?.trim() || 'Download';
+}
 
 export type FormScoring = { enabled: boolean; groups: FormScoreGroup[]; bands: FormScoreBand[] };
 

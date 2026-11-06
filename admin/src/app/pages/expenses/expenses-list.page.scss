@@ -1,13 +1,51 @@
-.expense-row {
-  cursor: pointer;
+.expenses-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-/* Period, filters and search in one wrapping row at the top of the panel. */
+.expenses-toolbar-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.expenses-filter-toggle-icon {
+  display: block;
+}
+
+.expenses-filter-panel-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+
+  &--open {
+    grid-template-rows: 1fr;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.expenses-filter-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .expenses-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.expenses-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
   margin-bottom: 1rem;
 }
 
@@ -19,123 +57,232 @@
   margin-bottom: 0;
 }
 
-/* Three equal summary cards above the filters; amounts line up across them. */
-.expenses-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-  margin-bottom: 1rem;
+.expense-register {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
 
-  @media (max-width: 768px) {
-    grid-template-columns: minmax(0, 1fr);
+.expense-register-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--content-border-radius, 6px);
+  background: var(--surface-100, #f3f4f6);
+}
+
+.expense-register-group-label {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-color);
+}
+
+.expense-register-group-total {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+
+/* side-list zeroes first-row top padding; month groups need the same inset as other rows. */
+.expense-register-group .side-list-row:first-child {
+  padding-top: 0.6rem;
+}
+
+.side-list-row.expense-register-row {
+  /* Flex + variable amount width was shifting the person column row to row. */
+  display: grid;
+  grid-template-columns: 2rem 6.75rem minmax(0, 1fr) 11rem 5.75rem;
+  align-items: start;
+  gap: 0.5rem 0.75rem;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--surface-hover, #f4f4f5) 80%, transparent);
+    margin-inline: -0.5rem;
+    padding-inline: 0.5rem;
+    border-radius: var(--content-border-radius, 6px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-text-link);
+    outline-offset: 2px;
+    border-radius: var(--content-border-radius, 6px);
   }
 }
 
-.expenses-summary-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--content-border-radius);
-  background: #fff;
+.expense-register-actions {
+  flex-shrink: 0;
+  width: 2rem;
+  margin-top: 0.1rem;
 }
 
-.expenses-summary-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
+.expense-register-date {
+  flex-shrink: 0;
+  width: 6.75rem;
+  font-size: var(--fs-sm);
+  /* Match .side-list-title line box so the date lines up with the description. */
+  line-height: 1.5rem;
+  font-variant-numeric: tabular-nums;
   color: var(--text-color-secondary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.expenses-summary-amount {
-  font-size: var(--fs-2xl);
-  font-weight: 600;
-  line-height: 1.2;
-  color: var(--text-color);
-}
-
-.expenses-summary-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.expenses-summary-figures {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+.expense-register-body {
   min-width: 0;
 }
 
-/* Right side of the card: status legend stacked just left of the donut. */
-.expenses-summary-chart {
+.expense-register-person {
+  min-width: 0;
+  margin-top: 0.05rem;
+
+  app-person {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+.expense-register-title {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 1.5rem;
+}
+
+.expense-register-desc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-register-receipt {
   flex-shrink: 0;
-}
-
-/* Small donut; arcs start at 12 o'clock. */
-.expenses-donut {
-  width: 5rem;
-  height: 5rem;
-  flex-shrink: 0;
-  transform: rotate(-90deg);
-}
-
-.expenses-donut-track,
-.expenses-donut-arc {
-  fill: none;
-  stroke-width: 5;
-}
-
-.expenses-donut-track {
-  stroke: var(--color-border);
-}
-
-/* Status legend stacked under the amount: dot + label, then amount, both left-aligned. */
-.expenses-legend {
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-content: start;
-  column-gap: 1rem;
-  row-gap: 0.15rem;
-  color: var(--text-color-secondary);
-}
-
-.expenses-legend-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  white-space: nowrap;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-severity-info-text);
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-severity-info-text) 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-severity-info-text);
+    outline-offset: 1px;
+  }
 }
 
-.expenses-legend-amount {
-  font-size: var(--fs-md);
-  color: var(--text-color);
-  font-weight: 600;
-  white-space: nowrap;
+.expense-register-meta {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
 }
 
-.expenses-legend-dot {
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.expense-status {
+.expense-register-tags {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
 }
 
-.expense-receipt-icon {
-  color: var(--color-severity-info-text);
+.expense-register-tags-flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.35rem;
+}
+
+.expense-register-inv {
+  font-size: var(--fs-sm);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.expense-register-meta-filter {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-sm);
+  line-height: inherit;
+  color: var(--primary-color, var(--color-text-link));
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-text-link);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  &--active {
+    font-weight: 600;
+    text-decoration: underline;
+  }
+}
+
+.expense-register-amount {
+  margin-left: 0;
+  justify-self: end;
+  width: 100%;
+  font-size: var(--fs-md);
+  margin-top: 0.05rem;
+}
+
+.expense-register-sep {
+  color: var(--text-color-secondary);
+}
+
+@media (max-width: 720px) {
+  .expense-register-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .expense-register-date {
+    width: auto;
+    order: 2;
+  }
+
+  .expense-register-body {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .expense-register-person {
+    order: 4;
+    width: 100%;
+  }
+
+  .expense-register-amount {
+    order: 1;
+    width: auto;
+    margin-left: auto;
+    font-size: var(--fs-base);
+  }
 }

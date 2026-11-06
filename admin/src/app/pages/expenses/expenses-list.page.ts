@@ -1,19 +1,20 @@
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
-import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { PersonComponent } from '../../ui/person/person.component';
 import { ApiService } from '../../core/api.service';
+import { resolveAssetUrl } from '../../core/asset-url.util';
+import { isPdfFile, isRasterImage } from '../../core/file-type.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { defaultPeriod, resolveReportPeriod } from '../../core/period.util';
-import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PeriodPickerComponent } from '../../ui/period-picker/period-picker.component';
-import { PersonComponent } from '../../ui/person/person.component';
+import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { ExpenseModalComponent } from './expense-modal.component';
@@ -29,49 +30,47 @@ type ProjectListItem = {
 };
 
 type StatusFilter = ExpenseBillingStatus | ExpenseReimbursementStatus;
+type TagSeverity = 'secondary' | 'info' | 'success' | 'warn';
 type Option = { label: string; value: string };
-type TagSeverity = 'secondary' | 'info' | 'success';
-type BarSegment = { key: string; label: string; amount: number; color: string };
+type ExpenseGroup = { key: string; label: string; total: number; items: Expense[] };
+type ExpenseFilterChipKey = 'period' | 'category' | 'client' | 'project' | 'status' | 'person' | 'search';
+type ExpenseFilterChip = { key: ExpenseFilterChipKey; label: string; display: string };
 
-/** Donut colors, shared by both cards: amber = still to do, blue = on an invoice, green = paid. Purple stays reserved for buttons. */
-const BAR_TODO = 'var(--color-severity-warning-text)';
-const BAR_ON_INVOICE = 'var(--color-severity-info-text)';
-const BAR_PAID = 'var(--color-severity-success-text)';
-
-const BILLING_LABELS: Record<ExpenseBillingStatus, string> = {
+const BILLING_TAG: Record<ExpenseBillingStatus, string> = {
   UNBILLED: 'Not billed',
   INVOICED: 'Invoiced',
-  PAID: 'Client paid',
+  PAID: 'Paid',
 };
-const REIMBURSEMENT_LABELS: Record<ExpenseReimbursementStatus, string> = {
+const REIMBURSEMENT_TAG: Record<ExpenseReimbursementStatus, string> = {
   NOT_SUBMITTED: 'Not submitted',
   SUBMITTED: 'Submitted',
   REIMBURSED: 'Reimbursed',
 };
-const STATUS_SEVERITY: Record<StatusFilter, TagSeverity> = {
-  UNBILLED: 'secondary',
+/** Client billing workflow — never `secondary` (that is reserved for Billable/Reimbursable flags). */
+const BILLING_SEVERITY: Record<ExpenseBillingStatus, TagSeverity> = {
+  UNBILLED: 'info',
   INVOICED: 'info',
   PAID: 'success',
-  NOT_SUBMITTED: 'secondary',
-  SUBMITTED: 'info',
-  REIMBURSED: 'success',
 };
 
+const REIMBURSEMENT_SEVERITY: Record<ExpenseReimbursementStatus, TagSeverity> = {
+  NOT_SUBMITTED: 'info',
+  SUBMITTED: 'warn',
+  REIMBURSED: 'success',
+};
 @Component({
   selector: 'app-expenses-list-page',
   standalone: true,
   imports: [
-    HelpTextComponent,
+    FileViewerDialogComponent,
     PersonComponent,
     DatePipe,
-    NgTemplateOutlet,
     FormsModule,
     RouterLink,
     ButtonModule,
     SelectModule,
     ToolbarSearchFieldComponent,
     MessageModule,
-    TableModule,
     TagModule,
     PageComponent,
     PeriodPickerComponent,
@@ -102,6 +101,55 @@ export class ExpensesListPage implements OnInit {
   searchQuery = '';
   searchDebounced = signal('');
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  filtersOpen = signal(false);
+
+  /** Dropdown / row meta filters (not period or search). */
+  readonly activeFilterCount = computed(() => {
+    let n = 0;
+    if (this.statusFilter()) n++;
+    if (this.clientFilter()) n++;
+    if (this.projectFilter()) n++;
+    if (this.personFilter()) n++;
+    if (this.categoryFilter()) n++;
+    return n;
+  });
+
+  /** Shown above the expense list (period, dropdown filters, search). */
+  readonly activeFilterChips = computed((): ExpenseFilterChip[] => {
+    const chips: ExpenseFilterChip[] = [];
+    const bounds = resolveReportPeriod(this.period());
+    if (bounds) {
+      chips.push({ key: 'period', label: 'Period', display: bounds.label });
+    } else if (this.period().periodType === 'custom') {
+      chips.push({ key: 'period', label: 'Period', display: 'Custom range (incomplete)' });
+    }
+    const category = this.categoryFilter();
+    if (category) chips.push({ key: 'category', label: 'Category', display: category });
+    const clientId = this.clientFilter();
+    if (clientId) {
+      const label = this.clientOptions().find((o) => o.value === clientId)?.label ?? clientId;
+      chips.push({ key: 'client', label: 'Client', display: label });
+    }
+    const projectId = this.projectFilter();
+    if (projectId) {
+      const label = this.projectOptions().find((o) => o.value === projectId)?.label ?? projectId;
+      chips.push({ key: 'project', label: 'Project', display: label });
+    }
+    const status = this.statusFilter();
+    if (status) {
+      const label = this.statusOptions.find((o) => o.value === status)?.label ?? status;
+      chips.push({ key: 'status', label: 'Status', display: label });
+    }
+    const personId = this.personFilter();
+    if (personId) {
+      const label = this.personOptions().find((o) => o.value === personId)?.label ?? personId;
+      chips.push({ key: 'person', label: 'Person', display: label });
+    }
+    const q = this.searchDebounced().trim();
+    if (q) chips.push({ key: 'search', label: 'Search', display: q });
+    return chips;
+  });
 
   readonly statusOptions: Option[] = [
     { label: 'Not billed', value: 'UNBILLED' },
@@ -138,6 +186,8 @@ export class ExpensesListPage implements OnInit {
       .map((c) => ({ label: c, value: c })),
   );
 
+  readonly receiptViewer = signal<ViewerFile | null>(null);
+
   readonly filteredExpenses = computed(() => {
     const q = this.searchDebounced().trim().toLowerCase();
     const status = this.statusFilter();
@@ -156,62 +206,27 @@ export class ExpensesListPage implements OnInit {
     );
   });
 
-  /** Summary for the period and filters: total, billable by status, reimbursable by status. */
-  readonly summary = computed(() => {
-    const sum = (list: Expense[]) => Math.round(list.reduce((s, e) => s + Number(e.amount), 0) * 100) / 100;
-    const list = this.filteredExpenses();
-    const billable = list.filter((e) => e.billingStatus);
-    const reimbursable = list.filter((e) => e.reimbursementStatus);
-    return {
-      total: sum(list),
-      count: list.length,
-      billable: sum(billable),
-      unbilled: sum(billable.filter((e) => e.billingStatus === 'UNBILLED')),
-      invoiced: sum(billable.filter((e) => e.billingStatus === 'INVOICED')),
-      clientPaid: sum(billable.filter((e) => e.billingStatus === 'PAID')),
-      reimbursable: sum(reimbursable),
-      notSubmitted: sum(reimbursable.filter((e) => e.reimbursementStatus === 'NOT_SUBMITTED')),
-      submitted: sum(reimbursable.filter((e) => e.reimbursementStatus === 'SUBMITTED')),
-      reimbursed: sum(reimbursable.filter((e) => e.reimbursementStatus === 'REIMBURSED')),
-    };
+  readonly expenseGroups = computed((): ExpenseGroup[] => {
+    const sorted = [...this.filteredExpenses()].sort(
+      (a, b) => new Date(b.incurredAt).getTime() - new Date(a.incurredAt).getTime(),
+    );
+    const groups: ExpenseGroup[] = [];
+    const byKey = new Map<string, ExpenseGroup>();
+    for (const expense of sorted) {
+      const d = new Date(expense.incurredAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+      let group = byKey.get(key);
+      if (!group) {
+        const label = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(d);
+        group = { key, label, total: 0, items: [] };
+        byKey.set(key, group);
+        groups.push(group);
+      }
+      group.items.push(expense);
+      group.total = Math.round((group.total + Number(expense.amount)) * 100) / 100;
+    }
+    return groups;
   });
-
-  readonly billingSegments = computed<BarSegment[]>(() => {
-    const s = this.summary();
-    return [
-      { key: 'unbilled', label: 'Not billed', amount: s.unbilled, color: BAR_TODO },
-      { key: 'invoiced', label: 'Invoiced', amount: s.invoiced, color: BAR_ON_INVOICE },
-      { key: 'paid', label: 'Client paid', amount: s.clientPaid, color: BAR_PAID },
-    ];
-  });
-
-  readonly reimbursementSegments = computed<BarSegment[]>(() => {
-    const s = this.summary();
-    return [
-      { key: 'notSubmitted', label: 'Not submitted', amount: s.notSubmitted, color: BAR_TODO },
-      { key: 'submitted', label: 'Submitted', amount: s.submitted, color: BAR_ON_INVOICE },
-      { key: 'reimbursed', label: 'Reimbursed', amount: s.reimbursed, color: BAR_PAID },
-    ];
-  });
-
-  /** Donut arcs (out of 100) for the segments with an amount, with a small gap between arcs. */
-  donutArcs(segments: BarSegment[]): { key: string; color: string; start: number; length: number }[] {
-    const parts = segments.filter((seg) => seg.amount > 0);
-    const total = parts.reduce((sum, seg) => sum + seg.amount, 0);
-    if (!total) return [];
-    const gap = parts.length > 1 ? 1.5 : 0;
-    let start = 0;
-    return parts.map((seg) => {
-      const share = (seg.amount / total) * 100;
-      const arc = { key: seg.key, color: seg.color, start: start + gap / 2, length: Math.max(share - gap, 0.5) };
-      start += share;
-      return arc;
-    });
-  }
-
-  barLabel(segments: BarSegment[]): string {
-    return segments.map((seg) => `${seg.label} ${this.formatAmount(seg.amount)}`).join(', ');
-  }
 
   constructor() {
     effect(() => {
@@ -229,6 +244,41 @@ export class ExpensesListPage implements OnInit {
     }
   }
 
+  toggleFilters() {
+    this.filtersOpen.update((open) => !open);
+  }
+
+  clearFilterChip(key: ExpenseFilterChipKey) {
+    switch (key) {
+      case 'period':
+        this.period.set(defaultPeriod());
+        break;
+      case 'category':
+        this.categoryFilter.set('');
+        break;
+      case 'client':
+        this.onClientFilter(null);
+        break;
+      case 'project':
+        this.projectFilter.set('');
+        break;
+      case 'status':
+        this.statusFilter.set('');
+        break;
+      case 'person':
+        this.personFilter.set('');
+        break;
+      case 'search':
+        this.searchQuery = '';
+        this.searchDebounced.set('');
+        if (this.searchTimer) {
+          clearTimeout(this.searchTimer);
+          this.searchTimer = null;
+        }
+        break;
+    }
+  }
+
   onSearchInput(value: string) {
     this.searchQuery = value;
     if (this.searchTimer) clearTimeout(this.searchTimer);
@@ -243,6 +293,24 @@ export class ExpensesListPage implements OnInit {
     if (this.projectFilter() && !this.projectOptions().some((p) => p.value === this.projectFilter())) {
       this.projectFilter.set('');
     }
+  }
+
+  filterByCategory(category: string, event: Event) {
+    event.stopPropagation();
+    this.categoryFilter.set(category);
+    this.filtersOpen.set(true);
+  }
+
+  filterByClient(clientId: string, event: Event) {
+    event.stopPropagation();
+    this.onClientFilter(clientId);
+    this.filtersOpen.set(true);
+  }
+
+  filterByProject(projectId: string, event: Event) {
+    event.stopPropagation();
+    this.projectFilter.set(projectId);
+    this.filtersOpen.set(true);
   }
 
   private matchesSearch(e: Expense, q: string): boolean {
@@ -269,16 +337,62 @@ export class ExpensesListPage implements OnInit {
     return '$' + Number(n).toFixed(2);
   }
 
-  billingLabel(s: ExpenseBillingStatus) {
-    return BILLING_LABELS[s];
+  billingStatusTag(s: ExpenseBillingStatus) {
+    return BILLING_TAG[s];
   }
 
-  reimbursementLabel(s: ExpenseReimbursementStatus) {
-    return REIMBURSEMENT_LABELS[s];
+  reimbursementStatusTag(s: ExpenseReimbursementStatus) {
+    return REIMBURSEMENT_TAG[s];
   }
 
-  severity(s: StatusFilter): TagSeverity {
-    return STATUS_SEVERITY[s];
+  showBillingStatusTag(e: Expense): e is Expense & { billingStatus: ExpenseBillingStatus } {
+    return !!e.isBillable && !!e.billingStatus;
+  }
+
+  /** Reimbursement tag; skip duplicate “not started” when client billing is still unbilled too. */
+  showReimbursementStatusTag(e: Expense): e is Expense & { reimbursementStatus: ExpenseReimbursementStatus } {
+    if (!e.isReimbursable || !e.reimbursementStatus) return false;
+    if (
+      e.reimbursementStatus === 'NOT_SUBMITTED' &&
+      e.isBillable &&
+      e.billingStatus === 'UNBILLED'
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  billingSeverity(s: ExpenseBillingStatus): TagSeverity {
+    return BILLING_SEVERITY[s];
+  }
+
+  reimbursementSeverity(s: ExpenseReimbursementStatus): TagSeverity {
+    return REIMBURSEMENT_SEVERITY[s];
+  }
+
+  showAnyStatusTag(e: Expense): boolean {
+    return (
+      e.isBillable ||
+      e.isReimbursable ||
+      !!e.billingInvoice ||
+      !!e.reimbursementInvoice
+    );
+  }
+
+  openReceipt(e: Expense, event: Event) {
+    event.stopPropagation();
+    const url = resolveAssetUrl(e.receiptUrl ?? null);
+    if (!url) return;
+    const name = e.receiptFileName?.trim() || 'Receipt';
+    if (isRasterImage(name, null) || isRasterImage(url, null)) {
+      this.receiptViewer.set({ name, kind: 'image', url });
+      return;
+    }
+    if (isPdfFile(name, null) || isPdfFile(url, null)) {
+      this.receiptViewer.set({ name, kind: 'pdf', url });
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   /** On an invoice: amount, project and the toggles are locked, and it can't be deleted. */

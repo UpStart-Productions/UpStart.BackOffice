@@ -768,6 +768,8 @@ model Expense {
   isBillable              Boolean  @default(false)
   paymentMethod           String?
   receiptUrl              String?
+  /// Original upload filename for the receipt (storage key is a UUID).
+  receiptFileName         String?
   notes                   String?  @db.Text
   /// Mileage expenses: miles driven and the rate per mile used (amount = miles x rate).
   miles                   Decimal? @db.Decimal(10, 2)

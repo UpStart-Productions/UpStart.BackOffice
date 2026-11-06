@@ -413,6 +413,7 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
                 emptyIcon="pi-file-pdf"
                 [existingUrl]="existingProfileResourceUrl()"
                 (fileChange)="onProfileResourceFile($event)"
+                (existingCleared)="onProfileResourceExistingCleared()"
                 (invalidFile)="onProfileResourceInvalid($event)"
               />
               @if (profileResourceError()) {
@@ -855,6 +856,8 @@ export class FormEditPage implements OnInit {
   }
 
   profileResourceFileName(b: FormScoreBand): string {
+    const stored = b.assetFileName?.trim();
+    if (stored) return stored;
     const label = b.assetLabel?.trim();
     if (label) return label;
     const url = b.assetUrl?.trim() ?? '';
@@ -922,7 +925,7 @@ export class FormEditPage implements OnInit {
     this.profileResourceKind = kind;
     this.profileResourceError.set(null);
     this.profileResourceFile = null;
-    this.profileResourceDropzone()?.clear();
+    this.profileResourceDropzone()?.reset();
     if (kind === 'link' && (this.band.assetKind === 'file' || this.band.assetUrl?.startsWith('/api/uploads/'))) {
       this.band.assetUrl = '';
     }
@@ -933,6 +936,13 @@ export class FormEditPage implements OnInit {
 
   onProfileResourceFile(file: File | null) {
     this.profileResourceFile = file;
+    this.profileResourceError.set(null);
+  }
+
+  onProfileResourceExistingCleared() {
+    this.profileResourceFile = null;
+    this.band.assetUrl = '';
+    this.band.assetFileName = '';
     this.profileResourceError.set(null);
   }
 
@@ -957,7 +967,9 @@ export class FormEditPage implements OnInit {
 
   openBand(b: FormScoreBand | null) {
     this.editingBand = b;
-    this.band = b ? { ...b, assetUrl: b.assetUrl ?? '', assetLabel: b.assetLabel ?? '' } : this.blankBand();
+    this.band = b
+      ? { ...b, assetUrl: b.assetUrl ?? '', assetLabel: b.assetLabel ?? '', assetFileName: b.assetFileName ?? '' }
+      : this.blankBand();
     this.bandSteps = (b?.nextSteps ?? []).join('\n');
     this.profileResourceKind =
       b?.assetKind === 'file' || b?.assetKind === 'link'
@@ -974,15 +986,21 @@ export class FormEditPage implements OnInit {
     this.profileResourceError.set(null);
     let assetUrl = this.band.assetUrl?.trim() || null;
     let assetKind: FormScoreBandAssetKind | null = null;
+    let assetFileName = this.band.assetFileName?.trim() || null;
 
     if (this.profileResourceKind === 'link') {
       assetKind = assetUrl ? 'link' : null;
+      assetFileName = null;
     } else {
       if (this.profileResourceFile) {
         try {
-          const res = await this.api.uploadFile<{ url: string }>('/uploads/content-file', this.profileResourceFile);
+          const res = await this.api.uploadFile<{ url: string; filename: string }>(
+            '/uploads/content-file',
+            this.profileResourceFile,
+          );
           assetUrl = res.url?.trim() || null;
           assetKind = assetUrl ? 'file' : null;
+          assetFileName = res.filename?.trim() || this.profileResourceFile.name || null;
         } catch (err) {
           this.profileResourceError.set(err instanceof Error ? err.message : 'Upload failed');
           return;
@@ -1005,6 +1023,7 @@ export class FormEditPage implements OnInit {
       assetKind,
       assetUrl,
       assetLabel: this.band.assetLabel?.trim() || null,
+      assetFileName: assetKind === 'file' ? assetFileName : null,
     };
     const others = this.scoring().bands.filter((x) => x.id !== next.id);
     const bands = [...others, next].sort((a, b) => a.upTo - b.upTo);

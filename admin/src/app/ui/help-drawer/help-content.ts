@@ -667,7 +667,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── Reports & Accounting ───────────────────────────────
   reports: {
     title: 'Reports',
-    intro: 'Time, invoices and tasks for a period you pick.',
+    intro: 'Time, invoices, expenses and tasks for a period you pick.',
     sections: [
       {
         heading: 'Choosing a period',
@@ -680,6 +680,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       {
         heading: 'Invoices',
         body: 'Invoices issued in the period: total invoiced, paid, and draft or sent, with totals by client. Export downloads PDF or Excel.',
+      },
+      {
+        heading: 'Expenses',
+        body: 'Expenses tab is a placeholder for now. After you run a report, summary cards appear here; detailed expense reporting is coming soon.',
       },
       {
         heading: 'Tasks',

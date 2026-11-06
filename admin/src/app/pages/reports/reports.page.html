@@ -6,7 +6,7 @@
         <app-period-picker idPrefix="report" [(value)]="period" />
         <div
           class="form-field report-filter-field"
-          title="Limit time, invoices, and tasks to one client. Select a client to also filter by project."
+          title="Limit time, invoices, expenses, and tasks to one client. Select a client to also filter by project."
         >
           <label for="reportClient">Client</label>
           <p-select
@@ -77,9 +77,10 @@
       <p-tablist>
         <p-tab [value]="0" title="Hours worked in the selected period">Time</p-tab>
         <p-tab [value]="1" title="Invoices issued in the selected period">Invoices</p-tab>
-        <p-tab [value]="2" title="Tasks created, completed, or overdue in the selected period">Tasks</p-tab>
+        <p-tab [value]="2" title="Expenses incurred in the selected period">Expenses</p-tab>
+        <p-tab [value]="3" title="Tasks created, completed, or overdue in the selected period">Tasks</p-tab>
         @if (careOn()) {
-          <p-tab [value]="3" title="Scheduled shift hours against visited hours, per worker and client">Scheduled vs actual</p-tab>
+          <p-tab [value]="4" title="Scheduled shift hours against visited hours, per worker and client">Scheduled vs actual</p-tab>
         }
       </p-tablist>
       <p-tabpanels>
@@ -345,6 +346,34 @@
 
         <p-tabpanel [value]="2">
           @if (!hasRun()) {
+            <p class="text-muted report-empty">Choose a period and run the report to see expense data.</p>
+          } @else if (loading()) {
+            <p class="text-muted report-empty">Loading…</p>
+          } @else {
+            <div class="stat-cards report-stat-cards">
+              <div class="stat-card stat-card--clients">
+                <small class="text-muted">Total spent</small>
+                <h3 class="m-0">—</h3>
+              </div>
+              <div class="stat-card stat-card--projects">
+                <small class="text-muted">Expenses</small>
+                <h3 class="m-0">—</h3>
+              </div>
+              <div class="stat-card stat-card--hours">
+                <small class="text-muted">Billable</small>
+                <h3 class="m-0">—</h3>
+              </div>
+              <div class="stat-card stat-card--leads">
+                <small class="text-muted">Reimbursable</small>
+                <h3 class="m-0">—</h3>
+              </div>
+            </div>
+            <p class="text-muted report-empty">Expense reporting for this period is coming soon.</p>
+          }
+        </p-tabpanel>
+
+        <p-tabpanel [value]="3">
+          @if (!hasRun()) {
             <p class="text-muted report-empty">Choose a period and run the report to see task data.</p>
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
@@ -499,7 +528,7 @@
           }
         </p-tabpanel>
         @if (careOn()) {
-          <p-tabpanel [value]="3">
+          <p-tabpanel [value]="4">
             @if (!hasRun()) {
               <p class="text-muted report-empty">Choose a period and run the report to compare scheduled and visited hours.</p>
             } @else if (loading()) {

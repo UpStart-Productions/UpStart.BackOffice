@@ -53,8 +53,10 @@ export class ExpenseModalComponent {
   editingExpense = signal<Expense | null>(null);
   readonly attribution = signal<RecordAttributionDto | null>(null);
   projects = signal<ExpenseProject[]>([]);
+  clients = signal<{ id: string; name: string }[]>([]);
 
   description = signal('');
+  clientId = signal('');
   amount = signal<number | null>(null);
   category = signal('');
   incurredAt = signal(new Date().toISOString().slice(0, 10));
@@ -68,6 +70,7 @@ export class ExpenseModalComponent {
   mileageRate = signal<number | null>(null);
 
   receiptFile: File | null = null;
+  private receiptRemoved = false;
 
   private readonly receiptDropzone = viewChild<SingleFileDropzoneComponent>('receiptDropzone');
 
@@ -94,8 +97,24 @@ export class ExpenseModalComponent {
     ] satisfies ExpensePaymentMethod[];
   });
 
+  readonly clientOptions = computed(() =>
+    [...this.clients()].sort((a, b) => a.name.localeCompare(b.name)),
+  );
+
+  readonly projectsForClient = computed(() => {
+    const cid = this.clientId();
+    if (!cid) return [];
+    return this.projects().filter((p) => p.client?.id === cid);
+  });
+
+  readonly showProjectPicker = computed(() => !!this.clientId() && this.projectsForClient().length > 0);
+
   readonly projectOptions = computed(() =>
-    this.projects().map((p) => ({ id: p.id, projectName: p.name, clientName: (p.client?.name ?? 'Personal') })),
+    this.projectsForClient().map((p) => ({
+      id: p.id,
+      projectName: p.name,
+      clientName: p.client?.name ?? '',
+    })),
   );
 
   readonly dialogTitle = computed(() => (this.isEdit() ? 'Edit expense' : 'New expense'));
@@ -132,6 +151,7 @@ export class ExpenseModalComponent {
       this.attribution.set(options.expense?.attribution ?? null);
       this.error.set(null);
       this.receiptFile = null;
+      this.receiptRemoved = false;
       this.receiptDropzone()?.reset();
 
       const e = options.expense;
@@ -139,6 +159,7 @@ export class ExpenseModalComponent {
       this.amount.set(e?.amount ?? null);
       this.category.set(e?.category ?? '');
       this.incurredAt.set(e ? e.incurredAt.slice(0, 10) : new Date().toISOString().slice(0, 10));
+      this.clientId.set(e?.project?.client?.id ?? '');
       this.projectId.set(e?.project?.id ?? '');
       this.isReimbursable.set(e?.isReimbursable ?? false);
       this.isBillable.set(e?.isBillable ?? false);
@@ -147,6 +168,7 @@ export class ExpenseModalComponent {
       this.miles.set(e?.miles != null ? Number(e.miles) : null);
       this.mileageRate.set(e?.mileageRate != null ? Number(e.mileageRate) : null);
       if (e?.mileageRate == null) void this.loadMileageRate();
+      void this.loadClients();
       void this.loadCategories();
       void this.loadPaymentMethods();
 
@@ -157,9 +179,35 @@ export class ExpenseModalComponent {
     });
   }
 
+  onClientChange(clientId: string | null) {
+    const next = clientId ?? '';
+    this.clientId.set(next);
+    const pid = this.projectId();
+    if (pid && !this.projectsForClient().some((p) => p.id === pid)) {
+      this.projectId.set('');
+      if (!this.isEdit()) this.applyExpenseDefaultsFromProject('');
+    }
+  }
+
   onProjectChange(projectId: string | null) {
-    this.projectId.set(projectId ?? '');
-    if (!this.isEdit()) this.applyExpenseDefaultsFromProject(projectId ?? '');
+    const id = projectId ?? '';
+    this.projectId.set(id);
+    const project = id ? this.projects().find((p) => p.id === id) : null;
+    if (project?.client?.id) this.clientId.set(project.client.id);
+    if (!this.isEdit()) this.applyExpenseDefaultsFromProject(id);
+  }
+
+  private async loadClients() {
+    try {
+      const rows = await this.api.get<{ id: string; name: string; isActive?: boolean }[]>('/clients?journey=CLIENT');
+      this.clients.set(rows.filter((c) => c.isActive !== false).map((c) => ({ id: c.id, name: c.name })));
+    } catch {
+      const fromProjects = new Map<string, string>();
+      for (const p of this.projects()) {
+        if (p.client) fromProjects.set(p.client.id, p.client.name);
+      }
+      this.clients.set([...fromProjects].map(([id, name]) => ({ id, name })));
+    }
   }
 
   /** New expenses only: set reimbursable/billable from the project (mileage still forces reimbursable). */
@@ -222,6 +270,12 @@ export class ExpenseModalComponent {
 
   onReceiptFile(file: File | null) {
     this.receiptFile = file;
+    if (file) this.receiptRemoved = false;
+  }
+
+  onReceiptExistingCleared() {
+    this.receiptFile = null;
+    this.receiptRemoved = true;
   }
 
   onDialogHide() {
@@ -280,7 +334,9 @@ export class ExpenseModalComponent {
         expenseId = created.id;
       }
 
-      if (this.receiptFile) {
+      if (this.receiptRemoved) {
+        await this.api.delete(`/expenses/${expenseId}/receipt`);
+      } else if (this.receiptFile) {
         await this.api.uploadFile(`/expenses/${expenseId}/receipt`, this.receiptFile);
       }
 

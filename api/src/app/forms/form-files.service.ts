@@ -30,7 +30,12 @@ export class FormFilesService {
     if (file.size > FORM_FILE_MAX_BYTES) throw new BadRequestException('Files can be 10 MB at most');
     if (!isAllowedFormFile(name, file.mimetype)) throw new BadRequestException('Upload a Word, PDF, Excel, PNG or JPG file');
     const key = `${prefix}${randomUUID()}-${sanitizeFileSegment(name).slice(0, 120)}`;
-    await this.storage.upload({ buffer: file.buffer, key, mimeType: file.mimetype || undefined });
+    await this.storage.upload({
+      buffer: file.buffer,
+      key,
+      mimeType: file.mimetype || undefined,
+      originalFilename: name,
+    });
     return { key, name, size: file.size, type: file.mimetype || '' };
   }
 

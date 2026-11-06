@@ -39,12 +39,10 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 **Expenses** shows expenses for a period. **New Expense** is at the top right.
 
 - **Period**: Month, Quarter or Custom range, with the year and month or quarter (or From and To dates). It starts on this month.
-- **Filters**: **Status**, **Client**, **Project**, **Person** (when more than one person has expenses in the period) and **Category**, plus search on the right (description, category, project, client, payment method, person or invoice number).
-- **Totals** at the top, for the period and filters: **Total spent**, **Billable to clients** and **Reimbursable**. Billable and Reimbursable each have a small donut chart split by status, with each status and its amount listed beside it. Amber is Not billed / Not submitted, blue is Invoiced / Submitted, green is Client paid / Reimbursed. The list has a total row at the bottom.
-- **Status** column:
-  - Billable: **Not billed** → **Invoiced** (on a client invoice, draft or sent) → **Client paid** (that invoice is paid).
-  - Reimbursable: **Not submitted** → **Submitted** (on the person's invoice to your organization) → **Reimbursed** (that invoice is paid).
-  - An expense that is both shows both. The invoice number next to a status opens the invoice. Voiding an invoice puts its expenses back to Not billed or Not submitted.
+- **Filters**: **Category**, **Client**, **Project**, **Status**, **Person** (when more than one person has expenses in the period), plus search on the right (description, category, project, client, payment method, person or invoice number). On each row, category, client and project names apply that filter when clicked (they match the dropdowns at the top).
+- **Totals** at the top, for the period and filters: **Total spent**, **Billable to clients** and **Reimbursable**. Billable and Reimbursable each have a small donut chart split by status, with each status and its amount listed beside it. Amber is Not billed / Not submitted, blue is Invoiced / Submitted, green is Client paid / Reimbursed.
+- The **list** is grouped by month (newest first). Each month header uses a slightly darker grey background and shows that month's subtotal on the right. Each row shows the full date, the submitter's photo and name, description, amount on the right, category and client/project underneath, and tags when **Billable** and/or **Reimbursable** are on: grey **Billable** / **Reimbursable** pills, then workflow status (**Not billed**, **Invoiced**, **Paid**; **Not submitted**, **Submitted**, **Reimbursed** — **Submitted** is amber). If both flags are on and neither workflow has started, only **Not billed** appears after **Billable** (not a second “not submitted” pill). A **paperclip** on the description opens the receipt when one is attached.
+- Invoice numbers on the row open the invoice. Voiding an invoice resets the related status tags.
 - Click a row, or **Edit** in the row's ⋮ menu, to edit. **Delete** is in the ⋮ menu (it asks first).
 - **On an invoice**: while an expense is on an invoice, its amount, category, project, Reimbursable and Billable can't change and it can't be deleted. Remove it from the invoice first (edit the draft).
 

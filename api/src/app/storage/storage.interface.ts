@@ -5,6 +5,8 @@ export interface StorageService {
     buffer: Buffer;
     key: string;
     mimeType?: string;
+    /** Original upload name; used for Content-Disposition on GET /api/uploads/…. */
+    originalFilename?: string;
   }): Promise<string>;
 
   copy(params: { sourceKey: string; destKey: string }): Promise<string>;
@@ -14,6 +16,9 @@ export interface StorageService {
   exists(key: string): Promise<boolean>;
 
   read(key: string): Promise<Buffer>;
+
+  /** Stored original filename from upload time, if any. */
+  originalFilename(key: string): Promise<string | null>;
 
   /** Extract storage key from a URL previously returned by upload/copy. */
   keyFromUrl(url: string): string;

@@ -1,6 +1,7 @@
 import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { filenameFromContentDisposition } from '../../core/content-disposition.util';
 import { PdfFrameComponent } from '../pdf-frame/pdf-frame.component';
 
 /** What the viewer shows. `url` is a public file address; `loadBlob` loads it another way (e.g. signed in). */
@@ -113,11 +114,14 @@ export class FileViewerDialogComponent {
     event.preventDefault();
     try {
       if (f.download) return await f.download();
-      const blob = f.kind === 'pdf' && this.pdf() ? this.pdf()! : f.loadBlob ? await f.loadBlob() : await this.fetchBlob(f.url);
+      const { blob, downloadName } =
+        f.kind === 'pdf' && this.pdf()
+          ? { blob: this.pdf()!, downloadName: f.name }
+          : await this.fetchBlobWithName(f.url, f.name, f.loadBlob);
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = f.name;
+      link.download = downloadName;
       link.click();
       URL.revokeObjectURL(objectUrl);
     } catch (err) {
@@ -126,9 +130,22 @@ export class FileViewerDialogComponent {
   }
 
   private async fetchBlob(url: string | null | undefined): Promise<Blob> {
+    const { blob } = await this.fetchBlobWithName(url, 'download');
+    return blob;
+  }
+
+  private async fetchBlobWithName(
+    url: string | null | undefined,
+    fallbackName: string,
+    loadBlob?: () => Promise<Blob>,
+  ): Promise<{ blob: Blob; downloadName: string }> {
+    if (loadBlob) {
+      return { blob: await loadBlob(), downloadName: fallbackName };
+    }
     if (!url) throw new Error('This file has no address.');
     const res = await fetch(url);
     if (!res.ok) throw new Error('The file could not be loaded.');
-    return res.blob();
+    const fromHeader = filenameFromContentDisposition(res.headers.get('Content-Disposition'));
+    return { blob: await res.blob(), downloadName: fromHeader ?? fallbackName };
   }
 }

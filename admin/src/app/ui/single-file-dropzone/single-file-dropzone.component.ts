@@ -1,6 +1,9 @@
-import { Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, input, output, signal, viewChild } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { resolveAssetUrl } from '../../core/asset-url.util';
+import { fetchUploadDisplayName } from '../../core/content-disposition.util';
+import { fileIconClass, isPdfFile, isRasterImage } from '../../core/file-type.util';
+import { FileViewerDialogComponent, type ViewerFile } from '../file-viewer/file-viewer-dialog.component';
 
 const IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 
@@ -9,10 +12,16 @@ function isImageUrl(url: string): boolean {
   return /\.(png|jpe?g|gif|webp)$/.test(path);
 }
 
+function nameFromUrl(url: string): string {
+  const path = url.split('?')[0] ?? '';
+  const seg = path.split('/').pop();
+  return seg || 'File';
+}
+
 @Component({
   selector: 'app-single-file-dropzone',
   standalone: true,
-  imports: [ButtonModule],
+  imports: [ButtonModule, FileViewerDialogComponent],
   styles: `
     .file-dropzone {
       display: flex;
@@ -20,7 +29,6 @@ function isImageUrl(url: string): boolean {
       gap: 0.65rem;
       min-height: 3.25rem;
       padding: 0.45rem 0.65rem;
-      /* A light blue tint so it reads as a place to drop files (purple is for action buttons). */
       border: 1.5px dashed color-mix(in srgb, var(--color-severity-info-text) 45%, var(--surface-border));
       border-radius: 8px;
       background: var(--color-severity-info-bg);
@@ -36,12 +44,31 @@ function isImageUrl(url: string): boolean {
       border-color: var(--color-severity-info-text);
       background: color-mix(in srgb, var(--color-severity-info-text) 14%, var(--color-severity-info-bg));
     }
-    .file-dropzone-thumb {
+    .file-dropzone-thumb-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 2.25rem;
       height: 2.25rem;
+      padding: 0;
+      border: none;
       border-radius: 6px;
-      object-fit: cover;
+      background: var(--surface-card, #fff);
+      cursor: pointer;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+    .file-dropzone-thumb-btn:hover {
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-severity-info-text) 35%, transparent);
+    }
+    .file-dropzone-thumb-btn:focus-visible {
+      outline: 2px solid var(--color-severity-info-text);
+      outline-offset: 1px;
+    }
+    .file-dropzone-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     .file-dropzone-copy {
       flex: 1 1 auto;
@@ -61,21 +88,11 @@ function isImageUrl(url: string): boolean {
       color: var(--color-severity-info-text);
       flex-shrink: 0;
     }
+    .file-dropzone-thumb-btn .file-dropzone-icon {
+      font-size: 1.25rem;
+    }
     .file-dropzone-remove {
       flex-shrink: 0;
-      margin-left: auto;
-    }
-    .file-dropzone-view {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      margin-top: 0.15rem;
-      font-size: var(--fs-sm);
-      color: var(--primary-color);
-      text-decoration: none;
-    }
-    .file-dropzone-view:hover {
-      text-decoration: underline;
     }
   `,
   template: `
@@ -93,27 +110,27 @@ function isImageUrl(url: string): boolean {
       (dragleave)="onDragLeave($event)"
       (drop)="onDrop($event)"
     >
-      @if (previewUrl()) {
-        <img class="file-dropzone-thumb" [src]="previewUrl()!" alt="" />
+      @if (canOpenView()) {
+        <button
+          type="button"
+          class="file-dropzone-thumb-btn"
+          [attr.aria-label]="'View ' + viewFileName()"
+          (click)="openView($event)"
+        >
+          @if (previewUrl()) {
+            <img class="file-dropzone-thumb" [src]="previewUrl()!" alt="" />
+          } @else {
+            <i class="pi {{ thumbIcon() }} file-dropzone-icon" aria-hidden="true"></i>
+          }
+        </button>
       } @else {
         <i class="pi {{ emptyIcon() }} file-dropzone-icon" aria-hidden="true"></i>
       }
       <span class="file-dropzone-copy">
         <strong>{{ headline() }}</strong>
         {{ subline() }}
-        @if (existingViewUrl() && !localFile() && !localFiles().length) {
-          <a
-            class="file-dropzone-view"
-            [href]="existingViewUrl()!"
-            target="_blank"
-            rel="noopener noreferrer"
-            (click)="$event.stopPropagation()"
-          >
-            <i class="pi pi-external-link" aria-hidden="true"></i> View current file
-          </a>
-        }
       </span>
-      @if (localFile() || localFiles().length) {
+      @if (showRemove()) {
         <p-button
           class="file-dropzone-remove"
           type="button"
@@ -135,10 +152,13 @@ function isImageUrl(url: string): boolean {
       (change)="onFileInput($event)"
       (click)="$event.stopPropagation()"
     />
+    <app-file-viewer-dialog [file]="viewerFile()" (closed)="viewerFile.set(null)" />
   `,
 })
 export class SingleFileDropzoneComponent {
   existingUrl = input<string | null | undefined>(null);
+  /** Original filename when `existingUrl` points at stored upload metadata. */
+  existingDisplayName = input<string | null | undefined>(null);
   accept = input('image/png,image/jpeg,image/gif,image/webp,application/pdf');
   maxBytes = input(10 * 1024 * 1024);
   emptyTitle = input('File (optional)');
@@ -152,15 +172,28 @@ export class SingleFileDropzoneComponent {
   fileChange = output<File | null>();
   filesChange = output<File[]>();
   invalidFile = output<string>();
+  /** User removed the server-stored file shown before a new upload. */
+  existingCleared = output<void>();
 
   readonly dragOver = signal(false);
   private readonly localPreview = signal<string | null>(null);
   readonly localFile = signal<File | null>(null);
   readonly localFiles = signal<File[]>([]);
+  private readonly existingHidden = signal(false);
+  private readonly fetchedExistingName = signal<string | null>(null);
+  readonly viewerFile = signal<ViewerFile | null>(null);
+
+  readonly existingLabel = computed(() => {
+    const explicit = this.existingDisplayName()?.trim();
+    if (explicit) return explicit;
+    return this.fetchedExistingName()?.trim() || null;
+  });
 
   private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
-  readonly existingViewUrl = computed(() => resolveAssetUrl(this.existingUrl() ?? null));
+  readonly existingViewUrl = computed(() =>
+    this.existingHidden() ? null : resolveAssetUrl(this.existingUrl() ?? null),
+  );
 
   readonly previewUrl = computed(() => {
     const local = this.localPreview();
@@ -170,12 +203,28 @@ export class SingleFileDropzoneComponent {
     return null;
   });
 
+  readonly canOpenView = computed(() => {
+    if (this.localFile()) return true;
+    if (this.localFiles().length) return true;
+    return !!this.existingViewUrl();
+  });
+
+  readonly showRemove = computed(() => this.canOpenView());
+
+  readonly thumbIcon = computed(() => {
+    const file = this.localFile();
+    if (file) return fileIconClass(file.name, file.type);
+    const url = this.existingViewUrl();
+    if (url) return fileIconClass(this.existingLabel() || nameFromUrl(url), null);
+    return this.emptyIcon();
+  });
+
   readonly headline = computed(() => {
     const files = this.localFiles();
     if (files.length) return this.selectedTitle();
     const file = this.localFile();
     if (file) return this.selectedTitle();
-    if (this.existingUrl()) return this.selectedTitle();
+    if (this.existingViewUrl()) return this.selectedTitle();
     return this.emptyTitle();
   });
 
@@ -184,11 +233,90 @@ export class SingleFileDropzoneComponent {
     if (files.length) return files.map((f) => f.name).join(', ');
     const file = this.localFile();
     if (file) return file.name;
-    if (this.existingUrl()) return this.replaceHint();
+    if (this.existingViewUrl()) {
+      return this.existingLabel() || this.replaceHint();
+    }
     return this.emptyHint();
   });
 
   ariaLabel = computed(() => this.headline() + '. ' + this.subline());
+
+  constructor() {
+    effect(() => {
+      this.existingUrl();
+      this.existingDisplayName();
+      this.existingHidden.set(false);
+    });
+    effect(() => {
+      const url = this.existingViewUrl();
+      const explicit = this.existingDisplayName()?.trim();
+      if (!url || explicit) {
+        this.fetchedExistingName.set(null);
+        return;
+      }
+      void fetchUploadDisplayName(url).then((name) => {
+        if (this.existingViewUrl() === url) this.fetchedExistingName.set(name);
+      });
+    });
+  }
+
+  viewFileName(): string {
+    const file = this.localFile();
+    if (file) return file.name;
+    const files = this.localFiles();
+    if (files.length) return files[0]!.name;
+    const label = this.existingLabel();
+    if (label) return label;
+    const url = this.existingViewUrl();
+    return url ? nameFromUrl(url) : this.selectedTitle();
+  }
+
+  openView(event: Event) {
+    event.stopPropagation();
+    const local = this.localFile();
+    if (local) {
+      this.openLocalFile(local);
+      return;
+    }
+    const files = this.localFiles();
+    if (files.length) {
+      this.openLocalFile(files[0]!);
+      return;
+    }
+    const url = this.existingViewUrl();
+    if (!url) return;
+    const name = this.existingLabel() || nameFromUrl(url);
+    if (isRasterImage(name, null) || isRasterImage(url, null)) {
+      this.viewerFile.set({ name, kind: 'image', url });
+      return;
+    }
+    if (isPdfFile(name, null) || isPdfFile(url, null)) {
+      this.viewerFile.set({ name, kind: 'pdf', url });
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  private openLocalFile(file: File) {
+    const name = file.name;
+    if (isRasterImage(name, file.type)) {
+      const url = this.localPreview() ?? URL.createObjectURL(file);
+      this.viewerFile.set({ name, kind: 'image', url });
+      return;
+    }
+    if (isPdfFile(name, file.type)) {
+      const url = URL.createObjectURL(file);
+      this.viewerFile.set({
+        name,
+        kind: 'pdf',
+        url,
+        loadBlob: async () => file,
+      });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 
   onZoneClick() {
     this.fileInput()?.nativeElement.click();
@@ -232,16 +360,29 @@ export class SingleFileDropzoneComponent {
   }
 
   clear() {
-    this.localPreview.set(null);
-    this.localFile.set(null);
-    this.localFiles.set([]);
-    if (this.multiple()) this.filesChange.emit([]);
-    else this.fileChange.emit(null);
+    if (this.localFile() || this.localFiles().length) {
+      this.localPreview.set(null);
+      this.localFile.set(null);
+      this.localFiles.set([]);
+      if (this.multiple()) this.filesChange.emit([]);
+      else this.fileChange.emit(null);
+      return;
+    }
+    if (this.existingViewUrl()) {
+      this.existingHidden.set(true);
+      this.existingCleared.emit();
+      this.fileChange.emit(null);
+    }
   }
 
   reset() {
-    this.clear();
+    this.existingHidden.set(false);
+    this.fetchedExistingName.set(null);
+    this.localPreview.set(null);
+    this.localFile.set(null);
+    this.localFiles.set([]);
     this.dragOver.set(false);
+    this.viewerFile.set(null);
   }
 
   private acceptFiles(files: File[]) {

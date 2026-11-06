@@ -11,7 +11,46 @@
   gap: 1rem;
 }
 
+.expense-desc-amount-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.form-field--description {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.form-field--amount {
+  flex: 0 0 7.5rem;
+  width: 7.5rem;
+  max-width: 35%;
+}
+
+.expense-mileage-hint {
+  display: block;
+  margin-top: -0.5rem;
+}
+
+.expense-computed-amount--compact {
+  padding: 0.5rem 0.625rem;
+  font-size: var(--fs-sm);
+}
+
 /* Two equal columns inside the expense dialog (do not use global showcase-half — it wraps). */
+.expense-client-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+  align-items: start;
+}
+
+.expense-client-project-row--split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .expense-form-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -20,12 +59,22 @@
   align-items: start;
 }
 
+.expense-form-row--3 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .expense-form-row--toggles {
   align-items: center;
 }
 
+.expense-miles-field {
+  max-width: 12rem;
+}
+
 @media (max-width: 520px) {
-  .expense-form-row {
+  .expense-client-project-row--split,
+  .expense-form-row,
+  .expense-form-row--3 {
     grid-template-columns: 1fr;
   }
 }

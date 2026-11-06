@@ -28,6 +28,7 @@ import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attributi
 import { PrismaService } from '../prisma/prisma.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
+import { sanitizeDisplayFilename } from '../common/content-file.util';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
@@ -180,7 +181,7 @@ export class ExpensesController {
       include: expenseInclude,
       orderBy: { incurredAt: 'desc' },
     });
-    return expenses.map((e) => this.toView(e));
+    return Promise.all(expenses.map((e) => this.toView(e)));
   }
 
   @Post()
@@ -206,14 +207,14 @@ export class ExpensesController {
       },
       include: expenseInclude,
     });
-    return this.toView(expense);
+    return await this.toView(expense);
   }
 
   @Get(':id')
   async get(@Req() req: Request, @Param('id') id: string) {
     const expense = await this.prisma.expense.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) }, include: expenseInclude });
     if (!expense) throw new NotFoundException('Expense not found');
-    return this.toView(expense);
+    return await this.toView(expense);
   }
 
   @Put(':id')
@@ -240,7 +241,7 @@ export class ExpensesController {
       },
       include: expenseInclude,
     });
-    return this.toView(expense);
+    return await this.toView(expense);
   }
 
   /** Upload/replace the receipt image for an existing expense. */
@@ -258,8 +259,14 @@ export class ExpensesController {
     if (!file) throw new BadRequestException('file is required');
 
     const ext = extname(file.originalname) || '.jpg';
+    const receiptFileName = sanitizeDisplayFilename(file.originalname || `receipt${ext}`);
     const key = `expenses/${existing.userId}/${id}/${randomUUID()}${ext}`;
-    await this.storage.upload({ buffer: file.buffer, key, mimeType: file.mimetype });
+    await this.storage.upload({
+      buffer: file.buffer,
+      key,
+      mimeType: file.mimetype,
+      originalFilename: receiptFileName,
+    });
 
     if (existing.receiptUrl) {
       await this.deleteStoredReceipt(existing.receiptUrl);
@@ -267,10 +274,28 @@ export class ExpensesController {
 
     const expense = await this.prisma.expense.update({
       where: { id },
-      data: { receiptUrl: key },
+      data: { receiptUrl: key, receiptFileName },
       include: expenseInclude,
     });
-    return this.toView(expense);
+    return await this.toView(expense);
+  }
+
+  @Action('edit')
+  @Delete(':id/receipt')
+  async removeReceipt(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.prisma.expense.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
+    });
+    if (!existing) throw new NotFoundException('Expense not found');
+    if (existing.receiptUrl) {
+      await this.deleteStoredReceipt(existing.receiptUrl);
+    }
+    const expense = await this.prisma.expense.update({
+      where: { id },
+      data: { receiptUrl: null, receiptFileName: null },
+      include: expenseInclude,
+    });
+    return await this.toView(expense);
   }
 
   @Delete(':id')
@@ -300,8 +325,15 @@ export class ExpensesController {
   }
 
   /** The expense plus its billing and reimbursement status, worked out from its invoice links. */
-  private toView(expense: ExpenseWithLinks) {
+  private async toView(expense: ExpenseWithLinks) {
     const { invoiceLineItem, tenantInvoiceLineItem, ...rest } = expense;
+    let receiptFileName = expense.receiptFileName?.trim() || null;
+    if (!receiptFileName && expense.receiptUrl) {
+      const key = this.storage.keyFromUrl(expense.receiptUrl);
+      if (key && !key.startsWith('http')) {
+        receiptFileName = (await this.storage.originalFilename(key)) ?? null;
+      }
+    }
     const billing = invoiceLineItem?.invoice;
     const reimbursement = tenantInvoiceLineItem?.invoice;
     const billingLink = linkStatus(billing);
@@ -314,7 +346,12 @@ export class ExpensesController {
       : null;
     const view = {
       ...rest,
+      user: {
+        ...expense.user,
+        avatarUrl: toPublicAssetUrl(expense.user.avatarUrl),
+      },
       receiptUrl: toPublicAssetUrl(expense.receiptUrl),
+      receiptFileName,
       billingStatus,
       billingInvoice: invoiceRef(billing),
       reimbursementStatus,

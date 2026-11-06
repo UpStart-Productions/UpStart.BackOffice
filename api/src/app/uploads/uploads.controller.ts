@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Head,
   NotFoundException,
   Param,
   Req,
@@ -8,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { contentDispositionFilename } from '../storage/content-disposition.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -38,6 +40,7 @@ export class UploadsController {
    * Streams from local disk or S3 depending on STORAGE_PROVIDER.
    */
   @Get('*path')
+  @Head('*path')
   async serve(@Param('path') path: string | string[], @Req() req: Request, @Res() res: Response) {
     const segments = Array.isArray(path) ? path : [path];
     const key = segments.join('/');
@@ -53,9 +56,23 @@ export class UploadsController {
 
     const buffer = await this.storage.read(key);
     const ext = key.slice(key.lastIndexOf('.')).toLowerCase();
-    res.setHeader('Content-Type', MIME_BY_EXT[ext] ?? 'application/octet-stream');
+    const contentType = MIME_BY_EXT[ext] ?? 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.setHeader('Accept-Ranges', 'bytes');
+    const storedName = await this.storage.originalFilename(key);
+    if (storedName) {
+      const inline =
+        contentType.startsWith('image/') ||
+        contentType.startsWith('video/') ||
+        contentType === 'application/pdf';
+      res.setHeader('Content-Disposition', contentDispositionFilename(storedName, inline));
+    }
+
+    if (req.method === 'HEAD') {
+      res.end();
+      return;
+    }
 
     // Byte ranges: video players (Safari always) ask for parts of the file to start and seek.
     const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');

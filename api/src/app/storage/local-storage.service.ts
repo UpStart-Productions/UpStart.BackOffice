@@ -6,19 +6,32 @@ import { StorageService } from './storage.interface';
 
 const UPLOADS_ROOT = path.join(process.cwd(), 'uploads');
 
+function metaPath(key: string): string {
+  return path.join(UPLOADS_ROOT, `${key}.meta.json`);
+}
+
 @Injectable()
 export class LocalStorageService implements StorageService {
   async upload({
     buffer,
     key,
+    originalFilename,
   }: {
     buffer: Buffer;
     key: string;
     mimeType?: string;
+    originalFilename?: string;
   }): Promise<string> {
     const fullPath = path.join(UPLOADS_ROOT, key);
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, buffer);
+    const meta = metaPath(key);
+    if (originalFilename?.trim()) {
+      fs.mkdirSync(path.dirname(meta), { recursive: true });
+      fs.writeFileSync(meta, JSON.stringify({ originalFilename: originalFilename.trim() }), 'utf8');
+    } else if (fs.existsSync(meta)) {
+      fs.unlinkSync(meta);
+    }
     return publicUrlForKey(key);
   }
 
@@ -33,6 +46,10 @@ export class LocalStorageService implements StorageService {
     const dest = path.join(UPLOADS_ROOT, destKey);
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.copyFileSync(src, dest);
+    const srcMeta = metaPath(sourceKey);
+    if (fs.existsSync(srcMeta)) {
+      fs.copyFileSync(srcMeta, metaPath(destKey));
+    }
     return publicUrlForKey(destKey);
   }
 
@@ -40,6 +57,22 @@ export class LocalStorageService implements StorageService {
     const fullPath = path.join(UPLOADS_ROOT, key);
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
+    }
+    const meta = metaPath(key);
+    if (fs.existsSync(meta)) {
+      fs.unlinkSync(meta);
+    }
+  }
+
+  async originalFilename(key: string): Promise<string | null> {
+    const meta = metaPath(key);
+    if (!fs.existsSync(meta)) return null;
+    try {
+      const parsed = JSON.parse(fs.readFileSync(meta, 'utf8')) as { originalFilename?: string };
+      const name = parsed.originalFilename?.trim();
+      return name || null;
+    } catch {
+      return null;
     }
   }
 

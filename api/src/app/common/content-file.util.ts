@@ -45,6 +45,7 @@ export async function saveContentFile(
     buffer: file.buffer,
     key,
     mimeType,
+    originalFilename: displayName,
   });
 
   return {
@@ -71,7 +72,7 @@ function resolveContentFileType(mimetype: string, originalname: string): { mimeT
   );
 }
 
-function sanitizeDisplayFilename(originalname: string): string {
+export function sanitizeDisplayFilename(originalname: string): string {
   const base = originalname.split(/[/\\]/).pop()?.trim() ?? 'file';
   const ext = extname(base);
   const stem = ext ? base.slice(0, -ext.length) : base;

@@ -33,17 +33,21 @@ export class S3StorageService implements StorageService {
     buffer,
     key,
     mimeType,
+    originalFilename,
   }: {
     buffer: Buffer;
     key: string;
     mimeType?: string;
+    originalFilename?: string;
   }): Promise<string> {
+    const name = originalFilename?.trim();
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,
         Key: key,
         Body: buffer,
         ContentType: mimeType ?? 'application/octet-stream',
+        ...(name ? { Metadata: { 'original-filename': name.slice(0, 255) } } : {}),
       }),
     );
     return publicUrlForKey(key);
@@ -86,6 +90,21 @@ export class S3StorageService implements StorageService {
       return true;
     } catch {
       return false;
+    }
+  }
+
+  async originalFilename(key: string): Promise<string | null> {
+    try {
+      const head = await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+        }),
+      );
+      const name = head.Metadata?.['original-filename']?.trim();
+      return name || null;
+    } catch {
+      return null;
     }
   }
 

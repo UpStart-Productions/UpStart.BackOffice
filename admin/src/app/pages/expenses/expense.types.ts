@@ -20,6 +20,7 @@ export type Expense = {
   isBillable: boolean;
   paymentMethod?: string | null;
   receiptUrl?: string | null;
+  receiptFileName?: string | null;
   notes?: string | null;
   /** Mileage expenses: miles driven and the rate per mile used. */
   miles?: number | null;

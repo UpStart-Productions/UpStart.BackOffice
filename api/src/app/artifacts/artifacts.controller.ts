@@ -109,7 +109,12 @@ export class ArtifactsController {
     const ext = extname(file.originalname);
     const key = `${folder}/artifacts/${randomUUID()}${ext}`;
 
-    await this.storage.upload({ buffer: file.buffer, key, mimeType: file.mimetype });
+    await this.storage.upload({
+      buffer: file.buffer,
+      key,
+      mimeType: file.mimetype,
+      originalFilename: file.originalname,
+    });
 
     return this.prisma.artifact.create({
       data: {

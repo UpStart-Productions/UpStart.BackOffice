@@ -7,7 +7,16 @@ import { MessageModule } from 'primeng/message';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import { formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormFileRef, type FormAttachInfoDto, type FormSubmissionDto } from '@upstart/back-office/shared';
+import {
+  formatFormValue,
+  formFieldPoints,
+  questionFields,
+  scoreBandResourceFileName,
+  type FormFieldDto,
+  type FormFileRef,
+  type FormAttachInfoDto,
+  type FormSubmissionDto,
+} from '@upstart/back-office/shared';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormFilesClient } from '../../core/form-files.client';
@@ -96,7 +105,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
                     </ul>
                   }
                   @if (bandAssetHref(b); as href) {
-                    <a [href]="href" target="_blank" rel="noopener" class="text-primary"><i class="pi pi-file-pdf mr-1"></i>{{ b.assetLabel || 'Download' }}</a>
+                    <a [href]="href" target="_blank" rel="noopener" class="text-primary" [attr.download]="b.assetKind === 'file' ? scoreBandResourceFileName(b) : null"><i class="pi pi-file-pdf mr-1"></i>{{ b.assetLabel?.trim() || scoreBandResourceFileName(b) }}</a>
                   }
                 }
               </div>

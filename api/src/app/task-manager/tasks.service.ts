@@ -765,7 +765,12 @@ export class TasksService {
       include: { project: { select: { name: true } } },
     });
     const key = `${projectRootPrefix(project.clientId, projectId)}/tasks/${taskId}/${randomUUID()}${extname(file.originalname)}`;
-    await this.storage.upload({ buffer: file.buffer, key, mimeType: file.mimetype });
+    await this.storage.upload({
+      buffer: file.buffer,
+      key,
+      mimeType: file.mimetype,
+      originalFilename: file.originalname,
+    });
     const row = await this.prisma.taskAttachment.create({
       data: {
         taskId,

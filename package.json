@@ -14,6 +14,7 @@
     "review-clients": "tsx tools/review-clients.ts",
     "test-ses": "tsx tools/test-ses.ts",
     "seed:inbox": "tsx tools/dev/seed-inbox.ts",
+    "seed:expenses": "tsx tools/seed-expenses.ts",
     "setup-inbound-email-aws": "bash tools/setup-inbound-email-aws.sh",
     "pack-inbound-email-lambda": "bash tools/inbound-email-lambda/pack.sh",
     "test:inbound-email-lambda": "node --test tools/inbound-email-lambda/index.test.mjs",

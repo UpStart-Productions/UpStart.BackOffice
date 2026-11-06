@@ -7,7 +7,18 @@ import { ButtonModule } from 'primeng/button';
 import { TabsModule } from 'primeng/tabs';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { isContentField, type FormFieldDto, type FormFileRef, type FormPublicDraftDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto, type FormSectionDto } from '@upstart/back-office/shared';
+import {
+  isContentField,
+  scoreBandResourceFileName,
+  type FormFieldDto,
+  type FormFileRef,
+  type FormPublicDraftDto,
+  type FormPublicFormDto,
+  type FormPublicLinkDto,
+  type FormPublicSubmitResultDto,
+  type FormResultDto,
+  type FormSectionDto,
+} from '@upstart/back-office/shared';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { environment } from '../../../environments/environment';
 import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
@@ -254,7 +265,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                     </ul>
                   }
                   @if (bandAssetHref(b); as href) {
-                    <p><a [href]="href" target="_blank" rel="noopener">{{ b.assetLabel || 'Download your guide' }}</a></p>
+                    <p><a [href]="href" target="_blank" rel="noopener" [attr.download]="b.assetKind === 'file' ? scoreBandResourceFileName(b) : null">{{ b.assetLabel?.trim() || scoreBandResourceFileName(b) }}</a></p>
                   }
                 }
                 @if (r.groups.length) {

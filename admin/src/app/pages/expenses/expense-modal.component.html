@@ -20,36 +20,28 @@
         On invoice {{ inv.displayNumber }}. Amount, category, project, Reimbursable and Billable can't change while it's on that invoice.
       </p-message>
     }
-    <div class="form-field">
-      <label for="expense-description">Description</label>
-      <input
-        pInputText
-        id="expense-description"
-        placeholder="What was this for?"
-        [ngModel]="description()"
-        (ngModelChange)="description.set($event)"
-        class="w-full"
-      />
-    </div>
 
-    <!-- 1. Amount + date incurred (same row) -->
-    <div class="expense-form-row">
-      @if (isMileage()) {
-        <div class="form-field">
+    <div class="expense-desc-amount-row">
+      <div class="form-field form-field--description">
+        <label for="expense-description">Description <span class="required-dot" aria-hidden="true"></span></label>
+        <input
+          pInputText
+          id="expense-description"
+          placeholder="What was this for?"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+          class="w-full"
+        />
+      </div>
+      <div class="form-field form-field--amount">
+        @if (isMileage()) {
           <label>Amount</label>
-          <div class="expense-computed-amount">{{ formatMoney(mileageAmount()) }}</div>
-          @if (mileageRate() != null && miles()) {
-            <small class="text-color-secondary">{{ miles() }} mi × {{ formatRate(mileageRate()) }}/mi</small>
-          }
-        </div>
-      } @else if (lockedInvoice()) {
-        <div class="form-field">
+          <div class="expense-computed-amount expense-computed-amount--compact">{{ formatMoney(mileageAmount()) }}</div>
+        } @else if (lockedInvoice()) {
           <label>Amount</label>
-          <div class="expense-computed-amount">{{ formatMoney(amount()) }}</div>
-        </div>
-      } @else {
-        <div class="form-field">
-          <label for="expense-amount">Amount</label>
+          <div class="expense-computed-amount expense-computed-amount--compact">{{ formatMoney(amount()) }}</div>
+        } @else {
+          <label for="expense-amount">Amount <span class="required-dot" aria-hidden="true"></span></label>
           <app-money-input
             inputId="expense-amount"
             [min]="0"
@@ -60,59 +52,76 @@
             styleClass="w-full"
             inputStyleClass="w-full"
           />
+        }
+      </div>
+    </div>
+    @if (isMileage() && mileageRate() != null && miles()) {
+      <small class="text-color-secondary expense-mileage-hint">{{ miles() }} mi × {{ formatRate(mileageRate()) }}/mi</small>
+    }
+
+    <div
+      class="expense-client-project-row"
+      [class.expense-client-project-row--split]="showProjectPicker()"
+    >
+      <div class="form-field">
+        <label for="expense-client">Client</label>
+        <p-select
+          inputId="expense-client"
+          [options]="clientOptions()"
+          optionLabel="name"
+          optionValue="id"
+          [ngModel]="clientId() || null"
+          (ngModelChange)="onClientChange($event)"
+          [disabled]="!!lockedInvoice()"
+          [filter]="true"
+          filterBy="name"
+          filterPlaceholder="Search…"
+          placeholder="No client"
+          [showClear]="true"
+          styleClass="w-full"
+          appendTo="body"
+        />
+      </div>
+      @if (showProjectPicker()) {
+        <div class="form-field">
+          <label for="expense-project">Project</label>
+          <p-select
+            inputId="expense-project"
+            [options]="projectOptions()"
+            optionLabel="projectName"
+            optionValue="id"
+            [ngModel]="projectId() || null"
+            (ngModelChange)="onProjectChange($event)"
+            [disabled]="!!lockedInvoice()"
+            [filter]="true"
+            filterBy="projectName"
+            filterPlaceholder="Search…"
+            placeholder="No project"
+            [showClear]="true"
+            styleClass="w-full"
+            appendTo="body"
+          />
         </div>
       }
+    </div>
+
+    <div class="expense-form-row expense-form-row--3">
       <div class="form-field">
-        <label for="expense-date">Date incurred</label>
+        <label for="expense-date">Date incurred <span class="required-dot" aria-hidden="true"></span></label>
         <app-date-input
           inputId="expense-date"
           [ngModel]="incurredAt()"
           (ngModelChange)="incurredAt.set($event)"
         />
       </div>
-    </div>
-
-    <!-- 2. Category + miles (same row when Mileage) -->
-    @if (isMileage()) {
-      <div class="expense-form-row">
-        <div class="form-field">
-          <label for="expense-category">Category <app-help-text key="expense.category" /></label>
-          <p-select
-            inputId="expense-category"
-            [options]="categorySelectOptions()"
-            optionLabel="name"
-            optionValue="name"
-            [ngModel]="category() || null"
-            (ngModelChange)="onCategoryChange($event ?? '')"
-            [disabled]="!!lockedInvoice()"
-            placeholder="Search and select…"
-            [filter]="true"
-            filterBy="name"
-            filterPlaceholder="Search…"
-            [showClear]="true"
-            styleClass="w-full"
-            appendTo="body"
-          />
-        </div>
-        <div class="form-field">
-          <label for="expense-miles">Miles <app-help-text key="expense.miles" /></label>
-          <p-inputNumber
-            inputId="expense-miles"
-            mode="decimal"
-            locale="en-US"
-            [min]="0"
-            [maxFractionDigits]="2"
-            [ngModel]="miles()"
-            (ngModelChange)="miles.set($event)"
-            [disabled]="!!lockedInvoice()"
-            styleClass="w-full"
-            inputStyleClass="w-full"
-          />
-        </div>
-      </div>
-    } @else {
       <div class="form-field">
-        <label for="expense-category">Category (optional) <app-help-text key="expense.category" /></label>
+        <label for="expense-category">
+          Category
+          @if (isMileage()) {
+            <span class="required-dot" aria-hidden="true"></span>
+          }
+          <app-help-text key="expense.category" />
+        </label>
         <p-select
           inputId="expense-category"
           [options]="categorySelectOptions()"
@@ -130,40 +139,8 @@
           appendTo="body"
         />
       </div>
-    }
-
-    <!-- 3. Project + payment method (same row) -->
-    <div class="expense-form-row">
       <div class="form-field">
-        <label for="expense-project">Project (optional)</label>
-        <p-select
-          inputId="expense-project"
-          [options]="projectOptions()"
-          optionLabel="projectName"
-          optionValue="id"
-          [ngModel]="projectId()"
-          (ngModelChange)="onProjectChange($event)"
-          [disabled]="!!lockedInvoice()"
-          [filter]="true"
-          filterBy="projectName,clientName"
-          filterPlaceholder="Search by client or project…"
-          placeholder="No project"
-          [showClear]="true"
-          styleClass="w-full"
-          appendTo="body"
-        >
-          <ng-template #selectedItem let-option>
-            @if (option) {
-              <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
-            }
-          </ng-template>
-          <ng-template #item let-option>
-            <span>{{ option.projectName }} <span class="text-color-secondary">({{ option.clientName }})</span></span>
-          </ng-template>
-        </p-select>
-      </div>
-      <div class="form-field">
-        <label for="expense-payment-method">Payment method (optional) <app-help-text key="expense.paymentMethod" /></label>
+        <label for="expense-payment-method">Payment method <app-help-text key="expense.paymentMethod" /></label>
         <p-select
           inputId="expense-payment-method"
           [options]="paymentMethodSelectOptions()"
@@ -182,6 +159,24 @@
       </div>
     </div>
 
+    @if (isMileage()) {
+      <div class="form-field expense-miles-field">
+        <label for="expense-miles">Miles <span class="required-dot" aria-hidden="true"></span><app-help-text key="expense.miles" /></label>
+        <p-inputNumber
+          inputId="expense-miles"
+          mode="decimal"
+          locale="en-US"
+          [min]="0"
+          [maxFractionDigits]="2"
+          [ngModel]="miles()"
+          (ngModelChange)="miles.set($event)"
+          [disabled]="!!lockedInvoice()"
+          styleClass="w-full"
+          inputStyleClass="w-full"
+        />
+      </div>
+    }
+
     <div class="expense-form-row expense-form-row--toggles">
       <div class="flex align-items-center gap-2">
         <p-toggleSwitch [ngModel]="isReimbursable()" (ngModelChange)="isReimbursable.set($event)" [disabled]="!!lockedInvoice()" />
@@ -194,7 +189,7 @@
     </div>
 
     <div class="form-field">
-      <label for="expense-notes">Notes (optional)</label>
+      <label for="expense-notes">Notes</label>
       <textarea
         pTextarea
         id="expense-notes"
@@ -206,17 +201,19 @@
     </div>
 
     <div class="form-field">
-      <label>Receipt (optional)</label>
+      <label>Receipt</label>
       <app-single-file-dropzone
         #receiptDropzone
         [fill]="true"
         [existingUrl]="editingExpense()?.receiptUrl"
+        [existingDisplayName]="editingExpense()?.receiptFileName"
         accept="image/*,.pdf,application/pdf"
-        emptyTitle="Receipt (optional)"
+        emptyTitle="Receipt"
         emptyHint="Drop image or PDF, or click to browse"
         selectedTitle="Receipt"
         replaceHint="Drop or click to replace"
         (fileChange)="onReceiptFile($event)"
+        (existingCleared)="onReceiptExistingCleared()"
         (invalidFile)="error.set($event)"
       />
     </div>
