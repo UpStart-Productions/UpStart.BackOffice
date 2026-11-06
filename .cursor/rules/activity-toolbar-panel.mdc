@@ -1,0 +1,12 @@
+# Activity search / filters toolbar
+
+**Component:** `app-activity-toolbar-panel` (`admin/src/app/ui/activity/activity-toolbar-panel.component.ts`)
+
+**Shell:** `app-activity-section` (`activity-section.component.ts`) wraps **`variant="full"`** around `app-activity-timeline` for **Activity → All activity** and for organization, person, pipeline card, and client Activity panels — one chrome everywhere.
+
+- **`variant="full"`** — `ToolbarSearchField` + sliders toggle + collapsible filters (Logged by, From, To, Type, Include people’s when scoped to an organization). Project the **timeline** as content (`ng-content`).
+- **`variant="record"`** — Compact row (type + search + optional Include people). Kept for reuse; record pages use **`variant="full"`** via `app-activity-section` instead.
+
+**Shared options:** `ACTIVITY_TOOLBAR_TYPE_FILTER_OPTIONS` (same labels/icons as Activity).
+
+**Do not** duplicate this toolbar on Activity or record pages; extend `app-activity-toolbar-panel` or `app-activity-section` if another row is needed.

@@ -13,7 +13,7 @@ import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
-import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
+import { ActivitySectionComponent } from '../../ui/activity/activity-section.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
@@ -36,7 +36,7 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
     TagModule,
     QuillModule,
     PageComponent,
-    ActivityTimelineComponent,
+    ActivitySectionComponent,
     TagInputComponent,
     AvatarDropzoneComponent,
     OrganizationLinksComponent,
@@ -134,7 +134,7 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
               </div>
             </div>
 
-            <app-activity-timeline [contactId]="c.id" />
+            <app-activity-section [contactId]="c.id" [showNextActionOnQuickLog]="false" />
           </div>
 
           <div class="side-panel-stack span-1">

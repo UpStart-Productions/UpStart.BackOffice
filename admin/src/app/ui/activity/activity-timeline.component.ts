@@ -39,7 +39,7 @@ import {
 import { MessageBodyComponent } from '../message-body/message-body.component';
 import { PersonComponent } from '../person/person.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
-import { ToolbarSearchFieldComponent } from '../toolbar-search-field/toolbar-search-field.component';
+import { ACTIVITY_TOOLBAR_TYPE_FILTER_OPTIONS } from './activity-toolbar-panel.component';
 import { DateInputComponent } from '../date-input/date-input.component';
 import { CreatableSelectComponent } from '../creatable-select/creatable-select.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
@@ -132,7 +132,6 @@ function nowForInput(): string {
     SelectModule,
     SelectButtonModule,
     SkeletonModule,
-    ToolbarSearchFieldComponent,
     QuillModule,
     MessageBodyComponent,
     RowActionsMenuComponent,
@@ -160,43 +159,6 @@ function nowForInput(): string {
         </div>
       }
 
-      @if (!(loading() && items().length === 0) && !hideInlineFilters()) {
-        <div class="activity-filter">
-          <p-select
-            [options]="filterOptions"
-            optionLabel="label"
-            optionValue="value"
-            [ngModel]="filter()"
-            (ngModelChange)="filter.set($event)"
-            appendTo="body"
-            styleClass="activity-type-select"
-            ariaLabel="Activity type"
-          >
-            <ng-template #item let-option>
-              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
-            </ng-template>
-            <ng-template #selectedItem let-option>
-              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
-            </ng-template>
-          </p-select>
-          <div class="activity-search">
-            <app-toolbar-search-field
-              class="w-full"
-              [placeholder]="searchPlaceholder()"
-              ariaLabel="Search activity"
-              [ngModel]="query()"
-              (ngModelChange)="query.set($event)"
-            />
-          </div>
-          @if (clientId()) {
-            <div class="activity-people-toggle">
-              <p-checkbox inputId="includePeople" [ngModel]="includePeople()" (ngModelChange)="includePeople.set($event)" [binary]="true" />
-              <label for="includePeople">Include people's activity</label>
-            </div>
-          }
-        </div>
-      }
-
       @if (canLog()) {
         <div class="quick-log" role="group" aria-label="Log activity">
           <p-selectbutton
@@ -216,7 +178,7 @@ function nowForInput(): string {
             (onEditorCreated)="onLogBodyEditor($event)"
             aria-label="What happened"
           />
-          @if (canSetFollowUp()) {
+          @if (canSetFollowUp() && showNextActionOnQuickLog()) {
             <div class="quick-log-follow">
               <p-checkbox inputId="quickFollow" [(ngModel)]="quickFollow" [binary]="true" />
               <label for="quickFollow">Set the next action</label>
@@ -620,23 +582,10 @@ function nowForInput(): string {
     .quick-log-next-text { flex: 2 1 16rem; min-width: 0; }
     .quick-log-next-date { flex: 1 1 10rem; min-width: 0; }
     .quick-log-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-    .activity-people-toggle { display: flex; align-items: center; gap: 0.4rem; flex: 0 0 auto; white-space: nowrap; }
     .activity-item--nested { margin-left: 2.85rem; border-top-style: dashed; }
     .activity-thread-toggle { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; padding: 0.25rem 0; border: 0; background: transparent; color: #1d4ed8; cursor: pointer; font: inherit; }
     :host ::ng-deep .activity-via { margin: 0.15rem 0 0.35rem; }
-    .activity-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
-    .activity-search {
-      flex: 1 1 auto;
-      min-width: 0;
-      display: flex;
-    }
-    .activity-search .toolbar-search-field-host {
-      flex: 1 1 auto;
-      min-width: 0;
-      width: 100%;
-    }
     .activity-type-option { display: inline-flex; align-items: center; gap: 0.5rem; }
-    :host ::ng-deep .activity-type-select { width: 12.5rem; flex: 0 0 auto; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .activity-item { display: flex; gap: 0.85rem; padding: 0.9rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .activity-item:first-of-type { border-top: 0; }
@@ -749,6 +698,8 @@ export class ActivityTimelineComponent {
   showFullViewLink = input(true);
   /** Second group heading: the organization these people belong to. */
   organizationName = input<string>();
+  /** Quick log: "Set the next action" (organizations only; person pages pass false for parity). */
+  showNextActionOnQuickLog = input(true);
 
   readonly target = computed<TimelineTarget | { global: true } | null>(() => {
     const c = this.clientId();
@@ -761,8 +712,8 @@ export class ActivityTimelineComponent {
     return null;
   });
   readonly canLog = computed(() => !!this.clientId() || !!this.leadId() || !!this.contactId());
-  /** The next step lives on organizations. */
-  readonly canSetFollowUp = computed(() => !!this.clientId());
+  /** Next action row applies only when logging on an organization and the host allows it. */
+  readonly canSetFollowUp = computed(() => !!this.clientId() && this.showNextActionOnQuickLog());
   /** Organization names on items whenever the feed spans organizations. */
   readonly showOrgNames = computed(() => !this.clientId() && !this.leadId());
   readonly includePeople = model(true);
@@ -839,7 +790,9 @@ export class ActivityTimelineComponent {
     return names.length === 1 ? `From ${names[0]}'s activity` : `From people's activity: ${names.join(', ')}`;
   }
 
-  readonly filterName = computed(() => this.filterOptions.find((o) => o.value === this.filter())?.label.toLowerCase() ?? 'activity');
+  readonly filterName = computed(
+    () => ACTIVITY_TOOLBAR_TYPE_FILTER_OPTIONS.find((o) => o.value === this.filter())?.label.toLowerCase() ?? 'activity',
+  );
   readonly searchPlaceholder = computed(() => (this.filter() === 'ALL' ? 'Search activity…' : `Search ${this.filterName()}…`));
 
   emptyFilterMessage(): string {
@@ -928,13 +881,6 @@ export class ActivityTimelineComponent {
     return groups;
   });
 
-  readonly filterOptions: { label: string; value: TypeFilter; icon: string }[] = [
-    { label: 'All', value: 'ALL', icon: 'pi-list' },
-    { label: 'Emails', value: 'EMAIL', icon: 'pi-envelope' },
-    { label: 'Calls', value: 'CALL', icon: 'pi-phone' },
-    { label: 'Meetings', value: 'MEETING', icon: 'pi-calendar' },
-    { label: 'Notes', value: 'NOTE', icon: 'pi-file-edit' },
-  ];
   readonly typeOptions = [
     { label: 'Note', value: 'NOTE' },
     { label: 'Call', value: 'CALL' },
@@ -1040,7 +986,9 @@ export class ActivityTimelineComponent {
     const f = this.filter();
     if (f !== 'ALL') base.type = f;
     else delete base.type;
-    base.includePeople = this.includePeople();
+    const orgScoped = !!(base.clientId || ('clientId' in target && target.clientId));
+    if (orgScoped) base.includePeople = this.includePeople();
+    else delete base.includePeople;
     return base;
   }
 

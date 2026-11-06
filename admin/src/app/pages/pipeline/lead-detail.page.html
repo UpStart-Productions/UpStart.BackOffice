@@ -136,9 +136,9 @@
 
         @if (id()) {
           @if (account(); as acct) {
-            <app-activity-timeline [clientId]="acct.id" [organizationName]="acct.name" />
+            <app-activity-section [clientId]="acct.id" [organizationName]="acct.name" />
           } @else {
-            <app-activity-timeline [leadId]="id()!" [organizationName]="form.organization" />
+            <app-activity-section [leadId]="id()!" [organizationName]="form.organization" [showNextActionOnQuickLog]="false" />
           }
 
           <app-artifacts-panel [leadId]="id()!" />

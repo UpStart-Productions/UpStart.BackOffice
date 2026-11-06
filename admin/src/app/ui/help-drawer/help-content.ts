@@ -77,7 +77,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Activity',
-      body: 'Emails, calls, meetings and notes for this organization. The box at the top logs a Note, Call or Meeting in one line (type @ to mention a teammate or one of their people; teammates get a notification); tick Set the next action to set it at the same time (Next Action picker); More details… opens the full form. Include people\'s activity also shows activity logged on this organization\'s people that isn\'t filed to any organization ("From [name]\'s activity"). Email filed to another organization never shows here. Email threads show their newest message; expand for earlier ones. Open full view opens Activity for this organization. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
+      body: 'Emails, calls, meetings and notes for this organization. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by (see the ? tooltip), From and To dates, Type (All, Emails, Calls, Meetings, Notes), and Include people\'s activity (on by default; also shows activity logged on this organization\'s people that isn\'t filed to any organization—"From [name]\'s activity"). Below that, the quick log logs a Note, Call or Meeting in one line (type @ to mention a teammate or one of their people; teammates get a notification); tick Set the next action to set it at the same time (Next Action picker); More details… opens the full form. Email filed to another organization never shows here. Email threads show their newest message; expand for earlier ones. Search and type apply together to the list. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
     },
     {
       heading: 'Files, links and notes',
@@ -143,7 +143,7 @@ const LEAD_DETAIL: HelpArticle = {
     },
     {
       heading: 'Activity and files',
-      body: 'Log activity records a call, meeting, or note. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The type menu (All, Emails, Calls, Meetings, Notes) and Search sit above the list. Search looks only at the type you picked. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Filed emails show here too, along with files, links and notes.',
+      body: 'Log activity records a call, meeting, or note. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by, From and To dates, Type (All, Emails, Calls, Meetings, Notes), and Include people\'s activity when the card is scoped to an organization. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. Search and type apply together to the list. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Filed emails show here too, along with files, links and notes.',
     },
   ],
 };
@@ -249,7 +249,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'One organization or person',
-        body: 'Pick an organization or person to the right of the page title, or use Open full view on their page. With an organization picked, the Person list only includes people linked to that organization. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the quick log and timeline. Click the name in Details to open their page.',
+        body: 'Pick an organization or person to the right of the page title. With an organization picked, the Person list only includes people linked to that organization. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the same search, filters and quick log as All activity. Click the name in Details to open their page.',
       },
     ],
   },
@@ -376,7 +376,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Activity',
-        body: 'Emails, calls, meetings and notes involving this person, across all their organizations. Record a call, meeting, or note with Log activity on the organization or pipeline card. The menu on an entry can Forward it, Create task, or Delete it after you confirm.',
+        body: 'Emails, calls, meetings and notes involving this person, across all their organizations. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by, From and To dates, and Type (Include people\'s activity does not apply on a person timeline). The quick log records here; you can also use Log activity on the organization or pipeline card. The menu on an entry can Forward it, Create task, or Delete it after you confirm.',
       },
     ],
   },

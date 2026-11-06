@@ -20,7 +20,7 @@ import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
-import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
+import { ActivitySectionComponent } from '../../ui/activity/activity-section.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
@@ -89,7 +89,7 @@ type ClientForm = {
     PageComponent,
     PhoneInputComponent,
     ArtifactsPanelComponent,
-    ActivityTimelineComponent,
+    ActivitySectionComponent,
     PeopleComponent,
     TagInputComponent,
     HelpTextComponent,

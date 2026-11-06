@@ -14,7 +14,7 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
-import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
+import { ActivitySectionComponent } from '../../ui/activity/activity-section.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
@@ -66,7 +66,7 @@ export const NEW_LEAD_PLACEHOLDER_ORG = 'Untitled organization';
     TagModule,
     PageComponent,
     ArtifactsPanelComponent,
-    ActivityTimelineComponent,
+    ActivitySectionComponent,
     DateInputComponent,
     RecordAttributionComponent,
   ],
