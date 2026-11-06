@@ -46,9 +46,9 @@ A visit's page has the time, the **visit checklist** and notes.
 
 ## Schedule
 
-**Office → Schedule** shows a week of shifts (arrows and **This week** to move), filtered by worker and client.
+**Office → Schedule** shows a week of shifts in **seven columns** (Monday through Sunday). Use **‹** and **›**, the **calendar** button, and **Return to this week** to move around. Filter by worker and client.
 
-- **Add shift**: client, worker (empty = **open shift**), date, start and end, notes. **Repeat weekly** repeats on the days you pick at the same local time, until a date or with no end. A warning shows when the worker already has a shift at that time. The worker gets a notification (bell, and email unless turned off).
+- **Add shift** (header or under a day): client, worker (empty = **open shift**), date, start and end, notes. Choosing **Add shift** under a day sets that date in the form. **Repeat weekly** repeats on the days you pick at the same local time, until a date or with no end. A warning shows when the worker already has a shift at that time. The worker gets a notification (bell, and email unless turned off).
 - A shift's ⋮ menu: **Edit** (that shift only), **Cancel shift** / **Restore shift**, **Delete**, **Delete this and following** (repeating shifts; shifts with a visit stay), **Start visit** (your own scheduled shift) and **Open visit**.
 - Tags show **Open**, **Cancelled**, **Visit in progress** and **Visited**.
 - A client's name opens their Care tab.

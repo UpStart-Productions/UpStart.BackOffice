@@ -15,7 +15,7 @@
   align-items: center;
 
   .layout-topbar-logo-container {
-    width: 22rem;
+    width: var(--layout-main-offset-open);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -233,8 +233,8 @@
 }
 
 .notifications-panel.p-popover {
-  width: calc(22rem + 100px);
-  min-width: calc(22rem + 100px);
+  width: calc(var(--layout-main-offset-open) + 100px);
+  min-width: calc(var(--layout-main-offset-open) + 100px);
 }
 
 .impersonation-banner {

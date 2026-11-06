@@ -309,7 +309,7 @@
           }
 
           @case ('submissions') {
-            <app-dashboard-panel title="Pending submissions" icon="pi-file-edit" color="warning" link="/forms">
+            <app-dashboard-panel title="Submissions" icon="pi-file-edit" color="warning" link="/forms">
               @if (submissions().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (submissions().error) {

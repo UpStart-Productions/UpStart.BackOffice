@@ -42,7 +42,7 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
       appendTo="body"
       appCenterPopoverCaret
       styleClass="notifications-panel"
-      [style]="{ width: 'calc(22rem + 100px)', minWidth: 'calc(22rem + 100px)' }"
+      [style]="{ width: 'calc(var(--layout-main-offset-open) + 100px)', minWidth: 'calc(var(--layout-main-offset-open) + 100px)' }"
       (onShow)="onPanelShow()"
     >
       <div class="notifications-panel-header">

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, model, OnDestroy, OnInit, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -26,6 +26,7 @@ import {
   ContactSummary,
   contactName,
   Interaction,
+  InteractionType,
   participantLine,
   QueueRow,
   relativeTime,
@@ -34,20 +35,23 @@ import {
   TeamMember,
 } from '../../core/communications.api';
 import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-picker.loader';
-import { PeopleDirectoryOption } from '../projects/people-directory.util';
+import { PeopleDirectoryOption, teamUsersToOptions, toDirectoryOptions } from '../projects/people-directory.util';
 import { ActivityTimelineComponent } from '../../ui/activity/activity-timeline.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
 import { NextStepComponent } from '../../ui/next-step/next-step.component';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PeopleComponent } from '../../ui/people/people.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 
 type Tab = 'todo' | 'all';
 type QueueKey = 'reply' | 'nextStep' | 'quiet' | 'unfiled';
+type ActivityTimelineTypeFilter = 'ALL' | InteractionType;
 type Org = { id: string; name: string; journey?: 'PROSPECT' | 'CLIENT' | 'NONE'; isActive?: boolean };
 type Option = { id: string; label: string };
 type OrgDetail = {
@@ -70,6 +74,28 @@ type OrgDetail = {
 
 const DAY = 24 * 60 * 60 * 1000;
 
+/** CRM contacts from `/contacts` → options for `app-people-select` (same shape as directory search). */
+function contactSummariesToPeopleOptions(contacts: ContactSummary[]): PeopleDirectoryOption[] {
+  const entries = contacts.map((c) => {
+    const firstName = (c.firstName ?? '').trim();
+    const lastName = (c.lastName ?? '').trim();
+    const primary = c.emails?.find((e) => e.isPrimary) ?? c.emails?.[0];
+    const email = primary?.email?.trim() ?? '';
+    return {
+      id: `contact:${c.id}`,
+      source: 'CONTACT',
+      sourceLabel: 'Contact',
+      firstName,
+      lastName,
+      email,
+      phone: (c.phone ?? '').trim(),
+      displayName: contactName({ firstName, lastName }).trim() || email || 'Contact',
+      avatarUrl: c.avatarUrl ?? null,
+    };
+  });
+  return toDirectoryOptions(entries);
+}
+
 const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['thresholds']) => string }> = {
   reply: { label: 'Needs reply', help: (t) => `They wrote last and nobody has answered in ${t.needsReplyDays}+ day${t.needsReplyDays === 1 ? '' : 's'}.` },
   nextStep: { label: 'Next steps', help: () => 'Every next step that is set, soonest first. Overdue ones are tagged.' },
@@ -90,8 +116,9 @@ function endOfDayIso(key: string): string | null {
 }
 
 /**
- * Activity: To do (Needs reply, Next steps, Gone quiet, Unfiled) and All activity across every organization,
- * optionally narrowed to one organization or person. Record pages link here with "Open full view".
+ * Activity: All activity across organizations (default tab), and To do (Needs reply, Next steps, Gone quiet, Unfiled).
+ * URL: omit `tab` (or `tab=all`) for All activity; `tab=todo` (legacy `tab=inbox`) for To do. A `queue` without `tab` implies To do.
+ * Optionally narrowed to one organization or person. Record pages link here with "Open full view".
  */
 @Component({
   selector: 'app-activity-page',
@@ -116,10 +143,12 @@ function endOfDayIso(key: string): string | null {
     MessageBodyComponent,
     NextStepComponent,
     PeopleSelectComponent,
+    HelpTextComponent,
     PeopleComponent,
     PersonComponent,
     QueueCardComponent,
     RowActionsMenuComponent,
+    ToolbarSearchFieldComponent,
   ],
   template: `
     <app-page title="Activity" helpKey="activity.page">
@@ -148,8 +177,8 @@ function endOfDayIso(key: string): string | null {
             <label for="activityPerson">Person</label>
             <app-people-select
               inputId="activityPerson"
-              [options]="peopleOptions()"
-              [loading]="peopleLoading()"
+              [options]="personFilterOptions()"
+              [loading]="personFilterLoading()"
               [pickId]="personPickId()"
               (pickIdChange)="setPerson($event)"
               placeholder="All people"
@@ -162,10 +191,126 @@ function endOfDayIso(key: string): string | null {
       <div class="card">
         <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="activity-tabs">
           <p-tablist>
-            <p-tab value="todo">To do @if (todoTotal()) { <span class="activity-count">{{ todoTotal() }}</span> }</p-tab>
             <p-tab value="all">All activity</p-tab>
+            <p-tab value="todo">To do @if (todoTotal()) { <span class="activity-count">{{ todoTotal() }}</span> }</p-tab>
           </p-tablist>
           <p-tabpanels>
+            <p-tabpanel value="all">
+              <div class="activity-all-toolbar">
+                <app-toolbar-search-field
+                  class="activity-all-toolbar-search"
+                  [placeholder]="timelineSearchPlaceholder()"
+                  ariaLabel="Search activity"
+                  [ngModel]="timelineSearchDraft"
+                  (ngModelChange)="onTimelineSearchInput($event)"
+                />
+                <p-button
+                  type="button"
+                  class="activity-all-filter-toggle"
+                  [text]="true"
+                  severity="secondary"
+                  [attr.aria-expanded]="allActivityFiltersOpen()"
+                  [attr.aria-label]="allActivityFilterCount() ? 'Show filters, ' + allActivityFilterCount() + ' active' : 'Show filters'"
+                  aria-controls="activity-all-filters"
+                  (onClick)="toggleAllActivityFilters()"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-sliders-horizontal activity-all-filter-toggle-icon"
+                    aria-hidden="true"
+                  >
+                    <line x1="21" x2="14" y1="4" y2="4" />
+                    <line x1="10" x2="3" y1="4" y2="4" />
+                    <line x1="21" x2="12" y1="12" y2="12" />
+                    <line x1="8" x2="3" y1="12" y2="12" />
+                    <line x1="21" x2="16" y1="20" y2="20" />
+                    <line x1="12" x2="3" y1="20" y2="20" />
+                    <line x1="14" x2="14" y1="2" y2="6" />
+                    <line x1="8" x2="8" y1="10" y2="14" />
+                    <line x1="16" x2="16" y1="18" y2="22" />
+                  </svg>
+                </p-button>
+              </div>
+              <div
+                class="activity-all-filter-panel-wrap"
+                [class.activity-all-filter-panel-wrap--open]="allActivityFiltersOpen()"
+                [attr.aria-hidden]="!allActivityFiltersOpen()"
+              >
+                <div class="activity-all-filter-panel-inner">
+                  <div id="activity-all-filters" class="activity-all-filters">
+                    <div class="form-field activity-all-filter-field">
+                      <label for="activityAllLoggedBy">Logged by <app-help-text key="activity.loggedBy" /></label>
+                      <app-people-select
+                        inputId="activityAllLoggedBy"
+                        [options]="teamLoggedByOptions()"
+                        [pickId]="loggedBy()"
+                        (pickIdChange)="loggedBy.set($event)"
+                        [filterable]="false"
+                        placeholder="Anyone"
+                        filterPlaceholder="Search…"
+                        ariaLabel="Filter by who logged the activity"
+                      />
+                    </div>
+                    <div class="form-field activity-all-filter-field">
+                      <label for="activityAllFrom">From</label>
+                      <app-date-input inputId="activityAllFrom" [ngModel]="from()" (ngModelChange)="from.set($event)" />
+                    </div>
+                    <div class="form-field activity-all-filter-field">
+                      <label for="activityAllTo">To</label>
+                      <app-date-input inputId="activityAllTo" [ngModel]="to()" (ngModelChange)="to.set($event)" />
+                    </div>
+                    <div class="form-field activity-all-filter-field">
+                      <label for="activityAllType">Type</label>
+                      <p-select
+                        inputId="activityAllType"
+                        [options]="timelineTypeFilterOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        [ngModel]="timelineTypeFilter()"
+                        (ngModelChange)="timelineTypeFilter.set($event)"
+                        appendTo="body"
+                        styleClass="activity-all-type-select w-full"
+                        ariaLabel="Activity type"
+                      >
+                        <ng-template #item let-option>
+                          <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
+                        </ng-template>
+                        <ng-template #selectedItem let-option>
+                          <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
+                        </ng-template>
+                      </p-select>
+                    </div>
+                    @if (orgId()) {
+                      <div class="activity-all-people-toggle activity-all-filter-field">
+                        <p-checkbox inputId="activityAllIncludePeople" [ngModel]="includePeopleForTimeline()" (ngModelChange)="includePeopleForTimeline.set($event)" [binary]="true" />
+                        <label for="activityAllIncludePeople">Include people's activity</label>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+              <app-activity-timeline
+                [global]="true"
+                [clientId]="orgId()"
+                [contactId]="orgId() ? null : personId()"
+                [organizationName]="org()?.name ?? undefined"
+                [feedFilter]="feedFilter()"
+                [hideHeader]="true"
+                [showFullViewLink]="false"
+                [hideInlineFilters]="true"
+                [(query)]="timelineQuery"
+                [(filter)]="timelineTypeFilter"
+                [(includePeople)]="includePeopleForTimeline"
+              />
+            </p-tabpanel>
             <p-tabpanel value="todo">
               <div class="todo-toolbar">
                 <p-selectbutton
@@ -243,92 +388,57 @@ function endOfDayIso(key: string): string | null {
                   </ng-template>
                 </p-table>
               } @else {
-                <p-table [value]="queueRows()" styleClass="table-bordered" dataKey="refKey">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th style="width: 3rem"></th>
-                      <th>Organization / person</th>
-                      <th>Why it's here</th>
-                      <th style="width: 10rem">{{ whenHeader() }}</th>
-                      <th style="width: 10rem">Owner</th>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="body" let-row>
-                    <tr>
-                      <td><app-row-actions-menu [items]="rowActions(row)" ariaLabel="To do actions" /></td>
-                      <td>
-                        @if (row.leadId) {
-                          <a [routerLink]="['/pipeline', row.leadId]" class="font-semibold">{{ row.clientName || 'Pipeline card' }}</a>
-                          <div class="text-color-secondary">Pipeline card</div>
-                        } @else if (row.clientId) {
-                          <a [routerLink]="['/organizations', row.clientId]" class="font-semibold">{{ row.clientName }}</a>
-                        } @else {
-                          <span class="font-semibold">—</span>
-                        }
-                        @if (row.person) {
-                          <div class="text-color-secondary">
-                            @if (row.contactId) { <a [routerLink]="['/people', row.contactId]">{{ row.person }}</a> } @else { {{ row.person }} }
+                @if (!queueRows().length) {
+                  <div class="empty-state"><i class="pi pi-check-circle" aria-hidden="true"></i><p>Nothing here. You're all caught up.</p></div>
+                } @else {
+                  <div class="activity-todo-register" role="region" [attr.aria-label]="info[queue()].label + ' queue'">
+                    <div class="activity-todo-register-head" role="row">
+                      <span class="activity-todo-col-actions" aria-hidden="true"></span>
+                      <span class="activity-todo-head-label">Organization / person</span>
+                      <span class="activity-todo-head-label">Why it's here</span>
+                      <span class="activity-todo-head-label">{{ whenHeader() }}</span>
+                      <span class="activity-todo-head-label">Owner</span>
+                    </div>
+                    <div class="side-list activity-todo-list">
+                      @for (row of queueRows(); track row.refKey) {
+                        <div class="side-list-row activity-todo-row">
+                          <div class="activity-todo-col-actions">
+                            <app-row-actions-menu [items]="rowActions(row)" ariaLabel="To do actions" />
                           </div>
-                        }
-                      </td>
-                      <td>
-                        <div>{{ row.title }}</div>
-                        @if (row.overdue) {
-                          <p-tag value="Overdue" severity="danger" />
-                        } @else if (row.dueToday) {
-                          <p-tag value="Due today" severity="warn" />
-                        }
-                      </td>
-                      <td><span [class.text-overdue]="row.overdue">{{ whenLabel(row) }}</span></td>
-                      <td>{{ row.owner || '—' }}</td>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="emptymessage">
-                    <tr><td colspan="5"><div class="empty-state"><i class="pi pi-check-circle" aria-hidden="true"></i><p>Nothing here. You're all caught up.</p></div></td></tr>
-                  </ng-template>
-                </p-table>
-              }
-            </p-tabpanel>
-
-            <p-tabpanel value="all">
-              <div class="all-filters">
-                <div class="form-field activity-filter-field">
-                  <label for="activityLoggedBy">Logged by</label>
-                  <p-select
-                    inputId="activityLoggedBy"
-                    [options]="team()"
-                    optionLabel="label"
-                    optionValue="id"
-                    [ngModel]="loggedBy()"
-                    (ngModelChange)="loggedBy.set($event)"
-                    [filter]="true"
-                    filterBy="label"
-                    filterPlaceholder="Search…"
-                    [showClear]="true"
-                    placeholder="Anyone"
-                    appendTo="body"
-                    styleClass="w-full"
-                  />
-                </div>
-                <div class="form-field activity-filter-field">
-                  <label for="activityFrom">From</label>
-                  <app-date-input inputId="activityFrom" [ngModel]="from()" (ngModelChange)="from.set($event)" />
-                </div>
-                <div class="form-field activity-filter-field">
-                  <label for="activityTo">To</label>
-                  <app-date-input inputId="activityTo" [ngModel]="to()" (ngModelChange)="to.set($event)" />
-                </div>
-              </div>
-              @if (tab() === 'all') {
-                <app-activity-timeline
-                  [global]="true"
-                  [clientId]="orgId()"
-                  [contactId]="orgId() ? null : personId()"
-                  [organizationName]="org()?.name ?? undefined"
-                  [feedFilter]="feedFilter()"
-                  [hideHeader]="true"
-                  [showFullViewLink]="false"
-                />
+                          <div class="side-list-body activity-todo-col-org">
+                            @if (row.leadId) {
+                              <a [routerLink]="['/pipeline', row.leadId]" class="side-list-title">{{ row.clientName || 'Pipeline card' }}</a>
+                              <span class="side-list-detail">Pipeline card</span>
+                            } @else if (row.clientId) {
+                              <a [routerLink]="['/organizations', row.clientId]" class="side-list-title">{{ row.clientName }}</a>
+                            } @else {
+                              <span class="side-list-title">—</span>
+                            }
+                            @if (row.person) {
+                              <span class="side-list-detail">
+                                @if (row.contactId) { <a [routerLink]="['/people', row.contactId]">{{ row.person }}</a> } @else { {{ row.person }} }
+                              </span>
+                            }
+                          </div>
+                          <div class="activity-todo-col-reason">
+                            <span class="side-list-detail activity-todo-reason-text">{{ row.title }}</span>
+                            @if (row.overdue) {
+                              <p-tag value="Overdue" severity="danger" styleClass="activity-todo-status-tag" />
+                            } @else if (row.dueToday) {
+                              <p-tag value="Due today" severity="warn" styleClass="activity-todo-status-tag" />
+                            }
+                          </div>
+                          <span
+                            class="side-list-value activity-todo-col-when"
+                            [class.side-list-value--overdue]="row.overdue"
+                            [class.side-list-value--today]="row.dueToday && !row.overdue"
+                          >{{ whenLabel(row) }}</span>
+                          <span class="side-list-value side-list-value--strong activity-todo-col-owner">{{ row.owner || '—' }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
               }
             </p-tabpanel>
           </p-tabpanels>
@@ -342,8 +452,16 @@ function endOfDayIso(key: string): string | null {
             <div class="card card--side">
               <div class="card-header">
                 <h3 class="card-title">Next action</h3>
+                @if (orgNextActionTag(); as tag) {
+                  <p-tag [value]="tag.label" [severity]="tag.severity" />
+                }
               </div>
-              <app-next-step [clientId]="o.id" variant="panel" />
+              <app-next-step
+                [clientId]="o.id"
+                variant="panel"
+                [showInlineStatus]="false"
+                (headerStatus)="onOrgNextStepHeaderStatus($event)"
+              />
             </div>
 
             <div class="card card--side">
@@ -471,11 +589,60 @@ function endOfDayIso(key: string): string | null {
   styles: `
     /* Tab content flush left with the page title (PrimeNG pads tab panels on every side). */
     :host ::ng-deep .activity-tabs .p-tabpanels { padding: 1rem 0 0; }
-    /* Logged by, From and To share one row; they stack only on a phone. */
-    .all-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
-    .all-filters .activity-filter-field { width: auto; }
-    @media (max-width: 600px) { .all-filters { grid-template-columns: minmax(0, 1fr); } }
-    .activity-filter-field { width: 16rem; max-width: 100%; margin: 0; }
+    .activity-all-toolbar {
+      display: flex;
+      align-items: stretch;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .activity-all-toolbar-search {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .activity-all-filter-toggle-icon {
+      display: block;
+    }
+    .activity-all-filter-panel-wrap {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.25s ease;
+    }
+    .activity-all-filter-panel-wrap--open {
+      grid-template-rows: 1fr;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .activity-all-filter-panel-wrap { transition: none; }
+    }
+    .activity-all-filter-panel-inner {
+      min-height: 0;
+      overflow: hidden;
+    }
+    .activity-all-filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 1rem;
+      padding-bottom: 1rem;
+    }
+    .activity-all-filter-field {
+      flex: 0 0 auto;
+      width: 12rem;
+      min-width: 10rem;
+      max-width: 100%;
+      margin-bottom: 0;
+    }
+    .activity-type-option { display: inline-flex; align-items: center; gap: 0.5rem; }
+    :host ::ng-deep .activity-all-type-select { width: 12.5rem; }
+    .activity-all-people-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex: 0 0 auto;
+      white-space: nowrap;
+      width: auto;
+      min-width: 0;
+      padding-bottom: 0.25rem;
+    }
     .side-name { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; }
     .side-name a { text-decoration: none; }
     .side-details { margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
@@ -488,6 +655,100 @@ function endOfDayIso(key: string): string | null {
     .pre-line { white-space: pre-line; }
     .activity-count { display: inline-block; min-width: 1.25rem; margin-left: 0.4rem; padding: 0 0.4rem; border-radius: 0.75rem; background: #fee2e2; color: #991b1b; font-weight: 600; text-align: center; }
     .todo-toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+    /* To do queue list: same register pattern as Expenses (grid rows + side-list tokens). */
+    .activity-todo-register { margin-top: 0.5rem; }
+    .activity-todo-register-head,
+    .activity-todo-row {
+      display: grid;
+      grid-template-columns: 2rem minmax(10rem, 1.1fr) minmax(0, 2fr) 6.75rem 7.5rem;
+      align-items: start;
+      gap: 0.5rem 0.75rem;
+    }
+    .activity-todo-register-head {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem 0.65rem;
+      border-radius: var(--content-border-radius, 6px);
+      background: var(--surface-100, #f3f4f6);
+      border-bottom: 1px solid var(--surface-border);
+    }
+    .activity-todo-head-label {
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-color-secondary, #6b7280);
+    }
+    .activity-todo-col-actions {
+      width: 2rem;
+      margin-top: 0.1rem;
+    }
+    .activity-todo-list.side-list {
+      gap: 0;
+    }
+    .activity-todo-row.side-list-row {
+      align-items: start;
+      padding: 0.65rem 0.5rem;
+      border-radius: var(--content-border-radius, 6px);
+      margin-inline: -0.5rem;
+      border-top: 1px solid var(--surface-border);
+    }
+    .activity-todo-row.side-list-row:first-child {
+      border-top: 0;
+      padding-top: 0.5rem;
+    }
+    @media (max-width: 900px) {
+      .activity-todo-register-head {
+        display: none;
+      }
+      .activity-todo-row.side-list-row {
+        grid-template-columns: 2rem 1fr;
+        grid-template-areas:
+          'actions org'
+          'actions reason'
+          'actions when'
+          'actions owner';
+      }
+      .activity-todo-col-actions {
+        grid-area: actions;
+      }
+      .activity-todo-col-org {
+        grid-area: org;
+      }
+      .activity-todo-col-reason {
+        grid-area: reason;
+      }
+      .activity-todo-col-when {
+        grid-area: when;
+      }
+      .activity-todo-col-owner {
+        grid-area: owner;
+      }
+    }
+    .activity-todo-row.side-list-row:hover {
+      background: color-mix(in srgb, var(--surface-hover, #f4f4f5) 80%, transparent);
+    }
+    .activity-todo-col-org .side-list-title {
+      font-size: var(--fs-base);
+    }
+    .activity-todo-col-reason {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+    .activity-todo-reason-text {
+      line-height: 1.4;
+    }
+    .activity-todo-col-when,
+    .activity-todo-col-owner {
+      margin-left: 0;
+      text-align: left;
+      white-space: normal;
+      word-break: break-word;
+    }
+    :host ::ng-deep .activity-todo-status-tag.p-tag {
+      width: fit-content;
+    }
     .text-overdue { color: #b91c1c; font-weight: 600; }
     .file-form { display: flex; flex-direction: column; gap: 1rem; }
     .clickable-row { cursor: pointer; }
@@ -499,7 +760,7 @@ function endOfDayIso(key: string): string | null {
     .skeleton-list { display: flex; flex-direction: column; gap: 0.75rem; }
   `,
 })
-export class ActivityPage implements OnInit {
+export class ActivityPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
   private readonly peopleLoader = inject(PeoplePickerLoader);
@@ -514,7 +775,14 @@ export class ActivityPage implements OnInit {
 
   private readonly params = toSignal(this.route.queryParamMap.pipe(map((p) => p)), { initialValue: this.route.snapshot.queryParamMap });
 
-  readonly tab = computed<Tab>(() => (this.params().get('tab') === 'all' ? 'all' : 'todo'));
+  readonly tab = computed<Tab>(() => {
+    const t = this.params().get('tab');
+    if (t === 'todo' || t === 'inbox') return 'todo';
+    if (t === 'all') return 'all';
+    // Legacy bookmark: queue without tab still opens To do.
+    if (this.params().get('queue')) return 'todo';
+    return 'all';
+  });
   readonly orgId = computed(() => this.params().get('organization') || null);
   readonly personId = computed(() => this.params().get('person') || null);
   readonly personPickId = computed(() => (this.personId() ? `contact:${this.personId()}` : null));
@@ -531,9 +799,13 @@ export class ActivityPage implements OnInit {
   ];
 
   orgs = signal<Org[]>([]);
-  peopleOptions = signal<PeopleDirectoryOption[]>([]);
+  /** Tenant-wide CRM people (when no organization filter). */
+  allPeopleOptions = signal<PeopleDirectoryOption[]>([]);
   peopleLoading = signal(false);
-  team = signal<Option[]>([]);
+  /** True while loading org contacts for the Activity header person filter. */
+  orgContactsLoading = signal(false);
+  teamMembers = signal<TeamMember[]>([]);
+  readonly teamLoggedByOptions = computed(() => teamUsersToOptions(this.teamMembers()));
   leads = signal<Option[]>([]);
   readonly orgOptions = computed(() => this.orgs().map((o) => ({ id: o.id, label: o.name })));
   readonly org = computed(() => {
@@ -542,8 +814,17 @@ export class ActivityPage implements OnInit {
   });
   orgPeople = signal<ContactSummary[]>([]);
   orgDetail = signal<OrgDetail | null>(null);
+  /** Overdue / Due today in the Next action panel header (organization context). */
+  orgNextActionTag = signal<{ label: string; severity: 'danger' | 'warn' } | null>(null);
   readonly hasContext = computed(() => !!this.orgId() || !!this.personId());
   person = signal<ContactSummary | null>(null);
+
+  /** Person filter: all CRM people, or only people linked to the selected organization. */
+  readonly personFilterOptions = computed(() =>
+    this.orgId() ? contactSummariesToPeopleOptions(this.orgPeople()) : this.allPeopleOptions(),
+  );
+
+  readonly personFilterLoading = computed(() => this.peopleLoading() || this.orgContactsLoading());
 
   mine = signal(true);
   queues = signal<ActivityQueues | null>(null);
@@ -570,6 +851,48 @@ export class ActivityPage implements OnInit {
     from: startOfDayIso(this.from()),
     to: endOfDayIso(this.to()),
   }));
+
+  /** Org-scoped All activity: debounced search, type and include-people sync with the timeline via `model()`. */
+  timelineQuery = model('');
+  timelineTypeFilter = model<ActivityTimelineTypeFilter>('ALL');
+  includePeopleForTimeline = model(true);
+  allActivityFiltersOpen = signal(false);
+  /** Bound to toolbar field while user types; `timelineQuery` updates after debounce. */
+  timelineSearchDraft = '';
+  private timelineSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastTimelineContextKey: string | null = null;
+
+  readonly allActivityFilterCount = computed(() => {
+    let n = 0;
+    if (this.loggedBy()) n++;
+    if (this.from()) n++;
+    if (this.to()) n++;
+    if (this.timelineTypeFilter() !== 'ALL') n++;
+    if (this.orgId() && !this.includePeopleForTimeline()) n++;
+    return n;
+  });
+
+  readonly timelineTypeFilterOptions: { label: string; value: ActivityTimelineTypeFilter; icon: string }[] = [
+    { label: 'All', value: 'ALL', icon: 'pi-list' },
+    { label: 'Emails', value: 'EMAIL', icon: 'pi-envelope' },
+    { label: 'Calls', value: 'CALL', icon: 'pi-phone' },
+    { label: 'Meetings', value: 'MEETING', icon: 'pi-calendar' },
+    { label: 'Notes', value: 'NOTE', icon: 'pi-file-edit' },
+  ];
+
+  private readonly timelineTypeLabel: Record<ActivityTimelineTypeFilter, string> = {
+    ALL: 'activity',
+    EMAIL: 'emails',
+    CALL: 'calls',
+    MEETING: 'meetings',
+    NOTE: 'notes',
+  };
+
+  readonly timelineSearchPlaceholder = computed(() => {
+    const f = this.timelineTypeFilter();
+    const name = this.timelineTypeLabel[f] ?? 'activity';
+    return f === 'ALL' ? 'Search activity…' : `Search ${name}…`;
+  });
 
   // File dialog (Unfiled)
   fileVisible = false;
@@ -599,12 +922,54 @@ export class ActivityPage implements OnInit {
     });
     effect(() => {
       const clientId = this.orgId();
-      untracked(() => void this.loadOrgPeople(clientId));
+      untracked(() => {
+        this.orgNextActionTag.set(null);
+        void this.loadOrgPeople(clientId);
+      });
     });
     effect(() => {
       const contactId = this.personId();
       untracked(() => void this.loadPerson(contactId));
     });
+    effect(() => {
+      const org = this.orgId();
+      const person = this.personId();
+      const key = `${org ?? ''}:${person ?? ''}`;
+      if (this.lastTimelineContextKey === null) {
+        this.lastTimelineContextKey = key;
+        return;
+      }
+      if (key === this.lastTimelineContextKey) return;
+      this.lastTimelineContextKey = key;
+      untracked(() => {
+        if (this.timelineSearchTimer) {
+          clearTimeout(this.timelineSearchTimer);
+          this.timelineSearchTimer = null;
+        }
+        this.allActivityFiltersOpen.set(false);
+        this.timelineQuery.set('');
+        this.timelineSearchDraft = '';
+        this.timelineTypeFilter.set('ALL');
+        this.includePeopleForTimeline.set(true);
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.timelineSearchTimer) clearTimeout(this.timelineSearchTimer);
+  }
+
+  toggleAllActivityFilters() {
+    this.allActivityFiltersOpen.update((v) => !v);
+  }
+
+  onTimelineSearchInput(value: string) {
+    this.timelineSearchDraft = value;
+    if (this.timelineSearchTimer) clearTimeout(this.timelineSearchTimer);
+    this.timelineSearchTimer = setTimeout(() => {
+      this.timelineSearchTimer = null;
+      this.timelineQuery.set(value);
+    }, 300);
   }
 
   async ngOnInit() {
@@ -616,9 +981,9 @@ export class ActivityPage implements OnInit {
       this.comms.team().catch(() => [] as TeamMember[]),
     ]);
     this.orgs.set([...orgs].sort((a, b) => a.name.localeCompare(b.name)));
-    this.peopleOptions.set(people);
+    this.allPeopleOptions.set(people);
     this.peopleLoading.set(false);
-    this.team.set(team.map((u) => ({ id: u.id, label: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email })));
+    this.teamMembers.set(team);
   }
 
   private navigate(params: Record<string, string | null>) {
@@ -626,15 +991,26 @@ export class ActivityPage implements OnInit {
   }
 
   setTab(value: string | number | undefined) {
-    this.navigate({ tab: value === 'all' ? 'all' : null });
+    const next: 'all' | 'todo' = value === 'todo' ? 'todo' : 'all';
+    if (next === 'all') {
+      // All activity is the default URL; clear queue so a stale To do queue does not linger.
+      this.navigate({ tab: null, queue: null });
+    } else {
+      this.navigate({ tab: 'todo' });
+    }
   }
 
   setQueue(q: QueueKey) {
-    this.navigate({ queue: q === 'reply' ? null : q });
+    this.navigate({ tab: 'todo', queue: q === 'reply' ? null : q });
   }
 
   setOrg(id: string | null) {
+    this.orgNextActionTag.set(null);
     this.navigate({ organization: id || null, person: null });
+  }
+
+  onOrgNextStepHeaderStatus(tag: { label: string; severity: 'danger' | 'warn' } | null) {
+    this.orgNextActionTag.set(tag);
   }
 
   setPerson(pickId: string | null) {
@@ -680,16 +1056,23 @@ export class ActivityPage implements OnInit {
 
   private async loadOrgPeople(clientId: string | null) {
     if (!clientId) {
+      this.orgContactsLoading.set(false);
       this.orgPeople.set([]);
       this.orgDetail.set(null);
       return;
     }
-    const [people, detail] = await Promise.all([
-      this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]),
-      this.api.get<OrgDetail>(`/clients/${clientId}`).catch(() => null),
-    ]);
-    this.orgPeople.set(people);
-    this.orgDetail.set(detail);
+    this.orgContactsLoading.set(true);
+    this.orgPeople.set([]);
+    try {
+      const [people, detail] = await Promise.all([
+        this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]),
+        this.api.get<OrgDetail>(`/clients/${clientId}`).catch(() => null),
+      ]);
+      this.orgPeople.set(people);
+      this.orgDetail.set(detail);
+    } finally {
+      this.orgContactsLoading.set(false);
+    }
   }
 
   addressOf(d: OrgDetail): string | null {
@@ -739,7 +1122,12 @@ export class ActivityPage implements OnInit {
     const actions: RowActionItem[] = [];
     if (row.queue === 'REPLY') {
       if (row.clientId) {
-        actions.push({ id: 'thread', label: 'Open timeline', icon: 'pi pi-comments', command: () => this.navigate({ tab: 'all', organization: row.clientId, person: null }) });
+        actions.push({
+          id: 'thread',
+          label: 'Open timeline',
+          icon: 'pi pi-comments',
+          command: () => this.navigate({ tab: null, queue: null, organization: row.clientId, person: null }),
+        });
       }
       actions.push({ id: 'done', label: 'No reply needed', icon: 'pi pi-check', command: () => void this.snooze(row, null, 'Cleared') });
       actions.push({ id: 'snooze', label: 'Snooze 3 days', icon: 'pi pi-clock', command: () => void this.snooze(row, 3, 'Snoozed') });

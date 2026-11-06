@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, input, model, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -111,13 +111,7 @@ function nowForInput(): string {
   return d.toISOString().slice(0, 16);
 }
 
-/**
- * Communication timeline for one organization, pipeline card or person, or for every organization
- * (Activity page, global): captured emails plus calls, meetings and notes logged by hand.
- *
- * An organization's timeline shows what is filed to it plus, with "Include people's activity", its people's activity
- * that is not filed to any organization (labelled with whose it is). Email threads collapse to their newest message.
- */
+/** Captured emails plus calls, meetings and notes; email threads collapse to the newest message. */
 @Component({
   selector: 'app-activity-timeline',
   standalone: true,
@@ -161,6 +155,43 @@ function nowForInput(): string {
                 routerLink="/activity"
                 [queryParams]="qp"
               ></a>
+            </div>
+          }
+        </div>
+      }
+
+      @if (!(loading() && items().length === 0) && !hideInlineFilters()) {
+        <div class="activity-filter">
+          <p-select
+            [options]="filterOptions"
+            optionLabel="label"
+            optionValue="value"
+            [ngModel]="filter()"
+            (ngModelChange)="filter.set($event)"
+            appendTo="body"
+            styleClass="activity-type-select"
+            ariaLabel="Activity type"
+          >
+            <ng-template #item let-option>
+              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
+            </ng-template>
+            <ng-template #selectedItem let-option>
+              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
+            </ng-template>
+          </p-select>
+          <div class="activity-search">
+            <app-toolbar-search-field
+              class="w-full"
+              [placeholder]="searchPlaceholder()"
+              ariaLabel="Search activity"
+              [ngModel]="query()"
+              (ngModelChange)="query.set($event)"
+            />
+          </div>
+          @if (clientId()) {
+            <div class="activity-people-toggle">
+              <p-checkbox inputId="includePeople" [ngModel]="includePeople()" (ngModelChange)="includePeople.set($event)" [binary]="true" />
+              <label for="includePeople">Include people's activity</label>
             </div>
           }
         </div>
@@ -220,43 +251,6 @@ function nowForInput(): string {
 
       @if (error()) {
         <p-message severity="error" [text]="error()!" class="mb-3" />
-      }
-
-      @if (!(loading() && items().length === 0)) {
-        <div class="activity-filter">
-          <p-select
-            [options]="filterOptions"
-            optionLabel="label"
-            optionValue="value"
-            [ngModel]="filter()"
-            (ngModelChange)="filter.set($event)"
-            appendTo="body"
-            styleClass="activity-type-select"
-            ariaLabel="Activity type"
-          >
-            <ng-template #item let-option>
-              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
-            </ng-template>
-            <ng-template #selectedItem let-option>
-              <span class="activity-type-option"><i class="pi {{ option.icon }}" aria-hidden="true"></i>{{ option.label }}</span>
-            </ng-template>
-          </p-select>
-          <div class="activity-search">
-            <app-toolbar-search-field
-              class="w-full"
-              [placeholder]="searchPlaceholder()"
-              ariaLabel="Search activity"
-              [ngModel]="query()"
-              (ngModelChange)="query.set($event)"
-            />
-          </div>
-          @if (clientId()) {
-            <div class="activity-people-toggle">
-              <p-checkbox inputId="includePeople" [ngModel]="includePeople()" (ngModelChange)="includePeople.set($event)" [binary]="true" />
-              <label for="includePeople">Include people's activity</label>
-            </div>
-          }
-        </div>
       }
 
       @if (loading() && items().length === 0) {
@@ -749,6 +743,8 @@ export class ActivityTimelineComponent {
   feedFilter = input<ActivityFeedFilter | null>(null);
   /** The Activity page shows its own heading. */
   hideHeader = input(false);
+  /** When true, the type/search/include-people row is omitted (e.g. Activity page shows them above the quick log). */
+  hideInlineFilters = input(false);
   /** Show an "Open full view" link to the Activity page (record pages). */
   showFullViewLink = input(true);
   /** Second group heading: the organization these people belong to. */
@@ -769,12 +765,12 @@ export class ActivityTimelineComponent {
   readonly canSetFollowUp = computed(() => !!this.clientId());
   /** Organization names on items whenever the feed spans organizations. */
   readonly showOrgNames = computed(() => !this.clientId() && !this.leadId());
-  readonly includePeople = signal(true);
+  readonly includePeople = model(true);
   readonly fullViewParams = computed<Record<string, string> | null>(() => {
     if (!this.showFullViewLink()) return null;
     const c = this.clientId();
     const k = this.contactId();
-    const params: Record<string, string> = { tab: 'all' };
+    const params: Record<string, string> = {};
     if (c) params['organization'] = c;
     else if (k) params['person'] = k;
     else return null;
@@ -786,15 +782,15 @@ export class ActivityTimelineComponent {
   nextBefore = signal<string | null>(null);
   loading = signal(false);
   error = signal<string | null>(null);
-  filter = signal<TypeFilter>('ALL');
-  query = signal('');
+  filter = model<TypeFilter>('ALL');
+  query = model('');
   readonly skeletonRows = [1, 2, 3];
   readonly visible = computed(() => {
     const f = this.filter();
     const q = this.query().trim().toLowerCase();
-    const typed = f === 'ALL' ? this.items() : this.items().filter((i) => i.type === f);
-    if (!q) return typed;
-    return typed.filter((i) => activityHaystack(i).includes(q));
+    const list = f === 'ALL' ? this.items() : this.items();
+    if (!q) return list;
+    return list.filter((i) => activityHaystack(i).includes(q));
   });
   /** Email threads collapse to their newest message; earlier ones show nested when expanded. */
   readonly rows = computed<TimelineRow[]>(() => {
@@ -955,6 +951,8 @@ export class ActivityTimelineComponent {
       // Reload whenever the subject, the filters or the people toggle change, or activity changes elsewhere.
       this.target();
       this.feedFilter();
+      this.query();
+      this.filter();
       this.includePeople();
       this.comms.activityChanged();
       untracked(() => void this.load(false));
@@ -1032,6 +1030,20 @@ export class ActivityTimelineComponent {
   participants = (i: Interaction) => participantLine(i);
   rel = relativeTime;
 
+  /** Builds `/activity` query params from page filters plus in-timeline search, type and people toggle. */
+  private mergeActivityParams(target: TimelineTarget | { global: true }): ActivityFeedFilter {
+    const base: ActivityFeedFilter = { ...(this.feedFilter() ?? {}) };
+    if ('clientId' in target && target.clientId) base.clientId = target.clientId;
+    if ('contactId' in target && target.contactId) base.contactId = target.contactId;
+    const q = this.query().trim();
+    if (q) base.q = q;
+    const f = this.filter();
+    if (f !== 'ALL') base.type = f;
+    else delete base.type;
+    base.includePeople = this.includePeople();
+    return base;
+  }
+
   async load(more: boolean) {
     const target = this.target();
     if (!target) return;
@@ -1042,15 +1054,7 @@ export class ActivityTimelineComponent {
       const page =
         'leadId' in target
           ? await this.comms.timeline(target, before)
-          : await this.comms.activity(
-              {
-                ...(this.feedFilter() ?? {}),
-                clientId: 'clientId' in target ? target.clientId : this.feedFilter()?.clientId,
-                contactId: 'contactId' in target ? target.contactId : this.feedFilter()?.contactId,
-                includePeople: this.includePeople(),
-              },
-              before,
-            );
+          : await this.comms.activity(this.mergeActivityParams(target), before);
       this.items.set(more ? [...this.items(), ...page.items] : page.items);
       this.nextBefore.set(page.nextBefore);
     } catch (err) {

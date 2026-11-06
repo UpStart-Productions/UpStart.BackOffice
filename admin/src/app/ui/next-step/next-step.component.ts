@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -21,6 +21,8 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
  * One-line next step for an organization: what happens next, when, and who owns it.
  * Done records "Done: …" on the timeline, clears the step and opens the editor for the next one.
  * Used in the organization page's right-hand panel and on the Activity page.
+ *
+ * When `showInlineStatus` is false, overdue / due-today tags are omitted here — use `headerStatus` in the card header instead (e.g. Activity → Next action).
  */
 @Component({
   selector: 'app-next-step',
@@ -41,39 +43,95 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
   template: `
     <div
       class="next-step"
+      [class.next-step--panel-root]="variant() === 'panel'"
       [class.next-step--line]="variant() === 'line'"
       [class.next-step--overdue]="variant() === 'line' && step()?.overdue"
     >
-      @if (variant() === 'line') {
-        <i class="pi pi-flag next-step-icon" aria-hidden="true"></i>
-      }
-      @if (step()?.text; as text) {
+      @if (variant() === 'panel') {
+        @if (step()?.text; as text) {
+          <div class="next-step-panel">
+            <div class="next-step-panel-top">
+              <div class="next-step-panel-owner">
+                @if (step()?.owner; as o) {
+                  <app-person
+                    [firstName]="o.firstName"
+                    [lastName]="o.lastName"
+                    [name]="o.name"
+                    [email]="o.email"
+                    [avatarUrl]="o.avatarUrl"
+                    [personId]="o.id"
+                    [size]="28"
+                  />
+                }
+              </div>
+              @if (step()?.date) {
+                <span
+                  class="next-step-panel-date"
+                  [class.next-step-panel-date--overdue]="step()?.overdue"
+                  >{{ dateLabel() }}</span
+                >
+              }
+            </div>
+            <div class="next-step-panel-body">
+              <span class="next-step-text">{{ text }}</span>
+              <div class="next-step-panel-actions">
+                @if (showInlineStatus()) {
+                  @if (step()?.overdue) {
+                    <p-tag value="Overdue" severity="danger" />
+                  } @else if (dueToday()) {
+                    <p-tag value="Due today" severity="warn" />
+                  }
+                }
+                @if (canEdit()) {
+                  <span class="next-step-actions">
+                    <p-button label="Edit" severity="secondary" [text]="true" size="small" (onClick)="openEdit()" />
+                    <p-button label="Done" icon="pi pi-check" size="small" [loading]="busy()" (onClick)="done()" />
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+        } @else if (loaded()) {
+          @if (canEdit()) {
+            <span class="next-step-actions">
+              <p-button label="Set next action" icon="pi pi-plus" size="small" (onClick)="openEdit()" />
+            </span>
+          }
+        }
+      } @else {
         @if (variant() === 'line') {
-          <span class="next-step-label">Next action:</span>
+          <i class="pi pi-flag next-step-icon" aria-hidden="true"></i>
         }
-        <span class="next-step-text">{{ text }}</span>
-        @if (step()?.date) {
-          <span class="next-step-meta">{{ dateLabel() }}</span>
-        }
-        @if (step()?.owner; as o) {
-          <app-person [firstName]="o.firstName" [lastName]="o.lastName" [name]="o.name" [email]="o.email" [avatarUrl]="o.avatarUrl" [personId]="o.id" [size]="20" />
-        }
-        @if (step()?.overdue) {
-          <p-tag value="Overdue" severity="danger" />
-        } @else if (dueToday()) {
-          <p-tag value="Due today" severity="warn" />
-        }
-        @if (canEdit()) {
-          <span class="next-step-actions">
-            <p-button label="Edit" severity="secondary" [text]="true" size="small" (onClick)="openEdit()" />
-            <p-button label="Done" icon="pi pi-check" size="small" [loading]="busy()" (onClick)="done()" />
-          </span>
-        }
-      } @else if (loaded()) {
-        @if (canEdit()) {
-          <span class="next-step-actions">
-            <p-button label="Set next action" icon="pi pi-plus" size="small" (onClick)="openEdit()" />
-          </span>
+        @if (step()?.text; as text) {
+          @if (variant() === 'line') {
+            <span class="next-step-label">Next action:</span>
+          }
+          <span class="next-step-text">{{ text }}</span>
+          @if (step()?.date) {
+            <span class="next-step-meta">{{ dateLabel() }}</span>
+          }
+          @if (step()?.owner; as o) {
+            <app-person [firstName]="o.firstName" [lastName]="o.lastName" [name]="o.name" [email]="o.email" [avatarUrl]="o.avatarUrl" [personId]="o.id" [size]="20" />
+          }
+          @if (showInlineStatus()) {
+            @if (step()?.overdue) {
+              <p-tag value="Overdue" severity="danger" />
+            } @else if (dueToday()) {
+              <p-tag value="Due today" severity="warn" />
+            }
+          }
+          @if (canEdit()) {
+            <span class="next-step-actions">
+              <p-button label="Edit" severity="secondary" [text]="true" size="small" (onClick)="openEdit()" />
+              <p-button label="Done" icon="pi pi-check" size="small" [loading]="busy()" (onClick)="done()" />
+            </span>
+          }
+        } @else if (loaded()) {
+          @if (canEdit()) {
+            <span class="next-step-actions">
+              <p-button label="Set next action" icon="pi pi-plus" size="small" (onClick)="openEdit()" />
+            </span>
+          }
         }
       }
     </div>
@@ -141,12 +199,21 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
     </p-dialog>
   `,
   styles: `
-    :host { display: block; }
+    :host {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
     .next-step {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 0.5rem;
+      min-width: 0;
+    }
+    .next-step--panel-root {
+      display: block;
+      width: 100%;
     }
     .next-step--line {
       padding: 0.5rem 0.75rem;
@@ -163,6 +230,57 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
     .next-step-meta { color: var(--text-color-secondary, #6b7280); }
     .next-step-actions { display: inline-flex; gap: 0.25rem; margin-left: auto; }
     .next-step-form { display: flex; flex-direction: column; gap: 1rem; }
+    .next-step-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+    .next-step-panel-top {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+    .next-step-panel-owner {
+      min-width: 0;
+      flex: 1 1 auto;
+      max-width: 100%;
+    }
+    .next-step-panel-owner ::ng-deep .person {
+      max-width: 100%;
+    }
+    .next-step-panel-date {
+      flex-shrink: 0;
+      font-size: var(--fs-sm);
+      color: var(--text-color-secondary, #6b7280);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .next-step-panel-date--overdue {
+      font-weight: 700;
+      color: #b91c1c;
+    }
+    .next-step-panel-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+    .next-step-panel-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+    .next-step-panel-actions .next-step-actions {
+      margin-left: 0;
+    }
   `,
 })
 export class NextStepComponent {
@@ -174,6 +292,10 @@ export class NextStepComponent {
   canEdit = input(true);
   /** line: boxed one-liner with a flag (page header). panel: plain, inside a card titled Next step. */
   variant = input<'line' | 'panel'>('line');
+  /** Set false when the parent shows Overdue / Due today in the panel header (`headerStatus`). Default true. */
+  showInlineStatus = input(true);
+  /** Emit Overdue / Due today for the parent header when `showInlineStatus` is false. */
+  headerStatus = output<{ label: string; severity: 'danger' | 'warn' } | null>();
 
   step = signal<NextStep | null>(null);
   loaded = signal(false);
@@ -206,9 +328,32 @@ export class NextStepComponent {
       this.comms.activityChanged();
       untracked(() => void this.load(id));
     });
+    effect(() => {
+      if (this.showInlineStatus()) return;
+      const s = this.step();
+      const today = this.dueToday();
+      untracked(() => this.emitHeaderStatus(s, today));
+    });
+  }
+
+  private emitHeaderStatus(s: NextStep | null, dueToday: boolean) {
+    if (!s?.text) {
+      this.headerStatus.emit(null);
+      return;
+    }
+    if (s.overdue) {
+      this.headerStatus.emit({ label: 'Overdue', severity: 'danger' });
+    } else if (dueToday) {
+      this.headerStatus.emit({ label: 'Due today', severity: 'warn' });
+    } else {
+      this.headerStatus.emit(null);
+    }
   }
 
   private async load(id: string) {
+    if (!this.showInlineStatus()) {
+      this.headerStatus.emit(null);
+    }
     try {
       this.step.set(await this.comms.nextStep(id));
     } catch {

@@ -1,6 +1,9 @@
 import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import { Component, input, model } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
+import { TooltipModule } from 'primeng/tooltip';
+
+const DASHBOARD_ICON_TOOLTIP_DELAY_MS = 1000;
 
 /** Icon tile color. No purple: that is reserved for action buttons. */
 export type DashboardPanelColor = 'info' | 'success' | 'warning' | 'danger' | 'neutral';
@@ -22,11 +25,20 @@ export type DashboardPanelTab = {
 @Component({
   selector: 'app-dashboard-panel',
   standalone: true,
-  imports: [CdkDragHandle, RouterLink],
+  imports: [CdkDragHandle, RouterLink, TooltipModule],
   template: `
     <section class="card dashboard-panel" [attr.aria-label]="title()">
       <header class="dashboard-panel-header">
-        <span class="dashboard-panel-icon" [attr.data-color]="color()" aria-hidden="true">
+        <span
+          class="dashboard-panel-icon"
+          [attr.data-color]="color()"
+          aria-hidden="true"
+          [pTooltip]="(iconTooltip() || title()).trim()"
+          tooltipPosition="bottom"
+          [showDelay]="iconTooltipDelayMs"
+          tooltipStyleClass="dashboard-panel-icon-tooltip"
+          appendTo="body"
+        >
           <i [class]="'pi ' + icon()"></i>
         </span>
         <h3 class="dashboard-panel-title">{{ title() }}</h3>
@@ -239,7 +251,10 @@ export class DashboardPanelComponent {
   title = input.required<string>();
   /** PrimeIcons name without the "pi " prefix, e.g. "pi-clock". */
   icon = input.required<string>();
+  /** Tooltip on the header icon (defaults to the panel title). */
+  iconTooltip = input<string>('');
   color = input<DashboardPanelColor>('neutral');
+  readonly iconTooltipDelayMs = DASHBOARD_ICON_TOOLTIP_DELAY_MS;
   /** Header arrow link to the full list. Omit for no arrow. */
   link = input<string | unknown[] | null>(null);
   queryParams = input<Params | null>(null);

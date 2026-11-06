@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
+import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -19,6 +20,7 @@ import { SessionService } from '../../core/session.service';
 import { browserTimeZone, timeKey } from '../../ui/care-forms/care.types';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
@@ -42,6 +44,7 @@ function weekStartOf(d: Date): Date {
     RouterLink,
     ButtonModule,
     CheckboxModule,
+    DatePickerModule,
     InputTextModule,
     MessageModule,
     SelectButtonModule,
@@ -50,163 +53,14 @@ function weekStartOf(d: Date): Date {
     AppDialogModule,
     DateInputComponent,
     HelpTextComponent,
+    InlineCalendarPopoverComponent,
     OrganizationSelectComponent,
     PageComponent,
     PeopleSelectComponent,
     RowActionsMenuComponent,
   ],
-  template: `
-    <app-page title="Schedule" helpKey="care.schedule.page">
-      @if (canCreate()) {
-        <p-button pageActions label="Add shift" icon="pi pi-plus" (onClick)="openNew()" />
-      }
-      @if (error()) {
-        <div class="card"><p-message severity="error" [text]="error()!" /></div>
-      }
-      <div class="card">
-        <div class="sched-toolbar">
-          <div class="sched-week">
-            <p-button icon="pi pi-chevron-left" severity="secondary" [text]="true" ariaLabel="Previous week" (onClick)="moveWeek(-1)" />
-            <span class="sched-week-label">{{ weekLabel() }}</span>
-            <p-button icon="pi pi-chevron-right" severity="secondary" [text]="true" ariaLabel="Next week" (onClick)="moveWeek(1)" />
-            <p-button label="This week" severity="secondary" [outlined]="true" size="small" (onClick)="thisWeek()" />
-          </div>
-          @if (seeAll()) {
-            <div class="form-field sched-filter">
-              <label for="schedWorker">Worker</label>
-              <app-people-select inputId="schedWorker" [options]="workers()" [(pickId)]="workerId" placeholder="Everyone" filterPlaceholder="Search team…" ariaLabel="Worker" />
-            </div>
-          }
-          <div class="form-field sched-filter">
-            <label for="schedOrg">Client</label>
-            <app-organization-select inputId="schedOrg" [(value)]="clientId" [clientsOnly]="true" />
-          </div>
-        </div>
-
-        @for (day of days(); track day.key) {
-          <h3 class="sched-day" [class.sched-today]="day.key === todayKey">{{ day.date | date: 'EEEE, MMM d' }}</h3>
-          <div class="side-list">
-            @for (s of day.shifts; track s.id) {
-              <div class="side-list-row" [class.sched-cancelled]="s.status === 'CANCELLED'">
-                <app-row-actions-menu [items]="rowActions(s)" ariaLabel="Shift actions" />
-                <div class="side-list-body">
-                  <span class="side-list-title">
-                    {{ s.startAt | date: 'h:mm a' }} – {{ s.endAt | date: 'h:mm a' }}
-                    <a [routerLink]="['/clients', s.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ s.clientName }}</a>
-                  </span>
-                  <span class="side-list-detail">
-                    {{ s.worker?.name ?? 'Open shift' }}@if (s.repeatLabel) {, {{ s.repeatLabel }}}@if (s.notes) {, {{ s.notes }}}
-                  </span>
-                </div>
-                <span class="sched-tags">
-                  @if (!s.worker) { <p-tag value="Open" severity="warn" /> }
-                  @if (s.status === 'CANCELLED') { <p-tag value="Cancelled" severity="secondary" /> }
-                  @if (s.visitStatus === 'IN_PROGRESS') { <p-tag value="Visit in progress" severity="info" /> }
-                  @if (s.visitStatus === 'COMPLETED') { <p-tag value="Visited" severity="success" /> }
-                </span>
-              </div>
-            } @empty {
-              <div class="side-list-empty">No shifts</div>
-            }
-          </div>
-        }
-      </div>
-
-      <p-dialog [header]="editing ? 'Edit shift' : 'Add shift'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(32rem, 96vw)' }">
-        <div class="form-field">
-          <label for="shOrg">Client</label>
-          <app-organization-select inputId="shOrg" [(value)]="fClientId" [clientsOnly]="true" />
-        </div>
-        @if (seeAll()) {
-          <div class="form-field mt-3">
-            <label for="shWorker">Worker <app-help-text key="care.schedule.worker" /></label>
-            <app-people-select inputId="shWorker" [options]="workers()" [(pickId)]="fWorkerId" placeholder="Open shift" filterPlaceholder="Search team…" ariaLabel="Worker" />
-          </div>
-        }
-        <div class="flex flex-wrap gap-2 mt-3">
-          <div class="form-field flex-1">
-            <label for="shDate">{{ fRepeat ? 'First day' : 'Date' }}</label>
-            <app-date-input inputId="shDate" [(ngModel)]="fDate" />
-          </div>
-          <div class="form-field sched-time">
-            <label for="shStart">Start</label>
-            <input pInputText id="shStart" type="time" class="w-full" [(ngModel)]="fStart" />
-          </div>
-          <div class="form-field sched-time">
-            <label for="shEnd">End</label>
-            <input pInputText id="shEnd" type="time" class="w-full" [(ngModel)]="fEnd" />
-          </div>
-        </div>
-        @if (!editing) {
-          <div class="flex align-items-center gap-2 mt-3">
-            <p-checkbox inputId="shRepeat" [binary]="true" [(ngModel)]="fRepeat" />
-            <label for="shRepeat">Repeat weekly <app-help-text key="care.schedule.repeat" /></label>
-          </div>
-          @if (fRepeat) {
-            <div class="form-field mt-3">
-              <label>On</label>
-              <p-selectbutton [options]="weekdayOptions" optionLabel="label" optionValue="value" [(ngModel)]="fWeekdays" [multiple]="true" size="small" />
-            </div>
-            <div class="form-field mt-3">
-              <label for="shUntil">Until (optional)</label>
-              <app-date-input inputId="shUntil" [(ngModel)]="fUntil" placeholder="Keeps going" />
-            </div>
-          }
-        }
-        <div class="form-field mt-3">
-          <label for="shNotes">Notes</label>
-          <textarea pTextarea id="shNotes" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="fNotes"></textarea>
-        </div>
-        <ng-template pTemplate="footer">
-          <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="dialogVisible = false" />
-          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!canSave()" (onClick)="save()" />
-        </ng-template>
-      </p-dialog>
-    </app-page>
-  `,
-  styles: `
-    .sched-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 1rem;
-      margin-bottom: 0.5rem;
-    }
-    .sched-week {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      margin-right: auto;
-    }
-    .sched-week-label {
-      font-weight: 600;
-      min-width: 11rem;
-      text-align: center;
-    }
-    .sched-filter {
-      width: 14rem;
-      max-width: 100%;
-    }
-    .sched-day {
-      font-size: var(--fs-base);
-      font-weight: 600;
-      margin: 1.25rem 0 0.25rem;
-    }
-    .sched-today {
-      color: var(--color-severity-info-text);
-    }
-    .sched-tags {
-      display: inline-flex;
-      gap: 0.25rem;
-      flex-wrap: wrap;
-    }
-    .sched-cancelled .side-list-title {
-      text-decoration: line-through;
-    }
-    .sched-time {
-      width: 8rem;
-    }
-  `,
+  templateUrl: './care-schedule.page.html',
+  styleUrl: './care-schedule.page.scss',
 })
 export class CareSchedulePage implements OnInit {
   private readonly care = inject(CareApi);
@@ -241,6 +95,11 @@ export class CareSchedulePage implements OnInit {
     return `${fmt(s, false)} – ${fmt(e, true)}`;
   });
 
+  /** Anchor for the week calendar popover (Monday of the visible week). */
+  readonly weekPickerDate = computed(() => new Date(this.weekStart()));
+
+  readonly isThisCalendarWeek = computed(() => dateKey(this.weekStart()) === dateKey(weekStartOf(new Date())));
+
   readonly days = computed(() => {
     const byDay = new Map<string, CareShiftDto[]>();
     for (const s of this.shifts()) {
@@ -251,7 +110,8 @@ export class CareSchedulePage implements OnInit {
       const date = new Date(this.weekStart());
       date.setDate(date.getDate() + i);
       const key = dateKey(date);
-      return { key, date, shifts: byDay.get(key) ?? [] };
+      const shifts = (byDay.get(key) ?? []).slice().sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+      return { key, date, shifts };
     });
   });
 
@@ -312,6 +172,11 @@ export class CareSchedulePage implements OnInit {
     this.weekStart.set(weekStartOf(new Date()));
   }
 
+  jumpToWeek(selected: Date, popover: InlineCalendarPopoverComponent) {
+    this.weekStart.set(weekStartOf(selected));
+    popover.hide();
+  }
+
   rowActions(s: CareShiftDto): RowActionItem[] {
     const me = this.session.me()?.id;
     const items: RowActionItem[] = [];
@@ -335,12 +200,13 @@ export class CareSchedulePage implements OnInit {
     return items;
   }
 
-  openNew() {
+  /** @param dayKey YYYY-MM-DD for that column; defaults to today-or-first day in view. */
+  openNew(dayKey?: string) {
     this.editing = null;
     this.fClientId = this.clientId();
     this.fWorkerId = this.seeAll() ? this.workerId() : (this.session.me()?.id ?? null);
-    const day = this.days().find((d) => d.key >= this.todayKey)?.key ?? this.days()[0].key;
-    this.fDate = day;
+    const fallback = this.days().find((d) => d.key >= this.todayKey)?.key ?? this.days()[0].key;
+    this.fDate = dayKey ?? fallback;
     this.fStart = '09:00';
     this.fEnd = '13:00';
     this.fRepeat = false;

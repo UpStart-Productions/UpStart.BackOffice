@@ -217,7 +217,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Cards',
-        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Needs reply, Next steps, and Gone quiet; click an organization, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. Pending submissions lists form submissions waiting for review in every form you can see; click one to review and accept it. My shifts (Care) lists your shifts for the next week, with Start visit on today\'s and Open visit once started. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, Bookings, Forms or the Schedule.',
+        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Needs reply, Next steps, and Gone quiet; click an organization, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. Submissions lists form submissions waiting for review in every form you can see; click one to review and accept it. My shifts (Care) lists your shifts for the next week, with Start visit on today\'s and Open visit once started. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, Bookings, Forms or the Schedule.',
       },
       {
         heading: "Mine / Everyone's",
@@ -233,8 +233,12 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── CRM ────────────────────────────────────────────────
   activity: {
     title: 'Activity',
-    intro: 'What needs attention (To do) and every email, call, meeting and note across your organizations (All activity).',
+    intro: 'Every email, call, meeting and note across your organizations (All activity), and what needs attention (To do).',
     sections: [
+      {
+        heading: 'All activity',
+        body: "Every email, call, meeting and note, newest first. On All activity, the search bar and the filters button (sliders icon) are at the top; open filters for Logged by (see the ? tooltip), dates, and type. With an organization picked, filters also include Include people's activity, and the quick log sits below. Person at the top of the page is a CRM contact on the thread, not the same as Logged by. Email threads show their newest message; expand to see earlier ones.",
+      },
       {
         heading: 'To do',
         body: 'Needs reply: the latest email on a thread came from outside and nobody has answered. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Unfiled: captured email that could not be matched. Form submissions (roles with Forms) opens Forms, where submissions wait for review. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that organization here with its next step), snooze it, or mark No reply needed. How many days count is in Settings → Activity.',
@@ -244,12 +248,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Under Unfiled, use File… and choose an Organization or a Pipeline card. Leave "Link the people on this email to the organization" on so their next email files itself.',
       },
       {
-        heading: 'All activity',
-        body: 'Every email, call, meeting and note, newest first. Filter by type, who logged it, dates, or search. Email threads show their newest message; expand to see earlier ones.',
-      },
-      {
         heading: 'One organization or person',
-        body: 'Pick an organization or person to the right of the page title, or use Open full view on their page. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the quick log and timeline. Click the name in Details to open their page.',
+        body: 'Pick an organization or person to the right of the page title, or use Open full view on their page. With an organization picked, the Person list only includes people linked to that organization. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the quick log and timeline. Click the name in Details to open their page.',
       },
     ],
   },
@@ -989,11 +989,12 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   schedule: {
     title: 'Schedule',
-    intro: 'Office → Schedule (Care module): every caregiver\'s shifts for the week, across clients. Use the arrows or This week to move around. A client\'s own shifts are also on their Care tab.',
+    intro:
+      "Office → Schedule (Care module): the week is shown in seven columns (Mon–Sun). Use ‹ › and the calendar to change weeks, or Return to this week when you've moved. Filter by worker and client. A client's own shifts are also on their Care tab.",
     sections: [
       {
         heading: 'Add shift',
-        body: 'Client, worker (empty = open shift), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the worker already has a shift at that time, you get a warning. The worker gets a notification.',
+        body: 'Use Add shift at the top, or Add shift under a day to default the date to that column. Client, worker (empty = open shift), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the worker already has a shift at that time, you get a warning. The worker gets a notification.',
       },
       {
         heading: 'Shift menu',

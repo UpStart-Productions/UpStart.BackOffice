@@ -372,7 +372,7 @@ body {
 
 /* Shared tenant people picker (Add person, Share, project contacts, …) */
 .people-select-panel {
-  min-width: min(100vw - 2rem, 22rem);
+  min-width: min(100vw - 2rem, var(--layout-main-offset-open));
   max-width: min(100vw - 2rem, 28rem);
 }
 

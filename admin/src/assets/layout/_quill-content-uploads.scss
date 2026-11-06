@@ -1,7 +1,22 @@
 // Quill image + file attachment toolbar (ported from KC.SPP.WebApp)
 
+// ngx-quill applies `[styles]` (e.g. min-height) to the container element Quill
+// mounts on. Quill's `.ql-editor` uses `height: 100%`, which does not fill a
+// parent that only has `min-height`, so clicks in the padded "empty" area miss
+// the editor. Flex lets `.ql-editor` grow to the full container box.
 quill-editor {
+  display: block;
+  width: 100%;
+
+  .ql-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .ql-editor {
+    flex: 1 1 auto;
+    min-height: 0;
     img {
       max-width: 100%;
       height: auto;

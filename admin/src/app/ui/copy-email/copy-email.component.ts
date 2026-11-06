@@ -49,7 +49,7 @@ import { ButtonModule } from 'primeng/button';
           (click)="copy($event, email)"
         ></button>
       </span>
-    } @else if (showEmpty()) {
+    } @else if (showEmpty() && emptyLabel().trim()) {
       <span class="copy-email-empty">{{ emptyLabel() }}</span>
     }
   `,
@@ -60,8 +60,9 @@ export class CopyEmailComponent {
   email = input<string | null | undefined>(null);
   muted = input(false);
   block = input(false);
-  showEmpty = input(true);
-  emptyLabel = input('—');
+  /** When there is no email: render nothing by default — do not use an em dash (—) as a stand-in for missing data. */
+  showEmpty = input(false);
+  emptyLabel = input('');
   stopPropagation = input(true);
 
   readonly value = computed(() => {

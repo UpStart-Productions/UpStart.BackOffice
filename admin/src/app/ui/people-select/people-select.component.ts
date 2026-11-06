@@ -1,4 +1,4 @@
-import { Component, input, model } from '@angular/core';
+import { booleanAttribute, Component, input, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
 import {
@@ -56,7 +56,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
       optionLabel="label"
       optionValue="id"
       [(ngModel)]="pickId"
-      [filter]="true"
+      [filter]="filterable()"
       filterBy="label,firstName,lastName,email,displayName,sourceLabel"
       [filterPlaceholder]="filterPlaceholder()"
       [showClear]="true"
@@ -96,6 +96,8 @@ export class PeopleSelectComponent {
   inputId = input('');
   placeholder = input('Search and select…');
   filterPlaceholder = input('Search people…');
+  /** When false, the list is not type-to-filter (short lists). Default true. */
+  filterable = input(true, { transform: booleanAttribute });
   styleClass = input('w-full');
   ariaLabel = input('Search and select a person');
 

@@ -162,7 +162,7 @@ export const appRoutes: Route[] = [
           import('./pages/activity/activity.page').then((m) => m.ActivityPage),
       },
       // The Unfiled inbox is now a queue on Activity → To do.
-      { path: 'inbox', pathMatch: 'full', redirectTo: '/activity?queue=unfiled' },
+      { path: 'inbox', pathMatch: 'full', redirectTo: '/activity?tab=todo&queue=unfiled' },
       {
         path: 'people',
         loadComponent: () =>

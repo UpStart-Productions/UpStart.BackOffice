@@ -6,7 +6,7 @@ How the pieces fit:
 - **People** are every person. A person can belong to one or more organizations, or none.
 - **Pipeline** holds opportunities: organizations you are trying to win. Current clients are not on it.
 - **Clients** (under **Office**) is the working list of organizations you are doing work for. It is the same records as Organizations, limited to clients.
-- **Activity** is what needs attention (**To do**) and every email, call, meeting and note (**All activity**). Unfiled email is a queue there. **Bookings** are appointments people booked.
+- **Activity** opens on **All activity** (every email, call, meeting and note) and has **To do** for what needs attention. Unfiled email is a queue on **To do**. **Bookings** are appointments people booked.
 
 Everything about one organization (people, emails, files, pipeline cards, projects) lives on that organization's page. Clicking an organization from Clients or Organizations opens the same page.
 
@@ -68,7 +68,7 @@ On a card's page, the main form is the **organization** (name, email, phone, web
 
 ## Activity
 
-**Activity** in the menu (it replaced Inbox) has two tabs. The number on the menu item is your To do count (Needs reply, next steps overdue or due today, and Unfiled).
+**Activity** in the menu (it replaced Inbox) has two tabs: **All activity** first, then **To do**. The number on the menu item is your To do count (Needs reply, next steps overdue or due today, and Unfiled).
 
 **To do** has four queues; click one to list it:
 
@@ -80,9 +80,9 @@ On a card's page, the main form is the **organization** (name, email, phone, web
 
 **Mine** shows rows on threads you are on and next steps you own (or that have no owner); **Everyone's** shows all. Unfiled is the same for everyone. The ⋮ menu on a row: **Open timeline**, **Work on it** (shows that organization on this page with its next step), **Open pipeline card**, **No reply needed**, or **Snooze** (3 days, 1 week or 30 days). Admins change the 2 and 30 days in **Settings → Activity**.
 
-**All activity** is every email, call, meeting and note, newest first, with the organization each belongs to. Filter by **Logged by**, **From** and **To** dates, type, or search.
+**All activity** is every email, call, meeting and note, newest first, with the organization each belongs to. The search bar and **filters** control (sliders icon) are at the top of **All activity**; open filters for **Logged by** (which teammate saved the item—hover the **?**), **From** and **To** dates, and **type**. With an organization selected, filters also include **Include people's activity**. **Person** at the top of the page filters by a CRM contact on the thread, not the same as **Logged by**.
 
-Pick an **Organization** or **Person** to the right of the page title to narrow both tabs to them. Panels on the right then show, for an organization, its **Next action**, **Details** (status, tags, phone, email, website, address, last contact, notes) and **People** (view only; add or remove people on the organization's page); for a person, their **Details** and **Organizations**, each with its next step. The quick log files to that organization or person. Click the name in Details to open their page. **Open full view** on an organization's or person's Activity panel opens this page for them.
+Pick an **Organization** or **Person** to the right of the page title to narrow both tabs to them. When an organization is selected, **Person** only lists people linked to that organization. With an organization selected, the quick log and timeline sit below those controls. Panels on the right then show, for an organization, its **Next action**, **Details** (status, tags, phone, email, website, address, last contact, notes) and **People** (view only; add or remove people on the organization's page); for a person, their **Details** and **Organizations**, each with its next step. The quick log files to that organization or person. Click the name in Details to open their page. **Open full view** on an organization's or person's Activity panel opens this page for them.
 
 ## Next step
 

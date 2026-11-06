@@ -21,7 +21,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.25rem 0;
-  width: min(22rem, calc(100vw - 2rem)) !important;
+  width: min(var(--layout-main-offset-open), calc(100vw - 2rem)) !important;
   z-index: 10000;
 }
 

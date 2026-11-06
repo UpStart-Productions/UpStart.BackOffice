@@ -1,0 +1,72 @@
+// Shared date navigation (Timesheet day, Care Schedule week, etc.): prev/next, label, calendar popover.
+// Contexts set --harvest-* on a wrapper (e.g. .harvest-timesheet); fallbacks use global tokens.
+
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.date-picker-group {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.date-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--harvest-border, var(--surface-border));
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  background: var(--surface-card, #fff);
+
+  .date-label {
+    font-weight: 600;
+    min-width: 11rem;
+    text-align: center;
+    font-size: var(--fs-md);
+    color: var(--harvest-text, var(--text-color));
+  }
+}
+
+button.nav-btn {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--harvest-text, var(--text-color));
+  font-size: var(--fs-lg);
+  line-height: 1;
+
+  &:hover {
+    background: var(--harvest-row-hover, var(--surface-hover));
+  }
+}
+
+button.calendar-btn {
+  width: 2.375rem;
+  height: 2.375rem;
+  border: 1px solid var(--harvest-border, var(--surface-border));
+  border-radius: 6px;
+  background: var(--surface-card, #fff);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--harvest-muted, var(--text-color-secondary));
+  font-size: var(--fs-base);
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover {
+    background: var(--harvest-row-hover, var(--surface-hover));
+    color: var(--harvest-text, var(--text-color));
+  }
+}

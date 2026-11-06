@@ -1,3 +1,10 @@
+:root {
+  /* Expanded left nav (was 20rem); ~20% narrower to give laptops more content width. */
+  --layout-sidebar-open-width: 16rem;
+  /* Viewport inset for main column: left page gutter (2rem) + sidebar width — matches old 22rem when sidebar was 20rem. */
+  --layout-main-offset-open: 18rem;
+}
+
 body {
   color: var(--text-color);
   background-color: var(--surface-ground);

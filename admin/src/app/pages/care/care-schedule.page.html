@@ -1,0 +1,179 @@
+<app-page title="Schedule" helpKey="care.schedule.page">
+  @if (canCreate()) {
+    <p-button pageActions label="Add shift" icon="pi pi-plus" (onClick)="openNew()" />
+  }
+  @if (error()) {
+    <div class="card"><p-message severity="error" [text]="error()!" /></div>
+  }
+  <div class="card">
+    <div class="sched-toolbar">
+      <div class="sched-date-nav">
+        <div class="date-nav">
+          <div class="date-picker-group">
+            <div class="date-picker">
+              <button type="button" class="nav-btn" (click)="moveWeek(-1)" aria-label="Previous week">‹</button>
+              <span class="date-label">{{ weekLabel() }}</span>
+              <button type="button" class="nav-btn" (click)="moveWeek(1)" aria-label="Next week">›</button>
+            </div>
+            <button
+              type="button"
+              class="calendar-btn"
+              (click)="weekPopover.toggle($event, $event.currentTarget)"
+              aria-label="Jump to week"
+              aria-haspopup="dialog"
+            >
+              <i class="pi pi-calendar" aria-hidden="true"></i>
+            </button>
+            <app-inline-calendar-popover #weekPopover>
+              <p-datepicker
+                [inline]="true"
+                [ngModel]="weekPickerDate()"
+                [defaultDate]="weekPickerDate()"
+                (onSelect)="jumpToWeek($event, weekPopover)"
+              />
+            </app-inline-calendar-popover>
+          </div>
+          @if (!isThisCalendarWeek()) {
+            <button type="button" pButton label="Return to this week" [text]="true" (click)="thisWeek()"></button>
+          }
+        </div>
+      </div>
+      @if (seeAll()) {
+        <div class="form-field sched-filter">
+          <label for="schedWorker">Worker</label>
+          <app-people-select
+            inputId="schedWorker"
+            [options]="workers()"
+            [(pickId)]="workerId"
+            placeholder="Everyone"
+            filterPlaceholder="Search team…"
+            ariaLabel="Worker"
+          />
+        </div>
+      }
+      <div class="form-field sched-filter">
+        <label for="schedOrg">Client</label>
+        <app-organization-select inputId="schedOrg" [(value)]="clientId" [clientsOnly]="true" />
+      </div>
+    </div>
+
+    <div class="sched-week-grid" role="region" aria-label="Week schedule">
+      @for (day of days(); track day.key) {
+        <section class="sched-day-col" [class.sched-day-col--today]="day.key === todayKey">
+          <header class="sched-day-head">
+            <span class="sched-day-weekday">{{ day.date | date: 'EEE' }}</span>
+            <span class="sched-day-num">{{ day.date | date: 'd' }}</span>
+            <span class="sched-day-month">{{ day.date | date: 'MMM' }}</span>
+          </header>
+          <div class="sched-day-shifts">
+            @for (s of day.shifts; track s.id) {
+              <div class="sched-shift-card" [class.sched-shift-card--cancelled]="s.status === 'CANCELLED'">
+                <div class="sched-shift-card__top">
+                  <app-row-actions-menu [items]="rowActions(s)" ariaLabel="Shift actions" />
+                </div>
+                <div class="sched-shift-card__body">
+                  <div class="sched-shift-time">
+                    {{ s.startAt | date: 'h:mm a' }} – {{ s.endAt | date: 'h:mm a' }}
+                  </div>
+                  <a [routerLink]="['/clients', s.clientId]" [queryParams]="{ tab: 'care' }" class="sched-shift-client text-primary">{{ s.clientName }}</a>
+                  <div class="sched-shift-meta">{{ s.worker?.name ?? 'Open shift' }}</div>
+                  @if (s.repeatLabel || s.notes) {
+                    <div class="sched-shift-extra">
+                      @if (s.repeatLabel) {
+                        <span>{{ s.repeatLabel }}</span>
+                      }
+                      @if (s.notes) {
+                        <span class="sched-shift-notes">{{ s.notes }}</span>
+                      }
+                    </div>
+                  }
+                  <div class="sched-shift-tags">
+                    @if (!s.worker) {
+                      <p-tag value="Open" severity="warn" />
+                    }
+                    @if (s.status === 'CANCELLED') {
+                      <p-tag value="Cancelled" severity="secondary" />
+                    }
+                    @if (s.visitStatus === 'IN_PROGRESS') {
+                      <p-tag value="Visit in progress" severity="info" />
+                    }
+                    @if (s.visitStatus === 'COMPLETED') {
+                      <p-tag value="Visited" severity="success" />
+                    }
+                  </div>
+                </div>
+              </div>
+            } @empty {
+              @if (canCreate()) {
+                <button type="button" class="sched-empty-add" (click)="openNew(day.key)">Add shift</button>
+              } @else {
+                <div class="sched-day-empty">No shifts</div>
+              }
+            }
+            @if (canCreate() && day.shifts.length > 0) {
+              <button type="button" class="sched-col-footer-add" (click)="openNew(day.key)">Add shift</button>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+
+  <p-dialog [header]="editing ? 'Edit shift' : 'Add shift'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(32rem, 96vw)' }">
+    <div class="form-field">
+      <label for="shOrg">Client</label>
+      <app-organization-select inputId="shOrg" [(value)]="fClientId" [clientsOnly]="true" />
+    </div>
+    @if (seeAll()) {
+      <div class="form-field mt-3">
+        <label for="shWorker">Worker <app-help-text key="care.schedule.worker" /></label>
+        <app-people-select
+          inputId="shWorker"
+          [options]="workers()"
+          [(pickId)]="fWorkerId"
+          placeholder="Open shift"
+          filterPlaceholder="Search team…"
+          ariaLabel="Worker"
+        />
+      </div>
+    }
+    <div class="flex flex-wrap gap-2 mt-3">
+      <div class="form-field flex-1">
+        <label for="shDate">{{ fRepeat ? 'First day' : 'Date' }}</label>
+        <app-date-input inputId="shDate" [(ngModel)]="fDate" />
+      </div>
+      <div class="form-field sched-time">
+        <label for="shStart">Start</label>
+        <input pInputText id="shStart" type="time" class="w-full" [(ngModel)]="fStart" />
+      </div>
+      <div class="form-field sched-time">
+        <label for="shEnd">End</label>
+        <input pInputText id="shEnd" type="time" class="w-full" [(ngModel)]="fEnd" />
+      </div>
+    </div>
+    @if (!editing) {
+      <div class="flex align-items-center gap-2 mt-3">
+        <p-checkbox inputId="shRepeat" [binary]="true" [(ngModel)]="fRepeat" />
+        <label for="shRepeat">Repeat weekly <app-help-text key="care.schedule.repeat" /></label>
+      </div>
+      @if (fRepeat) {
+        <div class="form-field mt-3">
+          <label>On</label>
+          <p-selectbutton [options]="weekdayOptions" optionLabel="label" optionValue="value" [(ngModel)]="fWeekdays" [multiple]="true" size="small" />
+        </div>
+        <div class="form-field mt-3">
+          <label for="shUntil">Until (optional)</label>
+          <app-date-input inputId="shUntil" [(ngModel)]="fUntil" placeholder="Keeps going" />
+        </div>
+      }
+    }
+    <div class="form-field mt-3">
+      <label for="shNotes">Notes</label>
+      <textarea pTextarea id="shNotes" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="fNotes"></textarea>
+    </div>
+    <ng-template pTemplate="footer">
+      <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="dialogVisible = false" />
+      <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!canSave()" (onClick)="save()" />
+    </ng-template>
+  </p-dialog>
+</app-page>

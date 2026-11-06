@@ -198,7 +198,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'One visit: when, the visit checklist and notes. While it is in progress, End visit records the end time and adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.',
   'care.visit.time': 'An end time earlier than the start counts as the next day (overnight visits).',
   'care.schedule.page':
-    'Shifts for the week. Add shift plans a one-off or weekly repeating shift; the ⋮ menu on a shift edits, cancels, deletes, or starts the visit when it is your shift.',
+    'Shifts for the week in seven columns (Mon–Sun). Add shift plans a one-off or repeating shift; use Add shift under a day to default the date. The ⋮ menu on a shift edits, cancels, deletes, or starts the visit when it is your shift.',
   'care.schedule.worker': 'Leave empty for an open shift nobody has yet. The worker gets a notification when a shift is assigned to them.',
   'care.schedule.repeat':
     'Repeats on the days you pick, at the same local time, until the date you set (or keeps going). Each shift can still be edited on its own.',
@@ -211,7 +211,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'dashboard.page':
     "What needs you today. Activity (replies, next steps, and quiet clients) is one card with tabs. Tasks, time, invoices, and bookings are the others. Lists scroll; the arrow in the card header opens the full page. Mine / Everyone's switches Activity and invoices.",
   'activity.page':
-    "To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. All activity is every email, call, meeting and note. Pick an organization or person to narrow both.",
+    "All activity is every email, call, meeting and note (first tab). To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. Pick an organization or person to narrow both.",
+  'activity.loggedBy':
+    'Only items a teammate saved in Back Office (notes, calls, meetings) or filed as their action. Not “who sent the email”—use Person for a CRM contact on the thread.',
   'settings.activity.needsReplyDays':
     'An email shows under Needs reply when the latest message on its thread came from outside and has waited this many days.',
   'settings.activity.goneQuietDays':

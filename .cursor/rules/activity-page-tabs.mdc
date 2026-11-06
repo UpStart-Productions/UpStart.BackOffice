@@ -1,0 +1,11 @@
+# Activity page tabs (order and URL)
+
+Keep **All activity** as the **first** tab and the **default** when opening `/activity` with no `tab` query param.
+
+- **Default tab:** omit `tab` (clean URL) or `tab=all` → **All activity**.
+- **To do tab:** `tab=todo` (legacy alias: `tab=inbox`).
+- **Legacy bookmarks:** if the URL has `queue=` but no `tab`, the page still opens **To do** (so old `?queue=unfiled` links work).
+- Switching to All activity clears `queue` from the URL so a stale queue does not stick.
+- Picking a queue sets `tab=todo` and the `queue` param.
+
+Dashboard **→** links and the `/inbox` redirect must pass `tab=todo` when they target the To do lists.

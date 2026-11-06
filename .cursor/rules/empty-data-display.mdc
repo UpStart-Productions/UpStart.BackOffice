@@ -1,0 +1,9 @@
+# Empty data in the UI
+
+Do **not** use an em dash (`—`), double hyphen (`--`), or similar glyphs as a placeholder for missing or empty fields (email, phone, name, dates, IDs, etc.).
+
+**Do:** omit the cell/line, leave the space empty, use nothing, or show explicit helper copy only when the product asks for it (e.g. “No email” as real words — sparingly).
+
+**Do not:** `—`, `--`, `N/A` as default filler in tables, People rows, or form summaries.
+
+`app-copy-email` defaults to rendering nothing when `email` is empty; use `[showEmpty]="true"` and a short `emptyLabel` only when a visible empty state is required.

@@ -224,15 +224,15 @@ export class DashboardPage implements OnInit, OnDestroy {
     { id: 'quiet', label: 'Gone quiet', count: this.quiet().length, countTone: 'info' },
   ]);
 
-  /** Footer opens the Activity list that matches the tab. Needs reply is the page default. */
+  /** Footer opens Activity → To do with the matching queue (All activity is the page default). */
   readonly activityQuery = computed(() => {
     switch (this.activityTab()) {
       case 'nextSteps':
-        return { queue: 'nextStep' };
+        return { tab: 'todo', queue: 'nextStep' };
       case 'quiet':
-        return { queue: 'quiet' };
+        return { tab: 'todo', queue: 'quiet' };
       default:
-        return null;
+        return { tab: 'todo' };
     }
   });
 

@@ -51,7 +51,7 @@ import type { QuillPersonCardPick } from './quill-person-card.types';
   `,
   styles: `
     .quill-person-card-picker {
-      width: min(22rem, calc(100vw - 2rem));
+      width: min(var(--layout-main-offset-open), calc(100vw - 2rem));
       padding: 0.35rem;
     }
     .quill-person-card-picker__search {

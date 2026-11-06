@@ -69,7 +69,7 @@
             </div>
           </td>
           <td>{{ user.name || '—' }}</td>
-          <td><app-copy-email [email]="user.email" [showEmpty]="false" /></td>
+          <td><app-copy-email [email]="user.email" /></td>
           <td>
             {{ user.role === 'USER' && user.roleName ? user.roleName : roleLabel(user.role) }}
             @if (user.client) {

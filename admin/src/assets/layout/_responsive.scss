@@ -41,7 +41,7 @@
 
     &.layout-static {
       .layout-main-container {
-        margin-left: 22rem;
+        margin-left: var(--layout-main-offset-open);
         transition: margin-left 0.22s ease;
       }
 
