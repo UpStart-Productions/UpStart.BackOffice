@@ -10,6 +10,7 @@ import { ApiService } from '../../core/api.service';
 import { fileExtension, fileExtLabel, fileIconClass, isRasterImage } from '../../core/file-type.util';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
+import { SingleFileDropzoneComponent } from '../single-file-dropzone/single-file-dropzone.component';
 import type Quill from 'quill';
 
 type Artifact = {
@@ -29,7 +30,7 @@ type Artifact = {
 @Component({
   selector: 'app-artifacts-panel',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, TabsModule, MessageModule, QuillModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, TabsModule, MessageModule, QuillModule, SingleFileDropzoneComponent],
   template: `
     <div class="card">
       <h3 class="showcase-section-title mb-3">{{ sectionTitle() }}</h3>
@@ -49,39 +50,20 @@ type Artifact = {
 
           <!-- ── FILES ──────────────────────────────────────────────────── -->
           <p-tabpanel [value]="0">
-            <div
-              class="artifact-dropzone"
-              [class.artifact-dropzone--active]="dragOver()"
-              [class.artifact-dropzone--uploading]="uploading()"
-              (dragenter)="onDragEnter($event)"
-              (dragleave)="onDragLeave($event)"
-              (dragover)="onDragOver($event)"
-              (drop)="onDrop($event)"
-            >
-              <input type="file" multiple #fileInput style="display:none" (change)="onFilesSelected($event)" />
-              <i class="pi pi-cloud-upload artifact-dropzone-icon" aria-hidden="true"></i>
-              <p class="artifact-dropzone-text">Drag and drop files here, or</p>
-              <button
-                pButton
-                type="button"
-                label="Upload Files"
-                icon="pi pi-upload"
-                severity="secondary"
-                (click)="fileInput.click()"
-                [loading]="uploading()"
-                [disabled]="uploading()"
-              ></button>
-              @if (uploadProgress().length) {
-                <div class="artifact-upload-progress">
-                  @for (p of uploadProgress(); track p.name) {
-                    <span class="artifact-upload-item">
-                      <i class="pi" [class.pi-check]="p.done" [class.pi-spin]="!p.done" [class.pi-spinner]="!p.done"></i>
-                      {{ p.name }}
-                    </span>
-                  }
-                </div>
-              }
-            </div>
+            <app-file-dropzone
+              layout="panel"
+              [multiple]="true"
+              [pickMode]="true"
+              [zoneOpensPicker]="false"
+              [showBrowseButton]="true"
+              accept="*/*"
+              [maxBytes]="50 * 1024 * 1024"
+              emptyHint="Drag and drop files here, or"
+              [uploading]="uploading()"
+              [uploadProgress]="uploadProgress()"
+              (filesChange)="uploadFiles($event)"
+              (invalidFile)="error.set($event)"
+            />
 
             <div class="artifact-card-grid">
               @for (a of files(); track a.id) {
@@ -240,9 +222,7 @@ export class ArtifactsPanelComponent {
   artifacts = signal<Artifact[]>([]);
   error = signal<string | null>(null);
   uploading = signal(false);
-  dragOver = signal(false);
   uploadProgress = signal<{ name: string; done: boolean }[]>([]);
-  private dragDepth = 0;
 
   files = () => this.artifacts().filter(a => a.type === 'FILE');
   links = () => this.artifacts().filter(a => a.type === 'LINK');
@@ -352,52 +332,7 @@ export class ArtifactsPanelComponent {
     }
   }
 
-  onDragEnter(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!this.dataTransferHasFiles(event)) return;
-    this.dragDepth++;
-    this.dragOver.set(true);
-  }
-
-  onDragLeave(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.dragDepth = Math.max(0, this.dragDepth - 1);
-    if (this.dragDepth === 0) this.dragOver.set(false);
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.dataTransfer && this.dataTransferHasFiles(event)) {
-      event.dataTransfer.dropEffect = 'copy';
-    }
-  }
-
-  onDrop(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.dragDepth = 0;
-    this.dragOver.set(false);
-    if (this.uploading()) return;
-    const files = Array.from(event.dataTransfer?.files ?? []);
-    if (files.length) void this.uploadFiles(files);
-  }
-
-  async onFilesSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    input.value = '';
-    if (!files.length) return;
-    await this.uploadFiles(files);
-  }
-
-  private dataTransferHasFiles(event: DragEvent): boolean {
-    return Array.from(event.dataTransfer?.types ?? []).includes('Files');
-  }
-
-  private async uploadFiles(files: File[]) {
+  async uploadFiles(files: File[]) {
     if (!files.length || this.uploading() || !this.queryParam) return;
 
     this.uploading.set(true);

@@ -261,7 +261,7 @@ export class ExpensesController {
     const ext = extname(file.originalname) || '.jpg';
     const receiptFileName = sanitizeDisplayFilename(file.originalname || `receipt${ext}`);
     const key = `expenses/${existing.userId}/${id}/${randomUUID()}${ext}`;
-    await this.storage.upload({
+    const receiptUrl = await this.storage.upload({
       buffer: file.buffer,
       key,
       mimeType: file.mimetype,
@@ -274,7 +274,7 @@ export class ExpensesController {
 
     const expense = await this.prisma.expense.update({
       where: { id },
-      data: { receiptUrl: key, receiptFileName },
+      data: { receiptUrl, receiptFileName },
       include: expenseInclude,
     });
     return await this.toView(expense);

@@ -88,6 +88,7 @@ export type FormFileOpener = (ref: FormFileRef) => void;
               [accept]="fileAccept"
               [maxBytes]="fileMaxBytes"
               [multiple]="!!f.multiple"
+              [pickMode]="true"
               [fill]="true"
               [emptyTitle]="f.multiple ? 'Files' : 'File'"
               emptyHint="Drop a Word, PDF, Excel, PNG or JPG file, or click to browse"

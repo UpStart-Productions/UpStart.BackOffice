@@ -53,7 +53,6 @@
           <button type="button" class="tm-icon-btn" (click)="pickFile()" pTooltip="Attach a file" tooltipPosition="bottom" aria-label="Attach a file">
             <i class="pi" [class.pi-paperclip]="!uploading()" [class.pi-spin]="uploading()" [class.pi-spinner]="uploading()"></i>
           </button>
-          <input #fileInput type="file" multiple hidden (change)="onFiles($event)" />
         }
         <button type="button" class="tm-icon-btn" (click)="toggleFollow()" [pTooltip]="t.isFollowing ? 'Stop following' : 'Follow task'" tooltipPosition="bottom" [attr.aria-label]="t.isFollowing ? 'Stop following' : 'Follow task'">
           <i class="pi" [class.pi-bell]="t.isFollowing" [class.pi-bell-slash]="!t.isFollowing"></i>
@@ -198,36 +197,19 @@
         <section class="tm-detail-section">
           <h3 class="tm-detail-heading tm-detail-heading--caps">Attachments</h3>
           @if (canComment()) {
-            <div
-              class="artifact-dropzone tm-attach-drop"
-              [class.artifact-dropzone--active]="dragOver()"
-              [class.artifact-dropzone--uploading]="uploading()"
-              role="button"
-              tabindex="0"
-              aria-label="Attach files: drop them here or press to browse"
-              (click)="pickFile()"
-              (keydown.enter)="pickFile()"
-              (keydown.space)="pickFile(); $event.preventDefault()"
-              (dragenter)="onDragOver($event)"
-              (dragover)="onDragOver($event)"
-              (dragleave)="onDragLeave($event)"
-              (drop)="onDrop($event)"
-            >
-              <span class="tm-attach-drop-label">
-                <i class="pi pi-cloud-upload artifact-dropzone-icon" aria-hidden="true"></i>
-                <span class="artifact-dropzone-text">Drop files here, or click to browse</span>
-              </span>
-              @if (uploadProgress().length) {
-                <div class="artifact-upload-progress">
-                  @for (p of uploadProgress(); track $index) {
-                    <span class="artifact-upload-item">
-                      <i class="pi" [class.pi-check]="p.done" [class.pi-spin]="!p.done" [class.pi-spinner]="!p.done"></i>
-                      {{ p.name }}
-                    </span>
-                  }
-                </div>
-              }
-            </div>
+            <app-file-dropzone
+              #attachDropzone
+              layout="panel"
+              panelClass="tm-attach-drop"
+              [multiple]="true"
+              [pickMode]="true"
+              accept="*/*"
+              [maxBytes]="50 * 1024 * 1024"
+              emptyHint="Drop files here, or click to browse"
+              [uploading]="uploading()"
+              [uploadProgress]="uploadProgress()"
+              (filesChange)="uploadFiles($event)"
+            />
           }
           @if (t.attachments.length) {
             <div class="artifact-card-grid tm-attach-grid">

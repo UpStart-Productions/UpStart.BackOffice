@@ -1,27 +1,45 @@
-# File upload (compact dropzone)
+# File upload (dropzone)
 
-For **single-file** pickers in forms (receipts, attachments on one field), use **`app-single-file-dropzone`** (`admin/src/app/ui/single-file-dropzone/`).
+Use **`app-file-dropzone`** or **`app-single-file-dropzone`** (same component, two selectors) in `admin/src/app/ui/single-file-dropzone/`.
 
 For **profile or logo images** (PNG/JPEG/GIF/WebP), use **`app-avatar-dropzone`** (`admin/src/app/ui/avatar-dropzone/`).
 
+## Single vs multi
+
+- **`[multiple]="false"`** (default) — one file; `(fileChange)` emits the file; optional preview until parent saves or clears.
+- **`[multiple]="true"`** — `(filesChange)` emits `File[]`.
+
+## Layout
+
+- **`layout="inline"`** (default) — compact row for form fields (receipts, form FILE questions).
+- **`layout="panel"`** — dashed drop zone (artifacts list, task attachments). Optional `[showBrowseButton]="true"`, `[zoneOpensPicker]="false"` when a toolbar button calls `openPicker()` via `#ref`.
+
+## Pick vs hold
+
+- **`pickMode="false"`** (default) — keeps selection for preview until parent clears or `reset()`.
+- **`pickMode="true"`** — emit and reset immediately (multi attach uploads, form FILE upload-on-pick).
+
+Optional: `[uploading]`, `[uploadProgress]` for panel progress text.
+
 ## Do not
 
-- Visible native `<input type="file">` on admin forms
-- One-off “Choose file” / “Upload” buttons with a hidden file input when the compact dropzone fits
+- Visible native `<input type="file">` on admin forms when the dropzone fits
+- One-off “Choose file” / duplicate panel dropzone markup when `layout="panel"` covers it
 
 ## OK to keep hidden file inputs
 
-- **Large multi-file zones** (e.g. `app-artifacts-panel` dropzone)
-- **Toolbar actions** (Import CSV on time entry or bank import) where upload is a primary action, not a labeled form field
-- **Icon-only attach** in task detail header (paperclip)
+- **CSV imports** (bank import, timesheet) — base64 API, not object storage dropzone
+- **Quill** embedded image/file handlers
+- **Public form** token upload (separate flow)
 
 ## Reference
 
 | Use case | Control |
 |----------|---------|
 | Person / user avatar | `app-avatar-dropzone` |
-| Company logo (Settings) | `app-avatar-dropzone` with `thumbShape="square"`, `fill`, custom titles |
-| Expense receipt (image/PDF) | `app-single-file-dropzone` with `fill` |
-| Public task form FILE question | `app-single-file-dropzone` with `[multiple]="true"` |
+| Company logo (Settings) | `app-avatar-dropzone` with `thumbShape="square"`, `fill` |
+| Expense receipt | `app-single-file-dropzone` inline, `fill` |
+| Task / artifact attachments | `app-file-dropzone` panel, `multiple`, `pickMode` |
+| Public task form FILE question | inline, `[multiple]` as needed, `pickMode` |
 
-Pass `(invalidFile)` to surface validation; call `reset()` on the dropzone when the parent dialog reopens.
+Pass `(invalidFile)` for validation; call `reset()` when the parent dialog reopens.

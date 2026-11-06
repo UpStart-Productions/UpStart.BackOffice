@@ -5,19 +5,30 @@ export function publicUrlForKey(key: string): string {
   return `${UPLOADS_URL_PREFIX}${key.replace(/\\/g, '/')}`;
 }
 
-/** Normalize legacy direct S3 URLs or absolute URLs to the API proxy path. */
+/** Normalize storage keys, legacy S3 URLs, or absolute URLs to the API proxy path. */
 export function toPublicAssetUrl(stored: string | null | undefined): string | null {
   if (!stored) return null;
-  if (stored.startsWith(UPLOADS_URL_PREFIX)) return stored;
-  if (stored.includes('.amazonaws.com/')) {
-    try {
-      const key = new URL(stored).pathname.replace(/^\//, '');
-      if (key) return publicUrlForKey(key);
-    } catch {
-      /* fall through */
+  const trimmed = stored.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith(UPLOADS_URL_PREFIX)) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) {
+    if (trimmed.includes('.amazonaws.com/')) {
+      try {
+        const key = new URL(trimmed).pathname.replace(/^\//, '');
+        if (key) return publicUrlForKey(key);
+      } catch {
+        /* fall through */
+      }
     }
+    return trimmed;
   }
-  return stored;
+  if (trimmed.startsWith('data:')) return trimmed;
+  // Bare storage key (e.g. expenses/…/file.png) stored before public URL normalization.
+  const key = trimmed.startsWith('/') ? trimmed.slice(1) : trimmed;
+  if (key && !key.includes('://')) {
+    return publicUrlForKey(key);
+  }
+  return trimmed;
 }
 
 /** Absolute href for emails and embeds (upload paths are stored as `/api/uploads/…`). */

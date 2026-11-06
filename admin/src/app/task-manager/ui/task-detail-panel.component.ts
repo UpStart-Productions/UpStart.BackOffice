@@ -10,6 +10,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { fileExtLabel, fileIconClass, isPdfFile, isRasterImage, isVideoFile } from '../../core/file-type.util';
 import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
+import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, createdOnLabel, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
@@ -46,6 +47,7 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     TmRecurrenceEditorComponent,
     TmFieldCellComponent,
     FileViewerDialogComponent,
+    SingleFileDropzoneComponent,
   ],
   templateUrl: './task-detail-panel.component.html',
   animations: [
@@ -100,7 +102,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   uploading = signal(false);
   /** Files uploading now (spinner) or just finished (check), shown in the drop zone. */
   uploadProgress = signal<{ name: string; done: boolean }[]>([]);
-  dragOver = signal(false);
+  private readonly attachDropzone = viewChild(SingleFileDropzoneComponent);
   /** The photo, video or PDF open in the viewer. */
   previewAttachment = signal<TaskAttachment | null>(null);
   readonly preview = computed<ViewerFile | null>(() => {
@@ -116,7 +118,6 @@ export class TmTaskDetailComponent implements OnDestroy {
   private readonly recurrenceEditor = viewChild.required<TmRecurrenceEditorComponent>('recurrenceEditor');
   private readonly subtaskDuePicker = viewChild.required<TmDueDatePickerComponent>('subtaskDuePicker');
   private readonly subtaskAssigneePicker = viewChild.required<TmPersonPickerComponent>('subtaskAssigneePicker');
-  private readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
   private subtaskTarget: TaskSummary | null = null;
   private loadSeq = 0;
   private loadedTaskId: string | null = null;
@@ -509,33 +510,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   // ── Attachments ─────────────────────────────────────────────────────────
 
   pickFile() {
-    this.fileInput()?.nativeElement.click();
-  }
-
-  async onFiles(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const files = Array.from(input.files ?? []);
-    input.value = '';
-    await this.uploadFiles(files);
-  }
-
-  onDragOver(event: DragEvent) {
-    if (!event.dataTransfer?.types.includes('Files')) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    this.dragOver.set(true);
-  }
-
-  onDragLeave(event: DragEvent) {
-    const zone = event.currentTarget as HTMLElement;
-    if (event.relatedTarget instanceof Node && zone.contains(event.relatedTarget)) return;
-    this.dragOver.set(false);
-  }
-
-  async onDrop(event: DragEvent) {
-    event.preventDefault();
-    this.dragOver.set(false);
-    await this.uploadFiles(Array.from(event.dataTransfer?.files ?? []));
+    this.attachDropzone()?.openPicker();
   }
 
   attachmentIsImage(a: TaskAttachment) {
@@ -568,7 +543,7 @@ export class TmTaskDetailComponent implements OnDestroy {
   }
 
   /** Upload one at a time, each with a spinner then a check in the drop zone; the cards appear when all are in. */
-  private async uploadFiles(files: File[]) {
+  async uploadFiles(files: File[]) {
     const t = this.task();
     if (!t || !files.length || this.uploading()) return;
     this.uploading.set(true);
