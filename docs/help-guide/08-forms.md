@@ -5,7 +5,7 @@
 ## Who sees what
 
 - The role needs the **Forms** area (Users → Roles). **Own** shows only the forms that person created; **All** shows every form. **Create**, **Edit** and **Delete** are checkboxes. Admins see everything.
-- New submissions notify admins, people with Forms **All**, and the person who created the form (bell, and email unless turned off under Inbox → Notification settings: "A form in Forms gets a submission").
+- New submissions notify admins, people with Forms **All**, and the person who created the form (bell, and email unless turned off under **My Account** → **Email notifications**: "A form in Forms gets a submission").
 - **Submit** on a client form result notifies admins and roles with Edit on that form who reach the client ("A client form I can edit is submitted"). **Attach** and **Move** notify the staff assigned to that client or organization who can see the answers ("A form is added to a client assigned to me"). Nobody is notified about their own actions.
 
 ## Moving a form between UBOs (form files)

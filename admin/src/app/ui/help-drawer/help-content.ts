@@ -470,7 +470,25 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Email notifications',
-        body: 'In-app notifications always appear here. Notification settings chooses which also send an email. Assignments, @mentions, comments, completed tasks, projects, form submissions, submitted client forms and forms added to your clients email by default; files attached, due date changes, moves and new subtasks on tasks you follow only show here unless you turn their email on. You follow a task you create, are assigned, comment on or are @mentioned in.',
+        body: 'In-app notifications always appear here and in the bell. To choose which types also send email, open **My Account** from your avatar menu → **Email notifications**.',
+      },
+    ],
+  },
+  account: {
+    title: 'My Account',
+    intro: 'Your name, email, photo, password and email notification preferences.',
+    sections: [
+      {
+        heading: 'Profile',
+        body: 'Update your name, email and photo, then **Save profile**. Email is your sign-in address—use the new one next time you sign in if you change it.',
+      },
+      {
+        heading: 'Password',
+        body: '**Send reset code** emails a one-time code to your account email. Enter the code and a new password, then **Set new password**.',
+      },
+      {
+        heading: 'Email notifications',
+        body: 'Bell and Task Manager inbox always show in-app alerts. Toggles here control which types also send email. Files attached, due date changes, moves and new subtasks on tasks you follow are off for email until you turn them on.',
       },
     ],
   },

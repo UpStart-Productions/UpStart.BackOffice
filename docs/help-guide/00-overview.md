@@ -34,9 +34,13 @@ Every page has the same header above its content:
 
 - **Search** (magnifying glass): organizations, people, projects, tasks, time, expenses, forms and submissions, invoices, pipeline, bookings, care visits and schedule, activity, and team (admins)—only in areas you can access
 - **Help** (question mark): opens a help panel on the right with a short guide to the page you're on. It follows you as you move between pages. At the bottom, **Contact Support** sends a message to UpStart support (support@heyupstart.com); you'll get a reply by email. Some form fields also have a small ⓘ icon; hover it for a one-line explanation.
-- **User avatar** (top bar): opens account menu with email, role, Sign out; **Return to my account** when impersonating
+- **User avatar** (top bar): opens menu with **My Account** (profile, password, email notification settings), email, role, and **Sign out**; **Return to my account** when impersonating
 - **JD** (Back Office guide, bottom-left): in-app help chat when configured by a super user
 - **Notifications** (bell, top bar): unread task and project alerts (assignments, mentions, comments, due dates, attachments, moves, and more); opens a panel with links, Mark read, and Dismiss
+
+## My Account
+
+Open **My Account** from the avatar menu to change your name, email, photo and password, and to choose which notification types also send email. In-app alerts always appear in the bell and Task Manager **Inbox**; the toggles on My Account control email only.
 
 ## Super users
 

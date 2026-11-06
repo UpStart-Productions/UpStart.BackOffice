@@ -50,6 +50,11 @@ export const appRoutes: Route[] = [
     canActivateChild: [areaGuard],
     children: [
       {
+        path: 'account',
+        loadComponent: () =>
+          import('./pages/account/my-account.page').then((m) => m.MyAccountPage),
+      },
+      {
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard/dashboard.page').then((m) => m.DashboardPage),

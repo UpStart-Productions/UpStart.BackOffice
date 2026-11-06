@@ -45,15 +45,16 @@ export class NotificationDeliveryService {
 
       const route = (input.meta?.route ?? []).filter(Boolean).join('/').replace(/^\/+/, '');
       const href = route ? `${adminAppBaseUrl()}/${route}` : adminAppBaseUrl();
+      const bodyText = input.body?.trim();
       const html = wrapClientEmail({
         title: input.title,
         subtitle: input.meta?.projectName ? String(input.meta.projectName) : undefined,
-        greeting: user.firstName ? `Hi ${user.firstName},` : undefined,
-        extraHtml: input.body
-          ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.55;color:#2d2d2d;white-space:pre-line;">${escapeHtml(input.body)}</p>`
+        greeting: bodyText && user.firstName ? `Hi ${user.firstName},` : undefined,
+        extraHtml: bodyText
+          ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.55;color:#2d2d2d;white-space:pre-line;">${escapeHtml(bodyText)}</p>`
           : undefined,
         action: { href, label: typeof input.meta?.actionLabel === 'string' ? input.meta.actionLabel : 'Open task' },
-        actionNote: 'Change which emails you get under Inbox → Settings.',
+        actionNote: 'Change which emails you get under My Account.',
       });
       await this.mail.sendRaw({ to: user.email, subject: input.title, html });
     } catch (err) {

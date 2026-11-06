@@ -28,7 +28,7 @@ import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { runUnscoped, tryTenantId } from '../tenancy/tenant-context';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
-import { CreateUserDto, SetUserActiveDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
+import { CreateUserDto, SetUserActiveDto, UpdateMeDto, UpdateUserDto, UploadAvatarDto } from './dto/user.dto';
 
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -132,6 +132,61 @@ export class UsersController {
       permissions: sanitizePermissions(row.tenantRole?.permissions),
       actions: sanitizeActions(row.tenantRole?.actions),
       modules: tenant ? sanitizeModules(tenant.modules) : undefined,
+    };
+  }
+
+  @Patch('me')
+  async updateMe(@Req() req: Request, @Body() dto: UpdateMeDto) {
+    const caller = req.user as UserContext;
+    const existing = await runUnscoped(() =>
+      this.prisma.user.findUnique({ where: { id: caller.id } }),
+    );
+    if (!existing) throw new NotFoundException('User not found');
+
+    if (dto.email !== undefined && dto.email.trim().toLowerCase() !== existing.email) {
+      await this.assertEmailAvailable(dto.email.trim().toLowerCase(), caller.id);
+    }
+
+    const firstName =
+      dto.firstName !== undefined ? dto.firstName.trim() || null : existing.firstName;
+    const lastName =
+      dto.lastName !== undefined ? dto.lastName.trim() || null : existing.lastName;
+    const name = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
+
+    if (dto.avatarUrl === null && existing.avatarUrl) {
+      await this.deleteStoredAvatar(existing.avatarUrl);
+    }
+
+    const user = await runUnscoped(() =>
+      this.prisma.user.update({
+        where: { id: caller.id },
+        data: {
+          ...(dto.email !== undefined && { email: dto.email.trim().toLowerCase() }),
+          ...(dto.firstName !== undefined && { firstName }),
+          ...(dto.lastName !== undefined && { lastName }),
+          ...(dto.firstName !== undefined || dto.lastName !== undefined ? { name } : {}),
+          ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+        },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+          avatarUrl: true,
+        },
+      }),
+    );
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: displayName(user),
+        avatarUrl: toPublicAssetUrl(user.avatarUrl),
+      },
     };
   }
 

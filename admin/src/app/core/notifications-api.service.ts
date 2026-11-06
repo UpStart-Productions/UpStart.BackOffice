@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import {
   NOTIFICATIONS_API,
   resolveNotificationRoute,
+  type EmailPreferences,
   type UserNotificationDto,
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
@@ -36,5 +37,15 @@ export class NotificationsApiService {
 
   notificationRoute(notification: UserNotificationDto): string[] | null {
     return resolveNotificationRoute(notification);
+  }
+
+  emailPreferences(): Promise<EmailPreferences> {
+    return this.api.get<{ email: EmailPreferences }>(NOTIFICATIONS_API.preferences).then((r) => r.email);
+  }
+
+  setEmailPreferences(prefs: Partial<EmailPreferences>): Promise<EmailPreferences> {
+    return this.api
+      .put<{ email: EmailPreferences }>(NOTIFICATIONS_API.preferences, prefs)
+      .then((r) => r.email);
   }
 }

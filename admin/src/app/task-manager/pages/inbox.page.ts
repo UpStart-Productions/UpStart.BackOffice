@@ -1,19 +1,13 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { AppDialogModule } from '../../core/app-dialog.module';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { TmApiService } from '../core/tm-api.service';
 import { relativeTime } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
-import { AppNotification, EmailPrefs } from '../core/tm.types';
-import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { AppNotification } from '../core/tm.types';
 import { PageComponent } from '../../ui/layout/page.component';
-import { SessionService } from '../../core/session.service';
-import { areaLevel } from '@upstart/back-office/shared';
 
 const TYPE_ICON: Record<string, string> = {
   task_assigned: 'pi-user-plus',
@@ -31,17 +25,16 @@ const TYPE_ICON: Record<string, string> = {
   care_shift_assigned: 'pi-calendar-plus',
 };
 
-/** Notification inbox (Asana-style): activity / archive, mark read, email settings. */
+/** Notification inbox (Asana-style): activity / archive, mark read. Email prefs live on My Account. */
 @Component({
   selector: 'app-tm-inbox-page',
   standalone: true,
-  imports: [PageComponent, FormsModule, ButtonModule, AppDialogModule, SelectButtonModule, ToggleSwitchModule, HelpTextComponent],
+  imports: [PageComponent, FormsModule, ButtonModule, SelectButtonModule],
   template: `
     <div class="tm-page tm-inbox">
       <app-page title="Inbox">
 
       <ng-container ngProjectAs="[pageActions]">
-        <button type="button" class="tm-icon-btn" (click)="openPrefs()" aria-label="Notification settings"><i class="pi pi-cog"></i></button>
         @if (tab() === 'activity' && unread() > 0) {
           <p-button label="Mark all read" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="markAllRead()" />
         }
@@ -84,67 +77,23 @@ const TYPE_ICON: Record<string, string> = {
       }
       </app-page>
     </div>
-
-    <p-dialog [(visible)]="prefsOpen" [modal]="true" [style]="{ width: '26rem' }" [draggable]="false">
-      <ng-template pTemplate="header">
-        <span>Email notifications <app-help-text key="tm.notificationsEmailPrefs" /></span>
-      </ng-template>
-      @if (prefs(); as p) {
-        <ul class="tm-pref-list">
-          @for (row of prefRows(); track row.key) {
-            <li>
-              <span>{{ row.label }}</span>
-              <p-toggleswitch [ngModel]="p[row.key]" (ngModelChange)="setPref(row.key, $event)" />
-            </li>
-          }
-        </ul>
-      }
-    </p-dialog>
   `,
 })
 export class InboxPage implements OnInit {
   private readonly api = inject(TmApiService);
   private readonly store = inject(TmStoreService);
   private readonly router = inject(Router);
-  private readonly toast = inject(MessageService);
-  private readonly session = inject(SessionService);
 
   readonly tabs = [
     { label: 'Activity', value: 'activity' },
     { label: 'Archive', value: 'archive' },
   ];
-  private readonly basePrefRows: { key: keyof EmailPrefs; label: string }[] = [
-    { key: 'task_assigned', label: 'A task is assigned to me' },
-    { key: 'task_unassigned', label: "I'm unassigned from a task" },
-    { key: 'task_mention', label: 'Someone @mentions me' },
-    { key: 'task_comment', label: 'Comments on tasks I follow' },
-    { key: 'task_attachment', label: 'Files attached to tasks I follow' },
-    { key: 'task_due_date_changed', label: 'Due dates change on tasks I follow' },
-    { key: 'task_moved', label: 'Tasks I follow are moved' },
-    { key: 'task_subtask_added', label: 'Subtasks are added to tasks I follow' },
-    { key: 'task_completed', label: 'Tasks I follow are completed' },
-    { key: 'project_added', label: "I'm added to a project" },
-    { key: 'project_removed', label: "I'm removed from a project" },
-    { key: 'task_form_submission', label: 'A form I own gets a submission' },
-  ];
-  /** The Care row only for people who use Care (module on and a Care role). */
-  readonly prefRows = computed(() => {
-    const me = this.session.me();
-    const rows = [...this.basePrefRows];
-    if (areaLevel(me, 'forms')) rows.push({ key: 'form_submission', label: 'A form in Forms gets a submission' });
-    rows.push({ key: 'client_form_submitted', label: 'A client form I can edit is submitted' });
-    rows.push({ key: 'form_attached', label: 'A form is added to a client assigned to me' });
-    if (areaLevel(me, 'schedule')) rows.push({ key: 'care_shift_assigned', label: 'A shift is assigned to me' });
-    return rows;
-  });
   readonly relativeTime = relativeTime;
 
   tab = signal<'activity' | 'archive'>('activity');
   items = signal<AppNotification[]>([]);
   archived = signal<AppNotification[]>([]);
   loading = signal(true);
-  prefsOpen = false;
-  prefs = signal<EmailPrefs | null>(null);
 
   readonly unread = computed(() => this.items().filter((n) => !n.readAt).length);
   readonly visible = computed(() => {
@@ -217,28 +166,5 @@ export class InboxPage implements OnInit {
     this.items.update((list) => list.map((n) => ({ ...n, readAt: n.readAt ?? now })));
     this.store.unreadCount.set(0);
     await this.api.markAllRead().catch(() => this.load());
-  }
-
-  async openPrefs() {
-    this.prefsOpen = true;
-    if (!this.prefs()) {
-      try {
-        this.prefs.set((await this.api.emailPrefs()).email);
-      } catch {
-        /* ignore */
-      }
-    }
-  }
-
-  async setPref(key: keyof EmailPrefs, value: boolean) {
-    const p = this.prefs();
-    if (!p) return;
-    this.prefs.set({ ...p, [key]: value });
-    try {
-      this.prefs.set((await this.api.setEmailPrefs({ [key]: value })).email);
-    } catch (err) {
-      this.prefs.set(p);
-      this.toast.add({ severity: 'error', summary: 'Could not save', detail: err instanceof Error ? err.message : String(err) });
-    }
   }
 }

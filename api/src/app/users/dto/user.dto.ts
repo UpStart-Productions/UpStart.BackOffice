@@ -79,3 +79,24 @@ export class SetUserActiveDto {
   @IsBoolean()
   isActive!: boolean;
 }
+
+/** Signed-in user updates their own profile (not role, rate, or active flag). */
+export class UpdateMeDto {
+  @IsOptional()
+  @IsString()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  lastName?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toLowerCase() : value))
+  @IsEmail()
+  email?: string;
+
+  /** Set to null to remove avatar; omit to leave unchanged. */
+  @IsOptional()
+  @Allow()
+  avatarUrl?: string | null;
+}

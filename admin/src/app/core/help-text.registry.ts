@@ -235,7 +235,11 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'tm.addProjectToTasks':
     'Only existing projects can be added to Tasks. Create new projects on the Projects page first.',
   'tm.notificationsEmailPrefs':
-    'In-app notifications always appear in the inbox. Choose which types also send email. Files attached, due date changes, moves and new subtasks are off until you turn them on.',
+    'Moved to My Account → Email notifications. In-app alerts always appear in the bell and inbox; toggles there control email too.',
+  'account.email':
+    'This is your sign-in address. If you change it, use the new email the next time you sign in.',
+  'account.emailNotifications':
+    'In-app notifications always appear in the bell and Task Manager inbox. Choose which types also send email. Files attached, due date changes, moves and new subtasks are off until you turn them on.',
 
   // Platform
   'platform.guideSetup':

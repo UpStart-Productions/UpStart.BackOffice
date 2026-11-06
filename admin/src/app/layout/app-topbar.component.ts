@@ -360,6 +360,13 @@ export class AppTopbarComponent implements OnInit {
         });
       }
     }
+    if (!this.isImpersonating()) {
+      items.push({
+        label: 'My Account',
+        icon: 'pi pi-fw pi-id-card',
+        command: () => void this.router.navigate(['/account']),
+      });
+    }
     items.push({
       label: 'Sign out',
       icon: 'pi pi-fw pi-sign-out',
