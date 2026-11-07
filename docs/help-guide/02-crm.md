@@ -56,7 +56,7 @@ Each card leads with the **next step**: what you plan to do next and its due dat
 - **Reorder**: drag a lane by its header.
 - **Remove**: the **X** on the lane. If it has cards (archived ones count), choose a lane to move them to. A pipeline always keeps at least one lane, so the X is unavailable on the last lane.
 
-**Pipelines:** the **⋮** menu at the top right has **New pipeline**, **Rename pipeline** and **Delete pipeline** (only an empty pipeline can be deleted). With more than one pipeline, pick which one to view from the list beside **Board / Archived**. A second pipeline can track partners you are recruiting.
+**Pipelines:** the **⋮** menu beside **New Lead** (top right) has **New pipeline**, **Rename pipeline** and **Delete pipeline** (only an empty pipeline can be deleted). With more than one pipeline, pick which one to view from the list beside **Board / Archived**. A second pipeline can track partners you are recruiting.
 
 **Archived:** switch **Board / Archived** on the left to see won and archived cards. **Restore** puts a card back on the board. **Delete** removes the card for good.
 

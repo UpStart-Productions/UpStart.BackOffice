@@ -1,4 +1,4 @@
-import { animate, style, transition, trigger } from '@angular/animations';
+import { animate, state, style, transition, trigger } from '@angular/animations';
 import { Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -52,18 +52,26 @@ import { TmTaskProjectsComponent } from './task-projects.component';
   templateUrl: './task-detail-panel.component.html',
   animations: [
     trigger('pane', [
-      transition(':enter', [
+      // Explicit `open` state so `open => void` runs when @if removes the pane ( :leave on '' often skips ).
+      state(
+        'open',
+        style({
+          transform: 'translateX(0)',
+          opacity: 1,
+        }),
+      ),
+      transition('void => open', [
         style({ transform: 'translateX(2rem)', opacity: 0 }),
         animate('220ms ease-out', style({ transform: 'translateX(0)', opacity: 1 })),
       ]),
-      transition(':leave', [
+      transition('open => void', [
         animate('200ms ease-in', style({ transform: 'translateX(2rem)', opacity: 0 })),
       ]),
     ]),
   ],
   host: {
     class: 'tm-detail-host',
-    '[@pane]': '',
+    '[@pane]': "'open'",
   },
 })
 export class TmTaskDetailComponent implements OnDestroy {

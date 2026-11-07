@@ -276,7 +276,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'More than one pipeline',
-        body: 'The ⋮ menu at the top right has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). With more than one pipeline, pick which board to view from the list beside Board / Archived. For example, a second pipeline can track partners you\'re recruiting.',
+        body: 'The ⋮ menu beside New Lead (top right) has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). With more than one pipeline, pick which board to view from the list beside Board / Archived. For example, a second pipeline can track partners you\'re recruiting.',
       },
       {
         heading: 'Archived',

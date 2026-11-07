@@ -102,7 +102,7 @@ export class ProjectTasksPage implements OnDestroy {
   loading = signal(true);
   error = signal<string | null>(null);
   people = signal<Person[]>([]);
-  completedFilter = signal<CompletedFilter>('incomplete');
+  completedFilter = signal<CompletedFilter>('all');
   search = signal('');
   tagFilter = signal<string[]>([]);
   /** Tasks added on this page: they stay visible even when they don't match the search or tag filter (Asana), until the filter changes or the list reloads. */
@@ -122,9 +122,9 @@ export class ProjectTasksPage implements OnDestroy {
   private selectionAnchorId: string | null = null;
 
   readonly filterOptions = [
+    { label: 'All', value: 'all' },
     { label: 'Incomplete', value: 'incomplete' },
     { label: 'Completed', value: 'completed' },
-    { label: 'All', value: 'all' },
   ];
   readonly colors = PROJECT_COLORS;
   readonly dueLabel = dueLabel;
@@ -266,7 +266,7 @@ export class ProjectTasksPage implements OnDestroy {
     if (this.boardPrefsProjectId !== projectId) {
       this.boardPrefsProjectId = projectId;
       this.boardPrefsKey = null;
-      this.completedFilter.set('incomplete');
+      this.completedFilter.set('all');
       this.tagFilter.set([]);
       this.collapsedSectionIds.set(new Set());
     }

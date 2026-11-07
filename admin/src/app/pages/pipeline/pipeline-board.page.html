@@ -1,7 +1,12 @@
 <app-page title="Pipeline">
-  @if (canCreate()) {
-    <a pageActions pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
-  }
+  <ng-container ngProjectAs="[pageActions]">
+    @if (canSetup()) {
+      <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
+    }
+    @if (canCreate()) {
+      <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
+    }
+  </ng-container>
   @if (error()) {
     <div class="card">
       <p-message severity="error" [text]="error()!" />
@@ -40,9 +45,6 @@
           (ngModelChange)="onSearchInput($event)"
         />
       </div>
-      @if (canSetup()) {
-        <app-row-actions-menu [items]="pipelineActions()" ariaLabel="Pipeline actions" />
-      }
     </div>
 
     @if (loading()) {
