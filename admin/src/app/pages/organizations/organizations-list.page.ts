@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import type { AccountJourney } from '@upstart/back-office/shared';
@@ -17,6 +17,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import type { OrganizationRow } from '../clients/clients-list.page';
+import { OrganizationsImportModalComponent } from '../../ui/organizations-import-modal/organizations-import-modal.component';
 
 type StatusFilter = 'all' | AccountJourney;
 
@@ -36,6 +37,7 @@ type StatusFilter = 'all' | AccountJourney;
     PageComponent,
     RowActionsMenuComponent,
     CopyEmailComponent,
+    OrganizationsImportModalComponent,
   ],
   styles: [
     `
@@ -67,7 +69,17 @@ type StatusFilter = 'all' | AccountJourney;
     <app-page title="Organizations">
       @if (canCreate()) {
         <ng-container ngProjectAs="[pageActions]">
-          <a pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
+          <span class="split-action">
+            <a pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
+            @if (canEdit()) {
+              <app-row-actions-menu
+                class="split-action-more"
+                [attached]="true"
+                [items]="headerMenu()"
+                ariaLabel="More organization actions"
+              />
+            }
+          </span>
         </ng-container>
       }
       @if (error()) {
@@ -139,6 +151,8 @@ type StatusFilter = 'all' | AccountJourney;
           </ng-template>
         </p-table>
       </div>
+
+      <app-organizations-import-modal />
     </app-page>
   `,
 })
@@ -152,6 +166,17 @@ export class OrganizationsListPage implements OnInit {
   readonly canCreate = computed(() => this.session.can('clients', 'create'));
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
   readonly canDelete = computed(() => this.session.can('clients', 'delete'));
+
+  private readonly importModal = viewChild.required(OrganizationsImportModalComponent);
+
+  readonly headerMenu = computed((): RowActionItem[] => [
+    {
+      id: 'import',
+      label: 'Import organizations',
+      icon: 'pi pi-upload',
+      command: () => void this.openImport(),
+    },
+  ]);
 
   readonly typeFilterOptions: { value: AccountJourney; label: string }[] = [
     { value: 'CLIENT', label: 'Clients' },
@@ -253,6 +278,11 @@ export class OrganizationsListPage implements OnInit {
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not update');
     }
+  }
+
+  async openImport() {
+    const imported = await this.importModal().open();
+    if (imported) await this.load();
   }
 
   confirmDelete(org: OrganizationRow) {

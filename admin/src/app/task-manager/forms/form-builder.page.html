@@ -7,9 +7,6 @@
   >
   <ng-container ngProjectAs="[pageActions]">
     @if (draft()) {
-      @if (canEdit()) {
-        <app-row-actions-menu [items]="headerActions" ariaLabel="Form actions" />
-      }
       @if (form()?.access !== 'API_KEY') {
         <a pButton [href]="pageUrl()" target="_blank" rel="noopener" label="Open form" icon="pi pi-external-link" severity="secondary" [outlined]="true"></a>
       }
@@ -17,7 +14,10 @@
         @if (dirty()) {
           <p-button label="Discard" severity="secondary" [outlined]="true" (onClick)="discard()" />
         }
-        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty() || saving()" (onClick)="save()" />
+        <span class="split-action">
+          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty() || saving()" (onClick)="save()" />
+          <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions" ariaLabel="More form actions" />
+        </span>
       }
     }
   </ng-container>

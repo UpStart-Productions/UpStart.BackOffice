@@ -1,0 +1,24 @@
+---
+description: Split action — the header's primary button with the ⋮ menu attached; the standard for every page header with both
+globs: admin/src/app/**/*.{html,ts,scss}
+alwaysApply: false
+---
+
+# Split action (standard)
+
+One purple control: the primary button on the left, a full-height divider, and the ⋮ menu on the right.
+Each half gets a white-tint hover. Outer corners rounded, inner corners square.
+
+```html
+<span class="split-action">
+  <p-button label="Save" icon="pi pi-check" (onClick)="save()" />
+  <app-row-actions-menu class="split-action-more" [attached]="true" [items]="menu()" ariaLabel="More client actions" />
+</span>
+```
+
+- **Reuse, don't rebuild:** the ⋮ half is `app-row-actions-menu` with `[attached]="true"` (same popover, items, separators). Styles: `assets/layout/_split-action.scss` plus the attached styles in the menu component.
+- Menu order: actions closest to the primary first, then a separator, then page-wide actions.
+- When the primary isn't shown (e.g. another tab), show the plain `app-row-actions-menu` on its own.
+- Use it on every page header that has a primary button and a ⋮ menu. Secondary outlined buttons (Open form, Discard, Reopen…) stay separate, to the left.
+- The primary half can be `<p-button>` or `<a pButton>`.
+- Used on: Client detail, Lead detail, Pipeline board, Project edit, Task Manager project, Task form builder, Form submission, Client form result, Care visit, Booking type edit, Invoice edit, Invoice detail.

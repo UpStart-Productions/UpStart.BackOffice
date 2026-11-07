@@ -5,16 +5,18 @@
 >
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
-      @if (isDraftEdit) {
-        <app-row-actions-menu [items]="draftHeaderActions()" ariaLabel="Invoice actions" />
-      }
-      <p-button
-        label="Save Invoice"
-        icon="pi pi-check"
-        [loading]="saving()"
-        [disabled]="!isNew && !isDirty()"
-        (click)="save()"
-      />
+      <span class="split-action">
+        <p-button
+          label="Save Invoice"
+          icon="pi pi-check"
+          [loading]="saving()"
+          [disabled]="!isNew && !isDirty()"
+          (click)="save()"
+        />
+        @if (isDraftEdit) {
+          <app-row-actions-menu class="split-action-more" [attached]="true" [items]="draftHeaderActions()" ariaLabel="More invoice actions" />
+        }
+      </span>
     }
   </ng-container>
   <ng-container ngProjectAs="[pageTitleTrail]">

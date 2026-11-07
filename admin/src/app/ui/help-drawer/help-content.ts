@@ -293,7 +293,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'New Organization',
-        body: 'Adds an organization as Partner / other by default. Use Status and Tags on the record to classify them; Make client when they become a client. For someone you are still trying to win, use Pipeline → New Lead instead.',
+        body: 'New Organization (with a ⋮ menu attached) adds one record as Partner / other by default. Import organizations uploads CSV or Excel; preview the first 10 rows, then import. Headers like Organization, Email, and Status are matched automatically. Use Status and Tags on the record to classify them; Make client when they become a client. For someone you are still trying to win, use Pipeline → New Lead instead.',
       },
     ],
   },
@@ -326,7 +326,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Adding a person',
-        body: 'New Person asks for first and last name, their email, phone, title, LinkedIn and personal URL, optional photo, and optionally an organization and tags. Pick New organization in the Organization list to add name, email and website for a stub organization and link this person to it. Role is how they relate to that organization (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one organization.',
+        body: 'New Person (with a ⋮ menu attached) asks for first and last name, their email, phone, title, LinkedIn and personal URL, optional photo, and optionally an organization and tags. Import people uploads a CSV or Excel file; you preview the first 10 rows, then import. Headers like Name, Email, and Organization are matched automatically. Organizations that are not already in Back Office are created as Partner / other with no tags, then people are linked. Pick New organization in the Organization list to add name, email and website for a stub organization and link this person to it. Role is how they relate to that organization (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one organization.',
       },
       {
         heading: 'Tags',
@@ -334,7 +334,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Needs review',
-        body: 'People created automatically from email. Check the details and Mark reviewed. The People menu item shows how many are waiting.',
+        body: 'People created automatically from email. Open Needs review from the ⋮ menu on New Person (the badge shows how many are waiting — same as the People nav badge). Check the details and Mark reviewed.',
       },
       {
         heading: 'Delete',

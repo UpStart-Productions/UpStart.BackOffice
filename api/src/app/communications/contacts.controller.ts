@@ -9,8 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import type { UserContext } from '../common/app.types';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ContactsService } from './contacts.service';
 import {
@@ -22,6 +25,7 @@ import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { UploadAvatarDto } from '../users/dto/user.dto';
+import { ImportPeopleFileDto } from './dto/import-people.dto';
 
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -55,6 +59,18 @@ export class ContactsController {
   @Get('review/count')
   reviewCount() {
     return this.contacts.reviewCount();
+  }
+
+  @Action('edit')
+  @Post('import/preview')
+  previewImport(@Body() dto: ImportPeopleFileDto) {
+    return this.contacts.previewPeopleImport(dto.fileBase64);
+  }
+
+  @Action('edit')
+  @Post('import')
+  runImport(@Body() dto: ImportPeopleFileDto, @Req() req: Request) {
+    return this.contacts.commitPeopleImport(dto.fileBase64, req.user as UserContext);
   }
 
   @Post()

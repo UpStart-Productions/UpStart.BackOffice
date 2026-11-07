@@ -15,7 +15,9 @@ function make() {
     client: { findUnique: vi.fn() },
   };
   prisma.contact.findFirst.mockResolvedValue({ id: 'k1', emails: [], accountLinks: [] });
-  return { prisma, svc: new ContactsService(prisma as never) };
+  const access = { level: vi.fn().mockReturnValue('all') };
+  const storageFolders = { ensureClientFolders: vi.fn() };
+  return { prisma, svc: new ContactsService(prisma as never, access as never, storageFolders as never) };
 }
 
 describe('ContactsService', () => {

@@ -18,9 +18,13 @@
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
     @if (!error() && !loading() && invoice()) {
-      <app-row-actions-menu [items]="headerActions()" ariaLabel="Invoice actions" />
       @if (canMarkPaid) {
-        <p-button label="Mark as paid" icon="pi pi-check" (click)="markPaid()" />
+        <span class="split-action">
+          <p-button label="Mark as paid" icon="pi pi-check" (click)="markPaid()" />
+          <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More invoice actions" />
+        </span>
+      } @else {
+        <app-row-actions-menu [items]="headerActions()" ariaLabel="Invoice actions" />
       }
     }
   </ng-container>

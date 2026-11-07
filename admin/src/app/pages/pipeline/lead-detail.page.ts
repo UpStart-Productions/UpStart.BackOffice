@@ -159,9 +159,17 @@ export class LeadDetailPage implements OnInit {
     return this.snapshot() !== this.savedSnapshot;
   }
 
-  readonly headerActions = computed<RowActionItem[]>(() => {
+  /** The ⋮ menu attached to Save: Make client, Make partner, then Delete. A method: it reads isConverted (a getter). */
+  headerMenu(): RowActionItem[] {
     const actions: RowActionItem[] = [];
+    if (this.id() && !this.isConverted && this.canEdit()) {
+      actions.push({ id: 'client', label: 'Make client', icon: 'pi pi-check', command: () => this.showConvertDialog.set(true) });
+      if (!this.orgClientId()) {
+        actions.push({ id: 'partner', label: 'Make partner', icon: 'pi pi-users', disabled: this.promoting(), command: () => void this.promotePartner() });
+      }
+    }
     if (this.canDelete()) {
+      if (actions.length) actions.push({ id: 'sep', kind: 'separator' });
       actions.push({
         id: 'delete',
         label: 'Delete',
@@ -171,7 +179,7 @@ export class LeadDetailPage implements OnInit {
       });
     }
     return actions;
-  });
+  }
   get isConverted() { return this.account()?.journey === 'CLIENT'; }
 
   private patchForm(lead: Record<string, unknown>) {

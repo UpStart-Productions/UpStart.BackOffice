@@ -36,6 +36,7 @@ import { TmAvatarComponent } from '../ui/tm-avatar.component';
 import { TagPick, TmTagPickerComponent } from '../ui/tag-picker.component';
 import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
+import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { PageComponent } from '../../ui/layout/page.component';
 
 type CompletedFilter = TmProjectBoardCompletedFilter;
@@ -47,7 +48,7 @@ const NO_SECTION = '__none__';
 @Component({
   selector: 'app-tm-project-tasks-page',
   standalone: true,
-  imports: [PageComponent, LucideIconComponent, LucideIconPickerPanelComponent, 
+  imports: [PageComponent, RowActionsMenuComponent, LucideIconComponent, LucideIconPickerPanelComponent, 
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -149,7 +150,6 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly tagPicker = viewChild.required<TmTagPickerComponent>('tagPicker');
   private readonly sectionMenu = viewChild.required<Popover>('sectionMenu');
   private readonly colorMenu = viewChild.required<Popover>('colorMenu');
-  private readonly projectMenu = viewChild.required<Popover>('projectMenu');
   private readonly bulkSectionPop = viewChild.required<Popover>('bulkSectionPop');
   private readonly rowSectionPop = viewChild.required<Popover>('rowSectionPop');
   rowMoveTask = signal<TaskSummary | null>(null);
@@ -986,24 +986,40 @@ export class ProjectTasksPage implements OnDestroy {
     }
   }
 
-  openProjectMenu(event: Event) {
-    this.projectMenu().toggle(event, event.currentTarget as HTMLElement);
+  /** The ⋮ menu attached to Add task (or on its own for people who can't add tasks). */
+  projectMenuItems(): RowActionItem[] {
+    const p = this.project();
+    const items: RowActionItem[] = [
+      this.boardView()
+        ? { id: 'list', label: 'View as list', icon: 'pi pi-list', command: () => this.viewAsList() }
+        : { id: 'board', label: 'View as board', icon: 'pi pi-objects-column', command: () => this.viewAsBoard() },
+      { id: 'members', label: 'Members', icon: 'pi pi-users', command: () => this.membersOpen.set(true) },
+    ];
+    if (this.canEdit()) items.push({ id: 'fields', label: 'Custom fields', icon: 'pi pi-sliders-h', command: () => this.fieldsOpen.set(true) });
+    if (p?.permissions?.seesAllProjects) {
+      items.push({ id: 'open', label: 'Open in projects', icon: 'pi pi-external-link', command: () => void this.router.navigate(['/projects', this.projectId()]) });
+    }
+    items.push(
+      { id: 'contacts', label: 'Project contacts', icon: 'pi pi-id-card', command: () => this.contactsOpen.set(true) },
+      { id: 'forms', label: 'Forms', icon: 'pi pi-inbox', command: () => void this.router.navigate(['/tasks/projects', this.projectId(), 'forms']) },
+    );
+    if (p?.permissions?.canManage) {
+      items.push({ id: 'sep', kind: 'separator' }, { id: 'remove', label: 'Remove from Tasks', icon: 'pi pi-minus-circle', severity: 'danger', command: () => this.removeFromTasks() });
+    }
+    return items;
   }
 
   viewAsBoard(): void {
-    this.projectMenu().hide();
     void this.router.navigate(['/tasks/projects', this.projectId(), 'board']);
   }
 
   viewAsList(): void {
-    this.projectMenu().hide();
     void this.router.navigate(['/tasks/projects', this.projectId()]);
   }
 
   /** Hide this project from Tasks (its tasks are kept if it's added back later). */
   removeFromTasks() {
     const p = this.project();
-    this.projectMenu().hide();
     if (!p) return;
     this.confirm.confirm({
       header: `Remove “${p.name}” from Tasks?`,

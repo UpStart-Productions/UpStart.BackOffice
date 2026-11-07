@@ -49,11 +49,13 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
       </ng-container>
       <ng-container ngProjectAs="[pageActions]">
         @if (s(); as r) {
-          <app-row-actions-menu [items]="headerActions()" ariaLabel="Submission actions" />
-          @if (r.canEdit) {
-            @if (!r.clientId) {
+          @if (r.canEdit && !r.clientId) {
+            <span class="split-action">
               <p-button label="Attach" icon="pi pi-check" (onClick)="openAccept()" />
-            }
+              <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More submission actions" />
+            </span>
+          } @else {
+            <app-row-actions-menu [items]="headerActions()" ariaLabel="Submission actions" />
           }
         }
       </ng-container>

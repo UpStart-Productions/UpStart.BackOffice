@@ -1,9 +1,9 @@
-import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { CreatePersonModalComponent } from '../../ui/create-person-modal/create-person-modal.component';
+import { PeopleImportModalComponent } from '../../ui/people-import-modal/people-import-modal.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -26,8 +26,8 @@ import { SessionService } from '../../core/session.service';
     FormsModule,
     RouterLink,
     CreatePersonModalComponent,
+    PeopleImportModalComponent,
     ButtonModule,
-    CheckboxModule,
     ToolbarSearchFieldComponent,
     MessageModule,
     SelectModule,
@@ -39,7 +39,21 @@ import { SessionService } from '../../core/session.service';
   ],
   template: `
     <app-page title="People">
-      <p-button pageActions label="New Person" icon="pi pi-plus" (onClick)="openNew()" />
+      @if (canCreate()) {
+        <ng-container ngProjectAs="[pageActions]">
+          <span class="split-action">
+            <p-button label="New Person" icon="pi pi-plus" (onClick)="openNew()" />
+            @if (headerMenu().length) {
+              <app-row-actions-menu
+                class="split-action-more"
+                [attached]="true"
+                [items]="headerMenu()"
+                ariaLabel="More people actions"
+              />
+            }
+          </span>
+        </ng-container>
+      }
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
@@ -55,13 +69,9 @@ import { SessionService } from '../../core/session.service';
               ariaLabel="Filter by tag"
               styleClass="people-tag-filter"
             />
-            <div class="flex align-items-center gap-2">
-              <p-checkbox inputId="review" [ngModel]="review" (ngModelChange)="onReview($event)" [binary]="true" />
-              <label for="review">Needs review</label>
-              @if (reviewCount() > 0) {
-                <p-tag [value]="'' + reviewCount()" severity="info" />
-              }
-            </div>
+            @if (review()) {
+              <p-tag value="Needs review" severity="info" />
+            }
           </div>
           <div class="toolbar-search">
             <app-toolbar-search-field
@@ -138,7 +148,7 @@ import { SessionService } from '../../core/session.service';
               <td colspan="5">
                 <div class="empty-state">
                   <i class="pi pi-address-book" aria-hidden="true"></i>
-                  <p>{{ review ? 'Nothing needs review.' : query || tag ? 'No people match these filters.' : 'No people yet.' }}</p>
+                  <p>{{ review() ? 'Nothing needs review.' : query || tag ? 'No people match these filters.' : 'No people yet.' }}</p>
                 </div>
               </td>
             </tr>
@@ -147,6 +157,7 @@ import { SessionService } from '../../core/session.service';
       </div>
 
       <app-create-person-modal />
+      <app-people-import-modal />
     </app-page>
   `,
   styles: `
@@ -170,19 +181,49 @@ export class ContactsListPage implements OnInit {
   private readonly session = inject(SessionService);
   readonly tagOptions = () => this.crmTags.tags().map((t) => t.name);
   readonly canDelete = () => this.session.can('contacts', 'delete');
+  readonly canCreate = () => this.session.can('contacts', 'edit');
 
   contacts = signal<ContactSummary[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
   query = '';
-  review = false;
+  review = signal(false);
   tag: string | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly createPersonModal = viewChild.required(CreatePersonModalComponent);
+  private readonly importModal = viewChild.required(PeopleImportModalComponent);
 
   name = contactName;
   readonly pageSize = 25;
+
+  readonly headerMenu = computed((): RowActionItem[] => {
+    const items: RowActionItem[] = [
+      {
+        id: 'import',
+        label: 'Import people',
+        icon: 'pi pi-upload',
+        command: () => void this.openImport(),
+      },
+    ];
+    if (!this.review()) {
+      items.push({
+        id: 'review',
+        label: 'Needs review',
+        icon: 'pi pi-inbox',
+        badge: this.comms.reviewCount(),
+        command: () => this.setReview(true),
+      });
+    } else {
+      items.push({
+        id: 'review-all',
+        label: 'Show all people',
+        icon: 'pi pi-list',
+        command: () => this.setReview(false),
+      });
+    }
+    return items;
+  });
 
   contactAvatar(c: ContactSummary): string | null {
     return resolveAssetUrl(c.avatarUrl ?? null);
@@ -193,12 +234,13 @@ export class ContactsListPage implements OnInit {
     const last = (c.lastName ?? '').trim().charAt(0);
     return (first + last).toUpperCase() || '?';
   }
-  /** Contacts awaiting review, from the last unsearched load. */
-  reviewCount = signal(0);
 
   async ngOnInit() {
     void this.crmTags.load();
     this.tag = this.route.snapshot.queryParamMap.get('tag');
+    const reviewParam = this.route.snapshot.queryParamMap.get('review');
+    this.review.set(reviewParam === 'true');
+    void this.comms.refreshReviewCount();
     await this.load();
   }
 
@@ -214,17 +256,21 @@ export class ContactsListPage implements OnInit {
     void this.load();
   }
 
-  onReview(value: boolean) {
-    this.review = value;
+  setReview(value: boolean) {
+    this.review.set(value);
+    void this.router.navigate([], {
+      queryParams: { review: value ? 'true' : null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     void this.load();
   }
 
   async load() {
     this.loading.set(true);
     try {
-      const list = await this.comms.contacts({ q: this.query, review: this.review, tag: this.tag });
+      const list = await this.comms.contacts({ q: this.query, review: this.review(), tag: this.tag });
       this.contacts.set(list);
-      if (!this.query.trim() && !this.tag) this.reviewCount.set(this.review ? list.length : list.filter((c) => c.autoCreated).length);
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load people');
@@ -259,6 +305,7 @@ export class ContactsListPage implements OnInit {
         try {
           await this.comms.deleteContact(c.id);
           await this.load();
+          void this.comms.refreshReviewCount();
         } catch (err) {
           this.error.set(err instanceof Error ? err.message : 'Delete failed');
         }
@@ -270,6 +317,7 @@ export class ContactsListPage implements OnInit {
     try {
       await this.comms.updateContact(c.id, { autoCreated: false });
       await this.load();
+      void this.comms.refreshReviewCount();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Update failed');
     }
@@ -278,5 +326,13 @@ export class ContactsListPage implements OnInit {
   async openNew() {
     const created = await this.createPersonModal().open();
     if (created) await this.router.navigate(['/people', created.id]);
+  }
+
+  async openImport() {
+    const imported = await this.importModal().open();
+    if (imported) {
+      await this.load();
+      void this.comms.refreshReviewCount();
+    }
   }
 }

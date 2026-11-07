@@ -14,6 +14,8 @@ export interface RowActionButtonItem {
   command: (event?: Event) => void;
   disabled?: boolean;
   severity?: RowActionSeverity;
+  /** Shown as a count badge at the end of the row (e.g. Needs review count). */
+  badge?: number;
 }
 
 /** Inline control in the popover (icon + select, same row shape as button items). */
@@ -53,6 +55,7 @@ export function isRowActionSeparator(item: RowActionItem): item is RowActionSepa
       <button
         type="button"
         class="row-actions-trigger p-button p-button-text p-button-rounded p-button-plain"
+        [class.row-actions-trigger--attached]="attached()"
         (click)="popover.toggle($event, $event.currentTarget)"
         [attr.aria-label]="ariaLabel()"
         aria-haspopup="true"
@@ -97,6 +100,9 @@ export function isRowActionSeparator(item: RowActionItem): item is RowActionSepa
               >
                 <i class="row-actions-item-icon {{ item.icon }}"></i>
                 <span class="row-actions-item-label">{{ item.label }}</span>
+                @if (item.badge != null && item.badge > 0) {
+                  <span class="count-badge row-actions-item-badge">{{ item.badge }}</span>
+                }
               </button>
             }
           }
@@ -119,6 +125,21 @@ export function isRowActionSeparator(item: RowActionItem): item is RowActionSepa
       .row-actions-trigger:hover {
         background: var(--p-button-text-hover-background, rgba(0, 0, 0, 0.04)) !important;
       }
+      /* Attached to a primary button inside .split-action: the right half of one purple control. */
+      :host(.split-action-more) .row-actions-wrap {
+        height: 100%;
+      }
+      .row-actions-trigger.row-actions-trigger--attached {
+        height: 100%;
+        padding: 0 0.625rem !important;
+        background: var(--p-primary-color) !important;
+        color: var(--p-primary-contrast-color) !important;
+        border-left: 1px solid color-mix(in srgb, var(--p-primary-contrast-color) 45%, transparent) !important;
+        border-radius: 0 var(--p-button-border-radius, 6px) var(--p-button-border-radius, 6px) 0 !important;
+      }
+      .row-actions-trigger.row-actions-trigger--attached:hover {
+        background: color-mix(in srgb, var(--p-primary-color) 82%, white) !important;
+      }
       .row-actions-list {
         display: flex;
         flex-direction: column;
@@ -140,6 +161,10 @@ export function isRowActionSeparator(item: RowActionItem): item is RowActionSepa
       .row-actions-select-row .row-actions-select-control {
         flex: 1;
         min-width: 0;
+      }
+      .row-actions-item-badge {
+        margin-left: auto;
+        flex-shrink: 0;
       }
       .row-actions-item {
         display: flex;
@@ -186,6 +211,8 @@ export class RowActionsMenuComponent {
   items = input.required<RowActionItem[]>();
   action = output<string>();
   ariaLabel = input<string>('Row actions');
+  /** Right half of a split control next to a primary button (wrap both in .split-action; see split-action.mdc). */
+  attached = input(false);
 
   private popoverRef = viewChild<Popover>('popover');
 

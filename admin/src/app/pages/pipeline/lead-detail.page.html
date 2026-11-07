@@ -13,17 +13,15 @@
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading()) {
-      @if (id() && canDelete()) {
-        <app-row-actions-menu [items]="headerActions()" ariaLabel="Lead actions" />
-      }
-      @if (id() && !isConverted && !orgClientId() && canEdit()) {
-        <p-button label="Make partner" icon="pi pi-users" severity="secondary" [outlined]="true" [loading]="promoting()" (onClick)="promotePartner()" />
-      }
-      @if (id() && !isConverted && canEdit()) {
-        <p-button label="Make client" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="showConvertDialog.set(true)" />
-      }
       @if (id() && canEdit()) {
-        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+        <span class="split-action">
+          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+          @if (headerMenu().length) {
+            <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerMenu()" ariaLabel="More lead actions" />
+          }
+        </span>
+      } @else if (id() && headerMenu().length) {
+        <app-row-actions-menu [items]="headerMenu()" ariaLabel="Lead actions" />
       }
     }
   </ng-container>

@@ -1,10 +1,14 @@
 <app-page title="Pipeline">
   <ng-container ngProjectAs="[pageActions]">
-    @if (pipelineMenuActions().length) {
-      <app-row-actions-menu [items]="pipelineMenuActions()" ariaLabel="Pipeline actions" />
-    }
     @if (canCreate()) {
-      <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
+      <span class="split-action">
+        <a pButton label="New Lead" icon="pi pi-plus" routerLink="/pipeline/new" [queryParams]="{ pipelineId: pipelineId() }"></a>
+        @if (pipelineMenuActions().length) {
+          <app-row-actions-menu class="split-action-more" [attached]="true" [items]="pipelineMenuActions()" ariaLabel="More pipeline actions" />
+        }
+      </span>
+    } @else if (pipelineMenuActions().length) {
+      <app-row-actions-menu [items]="pipelineMenuActions()" ariaLabel="Pipeline actions" />
     }
   </ng-container>
   @if (error()) {

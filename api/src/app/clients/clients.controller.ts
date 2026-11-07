@@ -21,6 +21,8 @@ import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attributi
 import { AddTeamMemberDto, assertTeamCandidate, clientTeam, teamCandidates } from '../team/team.util';
 import { AddPipelineCardDto } from '../pipelines/dto/add-pipeline-card.dto';
 import { ClientPipelineService } from './client-pipeline.service';
+import { ClientsImportService } from './clients-import.service';
+import { ImportClientsFileDto } from './dto/import-clients.dto';
 
 const clientSelect = {
   id: true,
@@ -65,6 +67,7 @@ export class ClientsController {
     private readonly access: AccessService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
     private readonly clientPipeline: ClientPipelineService,
+    private readonly clientsImport: ClientsImportService,
   ) {}
 
   /** 404 (not 403) for a client outside the user's reach, so ids can't be probed. */
@@ -222,6 +225,18 @@ export class ClientsController {
     }
     await this.storageFolders.ensureClientFolders(client.id);
     return withAttribution(client, toClientView(client));
+  }
+
+  @Action('edit')
+  @Post('import/preview')
+  previewImport(@Body() dto: ImportClientsFileDto) {
+    return this.clientsImport.previewImport(dto.fileBase64);
+  }
+
+  @Action('edit')
+  @Post('import')
+  runImport(@Body() dto: ImportClientsFileDto, @Req() req: Request) {
+    return this.clientsImport.commitImport(dto.fileBase64, req.user as UserContext);
   }
 
   @Get(':id')

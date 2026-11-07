@@ -64,11 +64,14 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         @if (record(); as r) {
           @if (r.myAccess === 'edit') {
             <app-save-status [state]="saver.state()" />
-            <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
             @if (r.submittedAt) {
+              <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
               <p-button label="Reopen" icon="pi pi-undo" severity="secondary" [outlined]="true" [loading]="submitting()" (onClick)="reopen()" />
             } @else {
-              <p-button label="Submit" icon="pi pi-check" [loading]="submitting()" (onClick)="submit()" />
+              <span class="split-action">
+                <p-button label="Submit" icon="pi pi-check" [loading]="submitting()" (onClick)="submit()" />
+                <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More form actions" />
+              </span>
             }
           }
         }

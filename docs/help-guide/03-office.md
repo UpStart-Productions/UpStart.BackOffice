@@ -20,11 +20,11 @@ When the project is in **Task Manager**, a **Tasks** card appears above **Defaul
 
 ## Tasks
 
-**Tasks** opens Task Manager: my tasks, inbox, and projects. On a project, the **⋯** menu in the header includes **Project contacts** — the same client-side contact list as on the Projects page.
+**Tasks** opens Task Manager: my tasks, inbox, and projects. On a project, **Add task** is at the top right with a **⋮** menu attached to it (people who can't add tasks see just the **⋮**). The menu has **View as board** or **View as list**, **Members**, **Custom fields**, **Open in projects**, **Project contacts** (the same client-side contact list as on the Projects page), **Forms** and **Remove from Tasks**.
 
 In a task’s detail panel, you can **edit** or **delete your own comment** for **1 hour** after you post it. **Admins** can **delete** anyone’s comment at any time (not edit others’ comments).
 
-On a project task list, hover a row and use the **down arrow** (before the drag handle) to **move the task to another section** without dragging. In the project **⋯** menu, **View as board** shows the same sections as Kanban columns; drag cards between columns to move tasks. **View as list** switches back.
+On a project task list, hover a row and use the **down arrow** (before the drag handle) to **move the task to another section** without dragging. In the project **⋮** menu, **View as board** shows the same sections as Kanban columns; drag cards between columns to move tasks. **View as list** switches back.
 
 ## Time
 

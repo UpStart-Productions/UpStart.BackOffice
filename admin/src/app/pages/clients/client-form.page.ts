@@ -128,17 +128,22 @@ export class ClientFormPage implements OnInit {
     return id ? `/clients/${id}` : '';
   });
 
-  readonly headerActions = computed((): RowActionItem[] => {
-    if (this.isNew || !this.canAddToPipeline()) return [];
-    return [
-      {
-        id: 'pipeline',
-        label: 'Add to pipeline',
-        icon: 'pi pi-share-alt',
-        command: () => void this.pipelineDialog()?.open(),
-      },
-    ];
-  });
+  /** The ⋮ menu attached to Save (or on its own on the Care tab). A method: it reads the plain form object. */
+  headerMenu(): RowActionItem[] {
+    if (this.isNew) return [];
+    const items: RowActionItem[] = [];
+    if (this.form.journey !== 'CLIENT' && this.canEdit()) {
+      items.push({ id: 'make-client', label: 'Make client', icon: 'pi pi-check', disabled: this.saving(), command: () => void this.makeClient() });
+    }
+    if (this.isClient && this.careOverview()?.canManage && !this.inCare()) {
+      items.push({ id: 'care', label: 'Add to care', icon: 'pi pi-heart', disabled: this.addingToCare(), command: () => void this.addToCare() });
+    }
+    if (this.canAddToPipeline()) {
+      if (items.length) items.push({ id: 'sep', kind: 'separator' });
+      items.push({ id: 'pipeline', label: 'Add to pipeline', icon: 'pi pi-share-alt', command: () => void this.pipelineDialog()?.open() });
+    }
+    return items;
+  }
 
   readonly usStates = US_STATES;
   readonly focusCategoryOptions = PIPELINE_CATEGORY_PRESETS;

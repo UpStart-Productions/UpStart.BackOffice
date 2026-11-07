@@ -51,6 +51,8 @@ type SearchResultGroup = {
   items: SearchResultItem[];
 };
 
+const VISIBLE_GROUPS_BEFORE_COLLAPSE = 3;
+
 @Component({
   selector: 'app-global-search',
   standalone: true,
@@ -89,7 +91,7 @@ type SearchResultGroup = {
             [delay]="250"
             [showClear]="false"
             [showEmptyMessage]="true"
-            scrollHeight="none"
+            scrollHeight="26rem"
             appendTo="body"
             placeholder="Search across Back Office…"
             styleClass="global-search-autocomplete"
@@ -100,7 +102,23 @@ type SearchResultGroup = {
             (keydown.escape)="close()"
           >
             <ng-template let-group #group>
-              <div class="global-search-group-heading">{{ group.label }}</div>
+              <div
+                class="global-search-group-heading"
+                [class.is-collapsed]="isGroupCollapsed(group.type)"
+                [class.is-collapsible]="isGroupCollapsible(group.type)"
+                role="presentation"
+                (click)="onGroupHeadingClick(group.type, $event)"
+              >
+                <span>{{ groupHeadingLabel(group.type) }}</span>
+                @if (isGroupCollapsible(group.type)) {
+                  <i
+                    class="pi global-search-group-chevron"
+                    [class.pi-chevron-down]="isGroupCollapsed(group.type)"
+                    [class.pi-chevron-up]="!isGroupCollapsed(group.type)"
+                    aria-hidden="true"
+                  ></i>
+                }
+              </div>
             </ng-template>
             <ng-template let-item #item>
               <div class="global-search-item">
@@ -164,6 +182,8 @@ export class GlobalSearchComponent {
 
   query = '';
   groups: SearchResultGroup[] = [];
+  private fullGroups: SearchResultGroup[] = [];
+  private readonly collapsedGroupTypes = signal<Set<SearchResultType>>(new Set());
 
   open(event: Event) {
     event.stopPropagation();
@@ -230,22 +250,74 @@ export class GlobalSearchComponent {
     this.close();
   }
 
+  isGroupCollapsed(type: SearchResultType): boolean {
+    return this.collapsedGroupTypes().has(type);
+  }
+
+  isGroupCollapsible(type: SearchResultType): boolean {
+    const idx = this.fullGroups.findIndex((g) => g.type === type);
+    return idx >= VISIBLE_GROUPS_BEFORE_COLLAPSE;
+  }
+
+  groupHeadingLabel(type: SearchResultType): string {
+    const g = this.fullGroups.find((gr) => gr.type === type);
+    if (!g) return '';
+    const n = g.items.length;
+    return `${g.label} (${n})`;
+  }
+
+  onGroupHeadingClick(type: SearchResultType, event: Event) {
+    if (!this.isGroupCollapsible(type)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.setGroupCollapsed(type, !this.isGroupCollapsed(type));
+    this.refreshDisplayGroups();
+  }
+
   private focusInput() {
     this.autocomplete?.inputEL?.nativeElement?.focus();
   }
 
   private applySuggestions(groups: SearchResultGroup[]) {
-    this.groups = [...groups];
+    this.fullGroups = groups.filter((g) => g.items.length > 0);
+    if (this.fullGroups.length > VISIBLE_GROUPS_BEFORE_COLLAPSE) {
+      const collapsed = new Set(
+        this.fullGroups.slice(VISIBLE_GROUPS_BEFORE_COLLAPSE).map((g) => g.type),
+      );
+      this.collapsedGroupTypes.set(collapsed);
+    } else {
+      this.collapsedGroupTypes.set(new Set());
+    }
+    this.refreshDisplayGroups();
+    const ac = this.autocomplete;
+    if (ac && this.query.trim().length >= 2) {
+      ac.show();
+      ac.handleSuggestionsChange();
+    }
+    this.cdr.detectChanges();
+  }
+
+  private setGroupCollapsed(type: SearchResultType, collapsed: boolean) {
+    this.collapsedGroupTypes.update((prev) => {
+      const next = new Set(prev);
+      if (collapsed) next.add(type);
+      else next.delete(type);
+      return next;
+    });
+  }
+
+  private refreshDisplayGroups() {
+    const collapsed = this.collapsedGroupTypes();
+    this.groups = this.fullGroups.map((g) => ({
+      ...g,
+      label: this.groupHeadingLabel(g.type),
+      items: collapsed.has(g.type) ? [] : g.items,
+    }));
     const ac = this.autocomplete;
     if (ac) {
       ac.suggestions = this.groups;
-      if (ac.loading) {
-        ac.handleSuggestionsChange();
-      } else if (this.groups.length === 0 && this.query.trim().length >= 2) {
-        ac.show();
-      }
+      ac.handleSuggestionsChange();
     }
-    this.cdr.detectChanges();
   }
 
   private routeFor(item: SearchResultItem): string {

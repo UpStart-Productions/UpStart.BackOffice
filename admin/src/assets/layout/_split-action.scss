@@ -1,0 +1,30 @@
+// Split action: one primary button with the ⋮ menu attached on its right (see .cursor/rules/split-action.mdc).
+//   <span class="split-action">
+//     <p-button label="Save" … />
+//     <app-row-actions-menu class="split-action-more" [attached]="true" [items]="…" ariaLabel="More … actions" />
+//   </span>
+// The menu half is styled in app-row-actions-menu ([attached]); this file squares the button's inner corners and
+// gives both halves the same white-tint hover.
+
+.split-action {
+  display: inline-flex;
+  align-items: stretch;
+
+  // Only when the ⋮ menu follows (it can be conditional): square the inner corners and use the white-tint hover.
+  // Alone, the button keeps its normal corners and hover.
+  > p-button:not(:last-child) .p-button,
+  > .p-button:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  > p-button:not(:last-child) .p-button:not(:disabled):hover,
+  > .p-button:not(:last-child):not(:disabled):hover {
+    background: color-mix(in srgb, var(--p-primary-color) 82%, white);
+    border-color: color-mix(in srgb, var(--p-primary-color) 82%, white);
+  }
+
+  > app-row-actions-menu {
+    display: flex;
+  }
+}

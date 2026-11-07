@@ -40,11 +40,13 @@
         }
         @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
       </button>
-      <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions">
-        <i class="pi pi-ellipsis-h"></i>
-      </button>
       @if (canEdit()) {
-        <p-button label="Add task" icon="pi pi-plus" (onClick)="addTaskTop()" />
+        <span class="split-action">
+          <p-button label="Add task" icon="pi pi-plus" (onClick)="addTaskTop()" />
+          <app-row-actions-menu class="split-action-more" [attached]="true" [items]="projectMenuItems()" ariaLabel="More project actions" />
+        </span>
+      } @else {
+        <app-row-actions-menu [items]="projectMenuItems()" ariaLabel="Project actions" />
       }
     }
   </ng-container>
@@ -499,28 +501,5 @@
         </li>
       }
     </ul>
-  </div>
-</p-popover>
-
-<p-popover #projectMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
-  <div class="tm-menu">
-    @if (boardView()) {
-      <button type="button" class="tm-picker-item" (click)="viewAsList()"><i class="pi pi-list"></i> View as list</button>
-    } @else {
-      <button type="button" class="tm-picker-item" (click)="viewAsBoard()"><i class="pi pi-objects-column"></i> View as board</button>
-    }
-    <button type="button" class="tm-picker-item" (click)="membersOpen.set(true); projectMenu.hide()"><i class="pi pi-users"></i> Members</button>
-    @if (canEdit()) {
-      <button type="button" class="tm-picker-item" (click)="fieldsOpen.set(true); projectMenu.hide()"><i class="pi pi-sliders-h"></i> Custom fields</button>
-    }
-    @if (project()?.permissions?.seesAllProjects) {
-      <a class="tm-picker-item" [routerLink]="['/projects', projectId()]" (click)="projectMenu.hide()"><i class="pi pi-external-link"></i> Open in projects</a>
-    }
-    <button type="button" class="tm-picker-item" (click)="contactsOpen.set(true); projectMenu.hide()"><i class="pi pi-id-card"></i> Project contacts</button>
-    <a class="tm-picker-item" [routerLink]="['/tasks/projects', projectId(), 'forms']" (click)="projectMenu.hide()"><i class="pi pi-inbox"></i> Forms</a>
-    @if (project()?.permissions?.canManage) {
-      <hr />
-      <button type="button" class="tm-picker-item tm-danger" (click)="removeFromTasks()"><i class="pi pi-minus-circle"></i> Remove from Tasks</button>
-    }
   </div>
 </p-popover>

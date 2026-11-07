@@ -5,16 +5,18 @@
 >
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
-      @if (!isNew && headerActions().length) {
-        <app-row-actions-menu [items]="headerActions()" ariaLabel="Project actions" />
-      }
-      <p-button
-        label="Save"
-        icon="pi pi-check"
-        [loading]="saving()"
-        [disabled]="!isNew && !isDirty()"
-        (onClick)="save()"
-      />
+      <span class="split-action">
+        <p-button
+          label="Save"
+          icon="pi pi-check"
+          [loading]="saving()"
+          [disabled]="!isNew && !isDirty()"
+          (onClick)="save()"
+        />
+        @if (!isNew && headerActions().length) {
+          <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More project actions" />
+        }
+      </span>
     }
   </ng-container>
   <ng-container ngProjectAs="[pageTitleTrail]">

@@ -57,9 +57,13 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         @if (visit(); as v) {
           @if (v.canEdit) {
             <app-save-status [state]="saver.state()" />
-            <app-row-actions-menu [items]="headerActions()" ariaLabel="Visit actions" />
             @if (v.status === 'IN_PROGRESS') {
-              <p-button label="End visit" icon="pi pi-stop-circle" [loading]="ending()" (onClick)="end()" />
+              <span class="split-action">
+                <p-button label="End visit" icon="pi pi-stop-circle" [loading]="ending()" (onClick)="end()" />
+                <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More visit actions" />
+              </span>
+            } @else {
+              <app-row-actions-menu [items]="headerActions()" ariaLabel="Visit actions" />
             }
           }
         }

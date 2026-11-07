@@ -50,6 +50,37 @@ export interface TimelinePage {
   nextBefore: string | null;
 }
 
+export type PeopleImportPreviewRow = {
+  line: number;
+  firstName: string;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  title: string | null;
+  organization: string | null;
+  organizationRole: string | null;
+  tags: string[];
+  notes: string | null;
+  status: 'create' | 'skip' | 'warn' | 'error';
+  statusMessage?: string;
+  resolvedClientId?: string | null;
+};
+
+export type PeopleImportPreview = {
+  totalRows: number;
+  preview: PeopleImportPreviewRow[];
+  summary: { create: number; skip: number; warn: number; error: number; organizationsToCreate: number };
+};
+
+export type PeopleImportResult = {
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: { line: number; message: string }[];
+  attempted: number;
+  organizationsCreated?: number;
+};
+
 export interface ContactSummary {
   id: string;
   firstName: string;
@@ -406,6 +437,14 @@ export class CommunicationsApi {
 
   contact(id: string): Promise<ContactSummary> {
     return this.api.get(`/contacts/${id}`);
+  }
+
+  previewPeopleImport(fileBase64: string): Promise<PeopleImportPreview> {
+    return this.api.post('/contacts/import/preview', { fileBase64 });
+  }
+
+  runPeopleImport(fileBase64: string): Promise<PeopleImportResult> {
+    return this.api.post('/contacts/import', { fileBase64 });
   }
 
   createContact(body: {

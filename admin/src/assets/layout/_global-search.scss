@@ -14,18 +14,13 @@
   min-width: var(--global-search-panel-width) !important;
   max-width: var(--global-search-panel-width) !important;
   box-sizing: border-box;
-  overflow: visible !important;
+  overflow: hidden !important;
 
   .p-autocomplete-list-container {
-    max-height: none !important;
-    overflow: visible !important;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-      display: none;
-      width: 0;
-      height: 0;
-    }
+    max-height: min(70vh, 26rem) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin;
   }
 
   .p-autocomplete-list {
@@ -40,18 +35,38 @@
   }
 
   .global-search-group-heading {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     width: 100%;
     box-sizing: border-box;
     margin: 0;
     padding: 0.5rem 0.75rem;
     text-align: left;
+    border: none;
     background: color-mix(in srgb, var(--brand-primary) 12%, var(--surface-card));
     font-size: var(--fs-sm);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--brand-primary);
+    cursor: default;
+
+    &.is-collapsible {
+      cursor: pointer;
+
+      &:hover {
+        background: color-mix(in srgb, var(--brand-primary) 18%, var(--surface-card));
+      }
+    }
+
+  }
+
+  .global-search-group-chevron {
+    font-size: 0.7rem;
+    flex-shrink: 0;
+    opacity: 0.85;
   }
 
   .p-autocomplete-option {
