@@ -98,7 +98,7 @@ export class ProjectsListPage implements OnInit {
       return 'No projects match your search.';
     }
     if (!this.showInactive() && visible.length === 0 && this.projects().length > 0) {
-      return 'No active projects. Turn on Show inactive projects to see archived ones.';
+      return 'No active projects. Turn on Show inactive projects to see inactive ones.';
     }
     return 'No projects yet.';
   });

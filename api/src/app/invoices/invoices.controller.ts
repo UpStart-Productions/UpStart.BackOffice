@@ -16,6 +16,8 @@ import { CreateInvoiceDto, CreateInvoiceLineItemDto } from './dto/create-invoice
 import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
+import { AddInvoicePipelineDto } from './dto/invoice-pipeline.dto';
+import { InvoicePipelineService } from './invoice-pipeline.service';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { PayService } from '../pay/pay.service';
 import { expenseLinkField, InvoiceFromTimeService, timeLinkField } from './invoice-from-time.service';
@@ -102,6 +104,7 @@ export class InvoicesController {
     private readonly journalPosting: JournalPostingService,
     private readonly pay: PayService,
     private readonly access: AccessService,
+    private readonly invoicePipeline: InvoicePipelineService,
   ) {}
 
   /**
@@ -325,6 +328,23 @@ export class InvoicesController {
     });
   }
 
+  @Get(':id/pipeline-cards')
+  async listPipelineCards(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as UserContext;
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(user)) },
+      select: { id: true },
+    });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    return this.invoicePipeline.listForInvoice(id);
+  }
+
+  @Post(':id/pipeline-cards')
+  @Action('edit')
+  async addPipelineCard(@Req() req: Request, @Param('id') id: string, @Body() dto: AddInvoicePipelineDto) {
+    return this.invoicePipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
+  }
+
   @Get(':id')
   async get(@Req() req: Request, @Param('id') id: string) {
     const invoice = await this.prisma.invoice.findFirst({
@@ -453,6 +473,7 @@ export class InvoicesController {
     return withLinkIds(invoice);
   }
 
+  @Action('delete')
   @Delete(':id')
   async remove(@Req() req: Request, @Param('id') id: string) {
     const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
@@ -525,6 +546,40 @@ export class InvoicesController {
     await this.pay.markPaidFromManual(invoice.id, new Date(dto.paidAt));
 
     return invoice;
+  }
+
+  /** Unsend a sent invoice (status → VOID); frees linked time and expenses. */
+  @Action('delete')
+  @Post(':id/retract')
+  async retract(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
+    });
+    if (!existing) throw new NotFoundException('Invoice not found');
+    if (existing.status !== 'SENT') {
+      throw new BadRequestException('Only sent invoices can be retracted.');
+    }
+
+    const invoice = await this.prisma.$transaction(async (tx) => {
+      await tx.expense.updateMany({
+        where: { invoiceLineItem: { invoiceId: id } },
+        data: { invoiceLineItemId: null },
+      });
+      await tx.expense.updateMany({
+        where: { tenantInvoiceLineItem: { invoiceId: id } },
+        data: { tenantInvoiceLineItemId: null },
+      });
+      return tx.invoice.update({
+        where: { id },
+        data: { status: 'VOID' },
+        include: invoiceInclude,
+      });
+    });
+
+    await this.journalPosting.reverseInvoiceIssued(invoice.id);
+    await this.pay.cancelForInvoice(invoice.id);
+    await this.generateAndStorePdf(invoice);
+    return withLinkIds(invoice);
   }
 
   @Action('edit')

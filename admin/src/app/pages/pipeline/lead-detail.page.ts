@@ -103,7 +103,6 @@ export class LeadDetailPage implements OnInit {
   readonly canDelete = computed(() => this.session.can('pipeline', 'delete'));
   pipelines = signal<PipelineSummary[]>([]);
   pipelineId = signal<string | null>(null);
-  archivedAt = signal<string | null>(null);
   readonly stages = computed(() =>
     (this.pipelines().find((p) => p.id === this.pipelineId()) ?? this.pipelines()[0])?.stages.map((s) => ({ label: s.name, value: s.id })) ?? [],
   );
@@ -162,13 +161,6 @@ export class LeadDetailPage implements OnInit {
 
   readonly headerActions = computed<RowActionItem[]>(() => {
     const actions: RowActionItem[] = [];
-    if (this.canEdit()) {
-      actions.push(
-        this.archivedAt()
-          ? { id: 'restore', label: 'Restore', icon: 'pi pi-replay', command: () => this.toggleArchive() }
-          : { id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.toggleArchive() },
-      );
-    }
     if (this.canDelete()) {
       actions.push({
         id: 'delete',
@@ -205,7 +197,6 @@ export class LeadDetailPage implements OnInit {
     this.primaryContactEmail.set((lead['primaryContactEmail'] as string) ?? null);
     this.warmConnectionContactId.set((lead['warmConnectionContactId'] as string) ?? null);
     this.pipelineId.set((lead['pipelineId'] as string) ?? null);
-    this.archivedAt.set((lead['archivedAt'] as string) ?? null);
     this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);
     this.attribution.set((lead['attribution'] as RecordAttributionDto | undefined) ?? null);
   }
@@ -366,29 +357,12 @@ export class LeadDetailPage implements OnInit {
     }
   }
 
-  async toggleArchive() {
-    const id = this.id();
-    if (!id) return;
-    const archiving = !this.archivedAt();
-    try {
-      await this.api.post(`/leads/${id}/${archiving ? 'archive' : 'restore'}`, {});
-      this.archivedAt.set(archiving ? new Date().toISOString() : null);
-      this.toast.add({
-        severity: 'success',
-        summary: archiving ? 'Archived' : 'Restored',
-        detail: archiving ? 'Off the board. Find it under Archived on the Pipeline.' : 'Back on the board.',
-      });
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Could not update');
-    }
-  }
-
   confirmDeleteLead() {
     const id = this.id();
     if (!id) return;
     const name = this.form.organization.trim() || 'this entry';
     this.confirmDelete.confirm({
-      message: `Delete "${name}"? This cannot be undone. Archive keeps it instead.`,
+      message: `Delete "${name}"? This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`/leads/${id}`);
@@ -405,7 +379,7 @@ export class LeadDetailPage implements OnInit {
     this.error.set(null);
     try {
       const client = await this.api.post<{ id: string }>(`/leads/${this.id()}/promote-partner`, {});
-      this.toast.add({ severity: 'success', summary: 'Partner added', detail: 'The organization is on your list; the card is archived.' });
+      this.toast.add({ severity: 'success', summary: 'Partner added', detail: 'The organization is on your list; the card leaves the board.' });
       await this.router.navigate(['/organizations', client.id]);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not add partner');

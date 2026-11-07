@@ -39,6 +39,8 @@ import { UploadAvatarDto } from '../users/dto/user.dto';
 import { AddTeamMemberDto, assertTeamCandidate, InviteTeamMemberDto, projectTeam, teamCandidates, UpdateTeamMemberDto } from '../team/team.util';
 import { TaskProjectsService } from '../task-manager/task-projects.service';
 import { isAdminRole } from '@upstart/back-office/shared';
+import { AddPipelineCardDto } from '../pipelines/dto/add-pipeline-card.dto';
+import { ProjectPipelineService } from './project-pipeline.service';
 
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -57,6 +59,7 @@ export class ProjectsController {
     private readonly imageResize: ImageResizeService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
     private readonly taskProjects: TaskProjectsService,
+    private readonly projectPipeline: ProjectPipelineService,
   ) {}
 
   /** A project the user may reach, or 404 (same answer as a missing project). */
@@ -150,6 +153,19 @@ export class ProjectsController {
     await this.assertManagesPeople(req, id);
     await this.prisma.projectMember.deleteMany({ where: { projectId: id, userId } });
     return projectTeam(this.prisma, id);
+  }
+
+  @Get(':id/pipeline-cards')
+  async listPipelineCards(@Req() req: Request, @Param('id') id: string) {
+    await this.reachable(req, id);
+    return this.projectPipeline.listForProject(id);
+  }
+
+  @Action('edit')
+  @Post(':id/pipeline-cards')
+  async addPipelineCard(@Req() req: Request, @Param('id') id: string, @Body() dto: AddPipelineCardDto) {
+    await this.reachable(req, id);
+    return this.projectPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
   }
 
   @Post()

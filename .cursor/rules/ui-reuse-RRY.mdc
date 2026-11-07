@@ -17,7 +17,7 @@ Before adding or changing any user-facing control (picker, modal, form block, ta
 
 Use what already exists before writing CSS: the shared app classes and PrimeNG components (`p-tag`, `p-button`, `p-message`, …). Do not hand-style a badge, pill, tag or button look-alike.
 
-**Count badge (canonical):** the global `.count-badge` in `assets/layout/_app.scss` (purple pill by default; color modifiers `--info` (light blue), `--success`, `--warning`, `--danger`, and `--muted` for zero). Used by the left nav, the Task Manager sidebar, and `app-queue-card`. Add a local class only to position it (e.g. `.nav-badge { margin-left: auto; }`). Do not use `p-badge` for counts. Only write new styles when nothing existing fits, and call it out.
+**Count badge (canonical):** the global `.count-badge` in `assets/layout/_app.scss` (light blue pill by default via `--color-count-badge-*`; not brand primary — purple is for actions). Modifiers: `--info` (same as default), `--success`, `--warning`, `--danger`, and `--muted` for zero. Used by the left nav, the Task Manager sidebar, and `app-queue-card`. Add a local class only to position it (e.g. `.nav-badge { margin-left: auto; }`). Do not use `p-badge` for counts. Only write new styles when nothing existing fits, and call it out.
 
 **Tag input (canonical):** `app-tag-input` (`admin/src/app/ui/tag-input/`). Chips live inside the field; type to filter suggestions; Enter adds a new tag; × removes. CRM org/person forms use the same control (`app-crm-tag-input` is an alias). Styles: `assets/layout/_tag-input.scss`. Optional `[suggestionNames]` when the list is not the tenant CRM catalog.
 

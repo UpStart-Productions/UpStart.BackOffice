@@ -23,32 +23,35 @@ import { HelpTextComponent } from '../help-text/help-text.component';
       <div class="card-header">
         <h3 class="card-title">Organizations</h3>
       </div>
-      @for (l of contact().accountLinks; track l.clientId) {
-        <div class="org-link-row">
-          <div class="org-link-main">
-            <a [routerLink]="orgLink(l.client)" class="text-primary">{{ l.client.name }}</a>
-            @if (l.role) {
-              <span class="org-link-role">{{ l.role }}</span>
-            }
+      <div class="side-panel-scroll">
+        @for (l of contact().accountLinks; track l.clientId) {
+          <div class="org-link-row">
+            <div class="org-link-main">
+              <a [routerLink]="orgLink(l.client)" class="text-primary">{{ l.client.name }}</a>
+              @if (l.role) {
+                <span class="org-link-role">{{ l.role }}</span>
+              }
+            </div>
+            <p-button
+              icon="pi pi-trash"
+              severity="danger"
+              [text]="true"
+              size="small"
+              (onClick)="confirmUnlink(l.client)"
+              aria-label="Remove organization link"
+            />
           </div>
+        } @empty {
           <p-button
-            icon="pi pi-trash"
-            severity="danger"
-            [text]="true"
+            label="Make client from this person"
+            icon="pi pi-user-plus"
             size="small"
-            (onClick)="confirmUnlink(l.client)"
-            aria-label="Remove organization link"
+            severity="success"
+            (onClick)="createClientFromContact()"
           />
-        </div>
-      } @empty {
-        <p-button
-          label="Make client from this person"
-          icon="pi pi-user-plus"
-          size="small"
-          severity="success"
-          (onClick)="createClientFromContact()"
-        />
-      }
+        }
+      </div>
+      <div class="side-panel-controls">
       <div class="form-field mt-3 mb-2">
         <label for="linkOrg">Link to an organization <app-help-text key="person.organizationLinks" /></label>
         <p-select
@@ -79,6 +82,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
             (onClick)="link()"
           />
         </div>
+      </div>
       </div>
     </div>
   `,

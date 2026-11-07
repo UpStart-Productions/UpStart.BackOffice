@@ -5,6 +5,9 @@
 >
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
+      @if (!isNew && headerActions().length) {
+        <app-row-actions-menu [items]="headerActions()" ariaLabel="Client actions" />
+      }
       @if (!isNew && isClient && careOverview()?.canManage && !inCare()) {
         <p-button
           label="Add to care"
@@ -67,35 +70,6 @@
             <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
             <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
           </div>
-          <div class="showcase-row">
-            <div class="form-field showcase-half">
-              <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
-              <input
-                pInputText
-                id="code"
-                name="code"
-                [(ngModel)]="form.code"
-                class="w-full"
-                placeholder="UPSP"
-                maxlength="8"
-                style="text-transform: uppercase"
-              />
-            </div>
-            <div class="form-field showcase-half">
-              <label for="email">Email</label>
-              <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
-            </div>
-          </div>
-          <div class="showcase-row">
-            <div class="form-field showcase-half">
-              <label for="phone">Phone</label>
-              <app-phone-input inputId="phone" [value]="form.phone || null" (valueChange)="form.phone = $event ?? ''" />
-            </div>
-            <div class="form-field showcase-half">
-              <label for="website">Website</label>
-              <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
-            </div>
-          </div>
           <div class="form-field showcase-full">
             <label for="address">Address</label>
             <input pInputText id="address" name="address" [(ngModel)]="form.address" class="w-full" />
@@ -128,6 +102,33 @@
               </div>
             </div>
           </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="phone">Phone</label>
+              <app-phone-input inputId="phone" [value]="form.phone || null" (valueChange)="form.phone = $event ?? ''" />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="email">Email</label>
+              <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
+            </div>
+          </div>
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="website">Website</label>
+              <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="linkedInUrl">LinkedIn Profile</label>
+              <input
+                pInputText
+                id="linkedInUrl"
+                name="linkedInUrl"
+                [(ngModel)]="form.linkedInUrl"
+                class="w-full"
+                placeholder="https://linkedin.com/company/…"
+              />
+            </div>
+          </div>
           <div class="form-field showcase-full">
             <label for="notes">Notes</label>
             <quill-editor
@@ -139,6 +140,21 @@
               (onEditorCreated)="onNotesEditor($event)"
             ></quill-editor>
           </div>
+          @if (isClient) {
+            <div class="form-field showcase-full">
+              <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
+              <input
+                pInputText
+                id="code"
+                name="code"
+                [(ngModel)]="form.code"
+                class="w-full"
+                placeholder="UPSP"
+                maxlength="8"
+                style="text-transform: uppercase"
+              />
+            </div>
+          }
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="orgServices">Services <app-help-text key="organization.services" /></label>
@@ -159,47 +175,40 @@
               />
             </div>
           </div>
-          <div class="form-field showcase-full">
-            <label for="orgFocus">Focus areas <app-help-text key="organization.focusAreas" /></label>
-            <p-multiselect
-              inputId="orgFocus"
-              name="focusCategories"
-              [options]="focusCategoryOptions"
-              optionLabel="label"
-              optionValue="value"
-              [(ngModel)]="form.focusCategories"
-              placeholder="Select focus areas…"
-              [showClear]="true"
-              styleClass="w-full"
-            />
-          </div>
-          @if (!isClientFlow) {
-            <div class="showcase-row">
-              @if (!isNew) {
-                <div class="form-field showcase-half">
-                  <label for="journey">Status <app-help-text key="organization.journey" /></label>
-                  <p-selectbutton
-                    inputId="journey"
-                    name="journey"
-                    [options]="journeyOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    [(ngModel)]="form.journey"
-                    [allowEmpty]="false"
-                  />
-                </div>
-              }
-              <div class="form-field" [class.showcase-half]="!isNew" [class.showcase-full]="isNew">
-                <label for="orgTags">Tags <app-help-text key="organization.tags" /></label>
-                <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
-              </div>
-            </div>
-          } @else {
+          @if (!isClientFlow && !isNew) {
             <div class="form-field showcase-full">
-              <label for="clientTags">Tags <app-help-text key="organization.tags" /></label>
-              <app-crm-tag-input [(tags)]="form.tags" inputId="clientTags" />
+              <label for="journey">Status <app-help-text key="organization.journey" /></label>
+              <p-selectbutton
+                inputId="journey"
+                name="journey"
+                [options]="journeyOptions"
+                optionLabel="label"
+                optionValue="value"
+                [(ngModel)]="form.journey"
+                [allowEmpty]="false"
+              />
             </div>
           }
+          <div class="showcase-row">
+            <div class="form-field showcase-half">
+              <label for="orgFocus">Focus areas <app-help-text key="organization.focusAreas" /></label>
+              <p-multiselect
+                inputId="orgFocus"
+                name="focusCategories"
+                [options]="focusCategoryOptions"
+                optionLabel="label"
+                optionValue="value"
+                [(ngModel)]="form.focusCategories"
+                placeholder="Select focus areas…"
+                [showClear]="true"
+                styleClass="w-full"
+              />
+            </div>
+            <div class="form-field showcase-half">
+              <label for="orgTags">Tags <app-help-text key="organization.tags" /></label>
+              <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
+            </div>
+          </div>
         </div>
 
       </form>
@@ -229,6 +238,7 @@
                   [queryParams]="{ clientId: id() }"
                 ></a>
               </div>
+              <div class="side-panel-scroll">
               @if (projectsLoading() && projects().length === 0) {
                 <p class="text-color-secondary m-0">Loading projects…</p>
               }
@@ -250,6 +260,7 @@
                   <p class="text-color-secondary m-0">No projects yet.</p>
                 }
               }
+              </div>
             </div>
           }
 
@@ -259,6 +270,7 @@
             <div class="card-header">
               <h3 class="card-title">Public Settings</h3>
             </div>
+            <div class="side-panel-scroll">
             <div class="flex align-items-center gap-2 mb-3">
               <p-toggleSwitch
                 inputId="isPublicFeatured"
@@ -308,10 +320,18 @@
                 </div>
               }
             }
+            </div>
           </div>
         </div>
       }
     </div>
     }
+  }
+  @if (clientPipelineBase(); as base) {
+    <app-add-to-pipeline-dialog
+      [apiBase]="base"
+      helpKey="client.addToPipeline"
+      emptyMessage="This client is on every pipeline already, or there are no pipelines yet."
+    />
   }
 </app-page>

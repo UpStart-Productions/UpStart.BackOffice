@@ -76,6 +76,10 @@
   --color-surface-lime: var(--brand-lime-50);
   --color-surface-amber: #fffbeb;
 
+  /* Count pills (nav, queue cards, lane totals). Not brand primary — purple is for actions. */
+  --color-count-badge-bg: var(--brand-blue-100);
+  --color-count-badge-text: var(--brand-blue-700);
+
   /* ── Accent text (stats, badges, emphasis without new components) ── */
   --color-accent-violet: var(--brand-violet-600);
   --color-accent-blue: var(--brand-blue-600);

@@ -73,25 +73,29 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         </div>
       }
 
-      @if (panelError()) {
-        <p-message severity="error" [text]="panelError()!" class="mb-3" />
-      }
-
-      @if (!controlsAfterList() && !readOnly()) {
-        <div class="form-field people-panel-picker">
-          <label [attr.for]="pickerInputId">Add existing person</label>
-          <app-people-select
-            [inputId]="pickerInputId"
-            [(pickId)]="pickId"
-            (pickIdChange)="onExistingPicked($event)"
-            [options]="pickerOptions()"
-            [loading]="pickerLoading()"
-            placeholder="Search and select…"
-            ariaLabel="Add existing person"
-          />
+      @if (panelError() || (!controlsAfterList() && !readOnly())) {
+        <div class="side-panel-controls">
+          @if (panelError()) {
+            <p-message severity="error" [text]="panelError()!" class="mb-3" />
+          }
+          @if (!controlsAfterList() && !readOnly()) {
+            <div class="form-field people-panel-picker">
+              <label [attr.for]="pickerInputId">Add existing person</label>
+              <app-people-select
+                [inputId]="pickerInputId"
+                [(pickId)]="pickId"
+                (pickIdChange)="onExistingPicked($event)"
+                [options]="pickerOptions()"
+                [loading]="pickerLoading()"
+                placeholder="Search and select…"
+                ariaLabel="Add existing person"
+              />
+            </div>
+          }
         </div>
       }
 
+      <div class="side-panel-scroll">
       @if (mode() === 'organization' || mode() === 'lead') {
         @if (orgLoading() && orgPeople().length === 0) {
           <div aria-busy="true" aria-label="Loading people">
@@ -211,31 +215,32 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         @if (projectContacts().length === 0 && teamRows().length === 0) {
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
         }
+      }
+      </div>
 
-        @if (controlsAfterList() && !readOnly()) {
-          <div class="people-panel-add-block">
-            <div class="form-field people-panel-picker">
-              <label [attr.for]="pickerInputId">Add existing person</label>
-              <app-people-select
-                [inputId]="pickerInputId"
-                [(pickId)]="pickId"
-                (pickIdChange)="onExistingPicked($event)"
-                [options]="pickerOptions()"
-                [loading]="pickerLoading()"
-                placeholder="Search and select…"
-                ariaLabel="Add existing person"
-              />
-            </div>
-            <p-button
-              type="button"
-              label="Add new person"
-              icon="pi pi-plus"
-              size="small"
-              severity="secondary"
-              (onClick)="openNewPerson()"
+      @if (controlsAfterList() && !readOnly()) {
+        <div class="side-panel-controls people-panel-add-block">
+          <div class="form-field people-panel-picker">
+            <label [attr.for]="pickerInputId">Add existing person</label>
+            <app-people-select
+              [inputId]="pickerInputId"
+              [(pickId)]="pickId"
+              (pickIdChange)="onExistingPicked($event)"
+              [options]="pickerOptions()"
+              [loading]="pickerLoading()"
+              placeholder="Search and select…"
+              ariaLabel="Add existing person"
             />
           </div>
-        }
+          <p-button
+            type="button"
+            label="Add new person"
+            icon="pi pi-plus"
+            size="small"
+            severity="secondary"
+            (onClick)="openNewPerson()"
+          />
+        </div>
       }
 
       <ng-content select="[peoplePanelExtra]" />
@@ -311,7 +316,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
-      margin-top: 1rem;
+      margin-top: 0;
       padding-top: 1rem;
       border-top: 1px solid var(--surface-border);
     }

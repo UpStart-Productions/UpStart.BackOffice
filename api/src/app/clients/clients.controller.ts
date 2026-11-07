@@ -19,6 +19,8 @@ import { AccessGuard, Area, Action } from '../access/access.guard';
 import { hasTagWhere, setClientTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AddTeamMemberDto, assertTeamCandidate, clientTeam, teamCandidates } from '../team/team.util';
+import { AddPipelineCardDto } from '../pipelines/dto/add-pipeline-card.dto';
+import { ClientPipelineService } from './client-pipeline.service';
 
 const clientSelect = {
   id: true,
@@ -31,6 +33,7 @@ const clientSelect = {
   state: true,
   zip: true,
   website: true,
+  linkedInUrl: true,
   notes: true,
   category: true,
   journey: true,
@@ -61,6 +64,7 @@ export class ClientsController {
     private readonly storageFolders: StorageFoldersService,
     private readonly access: AccessService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
+    private readonly clientPipeline: ClientPipelineService,
   ) {}
 
   /** 404 (not 403) for a client outside the user's reach, so ids can't be probed. */
@@ -100,6 +104,22 @@ export class ClientsController {
     await this.assertReach(req, id);
     await this.prisma.clientAssignment.deleteMany({ where: { clientId: id, userId } });
     return clientTeam(this.prisma, id);
+  }
+
+  @Get(':id/pipeline-cards')
+  async listPipelineCards(@Req() req: Request, @Param('id') id: string) {
+    await this.assertReach(req, id);
+    if (!(await this.prisma.client.findUnique({ where: { id }, select: { id: true } }))) {
+      throw new NotFoundException('Client not found');
+    }
+    return this.clientPipeline.listForClient(id);
+  }
+
+  @Action('edit')
+  @Post(':id/pipeline-cards')
+  async addPipelineCard(@Req() req: Request, @Param('id') id: string, @Body() dto: AddPipelineCardDto) {
+    await this.assertReach(req, id);
+    return this.clientPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
   }
 
   /** Organizations. ?journey=CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */
@@ -182,6 +202,7 @@ export class ClientsController {
           state: dto.state,
           zip: dto.zip,
           website: dto.website,
+          linkedInUrl: dto.linkedInUrl,
           notes: dto.notes,
           services: dto.services ?? [],
           products: dto.products ?? [],
@@ -237,6 +258,7 @@ export class ClientsController {
         ...(dto.state !== undefined && { state: dto.state }),
         ...(dto.zip !== undefined && { zip: dto.zip }),
         ...(dto.website !== undefined && { website: dto.website }),
+        ...(dto.linkedInUrl !== undefined && { linkedInUrl: dto.linkedInUrl }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
         ...(dto.services !== undefined && { services: dto.services }),
         ...(dto.products !== undefined && { products: dto.products }),

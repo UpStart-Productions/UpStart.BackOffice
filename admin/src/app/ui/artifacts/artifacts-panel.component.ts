@@ -1,4 +1,8 @@
 import { Component, effect, inject, input, signal, untracked } from '@angular/core';
+import {
+  FileViewerDialogComponent,
+  type ViewerFile,
+} from '../file-viewer/file-viewer-dialog.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -30,7 +34,16 @@ type Artifact = {
 @Component({
   selector: 'app-artifacts-panel',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, TabsModule, MessageModule, QuillModule, SingleFileDropzoneComponent],
+  imports: [
+    FormsModule,
+    ButtonModule,
+    InputTextModule,
+    TabsModule,
+    MessageModule,
+    QuillModule,
+    SingleFileDropzoneComponent,
+    FileViewerDialogComponent,
+  ],
   template: `
     <div class="card">
       <h3 class="showcase-section-title mb-3">{{ sectionTitle() }}</h3>
@@ -68,35 +81,21 @@ type Artifact = {
             <div class="artifact-card-grid">
               @for (a of files(); track a.id) {
                 <div class="artifact-file-card">
-                  <div class="artifact-card-actions">
-                    <button
-                      class="artifact-card-action"
-                      pButton
-                      icon="pi pi-download"
-                      [rounded]="true"
-                      [text]="true"
-                      severity="secondary"
-                      size="small"
-                      [attr.aria-label]="'Download ' + a.title"
-                      (click)="downloadFile(a, $event)"
-                    ></button>
-                    <button
-                      class="artifact-card-action"
-                      pButton
-                      icon="pi pi-trash"
-                      [rounded]="true"
-                      [text]="true"
-                      severity="danger"
-                      size="small"
-                      [attr.aria-label]="'Delete ' + a.title"
-                      (click)="deleteArtifact(a, $event)"
-                    ></button>
-                  </div>
+                  <button
+                    class="artifact-card-delete"
+                    pButton
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    size="small"
+                    [attr.aria-label]="'Delete ' + a.title"
+                    (click)="deleteArtifact(a, $event)"
+                  ></button>
                   <div
-                    class="artifact-file-card-inner"
-                    [class.artifact-file-card-inner--clickable]="isBrowserViewable(a)"
-                    [attr.role]="isBrowserViewable(a) ? 'button' : null"
-                    [attr.tabindex]="isBrowserViewable(a) ? 0 : null"
+                    class="artifact-file-card-inner artifact-file-card-inner--clickable"
+                    role="button"
+                    tabindex="0"
                     (click)="openFile(a)"
                     (keydown.enter)="openFile(a)"
                     (keydown.space)="openFile(a); $event.preventDefault()"
@@ -197,6 +196,8 @@ type Artifact = {
 
         </p-tabpanels>
       </p-tabs>
+
+      <app-file-viewer-dialog [file]="viewerFile()" (closed)="viewerFile.set(null)" />
     </div>
   `,
 })
@@ -223,6 +224,7 @@ export class ArtifactsPanelComponent {
   error = signal<string | null>(null);
   uploading = signal(false);
   uploadProgress = signal<{ name: string; done: boolean }[]>([]);
+  viewerFile = signal<ViewerFile | null>(null);
 
   files = () => this.artifacts().filter(a => a.type === 'FILE');
   links = () => this.artifacts().filter(a => a.type === 'LINK');
@@ -259,19 +261,23 @@ export class ArtifactsPanelComponent {
     return mime === 'application/pdf' || ext === 'pdf';
   }
 
-  isBrowserViewable(a: Artifact): boolean {
-    return this.isImage(a) || this.isPdf(a);
-  }
-
   fileUrl(a: Artifact): string {
     if (!a.fileUrl) return '';
     return resolveAssetUrl(`/api/uploads/${a.fileUrl}`) ?? '';
   }
 
   openFile(a: Artifact) {
-    if (!this.isBrowserViewable(a)) return;
     const url = this.fileUrl(a);
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    if (!url) return;
+    if (this.isImage(a)) {
+      this.viewerFile.set({ name: a.title, kind: 'image', url });
+      return;
+    }
+    if (this.isPdf(a)) {
+      this.viewerFile.set({ name: a.title, kind: 'pdf', url });
+      return;
+    }
+    void this.downloadFile(a);
   }
 
   async downloadFile(a: Artifact, event?: Event) {

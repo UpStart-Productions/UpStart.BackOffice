@@ -11,7 +11,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'lead.nextActionDate': 'When the next step is due. Cards show a red warning on the board once this date passes.',
   'lead.nextAction': 'What you plan to do next. This leads the card on the pipeline board.',
   'lead.makeClient':
-    'The organization becomes a client so projects, time and invoices are available. The card leaves the board (archived, not deleted). People, email and files stay on the organization.',
+    'The organization becomes a client so projects, time and invoices are available. The card leaves the board (not deleted). People, email and files stay on the organization.',
   'pipeline.newBoard':
     'Starts with New Lead, Discovery, Proposal Sent and On Hold. Rename lanes and add more on the board.',
 
@@ -72,6 +72,12 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
 
   // Invoices
   'invoice.billToEmail': 'Where Send emails this invoice by default. You can pick a different address when sending.',
+  'invoice.addToPipeline':
+    'Creates a card on the pipeline you pick, in the first lane. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per invoice.',
+  'client.addToPipeline':
+    'Creates a pipeline card for this client organization in the first lane of the pipeline you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per client.',
+  'project.addToPipeline':
+    'Creates a pipeline card for this project in the first lane of the pipeline you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per project.',
   'invoice.generateFromTime.client':
     'Pull uninvoiced billable time and billable expenses (at cost, on this client\'s projects) for the selected period. Time entries must fall entirely within the period.',
   'invoice.generateFromTime.tenant':

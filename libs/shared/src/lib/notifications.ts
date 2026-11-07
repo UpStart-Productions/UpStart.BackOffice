@@ -18,7 +18,13 @@ export type NotificationType =
   | 'client_form_submitted'
   | 'form_attached'
   | 'care_form_submission'
-  | 'care_shift_assigned';
+  | 'care_shift_assigned'
+  | 'pipeline_invoice_added'
+  | 'pipeline_invoice_moved'
+  | 'pipeline_client_added'
+  | 'pipeline_client_moved'
+  | 'pipeline_project_added'
+  | 'pipeline_project_moved';
 
 export const NOTIFICATION_TYPES: NotificationType[] = [
   'task_assigned',
@@ -40,6 +46,12 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'form_attached',
   'care_form_submission',
   'care_shift_assigned',
+  'pipeline_invoice_added',
+  'pipeline_invoice_moved',
+  'pipeline_client_added',
+  'pipeline_client_moved',
+  'pipeline_project_added',
+  'pipeline_project_moved',
 ];
 
 /** Deep-link and display metadata stored as JSON on each notification row. */
@@ -83,7 +95,14 @@ export type NotificationChannelPreferences = Partial<Record<NotificationType, Pa
  * Busy task changes that land in the bell but don't email unless the person turns them on in Inbox → Settings.
  * Every other type emails unless turned off.
  */
-export const EMAIL_OFF_BY_DEFAULT: NotificationType[] = ['task_attachment', 'task_due_date_changed', 'task_moved', 'task_subtask_added'];
+export const EMAIL_OFF_BY_DEFAULT: NotificationType[] = [
+  'task_attachment',
+  'task_due_date_changed',
+  'task_moved',
+  'task_subtask_added',
+  'pipeline_invoice_added',
+  'pipeline_invoice_moved',
+];
 
 export function emailOnByDefault(type: NotificationType): boolean {
   return !EMAIL_OFF_BY_DEFAULT.includes(type);
@@ -136,6 +155,9 @@ export function resolveNotificationRoute(
   }
   if (entityType === 'project' && entityId) {
     return ['tasks', 'projects', entityId];
+  }
+  if (entityType === 'invoice' && entityId) {
+    return ['invoices', entityId];
   }
 
   return null;

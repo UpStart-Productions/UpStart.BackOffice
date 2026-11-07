@@ -24,6 +24,14 @@ Audiences: use `NotificationAudienceService` (e.g. `userIdsWithAreaAll`) rather 
 | `project_added` | Added to a Task Manager project |
 | `project_removed` | Removed from a project by someone else |
 | `task_form_submission` | Public task form submitted |
+| `pipeline_invoice_added` | Invoice added to a pipeline (first lane) |
+| `pipeline_invoice_moved` | Invoice card moved to another lane |
+| `pipeline_client_added` | Client added to a pipeline (first lane) |
+| `pipeline_client_moved` | Client card moved to another lane |
+| `pipeline_project_added` | Project added to a pipeline (first lane) |
+| `pipeline_project_moved` | Project card moved to another lane |
+
+Pipeline invoice alerts: recipients are active users with **Pipeline** access (any level), minus the actor, who left the type enabled under **My Account → Notifications**.
 
 ## Add a new notification type
 
@@ -51,7 +59,7 @@ Audiences: use `NotificationAudienceService` (e.g. `userIdsWithAreaAll`) rather 
 | GET | `/notifications?unreadOnly=true&limit=100` | Inbox list |
 | GET | `/notifications/unread-count` | Badge count |
 | PATCH | `/notifications/:id/read` | Mark read |
-| DELETE | `/notifications/:id` | Dismiss (archive) |
+| DELETE | `/notifications/:id` | Dismiss |
 | POST | `/notifications/read-all` | Mark all read |
 | GET/PUT | `/notifications/preferences` | Email toggles per type |
 

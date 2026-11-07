@@ -67,8 +67,7 @@ type StatusFilter = 'all' | AccountJourney;
     <app-page title="Organizations">
       @if (canCreate()) {
         <ng-container ngProjectAs="[pageActions]">
-          <a pageActions pButton label="New partner" icon="pi pi-plus" severity="secondary" [outlined]="true" routerLink="/organizations/new" [queryParams]="{ type: 'partner' }"></a>
-          <a pageActions pButton label="New client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client' }"></a>
+          <a pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
         </ng-container>
       }
       @if (error()) {

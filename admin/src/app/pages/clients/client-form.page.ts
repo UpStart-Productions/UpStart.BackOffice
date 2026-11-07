@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -38,6 +38,11 @@ import {
 import { MultiSelectModule } from 'primeng/multiselect';
 import { PIPELINE_CATEGORY_PRESETS } from '../../core/pipeline-vocabulary';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
+import {
+  RowActionsMenuComponent,
+  type RowActionItem,
+} from '../../ui/row-actions-menu/row-actions-menu.component';
+import { AddToPipelineDialogComponent } from '../../ui/add-to-pipeline-dialog/add-to-pipeline-dialog.component';
 import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
 import { ACCOUNT_JOURNEY_LABELS, US_STATES } from '@upstart/back-office/shared';
 
@@ -61,6 +66,7 @@ type ClientForm = {
   state: string;
   zip: string;
   website: string;
+  linkedInUrl: string;
   notes: string;
   services: string[];
   products: string[];
@@ -96,6 +102,8 @@ type ClientForm = {
     RecordAttributionComponent,
     CareClientTabComponent,
     ClientFormsPanelComponent,
+    RowActionsMenuComponent,
+    AddToPipelineDialogComponent,
   ],
   templateUrl: './client-form.page.html',
   styleUrl: './client-form.page.scss',
@@ -109,6 +117,28 @@ export class ClientFormPage implements OnInit {
   private readonly session = inject(SessionService);
   private readonly care = inject(CareApi);
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
+  private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
+
+  readonly canAddToPipeline = computed(
+    () => this.session.can('pipeline', 'create') && this.session.can('clients', 'edit'),
+  );
+
+  readonly clientPipelineBase = computed(() => {
+    const id = this.id();
+    return id ? `/clients/${id}` : '';
+  });
+
+  readonly headerActions = computed((): RowActionItem[] => {
+    if (this.isNew || !this.canAddToPipeline()) return [];
+    return [
+      {
+        id: 'pipeline',
+        label: 'Add to pipeline',
+        icon: 'pi pi-share-alt',
+        command: () => void this.pipelineDialog()?.open(),
+      },
+    ];
+  });
 
   readonly usStates = US_STATES;
   readonly focusCategoryOptions = PIPELINE_CATEGORY_PRESETS;
@@ -151,6 +181,7 @@ export class ClientFormPage implements OnInit {
     state: '',
     zip: '',
     website: '',
+    linkedInUrl: '',
     notes: '',
     services: [],
     products: [],
@@ -196,6 +227,7 @@ export class ClientFormPage implements OnInit {
       state: this.str(client.state),
       zip: this.str(client.zip),
       website: this.str(client.website),
+      linkedInUrl: this.str(client.linkedInUrl),
       notes: this.str(client.notes),
       services: [...(client.services ?? [])],
       products: [...(client.products ?? [])],
@@ -224,6 +256,7 @@ export class ClientFormPage implements OnInit {
       state: emptyToUndefined(this.form.state),
       zip: emptyToUndefined(this.form.zip),
       website: emptyToUndefined(this.form.website),
+      linkedInUrl: emptyToUndefined(this.form.linkedInUrl),
       notes: richTextOrUndefined(this.form.notes),
       services: this.form.services,
       products: this.form.products,
@@ -243,13 +276,7 @@ export class ClientFormPage implements OnInit {
       if (this.isClientFlow) {
         this.form.journey = 'CLIENT';
       } else {
-        const type = params.get('type');
-        if (type === 'partner') {
-          this.form.journey = 'NONE';
-          this.form.tags = ['Partner'];
-        } else {
-          this.form.journey = 'CLIENT';
-        }
+        this.form.journey = 'NONE';
       }
     }
     if (id) {
@@ -363,8 +390,7 @@ export class ClientFormPage implements OnInit {
   /** Page title. */
   get pageTitle(): string {
     if (!this.isNew) return this.form.name || 'Organization';
-    if (this.isClientFlow || this.form.journey === 'CLIENT') return 'New client';
-    if (this.form.tags.some((t) => t.toLowerCase() === 'partner')) return 'New partner';
+    if (this.isClientFlow) return 'New client';
     return 'New organization';
   }
 

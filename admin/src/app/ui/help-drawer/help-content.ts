@@ -48,20 +48,16 @@ const ORG_DETAIL: HelpArticle = {
   intro: 'Everything about one organization lives here: details, tags, people, projects, emails and files.',
   sections: [
     {
-      heading: 'Services, products and focus',
-      body: 'Below Notes: Services and Products are free-form lists (press Enter to add each). Focus areas are preset sectors such as Recovery or Education.',
+      heading: 'Contact and details',
+      body: 'After name: address, city, state and zip. Then Phone and Email on one row and Website and LinkedIn Profile on the next. Below that: Notes, then Invoice Code when Status is Client. Services and Products are free-form lists (press Enter to add each). Focus areas and Tags share one row; focus areas use preset sectors such as Recovery or Education. Tags say what the organization is to you (Partner, Vendor, or anything you type) and are shared with People.',
     },
     {
       heading: 'Status',
-      body: 'Client or Partner / other, below those fields on the Details form. Make client on a pipeline card creates or updates the organization as a Client. Client turns on projects, time and invoices.',
-    },
-    {
-      heading: 'Tags',
-      body: 'Say what the organization is to you: Partner, Vendor, Referral source, or anything you type. Press Enter to add one. Tags are shared with People, so you can filter both by the same tag. A partner can also be a client.',
+      body: 'Client or Partner / other on the Details form (existing records). Make client on a pipeline card creates or updates the organization as a Client. Client turns on projects, time and invoices.',
     },
     {
       heading: 'Make client',
-      body: 'Turns a partner / other organization into a client. Any open pipeline card for it is archived, since the opportunity is won.',
+      body: 'Turns a partner / other organization into a client. Any open pipeline card for it leaves the board, since the opportunity is won.',
     },
     {
       heading: 'Invoice Code',
@@ -100,11 +96,11 @@ const ORG_DETAIL: HelpArticle = {
 
 const NEW_ORG: HelpArticle = {
   title: 'New organization',
-  intro: 'Add a client or partner. Only the name is required. Open opportunities belong on the Pipeline instead.',
+  intro: 'Add an organization. Only the name is required. Set Status and Tags on the form; use Make client when they become a client. Open opportunities belong on the Pipeline instead.',
   sections: [
     {
-      heading: 'Client or partner',
-      body: 'New client turns on projects, time and invoices. New partner adds the Partner tag. Neither adds a pipeline card.',
+      heading: 'Status and tags',
+      body: 'New organizations start as Partner / other. Change Status to Client when you start doing billable work, or add tags such as Partner any time. Neither adds a pipeline card.',
     },
     {
       heading: 'Tags',
@@ -138,8 +134,8 @@ const LEAD_DETAIL: HelpArticle = {
       body: 'How long since the last logged email, call or note. Logging activity below keeps it current.',
     },
     {
-      heading: 'Make client, Make partner, and Archive',
-      body: 'Make client when they sign on: creates the organization as a Client, copies people, and archives the card. Make partner adds the organization with the Partner tag and archives the card. Archive takes a card off the board when it\'s going nowhere. Restore from the Archived view.',
+      heading: 'Make client and Make partner',
+      body: 'Make client when they sign on: creates the organization as a Client, copies people, and removes the card from the board. Make partner adds the organization with the Partner tag and removes the card from the board. Delete in the ⋮ menu removes a card you no longer need.',
     },
     {
       heading: 'Activity and files',
@@ -264,7 +260,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Moving cards',
-        body: 'Drag a card between lanes as the conversation moves. Lanes don\'t change anything else. When they sign on, use Make client: the organization becomes a Client and the card leaves the board. When it\'s going nowhere, Archive the card.',
+        body: 'Drag a card between lanes as the conversation moves. Lanes don\'t change anything else. When they sign on, use Make client: the organization becomes a Client and the card leaves the board. When it\'s going nowhere, delete the card from the ⋮ menu.',
       },
       {
         heading: 'New Lead',
@@ -272,15 +268,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Editing lanes',
-        body: 'Add lane is the column at the end. Click a lane name to rename it (Enter saves, Esc cancels). Drag a lane by its header to reorder. The X on a lane removes it; if it has cards, archived ones included, choose where they move. A pipeline always keeps at least one lane.',
+        body: 'Edit Lanes at the end of the board adds or removes lanes (when your role allows) and shows lanes you hid. The closed-eye icon on a lane hides it on your board only; at least one lane stays visible. Click a lane name to rename it (Enter saves, Esc cancels). Drag a lane by its header to reorder. Removing a lane with cards asks where they move. A pipeline always keeps at least one lane.',
       },
       {
         heading: 'More than one pipeline',
-        body: 'The ⋮ menu beside New Lead (top right) has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). With more than one pipeline, pick which board to view from the list beside Board / Archived. For example, a second pipeline can track partners you\'re recruiting.',
-      },
-      {
-        heading: 'Archived',
-        body: 'Use Board / Archived on the left to see won and archived cards. Restore puts a card back on the board. Delete removes it for good.',
+        body: 'When your role allows setup, the ⋮ menu beside New Lead has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). With more than one pipeline, pick which board to view from the toolbar list.',
       },
     ],
   },
@@ -300,8 +292,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Make client on a pipeline card creates the Client record. Mark a client Inactive on the organization page when the work ends.',
       },
       {
-        heading: 'New client and New partner',
-        body: 'Add an organization directly. For someone you are still trying to win, use Pipeline → New Lead instead.',
+        heading: 'New Organization',
+        body: 'Adds an organization as Partner / other by default. Use Status and Tags on the record to classify them; Make client when they become a client. For someone you are still trying to win, use Pipeline → New Lead instead.',
       },
     ],
   },
@@ -466,7 +458,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Working the inbox',
-        body: 'Click an item to open the task. Archive clears it; Mark all read clears the unread count.',
+        body: 'Click an item to open the task. Dismiss clears it; Mark all read clears the unread count.',
       },
       {
         heading: 'Notification preferences',
@@ -795,15 +787,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Roles tab',
-        body: 'Fixed roles (Admin, Member, Guest): each row describes what that role can do. **Members** shows overlapping avatars (up to three) and **+N** when more people have the role — click the cell to open the full list. There, copy an email with the icon beside it, or click someone to edit their user record.',
-      },
-      {
-        heading: 'Built-in roles',
-        body: 'Every organization starts with Manager, Team member, Coordinator, Bookkeeper, Contractor and Guest. Edit them freely; Reset to default undoes changes. They can\'t be deleted. Add role makes your own.',
-      },
-      {
-        heading: 'Can use column',
-        body: 'One chip per area, with icons for Create, Edit, Delete and Setup. Faded icons are not allowed. Hover a chip for a plain-language summary.',
+        body: 'Fixed roles (Admin, Member, Guest): each row describes what that role can do. **Members** shows overlapping avatars (up to three) and **+N** when more people have the role — click the cell to open the full list. There, copy an email with the icon beside it, or click someone to edit their user record. You cannot create or edit roles; assign **Member** or **Guest** when adding a user.',
       },
     ],
   },

@@ -5,6 +5,9 @@
 >
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
+      @if (!isNew && headerActions().length) {
+        <app-row-actions-menu [items]="headerActions()" ariaLabel="Project actions" />
+      }
       <p-button
         label="Save"
         icon="pi pi-check"
@@ -51,7 +54,9 @@
             <div class="card-header">
               <h3 class="card-title">Billing &amp; Expenses</h3>
             </div>
-            <ng-container *ngTemplateOutlet="projectBillingPanel" />
+            <div class="side-panel-scroll">
+              <ng-container *ngTemplateOutlet="projectBillingPanel" />
+            </div>
           </div>
 
           <ng-container *ngTemplateOutlet="projectPeoplePanel" />
@@ -72,7 +77,9 @@
                 (click)="openTaskModal()"
               />
             </div>
-            <ng-container *ngTemplateOutlet="projectManualTasksSection" />
+            <div class="side-panel-scroll">
+              <ng-container *ngTemplateOutlet="projectManualTasksSection" />
+            </div>
           </div>
         </div>
       </div>
@@ -393,4 +400,11 @@
       <p-button label="Save" type="button" icon="pi pi-check" (click)="saveTaskModal()" />
     </div>
   </p-dialog>
+  @if (projectPipelineBase(); as base) {
+    <app-add-to-pipeline-dialog
+      [apiBase]="base"
+      helpKey="project.addToPipeline"
+      emptyMessage="This project is on every pipeline already, or there are no pipelines yet."
+    />
+  }
 </app-page>

@@ -14,7 +14,7 @@ Sections appear based on role. **Admins** see:
 - **Admin** (Admin only): Users, Settings
 - **Super user only**: Tenants, Guide setup
 
-There are three roles: **Admin** (everything), **Member** (staff: all of CRM plus the projects they are on) and **Guest** (outside people: only the projects and clients they are assigned to). Members and Guests see only their own time, expenses and invoices, plus everything on projects where they are the **Lead**. See Admin and settings for details.
+There are three user types: **Admin** (everything), **Member** (staff: all of CRM plus the projects they are on) and **Guest** (outside people: only the projects and clients they are assigned to). You cannot create custom roles — every organization has exactly these, defined in the product. Members and Guests see only their own time, expenses and invoices, plus everything on projects where they are the **Lead**. See Admin and settings for details.
 
 People (team members and contacts) are shown with their photo, or colored initials when there's no photo, next to their name: on pipeline cards, contact and client pages, the email timeline, Activity, expenses and role lists.
 
@@ -24,9 +24,9 @@ People (team members and contacts) are shown with their photo, or colored initia
 
 Every page has the same header above its content:
 
-- The page title on the left, with a back arrow before it on pages you open from a list (for example a client, a pipeline card or an invoice). Status tags, such as **Client**, **Archived** or **Overdue**, sit next to the title.
+- The page title on the left, with a back arrow before it on pages you open from a list (for example a client, a pipeline card or an invoice). Status tags, such as **Client** or **Overdue**, sit next to the title.
 - The page's buttons on the right. The main action, such as **New Client**, **Track time** or **Save**, is the purple button on the far right.
-- Less common actions, such as **Archive**, **Restore** or **Delete**, are in the ⋮ menu at the start of the buttons.
+- Less common actions, such as **Delete**, are in the ⋮ menu at the start of the buttons.
 - On pages where you edit something, **Save** is in the header and turns on once you change something.
 - Search, filters and tabs are at the top of the white panel below the header.
 

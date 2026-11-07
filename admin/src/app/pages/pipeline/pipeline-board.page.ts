@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -7,8 +7,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
-import { SelectButtonModule } from 'primeng/selectbutton';
-import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ApiError, ApiService } from '../../core/api.service';
@@ -24,6 +22,7 @@ import { daysSince, isOverdue, lastContactLabel } from '../../core/staleness.uti
 import { AutofocusDirective } from '../../ui/autofocus.directive';
 import { PersonComponent } from '../../ui/person/person.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { loadHiddenLaneIds, saveHiddenLaneIds } from '../../core/pipeline-lane-visibility.storage';
 
 export type Lead = {
   id: string;
@@ -47,9 +46,24 @@ export type Lead = {
   serviceInterests: string[];
   clientId?: string | null;
   client?: { id: string; name: string; journey: string } | null;
+  invoiceId?: string | null;
+  trackedClientId?: string | null;
+  projectId?: string | null;
+  invoice?: {
+    id: string;
+    displayNumber: string;
+    status: string;
+    total: number | string;
+    client?: { id: string; name: string } | null;
+  } | null;
+  trackedClient?: { id: string; name: string; journey: string } | null;
+  project?: {
+    id: string;
+    name: string;
+    client?: { id: string; name: string } | null;
+  } | null;
 };
 
-type View = 'board' | 'archived';
 type CardContact = {
   id: string;
   name: string;
@@ -77,8 +91,6 @@ type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
     TagModule,
     MessageModule,
     SelectModule,
-    SelectButtonModule,
-    TableModule,
     TooltipModule,
     AppDialogModule,
     PageComponent,
@@ -104,14 +116,8 @@ export class PipelineBoardPage implements OnInit {
   readonly canDelete = computed(() => this.session.can('pipeline', 'delete'));
   readonly canSetup = computed(() => this.session.can('pipeline', 'setup'));
 
-  readonly viewOptions = [
-    { label: 'Board', value: 'board' },
-    { label: 'Archived', value: 'archived' },
-  ];
-
   pipelines = signal<PipelineSummary[]>([]);
   pipelineId = signal<string | null>(null);
-  view = signal<View>('board');
   leads = signal<Lead[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
@@ -121,9 +127,10 @@ export class PipelineBoardPage implements OnInit {
   /** Lane being renamed in place, and its draft name. */
   editingLaneId = signal<string | null>(null);
   laneDraft = '';
-  /** "Add lane" input at the end of the board. */
-  addingLane = signal(false);
+  editLanesOpen = signal(false);
   newLaneName = '';
+  /** Lane ids hidden on this user's board for the current pipeline. */
+  hiddenLaneIds = signal<Set<string>>(new Set());
   /** Remove-lane dialog. */
   removingLane = signal<PipelineLane | null>(null);
   removeMoveTo: string | null = null;
@@ -146,7 +153,11 @@ export class PipelineBoardPage implements OnInit {
 
   readonly current = computed(() => this.pipelines().find((p) => p.id === this.pipelineId()) ?? null);
   readonly lanes = computed(() => this.current()?.stages ?? []);
-  readonly laneListIds = computed(() => this.lanes().map((l) => `lane-${l.id}`));
+  readonly visibleLanes = computed(() => {
+    const hidden = this.hiddenLaneIds();
+    return this.lanes().filter((l) => !hidden.has(l.id));
+  });
+  readonly laneListIds = computed(() => this.visibleLanes().map((l) => `lane-${l.id}`));
   readonly laneNames = computed(() => new Map(this.pipelines().flatMap((p) => p.stages.map((s) => [s.id, s.name] as const))));
 
   readonly filteredLeads = computed(() => {
@@ -172,28 +183,48 @@ export class PipelineBoardPage implements OnInit {
 
   leadsForLane = (laneId: string) => this.cardsByLane().get(laneId) ?? [];
 
-  readonly pipelineActions = computed<RowActionItem[]>(() => [
-    { id: 'new', label: 'New pipeline', icon: 'pi pi-plus', command: () => this.nameDialog.set({ mode: 'new', value: '' }) },
-    {
-      id: 'rename',
-      label: 'Rename pipeline',
-      icon: 'pi pi-pencil',
-      disabled: !this.current(),
-      command: () => this.nameDialog.set({ mode: 'rename', value: this.current()?.name ?? '' }),
-    },
-    {
-      id: 'delete',
-      label: 'Delete pipeline',
-      icon: 'pi pi-trash',
-      severity: 'danger',
-      disabled: this.pipelines().length <= 1,
-      command: () => this.confirmDeletePipeline(),
-    },
-  ]);
+  constructor() {
+    effect(() => {
+      const pid = this.pipelineId();
+      const uid = this.session.me()?.id;
+      if (!pid || !uid) {
+        this.hiddenLaneIds.set(new Set());
+        return;
+      }
+      const stored = loadHiddenLaneIds(uid, pid);
+      const known = new Set(this.lanes().map((l) => l.id));
+      const pruned = new Set([...stored].filter((id) => known.has(id)));
+      this.hiddenLaneIds.set(pruned);
+      if (pruned.size !== stored.size) {
+        saveHiddenLaneIds(uid, pid, pruned);
+      }
+    });
+  }
+
+  readonly pipelineMenuActions = computed<RowActionItem[]>(() => {
+    if (!this.canSetup()) return [];
+    return [
+      { id: 'new', label: 'New pipeline', icon: 'pi pi-plus', command: () => this.nameDialog.set({ mode: 'new', value: '' }) },
+      {
+        id: 'rename',
+        label: 'Rename pipeline',
+        icon: 'pi pi-pencil',
+        disabled: !this.current(),
+        command: () => this.nameDialog.set({ mode: 'rename', value: this.current()?.name ?? '' }),
+      },
+      {
+        id: 'delete',
+        label: 'Delete pipeline',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        disabled: this.pipelines().length <= 1,
+        command: () => this.confirmDeletePipeline(),
+      },
+    ];
+  });
 
   async ngOnInit() {
     const params = this.route.snapshot.queryParamMap;
-    if (params.get('view') === 'archived') this.view.set('archived');
     await this.loadPipelines(params.get('pipeline'));
     await this.loadLeads();
   }
@@ -215,8 +246,7 @@ export class PipelineBoardPage implements OnInit {
     const pid = this.pipelineId();
     this.loading.set(true);
     try {
-      const archived = this.view() === 'archived' ? '&archived=true' : '';
-      this.leads.set(pid ? await this.api.get<Lead[]>(`/leads?pipelineId=${pid}${archived}`) : []);
+      this.leads.set(pid ? await this.api.get<Lead[]>(`/leads?pipelineId=${pid}`) : []);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load pipeline');
     } finally {
@@ -228,19 +258,13 @@ export class PipelineBoardPage implements OnInit {
     const pid = this.pipelineId();
     const first = this.pipelines()[0]?.id;
     void this.router.navigate([], {
-      queryParams: { pipeline: pid && pid !== first ? pid : null, view: this.view() === 'archived' ? 'archived' : null },
+      queryParams: { pipeline: pid && pid !== first ? pid : null },
       replaceUrl: true,
     });
   }
 
   async selectPipeline(id: string) {
     this.pipelineId.set(id);
-    this.syncUrl();
-    await this.loadLeads();
-  }
-
-  async setView(view: View) {
-    this.view.set(view);
     this.syncUrl();
     await this.loadLeads();
   }
@@ -284,9 +308,37 @@ export class PipelineBoardPage implements OnInit {
 
   // ---------- cards ----------
 
-  openLead(id: string) {
+  isInvoiceCard(lead: Lead): boolean {
+    return !!lead.invoiceId;
+  }
+
+  isClientTrackerCard(lead: Lead): boolean {
+    return !!lead.trackedClientId;
+  }
+
+  isProjectTrackerCard(lead: Lead): boolean {
+    return !!lead.projectId;
+  }
+
+  isTrackerCard(lead: Lead): boolean {
+    return this.isInvoiceCard(lead) || this.isClientTrackerCard(lead) || this.isProjectTrackerCard(lead);
+  }
+
+  openLead(lead: Lead) {
     if (this.suppressCardClick) return;
-    void this.router.navigate(['/pipeline', id]);
+    if (lead.invoiceId) {
+      void this.router.navigate(['/invoices', lead.invoiceId]);
+      return;
+    }
+    if (lead.trackedClientId) {
+      void this.router.navigate(['/clients', lead.trackedClientId]);
+      return;
+    }
+    if (lead.projectId) {
+      void this.router.navigate(['/projects', lead.projectId, 'edit']);
+      return;
+    }
+    void this.router.navigate(['/pipeline', lead.id]);
   }
 
   onDragStarted() {
@@ -336,6 +388,11 @@ export class PipelineBoardPage implements OnInit {
     return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  invoiceTotalLabel(total: number | string): string {
+    const n = typeof total === 'number' ? total : Number(total);
+    return Number.isFinite(n) ? `$${n.toFixed(2)}` : '';
+  }
+
   onCardDrop(event: CdkDragDrop<string>) {
     const lead = event.item.data as Lead;
     const target = event.container.data;
@@ -366,16 +423,18 @@ export class PipelineBoardPage implements OnInit {
   }
 
   getRowActions(lead: Lead): RowActionItem[] {
-    const open: RowActionItem = { id: 'open', label: 'Open', icon: 'pi pi-arrow-right', command: () => this.router.navigate(['/pipeline', lead.id]) };
+    const open: RowActionItem = {
+      id: 'open',
+      label: 'Open',
+      icon: 'pi pi-arrow-right',
+      command: () => this.openLead(lead),
+    };
     const contacts: RowActionItem = { id: 'contacts', label: 'View people', icon: 'pi pi-users', command: () => this.openContacts(lead) };
     const del: RowActionItem = { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) };
-    if (this.view() === 'archived') {
-      return [
-        open,
-        contacts,
-        ...(this.canEdit() ? [{ id: 'restore', label: 'Restore to board', icon: 'pi pi-replay', command: () => this.restore(lead) }] : []),
-        ...(this.canDelete() ? [del] : []),
-      ];
+    if (this.isInvoiceCard(lead)) {
+      const actions: RowActionItem[] = [open];
+      if (this.canDelete()) actions.push(del);
+      return actions;
     }
     const actions: RowActionItem[] = [open, contacts];
     if (!this.canEdit()) return this.canDelete() ? [...actions, del] : actions;
@@ -387,36 +446,13 @@ export class PipelineBoardPage implements OnInit {
         command: () => this.router.navigate(['/pipeline', lead.id], { queryParams: { convert: '1' } }),
       });
     }
-    actions.push({ id: 'archive', label: 'Archive', icon: 'pi pi-inbox', command: () => this.archive(lead) });
     if (this.canDelete()) actions.push(del);
     return actions;
   }
 
-  async archive(lead: Lead) {
-    try {
-      await this.api.post(`/leads/${lead.id}/archive`, {});
-      this.leads.update((list) => list.filter((l) => l.id !== lead.id));
-      this.toast.add({ severity: 'success', summary: 'Archived', detail: `"${lead.organization}" is off the board. Find it under Archived.`, life: 3000 });
-      void this.refreshCounts();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Archive failed');
-    }
-  }
-
-  async restore(lead: Lead) {
-    try {
-      await this.api.post(`/leads/${lead.id}/restore`, {});
-      this.leads.update((list) => list.filter((l) => l.id !== lead.id));
-      this.toast.add({ severity: 'success', summary: 'Restored', detail: `"${lead.organization}" is back on the board.`, life: 3000 });
-      void this.refreshCounts();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Restore failed');
-    }
-  }
-
   confirmDelete(lead: Lead) {
     this.deleteConfirm.confirm({
-      message: `Delete "${lead.organization}"? This cannot be undone. Archive keeps it instead.`,
+      message: `Delete "${lead.organization}"? This cannot be undone.`,
       accept: async () => {
         try {
           await this.api.delete(`/leads/${lead.id}`);
@@ -477,7 +513,6 @@ export class PipelineBoardPage implements OnInit {
     try {
       await this.pipelinesApi.addLane(pid, name);
       this.newLaneName = '';
-      this.addingLane.set(false);
       await this.refreshCounts();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not add lane');
@@ -486,13 +521,61 @@ export class PipelineBoardPage implements OnInit {
     }
   }
 
+  openEditLanes() {
+    this.newLaneName = '';
+    this.editLanesOpen.set(true);
+  }
+
+  isLaneHidden(laneId: string): boolean {
+    return this.hiddenLaneIds().has(laneId);
+  }
+
+  private persistHiddenLanes() {
+    const uid = this.session.me()?.id;
+    const pid = this.pipelineId();
+    saveHiddenLaneIds(uid, pid, this.hiddenLaneIds());
+  }
+
+  hideLane(laneId: string) {
+    if (this.visibleLanes().length <= 1) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Cannot hide lane',
+        detail: 'At least one lane must stay visible on your board.',
+        life: 3000,
+      });
+      return;
+    }
+    this.hiddenLaneIds.update((set) => new Set([...set, laneId]));
+    this.persistHiddenLanes();
+  }
+
+  showLane(laneId: string) {
+    this.hiddenLaneIds.update((set) => {
+      const next = new Set(set);
+      next.delete(laneId);
+      return next;
+    });
+    this.persistHiddenLanes();
+  }
+
+  openRemoveLaneFromEdit(lane: PipelineLane) {
+    this.editLanesOpen.set(false);
+    this.openRemoveLane(lane);
+  }
+
   onLaneDrop(event: CdkDragDrop<PipelineLane[]>) {
     const pid = this.pipelineId();
-    const lanes = [...this.lanes()];
-    const to = Math.min(event.currentIndex, lanes.length - 1);
+    const all = [...this.lanes()];
+    const hidden = this.hiddenLaneIds();
+    const visible = all.filter((l) => !hidden.has(l.id));
+    const to = Math.min(event.currentIndex, visible.length - 1);
     if (!pid || event.previousIndex === to) return;
-    moveItemInArray(lanes, event.previousIndex, to);
-    const reordered = lanes.map((l, i) => ({ ...l, sortOrder: i }));
+    moveItemInArray(visible, event.previousIndex, to);
+    const queue = [...visible];
+    const reordered = all
+      .map((lane) => (hidden.has(lane.id) ? lane : queue.shift()!))
+      .map((l, i) => ({ ...l, sortOrder: i }));
     this.pipelines.update((list) => list.map((p) => (p.id === pid ? { ...p, stages: reordered } : p)));
     this.pipelinesApi.reorderLanes(pid, reordered.map((l) => l.id)).catch(async (err) => {
       this.error.set(err instanceof Error ? err.message : 'Could not reorder lanes');
@@ -524,12 +607,17 @@ export class PipelineBoardPage implements OnInit {
         detail: res.moved ? `${res.moved} card${res.moved === 1 ? '' : 's'} moved to ${this.laneNames().get(this.removeMoveTo ?? '') ?? 'another lane'}.` : `"${lane.name}" removed.`,
         life: 3000,
       });
+      this.hiddenLaneIds.update((set) => {
+        const next = new Set(set);
+        next.delete(lane.id);
+        return next;
+      });
+      this.persistHiddenLanes();
       await this.refreshCounts();
       await this.loadLeads();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Could not remove lane';
       if (err instanceof ApiError && err.status === 409) {
-        // It holds archived cards: ask where they go.
         this.removeNeedsTarget.set(true);
       } else {
         this.removingLane.set(null);
@@ -574,7 +662,7 @@ export class PipelineBoardPage implements OnInit {
     const p = this.current();
     if (!p) return;
     this.deleteConfirm.confirm({
-      message: `Delete the "${p.name}" pipeline? Only an empty pipeline (no cards, archived included) can be deleted.`,
+      message: `Delete the "${p.name}" pipeline? Only an empty pipeline (no cards) can be deleted.`,
       accept: async () => {
         try {
           await this.pipelinesApi.remove(p.id);

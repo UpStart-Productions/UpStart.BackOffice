@@ -290,6 +290,7 @@ model Client {
   state                String?
   zip                  String?
   website              String?
+  linkedInUrl          String?
   notes                String?        @db.Text
   category             OrgCategory?
   isActive             Boolean        @default(true)
@@ -313,6 +314,7 @@ model Client {
   users             User[]
   convertedFromLead Lead?              @relation("LeadConverted")
   leads             Lead[]             @relation("LeadAccount")
+  trackedOnPipelines Lead[]            @relation("LeadTrackedClient")
   contactLinks      ContactAccount[]
   interactions      Interaction[]
   assignments       ClientAssignment[]
@@ -348,6 +350,12 @@ model Lead {
   convertedClientId String?      @unique
   /// Linked organization, only after Make client/partner or an explicit link — not created on save.
   clientId          String?
+  /// When set, this card tracks an invoice on the pipeline board (not a sales opportunity).
+  invoiceId         String?
+  /// When set, this card tracks a client organization from Add to pipeline on the client record.
+  trackedClientId   String?
+  /// When set, this card tracks a project on the pipeline board (not a sales opportunity).
+  projectId         String?
   /// The lead's person. Source of truth for name, email and phone; the text columns above are a legacy mirror.
   primaryContactId  String?
   /// The tenant-defined pipeline and lane this card sits in. `stage` above is a legacy mirror.
@@ -365,6 +373,9 @@ model Lead {
 
   convertedClient Client?        @relation("LeadConverted", fields: [convertedClientId], references: [id])
   client          Client?        @relation("LeadAccount", fields: [clientId], references: [id])
+  trackedClient   Client?        @relation("LeadTrackedClient", fields: [trackedClientId], references: [id], onDelete: Cascade)
+  invoice         Invoice?       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  project         Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   contact               Contact?       @relation(fields: [primaryContactId], references: [id], onDelete: SetNull)
   warmConnectionContact Contact?       @relation("LeadWarmConnection", fields: [warmConnectionContactId], references: [id], onDelete: SetNull)
   pipeline        Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
@@ -379,7 +390,13 @@ model Lead {
   @@index([clientId])
   @@index([primaryContactId])
   @@index([warmConnectionContactId])
+  @@index([invoiceId])
+  @@index([trackedClientId])
+  @@index([projectId])
   @@index([tenantId])
+  @@unique([pipelineId, invoiceId])
+  @@unique([pipelineId, trackedClientId])
+  @@unique([pipelineId, projectId])
 }
 
 /// Person linked to a pipeline card before the card is promoted to an organization.
@@ -576,6 +593,7 @@ model Project {
   expenses         Expense[]
   invoiceLineItems InvoiceLineItem[]
   artifacts        Artifact[]
+  pipelineLeads    Lead[]
 
   members      ProjectMember[]
   stars        ProjectStar[]
@@ -875,6 +893,7 @@ model Invoice {
   lineItems      InvoiceLineItem[]
   journalEntries JournalEntry[]
   payable        Payable?
+  pipelineLeads  Lead[]
 
   @@unique([tenantId, number])
   @@index([clientId])

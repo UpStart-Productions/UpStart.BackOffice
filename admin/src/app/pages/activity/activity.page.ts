@@ -327,18 +327,21 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                   <p-tag [value]="tag.label" [severity]="tag.severity" />
                 }
               </div>
-              <app-next-step
-                [clientId]="o.id"
-                variant="panel"
-                [showInlineStatus]="false"
-                (headerStatus)="onOrgNextStepHeaderStatus($event)"
-              />
+              <div class="side-panel-scroll">
+                <app-next-step
+                  [clientId]="o.id"
+                  variant="panel"
+                  [showInlineStatus]="false"
+                  (headerStatus)="onOrgNextStepHeaderStatus($event)"
+                />
+              </div>
             </div>
 
             <div class="card card--side">
               <div class="card-header">
                 <h3 class="card-title">Details</h3>
               </div>
+              <div class="side-panel-scroll">
               <div class="side-name">
                 <a [routerLink]="['/organizations', o.id]">{{ orgDetail()?.name ?? o.name }}</a>
                 @if (orgDetail(); as d) {
@@ -362,6 +365,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                   <div class="side-notes">{{ plain(d.notes) }}</div>
                 }
               }
+              </div>
             </div>
 
             <app-people mode="organization" [clientId]="o.id" [compact]="true" [readOnly]="true" />
@@ -370,6 +374,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               <div class="card-header">
                 <h3 class="card-title">Details</h3>
               </div>
+              <div class="side-panel-scroll">
               <div class="side-name"><a [routerLink]="['/people', p.id]">{{ personLabel(p) }}</a></div>
               <dl class="side-details">
                 @if (p.title) { <div><dt>Title</dt><dd>{{ p.title }}</dd></div> }
@@ -381,12 +386,14 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               @if (p.notes) {
                 <div class="side-notes">{{ plain(p.notes) }}</div>
               }
+              </div>
             </div>
 
             <div class="card card--side">
               <div class="card-header">
                 <h3 class="card-title">Organizations</h3>
               </div>
+              <div class="side-panel-scroll">
               @for (l of p.accountLinks; track l.clientId) {
                 <div class="side-row">
                   <a [routerLink]="['/organizations', l.clientId]">{{ l.client.name }}</a>
@@ -396,6 +403,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               } @empty {
                 <p class="text-color-secondary mb-0">Not linked to an organization.</p>
               }
+              </div>
             </div>
           }
         </aside>

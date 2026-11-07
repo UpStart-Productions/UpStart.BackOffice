@@ -69,6 +69,7 @@ export type ClientDto = {
   state?: string | null;
   zip?: string | null;
   website?: string | null;
+  linkedInUrl?: string | null;
   notes?: string | null;
   isActive: boolean;
   portalEnabled?: boolean;

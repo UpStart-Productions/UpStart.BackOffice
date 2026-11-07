@@ -27,6 +27,7 @@ export function toClientView(
     | 'state'
     | 'zip'
     | 'website'
+    | 'linkedInUrl'
     | 'notes'
     | 'category'
     | 'journey'

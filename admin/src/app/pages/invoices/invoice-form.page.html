@@ -6,20 +6,7 @@
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
       @if (isDraftEdit) {
-        <p-button
-          label="Download PDF"
-          icon="pi pi-download"
-          severity="secondary"
-          [outlined]="true"
-          (click)="downloadPdf()"
-        />
-        <p-button
-          label="Send"
-          icon="pi pi-send"
-          severity="secondary"
-          [outlined]="true"
-          (click)="sendToClient()"
-        />
+        <app-row-actions-menu [items]="draftHeaderActions()" ariaLabel="Invoice actions" />
       }
       <p-button
         label="Save Invoice"

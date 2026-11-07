@@ -1,7 +1,8 @@
 import {
   BadRequestException, Body, Controller, Delete, Get, NotFoundException,
-  Param, Post, Put, Query, UseGuards, ConflictException,
+  Param, Post, Put, Query, Req, UseGuards, ConflictException,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LeadStage } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,11 +17,30 @@ import { findLane, firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from
 import { AccessGuard, Area, Action } from '../access/access.guard';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
+import { UserContext } from '../common/app.types';
+import { PipelineTrackerNotifyService } from '../notifications/pipeline-tracker-notify.service';
 
 /** What the pipeline needs to show about a lead's Account and person. */
 const linkInclude = {
   ...ATTRIBUTION_INCLUDE,
   client: { select: { id: true, name: true, journey: true } },
+  invoice: {
+    select: {
+      id: true,
+      displayNumber: true,
+      status: true,
+      total: true,
+      client: { select: { id: true, name: true } },
+    },
+  },
+  trackedClient: { select: { id: true, name: true, journey: true } },
+  project: {
+    select: {
+      id: true,
+      name: true,
+      client: { select: { id: true, name: true } },
+    },
+  },
   contact: {
     select: {
       id: true,
@@ -104,18 +124,18 @@ export class LeadsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageFolders: StorageFoldersService,
+    private readonly pipelineTrackerNotify: PipelineTrackerNotifyService,
   ) {}
 
-  /** Board cards. Archived cards are left out unless ?archived=true (then only archived ones). */
+  /** Active board cards only (won / closed cards are omitted via archivedAt). */
   @Get()
   async list(
     @Query('stage') stage?: LeadStage,
     @Query('pipelineId') pipelineId?: string,
-    @Query('archived') archived?: string,
   ) {
     const leads = await this.prisma.lead.findMany({
       where: {
-        archivedAt: archived === 'true' ? { not: null } : null,
+        archivedAt: null,
         ...(stage ? { stage } : {}),
         ...(pipelineId ? { pipelineId } : {}),
       },
@@ -306,9 +326,11 @@ export class LeadsController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateLeadDto) {
+  async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateLeadDto) {
+    const actor = req.user as UserContext;
     const existing = await this.prisma.lead.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Lead not found');
+    const prevStageId = existing.stageId;
     const lead = await this.prisma.$transaction(async (tx) => {
       const lane = await requestedLane(tx, dto, false);
       let primaryContactPatch: { primaryContactId?: string | null; primaryContact?: string } = {};
@@ -360,31 +382,39 @@ export class LeadsController {
       await applyLeadEditsToLinks(tx, { id, clientId: updatedLead.clientId }, existing.organization, dto);
       return tx.lead.findUniqueOrThrow({ where: { id }, include: linkInclude });
     });
+    if (dto.stageId !== undefined && lead.stageId && lead.stageId !== prevStageId) {
+      const [pipelineName, fromLane, toLane] = await Promise.all([
+        this.pipelineTrackerNotify.pipelineName(lead.pipelineId),
+        this.pipelineTrackerNotify.laneName(prevStageId),
+        this.pipelineTrackerNotify.laneName(lead.stageId),
+      ]);
+      if (existing.invoiceId) {
+        const invoice = await this.prisma.invoice.findUnique({
+          where: { id: existing.invoiceId },
+          select: { id: true, displayNumber: true },
+        });
+        if (invoice) {
+          await this.pipelineTrackerNotify.notifyInvoiceMoved(actor, invoice, pipelineName, fromLane, toLane);
+        }
+      } else if (existing.trackedClientId) {
+        const client = await this.prisma.client.findUnique({
+          where: { id: existing.trackedClientId },
+          select: { id: true, name: true },
+        });
+        if (client) {
+          await this.pipelineTrackerNotify.notifyClientMoved(actor, client, pipelineName, fromLane, toLane);
+        }
+      } else if (existing.projectId) {
+        const project = await this.prisma.project.findUnique({
+          where: { id: existing.projectId },
+          select: { id: true, name: true },
+        });
+        if (project) {
+          await this.pipelineTrackerNotify.notifyProjectMoved(actor, project, pipelineName, fromLane, toLane);
+        }
+      }
+    }
     return toLeadView(lead);
-  }
-
-  /** Take a card off the board. Its history, account and contact are untouched; restore any time. */
-  @Action('edit')
-  @Post(':id/archive')
-  async archive(@Param('id') id: string) {
-    const existing = await this.prisma.lead.findUnique({ where: { id }, select: { id: true } });
-    if (!existing) throw new NotFoundException('Lead not found');
-    await this.prisma.lead.update({ where: { id }, data: { archivedAt: new Date() } });
-    return { id, archived: true };
-  }
-
-  /** Put an archived card back on the board in the lane it was in (or its pipeline's first lane). */
-  @Action('edit')
-  @Post(':id/restore')
-  async restore(@Param('id') id: string) {
-    const existing = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, stageId: true, pipelineId: true } });
-    if (!existing) throw new NotFoundException('Lead not found');
-    const lane = existing.stageId ? null : await firstLane(this.prisma, existing.pipelineId);
-    await this.prisma.lead.update({
-      where: { id },
-      data: { archivedAt: null, ...(lane ? laneFields(lane) : {}) },
-    });
-    return { id, archived: false };
   }
 
   @Delete(':id')
@@ -396,7 +426,7 @@ export class LeadsController {
   }
 
   /**
-   * Make the lead's organization a Client and take the card off the board (archived, history kept):
+   * Make the lead's organization a Client and take the card off the board (history kept):
    * the pipeline holds opportunities, and this one is won. Nothing is copied: the organization
    * already holds the contacts, timeline and files. The invoice code is optional and only needed
    * once you invoice. Reversible from the organization's Status field.
@@ -423,7 +453,7 @@ export class LeadsController {
     return client;
   }
 
-  /** Add the card's organization as a Partner (Other + Partner tag) and archive the card. */
+  /** Add the card's organization as a Partner (Other + Partner tag) and remove the card from the board. */
   @Action('edit')
   @Post(':id/promote-partner')
   async promotePartner(@Param('id') id: string) {

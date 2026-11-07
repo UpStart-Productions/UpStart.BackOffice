@@ -18,22 +18,7 @@
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
     @if (!error() && !loading() && invoice()) {
-      <p-button
-        label="Download PDF"
-        icon="pi pi-download"
-        severity="secondary"
-        [outlined]="true"
-        (click)="downloadPdf()"
-      />
-      @if (canResend) {
-        <p-button
-          label="Resend"
-          icon="pi pi-replay"
-          [severity]="canMarkPaid ? 'secondary' : undefined"
-          [outlined]="canMarkPaid"
-          (click)="resend()"
-        />
-      }
+      <app-row-actions-menu [items]="headerActions()" ariaLabel="Invoice actions" />
       @if (canMarkPaid) {
         <p-button label="Mark as paid" icon="pi pi-check" (click)="markPaid()" />
       }
@@ -156,4 +141,12 @@
     </div>
   }
   <app-file-viewer-dialog [file]="pdfViewer()" (closed)="pdfViewer.set(null)" />
+
+  @if (invoicePipelineBase(); as base) {
+    <app-add-to-pipeline-dialog
+      [apiBase]="base"
+      helpKey="invoice.addToPipeline"
+      emptyMessage="This invoice is on every pipeline already, or there are no pipelines yet."
+    />
+  }
 </app-page>

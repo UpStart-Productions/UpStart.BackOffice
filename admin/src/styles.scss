@@ -128,7 +128,7 @@ body {
   background: var(--surface-ground);
   transition: box-shadow 0.15s;
   &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  &:hover .artifact-card-actions { opacity: 1; }
+  &:hover .artifact-card-delete { opacity: 1; }
 }
 .artifact-file-card-inner {
   display: flex;

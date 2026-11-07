@@ -24,6 +24,11 @@ import { defaultPeriod } from '../../core/period.util';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { TenantBrandingService } from '../../core/tenant-branding.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import {
+  RowActionsMenuComponent,
+  type RowActionItem,
+} from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type Client = { id: string; name: string };
 type Project = { id: string; name: string; clientId: string | null };
@@ -90,6 +95,7 @@ type LineItemRow = { item: LineItem; index: number };
     PageComponent,
     DateInputComponent,
     RecordAttributionComponent,
+    RowActionsMenuComponent,
   ],
   templateUrl: './invoice-form.page.html',
   styleUrl: './invoice-form.page.scss',
@@ -102,6 +108,7 @@ export class InvoiceFormPage implements OnInit {
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
   private readonly session = inject(SessionService);
   private readonly tenantBranding = inject(TenantBrandingService);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
 
   readonly billToOptions = computed(() => {
     const tenant = this.tenantBranding.companyName().trim() || 'organization';
@@ -150,6 +157,34 @@ export class InvoiceFormPage implements OnInit {
   readonly lineItemRows = computed((): LineItemRow[] =>
     this.lineItems().map((item, index) => ({ item, index })),
   );
+
+  readonly draftHeaderActions = computed((): RowActionItem[] => {
+    if (!this.isDraftEdit) return [];
+    const actions: RowActionItem[] = [
+      {
+        id: 'pdf',
+        label: 'Download PDF',
+        icon: 'pi pi-file-pdf',
+        command: () => void this.downloadPdf(),
+      },
+      {
+        id: 'send',
+        label: 'Send',
+        icon: 'pi pi-send',
+        command: () => void this.sendToClient(),
+      },
+    ];
+    if (this.session.can('invoices', 'delete')) {
+      actions.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeleteDraft(),
+      });
+    }
+    return actions;
+  });
 
   get isNew() { return !this.id(); }
   get isDraftEdit() { return !!this.id(); }
@@ -503,6 +538,23 @@ export class InvoiceFormPage implements OnInit {
       });
       await this.router.navigate(['/invoices', id]);
     }
+  }
+
+  confirmDeleteDraft() {
+    const id = this.id();
+    const number = this.displayNumber();
+    if (!id || !number) return;
+    this.confirmDelete.confirm({
+      message: `Delete invoice ${number}? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.api.delete(`/invoices/${id}`);
+          await this.router.navigate(['/invoices']);
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Delete failed');
+        }
+      },
+    });
   }
 
   onNotesEditor(quill: Quill) {

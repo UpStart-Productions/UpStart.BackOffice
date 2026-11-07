@@ -152,19 +152,23 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
               <div class="card-header">
                 <h3 class="card-title">Email addresses <app-help-text key="contact.emailAddresses" /></h3>
               </div>
-              @for (e of c.emails; track e.id) {
-                <div class="side-row-line">
-                  <span class="side-row-line-main">{{ e.email }}</span>
-                  @if (e.isPrimary) {
-                    <p-tag value="Primary" severity="info" />
-                  } @else {
-                    <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="confirmRemoveEmail(e.email)" aria-label="Remove email" />
-                  }
-                </div>
-              }
+              <div class="side-panel-scroll">
+                @for (e of c.emails; track e.id) {
+                  <div class="side-row-line">
+                    <span class="side-row-line-main">{{ e.email }}</span>
+                    @if (e.isPrimary) {
+                      <p-tag value="Primary" severity="info" />
+                    } @else {
+                      <p-button icon="pi pi-trash" severity="danger" [text]="true" size="small" (onClick)="confirmRemoveEmail(e.email)" aria-label="Remove email" />
+                    }
+                  </div>
+                }
+              </div>
+              <div class="side-panel-controls">
               <div class="side-row-line side-row-line--add field-action-row">
                 <input pInputText type="email" [(ngModel)]="newEmail" placeholder="Add an email address" class="flex-1 min-w-0" />
                 <p-button label="Add" icon="pi pi-plus" severity="secondary" size="small" [disabled]="!newEmail.trim()" (onClick)="addEmail()" />
+              </div>
               </div>
             </div>
 

@@ -1,8 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { SelectButtonModule } from 'primeng/selectbutton';
 import { TmApiService } from '../core/tm-api.service';
 import { relativeTime } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
@@ -25,29 +23,26 @@ const TYPE_ICON: Record<string, string> = {
   care_shift_assigned: 'pi-calendar-plus',
 };
 
-/** Notification inbox (Asana-style): activity / archive, mark read. Email prefs live on My Account. */
+/** Notification inbox: mark read / dismiss. Email prefs live on My Account. */
 @Component({
   selector: 'app-tm-inbox-page',
   standalone: true,
-  imports: [PageComponent, FormsModule, ButtonModule, SelectButtonModule],
+  imports: [PageComponent, ButtonModule],
   template: `
     <div class="tm-page tm-inbox">
       <app-page title="Inbox">
 
       <ng-container ngProjectAs="[pageActions]">
-        @if (tab() === 'activity' && unread() > 0) {
+        @if (unread() > 0) {
           <p-button label="Mark all read" icon="pi pi-check" severity="secondary" [outlined]="true" (onClick)="markAllRead()" />
         }
       </ng-container>
-      <div class="toolbar">
-        <p-selectButton [options]="tabs" optionLabel="label" optionValue="value" [ngModel]="tab()" (ngModelChange)="setTab($event)" [allowEmpty]="false" />
-      </div>
 
       @if (loading() && !items().length) {
         <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
       } @else {
         <ul class="tm-inbox-list">
-          @for (n of visible(); track n.id) {
+          @for (n of items(); track n.id) {
             <li class="tm-inbox-item" [class.unread]="!n.readAt" (click)="open(n)">
               <span class="tm-inbox-icon"><i class="pi" [class]="'pi ' + icon(n.type)"></i></span>
               <div class="tm-inbox-main">
@@ -58,19 +53,17 @@ const TYPE_ICON: Record<string, string> = {
                   <span>{{ relativeTime(n.createdAt) }}</span>
                 </div>
               </div>
-              @if (tab() === 'activity') {
-                <div class="tm-inbox-actions" (click)="$event.stopPropagation()">
-                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="toggleRead(n)" [attr.aria-label]="n.readAt ? 'Mark unread' : 'Mark read'" [title]="n.readAt ? 'Mark unread' : 'Mark read'">
-                    <i class="pi" [class.pi-eye-slash]="!!n.readAt" [class.pi-eye]="!n.readAt"></i>
-                  </button>
-                  <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="archive(n)" aria-label="Archive" title="Archive"><i class="pi pi-box"></i></button>
-                </div>
-              }
+              <div class="tm-inbox-actions" (click)="$event.stopPropagation()">
+                <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="toggleRead(n)" [attr.aria-label]="n.readAt ? 'Mark unread' : 'Mark read'" [title]="n.readAt ? 'Mark unread' : 'Mark read'">
+                  <i class="pi" [class.pi-eye-slash]="!!n.readAt" [class.pi-eye]="!n.readAt"></i>
+                </button>
+                <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="dismiss(n)" aria-label="Dismiss" title="Dismiss"><i class="pi pi-times"></i></button>
+              </div>
             </li>
           } @empty {
             <li class="tm-empty-state">
               <i class="pi pi-inbox"></i>
-              <p>{{ tab() === 'activity' ? "You're all caught up." : 'Nothing archived yet.' }}</p>
+              <p>You're all caught up.</p>
             </li>
           }
         </ul>
@@ -84,23 +77,12 @@ export class InboxPage implements OnInit {
   private readonly store = inject(TmStoreService);
   private readonly router = inject(Router);
 
-  readonly tabs = [
-    { label: 'Activity', value: 'activity' },
-    { label: 'Archive', value: 'archive' },
-  ];
   readonly relativeTime = relativeTime;
 
-  tab = signal<'activity' | 'archive'>('activity');
   items = signal<AppNotification[]>([]);
-  archived = signal<AppNotification[]>([]);
   loading = signal(true);
 
   readonly unread = computed(() => this.items().filter((n) => !n.readAt).length);
-  readonly visible = computed(() => {
-    if (this.tab() === 'activity') return this.items();
-    const active = new Set(this.items().map((n) => n.id));
-    return this.archived().filter((n) => !active.has(n.id));
-  });
 
   ngOnInit() {
     void this.load();
@@ -113,18 +95,12 @@ export class InboxPage implements OnInit {
   async load() {
     this.loading.set(true);
     try {
-      const [active, all] = await Promise.all([this.api.notifications(), this.api.notifications(true)]);
+      const active = await this.api.notifications();
       this.items.set(active.notifications);
-      this.archived.set(all.notifications);
       this.store.unreadCount.set(this.unread());
     } finally {
       this.loading.set(false);
     }
-  }
-
-  setTab(tab: 'activity' | 'archive') {
-    this.tab.set(tab);
-    if (tab === 'archive') void this.load();
   }
 
   private patch(id: string, patch: Partial<AppNotification>) {
@@ -151,11 +127,11 @@ export class InboxPage implements OnInit {
     }
   }
 
-  async archive(n: AppNotification) {
+  async dismiss(n: AppNotification) {
     this.items.update((list) => list.filter((x) => x.id !== n.id));
     this.store.unreadCount.set(this.unread());
     try {
-      await this.api.archiveNotification(n.id);
+      await this.api.dismissNotification(n.id);
     } catch {
       void this.load();
     }

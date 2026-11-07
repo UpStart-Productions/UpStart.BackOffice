@@ -7,16 +7,13 @@
     @if (isConverted) {
       <p-tag value="Client" severity="success" />
     }
-    @if (!isNew && archivedAt()) {
-      <p-tag value="Archived" severity="secondary" />
-    }
     @if (account(); as acct) {
       <a [routerLink]="['/organizations', acct.id]" class="text-primary">Open organization</a>
     }
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading()) {
-      @if (id() && (canEdit() || canDelete())) {
+      @if (id() && canDelete()) {
         <app-row-actions-menu [items]="headerActions()" ariaLabel="Lead actions" />
       }
       @if (id() && !isConverted && !orgClientId() && canEdit()) {

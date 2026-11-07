@@ -9,7 +9,7 @@ import {
 
 export type NotificationChannel = keyof NotificationChannelSettings;
 
-export type NotificationPrefGroupId = 'tasks' | 'projects' | 'activity' | 'forms' | 'care';
+export type NotificationPrefGroupId = 'tasks' | 'projects' | 'activity' | 'forms' | 'care' | 'pipeline';
 
 export type NotificationTypeDefinition = {
   label: string;
@@ -45,6 +45,36 @@ export const NOTIFICATION_TYPE_REGISTRY: Record<NotificationType, NotificationTy
   form_attached: { label: 'A form is added to a client assigned to me', group: 'forms', areas: FORMS_CRM },
   care_form_submission: { label: 'A care form gets a submission', group: 'care', areas: CARE },
   care_shift_assigned: { label: 'A shift is assigned to me', group: 'care', areas: CARE },
+  pipeline_invoice_added: {
+    label: 'An invoice is added to a pipeline',
+    group: 'pipeline',
+    areas: ['pipeline'],
+  },
+  pipeline_invoice_moved: {
+    label: 'An invoice card moves on a pipeline',
+    group: 'pipeline',
+    areas: ['pipeline'],
+  },
+  pipeline_client_added: {
+    label: 'A client is added to a pipeline',
+    group: 'pipeline',
+    areas: ['pipeline'],
+  },
+  pipeline_client_moved: {
+    label: 'A client card moves on a pipeline',
+    group: 'pipeline',
+    areas: ['pipeline'],
+  },
+  pipeline_project_added: {
+    label: 'A project is added to a pipeline',
+    group: 'pipeline',
+    areas: ['pipeline'],
+  },
+  pipeline_project_moved: {
+    label: 'A project card moves on a pipeline',
+    group: 'pipeline',
+    areas: ['pipeline'],
+  },
 };
 
 export const NOTIFICATION_PREF_GROUP_LABELS: Record<NotificationPrefGroupId, string> = {
@@ -53,6 +83,7 @@ export const NOTIFICATION_PREF_GROUP_LABELS: Record<NotificationPrefGroupId, str
   activity: 'Activity',
   forms: 'Forms',
   care: 'Care',
+  pipeline: 'Pipeline',
 };
 
 /** Defaults when the user has not saved a choice (stored JSON only holds overrides). */
@@ -87,7 +118,7 @@ export function notificationPrefGroups(
     rows.push({ key: type, label: def.label });
     byGroup.set(def.group, rows);
   }
-  const order: NotificationPrefGroupId[] = ['tasks', 'projects', 'activity', 'forms', 'care'];
+  const order: NotificationPrefGroupId[] = ['tasks', 'projects', 'activity', 'forms', 'care', 'pipeline'];
   return order
     .filter((id) => (byGroup.get(id)?.length ?? 0) > 0)
     .map((id) => ({ id, label: NOTIFICATION_PREF_GROUP_LABELS[id], rows: byGroup.get(id)! }));

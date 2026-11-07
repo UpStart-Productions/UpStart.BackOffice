@@ -1,5 +1,5 @@
 import { NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -15,6 +15,7 @@ import { AccordionModule } from 'primeng/accordion';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PeopleComponent } from '../../ui/people/people.component';
@@ -32,6 +33,7 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ProjectWorkTasksPreviewComponent } from '../../ui/project-work-tasks-preview/project-work-tasks-preview.component';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
+import { AddToPipelineDialogComponent } from '../../ui/add-to-pipeline-dialog/add-to-pipeline-dialog.component';
 
 type Client = { id: string; name: string };
 type AsanaResource = { gid: string; name: string };
@@ -95,6 +97,7 @@ type ProjectResponse = {
     PeopleComponent,
     ProjectWorkTasksPreviewComponent,
     RecordAttributionComponent,
+    AddToPipelineDialogComponent,
   ],
   templateUrl: './project-form.page.html',
   styleUrl: './project-form.page.scss',
@@ -105,6 +108,29 @@ export class ProjectFormPage implements OnInit {
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
+  private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
+
+  readonly canAddToPipeline = computed(
+    () => this.session.can('pipeline', 'create') && this.session.can('projects', 'edit'),
+  );
+
+  readonly projectPipelineBase = computed(() => {
+    const id = this.id();
+    return id ? `/projects/${id}` : '';
+  });
+
+  readonly headerActions = computed((): RowActionItem[] => {
+    if (this.isNew || !this.canAddToPipeline()) return [];
+    return [
+      {
+        id: 'pipeline',
+        label: 'Add to pipeline',
+        icon: 'pi pi-share-alt',
+        command: () => void this.pipelineDialog()?.open(),
+      },
+    ];
+  });
 
   id = signal<string | null>(null);
   inTaskManager = signal(false);

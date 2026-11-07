@@ -1,4 +1,5 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -7,6 +8,10 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { AppDialogModule } from '../../core/app-dialog.module';
+import { AddToPipelineDialogComponent } from '../../ui/add-to-pipeline-dialog/add-to-pipeline-dialog.component';
+import { SessionService } from '../../core/session.service';
+import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
@@ -15,6 +20,11 @@ import { RecordAttributionComponent } from '../../ui/record-attribution/record-a
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
 import { invoiceDueFlag } from './invoice-status.util';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import {
+  RowActionsMenuComponent,
+  type RowActionItem,
+} from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type InvoiceLineItem = {
   id: string;
@@ -61,7 +71,21 @@ type OrganizationLetterhead = {
 @Component({
   selector: 'app-invoice-detail-page',
   standalone: true,
-  imports: [ButtonModule, MessageModule, TableModule, TagModule, RouterLink, PageComponent, FileViewerDialogComponent, RecordAttributionComponent],
+  imports: [
+    FormsModule,
+    ButtonModule,
+    MessageModule,
+    TableModule,
+    TagModule,
+    RouterLink,
+    PageComponent,
+    AppDialogModule,
+    HelpTextComponent,
+    FileViewerDialogComponent,
+    RecordAttributionComponent,
+    RowActionsMenuComponent,
+    AddToPipelineDialogComponent,
+  ],
   templateUrl: './invoice-detail.page.html',
   styleUrl: './invoice-detail.page.scss',
 })
@@ -73,6 +97,9 @@ export class InvoiceDetailPage implements OnInit {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
   private readonly invoiceMarkPaidDialog = inject(InvoiceMarkPaidDialogService);
+  private readonly session = inject(SessionService);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
 
   loading = signal(true);
   error = signal<string | null>(null);
@@ -82,12 +109,64 @@ export class InvoiceDetailPage implements OnInit {
 
   pdfViewer = signal<ViewerFile | null>(null);
 
+  readonly invoicePipelineBase = computed(() => {
+    const id = this.invoice()?.id;
+    return id ? `/invoices/${id}` : '';
+  });
+
+  readonly canAddToPipeline = computed(
+    () => this.session.can('pipeline', 'create') && this.session.can('invoices', 'edit'),
+  );
+
+  readonly canDeleteInvoice = computed(() => this.session.can('invoices', 'delete'));
+
   readonly orgLogoUrl = computed(() => resolveLogoAssetUrl(this.letterhead()?.logoUrl));
 
-  get canResend(): boolean {
-    const s = this.invoice()?.status;
-    return s === 'SENT' || s === 'PAID';
-  }
+  readonly headerActions = computed((): RowActionItem[] => {
+    const inv = this.invoice();
+    if (!inv) return [];
+    const actions: RowActionItem[] = [];
+    if (this.canAddToPipeline()) {
+      actions.push({
+        id: 'pipeline',
+        label: 'Add to pipeline',
+        icon: 'pi pi-share-alt',
+        command: () => void this.pipelineDialog()?.open(),
+      });
+    }
+    actions.push({
+      id: 'pdf',
+      label: 'Download PDF',
+      icon: 'pi pi-file-pdf',
+      command: () => void this.downloadPdf(),
+    });
+    if (inv.status === 'SENT' || inv.status === 'PAID') {
+      actions.push({
+        id: 'resend',
+        label: 'Resend',
+        icon: 'pi pi-replay',
+        command: () => void this.resend(),
+      });
+    }
+    if (inv.status === 'SENT') {
+      actions.push({
+        id: 'retract',
+        label: 'Retract',
+        icon: 'pi pi-undo',
+        command: () => this.confirmRetract(),
+      });
+    }
+    if (this.canDeleteInvoice()) {
+      actions.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeleteInvoice(),
+      });
+    }
+    return actions;
+  });
 
   get canMarkPaid(): boolean {
     return this.invoice()?.status === 'SENT';
@@ -233,6 +312,44 @@ export class InvoiceDetailPage implements OnInit {
         life: 6000,
       });
     }
+  }
+
+  confirmRetract() {
+    const inv = this.invoice();
+    if (!inv) return;
+    this.confirmDelete.confirm({
+      message: `Retract ${inv.displayNumber}? It will be voided and linked time and expenses can be invoiced again.`,
+      accept: async () => {
+        try {
+          const updated = await this.api.post<InvoiceDetail>(`/invoices/${inv.id}/retract`, {});
+          this.applyInvoice(updated);
+          this.toast.add({
+            severity: 'success',
+            summary: 'Invoice retracted',
+            detail: `${inv.displayNumber} was voided.`,
+            life: 5000,
+          });
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Retract failed');
+        }
+      },
+    });
+  }
+
+  confirmDeleteInvoice() {
+    const inv = this.invoice();
+    if (!inv) return;
+    this.confirmDelete.confirm({
+      message: `Delete invoice ${inv.displayNumber}? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.api.delete(`/invoices/${inv.id}`);
+          await this.router.navigate(['/invoices']);
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Delete failed');
+        }
+      },
+    });
   }
 
   async markPaid() {

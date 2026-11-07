@@ -222,8 +222,8 @@ export class TmApiService {
   }
 
   // Notifications
-  notifications(archived = false) {
-    return this.api.get<{ notifications: AppNotification[] }>(`/notifications?limit=100${archived ? '&archived=true' : ''}`);
+  notifications() {
+    return this.api.get<{ notifications: AppNotification[] }>('/notifications?limit=100');
   }
   unreadCount() {
     return this.api.get<{ count: number }>('/notifications/unread-count');
@@ -234,7 +234,7 @@ export class TmApiService {
   markAllRead() {
     return this.api.post('/notifications/read-all');
   }
-  archiveNotification(id: string) {
+  dismissNotification(id: string) {
     return this.api.delete(`/notifications/${id}`);
   }
   emailPrefs() {

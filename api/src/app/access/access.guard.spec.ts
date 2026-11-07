@@ -50,7 +50,7 @@ describe('allows', () => {
 describe('AccessGuard actions', () => {
   class Ctl {
     @Area('pipeline') read() {}
-    @Area('pipeline') @Action('edit') archive() {}
+    @Area('pipeline') @Action('edit') convert() {}
     @Area('pipeline') @Action('setup') lanes() {}
     @Area('clients', 'time') lookup() {}
     @AdminOnly() admin() {}
@@ -79,10 +79,10 @@ describe('AccessGuard actions', () => {
     await expect(run(noDelete, 'read', 'GET')).resolves.toBe(true);
     await expect(run(noDelete, 'read', 'POST')).resolves.toBe(true);
     await expect(run(noDelete, 'read', 'DELETE')).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(run(noDelete, 'archive', 'POST')).resolves.toBe(true); // a POST that edits
+    await expect(run(noDelete, 'convert', 'POST')).resolves.toBe(true); // a POST that edits
     await expect(run(noDelete, 'lanes', 'PATCH')).rejects.toBeInstanceOf(ForbiddenException);
     const viewOnly = user({ pipeline: 'all' }, { pipeline: { create: false, edit: false, delete: false } });
-    await expect(run(viewOnly, 'archive', 'POST')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(run(viewOnly, 'convert', 'POST')).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('passes when any one of the route areas allows it; admins and admin-only unchanged', async () => {

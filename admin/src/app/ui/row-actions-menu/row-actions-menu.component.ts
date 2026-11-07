@@ -29,10 +29,19 @@ export interface RowActionSelectItem {
   onChange: (value: string) => void;
 }
 
-export type RowActionItem = RowActionButtonItem | RowActionSelectItem;
+export interface RowActionSeparatorItem {
+  id: string;
+  kind: 'separator';
+}
+
+export type RowActionItem = RowActionButtonItem | RowActionSelectItem | RowActionSeparatorItem;
 
 export function isRowActionSelect(item: RowActionItem): item is RowActionSelectItem {
   return 'kind' in item && item.kind === 'select';
+}
+
+export function isRowActionSeparator(item: RowActionItem): item is RowActionSeparatorItem {
+  return 'kind' in item && item.kind === 'separator';
 }
 
 @Component({
@@ -60,7 +69,9 @@ export function isRowActionSelect(item: RowActionItem): item is RowActionSelectI
       >
         <div class="row-actions-list">
           @for (item of items(); track item.id) {
-            @if (isRowActionSelect(item)) {
+            @if (isRowActionSeparator(item)) {
+              <hr class="row-actions-separator" role="separator" />
+            } @else if (isRowActionSelect(item)) {
               <div class="row-actions-item row-actions-select-row" (click)="$event.stopPropagation()">
                 <i class="row-actions-item-icon {{ item.icon }}" aria-hidden="true"></i>
                 <p-select
@@ -112,6 +123,12 @@ export function isRowActionSelect(item: RowActionItem): item is RowActionSelectI
         display: flex;
         flex-direction: column;
         min-width: 10rem;
+      }
+      .row-actions-separator {
+        border: 0;
+        border-top: 1px solid var(--surface-border);
+        margin: 0.35rem 0;
+        width: 100%;
       }
       .row-actions-select-row {
         cursor: default;
@@ -173,6 +190,7 @@ export class RowActionsMenuComponent {
   private popoverRef = viewChild<Popover>('popover');
 
   protected readonly isRowActionSelect = isRowActionSelect;
+  protected readonly isRowActionSeparator = isRowActionSeparator;
 
   protected onSelectChange(item: RowActionSelectItem, value: string) {
     if (item.disabled || value === item.value) return;

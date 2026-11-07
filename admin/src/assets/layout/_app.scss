@@ -666,28 +666,27 @@ p-sorticon svg {
 }
 
 /*
- * Count badge: the purple pill with a number (nav Activity / People counts, Task Manager Inbox, Dashboard and
- * Activity count cards). The one badge style in the app; pick a color modifier below and position it with a local
- * class (e.g. .nav-badge).
+ * Count badge: pill with a number (nav Activity / People counts, Task Manager Inbox, Dashboard and
+ * Activity count cards). Default uses --color-count-badge-* (blue tint, not brand primary).
+ * Pick a color modifier below when needed; position with a local class (e.g. .nav-badge).
  */
 .count-badge {
   display: inline-block;
   min-width: 1.25rem;
   padding: 0 0.4rem;
   border-radius: 999px;
-  background: var(--p-primary-color, #2563eb);
-  color: #fff;
+  background: var(--color-count-badge-bg);
+  color: var(--color-count-badge-text);
   font-size: var(--fs-sm);
   line-height: 1.25rem;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
-/* Color variants: light tint with dark text. Default (no modifier) is the purple nav badge. */
-/* blue-700 on blue-100 = 5.5:1, passes WCAG AA for small text. */
+/* Color variants: light tint with dark text. --info matches the default count badge. */
 .count-badge--info {
-  background: var(--brand-blue-100);
-  color: var(--brand-blue-700);
+  background: var(--color-count-badge-bg);
+  color: var(--color-count-badge-text);
 }
 
 .count-badge--success {

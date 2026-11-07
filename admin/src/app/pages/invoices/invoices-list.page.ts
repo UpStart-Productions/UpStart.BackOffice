@@ -8,6 +8,7 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
@@ -83,6 +84,7 @@ export class InvoicesListPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
   private readonly invoiceMarkPaidDialog = inject(InvoiceMarkPaidDialogService);
+  private readonly session = inject(SessionService);
 
   invoices = signal<Invoice[]>([]);
   loading = signal(true);
@@ -262,15 +264,23 @@ export class InvoicesListPage implements OnInit {
         command: () => this.router.navigate(['/invoices', invoice.id, 'edit']),
       });
     }
-    actions.push(
-      {
+    if (invoice.status === 'SENT') {
+      actions.push({
+        id: 'retract',
+        label: 'Retract',
+        icon: 'pi pi-undo',
+        command: () => this.confirmRetract(invoice),
+      });
+    }
+    if (this.session.can('invoices', 'delete')) {
+      actions.push({
         id: 'delete',
         label: 'Delete',
         icon: 'pi pi-trash',
         severity: 'danger',
         command: () => this.confirmDelete(invoice),
-      },
-    );
+      });
+    }
     return actions;
   }
 
@@ -339,6 +349,26 @@ export class InvoicesListPage implements OnInit {
         life: 6000,
       });
     }
+  }
+
+  confirmRetract(invoice: Invoice) {
+    this.deleteConfirm.confirm({
+      message: `Retract ${invoice.displayNumber}? It will be voided and linked time and expenses can be invoiced again.`,
+      accept: async () => {
+        try {
+          await this.api.post(`/invoices/${invoice.id}/retract`, {});
+          await this.load();
+          this.toast.add({
+            severity: 'success',
+            summary: 'Invoice retracted',
+            detail: `${invoice.displayNumber} was voided.`,
+            life: 5000,
+          });
+        } catch (err) {
+          this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Retract failed');
+        }
+      },
+    });
   }
 
   confirmDelete(invoice: Invoice) {

@@ -10,7 +10,7 @@ With the Care module on, clients in care also get a **Care** tab (see the Care g
 
 ## Projects
 
-**Projects** lists billable work tied to clients. The list shows **active** projects only; turn on **Show inactive projects** above the table to include archived ones (your choice is remembered). Use the row **⋯** menu for **Make inactive** or **Make active**. **New Project** creates one. Open a project to edit details, contacts, and tasks.
+**Projects** lists billable work tied to clients. The list shows **active** projects only; turn on **Show inactive projects** above the table to include inactive ones (your choice is remembered). Use the row **⋯** menu for **Make inactive** or **Make active**. **New Project** creates one. Open a project to edit details, contacts, and tasks. On **Edit Project**, the **⋯** menu includes **Add to pipeline** when your role allows (pick a pipeline, first lane, one card per pipeline; Pipeline notifications when the card is added or moved).
 
 Under **New expense defaults**, set **Reimbursable** and **Billable to client** for new expenses on that project. Picking the project on **New Expense** fills those toggles; you can still change them on each row.
 
@@ -54,7 +54,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Invoices
 
-**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue/due warnings may appear above the table.
+**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **Add to pipeline** (when your role allows) puts the invoice on a pipeline you pick, in that pipeline's **first lane** — one card per pipeline per invoice. Team members with Pipeline access who left pipeline notifications on get an in-app alert when the invoice is added and when the card moves. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue/due warnings may appear above the table.
 
 ### Bill to: a client or your organization
 

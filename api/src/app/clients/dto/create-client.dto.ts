@@ -35,6 +35,11 @@ export class CreateClientDto {
   @ApiPropertyOptional() @IsString() @IsOptional() state?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() zip?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() website?: string;
+  @ApiPropertyOptional()
+  @Transform(emptyToUndefined)
+  @IsString()
+  @IsOptional()
+  linkedInUrl?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
   @ApiPropertyOptional({ type: [String], description: 'Services this organization offers or is known for.' })
   @IsArray() @IsString({ each: true }) @IsOptional() services?: string[];

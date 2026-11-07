@@ -19,6 +19,7 @@ import {
   saveTmProjectBoardPrefs,
   type TmProjectBoardCompletedFilter,
 } from '../core/tm-board-prefs.storage';
+import { saveTmLastBoard } from '../core/tm-last-board.storage';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, dueLabel, dueTone, personDisplayName, PROJECT_COLORS } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
@@ -202,6 +203,7 @@ export class ProjectTasksPage implements OnDestroy {
       const id = this.projectId();
       const userId = this.session.me()?.id;
       untracked(() => {
+        saveTmLastBoard(userId, id);
         this.restoreBoardPrefs(id, userId);
         void this.load(id);
       });

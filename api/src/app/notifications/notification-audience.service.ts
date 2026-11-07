@@ -10,15 +10,24 @@ import { usersWithArea } from '../access/access.service';
 export class NotificationAudienceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Active back-office users with the area at "all" (includes admins). */
-  async userIdsWithAreaAll(area: PermissionArea, options?: { excludeUserId?: string }): Promise<string[]> {
+  /** Active users who can use an area at any level (includes admins). */
+  async userIdsWithAreaAccess(
+    area: PermissionArea,
+    level: 'all' | 'any' = 'any',
+    options?: { excludeUserId?: string },
+  ): Promise<string[]> {
     const rows = await this.prisma.user.findMany({
-      where: { isActive: true, ...usersWithArea(area, 'all') },
+      where: { isActive: true, ...usersWithArea(area, level) },
       select: { id: true },
     });
-    const ids = rows.map((r) => r.id);
-    if (options?.excludeUserId) return ids.filter((id) => id !== options.excludeUserId);
+    let ids = rows.map((r) => r.id);
+    if (options?.excludeUserId) ids = ids.filter((id) => id !== options.excludeUserId);
     return ids;
+  }
+
+  /** Active back-office users with the area at "all" (includes admins). */
+  async userIdsWithAreaAll(area: PermissionArea, options?: { excludeUserId?: string }): Promise<string[]> {
+    return this.userIdsWithAreaAccess(area, 'all', options);
   }
 
   /** Dedupe explicit user ids, drop inactive. */

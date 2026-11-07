@@ -15,6 +15,8 @@ import { InvoiceMarkPaidDialogComponent } from '../pages/invoices/invoice-mark-p
 import { LayoutService } from './layout.service';
 import { areaLevel, tasksOnly, type PermissionArea } from '@upstart/back-office/shared';
 import { TaskManagerStyleHostComponent } from '../task-manager/ui/task-manager-style-host.component';
+import { loadTmLastBoard } from '../task-manager/core/tm-last-board.storage';
+import { TmStoreService } from '../task-manager/core/tm-store.service';
 import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { FormWorkspaceSidebarComponent } from '../ui/form-workspace/form-workspace-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
@@ -60,6 +62,7 @@ export class ShellComponent implements OnInit {
   private readonly comms = inject(CommunicationsApi);
   private readonly appUpdate = inject(AppUpdateService);
   readonly layout = inject(LayoutService);
+  private readonly tmStore = inject(TmStoreService);
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -97,10 +100,23 @@ export class ShellComponent implements OnInit {
     if (this.canContacts()) void this.comms.refreshReviewCount();
   });
 
+  /** Main nav Tasks link: last project board when remembered, else My tasks. */
+  private tasksEntryRoute(): string {
+    const userId = this.session.me()?.id;
+    const lastId = loadTmLastBoard(userId);
+    if (!lastId) return '/tasks';
+    const projects = this.tmStore.projects();
+    if (!this.tmStore.projectsLoaded()) {
+      return `/tasks/projects/${lastId}`;
+    }
+    return projects.some((p) => p.id === lastId) ? `/tasks/projects/${lastId}` : '/tasks';
+  }
+
   navItems = computed<NavItem[]>(() => {
+    const tasksRoute = this.tasksEntryRoute();
     if (this.isTasksOnly()) {
       return [
-        { label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
+        { label: 'Tasks', icon: 'pi-check-square', route: tasksRoute },
       ];
     }
     const me = this.session.me();
@@ -124,7 +140,7 @@ export class ShellComponent implements OnInit {
       ...section('Office', [
         { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
-        { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: '/tasks' },
+        { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: tasksRoute },
         { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },
         // Care module: staff shifts across clients (a client's own visits and shifts are on its Care tab).
         { area: 'schedule', label: 'Schedule', icon: 'pi-calendar-clock', route: '/schedule' },
@@ -167,6 +183,9 @@ export class ShellComponent implements OnInit {
 
   async ngOnInit() {
     await this.session.getReady();
+    if (areaLevel(this.session.me(), 'tasks') !== null) {
+      void this.tmStore.loadProjects();
+    }
     this.appUpdate.showPostReloadToast();
   }
 
