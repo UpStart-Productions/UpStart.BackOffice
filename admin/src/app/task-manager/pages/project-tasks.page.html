@@ -24,9 +24,6 @@
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
     @if (project(); as p) {
-      <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions">
-        <i class="pi pi-ellipsis-h"></i>
-      </button>
       <button type="button" class="tm-member-stack" (click)="membersOpen.set(true)" aria-label="Project members">
         @for (m of p.members.slice(0, 4); track m.id) {
           <span
@@ -43,11 +40,10 @@
         }
         @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
       </button>
-      @if (p.permissions.canManage) {
-        <p-button label="Share" icon="pi pi-user-plus" severity="secondary" [outlined]="true" (onClick)="membersOpen.set(true)" />
-      }
+      <button type="button" class="tm-icon-btn" (click)="openProjectMenu($event)" aria-label="Project actions">
+        <i class="pi pi-ellipsis-h"></i>
+      </button>
       @if (canEdit()) {
-        <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" (onClick)="fieldsOpen.set(true)" />
         <p-button label="Add task" icon="pi pi-plus" (onClick)="addTaskTop()" />
       }
     }
@@ -99,6 +95,120 @@
       </div>
     </div>
 
+    @if (boardView()) {
+      <div class="pipeline-board tm-task-board" cdkDropListGroup role="region" [attr.aria-label]="p.name + ' board'">
+        @for (g of groups(); track g.section?.id ?? NO_SECTION) {
+          <div class="pipeline-col">
+            <div class="pipeline-col-header no-setup">
+              <span class="lane-name lane-name-static">{{ sectionDisplayName(g) }}</span>
+              <span class="lane-header-right">
+                <span class="count-badge pipeline-lane-count">{{ g.tasks.length }}</span>
+                @if (canEdit()) {
+                  <button
+                    type="button"
+                    class="tm-icon-btn tm-icon-btn-sm"
+                    (click)="startAdd(g)"
+                    pTooltip="Add task"
+                    aria-label="Add task to section"
+                  >
+                    <i class="pi pi-plus"></i>
+                  </button>
+                }
+              </span>
+            </div>
+            <div
+              class="pipeline-col-body"
+              cdkDropList
+              [id]="dropId(g)"
+              [cdkDropListData]="g"
+              [cdkDropListConnectedTo]="dropListIds()"
+              [cdkDropListDisabled]="!canEdit()"
+              (cdkDropListDropped)="onDrop($event)"
+            >
+              @for (t of g.tasks; track t.id) {
+                <div
+                  class="pipeline-card tm-board-card"
+                  [class.completed]="t.isCompleted"
+                  cdkDrag
+                  [cdkDragData]="t"
+                  [cdkDragDisabled]="!canEdit()"
+                  [attr.data-task-id]="t.id"
+                  (click)="openTask(t)"
+                >
+                  <div class="pipeline-card-top">
+                    <button
+                      type="button"
+                      class="tm-check tm-board-check"
+                      [class.done]="t.isCompleted"
+                      (click)="toggleComplete(t, $event)"
+                      [disabled]="!canEdit()"
+                      [attr.aria-label]="t.isCompleted ? 'Mark incomplete' : 'Mark complete'"
+                    >
+                      <i class="pi" [class.pi-check-circle]="t.isCompleted" [class.pi-circle]="!t.isCompleted"></i>
+                    </button>
+                    <span class="tm-board-card-name">{{ t.name }}</span>
+                  </div>
+                  @if (t.assignee || t.dueOn || t.tags.length) {
+                    <div class="tm-board-card-meta">
+                      @if (t.assignee) {
+                        <app-tm-avatar [person]="t.assignee" [size]="22" />
+                      }
+                      @if (t.dueOn) {
+                        <span class="tm-board-card-due" [attr.data-tone]="dueTone(t.dueOn, t.isCompleted)">{{ dueLabel(t.dueOn) }}</span>
+                      }
+                      @for (tag of t.tags; track tag.id) {
+                        <span
+                          class="tm-chip tm-tag tm-board-tag"
+                          [style.background]="chipColors(tag.color).bg"
+                          [style.color]="chipColors(tag.color).fg"
+                        >
+                          {{ tag.name }}
+                        </span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+              @if (canEdit()) {
+                @if (addingIn() === (g.section?.id ?? NO_SECTION)) {
+                  <div class="pipeline-card tm-board-card tm-board-card-new">
+                    <input
+                      class="tm-row-name"
+                      [(ngModel)]="newTaskName"
+                      (keydown.enter)="submitNew(g)"
+                      (keydown.escape)="addingIn.set(null)"
+                      (blur)="submitNew(g)"
+                      placeholder="Write a task name"
+                      aria-label="New task name"
+                    />
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+        @if (canEdit()) {
+          @if (addingSection()) {
+            <div class="pipeline-col pipeline-col-add">
+              <input
+                class="tm-section-rename"
+                [(ngModel)]="newSectionName"
+                (keydown.enter)="addSection()"
+                (keydown.escape)="addingSection.set(false)"
+                (blur)="newSectionName.trim() ? addSection() : addingSection.set(false)"
+                placeholder="Section name"
+                aria-label="New section name"
+                autofocus
+              />
+            </div>
+          } @else {
+            <button type="button" class="pipeline-col pipeline-col-add tm-board-add-section" (click)="addingSection.set(true)">
+              <i class="pi pi-plus"></i> Add section
+            </button>
+          }
+        }
+      </div>
+    } @else {
     <div class="tm-grid" [style.--tm-grid-min-width]="gridMinWidth() + 'px'" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>
       <div class="tm-grid-head" [style.grid-template-columns]="gridTemplate()" role="row">
         <div class="tm-grid-cell" role="columnheader">Task name</div>
@@ -290,6 +400,7 @@
         }
       }
     </div>
+    }
 
     @if (taskId(); as tid) {
       <app-tm-task-detail
@@ -393,14 +504,19 @@
 
 <p-popover #projectMenu appendTo="body" appCenterPopoverCaret styleClass="tm-popover">
   <div class="tm-menu">
-    @if (project()?.permissions?.seesAllProjects) {
-      <a class="tm-picker-item" [routerLink]="['/projects', projectId()]"><i class="pi pi-external-link"></i> Open in Projects</a>
+    @if (boardView()) {
+      <button type="button" class="tm-picker-item" (click)="viewAsList()"><i class="pi pi-list"></i> View as list</button>
+    } @else {
+      <button type="button" class="tm-picker-item" (click)="viewAsBoard()"><i class="pi pi-objects-column"></i> View as board</button>
     }
     <button type="button" class="tm-picker-item" (click)="membersOpen.set(true); projectMenu.hide()"><i class="pi pi-users"></i> Members</button>
-    <button type="button" class="tm-picker-item" (click)="contactsOpen.set(true); projectMenu.hide()"><i class="pi pi-id-card"></i> Project contacts</button>
     @if (canEdit()) {
       <button type="button" class="tm-picker-item" (click)="fieldsOpen.set(true); projectMenu.hide()"><i class="pi pi-sliders-h"></i> Custom fields</button>
     }
+    @if (project()?.permissions?.seesAllProjects) {
+      <a class="tm-picker-item" [routerLink]="['/projects', projectId()]" (click)="projectMenu.hide()"><i class="pi pi-external-link"></i> Open in projects</a>
+    }
+    <button type="button" class="tm-picker-item" (click)="contactsOpen.set(true); projectMenu.hide()"><i class="pi pi-id-card"></i> Project contacts</button>
     <a class="tm-picker-item" [routerLink]="['/tasks/projects', projectId(), 'forms']" (click)="projectMenu.hide()"><i class="pi pi-inbox"></i> Forms</a>
     @if (project()?.permissions?.canManage) {
       <hr />

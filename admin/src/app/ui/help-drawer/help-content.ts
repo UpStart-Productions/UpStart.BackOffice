@@ -515,6 +515,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Drop files on the box under Description, or click it (or the paperclip at the top) to browse. Each file shows a spinner while it uploads, then appears as a card below. Click a card to open it: photos, videos (MP4, MOV) and PDFs open in a viewer, other files in a new tab. Video cards show the first frame. The trash can on a card removes it. Files can be up to 25 MB.',
       },
       {
+        heading: 'Board view',
+        body: 'Open the project ⋮ menu and choose View as board. Columns are the same sections as in list view; drag cards between columns to change a task\'s section. View as list switches back. Filters and search work in both views.',
+      },
+      {
         heading: 'Moving and bulk actions',
         body: 'Drag tasks to reorder or move between sections. Hover a task row and use the down arrow (left of the drag handle) to move it to another section. Select several to change them together. A task can also be in another project.',
       },

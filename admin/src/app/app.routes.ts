@@ -309,6 +309,12 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./task-manager/forms/form-builder.page').then((m) => m.FormBuilderPage),
       },
       {
+        path: 'tasks/projects/:projectId/board',
+        loadComponent: () =>
+          import('./task-manager/pages/project-tasks.page').then((m) => m.ProjectTasksPage),
+        children: [{ path: 'tasks/:taskId', children: [] }],
+      },
+      {
         path: 'tasks/projects/:projectId',
         loadComponent: () =>
           import('./task-manager/pages/project-tasks.page').then((m) => m.ProjectTasksPage),

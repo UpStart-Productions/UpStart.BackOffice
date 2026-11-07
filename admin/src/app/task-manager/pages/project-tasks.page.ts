@@ -11,7 +11,7 @@ import { AppPopoverModule } from '../../core/app-popover.module';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
-import { filter, map } from 'rxjs';
+import { filter, map, merge, of } from 'rxjs';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import {
@@ -74,6 +74,7 @@ const NO_SECTION = '__none__';
     TmBulkActionsComponent,
   ],
   templateUrl: './project-tasks.page.html',
+  styleUrl: '../../pages/pipeline/pipeline-board.page.scss',
 })
 export class ProjectTasksPage implements OnDestroy {
   readonly memberDisplayName = personDisplayName;
@@ -96,6 +97,16 @@ export class ProjectTasksPage implements OnDestroy {
       map(() => this.childTaskId()),
     ),
     { initialValue: this.childTaskId() },
+  );
+  readonly boardView = toSignal(
+    merge(
+      of(this.router.url),
+      this.router.events.pipe(
+        filter((e) => e instanceof NavigationEnd),
+        map(() => this.router.url),
+      ),
+    ).pipe(map((url) => url.includes('/board'))),
+    { initialValue: this.router.url.includes('/board') },
   );
 
   project = signal<TmProject | null>(null);
@@ -222,6 +233,10 @@ export class ProjectTasksPage implements OnDestroy {
 
   dropId(g: Group): string {
     return `tm-section-${g.section?.id ?? NO_SECTION}`;
+  }
+
+  sectionDisplayName(g: Group): string {
+    return g.section?.name ?? 'Untitled section';
   }
 
   async load(projectId: string, quiet = false) {
@@ -565,11 +580,18 @@ export class ProjectTasksPage implements OnDestroy {
   // ── Detail pane ─────────────────────────────────────────────────────────
 
   openTask(task: { id: string }) {
-    void this.router.navigate(['/tasks/projects', this.projectId(), 'tasks', task.id]);
+    const base = this.boardView()
+      ? (['/tasks/projects', this.projectId(), 'board'] as const)
+      : (['/tasks/projects', this.projectId()] as const);
+    void this.router.navigate([...base, 'tasks', task.id]);
   }
 
   closeTask() {
-    void this.router.navigate(['/tasks/projects', this.projectId()]);
+    if (this.boardView()) {
+      void this.router.navigate(['/tasks/projects', this.projectId(), 'board']);
+    } else {
+      void this.router.navigate(['/tasks/projects', this.projectId()]);
+    }
   }
 
   onDetailChanged(summary: TaskSummary) {
@@ -729,7 +751,11 @@ export class ProjectTasksPage implements OnDestroy {
   startAdd(group: Group) {
     this.addingIn.set(group.section?.id ?? NO_SECTION);
     this.newTaskName = '';
-    setTimeout(() => (document.querySelector('.tm-row-new input') as HTMLInputElement | null)?.focus(), 0);
+    setTimeout(
+      () =>
+        (document.querySelector('.tm-row-new input, .tm-board-card-new input') as HTMLInputElement | null)?.focus(),
+      0,
+    );
   }
 
   /** Toolbar "Add task": new task at the top of the first section, then open it. */
@@ -962,6 +988,16 @@ export class ProjectTasksPage implements OnDestroy {
 
   openProjectMenu(event: Event) {
     this.projectMenu().toggle(event, event.currentTarget as HTMLElement);
+  }
+
+  viewAsBoard(): void {
+    this.projectMenu().hide();
+    void this.router.navigate(['/tasks/projects', this.projectId(), 'board']);
+  }
+
+  viewAsList(): void {
+    this.projectMenu().hide();
+    void this.router.navigate(['/tasks/projects', this.projectId()]);
   }
 
   /** Hide this project from Tasks (its tasks are kept if it's added back later). */

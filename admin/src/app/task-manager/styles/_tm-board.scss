@@ -1,0 +1,74 @@
+.tm-task-board {
+  margin-top: 0.5rem;
+}
+
+.tm-board-card {
+  cursor: pointer;
+
+  &.completed .tm-board-card-name {
+    text-decoration: line-through;
+    color: var(--text-color-secondary);
+  }
+}
+
+.pipeline-card-top {
+  .tm-board-check {
+    flex-shrink: 0;
+    margin-right: 0.35rem;
+  }
+}
+
+.tm-board-card-name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.tm-board-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: var(--fs-sm);
+}
+
+.tm-board-card-due {
+  &[data-tone='overdue'] {
+    color: var(--color-severity-danger-text);
+    font-weight: 600;
+  }
+  &[data-tone='today'] {
+    color: var(--color-severity-warning-text);
+    font-weight: 600;
+  }
+}
+
+.tm-board-tag {
+  font-size: var(--fs-xs);
+  padding: 0.1rem 0.35rem;
+}
+
+.tm-board-card-new {
+  cursor: default;
+
+  .tm-row-name {
+    width: 100%;
+  }
+}
+
+.tm-board-add-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover {
+    color: var(--text-color);
+    border-color: var(--primary-color);
+  }
+}
