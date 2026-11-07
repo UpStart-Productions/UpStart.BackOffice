@@ -20,7 +20,7 @@ When the project is in **Task Manager**, a **Tasks** card appears above **Defaul
 
 ## Tasks
 
-**Tasks** opens Task Manager: my tasks, inbox, and projects. Tasks-only users live here exclusively. On a project, the **⋯** menu in the header includes **Project contacts** — the same client-side contact list as on the Projects page.
+**Tasks** opens Task Manager: my tasks, inbox, and projects. On a project, the **⋯** menu in the header includes **Project contacts** — the same client-side contact list as on the Projects page.
 
 In a task’s detail panel, you can **edit** or **delete your own comment** for **1 hour** after you post it. **Admins** can **delete** anyone’s comment at any time (not edit others’ comments).
 
@@ -65,7 +65,7 @@ The two are tracked separately: the same hour, or the same expense, can go on th
 
 ### Export
 
-**Export** (next to **New Invoice**) downloads a CSV of **Sent** and **Paid** invoices addressed to your organization with an issue date in the range you pick (defaults to last month). One row per invoice: invoice number, person, email, issue date, status, paid date, hours, time amount, reimbursements, other lines, tax and total. Use it for payroll or accounting. If your role only sees your own invoices, the export only includes yours.
+**Export** (next to **New Invoice**) downloads a CSV of **Sent** and **Paid** invoices addressed to your organization with an issue date in the range you pick (defaults to last month). One row per invoice: invoice number, person, email, issue date, status, paid date, hours, time amount, reimbursements, other lines, tax and total. Use it for payroll or accounting. If you're not an admin, the export only includes your own invoices and invoices with time or expenses from projects you lead.
 
 ## Forms
 

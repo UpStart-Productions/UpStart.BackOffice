@@ -36,7 +36,9 @@ import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { ImageResizeService } from '../storage/image-resize.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { UploadAvatarDto } from '../users/dto/user.dto';
-import { AddTeamMemberDto, assertTeamCandidate, projectTeam, teamCandidates } from '../team/team.util';
+import { AddTeamMemberDto, assertTeamCandidate, InviteTeamMemberDto, projectTeam, teamCandidates, UpdateTeamMemberDto } from '../team/team.util';
+import { TaskProjectsService } from '../task-manager/task-projects.service';
+import { isAdminRole } from '@upstart/back-office/shared';
 
 const ALLOWED_AVATAR_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
@@ -54,6 +56,7 @@ export class ProjectsController {
     private readonly access: AccessService,
     private readonly imageResize: ImageResizeService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
+    private readonly taskProjects: TaskProjectsService,
   ) {}
 
   /** A project the user may reach, or 404 (same answer as a missing project). */
@@ -62,6 +65,14 @@ export class ProjectsController {
     const project = await this.prisma.project.findFirst({ where: { AND: [{ id }, scope ?? {}] } });
     if (!project) throw new NotFoundException('Project not found');
     return project;
+  }
+
+  /** Changing who is on a project (and who leads it) is for admins and the project's Lead. */
+  private async assertManagesPeople(req: Request, projectId: string) {
+    const user = req.user as UserContext;
+    if (isAdminRole(user.role)) return;
+    const me = await this.prisma.projectMember.findUnique({ where: { projectId_userId: { projectId, userId: user.id } }, select: { role: true } });
+    if (me?.role !== 'OWNER') throw new ForbiddenException("Only admins and the project's Lead can change who is on it");
   }
 
   /** Creating and deleting projects needs Projects at 'all'. */
@@ -99,9 +110,36 @@ export class ProjectsController {
   @Post(':id/team')
   async addTeamMember(@Req() req: Request, @Param('id') id: string, @Body() dto: AddTeamMemberDto) {
     await this.reachable(req, id);
+    await this.assertManagesPeople(req, id);
     await assertTeamCandidate(this.prisma, req.user as UserContext, dto.userId);
     const existing = await this.prisma.projectMember.findUnique({ where: { projectId_userId: { projectId: id, userId: dto.userId } } });
-    if (!existing) await this.prisma.projectMember.create({ data: { projectId: id, userId: dto.userId, role: 'EDITOR' } });
+    const role = dto.isLead ? 'OWNER' : 'EDITOR';
+    if (!existing) await this.prisma.projectMember.create({ data: { projectId: id, userId: dto.userId, role } });
+    else if (dto.isLead && existing.role !== 'OWNER') await this.prisma.projectMember.update({ where: { id: existing.id }, data: { role } });
+    return projectTeam(this.prisma, id);
+  }
+
+  /**
+   * Add someone by email (from Add new person on the project). A new email becomes a Guest user with an invite;
+   * an existing user keeps their role. With isLead they become (or are promoted to) the project's Lead.
+   */
+  @Action('edit')
+  @Post(':id/team/invite')
+  async inviteTeamMember(@Req() req: Request, @Param('id') id: string, @Body() dto: InviteTeamMemberDto) {
+    await this.reachable(req, id);
+    await this.assertManagesPeople(req, id);
+    const res = await this.taskProjects.addByEmail(req.user as UserContext, id, dto.email, dto.isLead ? 'OWNER' : 'EDITOR', { promoteExisting: true });
+    return { team: await projectTeam(this.prisma, id), ...res };
+  }
+
+  /** Make someone the project's Lead, or back to Member. A project can have more than one Lead. */
+  @Action('edit')
+  @Patch(':id/team/:userId')
+  async updateTeamMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string, @Body() dto: UpdateTeamMemberDto) {
+    await this.reachable(req, id);
+    await this.assertManagesPeople(req, id);
+    const updated = await this.prisma.projectMember.updateMany({ where: { projectId: id, userId }, data: { role: dto.isLead ? 'OWNER' : 'EDITOR' } });
+    if (!updated.count) throw new NotFoundException('That person is not on this project');
     return projectTeam(this.prisma, id);
   }
 
@@ -109,6 +147,7 @@ export class ProjectsController {
   @Delete(':id/team/:userId')
   async removeTeamMember(@Req() req: Request, @Param('id') id: string, @Param('userId') userId: string) {
     await this.reachable(req, id);
+    await this.assertManagesPeople(req, id);
     await this.prisma.projectMember.deleteMany({ where: { projectId: id, userId } });
     return projectTeam(this.prisma, id);
   }

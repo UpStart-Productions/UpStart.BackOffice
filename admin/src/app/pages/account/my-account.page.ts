@@ -9,7 +9,7 @@ import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
-import { EmailNotificationPrefsComponent } from '../../ui/email-notification-prefs/email-notification-prefs.component';
+import { NotificationPrefsComponent } from '../../ui/notification-prefs/notification-prefs.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
 
@@ -25,14 +25,13 @@ import { PageComponent } from '../../ui/layout/page.component';
     PasswordModule,
     HelpTextComponent,
     AvatarDropzoneComponent,
-    EmailNotificationPrefsComponent,
+    NotificationPrefsComponent,
   ],
   template: `
     <app-page title="My Account" helpKey="account">
-      <div class="grid grid-3">
-        <div class="stack span-2">
+      <div class="grid grid-2">
+        <div class="stack">
           <div class="card">
-            <h3 class="showcase-section-title mb-3">Profile</h3>
             <form (ngSubmit)="saveProfile()">
               <div class="form-field mb-3">
                 <label>Photo</label>
@@ -111,16 +110,18 @@ import { PageComponent } from '../../ui/layout/page.component';
           </div>
         </div>
 
-        <div class="side-panel-stack span-1">
+        <div class="side-panel-stack">
           <div class="card card--side">
             <div class="card-header">
               <h3 class="card-title">
-                Email notifications
-                <app-help-text key="account.emailNotifications" />
+                Notifications
+                <app-help-text key="account.notifications" />
               </h3>
             </div>
-            <p class="text-color-secondary mt-0 mb-3">In-app alerts always appear in the bell and Task Manager inbox. Choose which types also send email.</p>
-            <app-email-notification-prefs />
+            <p class="text-color-secondary mt-0 mb-3">
+              Only types your role can receive are listed. Turn each channel on or off; missing types mean your role is not in the audience.
+            </p>
+            <app-notification-prefs />
           </div>
         </div>
       </div>

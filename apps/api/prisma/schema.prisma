@@ -13,6 +13,8 @@ enum UserRole {
   CLIENT
 }
 
+/// OWNER is shown as "Lead": sees everyone's time, expenses and invoices on the project and manages its people.
+/// EDITOR is shown as "Member". COMMENTER is no longer offered (existing rows were moved to EDITOR).
 enum ProjectMemberRole {
   OWNER
   EDITOR
@@ -144,18 +146,19 @@ model ClientAssignment {
   @@index([userId])
 }
 
-/// Tenant-defined role for staff users: a name plus the app areas it can use, each at level own or all.
+/// The built-in roles for USER accounts: exactly two per tenant, Member and Guest (key "member" / "guest").
+/// Their access is fixed in libs/shared permissions.ts; permissions/actions here are a synced copy for queries.
 /// Admins are not a Role: User.role = ADMIN can do everything.
 model Role {
   id          String   @id @default(cuid())
   tenantId    String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   name        String
-  /// Built-in role marker, e.g. "guest" (given to people invited to a Task Manager project). Null for roles admins create.
+  /// "member" or "guest". Guest is also given to people invited to a Task Manager project.
   key         String?
-  /// Area -> level, e.g. { "time": "own", "clients": "all" }. Missing area = no access. See libs/shared permissions.ts.
+  /// Synced copy of the built-in access (area -> level). The API reads access from the key, not from here.
   permissions Json     @default("{}")
-  /// Area -> { create, edit, delete, setup } checkboxes, e.g. { "pipeline": { "delete": false } }. Missing = allowed.
+  /// Synced copy of the built-in actions (area -> { create, edit, delete, setup }).
   actions     Json     @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1507,6 +1510,10 @@ model UserNotificationPreference {
   tenant           Tenant   @relation(fields: [tenantId], references: [id])
   /// { task_assigned: bool, ... }: only choices the person made. Missing keys follow the default (EMAIL_OFF_BY_DEFAULT is off, the rest on).
   emailPreferences Json     @default("{}")
+  /// Same shape as email; missing keys default to on (in-app).
+  inAppPreferences Json     @default("{}")
+  /// Same shape; missing keys default to off until push is shipped.
+  pushPreferences  Json     @default("{}")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

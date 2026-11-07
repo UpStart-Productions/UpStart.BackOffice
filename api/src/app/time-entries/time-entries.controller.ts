@@ -107,11 +107,11 @@ export class TimeEntriesController {
   ) {}
 
   /**
-   * Which entries this user may reach. Time at 'own': only their own entries.
+   * Which entries this user may reach. Time at 'own': their own entries, plus all entries on projects they lead.
    * Time at 'all': everyone's, limited to their assigned clients when Clients isn't 'all' (plus their own).
    */
   private async scope(user: UserContext): Promise<Prisma.TimeEntryWhereInput> {
-    if (this.access.level(user, 'time') === 'own') return { userId: user.id };
+    if (this.access.level(user, 'time') === 'own') return this.access.ownTimeWhere(user);
     const clientIds = await this.access.clientIdFilter(user);
     return clientIds ? { OR: [{ clientId: clientIds }, { userId: user.id }] } : {};
   }
@@ -166,14 +166,18 @@ export class TimeEntriesController {
     }).then((rows) => rows.map((row) => enrichTimeEntry(row)));
   }
 
-  /** People whose time this user can view: just themselves at 'own', everyone at 'all'. */
+  /** People whose time this user can view: themselves (plus people on projects they lead) at 'own', everyone at 'all'. */
   @Get('people')
   async people(@Req() req: Request) {
     const user = req.user as UserContext;
     const select = { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } as const;
     const rows =
       this.access.level(user, 'time') !== 'all'
-        ? await this.prisma.user.findMany({ where: { id: user.id }, select })
+        ? await this.prisma.user.findMany({
+            where: { id: { in: [user.id, ...(await this.access.ledProjectPeopleIds(user))] } },
+            select,
+            orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
+          })
         : await this.prisma.user.findMany({
             where: { isActive: true, role: { in: ['ADMIN', 'USER'] } },
             select,

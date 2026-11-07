@@ -11,7 +11,7 @@ import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { applyImpersonation } from './impersonation';
 import { bindAttributionUser } from '../common/record-attribution';
 import { UserContext } from '../common/app.types';
-import { sanitizeActions, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
+import { roleAccess, type UserRole } from '@upstart/back-office/shared';
 
 @Injectable()
 export class DevAuthGuard implements CanActivate {
@@ -46,8 +46,8 @@ export class DevAuthGuard implements CanActivate {
       clientId: user.clientId,
       tenantId: user.tenantId,
       isSuper: user.isSuper,
-      permissions: sanitizePermissions(user.tenantRole?.permissions),
-      actions: sanitizeActions(user.tenantRole?.actions),
+      permissions: roleAccess(user.tenantRole).permissions,
+      actions: roleAccess(user.tenantRole).actions,
     } satisfies UserContext;
 
     request.user = await applyImpersonation(request, this.prisma, real);

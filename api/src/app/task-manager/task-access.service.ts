@@ -12,8 +12,9 @@ const NEED_RANK: Record<ProjectPermission, number> = { view: 1, comment: 1, edit
 
 /**
  * Who can see what in the Task Manager.
- * - Tasks at 'all' (and admins): every project, full edit. Only ADMIN or project OWNER can manage members/settings.
- * - Tasks at 'own' (e.g. the Guest role): only projects where they have a ProjectMember row; permission from the member role.
+ * - Admins: every project, full edit.
+ * - Members and Guests (Tasks at 'own'): only projects where they have a ProjectMember row. OWNER (shown as Lead)
+ *   manages the project's people and settings; EDITOR (shown as Member) edits tasks.
  */
 @Injectable()
 export class TaskAccessService {

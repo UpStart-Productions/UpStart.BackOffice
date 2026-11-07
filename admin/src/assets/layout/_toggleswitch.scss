@@ -1,0 +1,16 @@
+/* Compact PrimeNG ToggleSwitch — `class="small"` or `[size]="'small'"` on `p-toggleswitch`. */
+.p-toggleswitch.small {
+  width: 2rem;
+  height: 1.125rem;
+
+  .p-toggleswitch-handle {
+    width: 0.8125rem;
+    height: 0.8125rem;
+    inset-inline-start: 0.15rem;
+    margin-block-start: -0.40625rem;
+  }
+
+  &.p-toggleswitch-checked .p-toggleswitch-handle {
+    inset-inline-start: calc(2rem - 0.8125rem - 0.15rem);
+  }
+}

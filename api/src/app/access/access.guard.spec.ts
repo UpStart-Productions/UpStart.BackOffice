@@ -26,21 +26,23 @@ describe('allows', () => {
     expect(actionsFor('reports')).toEqual([]);
   });
 
-  it('presets match the agreed shape', () => {
+  it('Member and Guest match the agreed access model', () => {
     const by = Object.fromEntries(ROLE_PRESETS.map((p) => [p.key, p]));
-    expect(Object.keys(by)).toEqual(['manager', 'team-member', 'coordinator', 'bookkeeper', 'contractor', 'guest']);
-    const tm = { role: 'USER', ...by['team-member'] } as never;
-    expect(allows(tm, 'pipeline', 'edit')).toBe(true);
-    expect(allows(tm, 'pipeline', 'delete')).toBe(false);
-    expect(allows(tm, 'pipeline', 'setup')).toBe(false);
-    expect(allows(tm, 'invoices', 'view')).toBe(false);
-    const bk = { role: 'USER', ...by['bookkeeper'] } as never;
-    expect(allows(bk, 'invoices', 'delete')).toBe(true);
-    expect(allows(bk, 'time', 'view')).toBe(true);
-    expect(allows(bk, 'time', 'edit')).toBe(false);
-    const mgr = { role: 'USER', ...by['manager'] } as never;
-    expect(allows(mgr, 'pipeline', 'setup')).toBe(true);
-    // Every preset's actions survive sanitizing unchanged (no typos).
+    expect(Object.keys(by)).toEqual(['member', 'guest']);
+    const m = { role: 'USER', ...by['member'] } as never;
+    expect(allows(m, 'pipeline', 'edit')).toBe(true);
+    expect(allows(m, 'pipeline', 'delete')).toBe(false);
+    expect(allows(m, 'pipeline', 'setup')).toBe(false);
+    expect(allows(m, 'clients', 'delete')).toBe(false);
+    expect(allows(m, 'projects', 'delete')).toBe(false);
+    expect(allows(m, 'time', 'delete')).toBe(true);
+    expect(allows(m, 'reports', 'view')).toBe(false);
+    const g = { role: 'USER', ...by['guest'] } as never;
+    expect(allows(g, 'pipeline', 'view')).toBe(false);
+    expect(allows(g, 'inbox', 'view')).toBe(false);
+    expect(allows(g, 'clients', 'create')).toBe(false);
+    expect(allows(g, 'time', 'create')).toBe(true);
+    // Every role's actions survive sanitizing unchanged (no typos).
     for (const p of ROLE_PRESETS) expect(sanitizeActions(p.actions)).toEqual(p.actions);
   });
 });

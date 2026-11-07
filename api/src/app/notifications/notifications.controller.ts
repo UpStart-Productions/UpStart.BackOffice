@@ -1,7 +1,14 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { EmailPreferencesDto, ListNotificationsQueryDto, MarkReadDto } from './dto/notifications.dto';
+import type { NotificationChannelPreferences } from '@upstart/back-office/shared';
+import {
+  EmailPreferencesDto,
+  ListNotificationsQueryDto,
+  MarkReadDto,
+  NotificationPreferencesDto,
+  SetNotificationPreferencesBodyDto,
+} from './dto/notifications.dto';
 import { NotificationsService } from './notifications.service';
 import { AccessGuard, SignedIn } from '../access/access.guard';
 
@@ -38,12 +45,36 @@ export class NotificationsController {
 
   @Get('preferences')
   async preferences(@Req() req: Request) {
-    return { email: await this.notifications.getEmailPreferences(req.user!.id) };
+    const preferences = await this.notifications.getChannelPreferences(req.user!.id);
+    const email = Object.fromEntries(
+      Object.entries(preferences).map(([type, ch]) => [type, ch.email]),
+    ) as Record<string, boolean>;
+    return { preferences, email };
   }
 
   @Put('preferences')
-  async setPreferences(@Req() req: Request, @Body() dto: EmailPreferencesDto) {
-    return { email: await this.notifications.setEmailPreferences(req.user!.id, { ...dto }) };
+  async setPreferences(
+    @Req() req: Request,
+    @Body() body: SetNotificationPreferencesBodyDto & EmailPreferencesDto & NotificationPreferencesDto,
+  ) {
+    const userId = req.user!.id;
+    if (body.preferences) {
+      const patch = body.preferences as NotificationChannelPreferences;
+      const preferences = await this.notifications.setChannelPreferences(userId, patch);
+      const email = Object.fromEntries(Object.entries(preferences).map(([type, ch]) => [type, ch.email]));
+      return { preferences, email };
+    }
+    const hasChannelRows = Object.keys(body).some(
+      (k) => typeof (body as NotificationPreferencesDto)[k as keyof NotificationPreferencesDto] === 'object',
+    );
+    if (hasChannelRows) {
+      const preferences = await this.notifications.setChannelPreferences(userId, body as NotificationChannelPreferences);
+      const email = Object.fromEntries(Object.entries(preferences).map(([type, ch]) => [type, ch.email]));
+      return { preferences, email };
+    }
+    const email = await this.notifications.setEmailPreferences(userId, { ...body });
+    const preferences = await this.notifications.getChannelPreferences(userId);
+    return { preferences, email };
   }
 
   @Patch(':id/read')

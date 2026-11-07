@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
@@ -16,6 +16,19 @@ import { PersonDto, personSelect } from '../task-manager/task-people.util';
 
 export class AddTeamMemberDto {
   @IsString() userId!: string;
+  /** Projects only: add them as the Lead instead of a Member. */
+  @IsOptional() @IsBoolean() isLead?: boolean;
+}
+
+export class InviteTeamMemberDto {
+  @IsString() email!: string;
+  /** Lead (ProjectMember OWNER) or Member (EDITOR). */
+  @IsOptional() @IsBoolean() isLead?: boolean;
+}
+
+export class UpdateTeamMemberDto {
+  /** Lead (ProjectMember OWNER) or Member (EDITOR). */
+  @IsBoolean() isLead!: boolean;
 }
 
 export type TeamMemberDto = PersonDto & {
@@ -23,6 +36,8 @@ export type TeamMemberDto = PersonDto & {
   direct: boolean;
   /** Client panel: the client's projects this person is on. */
   projects: { id: string; name: string }[];
+  /** Project panel: this person is the project's Lead (sees everyone's time, expenses and invoices on it). */
+  isLead?: boolean;
 };
 
 /** Anyone in the tenant who can be put on a client or project (not portal users). A super user also sees themselves. */
@@ -52,7 +67,7 @@ export async function projectTeam(prisma: PrismaService, projectId: string): Pro
     where: { projectId },
     include: { user: { select: { ...personSelect, isActive: true } } },
   });
-  return sortTeam(rows.filter((r) => r.user.isActive).map((r) => ({ ...person(r.user), direct: true, projects: [] })));
+  return sortTeam(rows.filter((r) => r.user.isActive).map((r) => ({ ...person(r.user), direct: true, projects: [], isLead: r.role === 'OWNER' })));
 }
 
 export async function clientTeam(prisma: PrismaService, clientId: string): Promise<TeamMemberDto[]> {

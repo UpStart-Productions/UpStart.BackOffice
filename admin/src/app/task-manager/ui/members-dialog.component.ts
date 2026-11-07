@@ -71,7 +71,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
           <p-message severity="error" [text]="error()!" styleClass="mt-2" />
         }
         <p class="tm-share-hint">
-          Picking a team member adds them right away and notifies them. People from Back Office (without an account) and new addresses become guests and get an email to set a password. People whose role has Tasks at All can always see every project.
+          Picking a team member adds them right away and notifies them. People from Back Office (without an account) and new addresses become guests and get an email to set a password. Admins can always see every project. A Lead sees everyone's time, expenses and invoices on this project and manages its people.
         </p>
       }
 
@@ -135,9 +135,8 @@ export class TmMembersDialogComponent {
   email = '';
   role: MemberRole = 'EDITOR';
   readonly roleOptions = [
-    { label: 'Owner', value: 'OWNER' },
-    { label: 'Editor', value: 'EDITOR' },
-    { label: 'Commenter', value: 'COMMENTER' },
+    { label: 'Lead', value: 'OWNER' },
+    { label: 'Member', value: 'EDITOR' },
   ];
   readonly meId = computed(() => this.session.me()?.id);
 

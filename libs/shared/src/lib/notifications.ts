@@ -67,6 +67,18 @@ export type UserNotificationDto = {
 
 export type EmailPreferences = Partial<Record<NotificationType, boolean>>;
 
+export type InAppPreferences = Partial<Record<NotificationType, boolean>>;
+export type PushPreferences = Partial<Record<NotificationType, boolean>>;
+
+export type NotificationChannelSettings = {
+  inApp: boolean;
+  email: boolean;
+  push: boolean;
+};
+
+/** Per-type channel overrides saved on `UserNotificationPreference` (missing keys use defaults). */
+export type NotificationChannelPreferences = Partial<Record<NotificationType, Partial<NotificationChannelSettings>>>;
+
 /**
  * Busy task changes that land in the bell but don't email unless the person turns them on in Inbox → Settings.
  * Every other type emails unless turned off.

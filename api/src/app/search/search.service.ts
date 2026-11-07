@@ -326,7 +326,7 @@ export class SearchService {
       }),
       !this.access.can(user, 'invoices') ? none : this.prisma.invoice.findMany({
         where: {
-          ...(this.access.level(user, 'invoices') === 'own' ? { createdById: user.id } : {}),
+          AND: [this.access.level(user, 'invoices') === 'own' ? await this.access.ownInvoiceWhere(user) : {}],
           ...(clientIds ? { clientId: clientIds } : {}),
           OR: [
             { displayNumber: ic },

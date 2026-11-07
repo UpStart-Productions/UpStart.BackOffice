@@ -85,7 +85,7 @@ export class ShellComponent implements OnInit {
     const id = this.session.me()?.id ?? null;
     untracked(() => this.layout.setPrefsUserId(id));
   });
-  /** A Tasks-only role (like Guest): the menu is just Tasks. */
+  /** A role that only grants Tasks: the menu is just Tasks. No built-in role is Tasks-only any more. */
   readonly isTasksOnly = computed(() => tasksOnly(this.session.me()));
   readonly canInbox = computed(() => !!areaLevel(this.session.me(), 'inbox'));
   readonly canContacts = computed(() => !!areaLevel(this.session.me(), 'contacts'));

@@ -16,7 +16,7 @@ export const AUTH_USER_SELECT = {
   clientId: true,
   tenantId: true,
   isSuper: true,
-  tenantRole: { select: { permissions: true, actions: true } },
+  tenantRole: { select: { key: true } },
   tenant: { select: { slug: true } },
 } as const;
 

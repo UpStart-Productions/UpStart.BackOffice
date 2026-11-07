@@ -71,8 +71,6 @@ export function sanitizePermissions(input: unknown): RolePermissions {
   return out;
 }
 
-/** Built-in role given to people invited to a Task Manager project by email: only projects they are a member of. */
-export const GUEST_ROLE = { key: 'guest', name: 'Guest', permissions: { tasks: 'own' } as RolePermissions } as const;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Actions: what a role may DO in an area, on top of what it may SEE (the level above).
@@ -152,65 +150,64 @@ export function allows(user: WithAccess | null | undefined, area: PermissionArea
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Preset roles: every tenant starts with the same set and may edit them. Admin is a user type, not a role.
+// Roles are fixed. Every tenant has exactly three kinds of user, and nobody edits them:
+//   Admin  - a user type (UserRole.ADMIN), not a Role row: everything in the tenant, including money and setup.
+//   Member - the tenant's own staff: all of CRM, plus the projects they are assigned to.
+//   Guest  - outside people (contractors, vendors, collaborators): only the projects and clients they are assigned to.
+// "Own" work (tasks, time, expenses, invoices, visits, schedule) is the person's own, plus everything on projects
+// they lead (ProjectMember role OWNER, shown as "Lead"). Only admins delete CRM records and projects.
+// The Role rows still exist (users point at them) but their permissions and actions always come from here.
 // ---------------------------------------------------------------------------------------------------------------
 
-export type RolePreset = { key: string; name: string; permissions: RolePermissions; actions: RoleActions };
+export type RolePreset = { key: string; name: string; description: string; permissions: RolePermissions; actions: RoleActions };
 
 const ALL: AreaActions = { create: true, edit: true, delete: true };
-const ALL_SETUP: AreaActions = { ...ALL, setup: true };
 const NO_DELETE: AreaActions = { create: true, edit: true, delete: false };
 const NO_DELETE_SETUP: AreaActions = { ...NO_DELETE, setup: false };
-const VIEW_ONLY: AreaActions = { create: false, edit: false, delete: false };
+const EDIT_ONLY: AreaActions = { create: false, edit: true, delete: false };
 
-export const ROLE_PRESETS: readonly RolePreset[] = [
-  {
-    key: 'manager',
-    name: 'Manager',
-    permissions: {
-      clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', forms: 'all', inbox: 'all',
-      projects: 'all', tasks: 'all', time: 'all', expenses: 'all', invoices: 'all', reports: 'all', care: 'all', visits: 'all', schedule: 'all',
-    },
-    actions: {
-      clients: ALL, contacts: ALL, pipeline: ALL_SETUP, bookings: ALL_SETUP, forms: ALL, inbox: ALL,
-      projects: ALL, tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, care: { setup: true }, visits: ALL, schedule: ALL,
-    },
+export const MEMBER_ROLE: RolePreset = {
+  key: 'member',
+  name: 'Member',
+  description: 'Staff. Sees all of CRM and the projects they are assigned to. Sees only their own time, expenses and invoices, plus everything on projects they lead. Can’t delete records or change setup.',
+  permissions: {
+    clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', forms: 'all', inbox: 'all', care: 'all',
+    projects: 'own', tasks: 'own', time: 'own', expenses: 'own', invoices: 'own', visits: 'own', schedule: 'own',
   },
-  {
-    key: 'team-member',
-    name: 'Team member',
-    permissions: {
-      clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', inbox: 'all',
-      projects: 'own', tasks: 'own', time: 'own', expenses: 'own',
-    },
-    actions: {
-      clients: NO_DELETE, contacts: NO_DELETE, pipeline: NO_DELETE_SETUP, bookings: NO_DELETE_SETUP, inbox: NO_DELETE,
-      projects: ALL, tasks: ALL, time: ALL, expenses: ALL,
-    },
+  actions: {
+    clients: NO_DELETE, contacts: NO_DELETE, pipeline: NO_DELETE_SETUP, bookings: NO_DELETE_SETUP, forms: NO_DELETE, inbox: NO_DELETE,
+    care: { setup: false }, projects: NO_DELETE,
+    tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, visits: ALL, schedule: ALL,
   },
-  {
-    key: 'coordinator',
-    name: 'Coordinator',
-    permissions: { inbox: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', clients: 'all' },
-    actions: {
-      inbox: NO_DELETE, contacts: NO_DELETE, pipeline: NO_DELETE_SETUP, bookings: NO_DELETE_SETUP,
-      clients: { create: false, edit: true, delete: false },
-    },
+};
+
+export const GUEST_ROLE: RolePreset = {
+  key: 'guest',
+  name: 'Guest',
+  description: 'Outside people such as contractors, vendors and collaborators. Sees only the projects and clients they are assigned to, and only their own time, expenses and invoices, plus everything on projects they lead. No Pipeline, Bookings, Activity or Forms.',
+  permissions: {
+    clients: 'own', contacts: 'own', care: 'all',
+    projects: 'own', tasks: 'own', time: 'own', expenses: 'own', invoices: 'own', visits: 'own', schedule: 'own',
   },
-  {
-    key: 'bookkeeper',
-    name: 'Bookkeeper',
-    permissions: { invoices: 'all', reports: 'all', time: 'all', expenses: 'all', clients: 'all' },
-    actions: { invoices: ALL, time: VIEW_ONLY, expenses: VIEW_ONLY, clients: VIEW_ONLY },
+  actions: {
+    clients: EDIT_ONLY, contacts: EDIT_ONLY, care: { setup: false }, projects: EDIT_ONLY,
+    tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, visits: ALL, schedule: ALL,
   },
-  {
-    key: 'contractor',
-    name: 'Contractor',
-    permissions: { projects: 'own', tasks: 'own', time: 'own', expenses: 'own' },
-    actions: { projects: { create: false, edit: true, delete: false }, tasks: ALL, time: ALL, expenses: ALL },
-  },
-  { key: GUEST_ROLE.key, name: GUEST_ROLE.name, permissions: { tasks: 'own' }, actions: { tasks: ALL } },
-];
+};
+
+/** The only Role rows a tenant has. */
+export const ROLE_PRESETS: readonly RolePreset[] = [MEMBER_ROLE, GUEST_ROLE];
+
+/** A built-in role by key. */
+export function presetFor(key: string | null | undefined): RolePreset | undefined {
+  return key ? ROLE_PRESETS.find((p) => p.key === key) : undefined;
+}
+
+/** What a Role row grants: always the built-in definition for its key; an unknown role grants nothing. */
+export function roleAccess(role: { key?: string | null } | null | undefined): { permissions: RolePermissions; actions: RoleActions } {
+  const preset = presetFor(role?.key);
+  return preset ? { permissions: preset.permissions, actions: preset.actions } : { permissions: {}, actions: {} };
+}
 
 /** The user's level in an area: admins have 'all' everywhere; null means no access. */
 export function areaLevel(user: WithAccess | null | undefined, area: PermissionArea): AccessLevel | null {

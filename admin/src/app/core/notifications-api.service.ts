@@ -2,7 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import {
   NOTIFICATIONS_API,
   resolveNotificationRoute,
+  type ChannelPreferences,
   type EmailPreferences,
+  type NotificationChannelPreferences,
   type UserNotificationDto,
 } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
@@ -37,6 +39,18 @@ export class NotificationsApiService {
 
   notificationRoute(notification: UserNotificationDto): string[] | null {
     return resolveNotificationRoute(notification);
+  }
+
+  channelPreferences(): Promise<ChannelPreferences> {
+    return this.api
+      .get<{ preferences: ChannelPreferences }>(NOTIFICATIONS_API.preferences)
+      .then((r) => r.preferences);
+  }
+
+  setChannelPreferences(patch: NotificationChannelPreferences): Promise<ChannelPreferences> {
+    return this.api
+      .put<{ preferences: ChannelPreferences }>(NOTIFICATIONS_API.preferences, { preferences: patch })
+      .then((r) => r.preferences);
   }
 
   emailPreferences(): Promise<EmailPreferences> {

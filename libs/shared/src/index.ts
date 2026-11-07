@@ -6,5 +6,6 @@ export * from './lib/modules';
 export * from './lib/forms';
 export * from './lib/care';
 export * from './lib/notifications';
+export * from './lib/notification-registry';
 export * from './lib/support-feedback';
 export * from './lib/task-comments';

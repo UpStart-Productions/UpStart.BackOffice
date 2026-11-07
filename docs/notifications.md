@@ -4,7 +4,11 @@ Per-user inbox stored in `UserNotification`. Task Manager delivers via `Notifica
 
 Recipients: task notifications go to the task's followers and assignee (the person who made the change is never notified). People follow a task they create, are assigned, comment on or are @mentioned in.
 
-Email defaults: every type emails unless the person turns it off in Inbox → Settings, except `EMAIL_OFF_BY_DEFAULT` (`task_attachment`, `task_due_date_changed`, `task_moved`, `task_subtask_added`), which only reach the bell until turned on. `UserNotificationPreference.emailPreferences` stores only the choices people make; a missing key follows the default.
+Channel defaults live in `libs/shared/src/lib/notification-registry.ts` (`defaultChannelSettings`). Stored overrides: `emailPreferences`, `inAppPreferences`, and `pushPreferences` on `UserNotificationPreference` (missing keys follow defaults). Users edit all channels on **My Account → Notifications**.
+
+Delivery: `NotificationDeliveryService.deliver()` — in-app row when in-app is on; email when email is on and `TASK_EMAIL_NOTIFICATIONS` is not `off`; push hook is a no-op until device tokens exist.
+
+Audiences: use `NotificationAudienceService` (e.g. `userIdsWithAreaAll`) rather than ad-hoc recipient lists.
 
 | Type | When |
 |------|------|
@@ -23,8 +27,8 @@ Email defaults: every type emails unless the person turns it off in Inbox → Se
 
 ## Add a new notification type
 
-1. **`libs/shared/src/lib/notifications.ts`**
-   - Add the type string to `NotificationType` and `NOTIFICATION_TYPES`.
+1. **`libs/shared/src/lib/notifications.ts`** and **`notification-registry.ts`**
+   - Add the type to `NotificationType`, `NOTIFICATION_TYPES`, and `NOTIFICATION_TYPE_REGISTRY` (label, group, `areas`).
 
 2. **API delivery**
    - Call `NotificationDeliveryService.deliver()` or `deliverMany()` with:
@@ -33,8 +37,8 @@ Email defaults: every type emails unless the person turns it off in Inbox → Se
      - `meta.route`: admin route segments for the bell link (e.g. `['tasks', 'projects', projectId, 'tasks', taskId]`)
    - See `api/src/app/task-manager/task-events.service.ts` for examples.
 
-3. **Email preference (optional)**
-   - Add a boolean field to `EmailPreferencesDto` in `api/src/app/notifications/dto/notifications.dto.ts` matching the new type key.
+3. **Preferences DTO (optional)**
+   - Add nested fields to `NotificationPreferencesDto` in `api/src/app/notifications/dto/notifications.dto.ts` for the new type key.
 
 4. **Bell UI (optional)**
    - Default row: title link (from `meta.route` / `resolveNotificationRoute`), body snippet, Mark read, Dismiss.

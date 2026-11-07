@@ -3,12 +3,20 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
   EmailPreferences,
+  InAppPreferences,
   NotificationMeta,
+  PushPreferences,
+  NotificationChannelPreferences,
   NotificationType,
   UserNotificationDto,
 } from './notification.types';
 import { CreateNotificationInput, NOTIFICATION_TYPES } from './notification.types';
-import { emailOnByDefault } from '@upstart/back-office/shared';
+import {
+  channelEnabled,
+  type ChannelPreferences,
+  type NotificationChannel,
+  resolveChannelPreferences,
+} from '@upstart/back-office/shared';
 
 function toDto(row: {
   id: string;
@@ -107,26 +115,75 @@ export class NotificationsService {
     return result.count > 0;
   }
 
+  private async storedPrefs(userId: string) {
+    return this.prisma.userNotificationPreference.findUnique({ where: { userId } });
+  }
+
+  async getChannelPreferences(userId: string): Promise<ChannelPreferences> {
+    const row = await this.storedPrefs(userId);
+    return resolveChannelPreferences({
+      email: (row?.emailPreferences as EmailPreferences | null) ?? {},
+      inApp: (row?.inAppPreferences as InAppPreferences | null) ?? {},
+      push: (row?.pushPreferences as PushPreferences | null) ?? {},
+    });
+  }
+
+  async setChannelPreferences(
+    userId: string,
+    patch: NotificationChannelPreferences,
+  ): Promise<ChannelPreferences> {
+    const row = await this.storedPrefs(userId);
+    const email: EmailPreferences = { ...((row?.emailPreferences as EmailPreferences | null) ?? {}) };
+    const inApp: InAppPreferences = { ...((row?.inAppPreferences as InAppPreferences | null) ?? {}) };
+    const push: PushPreferences = { ...((row?.pushPreferences as PushPreferences | null) ?? {}) };
+
+    for (const type of NOTIFICATION_TYPES) {
+      const delta = patch[type];
+      if (!delta) continue;
+      if (typeof delta.email === 'boolean') email[type] = delta.email;
+      if (typeof delta.inApp === 'boolean') inApp[type] = delta.inApp;
+      if (typeof delta.push === 'boolean') push[type] = delta.push;
+    }
+
+    await this.prisma.userNotificationPreference.upsert({
+      where: { userId },
+      create: {
+        userId,
+        emailPreferences: email as Prisma.InputJsonValue,
+        inAppPreferences: inApp as Prisma.InputJsonValue,
+        pushPreferences: push as Prisma.InputJsonValue,
+      },
+      update: {
+        emailPreferences: email as Prisma.InputJsonValue,
+        inAppPreferences: inApp as Prisma.InputJsonValue,
+        pushPreferences: push as Prisma.InputJsonValue,
+      },
+    });
+    return this.getChannelPreferences(userId);
+  }
+
+  async isChannelEnabled(userId: string, type: NotificationType, channel: NotificationChannel): Promise<boolean> {
+    const prefs = await this.getChannelPreferences(userId);
+    return channelEnabled(prefs, type, channel);
+  }
+
   async getEmailPreferences(userId: string): Promise<Record<NotificationType, boolean>> {
-    const row = await this.prisma.userNotificationPreference.findUnique({ where: { userId } });
-    const stored = (row?.emailPreferences as EmailPreferences | null) ?? {};
-    return Object.fromEntries(
-      NOTIFICATION_TYPES.map((type) => [type, typeof stored[type] === 'boolean' ? stored[type] : emailOnByDefault(type)]),
-    ) as Record<NotificationType, boolean>;
+    const channels = await this.getChannelPreferences(userId);
+    return Object.fromEntries(NOTIFICATION_TYPES.map((type) => [type, channels[type].email])) as Record<
+      NotificationType,
+      boolean
+    >;
   }
 
   async setEmailPreferences(userId: string, prefs: EmailPreferences): Promise<Record<NotificationType, boolean>> {
-    // Only choices people make are stored, so a missing key keeps following the default.
-    const row = await this.prisma.userNotificationPreference.findUnique({ where: { userId } });
-    const next: EmailPreferences = { ...((row?.emailPreferences as EmailPreferences | null) ?? {}) };
+    const patch: NotificationChannelPreferences = {};
     for (const type of NOTIFICATION_TYPES) {
-      if (typeof prefs[type] === 'boolean') next[type] = prefs[type];
+      if (typeof prefs[type] === 'boolean') patch[type] = { email: prefs[type] };
     }
-    await this.prisma.userNotificationPreference.upsert({
-      where: { userId },
-      create: { userId, emailPreferences: next as Prisma.InputJsonValue },
-      update: { emailPreferences: next as Prisma.InputJsonValue },
-    });
-    return this.getEmailPreferences(userId);
+    const channels = await this.setChannelPreferences(userId, patch);
+    return Object.fromEntries(NOTIFICATION_TYPES.map((type) => [type, channels[type].email])) as Record<
+      NotificationType,
+      boolean
+    >;
   }
 }

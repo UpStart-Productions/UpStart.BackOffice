@@ -11,7 +11,7 @@ import { personName } from '../task-manager/task-people.util';
 import { hashInviteToken, INVITE_TTL_DAYS, inviteExpiry, newInviteToken } from './invite-token.util';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
 
-const ROLE_LABEL: Record<ProjectMemberRole, string> = { OWNER: 'an owner', EDITOR: 'an editor', COMMENTER: 'a commenter' };
+const ROLE_LABEL: Record<ProjectMemberRole, string> = { OWNER: 'a lead', EDITOR: 'a member', COMMENTER: 'a member' };
 
 export type InviteLookup = {
   status: 'valid' | 'expired' | 'accepted';
@@ -267,6 +267,9 @@ export class InvitesService {
       }),
       this.prisma.userInvite.updateMany({ where: { userId: invite.user.id, acceptedAt: null }, data: { acceptedAt: now } }),
     ]);
-    return { email: invite.user.email, projectId: invite.projectId };
+    const project = invite.projectId
+      ? await this.prisma.project.findUnique({ where: { id: invite.projectId }, select: { inTaskManager: true } })
+      : null;
+    return { email: invite.user.email, projectId: invite.projectId, projectInTaskManager: !!project?.inTaskManager };
   }
 }

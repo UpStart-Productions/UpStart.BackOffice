@@ -6,7 +6,7 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { emailNotificationPrefGroups, type EmailPrefsState } from '../../core/email-notification-pref-rows';
 import { NotificationsApiService } from '../../core/notifications-api.service';
 import { SessionService } from '../../core/session.service';
-import type { NotificationType } from '@upstart/back-office/shared';
+import type { NotificationPrefGroupId, NotificationType } from '@upstart/back-office/shared';
 
 @Component({
   selector: 'app-email-notification-prefs',
@@ -51,7 +51,12 @@ import type { NotificationType } from '@upstart/back-office/shared';
                 @for (row of group.rows; track row.key) {
                   <li>
                     <span>{{ row.label }}</span>
-                    <p-toggleswitch [ngModel]="prefValue(p, row.key)" (ngModelChange)="setPref(row.key, $event)" />
+                    <p-toggleswitch
+                      size="small"
+                      class="small"
+                      [ngModel]="prefValue(p, row.key)"
+                      (ngModelChange)="setPref(row.key, $event)"
+                    />
                   </li>
                 }
               </ul>
@@ -70,7 +75,7 @@ export class EmailNotificationPrefsComponent implements OnInit {
   readonly groups = computed(() => emailNotificationPrefGroups(this.session.me()));
   loading = signal(true);
   prefs = signal<EmailPrefsState | null>(null);
-  openPanels = signal<string[]>([]);
+  openPanels = signal<NotificationPrefGroupId[]>([]);
 
   constructor() {
     effect(() => {

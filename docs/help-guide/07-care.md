@@ -15,7 +15,7 @@ Forms about clients are ordinary **client forms** in **Forms** (see the Forms gu
 - **Care** area (Users → Roles): see a client's care status. **Setup** adds clients to care and changes their status.
 - **Visits**: Own (only your own visits) or All (everyone's at the clients you reach).
 - **Schedule**: Own (only your own shifts; you can only plan your own) or All.
-- People only see clients they can reach: the ones assigned to them, unless their role has **Organizations: All**. A caregiver whose role has Clients Own sees the Care tab for their assigned clients.
+- Admins and Members see every client. Guests see only the clients assigned to them, including the Care tab for those clients.
 
 ## Adding a client to care
 

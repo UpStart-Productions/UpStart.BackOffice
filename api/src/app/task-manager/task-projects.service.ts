@@ -266,26 +266,45 @@ export class TaskProjectsService {
    */
   async invite(user: UserContext, projectId: string, dto: InviteMemberDto) {
     await this.access.assertProject(user, projectId, 'manage');
-    const email = normalizeEmail(dto.email);
+    const res = await this.addByEmail(user, projectId, dto.email, dto.role ?? ProjectMemberRole.EDITOR, { promoteExisting: false });
+    return { project: await this.get(user, projectId), ...res };
+  }
+
+  /**
+   * Put an email on a project (Task Manager or not). The caller checks who may manage the project's people.
+   * A new email becomes a Guest user and gets an invite. An existing user keeps their role. Someone already on
+   * the project is a conflict, unless promoteExisting (then they get the new project role).
+   */
+  async addByEmail(
+    user: UserContext,
+    projectId: string,
+    rawEmail: string,
+    role: ProjectMemberRole,
+    options: { promoteExisting: boolean },
+  ): Promise<{ invited: boolean; emailed: boolean }> {
+    const email = normalizeEmail(rawEmail);
     if (!isValidEmail(email)) throw new BadRequestException('Enter a valid email address');
-    const role = dto.role ?? ProjectMemberRole.EDITOR;
     const project = await this.prisma.project.findUniqueOrThrow({
       where: { id: projectId },
-      select: { id: true, name: true, tenantId: true },
+      select: { id: true, name: true, tenantId: true, inTaskManager: true },
     });
 
     let target = await this.prisma.user.findFirst({
       where: { email: { equals: email, mode: 'insensitive' } },
       select: { id: true, email: true, firstName: true, role: true, isActive: true, tenantRole: { select: { key: true } } },
     });
-    if (target?.role === 'CLIENT') throw new BadRequestException('That email belongs to a client portal user and cannot be shared on Tasks');
+    if (target?.role === 'CLIENT') throw new BadRequestException('That email belongs to a client portal user and cannot be added to a project');
     if (target && !target.isActive) throw new BadRequestException('That account is deactivated. Reactivate it on the Users page first.');
 
     if (target) {
       const existing = await this.prisma.projectMember.findUnique({
         where: { projectId_userId: { projectId, userId: target.id } },
       });
-      if (existing) throw new ConflictException(`${target.email} is already on this project`);
+      if (existing) {
+        if (!options.promoteExisting) throw new ConflictException(`${target.email} is already on this project`);
+        if (existing.role !== role) await this.prisma.projectMember.update({ where: { id: existing.id }, data: { role } });
+        return { invited: false, emailed: false };
+      }
       await this.applyContactProfileToUser(target.id, project.tenantId, email);
     } else {
       const fromContact = await this.profileFromContactEmail(project.tenantId, email);
@@ -319,16 +338,16 @@ export class TaskProjectsService {
         meta: {
           entityType: 'project',
           entityId: projectId,
-          route: projectRoute(projectId),
+          route: project.inTaskManager ? projectRoute(projectId) : ['projects', projectId],
           actorUserId: user.id,
           actorLabel: personName(user),
           projectId,
           projectName: project.name,
-          actionLabel: 'Open board',
+          actionLabel: project.inTaskManager ? 'Open board' : 'Open project',
         },
       });
     }
-    return { project: await this.get(user, projectId), invited, emailed };
+    return { invited, emailed };
   }
 
   /** Re-send the invite email (new link) to a member who hasn't accepted yet. */

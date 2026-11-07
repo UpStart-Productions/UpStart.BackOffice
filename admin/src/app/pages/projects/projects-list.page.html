@@ -7,7 +7,15 @@
   }
   <div class="card">
     <div class="toolbar">
-      <div class="toolbar-start">
+      <div class="projects-list-toolbar-end">
+        <div class="toolbar-search">
+          <app-toolbar-search-field
+            placeholder="Search by project, client…"
+            ariaLabel="Search projects"
+            [ngModel]="searchQuery"
+            (ngModelChange)="onSearchInput($event)"
+          />
+        </div>
         <label class="projects-list-inactive-toggle" for="projectsShowInactive">
           <span>Show inactive projects</span>
           <p-toggleSwitch
@@ -16,14 +24,6 @@
             (ngModelChange)="setShowInactive($event)"
           />
         </label>
-      </div>
-      <div class="toolbar-search">
-        <app-toolbar-search-field
-          placeholder="Search by project, client…"
-          ariaLabel="Search projects"
-          [ngModel]="searchQuery"
-          (ngModelChange)="onSearchInput($event)"
-        />
       </div>
     </div>
     <p-table

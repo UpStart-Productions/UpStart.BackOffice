@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, output, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PhoneInputComponent } from '../phone-input/phone-input.component';
 import { MessageModule } from 'primeng/message';
@@ -17,12 +18,16 @@ export const NEW_ORGANIZATION_OPTION_ID = '__new_organization__';
 
 type OrgOption = { id: string; name: string };
 
+/** The new contact, plus whether to make them the project's Lead (they then get a Guest login). */
+export type CreatedPerson = ContactSummary & { makeLead?: boolean; leadEmail?: string };
+
 /** New-person fields (used inside a dialog or inline panel). */
 @Component({
   selector: 'app-create-person-form',
   standalone: true,
   imports: [
     FormsModule,
+    CheckboxModule,
     ButtonModule,
     InputTextModule,
     PhoneInputComponent,
@@ -155,6 +160,12 @@ type OrgOption = { id: string; name: string };
         <label for="nTags">Tags (optional)</label>
         <app-crm-tag-input [(tags)]="form.tags" inputId="nTags" />
       </div>
+      @if (showLeadOption()) {
+        <div class="flex align-items-center gap-2">
+          <p-checkbox inputId="nMakeLead" [(ngModel)]="form.makeLead" [binary]="true" />
+          <label for="nMakeLead">Make lead <app-help-text key="project.team.newLead" /></label>
+        </div>
+      }
       @if (formError()) {
         <p-message severity="error" [text]="formError()!" />
       }
@@ -176,8 +187,10 @@ export class CreatePersonFormComponent {
   defaultRole = input('');
   /** Show organization picker (false when defaultClientId is fixed). */
   showOrgPicker = input(true);
+  /** On a saved project: offer "Make lead" (invites them as a Guest and makes them the project's Lead). */
+  showLeadOption = input(false);
 
-  created = output<ContactSummary>();
+  created = output<CreatedPerson>();
   cancelled = output<void>();
 
   readonly saving = signal(false);
@@ -224,6 +237,7 @@ export class CreatePersonFormComponent {
       role: this.defaultRole(),
       tags: [] as string[],
       newOrg: { name: '', email: '', website: '' },
+      makeLead: false,
     };
   }
 
@@ -245,6 +259,10 @@ export class CreatePersonFormComponent {
   async saveNew() {
     if (!this.form.firstName.trim()) {
       this.formError.set('First name is required.');
+      return;
+    }
+    if (this.showLeadOption() && this.form.makeLead && !this.form.email.trim()) {
+      this.formError.set('Email is required to make them the Lead. They need it to sign in.');
       return;
     }
     if (this.creatingOrg() && !this.form.newOrg.name.trim()) {
@@ -288,7 +306,8 @@ export class CreatePersonFormComponent {
         result = await this.comms.contact(created.id);
       }
       void this.crmTags.load(true);
-      this.created.emit(result);
+      const makeLead = this.showLeadOption() && this.form.makeLead;
+      this.created.emit(makeLead ? { ...result, makeLead, leadEmail: this.form.email.trim() } : result);
     } catch (err) {
       this.formError.set(err instanceof Error ? err.message : 'Create failed');
     } finally {

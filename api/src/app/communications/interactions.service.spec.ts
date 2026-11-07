@@ -22,8 +22,8 @@ function make() {
     user: { findMany: vi.fn() },
   };
   const mail = { sendRaw: vi.fn().mockResolvedValue({ sent: true }) };
-  const notifications = { create: vi.fn().mockResolvedValue({}) };
-  return { prisma, mail, notifications, svc: new InteractionsService(prisma as never, mail as never, notifications as never) };
+  const delivery = { deliverMany: vi.fn().mockResolvedValue(undefined) };
+  return { prisma, mail, delivery, svc: new InteractionsService(prisma as never, mail as never, delivery as never) };
 }
 
 describe('helpers', () => {
@@ -275,9 +275,10 @@ describe('InteractionsService', () => {
     expect(result).toEqual({ emailed: 3, notified: 2, failed: 0 });
     expect(h.mail.sendRaw).toHaveBeenCalledTimes(3);
     expect(h.mail.sendRaw.mock.calls[0][0].subject).toBe('Fwd: Intake call');
-    expect(h.notifications.create).toHaveBeenCalledTimes(2);
-    expect(h.notifications.create.mock.calls.map((call) => call[0].userId)).toEqual(['u1', 'u2']);
-    expect(h.notifications.create.mock.calls[0][0]).toMatchObject({
+    expect(h.delivery.deliverMany).toHaveBeenCalledTimes(1);
+    const batch = h.delivery.deliverMany.mock.calls[0][0] as { userId: string }[];
+    expect(batch.map((n) => n.userId)).toEqual(['u1', 'u2']);
+    expect(batch[0]).toMatchObject({
       userId: 'u1',
       type: 'activity_forwarded',
       title: 'Jeff Denton forwarded an activity',

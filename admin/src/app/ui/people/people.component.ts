@@ -1,4 +1,4 @@
-import { Component, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +12,7 @@ import {
 } from '../../core/communications.api';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
 import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-picker.loader';
 import { TeamApi, TeamMember, TeamScope } from '../../core/team.api';
 import { PeopleDirectoryEntry } from '../../pages/projects/people-directory.types';
@@ -194,12 +195,15 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               <div class="people-panel-org-name-line">
                 <span class="people-panel-project-name">{{ m.name }}</span>
                 <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
+                @if (m.isLead) {
+                  <p-tag value="Lead" severity="info" />
+                }
               </div>
               <div class="people-panel-project-details">
                 <app-copy-email [email]="m.email" [muted]="true" />
               </div>
             </div>
-            @if (!readOnly()) {
+            @if (!readOnly() && managesProjectPeople()) {
               <app-row-actions-menu [items]="teamRowActions(m)" ariaLabel="Team member actions" />
             }
           </div>
@@ -330,6 +334,7 @@ export class PeopleComponent {
   private readonly router = inject(Router);
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly team = inject(TeamApi);
+  private readonly session = inject(SessionService);
   private readonly createPersonModal = viewChild(CreatePersonModalComponent);
 
   readonly contactName = contactName;
@@ -473,7 +478,9 @@ export class PeopleComponent {
       return;
     }
     const clientId = this.clientId();
-    const created = await this.createPersonModal()!.open({ clientId: clientId ?? undefined });
+    const scope = this.teamScope();
+    const offerLead = this.mode() === 'project' && scope?.kind === 'projects' && this.managesProjectPeople();
+    const created = await this.createPersonModal()!.open({ clientId: clientId ?? undefined, offerLead });
     if (!created) return;
     if (this.mode() === 'organization' && clientId) {
       await this.loadOrganizationPeople(clientId);
@@ -489,6 +496,19 @@ export class PeopleComponent {
       }
     } else if (this.mode() === 'project') {
       this.addProjectContactFromSummary(created);
+      if (created.makeLead && scope?.kind === 'projects' && created.leadEmail) {
+        try {
+          const res = await this.team.inviteLead(scope.id, created.leadEmail);
+          this.teamRows.set(res.team);
+          this.toast.add({
+            severity: 'success',
+            summary: 'Lead added',
+            detail: res.invited ? `${created.leadEmail} was invited as a Guest and is the Lead on this project.` : `${created.leadEmail} is now a Lead on this project.`,
+          });
+        } catch (err) {
+          this.panelError.set(err instanceof Error ? err.message : 'Could not make them the Lead');
+        }
+      }
     }
     void this.reloadPickerOptions();
   }
@@ -857,8 +877,26 @@ export class PeopleComponent {
     return `On ${m.projects.map((p) => p.name).join(', ')}`;
   }
 
+  /** On a project, only admins and the project's Lead change who is on it (the API enforces this too). */
+  readonly managesProjectPeople = computed(() => {
+    const me = this.session.me();
+    if (!me) return false;
+    if (me.role === 'ADMIN') return true;
+    return this.teamRows().some((m) => m.id === me.id && m.isLead);
+  });
+
   teamRowActions(m: TeamMember): RowActionItem[] {
+    const scope = this.teamScope();
+    const leadItem: RowActionItem[] =
+      scope?.kind === 'projects'
+        ? [
+            m.isLead
+              ? { id: 'member', label: 'Make member', icon: 'pi pi-user', command: () => this.setLead(m, false) }
+              : { id: 'lead', label: 'Make lead', icon: 'pi pi-star', command: () => this.setLead(m, true) },
+          ]
+        : [];
     return [
+      ...leadItem,
       {
         id: 'delete',
         label: 'Remove',
@@ -867,6 +905,16 @@ export class PeopleComponent {
         command: () => this.confirmRemoveTeamMember(m),
       },
     ];
+  }
+
+  private async setLead(m: TeamMember, isLead: boolean) {
+    const scope = this.teamScope();
+    if (scope?.kind !== 'projects') return;
+    try {
+      this.teamRows.set(await this.team.setLead(scope.id, m.id, isLead));
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Could not change lead');
+    }
   }
 
   confirmRemoveTeamMember(m: TeamMember) {

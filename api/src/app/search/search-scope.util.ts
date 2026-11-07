@@ -8,7 +8,7 @@ export async function timeEntryScope(
   access: AccessService,
   user: UserContext,
 ): Promise<Prisma.TimeEntryWhereInput> {
-  if (access.level(user, 'time') === 'own') return { userId: user.id };
+  if (access.level(user, 'time') === 'own') return access.ownTimeWhere(user);
   const clientIds = await access.clientIdFilter(user);
   return clientIds ? { OR: [{ clientId: clientIds }, { userId: user.id }] } : {};
 }
@@ -21,7 +21,7 @@ export async function expenseScope(
   const clientIds = await access.clientIdFilter(user);
   return {
     AND: [
-      access.level(user, 'expenses') === 'own' ? { userId: user.id } : {},
+      access.level(user, 'expenses') === 'own' ? await access.ownExpenseWhere(user) : {},
       clientIds ? { OR: [{ project: { clientId: clientIds } }, { projectId: null, userId: user.id }] } : {},
     ],
   };

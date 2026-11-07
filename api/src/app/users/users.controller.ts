@@ -17,7 +17,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { Request } from 'express';
-import { isAdminRole, sanitizeActions, sanitizeModules, sanitizePermissions, type UserRole } from '@upstart/back-office/shared';
+import { roleAccess, isAdminRole, sanitizeModules, type UserRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { RequireAdminGuard } from '../auth/require-admin.guard';
 import { InvitesService } from '../invites/invites.service';
@@ -107,7 +107,7 @@ export class UsersController {
           clientId: true,
           tenantId: true,
           isSuper: true,
-          tenantRole: { select: { name: true, permissions: true, actions: true } },
+          tenantRole: { select: { name: true, key: true } },
         },
       }),
     );
@@ -129,8 +129,8 @@ export class UsersController {
       tenantId: row.tenantId,
       isSuper: row.isSuper,
       roleName: row.tenantRole?.name ?? null,
-      permissions: sanitizePermissions(row.tenantRole?.permissions),
-      actions: sanitizeActions(row.tenantRole?.actions),
+      permissions: roleAccess(row.tenantRole).permissions,
+      actions: roleAccess(row.tenantRole).actions,
       modules: tenant ? sanitizeModules(tenant.modules) : undefined,
     };
   }

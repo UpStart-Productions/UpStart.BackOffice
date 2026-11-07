@@ -11,7 +11,7 @@ import { applyImpersonation } from './impersonation';
 import { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { resolveUserForRequest } from './resolve-user';
-import { sanitizeActions, sanitizePermissions } from '@upstart/back-office/shared';
+import { roleAccess } from '@upstart/back-office/shared';
 import { bindAttributionUser } from '../common/record-attribution';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
@@ -103,8 +103,8 @@ export class JwtAuthGuard implements CanActivate {
       clientId: user.clientId,
       tenantId: user.tenantId,
       isSuper: user.isSuper,
-      permissions: sanitizePermissions(user.tenantRole?.permissions),
-      actions: sanitizeActions(user.tenantRole?.actions),
+      permissions: roleAccess(user.tenantRole).permissions,
+      actions: roleAccess(user.tenantRole).actions,
     } satisfies UserContext;
 
     request.user = await applyImpersonation(request, this.prisma, real);

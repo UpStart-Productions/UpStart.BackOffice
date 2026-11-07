@@ -14,6 +14,6 @@ import { TasksService } from './tasks.service';
   imports: [NotificationsModule, InvitesModule],
   controllers: [TaskManagerController, FormsPublicController],
   providers: [TaskAccessService, TaskEventsService, TaskProjectsService, TasksService, TaskTagsService, TaskFormsService],
-  exports: [TaskAccessService, TaskEventsService, TasksService],
+  exports: [TaskAccessService, TaskEventsService, TasksService, TaskProjectsService],
 })
 export class TaskManagerModule {}

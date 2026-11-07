@@ -88,12 +88,12 @@ export class ExpensesController {
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
-  /** Own expenses when the role says so; expenses on a project must be for a client the user can reach. */
+  /** Own expenses (plus those on projects they lead) when the role says so; expenses on a project must be for a client the user can reach. */
   private async scope(user: UserContext): Promise<Prisma.ExpenseWhereInput> {
     const clientIds = await this.access.clientIdFilter(user);
     return {
       AND: [
-        this.access.level(user, 'expenses') === 'own' ? { userId: user.id } : {},
+        this.access.level(user, 'expenses') === 'own' ? await this.access.ownExpenseWhere(user) : {},
         clientIds ? { OR: [{ project: { clientId: clientIds } }, { projectId: null, userId: user.id }] } : {},
       ],
     };

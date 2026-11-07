@@ -469,14 +469,14 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Click an item to open the task. Archive clears it; Mark all read clears the unread count.',
       },
       {
-        heading: 'Email notifications',
-        body: 'In-app notifications always appear here and in the bell. To choose which types also send email, open **My Account** from your avatar menu → **Email notifications**.',
+        heading: 'Notification preferences',
+        body: 'Open **My Account** from your avatar menu → **Notifications** to turn in-app and email on or off per type.',
       },
     ],
   },
   account: {
     title: 'My Account',
-    intro: 'Your name, email, photo, password and email notification preferences.',
+    intro: 'Your name, email, photo, password and notification preferences (in-app, email, and push when available).',
     sections: [
       {
         heading: 'Profile',
@@ -487,8 +487,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: '**Send reset code** emails a one-time code to your account email. Enter the code and a new password, then **Set new password**.',
       },
       {
-        heading: 'Email notifications',
-        body: 'Bell and Task Manager inbox always show in-app alerts. Toggles here control which types also send email. Files attached, due date changes, moves and new subtasks on tasks you follow are off for email until you turn them on.',
+        heading: 'Notifications',
+        body: 'Only types your role can receive are listed. Each row has **In-app**, **Email**, and (later) **Push**. Busy task updates — attachment, due date, move, subtask — default to in-app only until you turn email on.',
       },
     ],
   },
@@ -795,7 +795,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Roles tab',
-        body: 'What each role can see and do, per area. View is None, Own (their own records, or clients they\'re assigned to) or All. Create, Edit, Delete and Setup set what they can do with what they see. Admins can do everything.',
+        body: 'Fixed roles (Admin, Member, Guest): each row describes what that role can do. **Members** shows overlapping avatars (up to three) and **+N** when more people have the role — click the cell to open the full list. There, copy an email with the icon beside it, or click someone to edit their user record.',
       },
       {
         heading: 'Built-in roles',

@@ -38,12 +38,26 @@ const SHOW_INACTIVE_KEY = 'ubo-projects-show-inactive:v1';
   templateUrl: './projects-list.page.html',
   styles: [
     `
+      .projects-list-toolbar-end {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-left: auto;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+      }
+      .projects-list-toolbar-end .toolbar-search {
+        margin-left: 0;
+      }
       .projects-list-inactive-toggle {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
+        flex-shrink: 0;
         cursor: pointer;
         font-size: var(--fs-sm);
+        white-space: nowrap;
         user-select: none;
       }
     `,

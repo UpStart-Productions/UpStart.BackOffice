@@ -66,9 +66,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
 
   // Users and roles
   'user.hourlyRate': "Used on invoices for this person's time when the project has no hourly rate of its own.",
-  'roles.view': 'None hides the area. Own limits them to their own records (or clients they are assigned to). All shows everything.',
+  'project.team.newLead': "Adds them as this project's Lead: they get a Guest login (by email invite) and see everyone's time, expenses and invoices on this project. If they already have a login here, they keep their role.",
   'roles.overview':
-    'A role decides which parts of the app a user can use. Admins can do everything. View sets what they see (None, Own, or All). Checkboxes set Create, Edit, Delete, and Setup. Built-in roles can be edited or reset.',
+    'Every organization has three roles: Admin, Member and Guest. They can\'t be changed. What else someone sees comes from assignment: the projects they are on (as a Lead or a Member) and, for Guests, the clients they are assigned to.',
 
   // Invoices
   'invoice.billToEmail': 'Where Send emails this invoice by default. You can pick a different address when sending.',
@@ -237,11 +237,13 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'tm.addProjectToTasks':
     'Only existing projects can be added to Tasks. Create new projects on the Projects page first.',
   'tm.notificationsEmailPrefs':
-    'Moved to My Account → Email notifications. In-app alerts always appear in the bell and inbox; toggles there control email too.',
+    'Moved to My Account → Notifications. Choose in-app, email, and (later) push per type.',
   'account.email':
     'This is your sign-in address. If you change it, use the new email the next time you sign in.',
   'account.emailNotifications':
-    'In-app notifications always appear in the bell and Task Manager inbox. Choose which types also send email. Files attached, due date changes, moves and new subtasks are off until you turn them on.',
+    'Moved to Notifications on this page — use that panel for in-app and email.',
+  'account.notifications':
+    'Types appear only when your role can receive them. Defaults: in-app on, email on (except busy task updates — attachment, due date, move, subtask — email off until you turn it on). Push is coming soon.',
 
   // Platform
   'platform.guideSetup':

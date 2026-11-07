@@ -2,8 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
-import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { adminAppBaseUrl, NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 import { DEFAULT_TENANT_ID } from './communications.constants';
 import { FileInteractionDto, ForwardInteractionDto, LogInteractionDto } from './dto/communications.dto';
@@ -144,7 +143,7 @@ export class InteractionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
-    private readonly notifications: NotificationsService,
+    private readonly delivery: NotificationDeliveryService,
   ) {}
 
   /** Filed interactions for one client (account) or lead, newest first. */
@@ -441,10 +440,10 @@ export class InteractionsService {
             ? ['people', dto.contactId]
             : undefined;
       const kind = ACTIVITY_KIND[dto.type] ?? 'Activity';
-      for (const t of mentionedTeammates) {
-        await this.notifications.create({
+      await this.delivery.deliverMany(
+        mentionedTeammates.map((t) => ({
           userId: t.id,
-          type: 'activity_mention',
+          type: 'activity_mention' as const,
           title: `${actorName} mentioned you in a ${kind.toLowerCase()}`,
           body: dto.subject?.trim() || snippetOf(dto.bodyText) || kind,
           meta: {
@@ -454,8 +453,8 @@ export class InteractionsService {
             actorUserId: user.id,
             actorLabel: actorName,
           },
-        });
-      }
+        })),
+      );
     }
     return toInteractionView(created as InteractionRow, true);
   }
@@ -547,10 +546,10 @@ export class InteractionsService {
     }
 
     const notifyIds = users.map((u) => u.id);
-    for (const userId of notifyIds) {
-      await this.notifications.create({
+    await this.delivery.deliverMany(
+      notifyIds.map((userId) => ({
         userId,
-        type: 'activity_forwarded',
+        type: 'activity_forwarded' as const,
         title: `${actorName} forwarded an activity`,
         body: title,
         meta: {
@@ -560,8 +559,8 @@ export class InteractionsService {
           actorUserId: actor.id,
           actorLabel: actorName,
         },
-      });
-    }
+      })),
+    );
 
     return { emailed, notified: notifyIds.length, failed };
   }

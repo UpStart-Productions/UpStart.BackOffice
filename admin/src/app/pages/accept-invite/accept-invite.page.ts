@@ -164,7 +164,7 @@ export class AcceptInvitePage implements OnInit {
     }
     this.saving.set(true);
     try {
-      const res = await this.api.post<{ email: string; projectId: string | null }>(
+      const res = await this.api.post<{ email: string; projectId: string | null; projectInTaskManager?: boolean }>(
         `/invites/${encodeURIComponent(this.token)}/accept`,
         { firstName: this.firstName.trim(), lastName: this.lastName.trim(), ...(info.usesPassword ? { password: this.password } : {}) },
       );
@@ -176,7 +176,9 @@ export class AcceptInvitePage implements OnInit {
       this.auth.baseEmail = res.email;
       this.session.reset();
       await this.session.getReady();
-      await this.router.navigate(res.projectId ? ['/tasks/projects', res.projectId] : ['/dashboard']);
+      await this.router.navigate(
+        res.projectId ? (res.projectInTaskManager === false ? ['/projects', res.projectId] : ['/tasks/projects', res.projectId]) : ['/dashboard'],
+      );
     } catch (err) {
       this.error.set(this.clean(err));
     } finally {

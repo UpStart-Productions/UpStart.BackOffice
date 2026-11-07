@@ -105,14 +105,16 @@ export class InvoicesController {
   ) {}
 
   /**
-   * Own invoices when the role says so. Client invoices only for clients the user can reach;
+   * Own invoices when the role says so (plus invoices with time or expenses from projects they lead). Client invoices only for clients the user can reach;
    * invoices billed to the tenant have no client, so anyone at 'all' sees them.
    */
   private async scope(user: UserContext): Promise<Prisma.InvoiceWhereInput> {
     const clientIds = await this.access.clientIdFilter(user);
     return {
-      ...(this.ownOnly(user) ? { createdById: user.id } : {}),
-      ...(clientIds ? { OR: [{ clientId: clientIds }, { clientId: null }] } : {}),
+      AND: [
+        this.ownOnly(user) ? await this.access.ownInvoiceWhere(user) : {},
+        clientIds ? { OR: [{ clientId: clientIds }, { clientId: null }] } : {},
+      ],
     };
   }
 

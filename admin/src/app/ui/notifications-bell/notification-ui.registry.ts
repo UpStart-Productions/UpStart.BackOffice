@@ -16,8 +16,8 @@ export type NotificationUiAction = {
  * Per-type UI extensions for the bell. Add entries here when a notification needs
  * more than title + link + mark read (e.g. inline approve/decline).
  *
- * Delivery: add the type to `NOTIFICATION_TYPES` in libs/shared and create rows via
- * `NotificationDeliveryService.deliver()` on the API.
+ * Delivery: register the type in `libs/shared` (`notifications.ts` + `notification-registry.ts`)
+ * and send via `NotificationDeliveryService.deliver()` (respects in-app / email / push prefs).
  */
 export function notificationUiActions(_notification: UserNotificationDto): NotificationUiAction[] {
   return [];

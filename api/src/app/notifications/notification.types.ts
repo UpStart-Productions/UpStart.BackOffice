@@ -2,8 +2,11 @@ import type { NotificationMeta, NotificationType } from '@upstart/back-office/sh
 
 export type {
   EmailPreferences,
+  InAppPreferences,
+  NotificationChannelPreferences,
   NotificationMeta,
   NotificationType,
+  PushPreferences,
   UserNotificationDto,
 } from '@upstart/back-office/shared';
 

@@ -16,7 +16,7 @@ export function adminAppBaseUrl(): string {
   return 'http://localhost:4201';
 }
 
-/** Creates the in-app notification, then emails it if the user's preference allows. */
+/** Delivers in-app, email, and (later) push based on per-user channel preferences. */
 @Injectable()
 export class NotificationDeliveryService {
   private readonly logger = new Logger(NotificationDeliveryService.name);
@@ -28,12 +28,24 @@ export class NotificationDeliveryService {
   ) {}
 
   async deliver(input: CreateNotificationInput): Promise<void> {
-    await this.notifications.create(input);
-    if (process.env.TASK_EMAIL_NOTIFICATIONS === 'off') return;
+    const type = input.type;
+    const [inAppOn, emailOn, pushOn] = await Promise.all([
+      this.notifications.isChannelEnabled(input.userId, type, 'inApp'),
+      this.notifications.isChannelEnabled(input.userId, type, 'email'),
+      this.notifications.isChannelEnabled(input.userId, type, 'push'),
+    ]);
+
+    if (inAppOn) {
+      await this.notifications.create(input);
+    }
+
+    if (pushOn) {
+      await this.deliverPush(input);
+    }
+
+    if (!emailOn || process.env.TASK_EMAIL_NOTIFICATIONS === 'off') return;
 
     try {
-      const prefs = await this.notifications.getEmailPreferences(input.userId);
-      if (!prefs[input.type]) return;
       // By id, unscoped: a super user's row lives outside the tenant the notification belongs to.
       const user = await runUnscoped(() =>
         this.prisma.user.findUnique({
@@ -64,5 +76,10 @@ export class NotificationDeliveryService {
 
   async deliverMany(inputs: CreateNotificationInput[]): Promise<void> {
     for (const input of inputs) await this.deliver(input);
+  }
+
+  /** Hook for mobile push when device tokens exist. No-op until then. */
+  protected async deliverPush(_input: CreateNotificationInput): Promise<void> {
+    // Reserved for FCM/APNs integration.
   }
 }

@@ -2,11 +2,13 @@ import { Component, signal, viewChild } from '@angular/core';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ContactSummary } from '../../core/communications.api';
-import { CreatePersonFormComponent } from './create-person-form.component';
+import { CreatedPerson, CreatePersonFormComponent } from './create-person-form.component';
 
 export type CreatePersonModalOptions = {
   clientId?: string | null;
   linkClientRole?: string;
+  /** On a saved project: offer "Make lead". */
+  offerLead?: boolean;
 };
 
 @Component({
@@ -31,6 +33,7 @@ export type CreatePersonModalOptions = {
         [defaultClientId]="defaultClientId()"
         [defaultRole]="defaultRole()"
         [showOrgPicker]="showOrgPicker()"
+        [showLeadOption]="offerLead()"
         (created)="close($event)"
         (cancelled)="close(null)"
       />
@@ -44,13 +47,15 @@ export class CreatePersonModalComponent {
   readonly defaultClientId = signal<string | null>(null);
   readonly defaultRole = signal('');
   readonly showOrgPicker = signal(true);
+  readonly offerLead = signal(false);
 
-  private resolve: ((value: ContactSummary | null) => void) | null = null;
+  private resolve: ((value: CreatedPerson | null) => void) | null = null;
 
-  open(options: CreatePersonModalOptions = {}): Promise<ContactSummary | null> {
+  open(options: CreatePersonModalOptions = {}): Promise<CreatedPerson | null> {
     this.defaultClientId.set(options.clientId ?? null);
     this.defaultRole.set(options.linkClientRole ?? '');
     this.showOrgPicker.set(options.clientId === undefined);
+    this.offerLead.set(!!options.offerLead);
     this.visible.set(true);
     return new Promise((resolve) => {
       this.resolve = resolve;
@@ -65,7 +70,7 @@ export class CreatePersonModalComponent {
     if (!visible) this.close(null);
   }
 
-  close(result: ContactSummary | null) {
+  close(result: CreatedPerson | null) {
     this.visible.set(false);
     this.resolve?.(result);
     this.resolve = null;
