@@ -26,6 +26,7 @@ import { extractMentionedUserIds, htmlToPlainText } from './task-mentions.util';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
 import { personName, personSelect, superUserMembers } from './task-people.util';
 import { runUnscoped } from '../tenancy/tenant-context';
+import { taskSearchWhere } from './task-search.util';
 
 const reportTaskInclude = {
   assignee: { select: personSelect },
@@ -84,21 +85,28 @@ export class TasksService {
 
   // ── Queries ───────────────────────────────────────────────────────────────
 
-  async listForProject(user: UserContext, projectId: string, completed: 'incomplete' | 'completed' | 'all' = 'all') {
+  async listForProject(
+    user: UserContext,
+    projectId: string,
+    completed: 'incomplete' | 'completed' | 'all' = 'all',
+    rawQuery?: string,
+  ) {
     await this.access.assertProject(user, projectId, 'view');
+    const q = rawQuery?.trim();
     const done = {
       ...(completed === 'incomplete' ? { isCompleted: false } : {}),
       ...(completed === 'completed' ? { isCompleted: true } : {}),
     };
+    const text = q ? taskSearchWhere(q) : {};
     const [rows, links] = await Promise.all([
       this.prisma.task.findMany({
-        where: { projectId, parentTaskId: null, ...done },
+        where: { projectId, parentTaskId: null, ...done, ...text },
         include: taskSummaryInclude,
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       }),
       // Tasks from other projects that are also listed here (own section + position in this project).
       this.prisma.taskProjectLink.findMany({
-        where: { projectId, task: { parentTaskId: null, ...done } },
+        where: { projectId, task: { parentTaskId: null, ...done, ...text } },
         include: { task: { include: taskSummaryInclude } },
       }),
     ]);

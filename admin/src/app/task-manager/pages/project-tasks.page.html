@@ -107,10 +107,10 @@
       />
       <div class="tm-toolbar-search">
         <app-toolbar-search-field
-          placeholder="Filter tasks"
-          ariaLabel="Filter tasks by name"
+          placeholder="Search tasks"
+          ariaLabel="Search tasks"
           [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
+          (ngModelChange)="onSearchChange($event)"
         />
       </div>
     </div>

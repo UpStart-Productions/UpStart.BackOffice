@@ -203,11 +203,18 @@ export class TmTaskDetailComponent implements OnDestroy {
     this.closed.emit();
   }
 
+  /** True when this fetch is still the active load for the task shown in the pane. */
+  private isCurrentLoad(seq: number, id: string): boolean {
+    return seq === this.loadSeq && id === this.taskId();
+  }
+
   async load(id: string, quiet = false) {
+    if (quiet && id !== this.taskId()) return;
     const seq = ++this.loadSeq;
     if (!quiet) {
       this.loading.set(true);
       this.error.set(null);
+      if (this.task()?.id !== id) this.task.set(null);
     }
     if (id !== this.loadedTaskId) {
       this.loadedTaskId = id;
@@ -216,28 +223,35 @@ export class TmTaskDetailComponent implements OnDestroy {
     }
     try {
       const task = await this.api.getTask(id);
-      if (seq !== this.loadSeq) return;
+      if (!this.isCurrentLoad(seq, id)) return;
       this.task.set(task);
       this.nameDraft = task.name;
       if (!this.descriptionDirty || !quiet) {
         this.descriptionDraft = task.description ?? '';
         this.descriptionDirty = false;
       }
-      this.store.people(task.projectId).then((p) => this.people.set(p)).catch(() => undefined);
+      void this.store
+        .people(task.projectId)
+        .then((p) => {
+          if (this.isCurrentLoad(seq, id)) this.people.set(p);
+        })
+        .catch(() => undefined);
     } catch (err) {
-      if (seq === this.loadSeq) this.error.set(err instanceof Error ? err.message : 'Could not load task');
+      if (this.isCurrentLoad(seq, id)) this.error.set(err instanceof Error ? err.message : 'Could not load task');
     } finally {
-      if (seq === this.loadSeq) this.loading.set(false);
+      if (this.isCurrentLoad(seq, id)) this.loading.set(false);
     }
   }
 
   private async patch(patch: Parameters<TmApiService['updateTask']>[1]) {
     const t = this.task();
     if (!t) return;
+    const taskId = t.id;
     try {
-      const summary = await this.api.updateTask(t.id, patch);
+      const summary = await this.api.updateTask(taskId, patch);
+      if (this.taskId() !== taskId) return;
       this.changed.emit(summary);
-      await this.load(t.id, true);
+      await this.load(taskId, true);
     } catch (err) {
       this.fail(err);
     }

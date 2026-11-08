@@ -122,7 +122,7 @@ export class TaskManagerController {
 
   @Get('projects/:id/tasks')
   listTasks(@Req() req: Request, @Param('id') id: string, @Query() query: TaskListQueryDto) {
-    return this.tasks.listForProject(me(req), id, query.completed ?? 'all');
+    return this.tasks.listForProject(me(req), id, query.completed ?? 'all', query.q);
   }
 
   @Get('projects/:id/people')

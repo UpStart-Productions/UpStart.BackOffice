@@ -133,6 +133,12 @@ export class TaskListQueryDto {
   @IsOptional()
   @IsIn(['incomplete', 'completed', 'all'])
   completed?: 'incomplete' | 'completed' | 'all';
+  @ApiPropertyOptional({ description: 'Search tasks in this project (name, description, tags, people, comments, …)' })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(200)
+  q?: string;
 }
 
 export class TaskSearchQueryDto {

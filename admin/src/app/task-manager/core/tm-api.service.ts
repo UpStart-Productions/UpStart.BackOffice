@@ -121,8 +121,11 @@ export class TmApiService {
   }
 
   // Tasks
-  listTasks(projectId: string, completed: 'incomplete' | 'completed' | 'all' = 'all') {
-    return this.api.get<TaskSummary[]>(`/tm/projects/${projectId}/tasks?completed=${completed}`);
+  listTasks(projectId: string, completed: 'incomplete' | 'completed' | 'all' = 'all', q?: string) {
+    const params = new URLSearchParams({ completed });
+    const query = q?.trim();
+    if (query) params.set('q', query);
+    return this.api.get<TaskSummary[]>(`/tm/projects/${projectId}/tasks?${params}`);
   }
   myTasks(completedDays = 0) {
     return this.api.get<MyTask[]>(`/tm/my-tasks${completedDays ? `?completedDays=${completedDays}` : ''}`);

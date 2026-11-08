@@ -11,7 +11,7 @@ import { AppPopoverModule } from '../../core/app-popover.module';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
-import { filter, map, merge, of } from 'rxjs';
+import { filter, map, merge, of, startWith, switchMap } from 'rxjs';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import {
@@ -97,7 +97,16 @@ export class ProjectTasksPage implements OnDestroy {
   readonly taskId = toSignal(
     this.router.events.pipe(
       filter((e) => e instanceof NavigationEnd),
-      map(() => this.childTaskId()),
+      startWith(null),
+      switchMap(() => {
+        const child = this.route.firstChild;
+        return child
+          ? child.paramMap.pipe(
+              map((p) => p.get('taskId')),
+              startWith(child.snapshot.paramMap.get('taskId')),
+            )
+          : of<string | null>(null);
+      }),
     ),
     { initialValue: this.childTaskId() },
   );
@@ -138,6 +147,7 @@ export class ProjectTasksPage implements OnDestroy {
   addingSection = signal(false);
   selectedIds = signal<Set<string>>(new Set());
   private selectionAnchorId: string | null = null;
+  private searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
   readonly filterOptions = [
     { label: 'All', value: 'all' },
@@ -180,13 +190,12 @@ export class ProjectTasksPage implements OnDestroy {
   readonly groups = computed<Group[]>(() => {
     const project = this.project();
     if (!project) return [];
-    const q = this.search().trim().toLowerCase();
+    const q = this.search().trim();
     const filter = this.completedFilter();
     const tagIds = this.tagFilter();
     const justAdded = this.justAdded();
     const visible = this.tasks().filter((t) => {
       if (justAdded.has(t.id)) return true;
-      if (q && !t.name.toLowerCase().includes(q)) return false;
       if (tagIds.length && !t.tags.some((tag) => tagIds.includes(tag.id))) return false;
       if (filter === 'completed') return t.isCompleted;
       return true; // 'incomplete' keeps just-completed tasks visible until reload (Asana behavior)
@@ -204,7 +213,7 @@ export class ProjectTasksPage implements OnDestroy {
     for (const s of [...project.sections].sort((a, b) => a.sortOrder - b.sortOrder)) {
       groups.push({ section: s, tasks: bySection.get(s.id) ?? [] });
     }
-    return groups;
+    return q ? groups.filter((g) => g.tasks.length > 0) : groups;
   });
 
   readonly dropListIds = computed(() => this.groups().map((g) => this.dropId(g)));
@@ -230,6 +239,7 @@ export class ProjectTasksPage implements OnDestroy {
 
   ngOnDestroy() {
     this.loadSeq++;
+    if (this.searchDebounce) clearTimeout(this.searchDebounce);
   }
 
   private childTaskId(): string | null {
@@ -254,7 +264,7 @@ export class ProjectTasksPage implements OnDestroy {
     try {
       const [project, tasks] = await Promise.all([
         this.api.getProject(projectId),
-        this.api.listTasks(projectId, this.completedFilter()),
+        this.api.listTasks(projectId, this.completedFilter(), this.search().trim() || undefined),
       ]);
       if (seq !== this.loadSeq) return;
       this.project.set(project);
@@ -278,6 +288,13 @@ export class ProjectTasksPage implements OnDestroy {
     this.tagFilter.set(value ?? []);
     this.justAdded.set(new Set());
     this.persistBoardPrefs();
+  }
+
+  onSearchChange(value: string) {
+    this.search.set(value);
+    this.justAdded.set(new Set());
+    if (this.searchDebounce) clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => void this.load(this.projectId(), true), 300);
   }
 
   sectionCollapsed(sectionId: string): boolean {
