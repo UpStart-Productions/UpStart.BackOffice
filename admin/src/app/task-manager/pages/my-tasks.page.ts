@@ -64,7 +64,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                     <i class="pi" [class.pi-chevron-down]="!collapsed().has(b.key)" [class.pi-chevron-right]="collapsed().has(b.key)"></i>
                   </button>
                   <h2 class="tm-section-name" [class.tm-overdue-heading]="b.key === 'overdue'">{{ b.label }}</h2>
-                  <span class="tm-section-count">{{ b.tasks.length }}</span>
+                  <span class="count-badge" [class.count-badge--muted]="!b.tasks.length">{{ b.tasks.length }}</span>
                 </div>
                 <div class="tm-section-collapse" [class.is-collapsed]="collapsed().has(b.key)">
                   <div class="tm-section-collapse-inner">

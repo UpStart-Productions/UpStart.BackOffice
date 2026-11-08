@@ -104,7 +104,7 @@
             <div class="pipeline-col-header no-setup">
               <span class="lane-name lane-name-static">{{ sectionDisplayName(g) }}</span>
               <span class="lane-header-right">
-                <span class="count-badge pipeline-lane-count">{{ g.tasks.length }}</span>
+                <span class="count-badge pipeline-lane-count" [class.count-badge--muted]="!g.tasks.length">{{ g.tasks.length }}</span>
                 @if (canEdit()) {
                   <button
                     type="button"
@@ -246,7 +246,7 @@
               } @else {
                 <h2 class="tm-section-name" [class.tm-section-name--editable]="canEdit()" (click)="startRenameSection(s)">{{ s.name }}</h2>
               }
-              <span class="tm-section-count">{{ g.tasks.length }}</span>
+              <span class="count-badge" [class.count-badge--muted]="!g.tasks.length">{{ g.tasks.length }}</span>
               @if (canEdit()) {
                 <button type="button" class="tm-icon-btn tm-icon-btn-sm tm-section-add" (click)="startAdd(g)" pTooltip="Add task" aria-label="Add task to section"><i class="pi pi-plus"></i></button>
                 <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="openSectionMenu($event, s)" aria-label="Section actions"><i class="pi pi-ellipsis-h"></i></button>
@@ -254,7 +254,7 @@
             } @else {
               <span class="tm-icon-spacer"></span>
               <h2 class="tm-section-name tm-muted">Untitled section</h2>
-              <span class="tm-section-count">{{ g.tasks.length }}</span>
+              <span class="count-badge" [class.count-badge--muted]="!g.tasks.length">{{ g.tasks.length }}</span>
             }
           </div>
 

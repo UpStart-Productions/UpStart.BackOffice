@@ -13,7 +13,7 @@ import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class CognitoAuthService {
   private cachedIdToken: string | null = null;
-  private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private _wasOAuthCallback = false;
 
   get wasOAuthCallback(): boolean {
@@ -51,9 +51,18 @@ export class CognitoAuthService {
     return environment.useCognito && !!environment.cognito;
   }
 
-  async init(): Promise<void> {
-    if (!this.useCognito || this.initialized) return;
-    this.initialized = true;
+  /**
+   * Finishes a Google sign-in (the ?code= return) and loads the session. Every caller gets the same
+   * promise, so guards and API calls wait for it: the router's first navigation runs alongside app
+   * initializers and would otherwise redirect away from ?code= before Amplify exchanges it for tokens.
+   */
+  init(): Promise<void> {
+    if (!this.useCognito) return Promise.resolve();
+    this.initPromise ??= this.runInit();
+    return this.initPromise;
+  }
+
+  private async runInit(): Promise<void> {
 
     if (typeof window !== 'undefined') {
       this.normalizeOAuthCallbackUrl();
@@ -242,6 +251,7 @@ export class CognitoAuthService {
 
   async getIdToken(): Promise<string | null> {
     if (!this.useCognito) return null;
+    await this.init();
     try {
       const session = await fetchAuthSession();
       this.cachedIdToken = session.tokens?.idToken?.toString() ?? null;
