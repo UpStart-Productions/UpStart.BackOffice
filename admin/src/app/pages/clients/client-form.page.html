@@ -122,20 +122,64 @@
               (onEditorCreated)="onNotesEditor($event)"
             ></quill-editor>
           </div>
-          @if (isClient) {
-            <div class="form-field showcase-full">
-              <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
-              <input
-                pInputText
-                id="code"
-                name="code"
-                [(ngModel)]="form.code"
-                class="w-full"
-                placeholder="UPSP"
-                maxlength="8"
-                style="text-transform: uppercase"
-              />
+          @if (isClient && !isClientFlow && !isNew) {
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
+                <input
+                  pInputText
+                  id="code"
+                  name="code"
+                  [(ngModel)]="form.code"
+                  class="w-full"
+                  placeholder="UPSP"
+                  maxlength="8"
+                  style="text-transform: uppercase"
+                />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="journey">Status <app-help-text key="organization.journey" /></label>
+                <p-selectbutton
+                  inputId="journey"
+                  name="journey"
+                  [options]="journeyOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [(ngModel)]="form.journey"
+                  [allowEmpty]="false"
+                />
+              </div>
             </div>
+          } @else {
+            @if (isClient) {
+              <div class="form-field showcase-full">
+                <label for="code">Invoice Code <app-help-text key="organization.invoiceCode" /></label>
+                <input
+                  pInputText
+                  id="code"
+                  name="code"
+                  [(ngModel)]="form.code"
+                  class="w-full"
+                  placeholder="UPSP"
+                  maxlength="8"
+                  style="text-transform: uppercase"
+                />
+              </div>
+            }
+            @if (!isClientFlow && !isNew) {
+              <div class="form-field showcase-full">
+                <label for="journey">Status <app-help-text key="organization.journey" /></label>
+                <p-selectbutton
+                  inputId="journey"
+                  name="journey"
+                  [options]="journeyOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [(ngModel)]="form.journey"
+                  [allowEmpty]="false"
+                />
+              </div>
+            }
           }
           <div class="showcase-row">
             <div class="form-field showcase-half">
@@ -157,20 +201,6 @@
               />
             </div>
           </div>
-          @if (!isClientFlow && !isNew) {
-            <div class="form-field showcase-full">
-              <label for="journey">Status <app-help-text key="organization.journey" /></label>
-              <p-selectbutton
-                inputId="journey"
-                name="journey"
-                [options]="journeyOptions"
-                optionLabel="label"
-                optionValue="value"
-                [(ngModel)]="form.journey"
-                [allowEmpty]="false"
-              />
-            </div>
-          }
           <div class="showcase-row">
             <div class="form-field showcase-half">
               <label for="orgFocus">Focus areas <app-help-text key="organization.focusAreas" /></label>
