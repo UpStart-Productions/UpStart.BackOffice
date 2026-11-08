@@ -50,7 +50,7 @@ Opportunities only: people move through lanes as conversations happen, sometimes
 
 Each opportunity card is its own record: organization name and contact details on the card, people on the **People** panel (real records in **People**). Invoice cards show the invoice number, client, status and total; drag them like any other card. **New Lead** opens the full card immediately (People included) and adds it to the first lane; enter the organization name and **Save**. Link an existing organization with **Open organization** after **Make client** or by promoting the card. Drag cards between lanes; lanes track the conversation and do not change status. A current client can get a new card later for another piece of work.
 
-Each card leads with the **next step**: what you plan to do next and its due date, then how long since the last contact ("Contacted 12 days ago", or "No contact"). A red warning icon next to the card's menu means the next step is overdue; hover it for the date. The card menu's **View people** lists everyone at the card's organization with role, email and phone.
+Each card leads with the **next step**: what you plan to do next and its due date, then how long since the last contact ("Contacted 12 days ago", or "No contact"). A red warning icon next to the card's menu means the next step is overdue; hover it for the date. The card menu's **View people** lists everyone at the card's organization with role, email and phone. When you have more than one pipeline, the card menu includes **Move to pipeline** (pick the pipeline; the card goes to that pipeline's first lane).
 
 **Lanes on the board:**
 - **Edit Lanes** at the end of the board opens a dialog to add a lane, remove lanes (when your role allows), or **Show** lanes you hid for yourself.

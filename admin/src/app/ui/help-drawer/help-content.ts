@@ -256,7 +256,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Cards',
-        body: 'Each card leads with its next step and due date, then how long since the last contact. A red warning icon means the next step is overdue; hover it for the date. View people in the card menu lists everyone on the card.',
+        body: 'Each card leads with its next step and due date, then how long since the last contact. A red warning icon means the next step is overdue; hover it for the date. View people in the card menu lists everyone on the card. With more than one pipeline, Move to pipeline in the card menu sends the card to the first lane of the pipeline you pick.',
       },
       {
         heading: 'Moving cards',

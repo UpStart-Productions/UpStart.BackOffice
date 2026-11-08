@@ -400,6 +400,30 @@ export class PipelineBoardPage implements OnInit {
     void this.moveCard(lead, target);
   }
 
+  private async moveLeadToPipeline(lead: Lead, targetPipelineId: string) {
+    const currentPipelineId = lead.pipelineId ?? this.pipelineId();
+    if (!targetPipelineId || targetPipelineId === currentPipelineId) return;
+    const target = this.pipelines().find((p) => p.id === targetPipelineId);
+    const stageId = target?.stages[0]?.id;
+    if (!stageId) {
+      this.error.set('That pipeline has no lanes.');
+      return;
+    }
+    try {
+      await this.api.put(`/leads/${lead.id}`, { pipelineId: targetPipelineId, stageId });
+      this.leads.update((list) => list.filter((l) => l.id !== lead.id));
+      void this.refreshCounts();
+      this.toast.add({
+        severity: 'success',
+        summary: 'Moved',
+        detail: `"${lead.organization}" moved to ${target?.name ?? 'pipeline'}`,
+        life: 2500,
+      });
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Failed to move card');
+    }
+  }
+
   private async moveCard(lead: Lead, stageId: string) {
     const previous = lead.stageId ?? null;
     this.patchLead(lead.id, { stageId });
@@ -431,12 +455,15 @@ export class PipelineBoardPage implements OnInit {
     };
     const contacts: RowActionItem = { id: 'contacts', label: 'View people', icon: 'pi pi-users', command: () => this.openContacts(lead) };
     const del: RowActionItem = { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) };
+    const movePipeline = this.pipelineMoveSelect(lead);
     if (this.isInvoiceCard(lead)) {
       const actions: RowActionItem[] = [open];
+      if (movePipeline) actions.push(movePipeline);
       if (this.canDelete()) actions.push(del);
       return actions;
     }
     const actions: RowActionItem[] = [open, contacts];
+    if (movePipeline) actions.push(movePipeline);
     if (!this.canEdit()) return this.canDelete() ? [...actions, del] : actions;
     if (lead.client?.journey !== 'CLIENT') {
       actions.push({
@@ -448,6 +475,20 @@ export class PipelineBoardPage implements OnInit {
     }
     if (this.canDelete()) actions.push(del);
     return actions;
+  }
+
+  private pipelineMoveSelect(lead: Lead): RowActionItem | null {
+    if (!this.canEdit() || this.pipelines().length <= 1) return null;
+    const currentPipelineId = lead.pipelineId ?? this.pipelineId() ?? '';
+    return {
+      kind: 'select',
+      id: 'pipeline',
+      icon: 'pi pi-arrow-right-arrow-left',
+      ariaLabel: 'Move to pipeline',
+      options: this.pipelines().map((p) => ({ label: p.name, value: p.id })),
+      value: currentPipelineId,
+      onChange: (pipelineId) => void this.moveLeadToPipeline(lead, pipelineId),
+    };
   }
 
   confirmDelete(lead: Lead) {
