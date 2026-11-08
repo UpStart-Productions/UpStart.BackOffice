@@ -40,9 +40,13 @@ import { HelpTextComponent } from '../help-text/help-text.component';
           <ng-content select="[pageLead]" />
           <div class="page-header-title-block">
             <h1 class="page-title page-header-title">
-              {{ title() }}
-              @if (helpKey(); as key) {
-                <app-help-text [key]="key" />
+              @if (customTitle()) {
+                <ng-content select="[pageTitle]" />
+              } @else {
+                {{ title() }}
+                @if (helpKey(); as key) {
+                  <app-help-text [key]="key" />
+                }
               }
             </h1>
             <div class="page-header-title-trail">
@@ -71,6 +75,8 @@ import { HelpTextComponent } from '../help-text/help-text.component';
 })
 export class PageComponent {
   title = input.required<string>();
+  /** When true, `[pageTitle]` replaces the default title line (help still belongs in the slot if needed). */
+  customTitle = input(false);
   /** Legacy: hide the header. Only for pages not yet moved to the shared header. */
   skipTitle = input(false);
   /** Shows the back arrow before the title. */

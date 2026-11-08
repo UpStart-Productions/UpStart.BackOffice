@@ -21,6 +21,7 @@ Every back-office page has the same header, rendered by `app-page`
 
 - `title` (required), `backLink` + `backLabel` (shows the back arrow), `helpKey` (ⓘ after the title).
 - `pageLead` slot: an avatar or color tile shown just before the title (person page, Task Manager project).
+- `customTitle` + `pageTitle` slot: replaces the default title line (Task Manager project rename in the header).
 - `pageTitleTrail` slot: content immediately after the title (e.g. `app-record-attribution` on edit screens).
 - `pageMeta` slot: status tags (`p-tag`), related-record chips/links (person, Open organization).
 - `pageActions` slot: buttons, right-aligned.

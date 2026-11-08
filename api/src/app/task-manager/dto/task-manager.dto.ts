@@ -24,12 +24,14 @@ const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? val
 // ── Projects ────────────────────────────────────────────────────────────────
 
 export class AddToTasksDto {
+  @ApiPropertyOptional() @Transform(trim) @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) icon?: string | null;
 }
 
-/** Tasks-only project settings. Name, client, billing and active status are edited on the Projects page. */
+/** Task Manager project settings from the project board (name, color, icon). Billing and client link stay on the Projects page. */
 export class UpdateTmProjectDto {
+  @ApiPropertyOptional() @Transform(trim) @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) icon?: string | null;
 }

@@ -29,6 +29,7 @@ import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmFieldCellComponent } from '../ui/field-cell.component';
 import { TmFieldsDialogComponent } from '../ui/fields-dialog.component';
 import { TmContactsDialogComponent } from '../ui/contacts-dialog.component';
+import { TmEditProjectDialogComponent } from '../ui/edit-project-dialog.component';
 import { TmMembersDialogComponent } from '../ui/members-dialog.component';
 import { TmPersonPickerComponent } from '../ui/person-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
@@ -69,6 +70,7 @@ const NO_SECTION = '__none__';
     TmDueDatePickerComponent,
     TmFieldCellComponent,
     TmTaskDetailComponent,
+    TmEditProjectDialogComponent,
     TmMembersDialogComponent,
     TmContactsDialogComponent,
     TmFieldsDialogComponent,
@@ -123,6 +125,9 @@ export class ProjectTasksPage implements OnDestroy {
   /** Per-user collapsed sections (localStorage); not shared via API. */
   collapsedSectionIds = signal<Set<string>>(new Set());
   membersOpen = signal(false);
+  editProjectOpen = signal(false);
+  editingProjectName = signal(false);
+  projectNameDraft = '';
   contactsOpen = signal(false);
   fieldsOpen = signal(false);
   addingIn = signal<string | null>(null);
@@ -961,27 +966,52 @@ export class ProjectTasksPage implements OnDestroy {
     if (this.canEdit()) this.colorMenu().toggle(event, event.currentTarget as HTMLElement);
   }
 
+  startProjectNameEdit() {
+    const p = this.project();
+    if (!p || !this.canEdit()) return;
+    this.projectNameDraft = p.name;
+    this.editingProjectName.set(true);
+    setTimeout(() => (document.querySelector('.page-header-title-input') as HTMLInputElement | null)?.select(), 0);
+  }
+
+  cancelProjectNameEdit() {
+    this.editingProjectName.set(false);
+    this.projectNameDraft = '';
+  }
+
+  async saveProjectName() {
+    const p = this.project();
+    if (!p || !this.editingProjectName()) return;
+    const next = this.projectNameDraft.trim();
+    this.editingProjectName.set(false);
+    if (!next || next === p.name) return;
+    await this.patchProject({ name: next });
+  }
+
   async setIcon(icon: string | null) {
     const p = this.project();
     this.colorMenu().hide();
     if (!p) return;
-    this.project.set({ ...p, icon });
-    this.store.patchProject(p.id, { icon });
-    try {
-      await this.api.updateProject(p.id, { icon });
-    } catch (err) {
-      this.fail(err);
-    }
+    await this.patchProject({ icon });
   }
 
   async setColor(color: string) {
+    await this.patchProject({ color });
+  }
+
+  private async patchProject(patch: { name?: string; color?: string | null; icon?: string | null }) {
     const p = this.project();
     if (!p) return;
-    this.project.set({ ...p, color });
-    this.store.patchProject(p.id, { color });
+    const prev = { name: p.name, color: p.color, icon: p.icon };
+    this.project.set({ ...p, ...patch });
+    this.store.patchProject(p.id, patch);
     try {
-      await this.api.updateProject(p.id, { color });
+      const updated = await this.api.updateProject(p.id, patch);
+      this.project.set(updated);
+      this.store.patchProject(p.id, { name: updated.name, color: updated.color, icon: updated.icon });
     } catch (err) {
+      this.project.set({ ...p, ...prev });
+      this.store.patchProject(p.id, prev);
       this.fail(err);
     }
   }
@@ -995,7 +1025,15 @@ export class ProjectTasksPage implements OnDestroy {
         : { id: 'board', label: 'View as board', icon: 'pi pi-objects-column', command: () => this.viewAsBoard() },
       { id: 'members', label: 'Members', icon: 'pi pi-users', command: () => this.membersOpen.set(true) },
     ];
-    if (this.canEdit()) items.push({ id: 'fields', label: 'Custom fields', icon: 'pi pi-sliders-h', command: () => this.fieldsOpen.set(true) });
+    if (this.canEdit()) {
+      items.push({
+        id: 'edit-project',
+        label: 'Edit project',
+        icon: 'pi pi-pencil',
+        command: () => this.editProjectOpen.set(true),
+      });
+      items.push({ id: 'fields', label: 'Custom fields', icon: 'pi pi-sliders-h', command: () => this.fieldsOpen.set(true) });
+    }
     if (p?.permissions?.seesAllProjects) {
       items.push({ id: 'open', label: 'Open in projects', icon: 'pi pi-external-link', command: () => void this.router.navigate(['/projects', this.projectId()]) });
     }
@@ -1042,6 +1080,7 @@ export class ProjectTasksPage implements OnDestroy {
 
   onProjectUpdated(project: TmProject) {
     this.project.set(project);
+    this.store.patchProject(project.id, { name: project.name, color: project.color, icon: project.icon });
     this.store.invalidatePeople(project.id);
     this.store.people(project.id).then((p) => this.people.set(p)).catch(() => undefined);
   }

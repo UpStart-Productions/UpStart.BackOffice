@@ -1,5 +1,23 @@
 <div class="tm-page tm-project-page" [class.tm-with-detail]="!!taskId()">
-  <app-page [title]="project()?.name ?? 'Project'">
+  <app-page [title]="project()?.name ?? 'Project'" [customTitle]="canEdit() && !!project()">
+    @if (canEdit() && project(); as p) {
+      <ng-container ngProjectAs="[pageTitle]">
+        @if (editingProjectName()) {
+          <input
+            class="page-header-title-input"
+            [(ngModel)]="projectNameDraft"
+            (blur)="saveProjectName()"
+            (keydown.enter)="saveProjectName()"
+            (keydown.escape)="cancelProjectNameEdit()"
+            aria-label="Project name"
+          />
+        } @else {
+          <button type="button" class="page-header-title-button" (click)="startProjectNameEdit()" [attr.title]="p.name">
+            {{ p.name }}
+          </button>
+        }
+      </ng-container>
+    }
   <ng-container ngProjectAs="[pageLead]">
     @if (project(); as p) {
       <button type="button" class="tm-project-color" [style.background]="p.color || '#94a3b8'" (click)="openColor($event)" [disabled]="!canEdit()" aria-label="Project color and icon" [pTooltip]="canEdit() ? 'Color & icon' : undefined" tooltipPosition="bottom">
@@ -13,12 +31,12 @@
         <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
       </button>
       @if (p.client) {
-        <a class="tm-client-chip" [routerLink]="['/clients', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
+        <a class="tm-client-chip tm-client-chip--header" [routerLink]="['/clients', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
       } @else {
-        <span class="tm-client-chip tm-client-chip--personal">Personal</span>
+        <span class="tm-client-chip tm-client-chip--header tm-client-chip--personal">Personal</span>
       }
       @if (!p.isActive) {
-        <span class="tm-client-chip tm-client-chip--archived">Inactive</span>
+        <span class="tm-client-chip tm-client-chip--header tm-client-chip--archived">Inactive</span>
       }
     }
   </ng-container>
@@ -430,6 +448,7 @@
     <app-tm-members-dialog [(visible)]="membersOpen" [project]="p" (updated)="onProjectUpdated($event)" />
     <app-tm-contacts-dialog [(visible)]="contactsOpen" [project]="p" (updated)="onProjectUpdated($event)" />
     <app-tm-fields-dialog [(visible)]="fieldsOpen" [project]="p" (changed)="onFieldsChanged()" />
+    <app-tm-edit-project-dialog [(visible)]="editProjectOpen" [project]="p" (updated)="onProjectUpdated($event)" />
   }
   </app-page>
 </div>

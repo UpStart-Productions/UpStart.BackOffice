@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { MessageModule } from 'primeng/message';
+import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TmApiService } from '../core/tm-api.service';
 import { PROJECT_COLORS } from '../core/tm-format.util';
@@ -16,7 +17,7 @@ type Available = { id: string; name: string; client: { id: string; name: string 
 @Component({
   selector: 'app-tm-add-project-dialog',
   standalone: true,
-  imports: [LucideIconPickerComponent, FormsModule, AppDialogModule, ButtonModule, SelectModule, MessageModule, HelpTextComponent],
+  imports: [LucideIconPickerComponent, FormsModule, AppDialogModule, ButtonModule, SelectModule, InputTextModule, MessageModule, HelpTextComponent],
   template: `
     <p-dialog header="Add project to Tasks" [(visible)]="visible" [modal]="true" [style]="{ width: '30rem' }" (onShow)="onShow()" [draggable]="false">
       <form (ngSubmit)="add()">
@@ -29,6 +30,7 @@ type Available = { id: string; name: string; client: { id: string; name: string 
             optionLabel="label"
             optionValue="id"
             [(ngModel)]="projectId"
+            (ngModelChange)="onProjectPicked($event)"
             [filter]="true"
             filterBy="label"
             [loading]="loading()"
@@ -36,6 +38,20 @@ type Available = { id: string; name: string; client: { id: string; name: string 
             emptyMessage="Every active project is already in Tasks"
             styleClass="w-full"
             appendTo="body"
+          />
+        </div>
+        <div class="form-field mb-3">
+          <label for="tm-add-project-name">Name</label>
+          <input
+            pInputText
+            id="tm-add-project-name"
+            name="displayName"
+            class="w-full"
+            [(ngModel)]="name"
+            required
+            maxlength="200"
+            [disabled]="!projectId"
+            placeholder="Name in Tasks"
           />
         </div>
         <div class="form-field mb-3">
@@ -55,7 +71,7 @@ type Available = { id: string; name: string; client: { id: string; name: string 
         }
         <div class="form-actions">
           <button type="button" pButton label="Cancel" severity="secondary" (click)="visible.set(false)"></button>
-          <button type="submit" pButton label="Add to Tasks" [loading]="saving()" [disabled]="!projectId || saving()"></button>
+          <button type="submit" pButton label="Add to Tasks" [loading]="saving()" [disabled]="!projectId || !name.trim() || saving()"></button>
         </div>
       </form>
     </p-dialog>
@@ -71,6 +87,7 @@ export class TmAddProjectDialogComponent {
   available = signal<Available[]>([]);
   loading = signal(false);
   projectId: string | null = null;
+  name = '';
   color = PROJECT_COLORS[0];
   icon: string | null = null;
   saving = signal(false);
@@ -78,6 +95,7 @@ export class TmAddProjectDialogComponent {
 
   async onShow() {
     this.projectId = null;
+    this.name = '';
     this.icon = null;
     this.color = PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)];
     this.error.set(null);
@@ -92,12 +110,27 @@ export class TmAddProjectDialogComponent {
     }
   }
 
+  onProjectPicked(id: string | null) {
+    if (!id) {
+      this.name = '';
+      return;
+    }
+    const row = this.available().find((p) => p.id === id);
+    if (row) this.name = row.name;
+  }
+
   async add() {
     if (!this.projectId) return;
+    const trimmed = this.name.trim();
+    if (!trimmed) return;
     this.saving.set(true);
     this.error.set(null);
     try {
-      const project = await this.tm.addProject(this.projectId, this.color, this.icon);
+      const project = await this.tm.addProject(this.projectId, {
+        name: trimmed,
+        color: this.color,
+        icon: this.icon,
+      });
       this.visible.set(false);
       this.added.emit(project);
     } catch (err) {

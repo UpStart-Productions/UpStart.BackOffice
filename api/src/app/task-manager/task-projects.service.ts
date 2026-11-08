@@ -151,7 +151,13 @@ export class TaskProjectsService {
    * Add an existing project to Tasks. Projects are created on the Projects page;
    * Tasks never creates them. First add seeds default sections and makes the adder owner.
    */
-  async addToTaskManager(user: UserContext, projectId: string, color?: string | null, icon?: string | null) {
+  async addToTaskManager(
+    user: UserContext,
+    projectId: string,
+    color?: string | null,
+    icon?: string | null,
+    name?: string,
+  ) {
     if (!this.access.seesAllProjects(user)) throw new BadRequestException('You do not have permission to add projects to Tasks');
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -164,6 +170,7 @@ export class TaskProjectsService {
         where: { id: projectId },
         data: {
           inTaskManager: true,
+          ...(name !== undefined && { name }),
           color: color || project.color || PROJECT_COLORS[enabledCount % PROJECT_COLORS.length],
           ...(icon !== undefined && { icon: icon || null }),
         },
@@ -192,6 +199,7 @@ export class TaskProjectsService {
     await this.prisma.project.update({
       where: { id: projectId },
       data: {
+        ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.color !== undefined && { color: dto.color }),
         ...(dto.icon !== undefined && { icon: dto.icon || null }),
       },

@@ -88,7 +88,7 @@ export class TaskManagerController {
   @Action('edit')
   @Put('projects/:id/tasks-enabled')
   addProject(@Req() req: Request, @Param('id') id: string, @Body() dto: AddToTasksDto) {
-    return this.projects.addToTaskManager(me(req), id, dto?.color, dto?.icon);
+    return this.projects.addToTaskManager(me(req), id, dto?.color, dto?.icon, dto?.name);
   }
 
   /** Remove a project from Tasks (data kept). */
