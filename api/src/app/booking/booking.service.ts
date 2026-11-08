@@ -35,6 +35,27 @@ import { findLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes
 
 export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
 
+/**
+ * The open card on a pipeline for a booking guest: the card's own email, or any email of its person, matches
+ * (case-insensitive). With several, the most recently updated one.
+ */
+export function findOpenCardForGuest(db: Prisma.TransactionClient, pipelineId: string, guestEmail: string) {
+  const email = guestEmail.trim().toLowerCase();
+  return db.lead.findFirst({
+    where: {
+      pipelineId,
+      archivedAt: null,
+      OR: [
+        { email: { equals: email, mode: 'insensitive' } },
+        // ContactEmail is stored lowercased.
+        { contact: { emails: { some: { email } } } },
+      ],
+    },
+    orderBy: { updatedAt: 'desc' },
+    select: { id: true },
+  });
+}
+
 type BookingTypeWithRules = BookingType & {
   availabilityRules: { dayOfWeek: number; startMinute: number; endMinute: number }[];
   host: { email: string; name: string | null; firstName: string | null };
@@ -468,16 +489,32 @@ export class BookingService {
     const typeLane =
       (type.leadStageId ? await findLane(tx, type.leadStageId) : null) ?? (await laneForLegacy(tx, type.leadStage));
 
+    const bookingFields = {
+      ...laneFields(typeLane),
+      nextAction: `${type.name} scheduled`,
+      nextActionDate: startAt,
+      lastContactDate: new Date(),
+    };
+
+    // Someone already on this pipeline booked: update their open card rather than adding a second one.
+    const existing = await findOpenCardForGuest(tx, typeLane.pipelineId, email);
+    if (existing) {
+      return tx.lead.update({
+        where: { id: existing.id },
+        data: {
+          ...bookingFields,
+          artifacts: { create: artifacts },
+        },
+      });
+    }
+
     const leadFields = {
       organization: org,
       primaryContact: dto.guestName.trim(),
       email,
       ...(website ? { website } : {}),
-      ...laneFields(typeLane),
       source: type.leadSource,
-      nextAction: `${type.name} scheduled`,
-      nextActionDate: startAt,
-      lastContactDate: new Date(),
+      ...bookingFields,
     };
 
     const created = await tx.lead.create({

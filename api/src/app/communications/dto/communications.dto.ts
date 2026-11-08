@@ -3,7 +3,7 @@ import {
   ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsIn, IsISO8601, IsOptional, IsString, MaxLength,
 } from 'class-validator';
 
-export const MANUAL_TYPES = ['CALL', 'MEETING', 'NOTE'] as const;
+export const MANUAL_TYPES = ['EMAIL', 'CALL', 'MEETING', 'NOTE'] as const;
 export type ManualType = (typeof MANUAL_TYPES)[number];
 
 export class FileInteractionDto {
