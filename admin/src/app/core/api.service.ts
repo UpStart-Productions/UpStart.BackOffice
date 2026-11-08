@@ -111,7 +111,10 @@ export class ApiService {
         this.auth.clear();
         this.injector.get(SessionService).reset();
         if (this.cognito.useCognito) await this.cognito.clearLocalSession();
-        sessionStorage.setItem('ubo_auth_error', SESSION_EXPIRED_MESSAGE);
+        // Keep a Google/Cognito sign-in error (set by CognitoAuthService) rather than calling it an expired session.
+        if (sessionStorage.getItem('ubo_oauth_error') !== '1') {
+          sessionStorage.setItem('ubo_auth_error', SESSION_EXPIRED_MESSAGE);
+        }
         await this.router.navigate(['/login']);
       })().finally(() => {
         this.redirectToLoginPromise = null;

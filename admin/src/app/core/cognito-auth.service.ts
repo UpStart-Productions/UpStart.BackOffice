@@ -63,6 +63,7 @@ export class CognitoAuthService {
   }
 
   private async runInit(): Promise<void> {
+    this.stashOAuthError();
 
     if (typeof window !== 'undefined') {
       this.normalizeOAuthCallbackUrl();
@@ -79,6 +80,21 @@ export class CognitoAuthService {
       this.cachedIdToken = session.tokens?.idToken?.toString() ?? null;
     } catch {
       this.cachedIdToken = null;
+    }
+  }
+
+  /** Cognito sends ?error=…&error_description=… (no code) when a Google sign-in fails; show that on the login page. */
+  private stashOAuthError(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const error = params.get('error');
+      if (!error) return;
+      const description = (params.get('error_description') || error).replace(/\+/g, ' ').trim();
+      sessionStorage.setItem('ubo_auth_error', `Google sign-in failed: ${description}`);
+      sessionStorage.setItem('ubo_oauth_error', '1');
+    } catch {
+      /* storage unavailable */
     }
   }
 

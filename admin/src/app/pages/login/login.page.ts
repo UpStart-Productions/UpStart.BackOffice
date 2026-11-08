@@ -55,6 +55,7 @@ export class LoginPage implements OnInit {
   ngOnInit() {
     const authError = sessionStorage.getItem('ubo_auth_error');
     sessionStorage.removeItem('ubo_auth_error');
+    sessionStorage.removeItem('ubo_oauth_error');
     if (authError) this.loginError = authError;
   }
 
