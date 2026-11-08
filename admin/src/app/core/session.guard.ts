@@ -34,6 +34,19 @@ export const sessionGuard: CanActivateFn = async () => {
     }
 
     const token = await cognito.getIdToken();
+    if (token && session.lastLoadStatus === 401) {
+      // Signed in (e.g. with Google) but that email isn't a Back Office user. Say so on the login page
+      // instead of loading an empty app.
+      const email = await cognito.getEmailFromSession();
+      auth.clear();
+      await cognito.clearLocalSession();
+      sessionStorage.setItem(
+        'ubo_auth_error',
+        `${email || 'That account'} isn't set up in UpStart Back Office. Ask your administrator to add it, or sign in with a different account.`,
+      );
+      router.navigate(['/login']);
+      return false;
+    }
     if (token) return true;
 
     router.navigate(['/login']);

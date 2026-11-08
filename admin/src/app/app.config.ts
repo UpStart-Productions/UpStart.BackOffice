@@ -101,9 +101,26 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: (cognito: CognitoAuthService, auth: AuthStoreService) => async () => {
         await cognito.init();
+        if (cognito.wasOAuthCallback) {
+          // Fresh Google sign-in: drop impersonation left over from an earlier session.
+          auth.stopImpersonating();
+        }
         if (cognito.useCognito && cognito.hasCachedToken()) {
           const email = await cognito.getEmailFromSession();
           if (email) auth.baseEmail = email;
+        }
+        if (cognito.wasOAuthCallback) {
+          // Google returns to the site root. Before the router starts, point the URL at the page
+          // the person was headed to (e.g. /mcp-connect?state=… for Claude), stashed in ubo_return_url.
+          let ret: string | null = null;
+          try {
+            ret = sessionStorage.getItem('ubo_return_url');
+            sessionStorage.removeItem('ubo_return_url');
+          } catch {
+            /* storage unavailable */
+          }
+          const target = ret && ret.startsWith('/') && !ret.startsWith('//') ? ret : '/dashboard';
+          window.history.replaceState(null, '', target);
         }
       },
       deps: [CognitoAuthService, AuthStoreService],

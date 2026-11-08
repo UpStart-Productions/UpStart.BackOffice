@@ -62,6 +62,17 @@
                 Forgot password?
               </button>
             </p>
+            @if (showGoogleButton) {
+              <p-divider align="center"><span>or</span></p-divider>
+              <p-button
+                label="Sign in with Google"
+                icon="pi pi-google"
+                [outlined]="true"
+                styleClass="w-full"
+                [disabled]="loading"
+                (onClick)="signInWithGoogle()"
+              />
+            }
           </form>
         }
         @case ('new-password-required') {

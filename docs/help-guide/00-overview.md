@@ -2,6 +2,10 @@
 
 This guide powers **JD**, the in-app Back Office guide (avatar in the bottom-left). It is written for people using the admin app, not for developers.
 
+## Signing in
+
+Sign in with your email and password, or click **Sign in with Google** and pick the Google account that uses the same email as your Back Office login. Google sign-in only works if that email has already been added as a user; it doesn't create an account. You can use either method at any time, and Google sign-in doesn't change your password.
+
 ## Left navigation (typical Admin)
 
 Sections appear based on role. **Admins** see:

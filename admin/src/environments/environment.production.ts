@@ -2,7 +2,7 @@ export const environment = {
   apiBaseUrl: 'https://api.example.com/api',
   mcpPublicUrl: 'https://mcp.heyupstart.com',
   useCognito: true,
-  cognitoGoogleSignIn: false,
+  cognitoGoogleSignIn: true,
   cognito: {
     userPoolId: 'REPLACE_ME',
     userPoolClientId: 'REPLACE_ME',

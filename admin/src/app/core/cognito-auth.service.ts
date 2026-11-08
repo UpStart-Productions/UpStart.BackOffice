@@ -5,6 +5,7 @@ import {
   fetchAuthSession,
   fetchUserAttributes,
   signIn,
+  signInWithRedirect,
   signOut,
 } from 'aws-amplify/auth';
 import { environment } from '../../environments/environment';
@@ -132,6 +133,12 @@ export class CognitoAuthService {
     await confirmSignIn({ challengeResponse: newPassword });
     const session = await fetchAuthSession();
     this.cachedIdToken = session.tokens?.idToken?.toString() ?? null;
+  }
+
+  /** Straight to Google's account picker (identity_provider=Google), so Cognito's own sign-in page never shows. */
+  async signInWithGoogle(): Promise<void> {
+    if (!this.useCognito) return;
+    await signInWithRedirect({ provider: 'Google' });
   }
 
   async getEmailFromSession(): Promise<string | null> {

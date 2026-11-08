@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { DividerModule } from 'primeng/divider';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { PasswordModule } from 'primeng/password';
@@ -10,13 +11,14 @@ import { ApiService } from '../../core/api.service';
 import { AuthStoreService } from '../../core/auth-store.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
+import { environment } from '../../../environments/environment';
 
 type CognitoFormMode = 'login' | 'forgot-request' | 'forgot-confirm' | 'new-password-required';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, PasswordModule, HelpTextComponent],
+  imports: [FormsModule, ButtonModule, DividerModule, InputTextModule, MessageModule, PasswordModule, HelpTextComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })
@@ -43,6 +45,10 @@ export class LoginPage implements OnInit {
 
   get useCognito() {
     return this.cognito.useCognito;
+  }
+
+  get showGoogleButton() {
+    return this.cognito.useCognito && environment.cognitoGoogleSignIn;
   }
 
   ngOnInit() {
@@ -96,6 +102,19 @@ export class LoginPage implements OnInit {
     } catch (err) {
       this.loginError = this.getAuthErrorMessage(err);
     } finally {
+      this.loading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async signInWithGoogle() {
+    this.loginError = '';
+    this.loading = true;
+    try {
+      // Leaves the page for Google; app.config.ts finishes sign-in when Google sends the person back.
+      await this.cognito.signInWithGoogle();
+    } catch (err) {
+      this.loginError = this.getAuthErrorMessage(err);
       this.loading = false;
       this.cdr.detectChanges();
     }

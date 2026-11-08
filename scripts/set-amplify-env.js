@@ -93,7 +93,7 @@ export const environment = {
   apiBaseUrl: '${escape(apiBaseUrl)}',
   mcpPublicUrl: '${escape(mcpPublicUrl)}',
   useCognito: true,
-  cognitoGoogleSignIn: false,
+  cognitoGoogleSignIn: true,
   cognito: {
     userPoolId: '${escape(poolId)}',
     userPoolClientId: '${escape(clientId)}',
