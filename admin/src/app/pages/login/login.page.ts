@@ -36,6 +36,7 @@ export class LoginPage implements OnInit {
   newPassword = '';
   newPasswordConfirm = '';
   loading = false;
+  googleLoading = false;
   cognitoMode: CognitoFormMode = 'login';
   loginError = '';
   forgotError = '';
@@ -109,13 +110,13 @@ export class LoginPage implements OnInit {
 
   async signInWithGoogle() {
     this.loginError = '';
-    this.loading = true;
+    this.googleLoading = true;
     try {
       // Leaves the page for Google; app.config.ts finishes sign-in when Google sends the person back.
       await this.cognito.signInWithGoogle();
     } catch (err) {
       this.loginError = this.getAuthErrorMessage(err);
-      this.loading = false;
+      this.googleLoading = false;
       this.cdr.detectChanges();
     }
   }

@@ -53,7 +53,7 @@
                 label="Sign in"
                 type="submit"
                 styleClass="w-full"
-                [disabled]="!email || !password || loading"
+                [disabled]="!email || !password || loading || googleLoading"
                 [loading]="loading"
               />
             </div>
@@ -69,7 +69,8 @@
                 icon="pi pi-google"
                 [outlined]="true"
                 styleClass="w-full"
-                [disabled]="loading"
+                [disabled]="loading || googleLoading"
+                [loading]="googleLoading"
                 (onClick)="signInWithGoogle()"
               />
             }

@@ -38,11 +38,14 @@ export const sessionGuard: CanActivateFn = async () => {
       // Signed in (e.g. with Google) but that email isn't a Back Office user. Say so on the login page
       // instead of loading an empty app.
       const email = await cognito.getEmailFromSession();
+      const notAUser = /User not found/i.test(session.lastLoadMessage);
       auth.clear();
       await cognito.clearLocalSession();
       sessionStorage.setItem(
         'ubo_auth_error',
-        `${email || 'That account'} isn't set up in UpStart Back Office. Ask your administrator to add it, or sign in with a different account.`,
+        notAUser || !session.lastLoadMessage
+          ? `${email || 'That account'} isn't set up in UpStart Back Office. Ask your administrator to add it, or sign in with a different account.`
+          : session.lastLoadMessage,
       );
       router.navigate(['/login']);
       return false;

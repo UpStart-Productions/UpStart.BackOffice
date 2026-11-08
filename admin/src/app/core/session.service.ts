@@ -12,6 +12,8 @@ export class SessionService {
   private readyPromise: Promise<MeResponse | null> | null = null;
   /** HTTP status of the last failed /users/me load (401 = signed in, but the email isn't a user here). */
   lastLoadStatus: number | null = null;
+  /** The API's message for that failure (e.g. "User not found. Contact your administrator."). */
+  lastLoadMessage = '';
 
   /** Whether the signed-in user may take an action in an area (the API enforces the same rule). */
   can(area: PermissionArea, action: AreaAction = 'view'): boolean {
@@ -40,10 +42,12 @@ export class SessionService {
     try {
       const profile = await this.api.get<MeResponse>('/users/me');
       this.lastLoadStatus = null;
+      this.lastLoadMessage = '';
       this.me.set(profile);
       return profile;
     } catch (err) {
       this.lastLoadStatus = err instanceof ApiError ? err.status : null;
+      this.lastLoadMessage = err instanceof Error ? err.message : '';
       this.readyPromise = null;
       this.me.set(null);
       return null;

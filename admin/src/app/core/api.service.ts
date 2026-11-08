@@ -14,6 +14,12 @@ const FRIENDLY: Record<number, string> = {
 
 const SESSION_EXPIRED_MESSAGE = 'Your session expired. Please sign in again.';
 
+/**
+ * 401s that reject the account itself (signed in fine, but not a usable Back Office user). A token refresh
+ * can't fix these, so they are never treated as an expired session.
+ */
+const ACCOUNT_REJECTED = /User not found|Account is disabled|Token missing email claim/i;
+
 /** Shown in toasts and form errors. The message is the server's wording, never the status code. */
 export class ApiError extends Error {
   readonly status: number;
@@ -63,7 +69,11 @@ export class ApiService {
     const text = await res.text();
 
     if (!res.ok) {
-      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+      if (
+        res.status === 401 &&
+        !ACCOUNT_REJECTED.test(text) &&
+        (await this.recoverFromUnauthorized(retriedAfterRefresh))
+      ) {
         return this.request<T>(method, path, body, true);
       }
       throw new ApiError(res.status, extractMessage(res.status, text));
@@ -153,7 +163,11 @@ export class ApiService {
     const text = await res.text();
 
     if (!res.ok) {
-      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+      if (
+        res.status === 401 &&
+        !ACCOUNT_REJECTED.test(text) &&
+        (await this.recoverFromUnauthorized(retriedAfterRefresh))
+      ) {
         return this.uploadFile<T>(path, file, fieldName, true);
       }
       throw new ApiError(res.status, extractMessage(res.status, text));
@@ -174,7 +188,11 @@ export class ApiService {
     const res = await fetch(`${this.base}${path}`, options);
     const text = await res.text();
     if (!res.ok) {
-      if (res.status === 401 && (await this.recoverFromUnauthorized(retriedAfterRefresh))) {
+      if (
+        res.status === 401 &&
+        !ACCOUNT_REJECTED.test(text) &&
+        (await this.recoverFromUnauthorized(retriedAfterRefresh))
+      ) {
         return this.postFormData<T>(path, formData, true);
       }
       throw new ApiError(res.status, extractMessage(res.status, text));
