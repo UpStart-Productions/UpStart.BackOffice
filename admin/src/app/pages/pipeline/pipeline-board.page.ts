@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ApiError, ApiService } from '../../core/api.service';
@@ -75,6 +76,7 @@ type CardContact = {
   isLeadContact: boolean;
 };
 type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
+type TransferMode = 'move' | 'copy';
 
 @Component({
   selector: 'app-pipeline-board-page',
@@ -91,6 +93,7 @@ type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
     TagModule,
     MessageModule,
     SelectModule,
+    SelectButtonModule,
     TooltipModule,
     AppDialogModule,
     PageComponent,
@@ -145,6 +148,17 @@ export class PipelineBoardPage implements OnInit {
   readonly canOpenContacts = computed(() => this.session.can('contacts', 'view'));
   /** New / rename pipeline dialog. */
   nameDialog = signal<NameDialog>(null);
+  /** Move or copy card to another pipeline / lane. */
+  transferLead = signal<Lead | null>(null);
+  transferMode = signal<TransferMode>('move');
+  transferPipelineId = signal<string | null>(null);
+  transferStageId = signal<string | null>(null);
+  transferBusy = signal(false);
+  transferError = signal<string | null>(null);
+  readonly transferModeOptions: { label: string; value: TransferMode }[] = [
+    { label: 'Move', value: 'move' },
+    { label: 'Copy', value: 'copy' },
+  ];
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private suppressCardClick = false;
@@ -182,6 +196,12 @@ export class PipelineBoardPage implements OnInit {
   });
 
   leadsForLane = (laneId: string) => this.cardsByLane().get(laneId) ?? [];
+
+  readonly transferLaneOptions = computed(() => {
+    const pid = this.transferPipelineId();
+    if (!pid) return [];
+    return this.pipelines().find((p) => p.id === pid)?.stages.map((s) => ({ label: s.name, value: s.id })) ?? [];
+  });
 
   constructor() {
     effect(() => {
@@ -400,27 +420,91 @@ export class PipelineBoardPage implements OnInit {
     void this.moveCard(lead, target);
   }
 
-  private async moveLeadToPipeline(lead: Lead, targetPipelineId: string) {
-    const currentPipelineId = lead.pipelineId ?? this.pipelineId();
-    if (!targetPipelineId || targetPipelineId === currentPipelineId) return;
-    const target = this.pipelines().find((p) => p.id === targetPipelineId);
-    const stageId = target?.stages[0]?.id;
-    if (!stageId) {
-      this.error.set('That pipeline has no lanes.');
-      return;
+  openTransferDialog(lead: Lead) {
+    this.transferError.set(null);
+    this.transferMode.set(this.canEdit() ? 'move' : 'copy');
+    this.transferLead.set(lead);
+    const currentPid = lead.pipelineId ?? this.pipelineId();
+    const prefer = this.pipelines().find((p) => p.id !== currentPid) ?? this.pipelines()[0];
+    this.transferPipelineId.set(prefer?.id ?? null);
+    this.transferStageId.set(prefer?.stages[0]?.id ?? lead.stageId ?? null);
+  }
+
+  closeTransferDialog() {
+    this.transferLead.set(null);
+    this.transferError.set(null);
+    this.transferBusy.set(false);
+  }
+
+  onTransferPipelineChange(pipelineId: string | null) {
+    this.transferPipelineId.set(pipelineId);
+    const stages = this.pipelines().find((p) => p.id === pipelineId)?.stages ?? [];
+    const cur = this.transferStageId();
+    if (!cur || !stages.some((s) => s.id === cur)) {
+      this.transferStageId.set(stages[0]?.id ?? null);
     }
+  }
+
+  transferUnchanged(): boolean {
+    const lead = this.transferLead();
+    const pid = this.transferPipelineId();
+    const sid = this.transferStageId();
+    if (!lead || !pid || !sid) return true;
+    const currentPid = lead.pipelineId ?? this.pipelineId();
+    return pid === currentPid && sid === (lead.stageId ?? null);
+  }
+
+  async confirmTransfer() {
+    const lead = this.transferLead();
+    const pipelineId = this.transferPipelineId();
+    const stageId = this.transferStageId();
+    if (!lead || !pipelineId || !stageId) return;
+    if (this.transferMode() === 'move' && this.transferUnchanged()) return;
+
+    this.transferBusy.set(true);
+    this.transferError.set(null);
+    const pipelineName = this.pipelines().find((p) => p.id === pipelineId)?.name ?? 'pipeline';
+    const laneName = this.laneNames().get(stageId) ?? 'lane';
+    const viewingId = this.pipelineId();
+
     try {
-      await this.api.put(`/leads/${lead.id}`, { pipelineId: targetPipelineId, stageId });
-      this.leads.update((list) => list.filter((l) => l.id !== lead.id));
-      void this.refreshCounts();
-      this.toast.add({
-        severity: 'success',
-        summary: 'Moved',
-        detail: `"${lead.organization}" moved to ${target?.name ?? 'pipeline'}`,
-        life: 2500,
-      });
+      if (this.transferMode() === 'copy') {
+        const created = await this.api.post<Lead>(`/leads/${lead.id}/copy`, { pipelineId, stageId });
+        void this.refreshCounts();
+        if (created.pipelineId === viewingId) {
+          this.leads.update((list) => [...list, created]);
+        }
+        this.toast.add({
+          severity: 'success',
+          summary: 'Copied',
+          detail: `Another card on ${pipelineName} (${laneName}). The organization was not duplicated.`,
+          life: 3500,
+        });
+      } else {
+        const currentPid = lead.pipelineId ?? viewingId;
+        await this.api.put(`/leads/${lead.id}`, { pipelineId, stageId });
+        if (pipelineId !== viewingId) {
+          this.leads.update((list) => list.filter((l) => l.id !== lead.id));
+        } else {
+          this.patchLead(lead.id, { pipelineId, stageId });
+        }
+        void this.refreshCounts();
+        this.toast.add({
+          severity: 'success',
+          summary: 'Moved',
+          detail:
+            pipelineId !== currentPid
+              ? `"${lead.organization}" moved to ${pipelineName} (${laneName})`
+              : `"${lead.organization}" moved to ${laneName}`,
+          life: 2500,
+        });
+      }
+      this.closeTransferDialog();
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to move card');
+      const apiErr = err as ApiError;
+      this.transferError.set(apiErr?.message ?? (err instanceof Error ? err.message : 'Could not complete'));
+    } finally {
+      this.transferBusy.set(false);
     }
   }
 
@@ -455,15 +539,15 @@ export class PipelineBoardPage implements OnInit {
     };
     const contacts: RowActionItem = { id: 'contacts', label: 'View people', icon: 'pi pi-users', command: () => this.openContacts(lead) };
     const del: RowActionItem = { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(lead) };
-    const movePipeline = this.pipelineMoveSelect(lead);
+    const transfer = this.transferMenuItem(lead);
     if (this.isInvoiceCard(lead)) {
       const actions: RowActionItem[] = [open];
-      if (movePipeline) actions.push(movePipeline);
+      if (transfer) actions.push(transfer);
       if (this.canDelete()) actions.push(del);
       return actions;
     }
     const actions: RowActionItem[] = [open, contacts];
-    if (movePipeline) actions.push(movePipeline);
+    if (transfer) actions.push(transfer);
     if (!this.canEdit()) return this.canDelete() ? [...actions, del] : actions;
     if (lead.client?.journey !== 'CLIENT') {
       actions.push({
@@ -477,17 +561,14 @@ export class PipelineBoardPage implements OnInit {
     return actions;
   }
 
-  private pipelineMoveSelect(lead: Lead): RowActionItem | null {
-    if (!this.canEdit() || this.pipelines().length <= 1) return null;
-    const currentPipelineId = lead.pipelineId ?? this.pipelineId() ?? '';
+  private transferMenuItem(lead: Lead): RowActionItem | null {
+    if (this.pipelines().length <= 1) return null;
+    if (!this.canEdit() && !this.canCreate()) return null;
     return {
-      kind: 'select',
-      id: 'pipeline',
+      id: 'transfer',
+      label: 'Move or copy',
       icon: 'pi pi-arrow-right-arrow-left',
-      ariaLabel: 'Move to pipeline',
-      options: this.pipelines().map((p) => ({ label: p.name, value: p.id })),
-      value: currentPipelineId,
-      onChange: (pipelineId) => void this.moveLeadToPipeline(lead, pipelineId),
+      command: () => this.openTransferDialog(lead),
     };
   }
 

@@ -339,6 +339,85 @@
 </p-dialog>
 
 <p-dialog
+  header="Move or copy card"
+  [visible]="!!transferLead()"
+  (visibleChange)="!$event && closeTransferDialog()"
+  [modal]="true"
+  [style]="{ width: 'min(28rem, 96vw)' }"
+  appendTo="body"
+>
+  @if (transferLead()) {
+    @if (transferError()) {
+      <p-message severity="error" [text]="transferError()!" styleClass="mb-3" />
+    }
+    @if (canEdit() && canCreate()) {
+      <div class="form-field">
+        <p-selectbutton
+          [options]="transferModeOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="transferMode()"
+          (ngModelChange)="transferMode.set($event)"
+          [allowEmpty]="false"
+        />
+      </div>
+    } @else if (canCreate() && !canEdit()) {
+      <p class="mb-3">Copy this card to another pipeline.</p>
+    }
+    @if (transferMode() === 'copy') {
+      <p-message
+        severity="info"
+        text="Copy adds another pipeline card only. It does not duplicate the organization record."
+        styleClass="mt-3 mb-3"
+      />
+    }
+    <div class="form-field">
+      <label for="transferPipeline">Pipeline</label>
+      <p-select
+        inputId="transferPipeline"
+        [options]="pipelines()"
+        optionLabel="name"
+        optionValue="id"
+        [ngModel]="transferPipelineId()"
+        (ngModelChange)="onTransferPipelineChange($event)"
+        styleClass="w-full"
+        appendTo="body"
+      />
+    </div>
+    <div class="form-field">
+      <label for="transferLane">Lane</label>
+      <p-select
+        inputId="transferLane"
+        [options]="transferLaneOptions()"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="transferStageId()"
+        (ngModelChange)="transferStageId.set($event)"
+        [disabled]="transferLaneOptions().length === 0"
+        styleClass="w-full"
+        appendTo="body"
+      />
+    </div>
+  }
+  <ng-template pTemplate="footer">
+    <p-button label="Cancel" severity="secondary" (onClick)="closeTransferDialog()" />
+    <p-button
+      [label]="transferMode() === 'copy' ? 'Copy' : 'Move'"
+      icon="pi pi-check"
+      [loading]="transferBusy()"
+      [disabled]="
+        !transferPipelineId() ||
+        !transferStageId() ||
+        (transferMode() === 'move' && !canEdit()) ||
+        (transferMode() === 'copy' && !canCreate()) ||
+        (transferMode() === 'move' && transferUnchanged())
+      "
+      (onClick)="confirmTransfer()"
+    />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
   [header]="contactsLead() ? 'People · ' + (contactsAccount() || contactsLead()!.organization) : 'People'"
   [visible]="!!contactsLead()"
   (visibleChange)="!$event && contactsLead.set(null)"

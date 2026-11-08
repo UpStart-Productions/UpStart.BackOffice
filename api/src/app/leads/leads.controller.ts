@@ -8,8 +8,10 @@ import { LeadStage } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { ConvertLeadDto } from './dto/convert-lead.dto';
+import { CopyLeadDto } from './dto/copy-lead.dto';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
+import { copyLeadCard } from './lead-copy.util';
 import { applyLeadEditsToLinks, leadPersonView, warmConnectionLabel } from './lead-links.util';
 import { linkLeadPerson, listLeadPeople, unlinkLeadPerson } from './lead-people.util';
 import { promoteLeadToOrganization } from './lead-promote.util';
@@ -323,6 +325,17 @@ export class LeadsController {
       })
       .sort((a, b) => Number(b.isLeadContact) - Number(a.isLeadContact) || a.name.localeCompare(b.name));
     return { accountName: lead.client?.name ?? null, contacts };
+  }
+
+  /** Another card on the target pipeline — same organization / tracker link, not a new Client. */
+  @Action('create')
+  @Post(':id/copy')
+  async copy(@Param('id') id: string, @Body() dto: CopyLeadDto) {
+    const newId = await this.prisma.$transaction((tx) =>
+      copyLeadCard(tx, id, dto.pipelineId, dto.stageId),
+    );
+    const lead = await this.prisma.lead.findUniqueOrThrow({ where: { id: newId }, include: linkInclude });
+    return toLeadView(lead);
   }
 
   @Put(':id')
