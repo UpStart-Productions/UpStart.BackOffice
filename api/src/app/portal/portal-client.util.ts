@@ -1,5 +1,8 @@
 import type { Client } from '@prisma/client';
 import { buildPortalUrl } from './portal-token.util';
+import { clientDimensionsDto } from '../dimensions/dimensions.util';
+
+type ClientDimensionRows = { values: string[]; definition: { key: string } }[];
 
 /** Fields safe to expose on the public client portal. */
 export function toPortalClientView(client: Pick<Client, 'id' | 'name' | 'code' | 'email' | 'phone' | 'website'>) {
@@ -15,7 +18,7 @@ export function toPortalClientView(client: Pick<Client, 'id' | 'name' | 'code' |
 
 /** Back-office client record including portal link (never expose raw token separately). */
 export function toClientView(
-  client: { tags?: { tag: { name: string } }[] } & Pick<
+  client: { dimensionValues?: ClientDimensionRows } & Pick<
     Client,
     | 'id'
     | 'name'
@@ -31,9 +34,6 @@ export function toClientView(
     | 'notes'
     | 'category'
     | 'journey'
-    | 'services'
-    | 'products'
-    | 'focusCategories'
     | 'isPublicFeatured'
     | 'isReferralReady'
     | 'lastContactAt'
@@ -45,11 +45,10 @@ export function toClientView(
     | 'updatedAt'
   >,
 ) {
-  const { portalToken, tags, ...rest } = client;
+  const { portalToken, dimensionValues, ...rest } = client;
   return {
     ...rest,
-    tags: (tags ?? []).map((t) => t.tag.name).sort((a, b) => a.localeCompare(b)),
-    portalUrl:
-      client.portalEnabled && portalToken ? buildPortalUrl(portalToken) : null,
+    dimensions: clientDimensionsDto(dimensionValues),
+    portalUrl: client.portalEnabled && portalToken ? buildPortalUrl(portalToken) : null,
   };
 }

@@ -1,41 +1,29 @@
-import { CdkOverlayOrigin, OverlayModule } from '@angular/cdk/overlay';
-import { Component, inject, input, model, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, input, model, OnInit, viewChild } from '@angular/core';
 import { CrmTagsApi } from '../../core/crm-tags.api';
-
-/** Drop below the field; flip above when there is not enough room. */
-const PANEL_POSITIONS = [
-  {
-    originX: 'start' as const,
-    originY: 'bottom' as const,
-    overlayX: 'start' as const,
-    overlayY: 'top' as const,
-    offsetY: 4,
-  },
-  {
-    originX: 'start' as const,
-    originY: 'top' as const,
-    overlayX: 'start' as const,
-    overlayY: 'bottom' as const,
-    offsetY: -4,
-  },
-];
+import {
+  FindOrCreatePickerComponent,
+  type FindOrCreateOption,
+  type FindOrCreatePick,
+} from '../find-or-create-picker/find-or-create-picker.component';
 
 /**
- * Universal tag field: chips inside the control, type to filter suggestions, Enter or click to add.
+ * Tag field: chips in the control; click opens `app-find-or-create-picker` (same as Task Manager tags).
  */
 @Component({
   selector: 'app-tag-input, app-crm-tag-input',
   standalone: true,
-  imports: [OverlayModule],
+  imports: [FindOrCreatePickerComponent],
   host: { class: 'ubo-tag-input-host' },
   template: `
     <div
       class="ubo-tag-field"
-      cdkOverlayOrigin
-      #tagOrigin="cdkOverlayOrigin"
       [class.ubo-tag-field--disabled]="disabled()"
-      [class.ubo-tag-field--open]="panelOpen()"
-      (click)="focusQuery($event)"
+      [attr.tabindex]="disabled() ? -1 : 0"
+      role="combobox"
+      aria-haspopup="dialog"
+      [attr.aria-label]="placeholder()"
+      (click)="onFieldClick($event)"
+      (keydown.enter)="onFieldClick($event)"
     >
       @for (tag of tags(); track tag) {
         <span class="ubo-tag-pill">
@@ -53,158 +41,106 @@ const PANEL_POSITIONS = [
         </span>
       }
       @if (!disabled()) {
-        <input
-          #queryInput
-          type="text"
-          class="ubo-tag-query"
-          [id]="inputId()"
-          [value]="query()"
-          [placeholder]="tags().length ? '' : placeholder()"
-          autocomplete="off"
-          (input)="onQueryInput($event)"
-          (keydown)="onQueryKeydown($event)"
-          (focus)="openPanel()"
-          (blur)="onQueryBlur()"
-        />
+        <span class="ubo-tag-add-hint" [class.ubo-tag-add-hint--solo]="!tags().length">
+          {{ tags().length ? 'Add…' : placeholder() }}
+        </span>
       }
     </div>
 
-    <ng-template
-      cdkConnectedOverlay
-      [cdkConnectedOverlayOrigin]="tagOrigin"
-      [cdkConnectedOverlayOpen]="panelOpen() && filtered().length > 0"
-      [cdkConnectedOverlayPositions]="panelPositions"
-      [cdkConnectedOverlayWidth]="panelWidth()"
-      [cdkConnectedOverlayPush]="true"
-      cdkConnectedOverlayPanelClass="ubo-tag-panel-overlay"
-    >
-      <ul class="ubo-tag-panel" role="listbox" (mousedown)="$event.preventDefault()">
-        @for (name of filtered(); track name; let i = $index) {
-          <li
-            role="option"
-            class="ubo-tag-panel-option"
-            [class.ubo-tag-panel-option--active]="i === highlight()"
-            (mousedown)="pick(name)"
-          >
-            {{ name }}
-          </li>
-        }
-      </ul>
-    </ng-template>
+    <app-find-or-create-picker
+      #picker
+      [options]="pickerOptions()"
+      [placeholder]="pickerPlaceholder()"
+      [createKind]="createKind()"
+      [emptyHint]="pickerEmptyHint()"
+      (picked)="onPickerPick($event)"
+    />
+  `,
+  styles: `
+    .ubo-tag-field {
+      cursor: text;
+    }
+    .ubo-tag-field--disabled {
+      cursor: default;
+    }
+    .ubo-tag-add-hint {
+      flex: 1 1 4rem;
+      min-width: 3rem;
+      padding: 0.125rem 0.25rem;
+      font-size: var(--fs-base);
+      line-height: 1.4;
+      color: var(--text-color-secondary);
+      user-select: none;
+    }
+    .ubo-tag-add-hint--solo {
+      color: var(--text-color-secondary);
+    }
   `,
 })
 export class TagInputComponent implements OnInit {
   private readonly crmTags = inject(CrmTagsApi, { optional: true });
 
   readonly tags = model<string[]>([]);
+  readonly presets = input<string[] | undefined>(undefined);
   readonly suggestionNames = input<string[] | undefined>(undefined);
   readonly placeholder = input('Add a tag…');
+  readonly createKind = input('value');
   readonly inputId = input<string | undefined>(undefined);
   readonly disabled = input(false);
 
-  private readonly queryInput = viewChild<HTMLInputElement>('queryInput');
-  private readonly tagOrigin = viewChild<CdkOverlayOrigin>('tagOrigin');
+  private readonly picker = viewChild.required(FindOrCreatePickerComponent);
 
-  protected readonly panelPositions = PANEL_POSITIONS;
-  protected readonly query = signal('');
-  protected readonly panelOpen = signal(false);
-  protected readonly highlight = signal(0);
-  protected readonly filtered = signal<string[]>([]);
-  protected readonly panelWidth = signal(0);
+  protected readonly pickerOptions = computed((): FindOrCreateOption[] =>
+    this.catalog().map((name) => ({ id: name.toLowerCase(), name })),
+  );
+
+  protected readonly hiddenPickerIds = computed(() => this.tags().map((t) => t.toLowerCase()));
+
+  protected readonly pickerPlaceholder = computed(() => {
+    const kind = this.createKind();
+    return kind === 'tag' ? 'Find or create a tag' : `Find or create a ${kind}`;
+  });
+
+  protected readonly pickerEmptyHint = computed(() => {
+    const kind = this.createKind();
+    return kind === 'value' ? 'Type to add a value' : `Type to create a ${kind}`;
+  });
 
   ngOnInit(): void {
     void this.crmTags?.load();
   }
 
-  protected focusQuery(event: MouseEvent): void {
+  protected onFieldClick(event: Event) {
     if (this.disabled()) return;
     const t = event.target as HTMLElement;
     if (t.closest('.ubo-tag-pill-remove')) return;
-    this.queryInput()?.focus();
+    const target = (event.currentTarget ?? event.target) as HTMLElement;
+    this.picker().open(event, this.hiddenPickerIds(), target);
   }
 
-  protected onQueryInput(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.query.set(value);
-    this.refreshFiltered();
-    this.openPanel();
-    this.highlight.set(0);
-  }
-
-  protected openPanel(): void {
-    this.refreshFiltered();
-    this.syncPanelWidth();
-    this.panelOpen.set(true);
-  }
-
-  protected onQueryBlur(): void {
-    setTimeout(() => this.panelOpen.set(false), 150);
-  }
-
-  protected onQueryKeydown(event: KeyboardEvent): void {
-    const list = this.filtered();
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      if (list.length) this.highlight.set(Math.min(this.highlight() + 1, list.length - 1));
-      return;
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (list.length) this.highlight.set(Math.max(this.highlight() - 1, 0));
-      return;
-    }
-    if (event.key === 'Escape') {
-      this.panelOpen.set(false);
-      return;
-    }
-    if (event.key === 'Backspace' && !this.query().trim() && this.tags().length) {
-      this.tags.set(this.tags().slice(0, -1));
-      return;
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const pick = list[this.highlight()] ?? this.query().trim();
-      if (pick) this.addTag(pick);
-      return;
-    }
-  }
-
-  protected pick(name: string): void {
+  protected onPickerPick(pick: FindOrCreatePick) {
+    const name =
+      'name' in pick
+        ? pick.name
+        : (this.pickerOptions().find((o) => o.id === pick.id)?.name ?? pick.id);
     this.addTag(name);
-    this.queryInput()?.focus();
   }
 
-  protected remove(tag: string, event: MouseEvent): void {
+  protected remove(tag: string, event: MouseEvent) {
     event.stopPropagation();
     this.tags.set(this.tags().filter((t) => t !== tag));
-    this.refreshFiltered();
   }
 
-  private syncPanelWidth(): void {
-    const el = this.tagOrigin()?.elementRef.nativeElement;
-    this.panelWidth.set(el ? el.getBoundingClientRect().width : 0);
+  /** @deprecated No inline query; kept for save hooks that flush pending text. */
+  commitPendingQuery(): string[] {
+    return this.tags();
   }
 
-  private addTag(raw: string): void {
+  private addTag(raw: string) {
     const name = this.canonical(raw);
     if (!name) return;
-    if (this.tags().some((t) => t.toLowerCase() === name.toLowerCase())) {
-      this.query.set('');
-      this.refreshFiltered();
-      return;
-    }
+    if (this.tags().some((t) => t.toLowerCase() === name.toLowerCase())) return;
     this.tags.set([...this.tags(), name]);
-    this.query.set('');
-    this.refreshFiltered();
-    this.highlight.set(0);
-  }
-
-  private refreshFiltered(): void {
-    const q = this.query().trim().toLowerCase();
-    const taken = new Set(this.tags().map((t) => t.toLowerCase()));
-    this.filtered.set(
-      this.catalog().filter((n) => !taken.has(n.toLowerCase()) && (!q || n.toLowerCase().includes(q))),
-    );
   }
 
   private canonical(raw: string): string {
@@ -215,8 +151,10 @@ export class TagInputComponent implements OnInit {
   }
 
   private catalog(): string[] {
+    const fromPresets = this.presets();
+    if (fromPresets !== undefined) return fromPresets;
     const custom = this.suggestionNames();
-    if (custom) return custom;
+    if (custom !== undefined) return custom;
     return this.crmTags?.names() ?? [];
   }
 }

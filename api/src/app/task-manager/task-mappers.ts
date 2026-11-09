@@ -12,7 +12,6 @@ export const taskSummaryInclude = {
   fieldValues: { select: { fieldId: true, value: true } },
   _count: { select: { subtasks: true, comments: { where: { kind: 'COMMENT' } }, attachments: true } },
   subtasks: { where: { isCompleted: true }, select: { id: true } },
-  tags: { select: { tag: { select: { id: true, name: true, color: true } } } },
 } satisfies Prisma.TaskInclude;
 
 export type TaskSummaryRow = Prisma.TaskGetPayload<{ include: typeof taskSummaryInclude }>;
@@ -44,7 +43,10 @@ export function dateOnlyIso(d: Date | null): string | null {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
-export function toTaskSummary(row: TaskSummaryRow): TaskSummaryDto {
+export function toTaskSummary(
+  row: TaskSummaryRow,
+  tags: TaskSummaryDto['tags'] = [],
+): TaskSummaryDto {
   return {
     id: row.id,
     projectId: row.projectId,
@@ -63,7 +65,7 @@ export function toTaskSummary(row: TaskSummaryRow): TaskSummaryDto {
     commentCount: row._count.comments,
     attachmentCount: row._count.attachments,
     fields: Object.fromEntries(row.fieldValues.map((v) => [v.fieldId, v.value])),
-    tags: row.tags.map((t) => t.tag).sort((a, b) => a.name.localeCompare(b.name)),
+    tags,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

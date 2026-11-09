@@ -10,7 +10,8 @@ import { PrismaClient } from '@prisma/client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { tenantExtension } from '../tenancy/prisma-tenant.extension';
 import { runUnscoped, runWithTenant } from '../tenancy/tenant-context';
-import { hasTagWhere, setClientTags, setContactTags } from './crm-tags.util';
+import { contactIdsWithTagName } from '../dimensions/dimensions-load.util';
+import { setClientTags, setContactTags } from './crm-tags.util';
 
 const SQL = process.env.TENANT_TEST_SCHEMA_SQL;
 const PORT = 54334;
@@ -58,31 +59,39 @@ describe.skipIf(!SQL || !pglite || !socket)('CRM tags (real Postgres)', () => {
   it('shares one tag between organizations and people, case-insensitively', async () => {
     const org = await inT(() => prisma.client.create({ data: { name: 'Acme', journey: 'NONE' } }));
     const person = await inT(() => prisma.contact.create({ data: { firstName: 'Ann' } }));
-    await inT(() => setClientTags(prisma as never, org.id, ['Partner', 'Vendor']));
-    await inT(() => setContactTags(prisma as never, person.id, ['partner']));
+    await inT(() => setClientTags(prisma as never, org.id, ['Partner', 'Vendor'], T));
+    await inT(() => setContactTags(prisma as never, person.id, ['partner'], T));
 
     const tags = await inT(() => prisma.tag.findMany({ where: { scope: 'CRM' }, orderBy: { name: 'asc' } }));
     expect(tags.map((t) => t.name)).toEqual(['Partner', 'Vendor']);
-    const partners = await inT(() => prisma.contact.findMany({ where: hasTagWhere('PARTNER') }));
+    const partnerIds = await inT(() => contactIdsWithTagName(prisma, 'PARTNER'));
+    const partners = await inT(() => prisma.contact.findMany({ where: { id: { in: partnerIds } } }));
     expect(partners.map((p) => p.id)).toEqual([person.id]);
   });
 
   it('replaces tags exactly and keeps CRM tags apart from task tags', async () => {
     await inT(() => prisma.tag.create({ data: { name: 'Partner', nameKey: 'partner', scope: 'TASK' } }));
     const org = await inT(() => prisma.client.create({ data: { name: 'Beta' } }));
-    await inT(() => setClientTags(prisma as never, org.id, ['Partner', 'Vendor']));
-    await inT(() => setClientTags(prisma as never, org.id, ['Vendor']));
-    const names = await inT(() =>
-      prisma.clientTag.findMany({ where: { clientId: org.id }, select: { tag: { select: { name: true, scope: true } } } }),
+    await inT(() => setClientTags(prisma as never, org.id, ['Partner', 'Vendor'], T));
+    await inT(() => setClientTags(prisma as never, org.id, ['Vendor'], T));
+    const row = await inT(() =>
+      prisma.dimensionValue.findFirst({
+        where: { recordId: org.id, definition: { key: 'tags' } },
+        select: { values: true },
+      }),
     );
-    expect(names).toEqual([{ tag: { name: 'Vendor', scope: 'CRM' } }]);
+    expect(row?.values).toEqual(['Vendor']);
     expect(await inT(() => prisma.tag.count({ where: { nameKey: 'partner' } }))).toBe(2);
   });
 
   it('keeps each tenant\'s tags to itself', async () => {
     const org = await inU(() => prisma.client.create({ data: { name: 'Gamma' } }));
-    await inU(() => setClientTags(prisma as never, org.id, ['Partner']));
+    await inU(() => setClientTags(prisma as never, org.id, ['Partner'], U));
     expect(await inU(() => prisma.tag.count({ where: { scope: 'CRM' } }))).toBe(1);
-    expect(await inT(() => prisma.clientTag.count({ where: { clientId: org.id } }))).toBe(0);
+    expect(
+      await inT(() =>
+        prisma.dimensionValue.count({ where: { recordId: org.id, definition: { key: 'tags' } } }),
+      ),
+    ).toBe(0);
   });
 });

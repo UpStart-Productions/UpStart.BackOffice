@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import type { AccountJourney } from '@upstart/back-office/shared';
+import { CLIENT_DIMENSION_KEYS, type AccountJourney, type ClientDto } from '@upstart/back-office/shared';
 import { ACCOUNT_JOURNEY_LABELS } from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
@@ -18,6 +18,7 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import type { OrganizationRow } from '../clients/clients-list.page';
 import { OrganizationsImportModalComponent } from '../../ui/organizations-import-modal/organizations-import-modal.component';
+import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
 
 type StatusFilter = 'all' | AccountJourney;
 
@@ -38,25 +39,10 @@ type StatusFilter = 'all' | AccountJourney;
     RowActionsMenuComponent,
     CopyEmailComponent,
     OrganizationsImportModalComponent,
+    TagChipListComponent,
   ],
   styles: [
     `
-      .org-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-      }
-      .org-tag {
-        padding: 0.1rem 0.55rem;
-        border: 1px solid var(--surface-border);
-        border-radius: 999px;
-        background: var(--surface-ground);
-        white-space: nowrap;
-        font-size: var(--fs-xs);
-        font-weight: 600;
-        line-height: 1.2;
-        color: var(--color-text-secondary);
-      }
       .org-type-filter,
       .org-tag-filter {
         width: 8.25rem;
@@ -123,8 +109,8 @@ type StatusFilter = 'all' | AccountJourney;
               <th style="width: 3rem"></th>
               <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
               <th pSortableColumn="journey">Status <p-sortIcon field="journey" /></th>
-              <th>Tags</th>
               <th>Email</th>
+              <th>Tags</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-org>
@@ -134,12 +120,14 @@ type StatusFilter = 'all' | AccountJourney;
               <td>
                 <p-tag [value]="statusLabel(org)" [severity]="org.journey === 'CLIENT' ? 'success' : 'secondary'" />
               </td>
-              <td>
-                <div class="org-tags">
-                  @for (t of org.tags; track t) { <span class="org-tag">{{ t }}</span> }
-                </div>
-              </td>
               <td><app-copy-email [email]="org.email" /></td>
+              <td>
+                <app-tag-chip-list
+                  [tags]="org.tags"
+                  [removable]="canEdit()"
+                  (removeTag)="removeTag(org, $event)"
+                />
+              </td>
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
@@ -245,7 +233,20 @@ export class OrganizationsListPage implements OnInit {
       if (this.status() !== 'all') params.set('journey', this.status());
       if (this.tag()) params.set('tag', this.tag()!);
       const qs = params.toString();
-      this.orgs.set(await this.api.get<OrganizationRow[]>(`/clients${qs ? `?${qs}` : ''}`));
+      const rows = await this.api.get<ClientDto[]>(`/clients${qs ? `?${qs}` : ''}`);
+      this.orgs.set(
+        rows.map((c) => ({
+          id: c.id,
+          name: c.name,
+          code: c.code,
+          journey: c.journey,
+          tags: c.dimensions?.[CLIENT_DIMENSION_KEYS.tags] ?? [],
+          lastContactAt: c.lastContactAt ?? null,
+          email: c.email ?? undefined,
+          phone: c.phone ?? undefined,
+          isActive: c.isActive,
+        })),
+      );
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load organizations');
@@ -269,6 +270,16 @@ export class OrganizationsListPage implements OnInit {
       actions.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(org) });
     }
     return actions;
+  }
+
+  async removeTag(org: OrganizationRow, tag: string) {
+    const next = org.tags.filter((t) => t !== tag);
+    try {
+      await this.api.put(`/clients/${org.id}`, { dimensions: { tags: next } });
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not update tags');
+    }
   }
 
   async makeClient(org: OrganizationRow) {

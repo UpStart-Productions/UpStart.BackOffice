@@ -12,7 +12,8 @@ import {
 import { normalizeEmail } from './email-address.util';
 import { clampLimit } from './interactions.service';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
-import { hasTagWhere, setContactTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
+import { setContactTags } from '../crm-tags/crm-tags.util';
+import { contactIdsWithTagName, contactTagsByIds } from '../dimensions/dimensions-load.util';
 import {
   parsePeopleImportFromBuffer,
   ParsedPeopleImportRow,
@@ -26,14 +27,12 @@ const contactInclude = {
   accountLinks: {
     select: { clientId: true, role: true, isPrimary: true, client: { select: { id: true, name: true, journey: true } } },
   },
-  ...tagsInclude,
   ...ATTRIBUTION_INCLUDE,
 };
 
-/** API shape: tag rows flattened to names. */
-function toContactView<T extends { tags?: { tag: { name: string } }[] }>(contact: T) {
-  const { tags, ...rest } = contact;
-  return { ...rest, tags: tagNames(tags) };
+/** API shape with tag names from CONTACT dimensions. */
+function toContactView<T extends { id: string }>(contact: T, tags: string[]) {
+  return { ...contact, tags };
 }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -68,11 +67,12 @@ export class ContactsService {
   async list(opts: { q?: string; clientId?: string; review?: boolean; tag?: string; limit?: string | number } = {}) {
     const q = opts.q?.trim();
     const orgIds = q ? await clientIdsMatchingServiceOrProduct(this.prisma, TENANT, q) : [];
+    const tagIds = opts.tag ? await contactIdsWithTagName(this.prisma, opts.tag) : [];
     const rows = await this.prisma.contact.findMany({
       where: {
         tenantId: TENANT,
         ...(opts.review ? { autoCreated: true } : {}),
-        ...hasTagWhere(opts.tag),
+        ...(tagIds.length ? { id: { in: tagIds } } : opts.tag ? { id: { in: [] } } : {}),
         ...(opts.clientId ? { accountLinks: { some: { clientId: opts.clientId } } } : {}),
         ...(q
           ? {
@@ -90,7 +90,8 @@ export class ContactsService {
       take: clampLimit(opts.limit, 100, 500),
       include: contactInclude,
     });
-    return rows.map(toContactView);
+    const tagMap = await contactTagsByIds(this.prisma, rows.map((r) => r.id));
+    return rows.map((r) => toContactView(r, tagMap.get(r.id) ?? []));
   }
 
   async reviewCount(): Promise<{ count: number }> {
@@ -100,7 +101,8 @@ export class ContactsService {
   async get(id: string) {
     const contact = await this.prisma.contact.findFirst({ where: { id, tenantId: TENANT }, include: contactInclude });
     if (!contact) throw new NotFoundException('Contact not found.');
-    return withAttribution(contact, toContactView(contact));
+    const tagMap = await contactTagsByIds(this.prisma, [contact.id]);
+    return withAttribution(contact, toContactView(contact, tagMap.get(contact.id) ?? []));
   }
 
   async create(dto: CreateContactDto) {
@@ -126,7 +128,7 @@ export class ContactsService {
         },
         select: { id: true },
       });
-      if (dto.tags?.length) await setContactTags(this.prisma, created.id, dto.tags);
+      if (dto.tags?.length) await setContactTags(this.prisma, created.id, dto.tags, TENANT);
       return this.get(created.id);
     } catch (err) {
       if (isUniqueViolation(err)) throw new ConflictException('That email already belongs to another contact.');
@@ -151,7 +153,7 @@ export class ContactsService {
         ...(dto.autoCreated !== undefined ? { autoCreated: dto.autoCreated } : {}),
       },
     });
-    if (dto.tags !== undefined) await setContactTags(this.prisma, id, dto.tags);
+    if (dto.tags !== undefined) await setContactTags(this.prisma, id, dto.tags, TENANT);
     return this.get(id);
   }
 

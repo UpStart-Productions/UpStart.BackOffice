@@ -66,7 +66,9 @@ import { FieldOption, TmField } from '../core/tm.types';
       @default {
         <button type="button" class="tm-cell-btn tm-cell-chips" [disabled]="!editable()" (click)="openOptions($event)">
           @for (o of selectedOptions(); track o.id) {
-            <span class="tm-chip tm-tag" [style.background]="chip(o).bg" [style.color]="chip(o).fg">{{ o.label }}</span>
+            <span class="ubo-tag-pill" [style.background]="chip(o).bg" [style.color]="chip(o).fg">
+              <span class="ubo-tag-pill-label">{{ o.label }}</span>
+            </span>
           } @empty {
             <span class="tm-cell-placeholder">—</span>
           }
@@ -82,7 +84,9 @@ import { FieldOption, TmField } from '../core/tm.types';
               @if (field().type === 'MULTI_SELECT') {
                 <i class="pi" [class.pi-check-square]="isSelected(o)" [class.pi-stop]="!isSelected(o)"></i>
               }
-              <span class="tm-chip tm-tag" [style.background]="chip(o).bg" [style.color]="chip(o).fg">{{ o.label }}</span>
+              <span class="ubo-tag-pill" [style.background]="chip(o).bg" [style.color]="chip(o).fg">
+              <span class="ubo-tag-pill-label">{{ o.label }}</span>
+            </span>
             </button>
           </li>
         } @empty {

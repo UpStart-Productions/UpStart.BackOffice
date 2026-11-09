@@ -26,7 +26,7 @@ import { TmFieldCellComponent } from './field-cell.component';
 import { TmPersonPickerComponent } from './person-picker.component';
 import { TmRecurrenceEditorComponent } from './recurrence-editor.component';
 import { TmAvatarComponent } from './tm-avatar.component';
-import { TagPick, TmTagPickerComponent } from './tag-picker.component';
+import { TagPick, tagPickToApiBody, TmTagPickerComponent } from './tag-picker.component';
 import { TmTaskProjectsComponent } from './task-projects.component';
 
 /** Right-hand task detail pane (Asana-style). Driven by `taskId`; emits changes so lists stay in sync. */
@@ -306,7 +306,7 @@ export class TmTaskDetailComponent implements OnDestroy {
     const t = this.task();
     if (!t) return;
     try {
-      const tags = await this.api.addTaskTag(t.id, pick);
+      const tags = await this.api.addTaskTag(t.id, tagPickToApiBody(pick));
       this.store.rememberTags(tags);
       this.applyTags(tags);
     } catch (err) {

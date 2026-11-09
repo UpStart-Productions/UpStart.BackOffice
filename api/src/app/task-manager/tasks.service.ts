@@ -20,13 +20,16 @@ import {
   toAttachment,
   toComment,
   toField,
-  toTaskSummary,
 } from './task-mappers';
 import { extractMentionedUserIds, htmlToPlainText } from './task-mentions.util';
 import { ORDER_STEP, orderBetween, renumber } from './task-order.util';
 import { personName, personSelect, superUserMembers } from './task-people.util';
-import { runUnscoped } from '../tenancy/tenant-context';
+import { currentTenantId, runUnscoped } from '../tenancy/tenant-context';
 import { taskSearchWhere } from './task-search.util';
+import { DIMENSION_TAG_KEY } from '@upstart/back-office/shared';
+import { getRecordDimensionValues, setRecordDimensions } from '../dimensions/dimensions.util';
+import { attachTagsToTaskSummaries, taskIdsMatchingTagSearch } from './task-tags-resolve.util';
+import type { TaskSummaryRow } from './task-mappers';
 
 const reportTaskInclude = {
   assignee: { select: personSelect },
@@ -97,7 +100,7 @@ export class TasksService {
       ...(completed === 'incomplete' ? { isCompleted: false } : {}),
       ...(completed === 'completed' ? { isCompleted: true } : {}),
     };
-    const text = q ? taskSearchWhere(q) : {};
+    const text = q ? await this.textSearchWhere(q) : {};
     const [rows, links] = await Promise.all([
       this.prisma.task.findMany({
         where: { projectId, parentTaskId: null, ...done, ...text },
@@ -110,9 +113,13 @@ export class TasksService {
         include: { task: { include: taskSummaryInclude } },
       }),
     ]);
+    const [home, linked] = await Promise.all([
+      this.summaries(rows),
+      this.summaries(links.map((l) => l.task)),
+    ]);
     return [
-      ...rows.map(toTaskSummary),
-      ...links.map((l) => ({ ...toTaskSummary(l.task), sectionId: l.sectionId, sortOrder: l.sortOrder })),
+      ...home,
+      ...links.map((l, i) => ({ ...linked[i], sectionId: l.sectionId, sortOrder: l.sortOrder })),
     ].sort((a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt));
   }
 
@@ -137,7 +144,8 @@ export class TasksService {
       orderBy: [{ dueOn: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
       take: 1000,
     });
-    return rows.map((row) => ({ ...toTaskSummary(row), project: row.project, parent: row.parent }));
+    const summaries = await this.summaries(rows);
+    return summaries.map((summary, i) => ({ ...summary, project: rows[i].project, parent: rows[i].parent }));
   }
 
   /** Task picker search. With `projectId` and no query, returns the project's open tasks (for select dropdowns). */
@@ -320,8 +328,12 @@ export class TasksService {
           orderBy: [{ projectId: 'asc' }, { sortOrder: 'asc' }],
         })
       : [];
+    const [taskSummary, subtaskSummaries] = await Promise.all([
+      this.summaries([task]).then((r) => r[0]),
+      this.summaries(subtasks),
+    ]);
     return {
-      ...toTaskSummary(task),
+      ...taskSummary,
       description: task.description,
       project: { id: task.project.id, name: task.project.name, color: task.project.color, icon: task.project.icon },
       customFields: [...task.project.customFields, ...otherFields].map(toField),
@@ -336,7 +348,7 @@ export class TasksService {
       isFollowing: task.followers.some((f) => f.userId === user.id),
       attachments: task.attachments.map(toAttachment),
       comments: task.comments.map(toComment),
-      subtasks: subtasks.map(toTaskSummary),
+      subtasks: subtaskSummaries,
       permissions: { canEdit, canComment },
     };
   }
@@ -400,7 +412,7 @@ export class TasksService {
       );
     }
     if (dto.description) await this.notifyMentions(task, user, dto.description, []);
-    return toTaskSummary(task);
+    return (await this.summaries([task]))[0];
   }
 
   async update(user: UserContext, taskId: string, dto: UpdateTaskDto) {
@@ -814,7 +826,17 @@ export class TasksService {
 
   private async summary(taskId: string) {
     const row = await this.prisma.task.findUniqueOrThrow({ where: { id: taskId }, include: taskSummaryInclude });
-    return toTaskSummary(row);
+    return (await this.summaries([row]))[0];
+  }
+
+  private async summaries(rows: TaskSummaryRow[]) {
+    return attachTagsToTaskSummaries(this.prisma, rows);
+  }
+
+  private async textSearchWhere(q: string) {
+    const tagIds = await taskIdsMatchingTagSearch(this.prisma, q);
+    const parts = [...(taskSearchWhere(q).OR ?? []), ...(tagIds.length ? [{ id: { in: tagIds } } satisfies Prisma.TaskWhereInput] : [])];
+    return { OR: parts } satisfies Prisma.TaskWhereInput;
   }
 
   /** Task followers plus assignee (deduped); actor is excluded in TaskEventsService.notify. */
@@ -876,10 +898,10 @@ export class TasksService {
         data: { taskId: next.id, projectId: l.projectId, sectionId: l.sectionId, sortOrder: await this.placeInSection(l.projectId, l.sectionId, done.id) },
       });
     }
-    await this.prisma.taskTag.createMany({
-      data: (await this.prisma.taskTag.findMany({ where: { taskId: done.id } })).map((t) => ({ taskId: next.id, tagId: t.tagId })),
-      skipDuplicates: true,
-    });
+    const tagNames = await getRecordDimensionValues(this.prisma, 'TASK', done.id, DIMENSION_TAG_KEY);
+    if (tagNames.length) {
+      await setRecordDimensions(this.prisma, currentTenantId(), 'TASK', next.id, { [DIMENSION_TAG_KEY]: tagNames });
+    }
     await this.events.follow(next.id, done.followers.map((f) => f.userId));
     await this.events.activity(next.id, user, `created this repeating task (next due ${fmtDate(due)})`);
     return next;

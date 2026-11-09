@@ -6,6 +6,9 @@ import { M as FORMS_MODULE } from '../forms/free-forms.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { TaskAccessService } from '../task-manager/task-access.service';
 import { tryTenantId } from '../tenancy/tenant-context';
+import { CLIENT_DIMENSION_KEYS } from '@upstart/back-office/shared';
+import { focusLabelsMatchingQuery } from '../dimensions/dimensions.util';
+import { clientIdsWithFocusLabels } from '../dimensions/dimensions-load.util';
 import {
   careShiftScope,
   careVisitScope,
@@ -17,7 +20,6 @@ import {
 import {
   clientIdsMatchingServiceOrProduct,
   contactTextOr,
-  focusCategoriesMatchingQuery,
   insensitiveContains,
   leadIdsMatchingServiceInterests,
 } from './text-search.util';
@@ -126,7 +128,8 @@ export class SearchService {
       clientIdsMatchingServiceOrProduct(this.prisma, tenantId, q),
       leadIdsMatchingServiceInterests(this.prisma, tenantId, q),
     ]);
-    const focusMatches = focusCategoriesMatchingQuery(q);
+    const focusLabels = focusLabelsMatchingQuery(q);
+    const focusClientIds = focusLabels.length ? await clientIdsWithFocusLabels(this.prisma, focusLabels) : [];
 
     const clientOr = [
       { name: ic },
@@ -139,9 +142,8 @@ export class SearchService {
       { state: ic },
       { zip: ic },
       { notes: ic },
-      { tags: { some: { tag: { name: ic, scope: 'CRM' as const } } } },
       ...(catalogClientIds.length ? [{ id: { in: catalogClientIds } }] : []),
-      ...focusMatches.map((value) => ({ focusCategories: { has: value } })),
+      ...(focusClientIds.length ? [{ id: { in: focusClientIds } }] : []),
     ];
 
     const canActivity =

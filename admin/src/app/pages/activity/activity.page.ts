@@ -43,6 +43,7 @@ import { PeopleComponent } from '../../ui/people/people.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
 type Tab = 'todo' | 'all';
 type QueueKey = 'reply' | 'nextStep' | 'quiet' | 'unfiled';
 type Org = { id: string; name: string; journey?: 'PROSPECT' | 'CLIENT' | 'NONE'; isActive?: boolean };
@@ -126,6 +127,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
     PeopleComponent,
     PersonComponent,
     QueueCardComponent,
+    TagChipListComponent,
     RowActionsMenuComponent,
   ],
   template: `
@@ -354,7 +356,9 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               </div>
               @if (orgDetail(); as d) {
                 <dl class="side-details">
-                  @if (d.tags?.length) { <div><dt>Tags</dt><dd>{{ d.tags!.join(', ') }}</dd></div> }
+                  @if (d.tags?.length) {
+                    <div><dt>Tags</dt><dd><app-tag-chip-list [tags]="d.tags!" /></dd></div>
+                  }
                   @if (d.phone) { <div><dt>Phone</dt><dd><a [href]="'tel:' + d.phone">{{ d.phone }}</a></dd></div> }
                   @if (d.email) { <div><dt>Email</dt><dd><a [href]="'mailto:' + d.email">{{ d.email }}</a></dd></div> }
                   @if (d.website) { <div><dd><a [href]="websiteHref(d.website)" target="_blank" rel="noopener">{{ d.website }}</a></dd></div> }
@@ -380,7 +384,9 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 @if (p.title) { <div><dt>Title</dt><dd>{{ p.title }}</dd></div> }
                 @for (e of p.emails; track e.id) { <div><dt>{{ e.isPrimary ? 'Email' : 'Other email' }}</dt><dd><a [href]="'mailto:' + e.email">{{ e.email }}</a></dd></div> }
                 @if (p.phone) { <div><dt>Phone</dt><dd><a [href]="'tel:' + p.phone">{{ p.phone }}</a></dd></div> }
-                @if (p.tags.length) { <div><dt>Tags</dt><dd>{{ p.tags.join(', ') }}</dd></div> }
+                @if (p.tags.length) {
+                  <div><dt>Tags</dt><dd><app-tag-chip-list [tags]="p.tags" /></dd></div>
+                }
                 <div class="side-inline"><dt>Last contact:</dt><dd>{{ p.lastContactAt ? rel(p.lastContactAt) : 'None logged' }}</dd></div>
               </dl>
               @if (p.notes) {

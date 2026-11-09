@@ -103,7 +103,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'organization.invoiceCode': 'Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.',
   'organization.services': 'What this organization offers or is known for. Press Enter to add each service.',
   'organization.products': 'Products this organization offers or is known for. Press Enter to add each one.',
-  'organization.focusAreas': 'Nonprofit sectors this organization works in, such as Recovery or Education.',
+  'organization.focusAreas': 'Nonprofit sectors this organization works in, such as Recovery or Education. Press Enter to add each one.',
   'organization.publicListing':
     'When on, this organization can appear on a public partner or network listing that reads this flag from Back Office.',
   'organization.clientPortal':
@@ -114,6 +114,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Company name, address and phone appear on invoices under your logo. Billing email is where invoices to your organization are sent.',
   'settings.business.logo': 'PNG, JPEG, GIF, or WebP. Max 5 MB.',
   'settings.business.billingEmail': 'Where invoices addressed to your organization are sent by default.',
+  'settings.organizationFields':
+    'Hide removes a name from suggestion lists only; records that already have it keep it. Remove everywhere strips it from every matching record and from lists. Organization, people, and task lists are managed separately below.',
   'settings.expensesInvoicing.mileageRate':
     'Mileage expenses are miles times this rate. A saved expense keeps the rate it was entered with.',
   'settings.expensesInvoicing.categories':

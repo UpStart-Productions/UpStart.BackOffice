@@ -140,10 +140,21 @@
         <dt>Tags</dt>
         <dd class="tm-tags-dd">
           @for (tag of t.tags; track tag.id) {
-            <span class="tm-chip tm-tag" [style.background]="chipColors(tag.color).bg" [style.color]="chipColors(tag.color).fg">
-              {{ tag.name }}
+            <span
+              class="ubo-tag-pill"
+              [style.background]="chipColors(tag.color).bg"
+              [style.color]="chipColors(tag.color).fg"
+            >
+              <span class="ubo-tag-pill-label">{{ tag.name }}</span>
               @if (canEdit()) {
-                <button type="button" class="tm-tag-remove" (click)="removeTag(tag.id)" [attr.aria-label]="'Remove tag ' + tag.name"><i class="pi pi-times"></i></button>
+                <button
+                  type="button"
+                  class="ubo-tag-pill-remove"
+                  (click)="removeTag(tag.id)"
+                  [attr.aria-label]="'Remove tag ' + tag.name"
+                >
+                  <i class="pi pi-times" aria-hidden="true"></i>
+                </button>
               }
             </span>
           }

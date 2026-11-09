@@ -19,10 +19,15 @@ Use what already exists before writing CSS: the shared app classes and PrimeNG c
 
 **Count badge (canonical):** the global `.count-badge` in `assets/layout/_app.scss` (light blue pill by default via `--color-count-badge-*`; not brand primary — purple is for actions). Modifiers: `--info` (same as default), `--success`, `--warning`, `--danger`, and `--muted` for zero. Used by the left nav, the Task Manager sidebar, and `app-queue-card`. Add a local class only to position it (e.g. `.nav-badge { margin-left: auto; }`). Do not use `p-badge` for counts. Only write new styles when nothing existing fits, and call it out.
 
-**Tag input (canonical):** `app-tag-input` (`admin/src/app/ui/tag-input/`). Chips live inside the field; type to filter suggestions; Enter adds a new tag; × removes. CRM org/person forms use the same control (`app-crm-tag-input` is an alias). Styles: `assets/layout/_tag-input.scss`. Optional `[suggestionNames]` when the list is not the tenant CRM catalog.
+**Find-or-create popover (canonical):** `app-find-or-create-picker` (`admin/src/app/ui/find-or-create-picker/`). Task tags use `app-tm-tag-picker` (wrapper). Settings pick lists use the same control for **Add**.
+
+**Tag input (canonical):** `app-tag-input` — chips in the field; click opens **`app-find-or-create-picker`** (same popover as Task Manager tags). Do not embed a second list under CDK overlay. CRM org/person forms use the same control (`app-crm-tag-input` is an alias). Styles: `assets/layout/_tag-input.scss`. Optional `[suggestionNames]` when the list is not the tenant CRM catalog.
+
+**Tag chips (canonical markup):** Use `app-tag-chip-list` for CRM tag name rows (list **Tags** column is always the **last** data column; `[removable]` + `(removeTag)` when the user can edit). Editable forms use `app-tag-input`. Every tag-style pill — CRM blue defaults, Task Manager per-tag colors, Settings catalog rows — uses **`.ubo-tag-pill`** / **`.ubo-tag-pill-label`** / **`.ubo-tag-pill-remove`** from `_tag-input.scss` only (TM: inline `background` / `color` from `chipColors`; do **not** add `.tm-tag` or parallel pill CSS). Manual cluster chrome: `.ubo-tag-field.ubo-tag-field--cluster` when the field needs extra controls (Settings hide/delete; expense filter chips). **Not** tag pills: lead service-interest toggles, `.tm-project-pill`, `.tm-chip` for non-tag chips (e.g. Invited), activity involved chips, `p-tag` status, `.count-badge`.
 
 ## Anti-patterns (do not do this)
 
+- Hand-rolled pill/chip CSS (`pick-list-pill`, `.tm-tag`, one-off borders/backgrounds) instead of `.ubo-tag-pill`.
 - Same picker/modal pattern copy-pasted across feature folders with tweaked CSS or subtitle text.
 - “I'll consolidate when the user asks” after already shipping duplicates.
 - Separate visual implementations that only differ by an extra metadata line — use an **input** on the shared control instead.

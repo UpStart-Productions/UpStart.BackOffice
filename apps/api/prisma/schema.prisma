@@ -98,6 +98,52 @@ enum OrgCategory {
   OTHER
 }
 
+/// Entity types that support platform-defined multi-value dimension fields.
+enum DimensionEntity {
+  CLIENT
+  CONTACT
+  TASK
+}
+
+/// Platform-defined dimension on an entity type (e.g. organization services, focus areas). */
+model DimensionDefinition {
+  id             String          @id @default(cuid())
+  tenantId       String          @default("")
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  entity         DimensionEntity
+  key            String
+  label          String
+  sortOrder      Int             @default(0)
+  presets          Json     @default("[]")
+  /// Suggestion names hidden from org forms (organizations may still have the value).
+  catalogExcluded  String[] @default([])
+  searchInGlobal   Boolean  @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  values DimensionValue[]
+
+  @@unique([tenantId, entity, key])
+  @@index([tenantId, entity, sortOrder])
+}
+
+/// Multi-value dimension data for one record (e.g. one organization's focus areas). */
+model DimensionValue {
+  id           String              @id @default(cuid())
+  tenantId     String              @default("")
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
+  definitionId String
+  definition   DimensionDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  recordId     String
+  values       String[]            @default([])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@unique([definitionId, recordId])
+  @@index([recordId])
+  @@index([tenantId])
+}
+
 enum ArtifactType {
   FILE
   LINK
@@ -270,10 +316,6 @@ model Client {
   code                 String? // e.g. "UPSP" — prepended to invoice numbers; required once billing starts
   /// Where the account is in the relationship. Manual and reversible; not tied to pipeline stage.
   journey              AccountJourney @default(CLIENT)
-  // Network-derived fields (folded in from NetworkCompany). Kept until we confirm what, if anything, reads them.
-  services             String[]       @default([])
-  products             String[]       @default([])
-  focusCategories      OrgCategory[]  @default([])
   isReferralReady      Boolean        @default(false)
   isPublicFeatured     Boolean        @default(false)
   publicSortOrder      Int            @default(0)
@@ -318,7 +360,6 @@ model Client {
   contactLinks      ContactAccount[]
   interactions      Interaction[]
   assignments       ClientAssignment[]
-  tags              ClientTag[]
   formResponses     FormResponse[]
   formLinks         FormLink[]
   careVisits        CareVisit[]
@@ -1275,58 +1316,7 @@ model Tag {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  tasks    TaskTag[]
-  clients  ClientTag[]
-  contacts ContactTag[]
-
   @@unique([tenantId, scope, nameKey])
-}
-
-/// A CRM tag on an organization.
-model ClientTag {
-  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  clientId  String
-  tagId     String
-  createdAt DateTime @default(now())
-
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([clientId, tagId])
-  @@index([tagId])
-  @@index([tenantId])
-}
-
-/// A CRM tag on a person.
-model ContactTag {
-  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  contactId String
-  tagId     String
-  createdAt DateTime @default(now())
-
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([contactId, tagId])
-  @@index([tagId])
-  @@index([tenantId])
-}
-
-model TaskTag {
-  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  taskId    String
-  tagId     String
-  createdAt DateTime @default(now())
-
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([taskId, tagId])
-  @@index([tagId])
-  @@index([tenantId])
 }
 
 /// Recurrence rule stored on Task.recurrence:
@@ -1377,7 +1367,6 @@ model Task {
   timeEntryWorkTasks TimeEntryWorkTask[] @relation("TimeEntryWorkTasks")
   /// Extra projects this task also appears in (Asana multi-homing). projectId stays the home project.
   projectLinks TaskProjectLink[]
-  tags         TaskTag[]
 
   @@index([projectId, sectionId, sortOrder])
   @@index([parentTaskId, sortOrder])
@@ -1699,9 +1688,8 @@ model Tenant {
   taskSections                TaskSection[]
   taskProjectLinks            TaskProjectLink[]
   tags                        Tag[]
-  taskTags                    TaskTag[]
-  clientTags                  ClientTag[]
-  contactTags                 ContactTag[]
+  dimensionDefinitions        DimensionDefinition[]
+  dimensionValues             DimensionValue[]
   tasks                       Task[]
   taskFollowers               TaskFollower[]
   taskComments                TaskComment[]
@@ -1764,7 +1752,6 @@ model Contact {
   participants    InteractionParticipant[]
   leads                  Lead[]
   leadsAsWarmConnection  Lead[] @relation("LeadWarmConnection")
-  tags            ContactTag[]
   projectContacts ProjectContact[]
   leadContactLinks LeadContact[]
 

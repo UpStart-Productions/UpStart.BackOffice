@@ -1,5 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { DIMENSION_TAG_KEY } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
+import { getRecordDimensionValues, setRecordDimensions } from '../dimensions/dimensions.util';
+import { tagsByNames } from '../dimensions/tag-catalog.util';
+import { currentTenantId } from '../tenancy/tenant-context';
 import { PrismaService } from '../prisma/prisma.service';
 import { AddTaskTagDto, CreateTagDto, UpdateTagDto } from './dto/task-manager.dto';
 import { TaskAccessService } from './task-access.service';
@@ -19,10 +24,20 @@ export class TaskTagsService {
   async list() {
     const rows = await this.prisma.tag.findMany({
       where: { scope: 'TASK' },
-      select: { ...tagSelect, _count: { select: { tasks: true } } },
+      select: tagSelect,
       orderBy: { name: 'asc' },
     });
-    return rows.map(({ _count, ...t }) => ({ ...t, taskCount: _count.tasks }));
+    const counts = await this.prisma.$queryRaw<Array<{ name: string; cnt: number }>>(Prisma.sql`
+      SELECT v AS name, COUNT(DISTINCT dv."recordId")::int AS cnt
+      FROM "DimensionValue" dv
+      INNER JOIN "DimensionDefinition" dd ON dd."id" = dv."definitionId"
+      CROSS JOIN LATERAL unnest(dv."values") AS v
+      WHERE dd."entity" = 'TASK'::"DimensionEntity"
+        AND dd."key" = ${DIMENSION_TAG_KEY}
+      GROUP BY v
+    `);
+    const countByName = new Map(counts.map((c) => [c.name.toLowerCase(), c.cnt]));
+    return rows.map((t) => ({ ...t, taskCount: countByName.get(t.name.toLowerCase()) ?? 0 }));
   }
 
   /** Create, or return the existing tag with the same name (case-insensitive). */
@@ -66,29 +81,37 @@ export class TaskTagsService {
 
   async addToTask(user: UserContext, taskId: string, dto: AddTaskTagDto) {
     await this.access.assertTask(user, taskId, 'edit');
-    let tagId = dto.tagId;
-    if (!tagId) {
-      if (!dto.name) throw new BadRequestException('tagId or name is required');
-      tagId = (await this.create({ name: dto.name, color: dto.color })).id;
-    } else if (!(await this.prisma.tag.count({ where: { id: tagId, scope: 'TASK' } }))) {
-      throw new NotFoundException('Tag not found');
+    const tenantId = currentTenantId();
+    let name: string | null = null;
+    if (dto.tagId) {
+      const tag = await this.prisma.tag.findFirst({ where: { id: dto.tagId, scope: 'TASK' }, select: { name: true } });
+      if (!tag) throw new NotFoundException('Tag not found');
+      name = tag.name;
+    } else if (dto.name) {
+      name = (await this.create({ name: dto.name, color: dto.color })).name;
+    } else {
+      throw new BadRequestException('tagId or name is required');
     }
-    await this.prisma.taskTag.upsert({
-      where: { taskId_tagId: { taskId, tagId } },
-      create: { taskId, tagId },
-      update: {},
-    });
+    const current = await getRecordDimensionValues(this.prisma, 'TASK', taskId, DIMENSION_TAG_KEY);
+    if (!current.some((n) => n.toLowerCase() === name!.toLowerCase())) {
+      await setRecordDimensions(this.prisma, tenantId, 'TASK', taskId, { [DIMENSION_TAG_KEY]: [...current, name] });
+    }
     return this.taskTags(taskId);
   }
 
   async removeFromTask(user: UserContext, taskId: string, tagId: string) {
     await this.access.assertTask(user, taskId, 'edit');
-    await this.prisma.taskTag.deleteMany({ where: { taskId, tagId } });
+    const tag = await this.prisma.tag.findFirst({ where: { id: tagId, scope: 'TASK' }, select: { name: true } });
+    if (!tag) throw new NotFoundException('Tag not found');
+    const tenantId = currentTenantId();
+    const current = await getRecordDimensionValues(this.prisma, 'TASK', taskId, DIMENSION_TAG_KEY);
+    const next = current.filter((n) => n.toLowerCase() !== tag.name.toLowerCase());
+    await setRecordDimensions(this.prisma, tenantId, 'TASK', taskId, { [DIMENSION_TAG_KEY]: next });
     return this.taskTags(taskId);
   }
 
   private async taskTags(taskId: string) {
-    const rows = await this.prisma.taskTag.findMany({ where: { taskId }, select: { tag: { select: tagSelect } } });
-    return rows.map((r) => r.tag).sort((a, b) => a.name.localeCompare(b.name));
+    const names = await getRecordDimensionValues(this.prisma, 'TASK', taskId, DIMENSION_TAG_KEY);
+    return tagsByNames(this.prisma, 'TASK', names);
   }
 }

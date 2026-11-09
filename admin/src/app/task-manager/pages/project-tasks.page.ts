@@ -34,7 +34,7 @@ import { TmMembersDialogComponent } from '../ui/members-dialog.component';
 import { TmPersonPickerComponent } from '../ui/person-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
 import { TmAvatarComponent } from '../ui/tm-avatar.component';
-import { TagPick, TmTagPickerComponent } from '../ui/tag-picker.component';
+import { TagPick, tagPickToApiBody, TmTagPickerComponent } from '../ui/tag-picker.component';
 import { LucideIconComponent, LucideIconPickerPanelComponent } from '@upstart/back-office/lucide-icons';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -581,7 +581,7 @@ export class ProjectTasksPage implements OnDestroy {
     const task = this.pickerTask;
     if (!task) return;
     try {
-      const tags = await this.api.addTaskTag(task.id, pick);
+      const tags = await this.api.addTaskTag(task.id, tagPickToApiBody(pick));
       this.store.rememberTags(tags);
       this.patchLocal(task.id, { tags });
     } catch (err) {

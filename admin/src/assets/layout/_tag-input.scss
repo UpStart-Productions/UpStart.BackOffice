@@ -31,6 +31,29 @@
   cursor: default;
 }
 
+/** Chip row without input chrome (Settings pick lists, read-only clusters). Same pills as `app-tag-input`. */
+.ubo-tag-field--cluster {
+  border: 0;
+  padding: 0;
+  min-height: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.ubo-tag-pill--hidden {
+  opacity: 0.55;
+}
+
+.ubo-tag-pill-remove--danger {
+  color: var(--color-severity-danger-text, #b91c1c);
+}
+
+.ubo-tag-pill-remove--danger:hover,
+.ubo-tag-pill-remove--danger:focus-visible {
+  background: color-mix(in srgb, var(--color-severity-danger-text, #b91c1c) 18%, transparent);
+  color: var(--color-severity-danger-text, #b91c1c);
+}
+
 .ubo-tag-pill {
   display: inline-flex;
   align-items: center;
@@ -64,8 +87,9 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--brand-blue-600, #2563eb);
+  color: currentColor;
   cursor: pointer;
+  transform: translate(1px, 1px);
 }
 
 .ubo-tag-pill-remove .pi {
@@ -73,10 +97,16 @@
   font-weight: 700;
 }
 
+.ubo-tag-pill-remove:hover .pi,
+.ubo-tag-pill-remove:focus-visible .pi {
+  transform: translateY(1px);
+}
+
 .ubo-tag-pill-remove:hover,
 .ubo-tag-pill-remove:focus-visible {
-  background: color-mix(in srgb, var(--brand-blue-600, #2563eb) 20%, transparent);
-  color: var(--brand-blue-700, #1d4ed8);
+  transform: translate(1px, 0);
+  background: color-mix(in srgb, currentColor 20%, transparent);
+  color: currentColor;
 }
 
 .ubo-tag-query {
@@ -123,4 +153,23 @@
 .ubo-tag-panel-option--active {
   background: var(--surface-hover, var(--brand-blue-50, #eff6ff));
   color: var(--text-color);
+}
+
+/** Dark hint on tag pill actions (Settings pick lists, appendTo body). */
+.p-tooltip.ubo-dark-tooltip {
+  .p-tooltip-text {
+    max-width: 14rem;
+    padding: 0.5rem 0.65rem;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    line-height: 1.35;
+    color: #f9fafb;
+    background: #111827;
+    border-radius: var(--content-border-radius, 6px);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+  }
+
+  .p-tooltip-arrow {
+    display: none;
+  }
 }

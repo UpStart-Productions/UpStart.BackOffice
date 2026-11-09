@@ -1,0 +1,65 @@
+/* Find-or-create popover (`app-find-or-create-picker`). Shared with Task Manager tags. */
+
+.ubo-foc-popover .p-popover-content {
+  padding: 0.5rem;
+}
+
+.ubo-picker {
+  width: 18rem;
+}
+
+.ubo-picker--embedded {
+  width: 100%;
+}
+
+.ubo-picker-search {
+  width: 100%;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.35rem;
+  font: inherit;
+  font-size: var(--fs-base);
+  color: var(--text-color);
+  background: var(--surface-card);
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+}
+
+.ubo-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.ubo-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-color);
+  font: inherit;
+  font-size: var(--fs-base);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.ubo-picker-empty {
+  padding: 0.5rem;
+  color: var(--text-color-secondary);
+  font-size: var(--fs-sm);
+}

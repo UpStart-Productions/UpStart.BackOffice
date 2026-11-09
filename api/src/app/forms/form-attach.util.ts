@@ -1,5 +1,13 @@
 import type { Prisma } from '@prisma/client';
-import { normalizeFormSettings, type FormAttachInfoDto, type FormAttachTargetDto, type FormAttachVisibilityDto } from '@upstart/back-office/shared';
+import {
+  CLIENT_DIMENSION_KEYS,
+  normalizeFormSettings,
+  type FormAttachInfoDto,
+  type FormAttachTargetDto,
+  type FormAttachVisibilityDto,
+} from '@upstart/back-office/shared';
+import { dimensionsMapFromRows } from '../dimensions/dimensions.util';
+import { withClientDimensionRows } from '../dimensions/dimensions-load.util';
 import { normalizeEmail } from '../communications/email-address.util';
 import type { PrismaService } from '../prisma/prisma.service';
 import { sanitizeFormAccess } from './form-access.util';
@@ -10,18 +18,19 @@ const TARGET_SELECT = {
   id: true,
   name: true,
   journey: true,
-  tags: { select: { tag: { select: { name: true } } } },
   contactLinks: { select: { contact: { select: { firstName: true, lastName: true } } }, take: 6 },
 } as const;
 
-type TargetRow = Prisma.ClientGetPayload<{ select: typeof TARGET_SELECT }>;
+type TargetRow = Prisma.ClientGetPayload<{ select: typeof TARGET_SELECT }> & {
+  dimensionValues?: { values: string[]; definition: { key: string } }[];
+};
 
 function target(c: TargetRow): FormAttachTargetDto {
   return {
     clientId: c.id,
     name: c.name,
     journey: c.journey,
-    tags: c.tags.map((t) => t.tag.name),
+    tags: dimensionsMapFromRows(c.dimensionValues)[CLIENT_DIMENSION_KEYS.tags] ?? [],
     people: c.contactLinks.map((l) => [l.contact.firstName, l.contact.lastName].filter(Boolean).join(' ')).filter(Boolean),
   };
 }
@@ -33,7 +42,8 @@ export async function attachTargets(db: Db, reach: string[] | null): Promise<For
     select: TARGET_SELECT,
     orderBy: { name: 'asc' },
   });
-  return rows.map((r) => target(r));
+  const enriched = await withClientDimensionRows(db as PrismaService, rows);
+  return enriched.map((r) => target(r));
 }
 
 /** Who will see a response of this form once attached (for the confirmation step). */

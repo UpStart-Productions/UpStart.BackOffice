@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild, viewChildren } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -29,14 +29,15 @@ import { ClientFormsPanelComponent } from '../../ui/client-forms/client-forms-pa
 import { CareApi } from '../../core/care.api';
 import {
   areaLevel,
+  CLIENT_DIMENSION_KEYS,
   type AccountJourney,
   type CareClientOverviewDto,
   type ClientDto,
-  type OrgFocusCategory,
+  type DimensionDefinitionDto,
   type RecordAttributionDto,
 } from '@upstart/back-office/shared';
-import { MultiSelectModule } from 'primeng/multiselect';
-import { PIPELINE_CATEGORY_PRESETS } from '../../core/pipeline-vocabulary';
+import { DimensionsApi } from '../../core/dimensions.api';
+import { CrmTagsApi } from '../../core/crm-tags.api';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import {
   RowActionsMenuComponent,
@@ -58,7 +59,7 @@ type ClientForm = {
   name: string;
   code: string;
   journey: AccountJourney;
-  tags: string[];
+  dimensions: Record<string, string[]>;
   email: string;
   phone: string;
   address: string;
@@ -68,9 +69,6 @@ type ClientForm = {
   website: string;
   linkedInUrl: string;
   notes: string;
-  services: string[];
-  products: string[];
-  focusCategories: OrgFocusCategory[];
   isPublicFeatured: boolean;
   isActive: boolean;
 };
@@ -87,7 +85,6 @@ type ClientForm = {
     ToggleSwitchModule,
     SelectModule,
     SelectButtonModule,
-    MultiSelectModule,
     TableModule,
     TabsModule,
     TagModule,
@@ -116,8 +113,11 @@ export class ClientFormPage implements OnInit {
   private readonly confirm = inject(ConfirmDeleteService);
   private readonly session = inject(SessionService);
   private readonly care = inject(CareApi);
+  private readonly dimensionsApi = inject(DimensionsApi);
+  private readonly crmTags = inject(CrmTagsApi);
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
   private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
+  private readonly tagFields = viewChildren(TagInputComponent);
 
   readonly canAddToPipeline = computed(
     () => this.session.can('pipeline', 'create') && this.session.can('clients', 'edit'),
@@ -146,9 +146,13 @@ export class ClientFormPage implements OnInit {
   }
 
   readonly usStates = US_STATES;
-  readonly focusCategoryOptions = PIPELINE_CATEGORY_PRESETS;
-  /** Free-form lists; no CRM tag catalog. */
-  readonly emptyTagSuggestions: string[] = [];
+  readonly clientDimensionDefs = signal<DimensionDefinitionDto[]>([]);
+  readonly dimensionHelpKey: Record<string, string> = {
+    tags: 'organization.tags',
+    services: 'organization.services',
+    products: 'organization.products',
+    focus: 'organization.focusAreas',
+  };
   readonly journeyOptions: { value: AccountJourney; label: string }[] = [
     { value: 'CLIENT', label: 'Client' },
     { value: 'NONE', label: 'Partner / other' },
@@ -178,7 +182,12 @@ export class ClientFormPage implements OnInit {
     name: '',
     code: '',
     journey: 'CLIENT',
-    tags: [],
+    dimensions: {
+      [CLIENT_DIMENSION_KEYS.tags]: [],
+      [CLIENT_DIMENSION_KEYS.services]: [],
+      [CLIENT_DIMENSION_KEYS.products]: [],
+      [CLIENT_DIMENSION_KEYS.focus]: [],
+    },
     email: '',
     phone: '',
     address: '',
@@ -188,9 +197,6 @@ export class ClientFormPage implements OnInit {
     website: '',
     linkedInUrl: '',
     notes: '',
-    services: [],
-    products: [],
-    focusCategories: [],
     isPublicFeatured: false,
     isActive: true,
   };
@@ -224,7 +230,12 @@ export class ClientFormPage implements OnInit {
       name: client.name,
       code: this.str(client.code),
       journey: client.journey,
-      tags: client.tags ?? [],
+      dimensions: {
+        [CLIENT_DIMENSION_KEYS.tags]: [...(client.dimensions?.[CLIENT_DIMENSION_KEYS.tags] ?? [])],
+        [CLIENT_DIMENSION_KEYS.services]: [...(client.dimensions?.[CLIENT_DIMENSION_KEYS.services] ?? [])],
+        [CLIENT_DIMENSION_KEYS.products]: [...(client.dimensions?.[CLIENT_DIMENSION_KEYS.products] ?? [])],
+        [CLIENT_DIMENSION_KEYS.focus]: [...(client.dimensions?.[CLIENT_DIMENSION_KEYS.focus] ?? [])],
+      },
       email: this.str(client.email),
       phone: this.str(client.phone),
       address: this.str(client.address),
@@ -234,9 +245,6 @@ export class ClientFormPage implements OnInit {
       website: this.str(client.website),
       linkedInUrl: this.str(client.linkedInUrl),
       notes: this.str(client.notes),
-      services: [...(client.services ?? [])],
-      products: [...(client.products ?? [])],
-      focusCategories: [...(client.focusCategories ?? [])],
       isPublicFeatured: !!client.isPublicFeatured,
       isActive: client.isActive,
     };
@@ -253,7 +261,7 @@ export class ClientFormPage implements OnInit {
       name: this.form.name.trim(),
       code: emptyToUndefined(this.form.code),
       journey: this.form.journey,
-      tags: this.form.tags,
+      dimensions: this.form.dimensions,
       email: emptyToUndefined(this.form.email),
       phone: emptyToUndefined(this.form.phone),
       address: emptyToUndefined(this.form.address),
@@ -263,15 +271,59 @@ export class ClientFormPage implements OnInit {
       website: emptyToUndefined(this.form.website),
       linkedInUrl: emptyToUndefined(this.form.linkedInUrl),
       notes: richTextOrUndefined(this.form.notes),
-      services: this.form.services,
-      products: this.form.products,
-      focusCategories: this.form.focusCategories,
       isPublicFeatured: this.form.isPublicFeatured,
       isActive: this.form.isActive,
     };
   }
 
+  /** Suggestions in the dropdown (focus presets, CRM catalog for tags, etc.). */
+  dimensionPresets(def: DimensionDefinitionDto): string[] {
+    const base = def.presets ?? [];
+    if (def.key !== CLIENT_DIMENSION_KEYS.tags) return base;
+    const seen = new Set(base.map((n) => n.toLowerCase()));
+    const merged = [...base];
+    for (const name of this.crmTags.names()) {
+      const key = name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(name);
+      }
+    }
+    return merged;
+  }
+
+  dimensionRows(): DimensionDefinitionDto[][] {
+    const defs = this.clientDimensionDefs();
+    const rows: DimensionDefinitionDto[][] = [];
+    for (let i = 0; i < defs.length; i += 2) rows.push(defs.slice(i, i + 2));
+    return rows;
+  }
+
+  dimensionPlaceholder(def: DimensionDefinitionDto): string {
+    if (def.key === CLIENT_DIMENSION_KEYS.tags) return 'Add a tag…';
+    if (def.key === CLIENT_DIMENSION_KEYS.services) return 'Add a service…';
+    if (def.key === CLIENT_DIMENSION_KEYS.products) return 'Add a product…';
+    return 'Add a focus area…';
+  }
+
+  dimensionCreateKind(def: DimensionDefinitionDto): string {
+    if (def.key === CLIENT_DIMENSION_KEYS.tags) return 'tag';
+    if (def.key === CLIENT_DIMENSION_KEYS.services) return 'service';
+    if (def.key === CLIENT_DIMENSION_KEYS.products) return 'product';
+    return 'focus area';
+  }
+
   async ngOnInit() {
+    try {
+      void this.crmTags.load();
+      const defs = await this.dimensionsApi.loadClientDefinitions(true);
+      this.clientDimensionDefs.set(defs);
+      for (const def of defs) {
+        if (!this.form.dimensions[def.key]) this.form.dimensions[def.key] = [];
+      }
+    } catch {
+      this.clientDimensionDefs.set([]);
+    }
     const id = this.route.snapshot.paramMap.get('id');
     const params = this.route.snapshot.queryParamMap;
     if (params.get('from') === 'clients' || this.router.url.startsWith('/clients/')) {
@@ -364,9 +416,11 @@ export class ClientFormPage implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     try {
+      for (const field of this.tagFields()) field.commitPendingQuery();
       const payload = this.buildPayload();
       if (this.isNew) {
         const created = await this.api.post<ClientDto>('/clients', payload);
+        await this.dimensionsApi.reloadClientDefinitions();
         this.toast.add({
           severity: 'success',
           summary: 'Saved',
@@ -376,6 +430,8 @@ export class ClientFormPage implements OnInit {
         await this.router.navigate([detailPath, created.id], { replaceUrl: true });
       } else {
         const updated = await this.api.put<ClientDto>(`/clients/${this.id()}`, payload);
+        this.patchForm(updated);
+        this.clientDimensionDefs.set(await this.dimensionsApi.reloadClientDefinitions());
         this.attribution.set(updated.attribution ?? null);
         this.savedSnapshot = this.snapshot();
         this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.form.name} saved.` });

@@ -18,6 +18,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
 import { CrmTagsApi } from '../../core/crm-tags.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
+import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
 
 @Component({
   selector: 'app-contacts-list-page',
@@ -36,6 +37,7 @@ import { SessionService } from '../../core/session.service';
     PageComponent,
     CopyEmailComponent,
     RowActionsMenuComponent,
+    TagChipListComponent,
   ],
   template: `
     <app-page title="People">
@@ -137,9 +139,11 @@ import { SessionService } from '../../core/session.service';
                 }
               </td>
               <td>
-                <div class="people-tags">
-                  @for (t of c.tags; track t) { <span class="people-tag">{{ t }}</span> }
-                </div>
+                <app-tag-chip-list
+                  [tags]="c.tags"
+                  [removable]="canEdit()"
+                  (removeTag)="removeTag(c, $event)"
+                />
               </td>
             </tr>
           </ng-template>
@@ -161,14 +165,6 @@ import { SessionService } from '../../core/session.service';
     </app-page>
   `,
   styles: `
-    .people-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-    .people-tag {
-      padding: 0.1rem 0.55rem;
-      border: 1px solid var(--surface-border);
-      border-radius: 999px;
-      background: var(--surface-ground);
-      white-space: nowrap;
-    }
     :host ::ng-deep .people-tag-filter { min-width: 11rem; }
   `,
 })
@@ -182,6 +178,7 @@ export class ContactsListPage implements OnInit {
   readonly tagOptions = () => this.crmTags.tags().map((t) => t.name);
   readonly canDelete = () => this.session.can('contacts', 'delete');
   readonly canCreate = () => this.session.can('contacts', 'edit');
+  readonly canEdit = () => this.session.can('contacts', 'edit');
 
   contacts = signal<ContactSummary[]>([]);
   loading = signal(true);
@@ -296,6 +293,16 @@ export class ContactsListPage implements OnInit {
       });
     }
     return items;
+  }
+
+  async removeTag(c: ContactSummary, tag: string) {
+    const next = c.tags.filter((t) => t !== tag);
+    try {
+      await this.comms.updateContact(c.id, { tags: next });
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not update tags');
+    }
   }
 
   confirmDeletePerson(c: ContactSummary) {

@@ -16,7 +16,9 @@ import { fileRefsIn } from '../forms/form-fields.util';
 import { ACCOUNT_JOURNEYS, AccountJourneyValue, CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { AccessGuard, Area, Action } from '../access/access.guard';
-import { hasTagWhere, setClientTags, tagNames, tagsInclude } from '../crm-tags/crm-tags.util';
+import { setClientDimensions } from '../dimensions/dimensions.util';
+import { clientIdsWithTagName, withClientDimensionRows } from '../dimensions/dimensions-load.util';
+import { currentTenantId } from '../tenancy/tenant-context';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AddTeamMemberDto, assertTeamCandidate, clientTeam, teamCandidates } from '../team/team.util';
 import { AddPipelineCardDto } from '../pipelines/dto/add-pipeline-card.dto';
@@ -39,10 +41,6 @@ const clientSelect = {
   notes: true,
   category: true,
   journey: true,
-  ...tagsInclude,
-  services: true,
-  products: true,
-  focusCategories: true,
   isPublicFeatured: true,
   isReferralReady: true,
   lastContactAt: true,
@@ -137,11 +135,13 @@ export class ClientsController {
     const journeys = (journey ?? '')
       .split(',')
       .filter((j): j is AccountJourneyValue => (ACCOUNT_JOURNEYS as readonly string[]).includes(j));
+    const tagFilter = tag ?? role;
+    const tagIds = tagFilter ? await clientIdsWithTagName(this.prisma, tagFilter) : null;
     const clients = await this.prisma.client.findMany({
       where: {
         ...(reach ? { id: reach } : {}),
         ...(journeys.length ? { journey: { in: journeys } } : { journey: { not: 'PROSPECT' } }),
-        ...hasTagWhere(tag ?? role),
+        ...(tagIds ? { id: { in: tagIds } } : {}),
       },
       orderBy: { name: 'asc' },
       select: {
@@ -158,16 +158,20 @@ export class ClientsController {
         notes: true,
         category: true,
         journey: true,
-        ...tagsInclude,
         isReferralReady: true,
         lastContactAt: true,
+        isPublicFeatured: true,
+        linkedInUrl: true,
         isActive: true,
         portalEnabled: true,
+        portalToken: true,
+        portalTokenCreatedAt: true,
         createdAt: true,
         updatedAt: true,
       },
     });
-    return clients.map(({ tags, ...c }) => ({ ...c, tags: tagNames(tags) }));
+    const withDims = await withClientDimensionRows(this.prisma, clients);
+    return withDims.map((c) => withAttribution(c, toClientView(c)));
   }
 
   /**
@@ -192,6 +196,7 @@ export class ClientsController {
     if (journey === 'PROSPECT') {
       throw new BadRequestException('Prospect is not a valid organization status. Add opportunities on the Pipeline.');
     }
+    const tenantId = currentTenantId();
     const client = await this.prisma.$transaction(async (tx) => {
       const created = await tx.client.create({
         data: {
@@ -207,16 +212,18 @@ export class ClientsController {
           website: dto.website,
           linkedInUrl: dto.linkedInUrl,
           notes: dto.notes,
-          services: dto.services ?? [],
-          products: dto.products ?? [],
-          focusCategories: dto.focusCategories ?? [],
           isPublicFeatured: dto.isPublicFeatured ?? false,
           isActive: dto.isActive ?? true,
         },
         select: { id: true },
       });
-      if (dto.tags?.length) await setClientTags(tx, created.id, dto.tags);
-      return tx.client.findUniqueOrThrow({ where: { id: created.id }, select: clientSelect });
+      const dimensions = dto.dimensions ?? {};
+      if (dto.tags !== undefined) dimensions.tags = dto.tags;
+      const hasDims = Object.values(dimensions).some((v) => v !== undefined);
+      if (hasDims) await setClientDimensions(tx, tenantId, created.id, dimensions);
+      const row = await tx.client.findUniqueOrThrow({ where: { id: created.id }, select: clientSelect });
+      const [withDims] = await withClientDimensionRows(tx, [row]);
+      return withDims;
     });
     const user = req.user as UserContext;
     if (this.access.level(user, 'clients') !== 'all') {
@@ -224,7 +231,7 @@ export class ClientsController {
       await this.prisma.clientAssignment.create({ data: { clientId: client.id, userId: user.id } });
     }
     await this.storageFolders.ensureClientFolders(client.id);
-    return withAttribution(client, toClientView(client));
+    return this.clientView(client);
   }
 
   @Action('edit')
@@ -247,7 +254,8 @@ export class ClientsController {
       select: clientSelect,
     });
     if (!client) throw new NotFoundException('Client not found');
-    return withAttribution(client, toClientView(client));
+    const [withDims] = await withClientDimensionRows(this.prisma, [client]);
+    return withAttribution(withDims, toClientView(withDims));
   }
 
   @Put(':id')
@@ -255,7 +263,11 @@ export class ClientsController {
     await this.assertReach(req, id);
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
-    if (dto.tags !== undefined) await setClientTags(this.prisma, id, dto.tags);
+    const tenantId = currentTenantId();
+    const dimensions = { ...(dto.dimensions ?? {}) };
+    if (dto.tags !== undefined) dimensions.tags = dto.tags;
+    const hasDims = Object.values(dimensions).some((v) => v !== undefined);
+    if (hasDims) await setClientDimensions(this.prisma, tenantId, id, dimensions);
     if (dto.journey === 'CLIENT' && existing.journey !== 'CLIENT') {
       // Won: the pipeline holds opportunities, so this organization's open cards come off the board.
       await this.prisma.lead.updateMany({ where: { clientId: id, archivedAt: null }, data: { archivedAt: new Date() } });
@@ -275,15 +287,17 @@ export class ClientsController {
         ...(dto.website !== undefined && { website: dto.website }),
         ...(dto.linkedInUrl !== undefined && { linkedInUrl: dto.linkedInUrl }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
-        ...(dto.services !== undefined && { services: dto.services }),
-        ...(dto.products !== undefined && { products: dto.products }),
-        ...(dto.focusCategories !== undefined && { focusCategories: dto.focusCategories }),
         ...(dto.isPublicFeatured !== undefined && { isPublicFeatured: dto.isPublicFeatured }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
       select: clientSelect,
     });
-    return withAttribution(client, toClientView(client));
+    return this.clientView(client);
+  }
+
+  private async clientView<T extends Parameters<typeof toClientView>[0]>(client: T) {
+    const [withDims] = await withClientDimensionRows(this.prisma, [client]);
+    return withAttribution(withDims, toClientView(withDims));
   }
 
   @Action('edit')
@@ -303,7 +317,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return withAttribution(client, toClientView(client));
+    return this.clientView(client);
   }
 
   @Action('edit')
@@ -318,7 +332,7 @@ export class ClientsController {
       data: { portalEnabled: false },
       select: clientSelect,
     });
-    return withAttribution(client, toClientView(client));
+    return this.clientView(client);
   }
 
   @Action('edit')
@@ -337,7 +351,7 @@ export class ClientsController {
       },
       select: clientSelect,
     });
-    return withAttribution(client, toClientView(client));
+    return this.clientView(client);
   }
 
   @Delete(':id')

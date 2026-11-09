@@ -22,6 +22,9 @@ import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreateFormDto, SubmitFormDto, UpdateFormDto } from './dto/task-manager.dto';
 import { TaskAccessService } from './task-access.service';
 import { TaskEventsService } from './task-events.service';
+import { DIMENSION_TAG_KEY } from '@upstart/back-office/shared';
+import { setRecordDimensions } from '../dimensions/dimensions.util';
+import { currentTenantId } from '../tenancy/tenant-context';
 import { FieldOption } from './task-fields.util';
 import {
   buildSubmission,
@@ -237,9 +240,19 @@ export class TaskFormsService {
         submitterName: who.name,
         sortOrder,
         fieldValues: { create: built.fieldValues.map((v) => ({ fieldId: v.fieldId, value: v.value as Prisma.InputJsonValue })) },
-        tags: { create: validTags.map((t) => ({ tagId: t.id })) },
       },
     });
+    if (validTags.length) {
+      const names = (
+        await this.prisma.tag.findMany({
+          where: { id: { in: validTags.map((t) => t.id) }, scope: 'TASK' },
+          select: { name: true },
+        })
+      ).map((t) => t.name);
+      if (names.length) {
+        await setRecordDimensions(this.prisma, currentTenantId(), 'TASK', task.id, { [DIMENSION_TAG_KEY]: names });
+      }
+    }
 
     for (const file of files) {
       const key = `${projectRootPrefix(project.clientId, form.projectId)}/tasks/${task.id}/${randomUUID()}${extname(file.originalname)}`;

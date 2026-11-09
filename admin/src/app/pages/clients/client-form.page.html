@@ -181,46 +181,27 @@
               </div>
             }
           }
-          <div class="showcase-row">
-            <div class="form-field showcase-half">
-              <label for="orgServices">Services <app-help-text key="organization.services" /></label>
-              <app-tag-input
-                inputId="orgServices"
-                [(tags)]="form.services"
-                [suggestionNames]="emptyTagSuggestions"
-                placeholder="Add a service…"
-              />
+          @for (row of dimensionRows(); track $index) {
+            <div class="showcase-row">
+              @for (def of row; track def.key) {
+                <div class="form-field showcase-half">
+                  <label [attr.for]="'dim-' + def.key">
+                    {{ def.label }}
+                    @if (dimensionHelpKey[def.key]) {
+                      <app-help-text [key]="dimensionHelpKey[def.key]" />
+                    }
+                  </label>
+                  <app-tag-input
+                    [inputId]="'dim-' + def.key"
+                    [(tags)]="form.dimensions[def.key]"
+                    [presets]="dimensionPresets(def)"
+                    [placeholder]="dimensionPlaceholder(def)"
+                    [createKind]="dimensionCreateKind(def)"
+                  />
+                </div>
+              }
             </div>
-            <div class="form-field showcase-half">
-              <label for="orgProducts">Products <app-help-text key="organization.products" /></label>
-              <app-tag-input
-                inputId="orgProducts"
-                [(tags)]="form.products"
-                [suggestionNames]="emptyTagSuggestions"
-                placeholder="Add a product…"
-              />
-            </div>
-          </div>
-          <div class="showcase-row">
-            <div class="form-field showcase-half">
-              <label for="orgFocus">Focus areas <app-help-text key="organization.focusAreas" /></label>
-              <p-multiselect
-                inputId="orgFocus"
-                name="focusCategories"
-                [options]="focusCategoryOptions"
-                optionLabel="label"
-                optionValue="value"
-                [(ngModel)]="form.focusCategories"
-                placeholder="Select focus areas…"
-                [showClear]="true"
-                styleClass="w-full"
-              />
-            </div>
-            <div class="form-field showcase-half">
-              <label for="orgTags">Tags <app-help-text key="organization.tags" /></label>
-              <app-crm-tag-input [(tags)]="form.tags" inputId="orgTags" />
-            </div>
-          </div>
+          }
         </div>
 
       </form>

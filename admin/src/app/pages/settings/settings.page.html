@@ -170,6 +170,23 @@
         </p-accordion-content>
       </p-accordion-panel>
 
+      <p-accordion-panel value="organization-fields">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            <i class="pi pi-building settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
+            <span class="settings-accordion-title">Pick lists</span>
+            <span class="settings-accordion-meta">Suggestion lists for organizations, people, and tasks</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <p class="text-color-secondary mb-3">
+            Hide or remove values staff see when tagging and typing on records.
+            <app-help-text key="settings.organizationFields" />
+          </p>
+          <app-organization-fields-settings />
+        </p-accordion-content>
+      </p-accordion-panel>
+
       <p-accordion-panel value="mcp">
         <p-accordion-header>
           <span class="settings-accordion-header">

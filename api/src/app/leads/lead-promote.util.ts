@@ -20,9 +20,9 @@ export type PromoteDb = Pick<
   | 'contactAccount'
   | 'leadContact'
   | 'artifact'
-  | 'clientTag'
-  | 'contactTag'
   | 'tag'
+  | 'dimensionDefinition'
+  | 'dimensionValue'
 >;
 
 /** Copy card people onto an organization and set primary on the account link. */
@@ -80,7 +80,10 @@ export async function promoteLeadToOrganization(
       },
     });
   }
-  if (opts.tags?.length) await setClientTags(db, clientId, opts.tags);
+  if (opts.tags?.length) {
+    const row = await db.client.findUniqueOrThrow({ where: { id: clientId }, select: { tenantId: true } });
+    await setClientTags(db, clientId, opts.tags, row.tenantId);
+  }
   await linkLeadPeopleToClient(db, leadId, clientId);
   await db.lead.update({ where: { id: leadId }, data: { clientId } });
   await db.artifact.updateMany({ where: { leadId, clientId: null }, data: { clientId } });

@@ -23,6 +23,7 @@ import { EmailCaptureSettingsComponent } from '../../ui/email-capture/email-capt
 import { McpSettingsComponent } from '../../ui/mcp-settings/mcp-settings.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/expenses-invoicing-settings.component';
+import { OrganizationFieldsSettingsComponent } from '../../ui/organization-fields/organization-fields-settings.component';
 import { ActivitySettingsComponent } from '../../ui/activity-settings/activity-settings.component';
 import { SessionService } from '../../core/session.service';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
@@ -115,6 +116,7 @@ interface SettingsStatusIcon {
     McpSettingsComponent,
     HelpTextComponent,
     ExpensesInvoicingSettingsComponent,
+    OrganizationFieldsSettingsComponent,
     ActivitySettingsComponent,
     AvatarDropzoneComponent,
     PhoneInputComponent,

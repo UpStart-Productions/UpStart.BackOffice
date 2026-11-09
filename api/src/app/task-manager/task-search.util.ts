@@ -10,7 +10,6 @@ export function taskSearchWhere(q: string): Prisma.TaskWhereInput {
       { description: ic },
       { submitterName: ic },
       { submitterEmail: ic },
-      { tags: { some: { tag: { name: ic } } } },
       {
         assignee: {
           OR: [{ firstName: ic }, { lastName: ic }, { name: ic }, { email: ic }],

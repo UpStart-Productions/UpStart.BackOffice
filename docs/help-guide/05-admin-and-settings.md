@@ -34,6 +34,16 @@ The **Business** section is where admins set how your organization appears on in
 
 Click **Save** after editing text fields. Logo upload saves immediately when you choose a file.
 
+### Pick lists
+
+Open **Pick lists** in Settings. Three blocks — **Organizations**, **People**, and **Tasks** — each with their own suggestion lists (organization **Tags**, **Services**, **Products**, and **Focus areas**; **Tags** for people and for tasks). **Add** on a list opens the same find-or-create control used for task tags: search existing values or type a new name and press Enter (or choose **Create value …**). The count on a pill is how many records still have that value. On each pill:
+
+- **Hide** (eye-slash) — the name no longer appears in pick lists on records; organizations that already have it keep it.
+- **Show** (eye) — brings a hidden name back to the pick lists.
+- **Delete** (×) — strips the name from every record and from suggestion lists (confirm first).
+
+Staff can still add new names while editing records; use Pick lists to add catalog entries ahead of time or to hide or remove values.
+
 ### Expenses and Invoicing
 
 **Expenses and Invoicing** covers mileage and expense categories:

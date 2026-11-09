@@ -79,7 +79,13 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
                           {{ t.name }}
                         </span>
                         @for (tag of t.tags; track tag.id) {
-                          <span class="tm-chip tm-tag" [style.background]="chipColors(tag.color).bg" [style.color]="chipColors(tag.color).fg">{{ tag.name }}</span>
+                          <span
+                            class="ubo-tag-pill"
+                            [style.background]="chipColors(tag.color).bg"
+                            [style.color]="chipColors(tag.color).fg"
+                          >
+                            <span class="ubo-tag-pill-label">{{ tag.name }}</span>
+                          </span>
                         }
                         @if (t.recurrence) { <i class="pi pi-sync tm-muted" title="Repeats"></i> }
                       </div>

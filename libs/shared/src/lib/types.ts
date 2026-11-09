@@ -30,7 +30,7 @@ export const ACCOUNT_JOURNEY_LABELS: Record<AccountJourney, string> = {
 /** Suggested CRM tags for organizations and people; tags are free-form, these just save typing. */
 export const CRM_TAG_SUGGESTIONS = ['Network', 'Partner', 'Referral source', 'Vendor'] as const;
 
-/** Nonprofit focus areas (OrgCategory on Client.focusCategories). */
+/** @deprecated Focus is stored in `dimensions.focus` (string labels). */
 export const ORG_FOCUS_CATEGORIES = [
   'RECOVERY',
   'FAMILY',
@@ -48,6 +48,7 @@ export const ORG_FOCUS_CATEGORIES = [
   'OTHER',
 ] as const;
 
+/** @deprecated Use string labels in `ClientDto.dimensions.focus`. */
 export type OrgFocusCategory = (typeof ORG_FOCUS_CATEGORIES)[number];
 
 export type ClientDto = {
@@ -55,13 +56,11 @@ export type ClientDto = {
   name: string;
   code?: string | null;
   journey: AccountJourney;
-  /** CRM tag names (Partner, Vendor...). */
-  tags: string[];
-  services?: string[];
-  products?: string[];
-  focusCategories?: OrgFocusCategory[];
+  /** Multi-value dimensions (tags, services, products, focus, …). Keys match dimension definitions. */
+  dimensions: Record<string, string[]>;
   isPublicFeatured?: boolean;
   isReferralReady?: boolean;
+  lastContactAt?: string | null;
   email?: string | null;
   phone?: string | null;
   address?: string | null;
