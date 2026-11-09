@@ -61,7 +61,9 @@
             </div>
           </div>
 
-          <ng-container *ngTemplateOutlet="projectPeoplePanel" />
+          @if (!isNew) {
+            <ng-container *ngTemplateOutlet="projectPeoplePanel" />
+          }
 
           @if (!isNew && inTaskManager()) {
             <app-project-work-tasks-preview [projectId]="id()!" [inTaskManager]="inTaskManager()" />
@@ -193,7 +195,6 @@
       [clientId]="form.clientId || null"
       [projectId]="id()"
       [compact]="true"
-      [projectContacts]="contactRows()"
       (projectContactsChange)="contactRows.set($event)"
     />
   </ng-template>

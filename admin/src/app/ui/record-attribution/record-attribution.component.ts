@@ -1,4 +1,4 @@
-import { Component, inject, input, viewChild } from '@angular/core';
+import { Component, inject, input, signal, viewChild } from '@angular/core';
 import { Popover } from 'primeng/popover';
 import type { AttributionUserDto, RecordAttributionDto } from '@upstart/back-office/shared';
 import { AppPopoverModule } from '../../core/app-popover.module';
@@ -105,7 +105,7 @@ export class RecordAttributionComponent {
   attribution = input<RecordAttributionDto | null | undefined>(null);
   private readonly session = inject(SessionService);
   private readonly detailPopover = viewChild<Popover>('detailPopover');
-  private readonly failedPhotos = new Set<string>();
+  private readonly failedPhotos = signal<ReadonlySet<string>>(new Set());
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   show(): boolean {
@@ -161,16 +161,22 @@ export class RecordAttributionComponent {
   }
 
   photoUrl(user: AttributionUserDto): string | null {
+    const failed = this.failedPhotos();
     const fromRecord = resolveAssetUrl(user.avatarUrl);
-    if (fromRecord && !this.failedPhotos.has(fromRecord)) return fromRecord;
+    if (fromRecord && !failed.has(fromRecord)) return fromRecord;
     const me = this.session.me();
     const fromSession = me && me.id === user.id ? resolveAssetUrl(me.avatarUrl ?? null) : null;
-    if (fromSession && !this.failedPhotos.has(fromSession)) return fromSession;
+    if (fromSession && !failed.has(fromSession)) return fromSession;
     return null;
   }
 
   onPhotoError(url: string): void {
-    this.failedPhotos.add(url);
+    this.failedPhotos.update((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
   }
 
   openDetails(event: Event): void {

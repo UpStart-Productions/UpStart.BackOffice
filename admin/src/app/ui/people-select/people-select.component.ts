@@ -1,4 +1,4 @@
-import { booleanAttribute, Component, input, model } from '@angular/core';
+import { booleanAttribute, Component, input, model, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
 import {
@@ -56,6 +56,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
       optionLabel="label"
       optionValue="id"
       [(ngModel)]="pickId"
+      (ngModelChange)="onModelChange($event)"
       [filter]="filterable()"
       filterBy="label,firstName,lastName,email,displayName,sourceLabel"
       [filterPlaceholder]="filterPlaceholder()"
@@ -90,6 +91,8 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 })
 export class PeopleSelectComponent {
   readonly pickId = model<string | null>(null);
+  /** Fires with the full row when the user commits a selection (not on clear). */
+  readonly picked = output<PeopleDirectoryOption>();
 
   options = input.required<PeopleDirectoryOption[]>();
   loading = input(false);
@@ -102,4 +105,11 @@ export class PeopleSelectComponent {
   ariaLabel = input('Search and select a person');
 
   readonly avatarPerson = toDirectoryAvatarPerson;
+
+  onModelChange(value: string | null) {
+    this.pickId.set(value);
+    if (!value) return;
+    const option = this.options().find((o) => o.id === value);
+    if (option) this.picked.emit(option);
+  }
 }

@@ -84,7 +84,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               <app-people-select
                 [inputId]="pickerInputId"
                 [(pickId)]="pickId"
-                (pickIdChange)="onExistingPicked($event)"
+                (picked)="onExistingDirectoryPicked($event)"
                 [options]="pickerOptions()"
                 [loading]="pickerLoading()"
                 placeholder="Search and select…"
@@ -170,7 +170,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
           </div>
         }
       } @else {
-        @for (contact of projectContacts(); track $index; let rowIndex = $index) {
+        @for (contact of projectPeople(); track $index; let rowIndex = $index) {
           <div class="people-panel-project-row">
             <app-tm-avatar [person]="projectRowPerson(contact)" [size]="36" [showTitle]="false" />
             <div class="people-panel-project-main">
@@ -212,7 +212,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
             }
           </div>
         }
-        @if (projectContacts().length === 0 && teamRows().length === 0) {
+        @if (projectPeople().length === 0 && teamRows().length === 0) {
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
         }
       }
@@ -225,7 +225,7 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
             <app-people-select
               [inputId]="pickerInputId"
               [(pickId)]="pickId"
-              (pickIdChange)="onExistingPicked($event)"
+              (picked)="onExistingDirectoryPicked($event)"
               [options]="pickerOptions()"
               [loading]="pickerLoading()"
               placeholder="Search and select…"
@@ -394,6 +394,8 @@ export class PeopleComponent {
   panelError = signal<string | null>(null);
 
   orgPeople = signal<ContactSummary[]>([]);
+  /** Project contact rows shown in the list (like orgPeople — loaded or saved via API when the project exists). */
+  projectPeople = signal<PeopleProjectContact[]>([]);
   /** Staff on this client/project (see TeamApi). Saved right away, unlike the project contact draft. */
   teamRows = signal<TeamMember[]>([]);
   private teamCandidates: Person[] | null = null;
@@ -428,10 +430,16 @@ export class PeopleComponent {
       void this.loadTeam(scope);
     });
     effect(() => {
+      if (this.mode() !== 'project') return;
+      const id = this.projectId();
+      if (!id) return;
+      void this.loadProjectPeople(id);
+    });
+    effect(() => {
       this.mode();
       this.clientId();
       this.projectId();
-      this.projectContacts();
+      this.projectPeople();
       this.orgPeople();
       this.teamRows();
       // Read-only panels have no picker, so skip loading its options.
@@ -500,7 +508,7 @@ export class PeopleComponent {
         }
       }
     } else if (this.mode() === 'project') {
-      this.addProjectContactFromSummary(created);
+      await this.addProjectContactFromSummary(created);
       if (created.makeLead && scope?.kind === 'projects' && created.leadEmail) {
         try {
           const res = await this.team.inviteLead(scope.id, created.leadEmail);
@@ -518,10 +526,7 @@ export class PeopleComponent {
     void this.reloadPickerOptions();
   }
 
-  async onExistingPicked(id: string | null | undefined) {
-    if (!id) return;
-    const option = this.pickerOptions().find((o) => o.id === id);
-    if (!option) return;
+  async onExistingDirectoryPicked(option: PeopleDirectoryOption) {
     this.panelError.set(null);
     try {
       if (option.id.startsWith('user:')) {
@@ -531,7 +536,7 @@ export class PeopleComponent {
       } else if (this.mode() === 'lead') {
         await this.linkExistingToLead(option);
       } else {
-        this.addProjectContactFromEntry(option);
+        await this.linkExistingToProject(option);
       }
     } catch (err) {
       this.panelError.set(err instanceof Error ? err.message : 'Could not add person');
@@ -563,8 +568,10 @@ export class PeopleComponent {
     void this.reloadPickerOptions();
   }
 
-  private addProjectContactFromEntry(entry: PeopleDirectoryEntry) {
-    const contactId = contactIdFromDirectoryId(entry.id);
+  private async linkExistingToProject(option: PeopleDirectoryOption) {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    const contactId = contactIdFromDirectoryId(option.id);
     if (!contactId) {
       this.toast.add({
         severity: 'warn',
@@ -573,20 +580,44 @@ export class PeopleComponent {
       });
       return;
     }
-    this.addProjectContactRow({
-      contactId,
-      firstName: entry.firstName,
-      lastName: entry.lastName,
-      phone: entry.phone,
-      email: entry.email,
-      avatarUrl: entry.avatarUrl,
-      displayName: entry.displayName,
-    });
+    const rows = this.projectPeople();
+    if (rows.some((c) => c.contactId === contactId)) {
+      this.toast.add({
+        severity: 'info',
+        summary: 'Already on this project',
+        detail: `${option.displayName} is already listed.`,
+      });
+      return;
+    }
+    const email = option.email.trim().toLowerCase();
+    if (email && rows.some((c) => c.email.trim().toLowerCase() === email)) {
+      this.toast.add({
+        severity: 'info',
+        summary: 'Already on this project',
+        detail: `${option.displayName} is already listed.`,
+      });
+      return;
+    }
+    const next: PeopleProjectContact[] = [
+      ...rows,
+      {
+        contactId,
+        firstName: option.firstName,
+        lastName: option.lastName,
+        phone: option.phone,
+        email: option.email,
+        avatarUrl: option.avatarUrl,
+        sortOrder: rows.length,
+      },
+    ];
+    await this.persistProjectPeople(projectId, next);
+    this.toast.add({ severity: 'success', summary: 'Person added', detail: option.displayName });
+    void this.reloadPickerOptions();
   }
 
-  private addProjectContactFromSummary(c: ContactSummary) {
+  private async addProjectContactFromSummary(c: ContactSummary) {
     const primaryEmail = c.emails.find((e) => e.isPrimary)?.email ?? c.emails[0]?.email ?? '';
-    this.addProjectContactRow({
+    await this.addProjectContactRow({
       contactId: c.id,
       firstName: c.firstName,
       lastName: c.lastName ?? '',
@@ -597,7 +628,7 @@ export class PeopleComponent {
     });
   }
 
-  private addProjectContactRow(fields: {
+  private async addProjectContactRow(fields: {
     contactId: string;
     firstName: string;
     lastName: string;
@@ -606,7 +637,9 @@ export class PeopleComponent {
     avatarUrl: string | null;
     displayName: string;
   }) {
-    const rows = this.projectContacts();
+    const projectId = this.projectId();
+    if (!projectId) return;
+    const rows = this.projectPeople();
     if (rows.some((c) => c.contactId === fields.contactId)) {
       this.toast.add({
         severity: 'info',
@@ -624,7 +657,7 @@ export class PeopleComponent {
       });
       return;
     }
-    const next = [
+    const next: PeopleProjectContact[] = [
       ...rows,
       {
         contactId: fields.contactId,
@@ -636,10 +669,63 @@ export class PeopleComponent {
         sortOrder: rows.length,
       },
     ];
-    this.projectContactsChange.emit(next);
-    this.projectContactsDirty.emit();
+    await this.persistProjectPeople(projectId, next);
     this.toast.add({ severity: 'success', summary: 'Person added', detail: fields.displayName });
     void this.reloadPickerOptions();
+  }
+
+  private projectContactsPayload(rows: PeopleProjectContact[]) {
+    const trim = (value: string) => value.trim() || undefined;
+    return rows
+      .map((contact, index) => ({
+        id: contact.id,
+        contactId: contact.contactId ?? undefined,
+        firstName: trim(contact.firstName),
+        lastName: trim(contact.lastName),
+        phone: trim(contact.phone),
+        email: trim(contact.email),
+        sortOrder: index,
+      }))
+      .filter(
+        (contact) =>
+          contact.contactId ||
+          contact.firstName ||
+          contact.lastName ||
+          contact.phone ||
+          contact.email,
+      );
+  }
+
+  private mapProjectContactsFromApi(contacts: PeopleProjectContact[]): PeopleProjectContact[] {
+    return contacts.map((contact, index) => ({
+      id: contact.id,
+      contactId: contact.contactId ?? null,
+      firstName: contact.firstName ?? '',
+      lastName: contact.lastName ?? '',
+      phone: contact.phone ?? '',
+      email: contact.email ?? '',
+      avatarUrl: contact.avatarUrl ?? null,
+      sortOrder: contact.sortOrder ?? index,
+    }));
+  }
+
+  private async loadProjectPeople(projectId: string) {
+    try {
+      const project = await this.api.get<{ contacts?: PeopleProjectContact[] }>(`/projects/${projectId}`);
+      const rows = this.mapProjectContactsFromApi(project.contacts ?? []);
+      this.projectPeople.set(rows);
+      this.projectContactsChange.emit(rows);
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Failed to load people');
+      this.projectPeople.set([]);
+    }
+  }
+
+  /** Save contacts then reload the list (same idea as link + loadOrganizationPeople on orgs). */
+  private async persistProjectPeople(projectId: string, next: PeopleProjectContact[]) {
+    await this.api.put(`/projects/${projectId}/contacts`, { contacts: this.projectContactsPayload(next) });
+    await this.loadProjectPeople(projectId);
+    this.projectContactsDirty.emit();
   }
 
   projectDisplayName(contact: Pick<PeopleProjectContact, 'firstName' | 'lastName'>): string {
@@ -814,7 +900,7 @@ export class PeopleComponent {
   }
 
   projectRowActions(index: number): RowActionItem[] {
-    const contact = this.projectContacts()[index];
+    const contact = this.projectPeople()[index];
     const actions: RowActionItem[] = [];
     if (contact.contactId) {
       actions.push({
@@ -835,15 +921,20 @@ export class PeopleComponent {
   }
 
   confirmRemoveProjectContact(index: number) {
-    const contact = this.projectContacts()[index];
+    const contact = this.projectPeople()[index];
     const label = this.projectDisplayName(contact) || 'this person';
     this.confirmDelete.confirm({
       message: `Remove "${label}" from this project?`,
-      accept: () => {
-        const next = this.projectContacts().filter((_, i) => i !== index);
-        this.projectContactsChange.emit(next);
-        this.projectContactsDirty.emit();
-        void this.reloadPickerOptions();
+      accept: async () => {
+        const projectId = this.projectId();
+        if (!projectId) return;
+        const next = this.projectPeople().filter((_, i) => i !== index);
+        try {
+          await this.persistProjectPeople(projectId, next);
+          void this.reloadPickerOptions();
+        } catch (err) {
+          this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
+        }
       },
     });
   }
@@ -967,7 +1058,7 @@ export class PeopleComponent {
       const excludeContactIds =
         this.mode() === 'organization'
           ? this.orgPeople().map((p) => p.id)
-          : this.projectContacts()
+          : this.projectPeople()
               .map((r) => r.contactId)
               .filter((id): id is string => !!id);
       const [contacts, staff] = await Promise.all([

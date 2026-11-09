@@ -804,8 +804,17 @@ p-sorticon svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-200);
-  color: var(--text-color-secondary);
+  background: #e5e7eb;
+  color: #4b5563;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid #fff;
+
+  small {
+    font-size: 0.625rem;
+    font-weight: inherit;
+    line-height: 1;
+  }
 }
 
 .record-attribution-popover-body {
@@ -833,8 +842,16 @@ p-sorticon svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.95);
+  background: #6b7280;
+  color: #f9fafb;
+  font-weight: 600;
+  line-height: 1;
+
+  small {
+    font-size: var(--fs-xs);
+    font-weight: inherit;
+    line-height: 1;
+  }
 }
 
 .record-attribution-popover-body p {
