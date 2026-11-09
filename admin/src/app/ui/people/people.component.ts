@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
@@ -11,7 +11,6 @@ import {
   contactName,
 } from '../../core/communications.api';
 import { ApiService } from '../../core/api.service';
-import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-picker.loader';
 import { TeamApi, TeamMember, TeamScope } from '../../core/team.api';
@@ -21,10 +20,9 @@ import { Person } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
 import { CreatePersonModalComponent } from '../create-person-modal/create-person-modal.component';
-import { PersonComponent } from '../person/person.component';
 import { PeopleSelectComponent } from '../people-select/people-select.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
-import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
+import { PersonDetailModalComponent } from '../person-detail-modal/person-detail-modal.component';
 import { PeoplePanelMode, PeopleProjectContact } from './people.types';
 
 /**
@@ -39,13 +37,13 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
     MessageModule,
     SkeletonModule,
     TagModule,
-    PersonComponent,
     CopyEmailComponent,
     TmAvatarComponent,
-    RowActionsMenuComponent,
+    TooltipModule,
     PeopleSelectComponent,
     CreatePersonModalComponent,
     HelpTextComponent,
+    PersonDetailModalComponent,
   ],
   template: `
     <div
@@ -111,17 +109,12 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
         }
         @for (c of orgPeople(); track c.id) {
           <div class="people-panel-org-row">
+            <app-tm-avatar [person]="orgRowPerson(c)" [size]="36" [showTitle]="false" />
             <div class="people-panel-org-main">
               <div class="people-panel-org-name-line">
-                <app-person
-                  [name]="contactName(c)"
-                  [firstName]="c.firstName"
-                  [lastName]="c.lastName"
-                  [email]="c.emails[0]?.email"
-                  [avatarUrl]="c.avatarUrl"
-                  [personId]="c.id"
-                  [link]="['/people', c.id]"
-                />
+                <button type="button" class="people-panel-name-link" (click)="openPersonDetail(c.id)">
+                  {{ contactName(c) }}
+                </button>
                 @if (primaryContactPickerEnabled() && primaryContactId() === c.id) {
                   <p-tag value="Primary contact" severity="info" />
                 }
@@ -131,6 +124,42 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
                 @if (!c.isActive) {
                   <p-tag value="Inactive" severity="secondary" />
                 }
+                @if ((clientId() || leadId()) && !readOnly()) {
+                  <div class="people-panel-row-actions">
+                    @if (primaryContactPickerEnabled() && primaryContactId() !== c.id) {
+                      <p-button
+                        type="button"
+                        icon="pi pi-star"
+                        [text]="true"
+                        severity="secondary"
+                        size="small"
+                        styleClass="icon-action-btn"
+                        aria-label="Set as primary contact"
+                        pTooltip="Set as primary contact"
+                        tooltipPosition="left"
+                        [showDelay]="actionTooltipDelayMs"
+                        tooltipStyleClass="ubo-dark-tooltip"
+                        appendTo="body"
+                        (onClick)="setPrimaryContact.emit(c.id)"
+                      />
+                    }
+                    <p-button
+                      type="button"
+                      icon="pi pi-user-minus"
+                      [text]="true"
+                      severity="secondary"
+                      size="small"
+                      styleClass="icon-action-btn"
+                      [attr.aria-label]="'Remove ' + contactName(c)"
+                      pTooltip="Remove from list"
+                      tooltipPosition="left"
+                      [showDelay]="actionTooltipDelayMs"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      appendTo="body"
+                      (onClick)="leadContactSlot() ? clearLeadSlot() : unlinkFromOrg(c)"
+                    />
+                  </div>
+                }
               </div>
               @if (orgRole(c); as role) {
                 <span class="people-panel-meta">{{ role }}</span>
@@ -139,34 +168,40 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
               }
               <app-copy-email [email]="c.emails[0]?.email" [muted]="true" [block]="true" />
             </div>
-            @if ((clientId() || leadId()) && !readOnly()) {
-              <app-row-actions-menu [items]="orgContactActions(c)" ariaLabel="Person actions" />
-            }
           </div>
         }
         @for (m of teamRows(); track m.id) {
           <div class="people-panel-org-row">
+            <app-tm-avatar [person]="m" [size]="36" [showTitle]="false" />
             <div class="people-panel-org-main">
               <div class="people-panel-org-name-line">
-                <app-person [name]="m.name" [firstName]="m.firstName" [lastName]="m.lastName" [email]="m.email" [avatarUrl]="m.avatarUrl" />
+                <span class="people-panel-name-static">{{ m.name }}</span>
                 <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
+                @if (m.direct && !readOnly()) {
+                  <div class="people-panel-row-actions">
+                    <p-button
+                      type="button"
+                      icon="pi pi-user-minus"
+                      [text]="true"
+                      severity="secondary"
+                      size="small"
+                      styleClass="icon-action-btn"
+                      [attr.aria-label]="'Remove ' + m.name"
+                      pTooltip="Remove from organization"
+                      tooltipPosition="left"
+                      [showDelay]="actionTooltipDelayMs"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      appendTo="body"
+                      (onClick)="removeTeamMember(m)"
+                    />
+                  </div>
+                }
               </div>
               @if (teamProjectsLine(m); as line) {
                 <span class="people-panel-meta">{{ line }}</span>
               }
               <app-copy-email [email]="m.email" [muted]="true" [block]="true" />
             </div>
-            @if (m.direct && !readOnly()) {
-              <p-button
-                icon="pi pi-trash"
-                [text]="true"
-                severity="danger"
-                size="small"
-                class="people-panel-org-remove"
-                [attr.aria-label]="'Remove ' + m.name + ' from organization'"
-                (onClick)="confirmRemoveTeamMember(m)"
-              />
-            }
           </div>
         }
       } @else {
@@ -174,7 +209,34 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
           <div class="people-panel-project-row">
             <app-tm-avatar [person]="projectRowPerson(contact)" [size]="36" [showTitle]="false" />
             <div class="people-panel-project-main">
-              <span class="people-panel-project-name">{{ projectDisplayName(contact) || 'Unnamed' }}</span>
+              <div class="people-panel-org-name-line">
+                @if (contact.contactId) {
+                  <button type="button" class="people-panel-name-link" (click)="openPersonDetail(contact.contactId)">
+                    {{ projectDisplayName(contact) || 'Unnamed' }}
+                  </button>
+                } @else {
+                  <span class="people-panel-name-static">{{ projectDisplayName(contact) || 'Unnamed' }}</span>
+                }
+                @if (!readOnly()) {
+                  <div class="people-panel-row-actions">
+                    <p-button
+                      type="button"
+                      icon="pi pi-user-minus"
+                      [text]="true"
+                      severity="secondary"
+                      size="small"
+                      styleClass="icon-action-btn"
+                      [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
+                      pTooltip="Remove from project"
+                      tooltipPosition="left"
+                      [showDelay]="actionTooltipDelayMs"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      appendTo="body"
+                      (onClick)="removeProjectContact(rowIndex)"
+                    />
+                  </div>
+                }
+              </div>
               @if (!contact.contactId) {
                 <span class="people-panel-meta">Legacy contact — remove and add from People</span>
               }
@@ -187,9 +249,6 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
                 }
               </div>
             </div>
-            @if (!embeddedInDialog() && !readOnly()) {
-              <app-row-actions-menu [items]="projectRowActions(rowIndex)" ariaLabel="Contact actions" />
-            }
           </div>
         }
         @for (m of teamRows(); track m.id) {
@@ -197,19 +256,70 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
             <app-tm-avatar [person]="m" [size]="36" [showTitle]="false" />
             <div class="people-panel-project-main">
               <div class="people-panel-org-name-line">
-                <span class="people-panel-project-name">{{ m.name }}</span>
+                <span class="people-panel-name-static">{{ m.name }}</span>
                 <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
                 @if (m.isLead) {
                   <p-tag value="Lead" severity="info" />
+                }
+                @if (!readOnly() && managesProjectPeople()) {
+                  <div class="people-panel-row-actions">
+                    @if (mode() === 'project') {
+                      @if (m.isLead) {
+                        <p-button
+                          type="button"
+                          icon="pi pi-user"
+                          [text]="true"
+                          severity="secondary"
+                          size="small"
+                          styleClass="icon-action-btn"
+                          aria-label="Make member"
+                          pTooltip="Make member"
+                          tooltipPosition="left"
+                          [showDelay]="actionTooltipDelayMs"
+                          tooltipStyleClass="ubo-dark-tooltip"
+                          appendTo="body"
+                          (onClick)="setLead(m, false)"
+                        />
+                      } @else {
+                        <p-button
+                          type="button"
+                          icon="pi pi-star"
+                          [text]="true"
+                          severity="secondary"
+                          size="small"
+                          styleClass="icon-action-btn"
+                          aria-label="Make lead"
+                          pTooltip="Make lead"
+                          tooltipPosition="left"
+                          [showDelay]="actionTooltipDelayMs"
+                          tooltipStyleClass="ubo-dark-tooltip"
+                          appendTo="body"
+                          (onClick)="setLead(m, true)"
+                        />
+                      }
+                    }
+                    <p-button
+                      type="button"
+                      icon="pi pi-user-minus"
+                      [text]="true"
+                      severity="secondary"
+                      size="small"
+                      styleClass="icon-action-btn"
+                      [attr.aria-label]="'Remove ' + m.name"
+                      pTooltip="Remove from project"
+                      tooltipPosition="left"
+                      [showDelay]="actionTooltipDelayMs"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      appendTo="body"
+                      (onClick)="removeTeamMember(m)"
+                    />
+                  </div>
                 }
               </div>
               <div class="people-panel-project-details">
                 <app-copy-email [email]="m.email" [muted]="true" />
               </div>
             </div>
-            @if (!readOnly() && managesProjectPeople()) {
-              <app-row-actions-menu [items]="teamRowActions(m)" ariaLabel="Team member actions" />
-            }
           </div>
         }
         @if (projectPeople().length === 0 && teamRows().length === 0) {
@@ -248,16 +358,44 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       @if (addPersonFlow() === 'modal') {
         <app-create-person-modal />
       }
+
+      <app-person-detail-modal />
     </div>
   `,
   styles: `
     .people-panel-picker {
       margin-bottom: 1rem;
     }
+    .people-panel-name-link {
+      border: 0;
+      background: none;
+      padding: 0;
+      font: inherit;
+      font-weight: 600;
+      line-height: 1.25;
+      color: var(--primary-color);
+      cursor: pointer;
+      text-align: left;
+    }
+    .people-panel-name-link:hover {
+      text-decoration: underline;
+    }
+    .people-panel-name-static {
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    .people-panel-row-actions {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.05rem;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
     .people-panel-org-row {
       display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.65rem;
       padding: 0.6rem 0;
       border-top: 1px solid var(--surface-border, #e5e7eb);
     }
@@ -275,12 +413,9 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.35rem 0.5rem;
       min-width: 0;
-    }
-    .people-panel-org-remove {
-      flex-shrink: 0;
-      margin-top: 0.1rem;
+      width: 100%;
     }
     .people-panel-meta {
       font-size: var(--fs-sm);
@@ -302,10 +437,6 @@ import { PeoplePanelMode, PeopleProjectContact } from './people.types';
       display: flex;
       flex-direction: column;
       gap: 0.1rem;
-    }
-    .people-panel-project-name {
-      font-weight: 600;
-      line-height: 1.25;
     }
     .people-panel-project-details {
       display: flex;
@@ -336,13 +467,13 @@ export class PeopleComponent {
   private readonly comms = inject(CommunicationsApi);
   private readonly peoplePicker = inject(PeoplePickerLoader);
   private readonly toast = inject(MessageService);
-  private readonly router = inject(Router);
-  private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly team = inject(TeamApi);
   private readonly session = inject(SessionService);
   private readonly createPersonModal = viewChild(CreatePersonModalComponent);
+  private readonly personDetailModal = viewChild(PersonDetailModalComponent);
 
   readonly contactName = contactName;
+  protected readonly actionTooltipDelayMs = 500;
 
   /** `organization` = linked People on a client/org; `project` = project contact list (draft). */
   mode = input.required<PeoplePanelMode>();
@@ -454,35 +585,22 @@ export class PeopleComponent {
     return c.accountLinks.find((l) => l.clientId === id)?.role ?? null;
   }
 
-  orgContactActions(c: ContactSummary): RowActionItem[] {
-    if (this.leadContactSlot()) {
-      return [
-        {
-          id: 'remove',
-          label: 'Remove',
-          icon: 'pi pi-trash',
-          severity: 'danger',
-          command: () => this.confirmClearLeadSlot(),
-        },
-      ];
-    }
-    const items: RowActionItem[] = [];
-    if (this.primaryContactPickerEnabled() && this.primaryContactId() !== c.id) {
-      items.push({
-        id: 'primary',
-        label: 'Set as primary contact',
-        icon: 'pi pi-star',
-        command: () => this.setPrimaryContact.emit(c.id),
-      });
-    }
-    items.push({
-      id: 'remove',
-      label: this.mode() === 'lead' ? 'Remove from card' : 'Remove from organization',
-      icon: 'pi pi-trash',
-      severity: 'danger',
-      command: () => this.confirmUnlinkFromOrg(c),
-    });
-    return items;
+  openPersonDetail(contactId: string) {
+    void this.personDetailModal()?.open(contactId);
+  }
+
+  orgRowPerson(c: ContactSummary): Person {
+    const name = contactName(c);
+    return {
+      id: c.id,
+      name,
+      email: c.emails[0]?.email || name,
+      firstName: c.firstName || null,
+      lastName: c.lastName ?? null,
+      avatarUrl: c.avatarUrl ?? null,
+      role: 'USER',
+      isGuest: false,
+    };
   }
 
   async openNewPerson() {
@@ -749,28 +867,22 @@ export class PeopleComponent {
     };
   }
 
-  confirmUnlinkFromOrg(c: ContactSummary) {
+  async unlinkFromOrg(c: ContactSummary) {
     const clientId = this.clientId();
     const leadId = this.leadId();
     if (!clientId && !leadId) return;
-    const scope = this.mode() === 'lead' ? 'this pipeline card' : 'this organization';
-    this.confirmDelete.confirm({
-      message: `Remove "${contactName(c)}" from ${scope}? The person stays in People.`,
-      accept: async () => {
-        try {
-          if (this.mode() === 'lead' && leadId) {
-            await this.api.delete(`/leads/${leadId}/people/${c.id}`);
-            await this.loadLeadPeople(leadId);
-          } else if (clientId) {
-            await this.comms.unlinkAccount(c.id, clientId);
-            await this.loadOrganizationPeople(clientId);
-          }
-          void this.reloadPickerOptions();
-        } catch (err) {
-          this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
-        }
-      },
-    });
+    try {
+      if (this.mode() === 'lead' && leadId) {
+        await this.api.delete(`/leads/${leadId}/people/${c.id}`);
+        await this.loadLeadPeople(leadId);
+      } else if (clientId) {
+        await this.comms.unlinkAccount(c.id, clientId);
+        await this.loadOrganizationPeople(clientId);
+      }
+      void this.reloadPickerOptions();
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
+    }
   }
 
   private async loadLeadPeople(leadId: string) {
@@ -856,25 +968,18 @@ export class PeopleComponent {
     });
   }
 
-  confirmClearLeadSlot() {
+  async clearLeadSlot() {
     const slot = this.leadContactSlot();
     if (!slot) return;
-    const label = slot === 'primary' ? 'primary contact' : 'warm connect';
-    this.confirmDelete.confirm({
-      message: `Remove this person as ${label}? They stay in People.`,
-      accept: async () => {
-        const leadId = this.leadId();
-        if (!leadId) return;
-        try {
-          const updated = await this.api.put<Record<string, unknown>>(`/leads/${leadId}`, this.leadSlotPatch(null));
-          this.leadUpdated.emit(updated);
-          await this.loadLeadSlotPerson();
-          this.toast.add({ severity: 'success', summary: 'Removed' });
-        } catch (err) {
-          this.panelError.set(err instanceof Error ? err.message : 'Could not remove');
-        }
-      },
-    });
+    const leadId = this.leadId();
+    if (!leadId) return;
+    try {
+      const updated = await this.api.put<Record<string, unknown>>(`/leads/${leadId}`, this.leadSlotPatch(null));
+      this.leadUpdated.emit(updated);
+      await this.loadLeadSlotPerson();
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Could not remove');
+    }
   }
 
   private async loadLeadSlotPerson() {
@@ -899,44 +1004,16 @@ export class PeopleComponent {
     }
   }
 
-  projectRowActions(index: number): RowActionItem[] {
-    const contact = this.projectPeople()[index];
-    const actions: RowActionItem[] = [];
-    if (contact.contactId) {
-      actions.push({
-        id: 'open',
-        label: 'Open in People',
-        icon: 'pi pi-user',
-        command: () => void this.router.navigate(['/people', contact.contactId!]),
-      });
+  async removeProjectContact(index: number) {
+    const projectId = this.projectId();
+    if (!projectId) return;
+    const next = this.projectPeople().filter((_, i) => i !== index);
+    try {
+      await this.persistProjectPeople(projectId, next);
+      void this.reloadPickerOptions();
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
     }
-    actions.push({
-      id: 'delete',
-      label: 'Delete',
-      icon: 'pi pi-trash',
-      severity: 'danger',
-      command: () => this.confirmRemoveProjectContact(index),
-    });
-    return actions;
-  }
-
-  confirmRemoveProjectContact(index: number) {
-    const contact = this.projectPeople()[index];
-    const label = this.projectDisplayName(contact) || 'this person';
-    this.confirmDelete.confirm({
-      message: `Remove "${label}" from this project?`,
-      accept: async () => {
-        const projectId = this.projectId();
-        if (!projectId) return;
-        const next = this.projectPeople().filter((_, i) => i !== index);
-        try {
-          await this.persistProjectPeople(projectId, next);
-          void this.reloadPickerOptions();
-        } catch (err) {
-          this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
-        }
-      },
-    });
   }
 
   /** Where staff are saved: the client, or the saved project (a new project has none yet). */
@@ -981,29 +1058,7 @@ export class PeopleComponent {
     return this.teamRows().some((m) => m.id === me.id && m.isLead);
   });
 
-  teamRowActions(m: TeamMember): RowActionItem[] {
-    const scope = this.teamScope();
-    const leadItem: RowActionItem[] =
-      scope?.kind === 'projects'
-        ? [
-            m.isLead
-              ? { id: 'member', label: 'Make member', icon: 'pi pi-user', command: () => this.setLead(m, false) }
-              : { id: 'lead', label: 'Make lead', icon: 'pi pi-star', command: () => this.setLead(m, true) },
-          ]
-        : [];
-    return [
-      ...leadItem,
-      {
-        id: 'delete',
-        label: 'Remove',
-        icon: 'pi pi-trash',
-        severity: 'danger',
-        command: () => this.confirmRemoveTeamMember(m),
-      },
-    ];
-  }
-
-  private async setLead(m: TeamMember, isLead: boolean) {
+  async setLead(m: TeamMember, isLead: boolean) {
     const scope = this.teamScope();
     if (scope?.kind !== 'projects') return;
     try {
@@ -1013,20 +1068,15 @@ export class PeopleComponent {
     }
   }
 
-  confirmRemoveTeamMember(m: TeamMember) {
+  async removeTeamMember(m: TeamMember) {
     const scope = this.teamScope();
     if (!scope) return;
-    const where = scope.kind === 'projects' ? 'this project and its task board' : 'this organization';
-    this.confirmDelete.confirm({
-      message: `Remove "${m.name}" from ${where}?`,
-      accept: async () => {
-        try {
-          this.teamRows.set(await this.team.remove(scope, m.id));
-        } catch (err) {
-          this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
-        }
-      },
-    });
+    try {
+      this.teamRows.set(await this.team.remove(scope, m.id));
+      void this.reloadPickerOptions();
+    } catch (err) {
+      this.panelError.set(err instanceof Error ? err.message : 'Could not remove person');
+    }
   }
 
   private async loadOrganizationPeople(clientId: string) {

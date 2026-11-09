@@ -64,8 +64,10 @@
   min-height: 0;
   max-height: 17rem;
   padding: 1rem 2rem 0.35rem;
+  padding-inline-end: calc(2rem + var(--panel-scroll-gutter, 0.65rem));
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 
   .side-list-row:first-child {
     padding-top: 0.6rem;

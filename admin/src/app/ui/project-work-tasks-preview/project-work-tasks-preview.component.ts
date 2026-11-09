@@ -53,11 +53,6 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
           @if (loading()) {
             <p class="text-color-secondary mt-0 mb-0 text-sm"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
           } @else if (preview().length > 0) {
-            @if (openCount() > previewLimit) {
-              <p class="side-list-note">
-                {{ openCount() }} open, showing {{ previewLimit }} by due date
-              </p>
-            }
             <div class="side-list">
               @for (task of preview(); track task.id) {
                 <div class="side-list-row">
@@ -86,11 +81,9 @@ export class ProjectWorkTasksPreviewComponent {
   readonly projectId = input.required<string>();
   readonly inTaskManager = input(false);
 
-  readonly previewLimit = PREVIEW_LIMIT;
   readonly dueLabel = dueLabel;
 
   loading = signal(false);
-  openCount = signal(0);
   preview = signal<TaskSummary[]>([]);
 
   readonly canViewTasks = computed(() => this.session.can('tasks', 'view'));
@@ -104,7 +97,6 @@ export class ProjectWorkTasksPreviewComponent {
       untracked(() => {
         if (!show || !id) {
           this.preview.set([]);
-          this.openCount.set(0);
           return;
         }
         void this.load(id);
@@ -130,11 +122,9 @@ export class ProjectWorkTasksPreviewComponent {
     try {
       const tasks = await this.api.listTasks(projectId, 'incomplete');
       const sorted = sortTasksForPreview(tasks);
-      this.openCount.set(sorted.length);
       this.preview.set(sorted.slice(0, PREVIEW_LIMIT));
     } catch {
       this.preview.set([]);
-      this.openCount.set(0);
     } finally {
       this.loading.set(false);
     }

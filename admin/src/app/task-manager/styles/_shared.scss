@@ -9,13 +9,13 @@
   border: none;
   background: transparent;
   border-radius: 6px;
-  color: var(--tm-muted);
+  color: var(--icon-action-color, var(--tm-muted));
   cursor: pointer;
   flex-shrink: 0;
 
   &:hover:not(:disabled) {
-    background: var(--tm-hover);
-    color: var(--text-color);
+    background: var(--icon-action-hover-bg, var(--tm-hover));
+    color: var(--icon-action-hover-color, var(--text-color));
   }
 
   &:focus-visible {
