@@ -482,7 +482,10 @@ export class TimeEntryModalComponent {
 
   readonly manualTasks = computed(() => {
     const tasks = this.selectedProject()?.tasks ?? [];
-    return tasks.filter((t) => t.source !== 'ASANA');
+    return tasks
+      .filter((t) => t.source !== 'ASANA')
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   });
 
   readonly asanaTasks = computed(() => {

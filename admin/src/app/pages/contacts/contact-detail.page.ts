@@ -62,9 +62,6 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
           <app-record-attribution [attribution]="attribution()" />
         }
       </ng-container>
-      @if (form.title.trim()) {
-        <p pageSubtitle class="page-header-subtitle">{{ form.title }}</p>
-      }
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
       }
