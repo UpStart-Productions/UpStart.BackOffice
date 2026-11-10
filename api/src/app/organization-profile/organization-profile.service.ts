@@ -130,6 +130,24 @@ export class OrganizationProfileService {
     return row;
   }
 
+  async getGuideSettings(): Promise<{ readsRecords: boolean }> {
+    const row = await this.prisma.organizationProfile.findUnique({
+      where: { tenantId: currentTenantId() },
+      select: { guideReadsRecords: true },
+    });
+    return { readsRecords: row?.guideReadsRecords ?? false };
+  }
+
+  async saveGuideSettings(readsRecords: boolean): Promise<{ readsRecords: boolean }> {
+    const row = await this.prisma.organizationProfile.upsert({
+      where: { tenantId: currentTenantId() },
+      create: { guideReadsRecords: readsRecords },
+      update: { guideReadsRecords: readsRecords },
+      select: { guideReadsRecords: true },
+    });
+    return { readsRecords: row.guideReadsRecords };
+  }
+
   async uploadLogo(dto: UploadLogoDto): Promise<{ logoUrl: string }> {
     let buffer: Buffer;
     try {

@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Post, Put, UseGuards } from '@nestjs/com
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.dto';
 import { UpdateActivitySettingsDto } from './dto/update-activity-settings.dto';
+import { UpdateGuideSettingsDto } from './dto/update-guide-settings.dto';
 import { UploadLogoDto } from './dto/upload-logo.dto';
 import { OrganizationProfileService } from './organization-profile.service';
 import { AccessGuard, AdminOnly, SignedIn } from '../access/access.guard';
@@ -37,6 +38,19 @@ export class OrganizationProfileController {
   @AdminOnly()
   saveActivitySettings(@Body() dto: UpdateActivitySettingsDto) {
     return this.profile.saveActivitySettings(dto);
+  }
+
+  /** Back Office guide (Settings → Back Office guide): may it look up records? */
+  @Get('guide')
+  @AdminOnly()
+  guideSettings() {
+    return this.profile.getGuideSettings();
+  }
+
+  @Put('guide')
+  @AdminOnly()
+  saveGuideSettings(@Body() dto: UpdateGuideSettingsDto) {
+    return this.profile.saveGuideSettings(dto.readsRecords);
   }
 
   @Put()

@@ -1,6 +1,10 @@
-import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
+import { ChipModule } from 'primeng/chip';
+import { MessageModule } from 'primeng/message';
 import {
   HELP_AGENT_HISTORY_LIMIT,
   HELP_AGENT_HISTORY_TEXT_MAX,
@@ -9,6 +13,7 @@ import {
   type HelpAgentHistoryMessage,
   type HelpAgentPageContext,
 } from '@upstart/back-office/shared';
+import { describePickedElement, describeSelection, type PickedContext } from './help-agent-pick';
 import { ButtonModule } from 'primeng/button';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
@@ -19,10 +24,20 @@ import { DEFAULT_GREETING, pickGreeting } from './personal-greetings';
 interface HelpAgentChatMessage {
   role: 'user' | 'assistant';
   text: string;
+  /** What the guide looked up for this answer, e.g. ["invoices"]. */
+  lookups?: string[];
 }
 
 const GUIDE_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
 const GUIDE_CHAT_MAX_MESSAGES = 80;
+/** Wait for a highlight to settle before reading it. */
+const SELECTION_SETTLE_MS = 250;
+/** Show "Still working on it…" after this long (record lookups take a few seconds). */
+const SLOW_ANSWER_MS = 4000;
+/** A highlight made while the guide was closed is used if the guide opens within this time. */
+const PENDING_SELECTION_MS = 60_000;
+/** Swallowed outside the widget while picking, so the picking click never triggers the page. */
+const PICK_BLOCKED_EVENTS = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'dblclick', 'contextmenu'] as const;
 /** In-app Back Office guide avatar (floating chat). Name comes from HELP_AGENT_NAME. */
 const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 
@@ -38,7 +53,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 @Component({
   selector: 'app-help-agent-widget',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonModule, TextareaModule, SimpleMarkdownPipe],
+  imports: [ReactiveFormsModule, ButtonModule, TextareaModule, ChipModule, MessageModule, SimpleMarkdownPipe],
   template: `
     @if (visible()) {
       <div class="help-agent-widget">
@@ -53,6 +68,17 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                 </span>
               </span>
               <div class="help-agent-panel-actions">
+                <button
+                  type="button"
+                  class="help-agent-panel-icon-btn"
+                  [class.help-agent-panel-icon-btn--active]="picking()"
+                  (click)="togglePicking()"
+                  [attr.aria-pressed]="picking()"
+                  title="Point at something on the screen"
+                  aria-label="Point at something on the screen"
+                >
+                  <i class="pi pi-bullseye"></i>
+                </button>
                 <button
                   type="button"
                   class="help-agent-panel-icon-btn"
@@ -91,6 +117,11 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                     <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
                     <div class="help-agent-chat-msg">
                       <div [innerHTML]="msg.text | simpleMarkdown"></div>
+                      @if (msg.lookups?.length) {
+                        <p class="help-agent-lookups text-color-secondary">
+                          <i class="pi pi-search" aria-hidden="true"></i> Looked up {{ msg.lookups!.join(', ') }}
+                        </p>
+                      }
                     </div>
                   </div>
                 } @else {
@@ -110,10 +141,30 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                     <span class="help-agent-typing-dot"></span>
                     <span class="help-agent-typing-dot"></span>
                     <span class="help-agent-typing-dot"></span>
+                    @if (slowAnswer()) {
+                      <span class="help-agent-working text-color-secondary">Still working on it…</span>
+                    }
                   </div>
                 </div>
               }
             </div>
+            @if (picking()) {
+              <p-message
+                class="help-agent-pick-hint"
+                severity="info"
+                size="small"
+                text="Click a panel, button or field on the page. Esc cancels."
+              />
+            } @else if (pickedContext(); as ctx) {
+              <div class="help-agent-context-row">
+                <p-chip
+                  [label]="ctx.display"
+                  [icon]="ctx.withheld ? 'pi pi-eye-slash' : 'pi pi-bullseye'"
+                  [removable]="true"
+                  (onRemove)="clearPickedContext()"
+                />
+              </div>
+            }
             <div class="help-agent-chat-row">
               <textarea
                 #chatInputEl
@@ -134,6 +185,16 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
               />
             </div>
           </div>
+        }
+        @if (pickOutline(); as r) {
+          <div
+            class="help-agent-pick-outline"
+            aria-hidden="true"
+            [style.top.px]="r.top"
+            [style.left.px]="r.left"
+            [style.width.px]="r.width"
+            [style.height.px]="r.height"
+          ></div>
         }
         <div class="help-agent-dock" (mouseenter)="onDockEnter()" (mouseleave)="onDockLeave()">
           <button
@@ -569,6 +630,44 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
         border-top: 1px solid var(--color-border);
       }
 
+      .help-agent-lookups {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin: 0.5rem 0 0;
+      }
+
+      .help-agent-working {
+        margin-left: 0.5rem;
+      }
+
+      .help-agent-context-row {
+        padding: 0.5rem 1rem 0;
+      }
+
+      .help-agent-pick-hint {
+        display: block;
+        margin: 0.5rem 1rem 0;
+      }
+
+      .help-agent-panel-icon-btn--active {
+        color: var(--p-primary-color);
+      }
+
+      /*
+       * Hand-styled: nothing existing draws a hover box over arbitrary page elements. Fixed overlay
+       * (pointer-events: none) so page elements are never restyled.
+       */
+      .help-agent-pick-outline {
+        position: fixed;
+        z-index: 10000;
+        pointer-events: none;
+        border: 2px solid var(--p-primary-color);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--p-primary-color) 8%, transparent);
+        transition: all 60ms ease-out;
+      }
+
       .help-agent-chat-input {
         flex: 1 1 auto;
         min-width: 0;
@@ -583,6 +682,8 @@ export class HelpAgentWidgetComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly guideAvatarSrc = GUIDE_AVATAR_SRC;
   readonly agentName = HELP_AGENT_NAME;
@@ -598,7 +699,20 @@ export class HelpAgentWidgetComponent implements OnInit {
   readonly chatMessages = signal<HelpAgentChatMessage[]>([]);
   readonly chatInput = new FormControl('', { nonNullable: true });
   readonly chatSending = signal(false);
+  /** Record lookups can take several seconds; say so after a short wait. */
+  readonly slowAnswer = signal(false);
   readonly copied = signal(false);
+
+  /** "Point at it" mode: the next click on the page picks context instead of doing anything. */
+  readonly picking = signal(false);
+  readonly pickOutline = signal<{ top: number; left: number; width: number; height: number } | null>(null);
+  readonly pickedContext = signal<PickedContext | null>(null);
+  private labelSet: ReadonlySet<string> | null = null;
+
+  /** Text highlighted while the guide was closed; used if the guide opens soon after. */
+  private pendingSelection: { context: PickedContext; at: number } | null = null;
+  private selectionTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastPointerDownInWidget = false;
 
   private readonly chatLogEl = viewChild<ElementRef<HTMLDivElement>>('chatLog');
   private readonly chatInputEl = viewChild<ElementRef<HTMLTextAreaElement>>('chatInputEl');
@@ -610,6 +724,22 @@ export class HelpAgentWidgetComponent implements OnInit {
     await this.session.getReady();
     const me = this.session.me();
     if (!me) return;
+
+    // Picked context belongs to one screen.
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.clearPickedContext());
+    document.addEventListener('selectionchange', this.onSelectionChange);
+    document.addEventListener('pointerdown', this.onAnyPointerDown, true);
+    this.destroyRef.onDestroy(() => {
+      this.stopPicking();
+      document.removeEventListener('selectionchange', this.onSelectionChange);
+      document.removeEventListener('pointerdown', this.onAnyPointerDown, true);
+      if (this.selectionTimer) clearTimeout(this.selectionTimer);
+    });
 
     this.greeting.set(pickGreeting(me.email));
     this.restoreChat();
@@ -633,16 +763,29 @@ export class HelpAgentWidgetComponent implements OnInit {
     this.chatInput.setValue('');
     this.resetPromptHeight();
     this.chatSending.set(true);
+    this.slowAnswer.set(false);
+    const slowTimer = setTimeout(() => this.slowAnswer.set(true), SLOW_ANSWER_MS);
     this.scrollLastMessageIntoView();
     try {
       const page = await this.currentPageContext();
-      const body: HelpAgentAskRequest = { message, history, ...(page ? { page } : {}) };
-      const res = await this.api.post<{ answer: string }>('/help-agent/ask', body);
-      this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text: res.answer }]);
+      const target = this.pickedContext()?.target;
+      const body: HelpAgentAskRequest = {
+        message,
+        history,
+        ...(page ? { page } : {}),
+        ...(target ? { target } : {}),
+      };
+      const res = await this.api.post<{ answer: string; lookups?: string[] }>('/help-agent/ask', body);
+      this.chatMessages.update((msgs) => [
+        ...msgs,
+        { role: 'assistant', text: res.answer, ...(res.lookups?.length ? { lookups: res.lookups } : {}) },
+      ]);
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Failed to reach the Help Agent';
       this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text: `Error: ${detail}` }]);
     } finally {
+      clearTimeout(slowTimer);
+      this.slowAnswer.set(false);
       this.persistChat();
       this.chatSending.set(false);
       this.scrollLastMessageIntoView();
@@ -675,6 +818,121 @@ export class HelpAgentWidgetComponent implements OnInit {
     }
   }
 
+  /** The label list is large, so it loads only when someone first points or highlights. */
+  private async loadLabels(): Promise<ReadonlySet<string>> {
+    if (this.labelSet) return this.labelSet;
+    try {
+      const { HELP_AGENT_UI_LABELS } = await import('@upstart/back-office/shared/help-labels');
+      this.labelSet = new Set(HELP_AGENT_UI_LABELS);
+      return this.labelSet;
+    } catch (err) {
+      // Not cached, so the next point/highlight retries. Without labels everything reads as "not shared".
+      console.warn('[help-agent] Could not load the screen label list; context will be panel-free.', err);
+      return new Set();
+    }
+  }
+
+  private readonly onAnyPointerDown = (event: Event) => {
+    this.lastPointerDownInWidget = event.target instanceof Node && this.host.nativeElement.contains(event.target);
+  };
+
+  /**
+   * Highlighting text on the page sets the context chip (live while the guide is open, or on the
+   * next open within a minute). Selections inside the guide itself are ignored.
+   */
+  private readonly onSelectionChange = () => {
+    if (this.selectionTimer) clearTimeout(this.selectionTimer);
+    this.selectionTimer = setTimeout(() => void this.captureSelection(), SELECTION_SETTLE_MS);
+  };
+
+  private async captureSelection() {
+    if (!this.visible() || this.picking()) return;
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+      // Clicking elsewhere on the page drops a pending highlight; clicking into the guide keeps it.
+      if (!this.lastPointerDownInWidget) this.pendingSelection = null;
+      return;
+    }
+    const anchor = selection.anchorNode;
+    if (anchor && this.host.nativeElement.contains(anchor)) return;
+
+    const context = describeSelection(selection, await this.loadLabels());
+    if (!context) return;
+    if (this.open()) this.pickedContext.set(context);
+    else this.pendingSelection = { context, at: Date.now() };
+  }
+
+  async togglePicking() {
+    if (this.picking()) {
+      this.stopPicking();
+      return;
+    }
+    await this.loadLabels();
+    this.picking.set(true);
+    document.addEventListener('pointermove', this.onPickMove, true);
+    for (const type of PICK_BLOCKED_EVENTS) document.addEventListener(type, this.onPickBlock, true);
+    document.addEventListener('click', this.onPickClick, true);
+    document.addEventListener('keydown', this.onPickKey, true);
+    window.addEventListener('scroll', this.onPickScroll, true);
+  }
+
+  private stopPicking() {
+    this.picking.set(false);
+    this.pickOutline.set(null);
+    document.removeEventListener('pointermove', this.onPickMove, true);
+    for (const type of PICK_BLOCKED_EVENTS) document.removeEventListener(type, this.onPickBlock, true);
+    document.removeEventListener('click', this.onPickClick, true);
+    document.removeEventListener('keydown', this.onPickKey, true);
+    window.removeEventListener('scroll', this.onPickScroll, true);
+  }
+
+  clearPickedContext() {
+    this.pickedContext.set(null);
+  }
+
+  /** Page element under the pointer, or null when it is part of this widget. */
+  private pickableTarget(event: Event): HTMLElement | null {
+    const el = event.target instanceof HTMLElement ? event.target : null;
+    if (!el || this.host.nativeElement.contains(el)) return null;
+    return el;
+  }
+
+  private readonly onPickMove = (event: PointerEvent) => {
+    const el = this.pickableTarget(event);
+    if (!el) {
+      this.pickOutline.set(null);
+      return;
+    }
+    const r = describePickedElement(el, this.labelSet ?? new Set()).highlight.getBoundingClientRect();
+    this.pickOutline.set({ top: r.top - 2, left: r.left - 2, width: r.width + 4, height: r.height + 4 });
+  };
+
+  /** Stops the page from reacting (buttons, menus, focus) to the click that picks. */
+  private readonly onPickBlock = (event: Event) => {
+    if (!this.pickableTarget(event)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+
+  private readonly onPickClick = (event: MouseEvent) => {
+    const el = this.pickableTarget(event);
+    if (!el) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    this.pickedContext.set(describePickedElement(el, this.labelSet ?? new Set()).context);
+    this.stopPicking();
+    this.chatInputEl()?.nativeElement.focus();
+  };
+
+  private readonly onPickKey = (event: KeyboardEvent) => {
+    if (event.key !== 'Escape') return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    this.stopPicking();
+  };
+
+  private readonly onPickScroll = () => this.pickOutline.set(null);
+
   onPromptKeydown(event: KeyboardEvent) {
     if (event.key !== 'Enter' || event.shiftKey) return;
     event.preventDefault();
@@ -689,6 +947,10 @@ export class HelpAgentWidgetComponent implements OnInit {
   }
 
   setOpen(next: boolean) {
+    if (next && this.pendingSelection && Date.now() - this.pendingSelection.at < PENDING_SELECTION_MS) {
+      this.pickedContext.set(this.pendingSelection.context);
+    }
+    this.pendingSelection = null;
     this.open.set(next);
     this.boing.set(null);
     this.ignoreHoverUntilLeave = !next && this.pointerOnDock;

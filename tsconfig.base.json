@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@upstart/back-office/shared": ["libs/shared/src/index.ts"],
+      "@upstart/back-office/shared/help-labels": ["libs/shared/src/lib/help-agent-labels.generated.ts"],
       "@upstart/back-office/lucide-icons": ["libs/lucide-icons/src/index.ts"]
     }
   },

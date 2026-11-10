@@ -22,6 +22,38 @@ export interface HelpAgentPageContext {
   title: string;
 }
 
+/**
+ * What the person pointed at or highlighted. Every text field must be a fixed UI label from
+ * HELP_AGENT_UI_LABELS (import '@upstart/back-office/shared/help-labels'); icon and helpKey are code
+ * identifiers. The API drops anything that is not on the list.
+ */
+export const HELP_AGENT_TARGET_KINDS = ['button', 'link', 'field', 'heading', 'tab', 'icon', 'text', 'area'] as const;
+export type HelpAgentTargetKind = (typeof HELP_AGENT_TARGET_KINDS)[number];
+
+export interface HelpAgentTarget {
+  kind: HelpAgentTargetKind;
+  /** Title of the panel or dialog it sits in, e.g. "People". */
+  panel?: string;
+  /** The control's own fixed label, e.g. "Add new person". */
+  label?: string;
+  /** Icon name without prefix, e.g. "trash" for pi-trash. */
+  icon?: string;
+  /** Help text key next to it, e.g. "lead.nextAction". */
+  helpKey?: string;
+  /** True when the person highlighted text that is not a known label (likely record data). It is never sent. */
+  withheld?: boolean;
+}
+
+/** Same normalization as scripts/build-help-labels.mjs, so runtime text compares to the list. */
+export function normalizeHelpLabel(text: string): string {
+  return text
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[\s:*…]+$/u, '')
+    .toLowerCase();
+}
+
 export interface HelpAgentHistoryMessage {
   role: 'user' | 'assistant';
   text: string;
@@ -31,4 +63,5 @@ export interface HelpAgentAskRequest {
   message: string;
   page?: HelpAgentPageContext;
   history?: HelpAgentHistoryMessage[];
+  target?: HelpAgentTarget;
 }

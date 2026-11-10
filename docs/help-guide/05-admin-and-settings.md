@@ -18,11 +18,15 @@ Super users can impersonate a user from row actions (viewing as that user).
 
 ## Settings (Admin only)
 
-**Settings** accordion sections include business profile, **MCP server** (connect desktop AI apps to UpStart Back Office), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area. **Google Calendar** only shows when the Bookings module is on.
+**Settings** accordion sections include business profile, **MCP server** (connect desktop AI apps to UpStart Back Office), **Back Office guide** (whether the help chat can look up records), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area. **Google Calendar** only shows when the Bookings module is on.
 
 ### MCP server
 
 Admins use **MCP server** to connect tools like Claude, ChatGPT, OpenAI Codex, or Cursor to UpStart Back Office. The server URL is **https://mcp.heyupstart.com/mcp** (copy it from Settings → MCP server → Server URL). Open **What the MCP server can do** first, then the connect steps for each app. Add the URL as a Streamable HTTP connector in the AI app, sign in with your normal account, and click **Allow** on the connect page. Access follows your role in UpStart Back Office.
+
+### Back Office guide
+
+**Back Office guide** has one switch: **Let the guide look up records** (the switch label uses the guide's name). It is off by default. When on, the help chat can answer questions about your records, such as "How much have we invoiced this client since January?" or "How many open tasks does Sam have?". It only reads records (organizations, people, projects, time, expenses, invoices, tasks and pipelines), never changes them, and only sees what the person asking can see. The records it looks up are sent to Anthropic, the AI provider, to write the answer. Answers that used records show **Looked up …** underneath. Record lookups are off while a super user is impersonating someone.
 
 ### Business
 

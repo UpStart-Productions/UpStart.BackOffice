@@ -6,6 +6,8 @@ import { HelpTextService } from '../../core/help-text.service';
   selector: 'app-help-text',
   standalone: true,
   imports: [TooltipModule],
+  // Lets the Back Office guide's "point at it" mode find the help key next to a label.
+  host: { '[attr.data-help-key]': 'key()' },
   template: `
     @if (helpText()) {
       <i

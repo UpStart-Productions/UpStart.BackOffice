@@ -21,4 +21,8 @@ When you change anything a back-office user can see or click — nav labels, pag
 
 The same changes usually also touch the **help drawer** (`admin/src/app/ui/help-drawer/help-content.ts`, one article per route) and **field tooltips** (`admin/src/app/core/help-text.registry.ts`). Keep those in step with `docs/help-guide/`. New routes get a help-content entry. See `docs/help-drawer.md`.
 
+## Guide screen-context labels
+
+After adding or renaming visible labels (panel titles, buttons, fields), run `npm run help-labels` and commit `libs/shared/src/lib/help-agent-labels.generated.ts` so the guide's "point at it" mode recognizes them. See `docs/help-agent.md`.
+
 Developer architecture notes belong in `docs/help-agent.md` or other `docs/*.md` files.

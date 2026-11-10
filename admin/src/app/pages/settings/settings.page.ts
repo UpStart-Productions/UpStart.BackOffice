@@ -25,6 +25,7 @@ import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ExpensesInvoicingSettingsComponent } from '../../ui/expenses-invoicing/expenses-invoicing-settings.component';
 import { OrganizationFieldsSettingsComponent } from '../../ui/organization-fields/organization-fields-settings.component';
 import { ActivitySettingsComponent } from '../../ui/activity-settings/activity-settings.component';
+import { GuideSettingsComponent } from '../../ui/guide-settings/guide-settings.component';
 import { SessionService } from '../../core/session.service';
 import { AvatarDropzoneComponent } from '../../ui/avatar-dropzone/avatar-dropzone.component';
 import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component';
@@ -118,6 +119,7 @@ interface SettingsStatusIcon {
     ExpensesInvoicingSettingsComponent,
     OrganizationFieldsSettingsComponent,
     ActivitySettingsComponent,
+    GuideSettingsComponent,
     AvatarDropzoneComponent,
     PhoneInputComponent,
     RecordAttributionComponent,

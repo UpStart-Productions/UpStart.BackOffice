@@ -149,9 +149,16 @@ export class TasksService {
   }
 
   /** Task picker search. With `projectId` and no query, returns the project's open tasks (for select dropdowns). */
-  async search(user: UserContext, q?: string, projectId?: string, sectionId?: string, limit = 25) {
+  async search(
+    user: UserContext,
+    q?: string,
+    projectId?: string,
+    sectionId?: string,
+    limit = 25,
+    assigneeId?: string,
+  ) {
     const term = q?.trim() ?? '';
-    if (!term && !projectId && !sectionId) return [];
+    if (!term && !projectId && !sectionId && !assigneeId) return [];
 
     let scopedProjectId = projectId;
     if (sectionId) {
@@ -195,12 +202,15 @@ export class TasksService {
         isCompleted: false,
         project: { inTaskManager: true },
         ...(term ? { name: { contains: term, mode: 'insensitive' } } : {}),
+        ...(assigneeId ? { assigneeId } : {}),
         ...projectScope,
         ...sectionScope,
       },
       select: {
         id: true,
         name: true,
+        dueOn: true,
+        assignee: { select: { id: true, firstName: true, lastName: true } },
         projectId: true,
         sectionId: true,
         section: { select: { id: true, name: true } },
@@ -217,6 +227,8 @@ export class TasksService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      dueOn: row.dueOn,
+      assignee: row.assignee,
       project: row.project,
       parent: row.parent,
       section: this.sectionInProject(row, scopedProjectId),

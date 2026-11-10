@@ -1,6 +1,6 @@
 # Known gaps and limitations
 
-- The **Back Office guide** chat does not read live data from the database — it only knows what is in this help guide. For “how many invoices are overdue?” use the Invoices page, not the guide chat.
+- The **Back Office guide** chat only reads records when an admin turns on **Settings → Back Office guide**. Otherwise it only knows what is in this help guide; for “how many invoices are overdue?” use the Invoices page. Even when on, it can only read, not create or change anything, and it can't see bookings, accounting, care records or activity history yet.
 - **Client portal** users are not Back Office users; this guide is for staff on the admin app only.
 - **Pipeline lanes**: lane colors can't be changed, and pipelines can't be reordered.
 - **Role actions**: buttons a role can't use are hidden on Pipeline, Organizations, Clients and Bookings only; on other pages the button shows but saving gives "Your role can't … in this area".

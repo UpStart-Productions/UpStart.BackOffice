@@ -47,10 +47,19 @@ export class HelpAgentController {
     if (!isBackOfficeRole(user.role)) {
       throw new ForbiddenException('Help Agent is only available in the back office.');
     }
-    const answer = await this.helpAgent.ask(dto.message, roleLabelForHelpAgent(user), user.email, {
+    const tenantHeader = req.headers['x-tenant-slug'];
+    return this.helpAgent.ask(dto.message, roleLabelForHelpAgent(user), user.email, {
       page: dto.page,
       history: dto.history,
+      target: dto.target,
+      // Record lookups run through the MCP server with the person's own credentials and tenant.
+      caller: {
+        userId: user.id,
+        authorization: typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined,
+        email: user.email,
+        tenantSlug: typeof tenantHeader === 'string' && tenantHeader.trim() ? tenantHeader.trim() : undefined,
+        impersonating: !!req.headers['x-impersonate-user-id'],
+      },
     });
-    return { answer };
   }
 }

@@ -247,7 +247,7 @@ export class TaskManagerController {
 
   @Get('tasks/search')
   searchTasks(@Req() req: Request, @Query() query: TaskSearchQueryDto) {
-    return this.tasks.search(me(req), query.q, query.projectId, query.sectionId, query.limit);
+    return this.tasks.search(me(req), query.q, query.projectId, query.sectionId, query.limit, query.assigneeId);
   }
 
   @Get('tasks/:id')

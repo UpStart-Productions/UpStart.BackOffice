@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "node scripts/set-local-admin-env.js && node scripts/kill-dev-ports.js && npx prisma migrate deploy && npx prisma generate && npm run dev:seed-if-needed && concurrently --kill-others \"npx nx serve api\" \"wait-on tcp:localhost:3001 && npx nx serve admin\"",
+    "dev": "node scripts/set-local-admin-env.js && node scripts/build-help-labels.mjs && node scripts/kill-dev-ports.js && npx prisma migrate deploy && npx prisma generate && npm run dev:seed-if-needed && concurrently --kill-others \"npx nx serve api\" \"wait-on tcp:localhost:3001 && npx nx serve admin\"",
     "dev:kill-ports": "node scripts/kill-dev-ports.js",
+    "help-labels": "node scripts/build-help-labels.mjs",
     "dev:migrate": "npx prisma migrate dev --name dev --skip-generate",
     "dev:seed": "npx prisma db seed",
     "dev:seed-if-needed": "tsx tools/dev/seed-if-needed.ts",
@@ -92,6 +93,7 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.991.0",
     "@aws-sdk/client-s3": "^3.1060.0",
     "@aws-sdk/client-ses": "^3.991.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",

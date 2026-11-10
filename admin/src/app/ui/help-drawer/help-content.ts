@@ -823,6 +823,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
           'Connect desktop AI apps (Claude, ChatGPT, Codex, Cursor, and others) to UpStart Back Office. Server URL: https://mcp.heyupstart.com/mcp — copy it under MCP server → Server URL. Sub-accordions list what the AI can do and connect steps for each app (organizations, people, tasks, time, expenses, invoices, and more — limited by your role). Sign in with the same account as this app and click Allow when the connect page opens.',
       },
       {
+        heading: 'Back Office guide',
+        body: `Off by default. Turn on Let ${HELP_AGENT_NAME} look up records so the help chat can answer questions like "How much have we invoiced this client since January?". It only reads, never changes anything, and only sees what the person asking can see. Records it looks up are sent to Anthropic, the AI provider, to write the answer.`,
+      },
+      {
         heading: 'API Keys',
         body: 'Give an outside service access to UpStart Back Office. Each key is shown once when you generate it, so store it right away.',
       },

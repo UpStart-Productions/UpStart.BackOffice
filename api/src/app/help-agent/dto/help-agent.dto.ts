@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  IsBoolean,
   IsArray,
   IsIn,
   IsOptional,
@@ -10,7 +11,12 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { HELP_AGENT_HISTORY_LIMIT, HELP_AGENT_HISTORY_TEXT_MAX } from '@upstart/back-office/shared';
+import {
+  HELP_AGENT_HISTORY_LIMIT,
+  HELP_AGENT_HISTORY_TEXT_MAX,
+  HELP_AGENT_TARGET_KINDS,
+  type HelpAgentTargetKind,
+} from '@upstart/back-office/shared';
 
 const SUPPORTED_PROVIDERS = ['ANTHROPIC', 'OPENAI', 'GEMINI'] as const;
 
@@ -49,6 +55,36 @@ export class HelpAgentHistoryMessageDto {
   text!: string;
 }
 
+/** What the person pointed at. Shape only here; the service drops labels not on the allowlist. */
+export class HelpAgentTargetDto {
+  @IsIn(HELP_AGENT_TARGET_KINDS)
+  kind!: HelpAgentTargetKind;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  panel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  label?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-z0-9-]{1,40}$/)
+  icon?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9._-]{1,80}$/)
+  helpKey?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  withheld?: boolean;
+}
+
 export class AskHelpAgentDto {
   @IsString()
   @MinLength(1)
@@ -65,4 +101,9 @@ export class AskHelpAgentDto {
   @ValidateNested({ each: true })
   @Type(() => HelpAgentHistoryMessageDto)
   history?: HelpAgentHistoryMessageDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HelpAgentTargetDto)
+  target?: HelpAgentTargetDto;
 }
