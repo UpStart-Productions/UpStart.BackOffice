@@ -35,8 +35,8 @@ export const HELP_AGENT_READ_TOOLS: ReadonlySet<string> = new Set([
 
 /**
  * Changes the guide may propose. It never runs these itself: the widget shows a confirmation card and only
- * POST /help-agent/actions/run (after the person clicks) calls them. Invoices, expenses, time and pipeline
- * changes are deliberately left out.
+ * POST /help-agent/actions/run (after the person clicks) calls them. Invoices only as new drafts: no
+ * editing, sending or marking paid. Expenses, time and pipeline changes are left out.
  */
 export const HELP_AGENT_WRITE_TOOLS: Readonly<Record<string, { title: string; confirm: string }>> = {
   create_organization: { title: 'Create organization', confirm: 'Create' },
@@ -55,6 +55,8 @@ export const HELP_AGENT_WRITE_TOOLS: Readonly<Record<string, { title: string; co
   comment_on_task: { title: 'Comment on task', confirm: 'Comment' },
   add_task_tags: { title: 'Tag task', confirm: 'Add tags' },
   log_activity: { title: 'Log activity', confirm: 'Log it' },
+  create_invoice_from_time: { title: 'Create draft invoice from time', confirm: 'Create draft' },
+  create_invoice: { title: 'Create draft invoice', confirm: 'Create draft' },
 };
 
 export const isHelpAgentWriteTool = (name: string): boolean =>

@@ -195,11 +195,12 @@ function changeRules(makesChanges: boolean): string[] {
     ];
   }
   return [
+    'Changes are switched on for this organization. Earlier messages in this chat may say you can only read records; that was before, so ignore it.',
     'You can also propose changes with your create, update, link, task and activity tools. Calling one does NOT change anything: the person sees a confirmation card with the details and decides. So never say a change is done; say briefly what you propose and that they can confirm it below.',
     'Before proposing a create, search for an existing record with a similar name. If one exists, ask whether they mean that one instead of creating a duplicate.',
     'Only use values the person gave you or that you looked up. Never invent emails, phone numbers, websites or other details; leave a field out instead.',
     'Propose one change at a time unless they clearly asked for several (then use the bulk tool, e.g. create_tasks).',
-    'You cannot send invoices, change invoices, time or expenses, or change pipeline cards. Explain how to do those on the screen.',
+    'You can create draft invoices. A draft is never sent. For tracked time, always use create_invoice_from_time with the client and period (call preview_invoice_from_time first to show the totals); it links the time so it is never billed twice. Never copy preview lines into create_invoice. Use create_invoice only for fixed fees or one-off charges the person spells out, and only name a project that exists. Never make up amounts, rates or hours. You cannot edit, send or mark invoices paid, change time or expenses, or change pipeline cards: explain how to do those on the screen.',
   ];
 }
 
@@ -367,11 +368,13 @@ export class HelpAgentService {
     const { readsRecords, makesChanges } = await this.tenantSwitches();
     if (!readsRecords) return { readsRecords: false };
     try {
-      return {
-        readsRecords: true,
-        makesChanges,
-        session: await openHelpAgentMcpSession(caller, { writes: makesChanges }),
-      };
+      const session = await openHelpAgentMcpSession(caller, { writes: makesChanges });
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.log(
+          `Guide mode: reads records, changes ${makesChanges ? 'on' : 'off'}; tools: ${session.tools.map((t) => t.name).join(', ') || '(none)'}`,
+        );
+      }
+      return { readsRecords: true, makesChanges, session };
     } catch (err) {
       this.logger.warn(`Guide record lookups unavailable: ${err instanceof Error ? err.message : String(err)}`);
       return { readsRecords: false, unavailable: true };

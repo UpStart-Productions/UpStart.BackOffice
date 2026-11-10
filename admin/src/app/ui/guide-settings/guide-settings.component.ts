@@ -41,9 +41,9 @@ type GuideSettings = { readsRecords: boolean; makesChanges: boolean };
     </div>
     <p class="text-color-secondary">
       When on, {{ agentName }} can propose creating or updating organizations and people, linking them, creating and
-      updating tasks, and logging notes and calls. Each change shows a card with the details, and nothing changes until
-      the person clicks to confirm. It can't send invoices or change invoices, time, expenses or pipelines. Needs
-      record lookups on.
+      updating tasks, logging notes and calls, and creating draft invoices. Each change shows a card with the details,
+      and nothing changes until the person clicks to confirm. It never sends invoices or marks them paid, and can't
+      change time, expenses or pipelines. Needs record lookups on.
     </p>
   `,
 })
