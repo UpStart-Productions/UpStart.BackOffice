@@ -10,3 +10,4 @@ export * from './lib/notifications';
 export * from './lib/notification-registry';
 export * from './lib/support-feedback';
 export * from './lib/task-comments';
+export * from './lib/help-agent';

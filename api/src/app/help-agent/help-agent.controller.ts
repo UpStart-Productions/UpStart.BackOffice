@@ -47,7 +47,10 @@ export class HelpAgentController {
     if (!isBackOfficeRole(user.role)) {
       throw new ForbiddenException('Help Agent is only available in the back office.');
     }
-    const answer = await this.helpAgent.ask(dto.message, roleLabelForHelpAgent(user), user.email);
+    const answer = await this.helpAgent.ask(dto.message, roleLabelForHelpAgent(user), user.email, {
+      page: dto.page,
+      history: dto.history,
+    });
     return { answer };
   }
 }

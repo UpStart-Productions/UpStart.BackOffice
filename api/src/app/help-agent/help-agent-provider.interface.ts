@@ -1,6 +1,12 @@
+/** One chat turn. The list always starts with a user turn, alternates, and ends with the user's question. */
+export interface HelpAgentTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface HelpAgentGenerateParams {
   systemPrompt: string;
-  message: string;
+  messages: HelpAgentTurn[];
   model: string;
   apiKey: string;
 }

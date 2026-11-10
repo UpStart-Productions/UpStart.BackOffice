@@ -1,5 +1,14 @@
 import { Component, computed, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import {
+  HELP_AGENT_HISTORY_LIMIT,
+  HELP_AGENT_HISTORY_TEXT_MAX,
+  HELP_AGENT_NAME,
+  type HelpAgentAskRequest,
+  type HelpAgentHistoryMessage,
+  type HelpAgentPageContext,
+} from '@upstart/back-office/shared';
 import { ButtonModule } from 'primeng/button';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
@@ -14,7 +23,7 @@ interface HelpAgentChatMessage {
 
 const GUIDE_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
 const GUIDE_CHAT_MAX_MESSAGES = 80;
-/** JD — in-app Back Office guide (floating chat). */
+/** In-app Back Office guide avatar (floating chat). Name comes from HELP_AGENT_NAME. */
 const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 
 /**
@@ -39,7 +48,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
               <span class="help-agent-panel-title">
                 <img class="help-agent-avatar help-agent-panel-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
                 <span class="help-agent-panel-title-text">
-                  <strong>JD</strong>
+                  <strong>{{ agentName }}</strong>
                   <span class="help-agent-panel-subtitle">Back Office guide</span>
                 </span>
               </span>
@@ -91,13 +100,13 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                 }
               } @empty {
                 <p class="help-agent-empty-note">
-                  Ask JD where to click in Back Office — invoices, time, tasks, CRM, and more.
+                  Ask {{ agentName }} where to click in Back Office — invoices, time, tasks, CRM, and more.
                 </p>
               }
               @if (chatSending()) {
                 <div class="help-agent-chat-assistant">
                   <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
-                  <div class="help-agent-chat-msg help-agent-typing" aria-label="JD is typing">
+                  <div class="help-agent-chat-msg help-agent-typing" [attr.aria-label]="agentName + ' is typing'">
                     <span class="help-agent-typing-dot"></span>
                     <span class="help-agent-typing-dot"></span>
                     <span class="help-agent-typing-dot"></span>
@@ -131,7 +140,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
             type="button"
             class="help-agent-fab"
             (click)="setOpen(!open())"
-            [attr.aria-label]="open() ? 'Close JD, Back Office guide' : 'Open JD, Back Office guide'"
+            [attr.aria-label]="(open() ? 'Close ' : 'Open ') + agentName + ', Back Office guide'"
           >
             <img
               class="help-agent-avatar help-agent-fab-avatar"
@@ -573,8 +582,10 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 export class HelpAgentWidgetComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
+  private readonly router = inject(Router);
 
   readonly guideAvatarSrc = GUIDE_AVATAR_SRC;
+  readonly agentName = HELP_AGENT_NAME;
 
   private readonly configured = signal(false);
   readonly visible = computed(() => !!this.session.me() && this.configured());
@@ -616,6 +627,7 @@ export class HelpAgentWidgetComponent implements OnInit {
     const message = this.chatInput.value.trim();
     if (!message || this.chatSending()) return;
 
+    const history = this.historyForRequest();
     this.chatMessages.update((msgs) => [...msgs, { role: 'user', text: message }]);
     this.persistChat();
     this.chatInput.setValue('');
@@ -623,7 +635,9 @@ export class HelpAgentWidgetComponent implements OnInit {
     this.chatSending.set(true);
     this.scrollLastMessageIntoView();
     try {
-      const res = await this.api.post<{ answer: string }>('/help-agent/ask', { message });
+      const page = await this.currentPageContext();
+      const body: HelpAgentAskRequest = { message, history, ...(page ? { page } : {}) };
+      const res = await this.api.post<{ answer: string }>('/help-agent/ask', body);
       this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text: res.answer }]);
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Failed to reach the Help Agent';
@@ -632,6 +646,32 @@ export class HelpAgentWidgetComponent implements OnInit {
       this.persistChat();
       this.chatSending.set(false);
       this.scrollLastMessageIntoView();
+    }
+  }
+
+  /**
+   * The last few messages before the one being sent, so follow-ups ("and then?") make sense.
+   * Error bubbles are local only and never sent.
+   */
+  private historyForRequest(): HelpAgentHistoryMessage[] {
+    return this.chatMessages()
+      .filter((m) => !(m.role === 'assistant' && m.text.startsWith('Error: ')))
+      .slice(-HELP_AGENT_HISTORY_LIMIT)
+      .map((m) => ({ role: m.role, text: m.text.slice(0, HELP_AGENT_HISTORY_TEXT_MAX) }));
+  }
+
+  /**
+   * Which screen the person is on: the help drawer's route pattern (e.g. "organizations/:id") and
+   * article title. Labels only, never record data, so IDs in the URL are not sent. The help content
+   * is imported lazily to keep it out of the main bundle (the widget is on every page).
+   */
+  private async currentPageContext(): Promise<HelpAgentPageContext | null> {
+    try {
+      const { matchHelpRoute } = await import('../help-drawer/help-content');
+      const hit = matchHelpRoute(this.router.url);
+      return hit ? { route: hit.pattern, title: hit.article.title } : null;
+    } catch {
+      return null;
     }
   }
 

@@ -3,6 +3,8 @@
  * Key format: area.field. Do not put this copy under fields in templates — register it here only.
  * Page-level help lives in ui/help-drawer/help-content.ts.
  */
+import { HELP_AGENT_NAME } from '@upstart/back-office/shared';
+
 export const HELP_TEXT_REGISTRY: Record<string, string> = {
   // Pipeline card
   'lead.warmConnection': 'Someone who knows this person and can introduce you or vouch for you.',
@@ -255,7 +257,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
 
   // Platform
   'platform.guideSetup':
-    'The Guide answers “where do I click?” from docs/help-guide/. Signed-in users see JD (guide avatar) bottom-left once configured. The API key is encrypted at rest and never shown again after saving.',
+    `The Guide answers “where do I click?” from docs/help-guide/. Signed-in users see ${HELP_AGENT_NAME} (guide avatar) bottom-left once configured. The API key is encrypted at rest and never shown again after saving.`,
 
   // Organization links (person)
   'person.organizationLinks':

@@ -5,6 +5,8 @@
  *
  * Keep these in step with docs/help-guide/ (which feeds the Back Office Guide chat).
  */
+import { HELP_AGENT_NAME } from '@upstart/back-office/shared';
+
 export interface HelpSection {
   heading: string;
   body: string;
@@ -1020,7 +1022,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'platform/help-assistant': {
     title: 'Guide setup',
-    intro: 'Configure JD, the Back Office guide — the help chat in the bottom-left corner.',
+    intro: `Configure ${HELP_AGENT_NAME}, the Back Office guide — the help chat in the bottom-left corner.`,
     sections: [
       {
         heading: 'Connecting a model',
@@ -1041,10 +1043,10 @@ function matches(pattern: string[], path: string[]): boolean {
   );
 }
 
-/** Most specific article for a router URL, falling back to parent routes. */
-export function getHelpArticle(routerUrl: string): HelpArticle | null {
+/** Most specific help route for a router URL, falling back to parent routes. */
+export function matchHelpRoute(routerUrl: string): { pattern: string; article: HelpArticle } | null {
   const path = routerUrl.replace(/^\//, '').split('?')[0].split('#')[0].split('/').filter(Boolean);
-  if (!path.length) return HELP_CONTENT['dashboard'];
+  if (!path.length) return { pattern: 'dashboard', article: HELP_CONTENT['dashboard'] };
 
   const keys = Object.keys(HELP_CONTENT).map((k) => ({ key: k, parts: k.split('/') }));
   for (let len = path.length; len > 0; len--) {
@@ -1053,7 +1055,12 @@ export function getHelpArticle(routerUrl: string): HelpArticle | null {
     const hit = keys
       .filter((k) => matches(k.parts, prefix))
       .sort((a, b) => a.parts.filter((p) => p.startsWith(':')).length - b.parts.filter((p) => p.startsWith(':')).length)[0];
-    if (hit) return HELP_CONTENT[hit.key];
+    if (hit) return { pattern: hit.key, article: HELP_CONTENT[hit.key] };
   }
   return null;
+}
+
+/** Most specific article for a router URL, falling back to parent routes. */
+export function getHelpArticle(routerUrl: string): HelpArticle | null {
+  return matchHelpRoute(routerUrl)?.article ?? null;
 }

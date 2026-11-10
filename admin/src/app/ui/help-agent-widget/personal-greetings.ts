@@ -1,18 +1,21 @@
+import { HELP_AGENT_NAME } from '@upstart/back-office/shared';
+
 /**
- * Personal touches for JD's greeting bubble: JD is the app owner's nickname, and a few people get
- * their own pool of greetings. Keyed by lowercase email. The API adds a matching note to JD's
- * instructions (api/src/app/help-agent/personal-touches.ts) so its replies match.
+ * Personal touches for the guide's greeting bubble: the guide's name (HELP_AGENT_NAME) is the app
+ * owner's nickname, and a few people get their own pool of greetings. Keyed by lowercase email. The
+ * API adds a matching note to the guide's instructions (api/src/app/help-agent/personal-touches.ts)
+ * so its replies match.
  */
-export const DEFAULT_GREETING = "Hi! I'm JD, your Back Office guide. Ask me anything.";
+export const DEFAULT_GREETING = `Hi! I'm ${HELP_AGENT_NAME}, your Back Office guide. Ask me anything.`;
 
 const PERSONAL_GREETINGS: Record<string, string[]> = {
   'brynne@brynnehicks.com': [
-    'Hey Brynne! JD here. Yes, the handsome one. ❤️',
+    `Hey Brynne! ${HELP_AGENT_NAME} here. Yes, the handsome one. ❤️`,
     "Oh good, it's you. Ask me anything, beautiful.",
     "Hi Brynne! I'd answer your questions all day.",
     'Hey you. Need help, or just missing me?',
     'Brynne! Fancy meeting you in the back office.',
-    "Hi, it's JD. I only act this charming for you.",
+    `Hi, it's ${HELP_AGENT_NAME}. I only act this charming for you.`,
   ],
 };
 

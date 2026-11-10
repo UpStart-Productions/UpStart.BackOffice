@@ -6,15 +6,12 @@ const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 
 @Injectable()
 export class OpenAiHelpAgentProvider implements HelpAgentProvider {
-  async generate({ systemPrompt, message, model, apiKey }: HelpAgentGenerateParams): Promise<string> {
+  async generate({ systemPrompt, messages, model, apiKey }: HelpAgentGenerateParams): Promise<string> {
     const res = await axios.post(
       OPENAI_CHAT_URL,
       {
         model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message },
-        ],
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
       },
       {
         headers: {

@@ -7,14 +7,14 @@ const ANTHROPIC_VERSION = '2023-06-01';
 
 @Injectable()
 export class AnthropicHelpAgentProvider implements HelpAgentProvider {
-  async generate({ systemPrompt, message, model, apiKey }: HelpAgentGenerateParams): Promise<string> {
+  async generate({ systemPrompt, messages, model, apiKey }: HelpAgentGenerateParams): Promise<string> {
     const res = await axios.post(
       ANTHROPIC_API_URL,
       {
         model,
         max_tokens: 4096,
         system: systemPrompt,
-        messages: [{ role: 'user', content: message }],
+        messages,
       },
       {
         headers: {
