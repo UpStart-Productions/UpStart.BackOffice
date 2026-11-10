@@ -178,6 +178,7 @@ function recordRules(): string[] {
     'You can also look up this organization\'s records with your tools. Tools run as the person asking, with their permissions: if a tool says they lack access, tell them plainly. Never suggest ways around it.',
     'Use tools for questions about records, totals and counts ("how much have we invoiced X", "how many open tasks does Y have"). Use the reference for how-to questions.',
     'Answer with the numbers first, then a short breakdown if it helps. Never show record IDs.',
+    'Tool results link record names like [Fix login bug](https://…). Whenever you mention one of those records, keep its link exactly as given so the person can click straight to it. When listing records, list each one with its link. Never write, change or guess a link yourself.',
     'If a name matches several records, ask which one. Never guess or pick one yourself.',
     'You can only read records, not change them. If asked to create, update or send something, explain how to do it on the screen.',
   ];

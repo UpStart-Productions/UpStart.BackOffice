@@ -1,13 +1,38 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
+/**
+ * `appLinks`: render markdown links "[text](url)" that point to this app (same origin, or a path) as
+ * `<a data-app-link href="/path">`; any other link stays plain text. Used by the Back Office guide, whose
+ * answers can quote record data, so a crafted link in a record never becomes clickable.
+ */
+export type SimpleMarkdownOption = 'appLinks';
+
 @Pipe({ name: 'simpleMarkdown', standalone: true, pure: true })
 export class SimpleMarkdownPipe implements PipeTransform {
   private readonly sanitizer = inject(DomSanitizer);
 
-  transform(value: string | null | undefined): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(toHtml(value ?? ''));
+  transform(value: string | null | undefined, option?: SimpleMarkdownOption): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(toHtml(value ?? '', option === 'appLinks'));
   }
+}
+
+/** Same-site path for a link target, or null when it points elsewhere (or isn't a usable URL). */
+export function appLinkPath(raw: string): string | null {
+  try {
+    const url = new URL(raw.replace(/&amp;/g, '&'), window.location.origin);
+    if (url.origin !== window.location.origin) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function linkify(text: string): string {
+  return text.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (_m, label: string, href: string) => {
+    const path = appLinkPath(href);
+    return path ? `<a data-app-link href="${path.replace(/"/g, '%22')}">${label}</a>` : label;
+  });
 }
 
 function escapeHtml(text: string): string {
@@ -21,7 +46,8 @@ function inlineFormat(text: string): string {
     .replace(/(?<!\*)\*([^*\s][^*]*?)\*(?!\*)/g, '<em>$1</em>');
 }
 
-function toHtml(raw: string): string {
+function toHtml(raw: string, appLinks = false): string {
+  const format = (text: string) => (appLinks ? linkify(inlineFormat(text)) : inlineFormat(text));
   const lines = escapeHtml(raw).split('\n');
   const blocks: string[] = [];
   let listBuffer: string[] = [];
@@ -52,7 +78,7 @@ function toHtml(raw: string): string {
       // Headings (# … ######) become one small heading style: chat answers don't need levels.
       flushList();
       flushPara();
-      blocks.push(`<h4>${inlineFormat(headingMatch[1])}</h4>`);
+      blocks.push(`<h4>${format(headingMatch[1])}</h4>`);
     } else if (/^([-*_])(\s*\1){2,}$/.test(trimmed)) {
       // --- / *** / ___ : a divider
       flushList();
@@ -62,18 +88,18 @@ function toHtml(raw: string): string {
       flushPara();
       if (listType !== 'ul') flushList();
       listType = 'ul';
-      listBuffer.push(`<li>${inlineFormat(bulletMatch[1])}</li>`);
+      listBuffer.push(`<li>${format(bulletMatch[1])}</li>`);
     } else if (numberedMatch) {
       flushPara();
       if (listType !== 'ol') flushList();
       listType = 'ol';
-      listBuffer.push(`<li>${inlineFormat(numberedMatch[1])}</li>`);
+      listBuffer.push(`<li>${format(numberedMatch[1])}</li>`);
     } else if (trimmed === '') {
       flushList();
       flushPara();
     } else {
       flushList();
-      paraBuffer.push(inlineFormat(trimmed));
+      paraBuffer.push(format(trimmed));
     }
   }
   flushList();

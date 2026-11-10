@@ -46,6 +46,7 @@ Off by default per tenant: **Settings → Back Office guide** (`OrganizationProf
 - **Prompt:** data rules replace the guide-only "no records" rule; email/phone scrubbing is skipped (the question may name a person).
 - **Off automatically** while impersonating (`x-impersonate-user-id`: the MCP server would act as the super user), for super users with no tenant, and when the MCP server is unreachable (the guide says lookups are down).
 - **Usage log:** `HelpAgentUsage`, one row per question in both modes: user, model, whether it read records, tool names and arguments (never results or the question text), input/output tokens.
+- **Links:** MCP tool results link record names as `[name](full admin URL)` (`src/tools/links.ts` in the MCP repo, same routes as the admin global search). The prompt tells the guide to keep those links and never write its own. The widget renders them with `simpleMarkdown: 'appLinks'`: only same-origin links become `<a data-app-link>` (anything else is plain text, so a crafted link in record data is never clickable), and clicks navigate in-app with the chat left open (Cmd/Ctrl-click opens a new tab).
 - **Widget:** shows "Still working on it…" after 4 s and "Looked up invoices, tasks" under answers that used records (`lookups` in the response).
 - Not yet: write actions (would need confirmation cards), OpenAI/Gemini tool calling, record references from point/highlight (`data-record`), activity history, bookings, accounting and care tools.
 

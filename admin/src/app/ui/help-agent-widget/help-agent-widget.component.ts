@@ -110,13 +110,13 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                 </button>
               </div>
             </div>
-            <div class="help-agent-chat-log" #chatLog>
+            <div class="help-agent-chat-log" #chatLog (click)="onChatLogClick($event)">
               @for (msg of chatMessages(); track $index) {
                 @if (msg.role === 'assistant') {
                   <div class="help-agent-chat-assistant">
                     <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
                     <div class="help-agent-chat-msg">
-                      <div [innerHTML]="msg.text | simpleMarkdown"></div>
+                      <div [innerHTML]="msg.text | simpleMarkdown: 'appLinks'"></div>
                       @if (msg.lookups?.length) {
                         <p class="help-agent-lookups text-color-secondary">
                           <i class="pi pi-search" aria-hidden="true"></i> Looked up {{ msg.lookups!.join(', ') }}
@@ -932,6 +932,16 @@ export class HelpAgentWidgetComponent implements OnInit {
   };
 
   private readonly onPickScroll = () => this.pickOutline.set(null);
+
+  /** Record links in answers open inside the app (chat stays open). Cmd/Ctrl/middle-click open a new tab. */
+  onChatLogClick(event: MouseEvent) {
+    const link = (event.target as HTMLElement | null)?.closest?.('a[data-app-link]') as HTMLAnchorElement | null;
+    if (!link) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    event.preventDefault();
+    const href = link.getAttribute('href');
+    if (href) void this.router.navigateByUrl(href);
+  }
 
   onPromptKeydown(event: KeyboardEvent) {
     if (event.key !== 'Enter' || event.shiftKey) return;

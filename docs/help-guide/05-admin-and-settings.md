@@ -26,7 +26,7 @@ Admins use **MCP server** to connect tools like Claude, ChatGPT, OpenAI Codex, o
 
 ### Back Office guide
 
-**Back Office guide** has one switch: **Let the guide look up records** (the switch label uses the guide's name). It is off by default. When on, the help chat can answer questions about your records, such as "How much have we invoiced this client since January?" or "How many open tasks does Sam have?". It only reads records (organizations, people, projects, time, expenses, invoices, tasks and pipelines), never changes them, and only sees what the person asking can see. The records it looks up are sent to Anthropic, the AI provider, to write the answer. Answers that used records show **Looked up …** underneath. Record lookups are off while a super user is impersonating someone.
+**Back Office guide** has one switch: **Let the guide look up records** (the switch label uses the guide's name). It is off by default. When on, the help chat can answer questions about your records, such as "How much have we invoiced this client since January?" or "How many open tasks does Sam have?". It only reads records (organizations, people, projects, time, expenses, invoices, tasks and pipelines), never changes them, and only sees what the person asking can see. The records it looks up are sent to Anthropic, the AI provider, to write the answer. Records it mentions (tasks, invoices, organizations, people, projects, pipeline cards) are links: click one to open it, and the chat stays open. Answers that used records show **Looked up …** underneath. Record lookups are off while a super user is impersonating someone.
 
 ### Business
 
