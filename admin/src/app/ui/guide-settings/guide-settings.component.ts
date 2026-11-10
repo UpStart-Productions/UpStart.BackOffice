@@ -5,9 +5,12 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { HELP_AGENT_NAME } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
 
-type GuideSettings = { readsRecords: boolean };
+type GuideSettings = { readsRecords: boolean; makesChanges: boolean };
 
-/** Settings → Back Office guide: may the guide look up this tenant's records? Saves on toggle. */
+/**
+ * Settings → Back Office guide: may the guide look up this tenant's records, and propose changes?
+ * Changes need lookups (the guide searches before it creates). Saves on toggle.
+ */
 @Component({
   selector: 'app-guide-settings',
   standalone: true,
@@ -17,15 +20,30 @@ type GuideSettings = { readsRecords: boolean };
       <label for="guideReadsRecords">Let {{ agentName }} look up records</label>
       <p-toggleswitch
         inputId="guideReadsRecords"
-        [ngModel]="readsRecords()"
-        (ngModelChange)="save($event)"
+        [ngModel]="settings().readsRecords"
+        (ngModelChange)="save({ readsRecords: $event })"
         [disabled]="saving()"
       />
     </div>
     <p class="text-color-secondary">
       When on, {{ agentName }} can answer questions like "How much have we invoiced this client since January?" or
-      "How many open tasks does Sam have?". It only reads records, never changes them, and only sees what the person
-      asking can see. To answer, the records it looks up are sent to Anthropic, the AI provider. Off by default.
+      "How many open tasks does Sam have?", and only sees what the person asking can see. To answer, the records it
+      looks up are sent to Anthropic, the AI provider. Off by default.
+    </p>
+    <div class="form-field">
+      <label for="guideMakesChanges">Let {{ agentName }} make changes (always asks first)</label>
+      <p-toggleswitch
+        inputId="guideMakesChanges"
+        [ngModel]="settings().makesChanges"
+        (ngModelChange)="save({ makesChanges: $event })"
+        [disabled]="saving() || !settings().readsRecords"
+      />
+    </div>
+    <p class="text-color-secondary">
+      When on, {{ agentName }} can propose creating or updating organizations and people, linking them, creating and
+      updating tasks, and logging notes and calls. Each change shows a card with the details, and nothing changes until
+      the person clicks to confirm. It can't send invoices or change invoices, time, expenses or pipelines. Needs
+      record lookups on.
     </p>
   `,
 })
@@ -34,31 +52,26 @@ export class GuideSettingsComponent implements OnInit {
   private readonly toast = inject(MessageService);
 
   readonly agentName = HELP_AGENT_NAME;
-  readonly readsRecords = signal(false);
+  readonly settings = signal<GuideSettings>({ readsRecords: false, makesChanges: false });
   readonly saving = signal(false);
 
   async ngOnInit() {
     try {
-      const s = await this.api.get<GuideSettings>('/organization-profile/guide');
-      this.readsRecords.set(s.readsRecords);
+      this.settings.set(await this.api.get<GuideSettings>('/organization-profile/guide'));
     } catch {
       // Stays off.
     }
   }
 
-  async save(next: boolean) {
+  async save(change: Partial<GuideSettings>) {
+    const before = this.settings();
+    this.settings.set({ ...before, ...change });
     this.saving.set(true);
     try {
-      const s = await this.api.put<GuideSettings>('/organization-profile/guide', { readsRecords: next });
-      this.readsRecords.set(s.readsRecords);
-      this.toast.add({
-        severity: 'success',
-        summary: 'Saved',
-        detail: s.readsRecords ? `${this.agentName} can now look up records.` : `${this.agentName} no longer looks up records.`,
-        life: 3000,
-      });
+      this.settings.set(await this.api.put<GuideSettings>('/organization-profile/guide', change));
+      this.toast.add({ severity: 'success', summary: 'Saved', detail: 'Back Office guide settings updated.', life: 3000 });
     } catch (err) {
-      this.readsRecords.set(!next);
+      this.settings.set(before);
       this.toast.add({ severity: 'error', summary: 'Could not save', detail: err instanceof Error ? err.message : 'Failed' });
     } finally {
       this.saving.set(false);

@@ -13,7 +13,7 @@ import { Request } from 'express';
 import { isBackOfficeRole } from '@upstart/back-office/shared';
 import { AppAuthGuard } from '../auth/app-auth.guard';
 import { RequireSuperGuard } from '../tenancy/require-super.guard';
-import { AskHelpAgentDto, SaveHelpAgentSettingsDto } from './dto/help-agent.dto';
+import { AskHelpAgentDto, RunHelpAgentActionDto, SaveHelpAgentSettingsDto } from './dto/help-agent.dto';
 import { HelpAgentService, roleLabelForHelpAgent } from './help-agent.service';
 
 @ApiTags('help-agent')
@@ -47,19 +47,33 @@ export class HelpAgentController {
     if (!isBackOfficeRole(user.role)) {
       throw new ForbiddenException('Help Agent is only available in the back office.');
     }
-    const tenantHeader = req.headers['x-tenant-slug'];
     return this.helpAgent.ask(dto.message, roleLabelForHelpAgent(user), user.email, {
       page: dto.page,
       history: dto.history,
       target: dto.target,
-      // Record lookups run through the MCP server with the person's own credentials and tenant.
-      caller: {
-        userId: user.id,
-        authorization: typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined,
-        email: user.email,
-        tenantSlug: typeof tenantHeader === 'string' && tenantHeader.trim() ? tenantHeader.trim() : undefined,
-        impersonating: !!req.headers['x-impersonate-user-id'],
-      },
+      caller: callerFrom(req),
     });
   }
+
+  /** Runs one change the person confirmed on a guide card (create, update, link, task, activity). */
+  @Post('actions/run')
+  async runAction(@Body() dto: RunHelpAgentActionDto, @Req() req: Request) {
+    if (!isBackOfficeRole(req.user!.role)) {
+      throw new ForbiddenException('Help Agent is only available in the back office.');
+    }
+    return this.helpAgent.runAction(dto.tool, dto.args ?? {}, callerFrom(req));
+  }
+}
+
+/** Record lookups and changes run through the MCP server with the person's own credentials and tenant. */
+function callerFrom(req: Request) {
+  const user = req.user!;
+  const tenantHeader = req.headers['x-tenant-slug'];
+  return {
+    userId: user.id,
+    authorization: typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined,
+    email: user.email,
+    tenantSlug: typeof tenantHeader === 'string' && tenantHeader.trim() ? tenantHeader.trim() : undefined,
+    impersonating: !!req.headers['x-impersonate-user-id'],
+  };
 }

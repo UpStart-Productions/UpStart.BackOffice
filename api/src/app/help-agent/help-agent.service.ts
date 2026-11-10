@@ -22,6 +22,8 @@ import { personalNoteFor } from './personal-touches';
 import { tryTenantId } from '../tenancy/tenant-context';
 import {
   HELP_AGENT_TOOL_LABELS,
+  HELP_AGENT_WRITE_TOOLS,
+  isHelpAgentWriteTool,
   openHelpAgentMcpSession,
   type HelpAgentCaller,
   type HelpAgentMcpSession,
@@ -127,12 +129,14 @@ export interface HelpAgentAnswer {
   answer: string;
   /** Plain-language names of what the guide looked up, e.g. ["invoices"]. Empty in guide-only mode. */
   lookups: string[];
+  /** Changes the guide proposes; each runs only when the person confirms it (POST /help-agent/actions/run). */
+  actions: Array<{ tool: string; title: string; confirm: string; args: Record<string, unknown> }>;
 }
 
 /** Modes: guide only (help files, no record data) or reads records (tools through the MCP server). */
 type HelpAgentMode =
   | { readsRecords: false; unavailable?: boolean; impersonating?: boolean }
-  | { readsRecords: true; session: HelpAgentMcpSession };
+  | { readsRecords: true; makesChanges: boolean; session: HelpAgentMcpSession };
 
 function resolveGuideDir(): string {
   const candidates = [
@@ -180,7 +184,22 @@ function recordRules(): string[] {
     'Answer with the numbers first, then a short breakdown if it helps. Never show record IDs.',
     'Tool results link record names like [Fix login bug](https://…). Whenever you mention one of those records, keep its link exactly as given so the person can click straight to it. When listing records, list each one with its link. Never write, change or guess a link yourself.',
     'If a name matches several records, ask which one. Never guess or pick one yourself.',
-    'You can only read records, not change them. If asked to create, update or send something, explain how to do it on the screen.',
+  ];
+}
+
+/** Prompt rules about changing records: proposals the person confirms on a card. */
+function changeRules(makesChanges: boolean): string[] {
+  if (!makesChanges) {
+    return [
+      'You can only read records, not change them. If asked to create, update or send something, explain how to do it on the screen.',
+    ];
+  }
+  return [
+    'You can also propose changes with your create, update, link, task and activity tools. Calling one does NOT change anything: the person sees a confirmation card with the details and decides. So never say a change is done; say briefly what you propose and that they can confirm it below.',
+    'Before proposing a create, search for an existing record with a similar name. If one exists, ask whether they mean that one instead of creating a duplicate.',
+    'Only use values the person gave you or that you looked up. Never invent emails, phone numbers, websites or other details; leave a field out instead.',
+    'Propose one change at a time unless they clearly asked for several (then use the bulk tool, e.g. create_tasks).',
+    'You cannot send invoices, change invoices, time or expenses, or change pipeline cards. Explain how to do those on the screen.',
   ];
 }
 
@@ -313,15 +332,23 @@ export class HelpAgentService {
           tools: mode.session.tools,
           callTool: (name, args) => mode.session.call(name, args),
           maxToolCalls: MAX_TOOL_CALLS,
+          ...(mode.makesChanges ? { isWriteTool: isHelpAgentWriteTool } : {}),
         });
-        await this.logUsage(options.caller?.userId, row.model, true, run);
+        const proposed = run.proposedActions.map((a) => ({ ...a, proposed: true }));
+        await this.logUsage(options.caller?.userId, row.model, true, {
+          ...run,
+          toolCalls: [...run.toolCalls, ...proposed],
+        });
         const lookups = [...new Set(run.toolCalls.map((c) => HELP_AGENT_TOOL_LABELS[c.tool] ?? c.tool))];
-        return { answer: run.text, lookups };
+        const actions = run.proposedActions.map((a) => ({ ...a, ...HELP_AGENT_WRITE_TOOLS[a.tool] }));
+        const answer =
+          run.text.trim() || (actions.length ? "Here's what I'd do. Nothing changes until you confirm." : '');
+        return { answer, lookups, actions };
       }
 
       const answer = await provider.generate({ systemPrompt, messages, model: row.model, apiKey });
       await this.logUsage(options.caller?.userId, row.model, false, null);
-      return { answer, lookups: [] };
+      return { answer, lookups: [], actions: [] };
     } finally {
       if (mode.readsRecords) await mode.session.close();
     }
@@ -335,19 +362,70 @@ export class HelpAgentService {
     provider: HelpAgentProvider,
     caller: NonNullable<HelpAgentAskOptions['caller']>,
   ): Promise<HelpAgentMode> {
-    const tenantId = tryTenantId();
-    if (!provider.generateWithTools || !tenantId) return { readsRecords: false };
+    if (!provider.generateWithTools || !tryTenantId()) return { readsRecords: false };
     if (caller.impersonating) return { readsRecords: false, impersonating: true };
-    const profile = await this.prisma.organizationProfile.findUnique({
-      where: { tenantId },
-      select: { guideReadsRecords: true },
-    });
-    if (!profile?.guideReadsRecords) return { readsRecords: false };
+    const { readsRecords, makesChanges } = await this.tenantSwitches();
+    if (!readsRecords) return { readsRecords: false };
     try {
-      return { readsRecords: true, session: await openHelpAgentMcpSession(caller) };
+      return {
+        readsRecords: true,
+        makesChanges,
+        session: await openHelpAgentMcpSession(caller, { writes: makesChanges }),
+      };
     } catch (err) {
       this.logger.warn(`Guide record lookups unavailable: ${err instanceof Error ? err.message : String(err)}`);
       return { readsRecords: false, unavailable: true };
+    }
+  }
+
+  /** The tenant's switches (Settings → Back Office guide). Changes need reading records. */
+  private async tenantSwitches(): Promise<{ readsRecords: boolean; makesChanges: boolean }> {
+    const tenantId = tryTenantId();
+    if (!tenantId) return { readsRecords: false, makesChanges: false };
+    const profile = await this.prisma.organizationProfile.findUnique({
+      where: { tenantId },
+      select: { guideReadsRecords: true, guideMakesChanges: true },
+    });
+    const readsRecords = profile?.guideReadsRecords ?? false;
+    return { readsRecords, makesChanges: readsRecords && (profile?.guideMakesChanges ?? false) };
+  }
+
+  /**
+   * Runs one change the person confirmed on a card. Same checks as asking (tenant switch on, not
+   * impersonating, allowlisted tool), then the MCP server runs it as them, so their role applies.
+   */
+  async runAction(
+    tool: string,
+    args: Record<string, unknown>,
+    caller: NonNullable<HelpAgentAskOptions['caller']>,
+  ): Promise<{ result: string; isError: boolean }> {
+    if (!isHelpAgentWriteTool(tool)) throw new BadRequestException('The guide cannot do that.');
+    if (caller.impersonating) throw new BadRequestException('Changes are off while impersonating.');
+    if (!(await this.tenantSwitches()).makesChanges) {
+      throw new BadRequestException(
+        'The guide is not allowed to make changes here. An admin can turn it on in Settings → Back Office guide.',
+      );
+    }
+    let session: HelpAgentMcpSession;
+    try {
+      session = await openHelpAgentMcpSession(caller, { writes: true });
+    } catch {
+      throw new BadRequestException('Could not reach Back Office records right now. Try again shortly.');
+    }
+    try {
+      const out = await session.call(tool, args);
+      const settings = await this.prisma.helpAgentSettings.findUnique({
+        where: { id: SETTINGS_ID },
+        select: { model: true },
+      });
+      await this.logUsage(caller.userId, settings?.model ?? '', true, {
+        toolCalls: [{ tool, args, confirmed: true, ...(out.isError ? { error: true } : {}) }],
+        inputTokens: 0,
+        outputTokens: 0,
+      });
+      return { result: out.text, isError: out.isError };
+    } finally {
+      await session.close();
     }
   }
 
@@ -400,7 +478,7 @@ export class HelpAgentService {
       .join('\n\n---\n\n');
 
     const modeRuleLines = mode.readsRecords
-      ? recordRules()
+      ? [...recordRules(), ...changeRules(mode.makesChanges)]
       : guideOnlyRules({
           unavailable: 'unavailable' in mode ? mode.unavailable : undefined,
           impersonating: 'impersonating' in mode ? mode.impersonating : undefined,

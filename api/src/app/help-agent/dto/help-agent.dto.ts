@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsBoolean,
+  IsObject,
   IsArray,
   IsIn,
   IsOptional,
@@ -106,4 +107,15 @@ export class AskHelpAgentDto {
   @ValidateNested()
   @Type(() => HelpAgentTargetDto)
   target?: HelpAgentTargetDto;
+}
+
+/** A change from a guide card, confirmed by the person. Tool must be on the guide's write allowlist. */
+export class RunHelpAgentActionDto {
+  @IsString()
+  @Matches(/^[a-z_]{1,60}$/)
+  tool!: string;
+
+  @IsOptional()
+  @IsObject()
+  args?: Record<string, unknown>;
 }

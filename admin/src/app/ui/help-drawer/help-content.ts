@@ -824,7 +824,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Back Office guide',
-        body: `Off by default. Turn on Let ${HELP_AGENT_NAME} look up records so the help chat can answer questions like "How much have we invoiced this client since January?". It only reads, never changes anything, and only sees what the person asking can see. Records it looks up are sent to Anthropic, the AI provider, to write the answer.`,
+        body: `Off by default. Turn on Let ${HELP_AGENT_NAME} look up records so the help chat can answer questions like "How much have we invoiced this client since January?". It only sees what the person asking can see. Records it looks up are sent to Anthropic, the AI provider, to write the answer. Turn on Let ${HELP_AGENT_NAME} make changes too and it can propose creating or updating organizations, people, tasks and activity; each change shows a card and only happens when you confirm it.`,
       },
       {
         heading: 'API Keys',

@@ -14,6 +14,7 @@ import {
   type HelpAgentPageContext,
 } from '@upstart/back-office/shared';
 import { describePickedElement, describeSelection, type PickedContext } from './help-agent-pick';
+import { HelpAgentActionCardComponent, type HelpAgentAction } from './help-agent-action-card.component';
 import { ButtonModule } from 'primeng/button';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
@@ -26,6 +27,8 @@ interface HelpAgentChatMessage {
   text: string;
   /** What the guide looked up for this answer, e.g. ["invoices"]. */
   lookups?: string[];
+  /** Changes the guide proposed; each runs only when confirmed on its card. */
+  actions?: HelpAgentAction[];
 }
 
 const GUIDE_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
@@ -53,7 +56,15 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
 @Component({
   selector: 'app-help-agent-widget',
   standalone: true,
-  imports: [ReactiveFormsModule, ButtonModule, TextareaModule, ChipModule, MessageModule, SimpleMarkdownPipe],
+  imports: [
+    ReactiveFormsModule,
+    ButtonModule,
+    TextareaModule,
+    ChipModule,
+    MessageModule,
+    SimpleMarkdownPipe,
+    HelpAgentActionCardComponent,
+  ],
   template: `
     @if (visible()) {
       <div class="help-agent-widget">
@@ -111,7 +122,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
               </div>
             </div>
             <div class="help-agent-chat-log" #chatLog (click)="onChatLogClick($event)">
-              @for (msg of chatMessages(); track $index) {
+              @for (msg of chatMessages(); track $index; let mi = $index) {
                 @if (msg.role === 'assistant') {
                   <div class="help-agent-chat-assistant">
                     <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
@@ -121,6 +132,13 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                         <p class="help-agent-lookups text-color-secondary">
                           <i class="pi pi-search" aria-hidden="true"></i> Looked up {{ msg.lookups!.join(', ') }}
                         </p>
+                      }
+                      @for (action of msg.actions ?? []; track $index; let ai = $index) {
+                        <app-help-agent-action-card
+                          [action]="action"
+                          (confirmed)="runAction(mi, ai, $event)"
+                          (cancelled)="patchAction(mi, ai, { status: 'cancelled' })"
+                        />
                       }
                     </div>
                   </div>
@@ -775,10 +793,20 @@ export class HelpAgentWidgetComponent implements OnInit {
         ...(page ? { page } : {}),
         ...(target ? { target } : {}),
       };
-      const res = await this.api.post<{ answer: string; lookups?: string[] }>('/help-agent/ask', body);
+      const res = await this.api.post<{
+        answer: string;
+        lookups?: string[];
+        actions?: Array<Omit<HelpAgentAction, 'status' | 'error'>>;
+      }>('/help-agent/ask', body);
+      const actions = (res.actions ?? []).map((a) => ({ ...a, status: 'pending' as const }));
       this.chatMessages.update((msgs) => [
         ...msgs,
-        { role: 'assistant', text: res.answer, ...(res.lookups?.length ? { lookups: res.lookups } : {}) },
+        {
+          role: 'assistant',
+          text: res.answer,
+          ...(res.lookups?.length ? { lookups: res.lookups } : {}),
+          ...(actions.length ? { actions } : {}),
+        },
       ]);
     } catch (err) {
       const detail = err instanceof Error ? err.message : 'Failed to reach the Help Agent';
@@ -789,6 +817,43 @@ export class HelpAgentWidgetComponent implements OnInit {
       this.persistChat();
       this.chatSending.set(false);
       this.scrollLastMessageIntoView();
+    }
+  }
+
+  patchAction(messageIndex: number, actionIndex: number, patch: Partial<HelpAgentAction>) {
+    this.chatMessages.update((msgs) =>
+      msgs.map((m, i) =>
+        i === messageIndex && m.actions
+          ? { ...m, actions: m.actions.map((a, j) => (j === actionIndex ? { ...a, ...patch } : a)) }
+          : m,
+      ),
+    );
+    this.persistChat();
+  }
+
+  /** Runs a change the person confirmed on its card, then posts the result (with record links) as a reply. */
+  async runAction(messageIndex: number, actionIndex: number, args: Record<string, unknown>) {
+    const action = this.chatMessages()[messageIndex]?.actions?.[actionIndex];
+    if (!action || action.status === 'running' || action.status === 'done') return;
+    this.patchAction(messageIndex, actionIndex, { args, status: 'running', error: undefined });
+    try {
+      const res = await this.api.post<{ result: string; isError: boolean }>('/help-agent/actions/run', {
+        tool: action.tool,
+        args,
+      });
+      if (res.isError) {
+        this.patchAction(messageIndex, actionIndex, { status: 'failed', error: res.result });
+        return;
+      }
+      this.patchAction(messageIndex, actionIndex, { status: 'done' });
+      this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text: `Done. ${res.result}` }]);
+      this.persistChat();
+      this.scrollLastMessageIntoView();
+    } catch (err) {
+      this.patchAction(messageIndex, actionIndex, {
+        status: 'failed',
+        error: err instanceof Error ? err.message : 'That change did not go through.',
+      });
     }
   }
 
@@ -1022,7 +1087,21 @@ export class HelpAgentWidgetComponent implements OnInit {
               typeof m.text === 'string',
           )
         : [];
-      this.chatMessages.set(messages);
+      // A change that was running when the page closed may or may not have gone through.
+      this.chatMessages.set(
+        messages.map((m) =>
+          m.actions?.some((a) => a.status === 'running')
+            ? {
+                ...m,
+                actions: m.actions.map((a) =>
+                  a.status === 'running'
+                    ? { ...a, status: 'failed' as const, error: 'Not sure this finished. Check the record before trying again.' }
+                    : a,
+                ),
+              }
+            : m,
+        ),
+      );
     } catch {
       // Bad or leftover storage — start fresh.
     }

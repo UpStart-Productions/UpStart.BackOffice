@@ -50,7 +50,7 @@ export class OrganizationProfileController {
   @Put('guide')
   @AdminOnly()
   saveGuideSettings(@Body() dto: UpdateGuideSettingsDto) {
-    return this.profile.saveGuideSettings(dto.readsRecords);
+    return this.profile.saveGuideSettings(dto);
   }
 
   @Put()

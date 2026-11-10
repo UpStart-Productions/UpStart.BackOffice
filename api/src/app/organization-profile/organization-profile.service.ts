@@ -130,22 +130,31 @@ export class OrganizationProfileService {
     return row;
   }
 
-  async getGuideSettings(): Promise<{ readsRecords: boolean }> {
+  async getGuideSettings(): Promise<{ readsRecords: boolean; makesChanges: boolean }> {
     const row = await this.prisma.organizationProfile.findUnique({
       where: { tenantId: currentTenantId() },
-      select: { guideReadsRecords: true },
+      select: { guideReadsRecords: true, guideMakesChanges: true },
     });
-    return { readsRecords: row?.guideReadsRecords ?? false };
+    const readsRecords = row?.guideReadsRecords ?? false;
+    return { readsRecords, makesChanges: readsRecords && (row?.guideMakesChanges ?? false) };
   }
 
-  async saveGuideSettings(readsRecords: boolean): Promise<{ readsRecords: boolean }> {
+  /** Making changes needs reading records (the guide searches before it creates), so off-reading turns both off. */
+  async saveGuideSettings(dto: {
+    readsRecords?: boolean;
+    makesChanges?: boolean;
+  }): Promise<{ readsRecords: boolean; makesChanges: boolean }> {
+    const current = await this.getGuideSettings();
+    const readsRecords = dto.readsRecords ?? current.readsRecords;
+    const makesChanges = readsRecords && (dto.makesChanges ?? current.makesChanges);
+    const data = { guideReadsRecords: readsRecords, guideMakesChanges: makesChanges };
     const row = await this.prisma.organizationProfile.upsert({
       where: { tenantId: currentTenantId() },
-      create: { guideReadsRecords: readsRecords },
-      update: { guideReadsRecords: readsRecords },
-      select: { guideReadsRecords: true },
+      create: data,
+      update: data,
+      select: { guideReadsRecords: true, guideMakesChanges: true },
     });
-    return { readsRecords: row.guideReadsRecords };
+    return { readsRecords: row.guideReadsRecords, makesChanges: row.guideMakesChanges };
   }
 
   async uploadLogo(dto: UploadLogoDto): Promise<{ logoUrl: string }> {

@@ -33,6 +33,33 @@ export const HELP_AGENT_READ_TOOLS: ReadonlySet<string> = new Set([
   'list_pipeline_cards',
 ]);
 
+/**
+ * Changes the guide may propose. It never runs these itself: the widget shows a confirmation card and only
+ * POST /help-agent/actions/run (after the person clicks) calls them. Invoices, expenses, time and pipeline
+ * changes are deliberately left out.
+ */
+export const HELP_AGENT_WRITE_TOOLS: Readonly<Record<string, { title: string; confirm: string }>> = {
+  create_organization: { title: 'Create organization', confirm: 'Create' },
+  create_organizations: { title: 'Create organizations', confirm: 'Create' },
+  update_organization: { title: 'Update organization', confirm: 'Save' },
+  create_person: { title: 'Create person', confirm: 'Create' },
+  create_people: { title: 'Create people', confirm: 'Create' },
+  update_person: { title: 'Update person', confirm: 'Save' },
+  link_person_to_organization: { title: 'Link person to organization', confirm: 'Link' },
+  unlink_person_from_organization: { title: 'Unlink person from organization', confirm: 'Unlink' },
+  create_task: { title: 'Create task', confirm: 'Create' },
+  create_tasks: { title: 'Create tasks', confirm: 'Create' },
+  update_task: { title: 'Update task', confirm: 'Save' },
+  complete_task: { title: 'Complete task', confirm: 'Complete' },
+  move_task: { title: 'Move task', confirm: 'Move' },
+  comment_on_task: { title: 'Comment on task', confirm: 'Comment' },
+  add_task_tags: { title: 'Tag task', confirm: 'Add tags' },
+  log_activity: { title: 'Log activity', confirm: 'Log it' },
+};
+
+export const isHelpAgentWriteTool = (name: string): boolean =>
+  Object.prototype.hasOwnProperty.call(HELP_AGENT_WRITE_TOOLS, name);
+
 /** Plain-language names for the widget's "Looked up …" line. */
 export const HELP_AGENT_TOOL_LABELS: Record<string, string> = {
   whoami: 'your account',
@@ -88,8 +115,15 @@ function callerHeaders(caller: HelpAgentCaller): Record<string, string> {
   return headers;
 }
 
-/** Opens one MCP session for one question, limited to the read-only allowlist. */
-export async function openHelpAgentMcpSession(caller: HelpAgentCaller): Promise<HelpAgentMcpSession> {
+/**
+ * Opens one MCP session for one question (or one confirmed change), limited to the read allowlist plus,
+ * when `writes` is on, the write allowlist. The MCP server also hides tools the person's role can't use.
+ */
+export async function openHelpAgentMcpSession(
+  caller: HelpAgentCaller,
+  options: { writes?: boolean } = {},
+): Promise<HelpAgentMcpSession> {
+  const allowed = (name: string) => HELP_AGENT_READ_TOOLS.has(name) || (!!options.writes && isHelpAgentWriteTool(name));
   const transport = new StreamableHTTPClientTransport(new URL(HELP_AGENT_MCP_URL), {
     requestInit: { headers: callerHeaders(caller) },
   });
@@ -98,7 +132,7 @@ export async function openHelpAgentMcpSession(caller: HelpAgentCaller): Promise<
 
   const listed = await client.listTools();
   const tools = listed.tools
-    .filter((t) => HELP_AGENT_READ_TOOLS.has(t.name))
+    .filter((t) => allowed(t.name))
     .map((t) => ({
       name: t.name,
       description: t.description ?? '',
@@ -108,7 +142,7 @@ export async function openHelpAgentMcpSession(caller: HelpAgentCaller): Promise<
   return {
     tools,
     async call(name, args) {
-      if (!HELP_AGENT_READ_TOOLS.has(name) || !tools.some((t) => t.name === name)) {
+      if (!allowed(name) || !tools.some((t) => t.name === name)) {
         return { text: `The tool ${name} is not available to the guide.`, isError: true };
       }
       const result = await client.callTool({ name, arguments: args });

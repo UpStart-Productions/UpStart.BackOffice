@@ -754,6 +754,8 @@ model OrganizationProfile {
   goneQuietDays    Int      @default(30)
   /// Back Office guide may look up this tenant's records (sends them to the AI provider). Off by default.
   guideReadsRecords Boolean @default(false)
+  /// Back Office guide may propose changes (create/update records); each one needs the person's confirmation. Needs guideReadsRecords.
+  guideMakesChanges Boolean @default(false)
   createdByUserId  String?
   updatedByUserId  String?
   createdAt        DateTime @default(now())

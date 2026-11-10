@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import {
   HelpAgentGenerateParams,
+  HelpAgentProposedAction,
   HelpAgentProvider,
   HelpAgentRunResult,
   HelpAgentToolCallLog,
@@ -59,7 +60,7 @@ export class AnthropicHelpAgentProvider implements HelpAgentProvider {
    * answers. After maxToolCalls, one last round with tool_choice "none" makes it answer with what it has.
    */
   async generateWithTools(params: HelpAgentToolRunParams): Promise<HelpAgentRunResult> {
-    const { systemPrompt, model, apiKey, tools, callTool, maxToolCalls } = params;
+    const { systemPrompt, model, apiKey, tools, callTool, maxToolCalls, isWriteTool } = params;
     const messages: AnthropicMessage[] = params.messages.map((m) => ({ role: m.role, content: m.content }));
     const toolCalls: HelpAgentToolCallLog[] = [];
     let inputTokens = 0;
@@ -101,7 +102,23 @@ export class AnthropicHelpAgentProvider implements HelpAgentProvider {
       if (res.data?.stop_reason !== 'tool_use' || toolUses.length === 0) {
         const text = extractAnthropicAssistantText(res.data);
         if (!text) throw new Error('Anthropic API returned no answer text.');
-        return { text, toolCalls, inputTokens, outputTokens };
+        return { text, toolCalls, inputTokens, outputTokens, proposedActions: [] };
+      }
+
+      // A change: stop here and hand it to the person to confirm. Nothing in this turn runs.
+      const writes = isWriteTool ? toolUses.filter((u) => isWriteTool(String(u.name))) : [];
+      if (writes.length) {
+        const proposedActions: HelpAgentProposedAction[] = writes.map((u) => ({
+          tool: String(u.name),
+          args: (u.input && typeof u.input === 'object' ? u.input : {}) as Record<string, unknown>,
+        }));
+        return {
+          text: extractAnthropicAssistantText(res.data) ?? '',
+          toolCalls,
+          inputTokens,
+          outputTokens,
+          proposedActions,
+        };
       }
 
       // Send the assistant turn back unchanged (thinking blocks must keep their signatures).

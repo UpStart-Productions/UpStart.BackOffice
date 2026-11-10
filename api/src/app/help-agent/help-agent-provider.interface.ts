@@ -21,6 +21,10 @@ export interface HelpAgentToolCallLog {
   tool: string;
   args: Record<string, unknown>;
   error?: boolean;
+  /** A change the guide proposed (not run). */
+  proposed?: boolean;
+  /** A change the person confirmed and the API ran. */
+  confirmed?: boolean;
 }
 
 export interface HelpAgentToolRunParams extends HelpAgentGenerateParams {
@@ -28,6 +32,16 @@ export interface HelpAgentToolRunParams extends HelpAgentGenerateParams {
   callTool(name: string, args: Record<string, unknown>): Promise<{ text: string; isError: boolean }>;
   /** Most tool calls for one question; after that the model must answer with what it has. */
   maxToolCalls: number;
+  /**
+   * Tools that change records. The loop never runs these: a turn that asks for one stops and returns it
+   * as a proposed action for the person to confirm.
+   */
+  isWriteTool?(name: string): boolean;
+}
+
+export interface HelpAgentProposedAction {
+  tool: string;
+  args: Record<string, unknown>;
 }
 
 export interface HelpAgentRunResult {
@@ -35,6 +49,8 @@ export interface HelpAgentRunResult {
   toolCalls: HelpAgentToolCallLog[];
   inputTokens: number;
   outputTokens: number;
+  /** Changes the model proposed (not run). The answer text explains them. */
+  proposedActions: HelpAgentProposedAction[];
 }
 
 export interface HelpAgentProvider {

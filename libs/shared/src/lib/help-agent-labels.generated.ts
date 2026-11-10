@@ -687,6 +687,7 @@ export const HELP_AGENT_UI_LABELS: readonly string[] = [
   "look up records",
   "looked up",
   "low",
+  "make changes (always asks first)",
   "make client",
   "make client and make partner",
   "make client from this person",
