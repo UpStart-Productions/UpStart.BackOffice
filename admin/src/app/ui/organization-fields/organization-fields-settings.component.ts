@@ -7,6 +7,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { DIMENSION_TAG_KEY, type DimensionCatalogGroupDto, type DimensionCatalogItemDto, type DimensionEntity } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 import { DimensionsApi } from '../../core/dimensions.api';
 import {
   FindOrCreatePickerComponent,
@@ -182,7 +183,7 @@ const PICK_LIST_SECTIONS: { id: string; heading: string; entity: DimensionEntity
 })
 export class OrganizationFieldsSettingsComponent implements OnInit {
   /** Hover delay before dark action hints on pick-list pill controls. */
-  readonly actionTooltipDelayMs = 500;
+  readonly actionTooltipDelayMs = UBO_DARK_TOOLTIP_SHOW_DELAY_MS;
 
   private readonly api = inject(ApiService);
   private readonly toast = inject(MessageService);

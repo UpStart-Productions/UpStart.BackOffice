@@ -20,7 +20,6 @@
     <div class="layout-main">
       <router-outlet />
     </div>
-    <app-footer />
   </div>
   <div
     class="layout-mask"
@@ -29,5 +28,8 @@
     tabindex="-1"
     aria-label="Close menu"
   ></div>
+  @defer (when helpSidePanel.mountPanel()) {
+    <app-help-side-panel />
+  }
   <app-help-agent-widget />
 </div>

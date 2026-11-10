@@ -136,6 +136,23 @@
   white-space: nowrap;
 }
 
+.project-settings-tasks-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.project-settings-tasks-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  font-size: var(--fs-md);
+}
+
 .project-billing-panel {
   display: flex;
   flex-direction: column;

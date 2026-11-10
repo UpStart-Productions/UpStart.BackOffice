@@ -1,0 +1,334 @@
+/*
+ * Right-hand help drawer (? + Ask JD). Layout/chrome only — typography inherits from body
+ * (.side-list, a.side-list-title, PrimeNG, spacing utilities).
+ */
+
+.help-section {
+  margin-bottom: 1.25rem;
+}
+
+.help-fallback {
+  padding-top: 2rem;
+  text-align: center;
+}
+
+.help-footer {
+  flex: 0 0 auto;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--surface-border);
+  background: var(--surface-ground);
+}
+
+.help-drawer.p-drawer .p-drawer-content {
+  padding-inline: 0;
+}
+
+.help-drawer.p-drawer .p-drawer-header {
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.5rem 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.help-drawer .help-side-panel-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.help-drawer .help-side-panel-header {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.help-drawer .help-side-panel-mode {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.help-drawer .help-side-panel-mode-btn {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--content-border-radius);
+  background: var(--surface-ground);
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.help-drawer .help-side-panel-mode-btn:hover:not(.help-side-panel-mode-btn--active) {
+  color: var(--color-text);
+  border-color: var(--color-border);
+  background: var(--surface-100, #f4f4f5);
+}
+
+.help-drawer .help-side-panel-mode-btn--active {
+  background: var(--p-primary-50, #ede9fe);
+  color: var(--p-primary-700, #6d28d9);
+  border-color: var(--p-primary-200, #ddd6fe);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-primary-500, #7c3aed) 12%, transparent);
+}
+
+.help-drawer .help-side-panel-mode-btn:focus-visible {
+  outline: 2px solid var(--p-primary-500, #7c3aed);
+  outline-offset: 2px;
+}
+
+.help-drawer .help-side-panel-mode-avatar {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.help-drawer .help-article-pane,
+.help-drawer .help-guide-pane,
+.help-drawer .help-agent-chat-pane,
+.help-drawer app-help-agent-chat-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.help-drawer .help-content-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.help-drawer .help-guide-pane--hidden,
+.help-drawer .help-article-pane--hidden {
+  display: none;
+}
+
+.help-drawer .help-agent-msg-avatar,
+.help-drawer .help-agent-toolbar-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.help-drawer .help-agent-chat-assistant {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.help-drawer .help-agent-chat-assistant .help-agent-chat-msg--assistant {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+}
+
+.help-drawer .help-agent-chat-assistant .help-agent-chat-msg.help-agent-typing {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: fit-content;
+}
+
+.help-drawer .help-agent-panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.35rem;
+}
+
+.help-drawer .help-agent-toolbar-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.help-drawer .help-agent-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.help-drawer .help-agent-chat-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--color-border);
+  background: var(--surface-ground);
+}
+
+.help-drawer .help-agent-panel-icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--icon-action-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.help-drawer .help-agent-panel-icon-btn:hover:not(:disabled) {
+  color: var(--icon-action-hover-color);
+}
+
+.help-drawer .help-agent-panel-icon-btn--danger {
+  color: var(--color-severity-danger-text, #c62828);
+}
+
+.help-drawer .help-agent-panel-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.help-drawer .help-agent-panel-icon-btn--active {
+  color: var(--p-primary-color);
+}
+
+.help-drawer .help-agent-chat-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-drawer .help-agent-chat-log-inner {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.help-drawer .help-agent-chat-msg {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--content-border-radius);
+}
+
+.help-drawer .help-agent-chat-msg--assistant {
+  background: var(--surface-100, #f1f1f1);
+}
+
+.help-drawer .help-agent-chat-msg--user {
+  align-self: flex-end;
+  max-width: 85%;
+  background: var(--p-primary-100, #dbeafe);
+}
+
+.help-drawer .help-agent-lookups-tag {
+  display: inline-flex;
+  margin-top: 0.65rem;
+}
+
+.help-drawer .help-agent-typing {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.65rem 0.85rem;
+}
+
+.help-drawer .help-agent-typing-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-text-secondary, #6b6b6b);
+  opacity: 0.6;
+  animation: help-agent-typing-bounce 1.2s infinite ease-in-out;
+}
+
+.help-drawer .help-agent-typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.help-drawer .help-agent-typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes help-agent-typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  30% {
+    transform: translateY(-0.25rem);
+    opacity: 1;
+  }
+}
+
+.help-drawer .help-agent-chat-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem 0.75rem;
+}
+
+.help-drawer .help-agent-context-row {
+  padding: 0.5rem 1rem 0;
+}
+
+.help-drawer .help-agent-pick-hint {
+  display: block;
+  margin: 0.5rem 1rem 0;
+}
+
+.help-drawer .help-agent-chat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  resize: none;
+  min-height: 4.25rem;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.help-drawer .help-agent-chat-row p-button {
+  flex-shrink: 0;
+}
+
+.help-drawer .help-agent-action {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--content-border-radius);
+}
+
+.help-drawer .help-agent-action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.help-drawer .help-agent-action-fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.help-drawer .help-agent-action-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.help-drawer .help-agent-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

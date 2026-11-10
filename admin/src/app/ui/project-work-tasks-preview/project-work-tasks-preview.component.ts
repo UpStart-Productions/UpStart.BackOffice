@@ -1,5 +1,6 @@
+import { NgClass } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
@@ -8,6 +9,13 @@ import { TaskSummary } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 
 const PREVIEW_LIMIT = 5;
+const TASK_TITLE_MAX_WORDS = 8;
+
+function truncateWords(text: string, maxWords: number): string {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return text.trim();
+  return `${words.slice(0, maxWords).join(' ')}...`;
+}
 
 /** Incomplete work tasks for a project, due-date order, for the Projects side column. */
 function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
@@ -31,7 +39,7 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
 @Component({
   selector: 'app-project-work-tasks-preview',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TmAvatarComponent],
+  imports: [RouterLink, ButtonModule, TmAvatarComponent, NgClass],
   styleUrl: './project-work-tasks-preview.component.scss',
   template: `
     @if (visible()) {
@@ -58,11 +66,14 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
                 <div class="side-list-row">
                   <app-tm-avatar [person]="task.assignee" [size]="28" />
                   <div class="side-list-body">
-                    <a class="side-list-title" [routerLink]="taskLink(task.id)">{{ task.name }}</a>
+                    <a
+                      class="side-list-title"
+                      [href]="taskHref(task.id)"
+                      (click)="openTask(task, $event)"
+                      [attr.title]="task.name"
+                    >{{ taskTitle(task) }}</a>
                   </div>
-                  @if (dueText(task); as due) {
-                    <span class="side-list-value" [class]="dueToneClass(task)">{{ due }}</span>
-                  }
+                  <span class="side-list-value" [ngClass]="dueToneClass(task)">{{ dueText(task) }}</span>
                 </div>
               }
             </div>
@@ -77,6 +88,7 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
 export class ProjectWorkTasksPreviewComponent {
   private readonly api = inject(TmApiService);
   private readonly session = inject(SessionService);
+  private readonly router = inject(Router);
 
   readonly projectId = input.required<string>();
   readonly inTaskManager = input(false);
@@ -104,8 +116,22 @@ export class ProjectWorkTasksPreviewComponent {
     });
   }
 
-  taskLink(taskId: string) {
-    return ['/tasks/projects', this.projectId(), 'tasks', taskId] as const;
+  taskHref(taskId: string): string {
+    const tree = this.router.createUrlTree(['/tasks/projects', this.projectId()], {
+      queryParams: { task: taskId },
+    });
+    return this.router.serializeUrl(tree);
+  }
+
+  openTask(task: TaskSummary, event: MouseEvent) {
+    event.preventDefault();
+    void this.router.navigate(['/tasks/projects', this.projectId()], {
+      queryParams: { task: task.id },
+    });
+  }
+
+  taskTitle(task: TaskSummary): string {
+    return truncateWords(task.name, TASK_TITLE_MAX_WORDS);
   }
 
   dueText(task: TaskSummary): string {
@@ -114,7 +140,8 @@ export class ProjectWorkTasksPreviewComponent {
 
   dueToneClass(task: TaskSummary): string {
     const tone = dueTone(task.dueOn, task.isCompleted);
-    return tone === 'none' ? '' : `side-list-value--${tone}`;
+    if (tone === 'none' || tone === 'normal') return '';
+    return `side-list-value--${tone}`;
   }
 
   private async load(projectId: string) {

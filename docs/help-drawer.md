@@ -5,7 +5,7 @@ Ported from GrovLink (`Nonprofit.Mobile.Platform/admin/src/app/ui/help-drawer`).
 ## Help drawer
 
 - **Open:** `?` button in the top bar (`layout/app-topbar.component.ts`). The drawer is `@defer`-loaded on first click so its content stays out of the main bundle.
-- **Component:** `ui/help-drawer/help-drawer.component.ts`. PrimeNG `p-drawer` appended to body, right side, 26.5rem wide, non-modal overlay (no page shift). Starts below the fixed 4.5rem top bar. Its host takes no space in the top bar so icon spacing is unchanged.
+- **Component:** `ui/help-side-panel/help-side-panel.component.ts` (? tab + Ask JD in one drawer). PrimeNG `p-drawer` appended to body, right side, 26.5rem wide, non-modal overlay (no page shift). Starts below the fixed 4.5rem top bar.
 - **Content:** `ui/help-drawer/help-content.ts`. `HELP_CONTENT` keyed by route pattern (`pipeline/:id`, `tasks/projects/:projectId/forms`). `getHelpArticle()` picks the most specific match (literal segments beat `:params`), then falls back to parent routes. Query strings are ignored. No match shows a "How can we help?" fallback.
 - Updates the article on navigation while open.
 

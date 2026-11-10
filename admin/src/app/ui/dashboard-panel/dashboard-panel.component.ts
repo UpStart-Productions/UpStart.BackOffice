@@ -2,8 +2,7 @@ import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import { Component, input, model } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
-
-const DASHBOARD_ICON_TOOLTIP_DELAY_MS = 1000;
+import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 
 /** Icon tile color. No purple: that is reserved for action buttons. */
 export type DashboardPanelColor = 'info' | 'success' | 'warning' | 'danger' | 'neutral';
@@ -35,7 +34,7 @@ export type DashboardPanelTab = {
           aria-hidden="true"
           [pTooltip]="(iconTooltip() || title()).trim()"
           tooltipPosition="bottom"
-          [showDelay]="iconTooltipDelayMs"
+          [showDelay]="darkTooltipShowDelayMs"
           tooltipStyleClass="dashboard-panel-icon-tooltip"
           appendTo="body"
         >
@@ -254,7 +253,7 @@ export class DashboardPanelComponent {
   /** Tooltip on the header icon (defaults to the panel title). */
   iconTooltip = input<string>('');
   color = input<DashboardPanelColor>('neutral');
-  readonly iconTooltipDelayMs = DASHBOARD_ICON_TOOLTIP_DELAY_MS;
+  readonly darkTooltipShowDelayMs = UBO_DARK_TOOLTIP_SHOW_DELAY_MS;
   /** Header arrow link to the full list. Omit for no arrow. */
   link = input<string | unknown[] | null>(null);
   queryParams = input<Params | null>(null);

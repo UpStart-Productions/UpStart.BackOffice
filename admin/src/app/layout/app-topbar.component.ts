@@ -14,7 +14,7 @@ import { SessionService } from '../core/session.service';
 import { TenantBrandingService } from '../core/tenant-branding.service';
 import { TenantService } from '../core/tenant.service';
 import { GlobalSearchComponent } from '../ui/global-search/global-search.component';
-import { HelpDrawerComponent } from '../ui/help-drawer/help-drawer.component';
+import { HelpSidePanelService } from '../core/help-side-panel.service';
 import { NotificationsBellComponent } from '../ui/notifications-bell/notifications-bell.component';
 import { LayoutService } from './layout.service';
 
@@ -29,7 +29,6 @@ import { LayoutService } from './layout.service';
     RippleModule,
     GlobalSearchComponent,
     NotificationsBellComponent,
-    HelpDrawerComponent,
     NgClass,
   ],
   styles: [
@@ -128,9 +127,6 @@ import { LayoutService } from './layout.service';
       </div>
       <div class="layout-topbar-actions">
         <app-global-search (opened)="onGlobalSearchOpened()" />
-        @defer (when helpRequested()) {
-          <app-help-drawer />
-        }
         <button
           type="button"
           class="layout-topbar-action"
@@ -227,18 +223,7 @@ export class AppTopbarComponent implements OnInit {
   tenantLogoError = false;
   userMenuItems: MenuItem[] = [];
 
-  /** The help drawer (and its article content) loads on first click of the ? button. */
-  protected readonly helpRequested = signal(false);
-  private helpDrawerInstance?: HelpDrawerComponent;
-  private pendingHelpOpen = false;
-
-  @ViewChild(HelpDrawerComponent) set helpDrawer(component: HelpDrawerComponent | undefined) {
-    this.helpDrawerInstance = component;
-    if (component && this.pendingHelpOpen) {
-      this.pendingHelpOpen = false;
-      queueMicrotask(() => component.open());
-    }
-  }
+  protected readonly helpSidePanel = inject(HelpSidePanelService);
 
   get avatarSrc(): string | null {
     return resolveAssetUrl(this.session.me()?.avatarUrl ?? null);
@@ -291,16 +276,11 @@ export class AppTopbarComponent implements OnInit {
   onNotificationsOpened(): void {
     this.globalSearchRef()?.close();
     this.userMenu?.hide();
-    this.helpDrawerInstance?.close();
+    this.helpSidePanel.close();
   }
 
   onHelpClick(): void {
-    if (this.helpDrawerInstance) {
-      this.helpDrawerInstance.toggle();
-      return;
-    }
-    this.pendingHelpOpen = true;
-    this.helpRequested.set(true);
+    this.helpSidePanel.toggleArticle();
   }
 
   protected isImpersonating(): boolean {

@@ -178,6 +178,10 @@ const PROJECT_FORM: HelpArticle = {
   intro: 'Billable (or internal) work that time, tasks and invoices hang off.',
   sections: [
     {
+      heading: 'Clock icon (header)',
+      body: 'On a project\'s page, the clock icon button in the header shows audit information: who created the project and when, and who last updated it and when.',
+    },
+    {
       heading: 'Client',
       body: 'The client this work is for. Choose None for a personal or internal project.',
     },

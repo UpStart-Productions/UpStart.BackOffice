@@ -155,7 +155,7 @@
   color: var(--text-color);
 }
 
-/** Dark hint on tag pill actions (Settings pick lists, appendTo body). */
+/** Dark hint tooltips (Settings pick lists, people actions, guide toolbar, …). Pair with showDelay `UBO_DARK_TOOLTIP_SHOW_DELAY_MS`. */
 .p-tooltip.ubo-dark-tooltip {
   .p-tooltip-text {
     max-width: 14rem;
@@ -163,6 +163,7 @@
     font-size: var(--fs-sm);
     font-weight: 500;
     line-height: 1.35;
+    text-align: center;
     color: #f9fafb;
     background: #111827;
     border-radius: var(--content-border-radius, 6px);

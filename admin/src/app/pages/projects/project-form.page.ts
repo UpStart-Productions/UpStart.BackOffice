@@ -12,6 +12,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 import { AccordionModule } from 'primeng/accordion';
+import { TabsModule } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { QuillModule } from 'ngx-quill';
 import { ApiService } from '../../core/api.service';
@@ -89,6 +90,7 @@ type ProjectResponse = {
     MultiSelectModule,
     MoneyInputComponent,
     AccordionModule,
+    TabsModule,
     QuillModule,
     AppDialogModule,
     RowActionsMenuComponent,
@@ -121,15 +123,24 @@ export class ProjectFormPage implements OnInit {
   });
 
   readonly headerActions = computed((): RowActionItem[] => {
-    if (this.isNew || !this.canAddToPipeline()) return [];
-    return [
+    const items: RowActionItem[] = [
       {
+        id: 'project-settings',
+        label: 'Project settings',
+        icon: 'pi pi-cog',
+        command: () => this.openProjectSettings(),
+      },
+    ];
+    if (!this.isNew && this.canAddToPipeline()) {
+      items.push({ id: 'pipeline-sep', kind: 'separator' });
+      items.push({
         id: 'pipeline',
         label: 'Add to pipeline',
         icon: 'pi pi-share-alt',
         command: () => void this.pipelineDialog()?.open(),
-      },
-    ];
+      });
+    }
+    return items;
   });
 
   id = signal<string | null>(null);
@@ -151,6 +162,9 @@ export class ProjectFormPage implements OnInit {
   asanaSectionsError = signal<string | null>(null);
   asanaSectionValidationError = signal<string | null>(null);
   accordionOpenPanels: string[] = [];
+
+  readonly projectSettingsVisible = signal(false);
+  projectSettingsTab: 'billing' | 'defaultTasks' = 'billing';
 
   readonly taskModalVisible = signal(false);
   readonly taskEditIndex = signal<number | null>(null);
@@ -489,6 +503,15 @@ export class ProjectFormPage implements OnInit {
           contact.phone ||
           contact.email,
       );
+  }
+
+  openProjectSettings(tab: 'billing' | 'defaultTasks' = 'billing') {
+    this.projectSettingsTab = tab;
+    this.projectSettingsVisible.set(true);
+  }
+
+  onProjectSettingsVisible(visible: boolean) {
+    this.projectSettingsVisible.set(visible);
   }
 
   openTaskModal(index: number | null = null) {

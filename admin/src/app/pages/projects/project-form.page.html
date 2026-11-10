@@ -13,7 +13,7 @@
           [disabled]="!isNew && !isDirty()"
           (onClick)="save()"
         />
-        @if (!isNew && headerActions().length) {
+        @if (headerActions().length) {
           <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More project actions" />
         }
       </span>
@@ -31,7 +31,7 @@
   } @else if (!loading()) {
     <form (ngSubmit)="save()">
       <div class="grid grid-3">
-        <div class="stack span-2">
+        <div class="stack" [class.span-2]="!isNew" [class.span-3]="isNew">
           <div class="card">
             <ng-container *ngTemplateOutlet="projectFormFields" />
 
@@ -51,41 +51,14 @@
           }
         </div>
 
-        <div class="side-panel-stack span-1">
-          <div class="card card--side project-side-card">
-            <div class="card-header">
-              <h3 class="card-title">Billing &amp; Expenses</h3>
-            </div>
-            <div class="side-panel-scroll">
-              <ng-container *ngTemplateOutlet="projectBillingPanel" />
-            </div>
-          </div>
-
-          @if (!isNew) {
+        @if (!isNew) {
+          <div class="side-panel-stack span-1">
             <ng-container *ngTemplateOutlet="projectPeoplePanel" />
-          }
-
-          @if (!isNew && inTaskManager()) {
-            <app-project-work-tasks-preview [projectId]="id()!" [inTaskManager]="inTaskManager()" />
-          }
-
-          <div class="card card--side project-side-card">
-            <div class="card-header">
-              <h3 class="card-title">Default Tasks <app-help-text key="project.defaultTasks" /></h3>
-              <p-button
-                type="button"
-                label="Add"
-                icon="pi pi-plus"
-                size="small"
-                severity="secondary"
-                (click)="openTaskModal()"
-              />
-            </div>
-            <div class="side-panel-scroll">
-              <ng-container *ngTemplateOutlet="projectManualTasksSection" />
-            </div>
+            @if (inTaskManager()) {
+              <app-project-work-tasks-preview [projectId]="id()!" [inTaskManager]="inTaskManager()" />
+            }
           </div>
-        </div>
+        }
       </div>
     </form>
   }
@@ -368,6 +341,48 @@
       </p-accordion-panel>
     }
   </ng-template>
+
+  <p-dialog
+    header="Project settings"
+    [visible]="projectSettingsVisible()"
+    (visibleChange)="onProjectSettingsVisible($event)"
+    [modal]="true"
+    [style]="{ width: 'min(36rem, 95vw)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+    appendTo="body"
+  >
+    <p-tabs [(value)]="projectSettingsTab">
+      <p-tablist>
+        <p-tab value="billing">Billing &amp; expenses</p-tab>
+        <p-tab value="defaultTasks">Default tasks</p-tab>
+      </p-tablist>
+      <p-tabpanels>
+        <p-tabpanel value="billing">
+          <ng-container *ngTemplateOutlet="projectBillingPanel" />
+        </p-tabpanel>
+        <p-tabpanel value="defaultTasks">
+          <div class="project-settings-tasks-toolbar">
+            <span class="project-settings-tasks-label">
+              Default tasks
+              <app-help-text key="project.defaultTasks" />
+            </span>
+            <p-button
+              type="button"
+              label="Add"
+              icon="pi pi-plus"
+              size="small"
+              severity="secondary"
+              (click)="openTaskModal()"
+            />
+          </div>
+          <ng-container *ngTemplateOutlet="projectManualTasksSection" />
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+    <div class="form-actions mt-3">
+      <p-button label="Close" severity="secondary" type="button" (click)="onProjectSettingsVisible(false)" />
+    </div>
+  </p-dialog>
 
   <p-dialog
     [header]="taskEditIndex() === null ? 'Add task' : 'Edit task'"

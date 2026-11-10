@@ -24,6 +24,7 @@ import { PeopleSelectComponent } from '../people-select/people-select.component'
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { PersonDetailModalComponent } from '../person-detail-modal/person-detail-modal.component';
 import { PeoplePanelMode, PeopleProjectContact } from './people.types';
+import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 
 /**
  * Rubber-stamp People panel: pick existing (search), Add person (new-only modal), list.
@@ -473,7 +474,7 @@ export class PeopleComponent {
   private readonly personDetailModal = viewChild(PersonDetailModalComponent);
 
   readonly contactName = contactName;
-  protected readonly actionTooltipDelayMs = 500;
+  protected readonly actionTooltipDelayMs = UBO_DARK_TOOLTIP_SHOW_DELAY_MS;
 
   /** `organization` = linked People on a client/org; `project` = project contact list (draft). */
   mode = input.required<PeoplePanelMode>();

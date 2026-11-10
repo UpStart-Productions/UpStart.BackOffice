@@ -10,7 +10,7 @@ With the Care module on, clients in care also get a **Care** tab (see the Care g
 
 ## Projects
 
-**Projects** lists billable work tied to clients. The list shows **active** projects only; turn on **Show inactive projects** above the table to include inactive ones (your choice is remembered). Use the row **⋯** menu for **Make inactive** or **Make active**. **New Project** creates one. Open a project to edit details, contacts, and tasks. On **Edit Project**, the **⋯** menu includes **Add to pipeline** when your role allows (pick a pipeline, first lane, one card per pipeline; Pipeline notifications when the card is added or moved).
+**Projects** lists billable work tied to clients. The list shows **active** projects only; turn on **Show inactive projects** above the table to include inactive ones (your choice is remembered). Use the row **⋯** menu for **Make inactive** or **Make active**. **New Project** creates one. Open a project to edit details, contacts, and tasks. On a project's page, the clock icon button in the header shows audit information: who created the project and when, and who last updated it and when. On **Edit Project**, the **⋯** menu includes **Add to pipeline** when your role allows (pick a pipeline, first lane, one card per pipeline; Pipeline notifications when the card is added or moved).
 
 Under **New expense defaults**, set **Reimbursable** and **Billable to client** for new expenses on that project. Picking the project on **New Expense** fills those toggles; you can still change them on each row.
 

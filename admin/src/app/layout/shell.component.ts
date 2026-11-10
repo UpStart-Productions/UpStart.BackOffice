@@ -7,7 +7,6 @@ import { AppConfirmDialogModule } from '../core/app-dialog.module';
 import { ToastModule } from 'primeng/toast';
 import { AuthStoreService } from '../core/auth-store.service';
 import { SessionService } from '../core/session.service';
-import { AppFooterComponent } from './app-footer.component';
 import { AppSidebarComponent, NavItem } from './app-sidebar.component';
 import { AppTopbarComponent } from './app-topbar.component';
 import { InvoiceSendDialogComponent } from '../pages/invoices/invoice-send-dialog.component';
@@ -21,6 +20,8 @@ import { TmSidebarComponent } from '../task-manager/ui/tm-sidebar.component';
 import { FormWorkspaceSidebarComponent } from '../ui/form-workspace/form-workspace-sidebar.component';
 import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
+import { HelpSidePanelComponent } from '../ui/help-side-panel/help-side-panel.component';
+import { HelpSidePanelService } from '../core/help-side-panel.service';
 import { AppUpdateService } from '../core/app-update.service';
 
 /** Routes rendered in the form workspace (icon rail + the form's sidebar): a form in Forms, and Care's Customize form. */
@@ -45,17 +46,18 @@ export function isTaskManagerUrl(url: string): boolean {
     ToastModule,
     AppTopbarComponent,
     AppSidebarComponent,
-    AppFooterComponent,
     TaskManagerStyleHostComponent,
     FormWorkspaceSidebarComponent,
     TmSidebarComponent,
     InvoiceSendDialogComponent,
     InvoiceMarkPaidDialogComponent,
     HelpAgentWidgetComponent,
+    HelpSidePanelComponent,
   ],
   templateUrl: './shell.component.html',
 })
 export class ShellComponent implements OnInit {
+  protected readonly helpSidePanel = inject(HelpSidePanelService);
   protected readonly auth = inject(AuthStoreService);
   protected readonly session = inject(SessionService);
   private readonly router = inject(Router);
@@ -183,6 +185,7 @@ export class ShellComponent implements OnInit {
 
   async ngOnInit() {
     await this.session.getReady();
+    this.helpSidePanel.restoreFromStorage();
     if (areaLevel(this.session.me(), 'tasks') !== null) {
       void this.tmStore.loadProjects();
     }

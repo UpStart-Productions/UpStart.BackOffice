@@ -2,7 +2,7 @@ import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDropList, C
 import { Component, computed, effect, HostListener, inject, OnDestroy, signal, untracked, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, NavigationEnd, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -11,7 +11,7 @@ import { AppPopoverModule } from '../../core/app-popover.module';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
-import { filter, map, merge, of, startWith, switchMap } from 'rxjs';
+import { filter, map, merge, of } from 'rxjs';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import {
@@ -45,6 +45,13 @@ type Group = { section: TmSection | null; tasks: TaskSummary[] };
 
 const NO_SECTION = '__none__';
 
+const PROJECT_TASK_DETAIL_URL = /\/tasks\/projects\/[^/]+\/(?:board\/)?tasks\/([^/?#]+)/;
+
+function taskIdFromProjectTasksUrl(url: string): string | null {
+  const m = url.split(/[?#]/)[0].match(PROJECT_TASK_DETAIL_URL);
+  return m?.[1] ?? null;
+}
+
 /** Asana-style list view of a project's tasks, grouped by section, with a right-hand detail pane. */
 @Component({
   selector: 'app-tm-project-tasks-page',
@@ -52,6 +59,7 @@ const NO_SECTION = '__none__';
   imports: [PageComponent, RowActionsMenuComponent, LucideIconComponent, LucideIconPickerPanelComponent, 
     FormsModule,
     RouterLink,
+    RouterOutlet,
     ButtonModule,
     InputTextModule,
     ToolbarSearchFieldComponent,
@@ -95,20 +103,11 @@ export class ProjectTasksPage implements OnDestroy {
     initialValue: this.route.snapshot.paramMap.get('projectId')!,
   });
   readonly taskId = toSignal(
-    this.router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
-      startWith(null),
-      switchMap(() => {
-        const child = this.route.firstChild;
-        return child
-          ? child.paramMap.pipe(
-              map((p) => p.get('taskId')),
-              startWith(child.snapshot.paramMap.get('taskId')),
-            )
-          : of<string | null>(null);
-      }),
-    ),
-    { initialValue: this.childTaskId() },
+    merge(
+      this.route.queryParamMap,
+      this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)),
+    ).pipe(map(() => this.resolveTaskId())),
+    { initialValue: this.resolveTaskId() },
   );
   readonly boardView = toSignal(
     merge(
@@ -242,8 +241,15 @@ export class ProjectTasksPage implements OnDestroy {
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
   }
 
-  private childTaskId(): string | null {
-    return this.route.snapshot.firstChild?.paramMap.get('taskId') ?? null;
+  /** `?task=`, child route `tasks/:taskId`, or legacy path segment (reports links). */
+  private resolveTaskId(): string | null {
+    const fromQuery = this.route.snapshot.queryParamMap.get('task');
+    if (fromQuery) return fromQuery;
+    const fromChild =
+      this.route.firstChild?.snapshot.paramMap.get('taskId') ??
+      this.route.snapshot.firstChild?.paramMap.get('taskId');
+    if (fromChild) return fromChild;
+    return taskIdFromProjectTasksUrl(this.router.url);
   }
 
   dropId(g: Group): string {
@@ -602,18 +608,17 @@ export class ProjectTasksPage implements OnDestroy {
   // ── Detail pane ─────────────────────────────────────────────────────────
 
   openTask(task: { id: string }) {
-    const base = this.boardView()
+    const commands = this.boardView()
       ? (['/tasks/projects', this.projectId(), 'board'] as const)
       : (['/tasks/projects', this.projectId()] as const);
-    void this.router.navigate([...base, 'tasks', task.id]);
+    void this.router.navigate(commands, { queryParams: { task: task.id }, queryParamsHandling: 'merge' });
   }
 
   closeTask() {
-    if (this.boardView()) {
-      void this.router.navigate(['/tasks/projects', this.projectId(), 'board']);
-    } else {
-      void this.router.navigate(['/tasks/projects', this.projectId()]);
-    }
+    const commands = this.boardView()
+      ? (['/tasks/projects', this.projectId(), 'board'] as const)
+      : (['/tasks/projects', this.projectId()] as const);
+    void this.router.navigate(commands, { queryParams: { task: null }, queryParamsHandling: 'merge' });
   }
 
   onDetailChanged(summary: TaskSummary) {

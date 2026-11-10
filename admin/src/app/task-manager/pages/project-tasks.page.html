@@ -462,6 +462,8 @@
     <app-tm-edit-project-dialog [(visible)]="editProjectOpen" [project]="p" (updated)="onProjectUpdated($event)" />
   }
   </app-page>
+  <!-- Activates child route tasks/:taskId (detail pane); no nested component. -->
+  <router-outlet class="tm-project-task-route-outlet" />
 </div>
 
 <app-tm-person-picker #assigneePicker (picked)="setAssignee($event)" />

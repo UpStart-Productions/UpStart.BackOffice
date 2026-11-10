@@ -133,51 +133,6 @@ function itemSummary(item: unknown): string {
       }
     </div>
   `,
-  styles: [
-    `
-      /* Hand-styled: no existing control is a small proposal card inside a chat bubble. Neutral border, no accent stripe. */
-      .help-agent-action {
-        margin-top: 0.75rem;
-        padding: 0.75rem;
-        border: 1px solid var(--color-border);
-        border-radius: 8px;
-        background: var(--p-content-background, transparent);
-      }
-      .help-agent-action-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-      }
-      .help-agent-action-title {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        font-weight: 600;
-      }
-      .help-agent-action-fields {
-        display: grid;
-        grid-template-columns: max-content 1fr;
-        gap: 0.25rem 0.75rem;
-        margin: 0 0 0.75rem;
-      }
-      .help-agent-action-fields dd {
-        margin: 0;
-        overflow-wrap: anywhere;
-      }
-      .help-agent-action-items {
-        margin: 0;
-        white-space: pre-line;
-      }
-      .help-agent-action-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-      }
-    `,
-  ],
 })
 export class HelpAgentActionCardComponent {
   readonly action = input.required<HelpAgentAction>();
