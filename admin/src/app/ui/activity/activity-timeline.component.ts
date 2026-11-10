@@ -14,6 +14,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
 import { QuillModule } from 'ngx-quill';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
@@ -169,6 +170,9 @@ function nowForInput(): string {
             [allowEmpty]="false"
             ariaLabel="Activity type"
           />
+          @if (quickType === 'EMAIL' && emailToLabel()) {
+            <p class="quick-log-email-to text-color-secondary">{{ emailToLabel() }}</p>
+          }
           <quill-editor
             class="quick-log-text"
             [(ngModel)]="quickText"
@@ -338,6 +342,9 @@ function nowForInput(): string {
             <label for="logWhere">Where</label>
             <input pInputText id="logWhere" [(ngModel)]="logWhere" class="w-full" placeholder="Zoom, their office, a coffee shop…" />
           </div>
+        }
+        @if (logType === 'EMAIL' && emailToLabel()) {
+          <p class="quick-log-email-to text-color-secondary">{{ emailToLabel() }}</p>
         }
         <div class="form-field">
           <label for="logSubject">Subject</label>
@@ -577,6 +584,7 @@ function nowForInput(): string {
     .quick-log-text { display: block; background: var(--surface-0, #fff); border-radius: var(--border-radius, 6px); }
     :host ::ng-deep .quick-log-text .ql-container { border-bottom-left-radius: var(--border-radius, 6px); border-bottom-right-radius: var(--border-radius, 6px); }
     :host ::ng-deep .quick-log-text .ql-toolbar { border-top-left-radius: var(--border-radius, 6px); border-top-right-radius: var(--border-radius, 6px); background: var(--surface-0, #fff); }
+    .quick-log-email-to { margin: 0; font-size: var(--fs-sm); }
     .quick-log-follow { display: flex; align-items: center; gap: 0.5rem; }
     .quick-log-next { display: flex; flex-wrap: wrap; gap: 0.75rem; }
     .quick-log-next-text { flex: 2 1 16rem; min-width: 0; }
@@ -677,6 +685,7 @@ function nowForInput(): string {
   `,
 })
 export class ActivityTimelineComponent {
+  private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
   private readonly tasks = inject(TmApiService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
@@ -804,7 +813,7 @@ export class ActivityTimelineComponent {
   }
   readonly emptyMessage = computed(() =>
     this.canLog()
-      ? 'No activity yet. Log a call, meeting, or note above.'
+      ? 'No activity yet. Log a call, meeting, email, or note above.'
       : 'No activity yet.',
   );
 
@@ -825,8 +834,9 @@ export class ActivityTimelineComponent {
   }
   readonly logQuillModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()));
 
-  quickType: 'CALL' | 'MEETING' | 'NOTE' = 'NOTE';
+  quickType: InteractionType = 'NOTE';
   quickText = '';
+  emailToLabel = signal<string | null>(null);
   quickFollow = false;
   quickNextAction: string | null = null;
   quickNextDate = '';
@@ -836,6 +846,7 @@ export class ActivityTimelineComponent {
   quickPlaceholder(): string {
     if (this.quickType === 'CALL') return 'How did the call go?';
     if (this.quickType === 'MEETING') return 'What was decided?';
+    if (this.quickType === 'EMAIL') return 'What did you send?';
     return 'What happened?';
   }
 
@@ -843,7 +854,7 @@ export class ActivityTimelineComponent {
   logVisible = false;
   saving = signal(false);
   logError = signal<string | null>(null);
-  logType: 'CALL' | 'MEETING' | 'NOTE' = 'CALL';
+  logType: InteractionType = 'CALL';
   logWhen = nowForInput();
   logDirection: 'INBOUND' | 'OUTBOUND' | 'INTERNAL' = 'OUTBOUND';
   logWhere = '';
@@ -885,6 +896,7 @@ export class ActivityTimelineComponent {
     { label: 'Note', value: 'NOTE' },
     { label: 'Call', value: 'CALL' },
     { label: 'Meeting', value: 'MEETING' },
+    { label: 'Email', value: 'EMAIL' },
   ];
   readonly callOptions = [
     { label: 'We called', value: 'OUTBOUND' },
@@ -912,11 +924,22 @@ export class ActivityTimelineComponent {
     effect(() => {
       if (this.canSetFollowUp()) untracked(() => this.nextActionOptions.load());
     });
+    effect(() => {
+      this.quickType;
+      this.logType;
+      this.logVisible;
+      this.clientId();
+      this.leadId();
+      this.contactId();
+      if (this.canLog()) untracked(() => void this.refreshEmailToLabel());
+      else this.emailToLabel.set(null);
+    });
   }
 
   subjectPlaceholder(): string {
     if (this.logType === 'MEETING') return 'e.g. Discovery meeting';
     if (this.logType === 'NOTE') return 'e.g. Follow-up';
+    if (this.logType === 'EMAIL') return 'e.g. Follow-up on proposal';
     return 'e.g. Intake call';
   }
 
@@ -1090,7 +1113,8 @@ export class ActivityTimelineComponent {
         subject: this.logSubject.trim() || undefined,
         bodyText: notes,
         location: this.logType === 'MEETING' ? this.logWhere.trim() || undefined : undefined,
-        direction: this.logType === 'CALL' ? this.logDirection : this.logType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
+        direction:
+          this.logType === 'CALL' ? this.logDirection : this.logType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
         contactIds: idsPrefixed(this.involvedIds, 'contact'),
         userIds: idsPrefixed(this.involvedIds, 'user'),
       };
@@ -1107,6 +1131,38 @@ export class ActivityTimelineComponent {
   }
 
   /** Where a logged activity goes: the organization, card or person this timeline is for. */
+  private async refreshEmailToLabel() {
+    const loggingEmail = this.quickType === 'EMAIL' || (this.logVisible && this.logType === 'EMAIL');
+    if (!loggingEmail) {
+      this.emailToLabel.set(null);
+      return;
+    }
+    const c = this.clientId();
+    const l = this.leadId();
+    const k = this.contactId();
+    try {
+      if (k) {
+        const person = await this.comms.contact(k);
+        const email = person.emails.find((e) => e.isPrimary)?.email ?? person.emails[0]?.email;
+        this.emailToLabel.set(email?.trim() ? `To: ${email.trim()}` : null);
+        return;
+      }
+      if (c) {
+        const org = await this.api.get<{ email?: string | null }>(`/clients/${c}`);
+        this.emailToLabel.set(org.email?.trim() ? `To: ${org.email.trim()}` : null);
+        return;
+      }
+      if (l) {
+        const card = await this.api.get<{ email?: string | null }>(`/leads/${l}`);
+        this.emailToLabel.set(card.email?.trim() ? `To: ${card.email.trim()}` : null);
+        return;
+      }
+      this.emailToLabel.set(null);
+    } catch {
+      this.emailToLabel.set(null);
+    }
+  }
+
   private logTarget(): Pick<LogInteractionPayload, 'clientId' | 'leadId' | 'contactId'> {
     const c = this.clientId();
     const l = this.leadId();

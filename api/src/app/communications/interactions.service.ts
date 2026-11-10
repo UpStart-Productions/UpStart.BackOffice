@@ -313,9 +313,8 @@ export class InteractionsService {
     return users.map((u) => ({ ...u, avatarUrl: toPublicAssetUrl(u.avatarUrl) }));
   }
 
-  /** Log a call, meeting or note by hand. */
   /**
-   * Log a call, meeting or note by hand, on an organization, a pipeline card, or a person.
+   * Log a call, meeting, note, or outbound email by hand, on an organization, a pipeline card, or a person.
    * Logged on a person (contactId only): filed to their organization when they have exactly one; with none or
    * several it stays on the person (no organization) and shows on their page and, via "include people's activity",
    * on each of their organizations.
@@ -328,13 +327,29 @@ export class InteractionsService {
       throw new BadRequestException('Provide clientId, leadId or contactId.');
     }
     let logClientId: string | null = dto.clientId ?? null;
+    let clientRow: { id: string; name: string; email: string | null } | null = null;
+    let leadRow: {
+      email: string | null;
+      primaryContact: string | null;
+      organization: string | null;
+    } | null = null;
     if (dto.clientId) {
-      const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
-      if (!client) throw new NotFoundException('Client not found.');
+      clientRow = await this.prisma.client.findUnique({
+        where: { id: dto.clientId },
+        select: { id: true, name: true, email: true },
+      });
+      if (!clientRow) throw new NotFoundException('Client not found.');
     } else if (dto.leadId) {
-      const lead = await this.prisma.lead.findUnique({ where: { id: dto.leadId as string }, select: { id: true, clientId: true } });
+      const lead = await this.prisma.lead.findUnique({
+        where: { id: dto.leadId as string },
+        select: { id: true, clientId: true, primaryContactId: true, email: true, primaryContact: true, organization: true },
+      });
       if (!lead) throw new NotFoundException('Lead not found.');
       logClientId = lead.clientId;
+      leadRow = lead;
+      if (dto.type === 'EMAIL' && lead.primaryContactId) {
+        dto.contactIds = [...new Set([...(dto.contactIds ?? []), lead.primaryContactId])];
+      }
     } else {
       const person = await this.prisma.contact.findFirst({
         where: { id: dto.contactId },
@@ -375,6 +390,72 @@ export class InteractionsService {
       : [];
     if (teammates.length !== userIds.length) throw new BadRequestException('Unknown teammate in userIds.');
 
+    const me = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { firstName: true, lastName: true, name: true, email: true },
+    });
+    const actorName = [me?.firstName, me?.lastName].filter(Boolean).join(' ').trim() || me?.name?.trim() || user.email;
+
+  const participantRows =
+      dto.type === 'EMAIL'
+        ? (() => {
+            const toSeen = new Set<string>();
+            const to: {
+              email: string;
+              name: string | null;
+              role: 'TO';
+              userId: null;
+              contactId: string | null;
+            }[] = [];
+            const pushTo = (email: string, name: string | null | undefined, contactId: string | null = null) => {
+              const normalized = email.trim().toLowerCase();
+              if (!normalized || toSeen.has(normalized)) return;
+              toSeen.add(normalized);
+              to.push({ email: normalized, name: name?.trim() || null, role: 'TO', userId: null, contactId });
+            };
+            for (const c of contacts) {
+              const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
+              if (primary?.email) {
+                pushTo(primary.email, [c.firstName, c.lastName].filter(Boolean).join(' '), c.id);
+              }
+            }
+            if (clientRow?.email?.trim()) pushTo(clientRow.email, clientRow.name);
+            if (leadRow?.email?.trim()) {
+              pushTo(leadRow.email, leadRow.primaryContact ?? leadRow.organization);
+            }
+            return [
+              { email: user.email.toLowerCase(), name: actorName, role: 'FROM' as const, userId: user.id, contactId: null },
+              ...to,
+              ...teammates.map((u) => ({
+                email: u.email.toLowerCase(),
+                name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email,
+                role: 'CC' as const,
+                userId: u.id,
+                contactId: null,
+              })),
+            ];
+          })()
+        : [
+            { email: user.email.toLowerCase(), role: 'ATTENDEE' as const, userId: user.id, contactId: null },
+            ...teammates.map((u) => ({
+              email: u.email.toLowerCase(),
+              name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email,
+              role: 'ATTENDEE' as const,
+              userId: u.id,
+              contactId: null,
+            })),
+            ...contacts.map((c) => {
+              const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
+              return {
+                email: primary?.email ?? '',
+                name: [c.firstName, c.lastName].filter(Boolean).join(' '),
+                role: 'ATTENDEE' as const,
+                contactId: c.id,
+                userId: null,
+              };
+            }),
+          ];
+
     const created = await this.prisma.interaction.create({
       data: {
         tenantId: TENANT,
@@ -389,26 +470,7 @@ export class InteractionsService {
         clientId: logClientId,
         leadId: dto.leadId ?? null,
         loggedByUserId: user.id,
-        participants: {
-          create: [
-            { email: user.email.toLowerCase(), role: 'ATTENDEE' as const, userId: user.id },
-            ...teammates.map((u) => ({
-              email: u.email.toLowerCase(),
-              name: [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email,
-              role: 'ATTENDEE' as const,
-              userId: u.id,
-            })),
-            ...contacts.map((c) => {
-              const primary = c.emails.find((e) => e.isPrimary) ?? c.emails[0];
-              return {
-                email: primary?.email ?? '',
-                name: [c.firstName, c.lastName].filter(Boolean).join(' '),
-                role: 'ATTENDEE' as const,
-                contactId: c.id,
-              };
-            }),
-          ],
-        },
+        participants: { create: participantRows },
       },
       include: listInclude,
     });

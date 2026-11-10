@@ -125,7 +125,7 @@ export interface CaptureSettings {
 export type TimelineTarget = { clientId: string } | { leadId: string } | { contactId: string };
 
 export interface LogInteractionPayload {
-  type: 'CALL' | 'MEETING' | 'NOTE';
+  type: InteractionType;
   clientId?: string;
   leadId?: string;
   /** Log on a person: filed to their organization when they have exactly one. */

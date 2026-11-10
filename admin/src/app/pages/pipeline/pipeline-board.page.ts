@@ -23,7 +23,12 @@ import { daysSince, isOverdue, lastContactLabel } from '../../core/staleness.uti
 import { AutofocusDirective } from '../../ui/autofocus.directive';
 import { PersonComponent } from '../../ui/person/person.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
-import { loadHiddenLaneIds, saveHiddenLaneIds } from '../../core/pipeline-lane-visibility.storage';
+import {
+  loadHiddenLaneIds,
+  loadSelectedPipelineId,
+  saveHiddenLaneIds,
+  saveSelectedPipelineId,
+} from '../../core/pipeline-lane-visibility.storage';
 
 export type Lead = {
   id: string;
@@ -219,6 +224,14 @@ export class PipelineBoardPage implements OnInit {
         saveHiddenLaneIds(uid, pid, pruned);
       }
     });
+
+    effect(() => {
+      const pid = this.pipelineId();
+      const uid = this.session.me()?.id;
+      if (!pid || !uid) return;
+      const known = this.pipelines().some((p) => p.id === pid);
+      if (known) saveSelectedPipelineId(uid, pid);
+    });
   }
 
   readonly pipelineMenuActions = computed<RowActionItem[]>(() => {
@@ -244,8 +257,8 @@ export class PipelineBoardPage implements OnInit {
   });
 
   async ngOnInit() {
-    const params = this.route.snapshot.queryParamMap;
-    await this.loadPipelines(params.get('pipeline'));
+    const fromUrl = this.route.snapshot.queryParamMap.get('pipeline');
+    await this.loadPipelines(fromUrl);
     await this.loadLeads();
   }
 
@@ -255,7 +268,8 @@ export class PipelineBoardPage implements OnInit {
     try {
       const list = await this.pipelinesApi.list();
       this.pipelines.set(list);
-      const keep = prefer ?? this.pipelineId();
+      const uid = this.session.me()?.id;
+      const keep = prefer ?? loadSelectedPipelineId(uid) ?? this.pipelineId();
       this.pipelineId.set(list.find((p) => p.id === keep)?.id ?? list[0]?.id ?? null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load pipelines');

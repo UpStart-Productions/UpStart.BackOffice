@@ -19,7 +19,7 @@ function make() {
     lead: { findUnique: vi.fn(), updateMany: vi.fn() },
     contact: { findMany: vi.fn(), updateMany: vi.fn() },
     contactAccount: { createMany: vi.fn() },
-    user: { findMany: vi.fn() },
+    user: { findMany: vi.fn(), findUnique: vi.fn() },
   };
   const mail = { sendRaw: vi.fn().mockResolvedValue({ sent: true }) };
   const delivery = { deliverMany: vi.fn().mockResolvedValue(undefined) };
@@ -188,10 +188,33 @@ describe('InteractionsService', () => {
   describe('log', () => {
     const user = { id: 'u1', email: 'Jeff@Example.com' };
 
+    beforeEach(() => {
+      h.prisma.user.findUnique.mockResolvedValue({
+        firstName: 'Jeff',
+        lastName: 'Denton',
+        name: null,
+        email: 'Jeff@Example.com',
+      });
+    });
+
     it('needs a target and some content', async () => {
       await expect(h.svc.log({ type: 'NOTE', bodyText: 'x' }, user)).rejects.toBeInstanceOf(BadRequestException);
       h.prisma.client.findUnique.mockResolvedValue({ id: 'c1' });
       await expect(h.svc.log({ type: 'CALL', clientId: 'c1' }, user)).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('logs a manual email with FROM/TO and the organization address', async () => {
+      h.prisma.client.findUnique.mockResolvedValue({ id: 'c1', name: 'Hope Center', email: 'info@hope.org' });
+      h.prisma.user.findUnique.mockResolvedValue({ firstName: 'Jeff', lastName: 'Denton', name: null, email: 'Jeff@Example.com' });
+      h.prisma.interaction.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
+        ...row('new', 1, { type: 'EMAIL' }), ...data, participants: [], captures: [], loggedBy: null,
+      }));
+      await h.svc.log({ type: 'EMAIL', clientId: 'c1', subject: 'Intro', bodyText: 'Thanks for your time.' }, user);
+      const rows = h.prisma.interaction.create.mock.calls[0][0].data.participants.create as { role: string; email: string }[];
+      expect(rows).toEqual([
+        { email: 'jeff@example.com', name: 'Jeff Denton', role: 'FROM', userId: 'u1', contactId: null },
+        { email: 'info@hope.org', name: 'Hope Center', role: 'TO', userId: null, contactId: null },
+      ]);
     });
 
     it('logs a call with contacts as attendees and bumps last-contact', async () => {
@@ -210,8 +233,8 @@ describe('InteractionsService', () => {
         clientId: 'c1', loggedByUserId: 'u1', occurredAt: new Date(when),
       });
       expect(data.participants.create).toEqual([
-        { email: 'jeff@example.com', role: 'ATTENDEE', userId: 'u1' },
-        { email: 'ann@x.test', name: 'Ann Lee', role: 'ATTENDEE', contactId: 'k1' },
+        { email: 'jeff@example.com', role: 'ATTENDEE', userId: 'u1', contactId: null },
+        { email: 'ann@x.test', name: 'Ann Lee', role: 'ATTENDEE', contactId: 'k1', userId: null },
       ]);
       expect(h.prisma.contact.updateMany).toHaveBeenCalled();
     });
@@ -227,8 +250,8 @@ describe('InteractionsService', () => {
       await h.svc.log({ type: 'CALL', clientId: 'c1', subject: 'Check in', userIds: ['u2', 'u1'] }, user);
       const data = h.prisma.interaction.create.mock.calls[0][0].data;
       expect(data.participants.create).toEqual([
-        { email: 'jeff@example.com', role: 'ATTENDEE', userId: 'u1' },
-        { email: 'devin@example.com', name: 'Devin Lee', role: 'ATTENDEE', userId: 'u2' },
+        { email: 'jeff@example.com', role: 'ATTENDEE', userId: 'u1', contactId: null },
+        { email: 'devin@example.com', name: 'Devin Lee', role: 'ATTENDEE', userId: 'u2', contactId: null },
       ]);
       expect(h.prisma.contact.updateMany).not.toHaveBeenCalled();
     });
