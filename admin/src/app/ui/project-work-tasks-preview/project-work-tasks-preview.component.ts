@@ -1,21 +1,13 @@
-import { NgClass } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
-import { dueLabel, dueTone, todayKey } from '../../task-manager/core/tm-format.util';
+import { todayKey } from '../../task-manager/core/tm-format.util';
 import { TaskSummary } from '../../task-manager/core/tm.types';
-import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
+import { WorkTasksSideListComponent } from './work-tasks-side-list.component';
 
 const PREVIEW_LIMIT = 5;
-const TASK_TITLE_MAX_WORDS = 8;
-
-function truncateWords(text: string, maxWords: number): string {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length <= maxWords) return text.trim();
-  return `${words.slice(0, maxWords).join(' ')}...`;
-}
 
 /** Incomplete work tasks for a project, due-date order, for the Projects side column. */
 function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
@@ -39,7 +31,7 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
 @Component({
   selector: 'app-project-work-tasks-preview',
   standalone: true,
-  imports: [RouterLink, ButtonModule, TmAvatarComponent, NgClass],
+  imports: [RouterLink, ButtonModule, WorkTasksSideListComponent],
   styleUrl: './project-work-tasks-preview.component.scss',
   template: `
     @if (visible()) {
@@ -60,25 +52,14 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
         <div class="side-panel-scroll">
           @if (loading()) {
             <p class="text-color-secondary mt-0 mb-0 text-sm"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-          } @else if (preview().length > 0) {
-            <div class="side-list">
-              @for (task of preview(); track task.id) {
-                <div class="side-list-row">
-                  <app-tm-avatar [person]="task.assignee" [size]="28" />
-                  <div class="side-list-body">
-                    <a
-                      class="side-list-title"
-                      [href]="taskHref(task.id)"
-                      (click)="openTask(task, $event)"
-                      [attr.title]="task.name"
-                    >{{ taskTitle(task) }}</a>
-                  </div>
-                  <span class="side-list-value" [ngClass]="dueToneClass(task)">{{ dueText(task) }}</span>
-                </div>
-              }
-            </div>
           } @else {
-            <p class="side-list-empty">No open tasks.</p>
+            <app-work-tasks-side-list
+              [tasks]="preview()"
+              [taskProjectId]="projectId()"
+              taskOpenTarget="project-board"
+              [showProjectLink]="false"
+              emptyText="No open tasks."
+            />
           }
         </div>
       </div>
@@ -88,12 +69,9 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
 export class ProjectWorkTasksPreviewComponent {
   private readonly api = inject(TmApiService);
   private readonly session = inject(SessionService);
-  private readonly router = inject(Router);
 
   readonly projectId = input.required<string>();
   readonly inTaskManager = input(false);
-
-  readonly dueLabel = dueLabel;
 
   loading = signal(false);
   preview = signal<TaskSummary[]>([]);
@@ -114,34 +92,6 @@ export class ProjectWorkTasksPreviewComponent {
         void this.load(id);
       });
     });
-  }
-
-  taskHref(taskId: string): string {
-    const tree = this.router.createUrlTree(['/tasks/projects', this.projectId()], {
-      queryParams: { task: taskId },
-    });
-    return this.router.serializeUrl(tree);
-  }
-
-  openTask(task: TaskSummary, event: MouseEvent) {
-    event.preventDefault();
-    void this.router.navigate(['/tasks/projects', this.projectId()], {
-      queryParams: { task: task.id },
-    });
-  }
-
-  taskTitle(task: TaskSummary): string {
-    return truncateWords(task.name, TASK_TITLE_MAX_WORDS);
-  }
-
-  dueText(task: TaskSummary): string {
-    return dueLabel(task.dueOn);
-  }
-
-  dueToneClass(task: TaskSummary): string {
-    const tone = dueTone(task.dueOn, task.isCompleted);
-    if (tone === 'none' || tone === 'normal') return '';
-    return `side-list-value--${tone}`;
   }
 
   private async load(projectId: string) {

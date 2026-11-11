@@ -61,17 +61,11 @@
               } @else if (tasks().error) {
                 <p class="side-list-empty">{{ tasks().error }}</p>
               } @else if (upcomingTasks().length) {
-                <div class="side-list">
-                  @for (t of upcomingTasks(); track t.id) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        <a class="side-list-title" routerLink="/tasks" [queryParams]="{ task: t.id }">{{ t.name }}</a>
-                        <a class="side-list-detail" [routerLink]="['/projects', t.project.id]">{{ t.project.name }}</a>
-                      </div>
-                      <span class="side-list-value" [class]="taskTone(t)">{{ taskDue(t) }}</span>
-                    </div>
-                  }
-                </div>
+                <app-work-tasks-side-list
+                  [tasks]="upcomingTasks()"
+                  taskOpenTarget="my-tasks"
+                  [showProjectLink]="true"
+                />
               } @else {
                 <p class="side-list-empty">Nothing due in the next week.</p>
               }

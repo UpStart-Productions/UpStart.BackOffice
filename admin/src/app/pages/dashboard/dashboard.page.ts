@@ -16,6 +16,7 @@ import { TmApiService } from '../../task-manager/core/tm-api.service';
 import { addDaysKey, dueLabel, dueTone, todayKey } from '../../task-manager/core/tm-format.util';
 import { MyTask } from '../../task-manager/core/tm.types';
 import { DashboardPanelComponent, DashboardPanelTab } from '../../ui/dashboard-panel/dashboard-panel.component';
+import { WorkTasksSideListComponent } from '../../ui/project-work-tasks-preview/work-tasks-side-list.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { invoiceDueFlag, isUnpaidInvoiceStatus, sortInvoicesForAttention } from '../invoices/invoice-status.util';
@@ -115,7 +116,18 @@ function toneClass(tone: string): string {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, CdkDrag, CdkDropList, ButtonModule, SelectButtonModule, DashboardPanelComponent, PageComponent, QueueCardComponent],
+  imports: [
+    FormsModule,
+    RouterLink,
+    CdkDrag,
+    CdkDropList,
+    ButtonModule,
+    SelectButtonModule,
+    DashboardPanelComponent,
+    PageComponent,
+    QueueCardComponent,
+    WorkTasksSideListComponent,
+  ],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage implements OnInit, OnDestroy {
@@ -366,14 +378,6 @@ export class DashboardPage implements OnInit, OnDestroy {
   }
 
   // ── Labels ───────────────────────────────────────────────────────────────
-
-  taskDue(t: MyTask): string {
-    return dueLabel(t.dueOn);
-  }
-
-  taskTone(t: MyTask): string {
-    return toneClass(dueTone(t.dueOn, t.isCompleted));
-  }
 
   nextStepDue(r: QueueRow): string {
     return r.at ? dueLabel(dateKey(new Date(r.at))) : 'No date';

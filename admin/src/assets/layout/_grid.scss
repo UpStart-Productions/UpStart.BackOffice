@@ -136,6 +136,25 @@ a.side-list-title {
   overflow-wrap: anywhere;
 }
 
+/* Secondary line links (e.g. project under a task) — same purple in-app links as titles, not global blue. */
+a.side-list-detail,
+.layout-main .side-list-body .side-list-detail a[href] {
+  color: var(--brand-primary);
+  text-decoration: none;
+  font-weight: inherit;
+
+  &:hover {
+    color: var(--brand-primary-hover);
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
 .side-list-value {
   flex-shrink: 0;
   margin-left: 0.5rem;
