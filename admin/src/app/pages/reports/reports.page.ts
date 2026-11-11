@@ -63,10 +63,13 @@ type Invoice = {
   /** Reports cover client invoices (revenue); invoices billed to the tenant are left out. */
   billTo?: 'CLIENT' | 'TENANT';
   client: { id: string; name: string };
+  lineItems?: { projectId: string | null }[];
 };
 
 type TimeProjectRow = {
+  clientId: string | null;
   clientName: string;
+  projectId: string | null;
   projectName: string;
   totalMin: number;
   billableMin: number;
@@ -75,6 +78,7 @@ type TimeProjectRow = {
 };
 
 type InvoiceClientRow = {
+  clientId: string;
   clientName: string;
   invoiceCount: number;
   total: number;
@@ -176,7 +180,8 @@ export class ReportsPage implements OnInit {
   hasRun = signal(false);
   /** Client/project filters applied on the last successful run (empty = all). */
   private appliedClientId = signal('');
-  private appliedProjectId = signal('');
+  readonly appliedProjectId = signal('');
+  private reportPeriodBounds = signal<{ from: Date; to: Date } | null>(null);
 
   clients = signal<Client[]>([]);
   projects = signal<Project[]>([]);
@@ -191,9 +196,12 @@ export class ReportsPage implements OnInit {
     /** Care: '' all time, 'visits' time from visits only, 'other' everything else. */
     timeKind: '' as '' | 'visits' | 'other',
   };
+  /** Bumps when report client/project filters change so invoice tab recomputes without a new run. */
+  private reportFilterTick = signal(0);
 
   private timeEntries = signal<TimeEntry[]>([]);
-  private invoices = signal<Invoice[]>([]);
+  /** Client-billed invoices from the last run (re-filtered when report filters change). */
+  private invoicePool = signal<Invoice[]>([]);
   private taskReport = signal<TaskReport | null>(null);
 
   readonly clientOptions = computed(() => [
@@ -240,7 +248,9 @@ export class ReportsPage implements OnInit {
       const row =
         map.get(key) ??
         ({
-          clientName: (e.project?.client?.name ?? e.client?.name ?? 'Personal'),
+          clientId: e.project?.client?.id ?? e.client?.id ?? null,
+          clientName: e.project?.client?.name ?? e.client?.name ?? 'Personal',
+          projectId: e.project?.id ?? null,
           projectName: e.project?.name ?? 'No project',
           totalMin: 0,
           billableMin: 0,
@@ -292,11 +302,17 @@ export class ReportsPage implements OnInit {
     () => Boolean(this.appliedClientId()) || Boolean(this.appliedProjectId()),
   );
 
-  /** Hide Project column when the report is already scoped to one project. */
+  /** Hide Client/Project columns when the report is already scoped to one project. */
   readonly showProjectColumn = computed(() => !this.appliedProjectId());
 
-  /** Date + optional Project + Task/Description ahead of Duration/Billable. */
-  readonly timeEntryDetailLeadingColspan = computed(() => (this.showProjectColumn() ? 3 : 2));
+  readonly appliedProjectName = computed(() => {
+    const id = this.appliedProjectId();
+    if (!id) return null;
+    return this.projects().find((p) => p.id === id)?.name ?? 'Project';
+  });
+
+  /** Date + optional Client/Project + Task/Description ahead of Duration/Billable. */
+  readonly timeEntryDetailLeadingColspan = computed(() => (this.showProjectColumn() ? 4 : 2));
 
   readonly timeEntryRows = computed(() =>
     [...this.completedTimeEntries()]
@@ -304,7 +320,9 @@ export class ReportsPage implements OnInit {
       .map((e) => ({
         id: e.id,
         startedAt: e.startedAt,
-        clientName: (e.project?.client?.name ?? e.client?.name ?? 'Personal'),
+        clientId: e.project?.client?.id ?? e.client?.id ?? null,
+        clientName: e.project?.client?.name ?? e.client?.name ?? 'Personal',
+        projectId: e.project?.id ?? null,
         projectName: e.project?.name ?? 'No project',
         taskName: e.projectTask?.name ?? '—',
         description: e.description?.trim() || '—',
@@ -312,6 +330,25 @@ export class ReportsPage implements OnInit {
         billable: this.isEntryBillable(e),
       })),
   );
+
+  readonly filteredInvoices = computed((): Invoice[] => {
+    this.reportFilterTick();
+    const bounds = this.reportPeriodBounds();
+    if (!bounds || !this.hasRun()) return [];
+
+    const clientId = this.filters.clientId;
+    const projectId = this.filters.projectId;
+    return this.invoicePool().filter((inv) => {
+      if (clientId && inv.client.id !== clientId) return false;
+      if (
+        projectId &&
+        !inv.lineItems?.some((li) => li.projectId === projectId)
+      ) {
+        return false;
+      }
+      return dateInPeriod(inv.issueDate, bounds.from, bounds.to);
+    });
+  });
 
   readonly invoiceSummary = computed(() => {
     const list = this.filteredInvoices();
@@ -338,6 +375,7 @@ export class ReportsPage implements OnInit {
       const row =
         map.get(key) ??
         ({
+          clientId: inv.client.id,
           clientName: inv.client.name,
           invoiceCount: 0,
           total: 0,
@@ -428,11 +466,16 @@ export class ReportsPage implements OnInit {
     this.onClientChange();
   }
 
+  onReportFiltersChange() {
+    this.reportFilterTick.update((n) => n + 1);
+  }
+
   onClientChange() {
     const clientId = this.filters.clientId;
     if (!clientId) {
       this.filteredProjects.set([]);
       this.filters.projectId = '';
+      this.onReportFiltersChange();
       return;
     }
     this.filteredProjects.set(this.projects().filter((p) => p.clientId === clientId));
@@ -442,6 +485,7 @@ export class ReportsPage implements OnInit {
     ) {
       this.filters.projectId = '';
     }
+    this.onReportFiltersChange();
   }
 
   async runReport() {
@@ -501,16 +545,14 @@ export class ReportsPage implements OnInit {
           return true;
         }),
       );
-      this.invoices.set(
-        invoices.filter((inv) => {
-          if (inv.billTo === 'TENANT' || !inv.client) return false;
-          if (clientId && inv.client.id !== clientId) return false;
-          return dateInPeriod(inv.issueDate, bounds.from, bounds.to);
-        }),
+      this.invoicePool.set(
+        invoices.filter((inv) => inv.billTo !== 'TENANT' && inv.client),
       );
+      this.reportPeriodBounds.set({ from: bounds.from, to: bounds.to });
       this.taskReport.set(tasks);
       this.appliedClientId.set(clientId);
       this.appliedProjectId.set(projectId);
+      this.reportFilterTick.update((n) => n + 1);
       this.hasRun.set(true);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to run report');
@@ -633,10 +675,6 @@ export class ReportsPage implements OnInit {
         maintainAspectRatio: false,
       },
     };
-  }
-
-  private filteredInvoices(): Invoice[] {
-    return this.invoices();
   }
 
   private async runInvoiceReportExport(format: 'pdf' | 'excel') {

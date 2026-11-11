@@ -28,7 +28,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Time
 
-**Time** (Time entry) lists time entries. Add time from the list or related modals; tie entries to projects and tasks when applicable.
+**Time** (Time entry) lists time entries. In **Jump to date**, bold days have time; hover briefly to see projects you can access for that day. Add time from the list or related modals; tie entries to projects and tasks when applicable. **Tenant admins** and **super users** see a **Billable** switch to the left of each entry's project and description; it saves immediately. Entries on a non-billable project stay non-billable.
 
 ## Schedule
 

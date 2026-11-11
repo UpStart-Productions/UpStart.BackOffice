@@ -87,6 +87,10 @@ export async function resolveTimeEntryBillable(
     return false;
   }
 
+  if (isBillable !== undefined) {
+    return isBillable;
+  }
+
   if (projectTaskId) {
     const task = await prisma.projectTask.findFirst({
       where: { id: projectTaskId, projectId, isActive: true },
@@ -97,5 +101,5 @@ export async function resolveTimeEntryBillable(
     return task.isBillable;
   }
 
-  return isBillable ?? true;
+  return true;
 }

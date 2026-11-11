@@ -16,6 +16,9 @@ import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { Popover } from 'primeng/popover';
+import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
 import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-directory.util';
@@ -47,6 +50,8 @@ import {
     InlineCalendarPopoverComponent,
     PeopleSelectComponent,
     TimeEntryModalComponent,
+    ToggleSwitchModule,
+    AppPopoverModule,
   ],
   templateUrl: './time-entry-list.page.html',
   styleUrl: './time-entry-list.page.scss',
@@ -70,6 +75,12 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   /** Whose timesheet is shown; defaults to the signed-in user. */
   viewUserId = signal<string>('');
   readonly viewingSelf = computed(() => !this.viewUserId() || this.viewUserId() === this.session.me()?.id);
+  /** Tenant admins and super users can flip billable on any visible entry. */
+  readonly canToggleEntryBillable = computed(() => {
+    const me = this.session.me();
+    return !!(me?.isSuper || me?.role === 'ADMIN');
+  });
+  private billableSavingIds = signal<ReadonlySet<string>>(new Set());
   asanaConnected = signal(false);
   loading = signal(true);
   importing = signal(false);
@@ -79,6 +90,16 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   selectedDay = signal(new Date());
   private loadedWeekKey = signal(dateKey(startOfWeek(new Date())));
   private readonly daysWithTime = signal<ReadonlySet<string>>(new Set());
+  /** Projects per calendar day (YYYY-MM-DD) for jump-calendar hovers; names respect project access. */
+  private readonly dayProjectsByKey = signal<ReadonlyMap<string, { id: string; name: string }[]>>(new Map());
+  private calendarMonthHintsKey = '';
+  private calendarMonthLoads = new Map<string, Promise<void>>();
+  /** Day key (YYYY-MM-DD) currently hovered on the jump calendar, if any. */
+  private calendarHoverDayKey = '';
+  readonly hoverDayProjects = signal<{ id: string; name: string }[]>([]);
+  private readonly dayProjectsPopover = viewChild<Popover>('dayProjectsPopover');
+  private dayProjectsShowTimer: ReturnType<typeof setTimeout> | null = null;
+  private dayProjectsHideTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly weekStart = computed(() => startOfWeek(this.selectedDay()));
   readonly days = computed(() => weekDays(this.weekStart()));
@@ -152,6 +173,8 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    this.cancelDayProjectsShow();
+    this.cancelDayProjectsHide();
   }
 
   private async init() {
@@ -207,6 +230,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   async onViewUserChange(id: string | null) {
     this.viewUserId.set(id || (this.session.me()?.id ?? ''));
+    this.resetCalendarProjectHints();
     await Promise.all([this.loadWeek(), this.loadDaysWithTime()]);
   }
 
@@ -236,6 +260,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
         }
       }
       this.entries.set(data);
+      this.mergeEntriesIntoDayProjects(data);
       this.loadedWeekKey.set(dateKey(startOfWeek(this.selectedDay())));
       void this.loadDaysWithTime();
     } catch (err) {
@@ -324,6 +349,173 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   hasTimeOnDate(date: { day: number; month: number; year: number }): boolean {
     return this.daysWithTime().has(dateKey(new Date(date.year, date.month, date.day)));
+  }
+
+  openJumpCalendar(event: Event, popover: InlineCalendarPopoverComponent) {
+    popover.toggle(event, event.currentTarget as HTMLElement);
+    this.mergeEntriesIntoDayProjects(this.entries());
+    void this.loadCalendarMonthProjects(this.selectedDay());
+  }
+
+  onCalendarMonthChange(event: { month: number; year: number }) {
+    void this.loadCalendarMonthProjects(new Date(event.year, event.month, 1));
+  }
+
+  onCalDayPointerEnter(event: MouseEvent, date: { day: number; month: number; year: number }) {
+    if (!this.hasTimeOnDate(date)) return;
+    this.cancelDayProjectsHide();
+    this.cancelDayProjectsShow();
+    const day = new Date(date.year, date.month, date.day);
+    const key = dateKey(day);
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLElement)) return;
+
+    this.calendarHoverDayKey = key;
+    this.dayProjectsShowTimer = setTimeout(() => {
+      this.dayProjectsShowTimer = null;
+      void this.openDayProjectsPopover(event, target, key, day);
+    }, 500);
+  }
+
+  onCalDayPointerLeave() {
+    this.calendarHoverDayKey = '';
+    this.cancelDayProjectsShow();
+    this.scheduleDayProjectsHide();
+  }
+
+  scheduleDayProjectsHide() {
+    this.cancelDayProjectsHide();
+    this.dayProjectsHideTimer = setTimeout(() => this.dayProjectsPopover()?.hide(), 120);
+  }
+
+  cancelDayProjectsHide() {
+    if (this.dayProjectsHideTimer) {
+      clearTimeout(this.dayProjectsHideTimer);
+      this.dayProjectsHideTimer = null;
+    }
+  }
+
+  cancelDayProjectsShow() {
+    if (this.dayProjectsShowTimer) {
+      clearTimeout(this.dayProjectsShowTimer);
+      this.dayProjectsShowTimer = null;
+    }
+  }
+
+  private resetCalendarProjectHints() {
+    this.calendarMonthHintsKey = '';
+    this.calendarMonthLoads.clear();
+    this.calendarHoverDayKey = '';
+    this.dayProjectsByKey.set(new Map());
+    this.hoverDayProjects.set([]);
+    this.dayProjectsPopover()?.hide();
+  }
+
+  private async openDayProjectsPopover(
+    event: MouseEvent,
+    target: HTMLElement,
+    key: string,
+    day: Date,
+  ) {
+    if (this.calendarHoverDayKey !== key) return;
+    await this.loadCalendarMonthProjects(day);
+    this.mergeEntriesIntoDayProjects(
+      this.entries().filter((e) => dateKey(new Date(e.startedAt)) === key),
+    );
+    if (this.calendarHoverDayKey !== key) return;
+
+    const projects = this.dayProjectsByKey().get(key) ?? [];
+    if (projects.length === 0) return;
+    this.hoverDayProjects.set(projects);
+    this.dayProjectsPopover()?.show(event, target);
+  }
+
+  private mergeEntriesIntoDayProjects(rows: TimeEntry[]) {
+    if (!rows.length) return;
+
+    const visibleProjectIds = new Set(this.projects().map((p) => p.id));
+    const next = new Map(this.dayProjectsByKey());
+
+    for (const e of rows) {
+      const day = dateKey(new Date(e.startedAt));
+      const bucket = new Map(
+        (next.get(day) ?? []).map((p) => [p.id || `none:${p.name}`, p] as const),
+      );
+
+      const projectId = e.project?.id;
+      if (projectId) {
+        if (!visibleProjectIds.has(projectId)) continue;
+        bucket.set(projectId, { id: projectId, name: e.project!.name });
+      } else {
+        const label = e.client?.name ?? 'No project';
+        bucket.set(`none:${label}`, { id: '', name: label });
+      }
+
+      next.set(day, [...bucket.values()].sort((a, b) => a.name.localeCompare(b.name)));
+    }
+
+    this.dayProjectsByKey.set(next);
+  }
+
+  private async loadCalendarMonthProjects(anchor: Date): Promise<void> {
+    const cacheKey = `${anchor.getFullYear()}-${anchor.getMonth()}`;
+    const inFlight = this.calendarMonthLoads.get(cacheKey);
+    if (inFlight) return inFlight;
+    if (this.calendarMonthHintsKey === cacheKey) return;
+
+    const load = this.fetchCalendarMonthProjects(anchor, cacheKey);
+    this.calendarMonthLoads.set(cacheKey, load);
+    try {
+      await load;
+    } finally {
+      this.calendarMonthLoads.delete(cacheKey);
+    }
+  }
+
+  private async fetchCalendarMonthProjects(anchor: Date, cacheKey: string) {
+    const year = anchor.getFullYear();
+    const month = anchor.getMonth();
+    const from = new Date(year, month, 1);
+    const to = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    try {
+      const rows = await this.api.get<TimeEntry[]>(
+        `/time-entries?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}${this.userQuery('&')}`,
+      );
+      const visibleProjectIds = new Set(this.projects().map((p) => p.id));
+      const byDay = new Map<string, Map<string, { id: string; name: string }>>();
+
+      for (const e of rows) {
+        const day = dateKey(new Date(e.startedAt));
+        const bucket = byDay.get(day) ?? new Map<string, { id: string; name: string }>();
+        byDay.set(day, bucket);
+
+        const projectId = e.project?.id;
+        if (projectId) {
+          if (!visibleProjectIds.has(projectId)) continue;
+          bucket.set(projectId, { id: projectId, name: e.project!.name });
+        } else {
+          const label = e.client?.name ?? 'No project';
+          bucket.set(`none:${label}`, { id: '', name: label });
+        }
+      }
+
+      const next = new Map(this.dayProjectsByKey());
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        next.delete(dateKey(new Date(year, month, d)));
+      }
+      for (const [day, projects] of byDay) {
+        next.set(
+          day,
+          [...projects.values()].sort((a, b) => a.name.localeCompare(b.name)),
+        );
+      }
+      this.dayProjectsByKey.set(next);
+      this.calendarMonthHintsKey = cacheKey;
+    } catch {
+      /* hover list is optional */
+    }
   }
 
   dayShortLabel(d: Date): string {
@@ -477,5 +669,43 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   workTaskLine(task: TimeEntryTask): string {
     return task.parent?.name ? `${task.parent.name} › ${task.name}` : task.name;
+  }
+
+  billableToggleDisabled(entry: TimeEntry): boolean {
+    return (
+      this.saving() ||
+      this.billableSavingIds().has(entry.id) ||
+      entry.project?.isBillable === false
+    );
+  }
+
+  billableToggleTitle(entry: TimeEntry): string {
+    if (entry.project?.isBillable === false) {
+      return 'This project is non-billable';
+    }
+    return entry.isBillable ? 'Billable — click to mark non-billable' : 'Non-billable — click to mark billable';
+  }
+
+  async setEntryBillable(entry: TimeEntry, isBillable: boolean) {
+    if (!this.canToggleEntryBillable() || entry.isBillable === isBillable) return;
+
+    this.billableSavingIds.update((ids) => new Set(ids).add(entry.id));
+    try {
+      const updated = await this.api.put<TimeEntry>(`/time-entries/${entry.id}`, { isBillable });
+      this.entries.update((list) => list.map((e) => (e.id === updated.id ? updated : e)));
+    } catch (err) {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Billable',
+        detail: err instanceof Error ? err.message : 'Could not update billable',
+        life: 6000,
+      });
+    } finally {
+      this.billableSavingIds.update((ids) => {
+        const next = new Set(ids);
+        next.delete(entry.id);
+        return next;
+      });
+    }
   }
 }

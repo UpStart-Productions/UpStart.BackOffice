@@ -51,7 +51,7 @@ import { resolveAssetUrl } from '../../core/asset-url.util';
         #detailPopover
         appendTo="body"
         appCenterPopoverCaret
-        styleClass="ubo-attribution-popover"
+        styleClass="ubo-dark-popover"
         (mouseenter)="cancelHideDetails()"
         (mouseleave)="scheduleHideDetails()"
       >

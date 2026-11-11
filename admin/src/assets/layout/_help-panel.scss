@@ -178,6 +178,17 @@
   align-items: center;
   justify-content: center;
   padding: 0.25rem;
+  border-radius: var(--content-border-radius, 6px);
+
+  &:focus:not(:focus-visible) {
+    outline: none;
+    box-shadow: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-500, #7c3aed);
+    outline-offset: 2px;
+  }
 }
 
 .help-drawer .help-agent-panel-icon-btn:hover:not(:disabled) {

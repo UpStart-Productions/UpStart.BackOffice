@@ -589,7 +589,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Moving between days',
-        body: 'Use the arrows for previous and next day, Jump to date to pick one, and Return to today to come back. Week total shows the whole week.',
+        body: 'Use the arrows for previous and next day, Jump to date to pick one, and Return to today to come back. Week total shows the whole week. Bold days have time; hover one for half a second to see projects you are allowed to view for that day.',
       },
       {
         heading: 'Asana tasks',
@@ -602,6 +602,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       {
         heading: 'Other people\'s time',
         body: 'If your role can see everyone\'s time, Whose timesheet switches to another person.',
+      },
+      {
+        heading: 'Billable (admins)',
+        body: 'Tenant admins and super users see a Billable switch to the left of each entry. Flip it to include or exclude that time from client invoicing; it saves immediately. Non-billable projects stay off.',
       },
     ],
   },

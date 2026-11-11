@@ -14,6 +14,7 @@ export type ProjectTask = {
 export type Project = {
   id: string;
   name: string;
+  isBillable?: boolean;
   isActive?: boolean;
   /** When true, work tasks can be picked from Task Manager for time entries. */
   inTaskManager?: boolean;

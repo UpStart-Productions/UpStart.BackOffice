@@ -177,6 +177,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
           <p-tabpanels>
             <p-tabpanel value="all">
               <app-activity-section
+                [wrapCard]="false"
                 [global]="true"
                 [clientId]="orgId()"
                 [contactId]="personId()"

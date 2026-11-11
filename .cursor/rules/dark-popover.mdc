@@ -1,0 +1,14 @@
+---
+description: Dark body-appended popover (hover details, field help)
+alwaysApply: false
+---
+
+# Dark popover (canonical)
+
+Small **dark** panels appended to `body` (audit pill, timesheet day projects, similar hover copy).
+
+- **PrimeNG:** `p-popover` + `appendTo="body"` + `appCenterPopoverCaret` (via `AppPopoverModule`).
+- **`styleClass`:** `ubo-dark-popover` only — not `ubo-attribution-popover`, not `network-flag-help-popover`.
+- **Styles:** `admin/src/assets/layout/_app.scss` (`.ubo-dark-popover`, content padding, arrow/`p-popover-flipped`, optional `.field-help-title` / `.field-help-text`).
+
+Do not add a second dark popover stylesheet or one-off `styleClass` for the same look.

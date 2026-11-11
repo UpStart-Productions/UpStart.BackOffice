@@ -35,6 +35,7 @@ import { type HelpArticle, getHelpArticle } from '../help-drawer/help-content';
       [style]="{ width: '26.5rem', top: '4.5rem', height: 'calc(100vh - 4.5rem)' }"
       [modal]="false"
       styleClass="help-drawer"
+      [closeButtonProps]="drawerCloseButtonProps"
     >
       <ng-template pTemplate="header">
         <div class="help-side-panel-header">
@@ -112,6 +113,14 @@ import { type HelpArticle, getHelpArticle } from '../help-drawer/help-content';
 export class HelpSidePanelComponent {
   protected readonly panel = inject(HelpSidePanelService);
   private readonly router = inject(Router);
+
+  /** Avoid Prime's rounded × (circular focus ring on refresh / autofocus). */
+  protected readonly drawerCloseButtonProps = {
+    severity: 'secondary' as const,
+    text: true,
+    rounded: false,
+    autofocus: false,
+  };
 
   @ViewChild('feedbackModal') private feedbackModal!: SupportFeedbackModalComponent;
 

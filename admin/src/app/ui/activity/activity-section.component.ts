@@ -26,7 +26,10 @@ function endOfDayIso(key: string): string | null {
   standalone: true,
   imports: [FormsModule, ActivityToolbarPanelComponent, ActivityTimelineComponent],
   template: `
-    <div class="activity-section">
+    <div class="activity-section" [class.card]="wrapCard()">
+      @if (wrapCard()) {
+        <h3 class="showcase-section-title mb-3">Activity</h3>
+      }
       <app-activity-toolbar-panel
         variant="full"
         [searchPlaceholder]="searchPlaceholder()"
@@ -74,6 +77,9 @@ function endOfDayIso(key: string): string | null {
 })
 export class ActivitySectionComponent implements OnInit, OnDestroy {
   private readonly comms = inject(CommunicationsApi);
+
+  /** Record pages: same white `card` panel as forms and attachments. Activity page already has an outer card. */
+  wrapCard = input(true);
 
   /** Main Activity page: global feed with optional org/person narrow. */
   global = input(false);

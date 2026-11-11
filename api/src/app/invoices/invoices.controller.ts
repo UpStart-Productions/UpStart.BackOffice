@@ -257,6 +257,7 @@ export class InvoicesController {
       include: {
         client: { select: { id: true, name: true, code: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        lineItems: { select: { projectId: true } },
       },
       orderBy: { number: 'desc' },
     });

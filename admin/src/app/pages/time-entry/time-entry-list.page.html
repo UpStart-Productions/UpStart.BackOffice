@@ -35,7 +35,7 @@
           <button
             type="button"
             class="calendar-btn"
-            (click)="datePopover.toggle($event, $event.currentTarget)"
+            (click)="openJumpCalendar($event, datePopover)"
             aria-label="Jump to date"
             aria-haspopup="dialog"
           >
@@ -47,9 +47,15 @@
               [ngModel]="selectedDay()"
               [defaultDate]="selectedDay()"
               (onSelect)="jumpToDay($event, datePopover)"
+              (onMonthChange)="onCalendarMonthChange($event)"
             >
               <ng-template #date let-date>
-                <span class="cal-day" [class.has-time]="hasTimeOnDate(date)">{{ date.day }}</span>
+                <span
+                  class="cal-day"
+                  [class.has-time]="hasTimeOnDate(date)"
+                  (mouseenter)="onCalDayPointerEnter($event, date)"
+                  (mouseleave)="onCalDayPointerLeave()"
+                >{{ date.day }}</span>
               </ng-template>
             </p-datepicker>
           </app-inline-calendar-popover>
@@ -121,19 +127,33 @@
         @if (runningEntry(); as run) {
           <article class="entry-row running">
             <div class="entry-main">
-              <h3 class="entry-project">
-                <i class="pi pi-clock entry-running-icon" aria-hidden="true"></i>
-                {{ projectTitle(run) }}
-              </h3>
-              @if (run.projectTask?.name) {
-                <p class="entry-task">{{ run.projectTask.name }}</p>
+              @if (canToggleEntryBillable()) {
+                <div class="entry-billable-toggle">
+                  <p-toggleSwitch
+                    class="small"
+                    [ngModel]="run.isBillable"
+                    (ngModelChange)="setEntryBillable(run, $event)"
+                    [disabled]="billableToggleDisabled(run)"
+                    [attr.aria-label]="run.isBillable ? 'Billable' : 'Non-billable'"
+                    [title]="billableToggleTitle(run)"
+                  />
+                </div>
               }
-              @for (t of workTasks(run); track t.id) {
-                <p class="entry-work-task">{{ workTaskLine(t) }}</p>
-              }
-              @if (run.description) {
-                <p class="entry-notes">{{ run.description }}</p>
-              }
+              <div class="entry-details">
+                <h3 class="entry-project">
+                  <i class="pi pi-clock entry-running-icon" aria-hidden="true"></i>
+                  {{ projectTitle(run) }}
+                </h3>
+                @if (run.projectTask?.name) {
+                  <p class="entry-task">{{ run.projectTask.name }}</p>
+                }
+                @for (t of workTasks(run); track t.id) {
+                  <p class="entry-work-task">{{ workTaskLine(t) }}</p>
+                }
+                @if (run.description) {
+                  <p class="entry-notes">{{ run.description }}</p>
+                }
+              </div>
             </div>
             <div class="entry-actions">
               <span class="entry-duration entry-duration-live">{{ entryDurationLabel(run) }}</span>
@@ -154,16 +174,30 @@
           @if (entry.stoppedAt) {
             <article class="entry-row">
               <div class="entry-main">
-                <h3 class="entry-project">{{ projectTitle(entry) }}</h3>
-                @if (entry.projectTask?.name) {
-                  <p class="entry-task">{{ entry.projectTask.name }}</p>
+                @if (canToggleEntryBillable()) {
+                  <div class="entry-billable-toggle">
+                    <p-toggleSwitch
+                      class="small"
+                      [ngModel]="entry.isBillable"
+                      (ngModelChange)="setEntryBillable(entry, $event)"
+                      [disabled]="billableToggleDisabled(entry)"
+                      [attr.aria-label]="entry.isBillable ? 'Billable' : 'Non-billable'"
+                      [title]="billableToggleTitle(entry)"
+                    />
+                  </div>
                 }
-                @for (t of workTasks(entry); track t.id) {
-                  <p class="entry-work-task">{{ workTaskLine(t) }}</p>
-                }
-                @if (entry.description) {
-                  <p class="entry-notes">{{ entry.description }}</p>
-                }
+                <div class="entry-details">
+                  <h3 class="entry-project">{{ projectTitle(entry) }}</h3>
+                  @if (entry.projectTask?.name) {
+                    <p class="entry-task">{{ entry.projectTask.name }}</p>
+                  }
+                  @for (t of workTasks(entry); track t.id) {
+                    <p class="entry-work-task">{{ workTaskLine(t) }}</p>
+                  }
+                  @if (entry.description) {
+                    <p class="entry-notes">{{ entry.description }}</p>
+                  }
+                </div>
               </div>
               <div class="entry-actions">
                 <span class="entry-duration">{{ entryDurationLabel(entry) }}</span>
@@ -216,6 +250,21 @@
       </div>
     }
   </div>
+
+  <p-popover
+    #dayProjectsPopover
+    appendTo="body"
+    appCenterPopoverCaret
+    styleClass="ubo-dark-popover"
+    (mouseenter)="cancelDayProjectsHide()"
+    (mouseleave)="scheduleDayProjectsHide()"
+  >
+    <ul class="timesheet-day-projects-list">
+      @for (p of hoverDayProjects(); track p.id || p.name) {
+        <li>{{ p.name }}</li>
+      }
+    </ul>
+  </p-popover>
 </app-page>
 
 <app-time-entry-modal />

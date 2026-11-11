@@ -49,8 +49,7 @@
 }
 
 .inline-calendar-popover .cal-day.has-time {
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
+  font-weight: 700;
 }
 
 // Keep PrimeNG's capped list height; hide scrollbars while scroll still works.

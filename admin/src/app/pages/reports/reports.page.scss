@@ -78,6 +78,13 @@
   font-weight: 600;
 }
 
+.report-section-title--with-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
 .report-table {
   margin-bottom: 1.5rem;
 }

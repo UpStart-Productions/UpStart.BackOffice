@@ -863,19 +863,64 @@ p-sorticon svg {
   color: rgba(255, 255, 255, 0.95);
 }
 
-.ubo-attribution-popover.p-popover {
-  --p-popover-background: #36454f;
+/* Dark hover/detail popover — record attribution, timesheet calendar, field help (see .cursor/rules/dark-popover.mdc). */
+.ubo-dark-popover.p-popover {
+  --ubo-dark-popover-bg: #36454f;
+  --p-popover-background: var(--ubo-dark-popover-bg);
   --p-popover-color: rgba(255, 255, 255, 0.95);
-  --p-popover-border-color: #36454f;
-  background: #36454f;
+  --p-popover-border-color: var(--ubo-dark-popover-bg);
+
+  width: max-content;
+  max-width: min(16rem, calc(100vw - 2rem));
+  padding: 0;
+  background: var(--ubo-dark-popover-bg) !important;
   color: rgba(255, 255, 255, 0.95);
   border: none;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+
+  &::after {
+    border-bottom-color: var(--ubo-dark-popover-bg) !important;
+  }
+
+  &.p-popover-flipped::after {
+    border-bottom-color: transparent !important;
+    border-top-color: var(--ubo-dark-popover-bg) !important;
+  }
 }
 
-.ubo-attribution-popover .p-popover-content {
-  background: #36454f;
+.ubo-dark-popover .p-popover-content {
+  background: transparent;
   color: rgba(255, 255, 255, 0.95);
   padding: 0.75rem;
+}
+
+.ubo-dark-popover .field-help-title {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  font-size: var(--fs-base);
+  color: #fff;
+}
+
+.ubo-dark-popover .field-help-text {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.timesheet-day-projects-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 16rem;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 /* Small text icon-only actions: muted grey, brand tint on hover (side panels, lists, copy, etc.). */
@@ -894,4 +939,31 @@ p-sorticon svg {
 .p-button.icon-action-btn--danger:not(:disabled):hover {
   color: var(--color-severity-danger-text, #b91c1c);
   background: var(--color-severity-danger-bg, #fee2e2);
+}
+
+/* Overlay dismiss (×): Prime uses circular buttons; mouse/autofocus :focus draws a round border. */
+.p-toast-close-button,
+.p-drawer-close-button.p-button,
+.p-dialog-close-button.p-button,
+.p-message-close-button.p-button {
+  border-radius: var(--content-border-radius, 6px) !important;
+
+  &:focus:not(:focus-visible) {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.p-drawer-close-button.p-button,
+.p-dialog-close-button.p-button,
+.p-message-close-button.p-button {
+  border: none !important;
+}
+
+.p-toast-close-button:focus-visible,
+.p-drawer-close-button.p-button:focus-visible,
+.p-dialog-close-button.p-button:focus-visible,
+.p-message-close-button.p-button:focus-visible {
+  outline: 2px solid var(--brand-primary, #7c3aed);
+  outline-offset: 2px;
 }

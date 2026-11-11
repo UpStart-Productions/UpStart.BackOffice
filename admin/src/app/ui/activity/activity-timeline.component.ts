@@ -580,7 +580,7 @@ function nowForInput(): string {
   styles: `
     .activity-header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
     .activity-header-actions { display: flex; align-items: center; gap: 0.5rem; }
-    .quick-log { display: flex; flex-direction: column; gap: 0.6rem; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--surface-border, #e5e7eb); border-radius: 0.5rem; background: var(--surface-50, #f9fafb); }
+    .quick-log { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
     .quick-log-text { display: block; background: var(--surface-0, #fff); border-radius: var(--border-radius, 6px); }
     :host ::ng-deep .quick-log-text .ql-container { border-bottom-left-radius: var(--border-radius, 6px); border-bottom-right-radius: var(--border-radius, 6px); }
     :host ::ng-deep .quick-log-text .ql-toolbar { border-top-left-radius: var(--border-radius, 6px); border-top-right-radius: var(--border-radius, 6px); background: var(--surface-0, #fff); }
