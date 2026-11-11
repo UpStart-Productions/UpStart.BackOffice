@@ -3,6 +3,8 @@
   --layout-sidebar-open-width: 16rem;
   /* Viewport inset for main column: left page gutter (2rem) + sidebar width — matches old 22rem when sidebar was 20rem. */
   --layout-main-offset-open: 18rem;
+  /* Bottom scroll padding so page content clears the floating guide avatar. */
+  --layout-help-agent-clearance: 100px;
 }
 
 body {

@@ -51,12 +51,136 @@
   }
 }
 
+.invoice-line-items-card {
+  flex: 0 0 auto;
+}
+
 .invoice-lines-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
   margin-bottom: 0.5rem;
+}
+
+/* Line grid flush with card edges; shared column tokens for table + total bar. */
+.invoice-line-items-card .invoice-lines-table-bleed {
+  --invoice-line-col-project: 15rem;
+  --invoice-line-col-qty: 6rem;
+  --invoice-line-col-rate: 7rem;
+  --invoice-line-col-amount: 5.75rem;
+  --invoice-line-col-actions: calc(2.25rem + 2rem);
+  /* Grand total: inset from card right so $ lines up with Amount column (not flush right). */
+  --invoice-line-total-inset-right: 4.0625rem;
+
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  margin: 0.75rem -2rem 0;
+
+  ::ng-deep .invoice-lines-table {
+    flex: 0 0 auto;
+    width: 100%;
+
+    .p-datatable-wrapper,
+    .p-datatable-table {
+      width: 100%;
+    }
+
+    .p-datatable-table {
+      table-layout: fixed;
+    }
+
+    col.invoice-line-project-col {
+      width: var(--invoice-line-col-project);
+    }
+
+    col.invoice-line-qty-col {
+      width: var(--invoice-line-col-qty);
+    }
+
+    col.invoice-line-rate-col {
+      width: var(--invoice-line-col-rate);
+    }
+
+    col.invoice-line-amount-col {
+      width: var(--invoice-line-col-amount);
+    }
+
+    col.invoice-line-actions-col {
+      width: var(--invoice-line-col-actions);
+    }
+
+    .p-datatable-thead > tr > th:first-child,
+    .p-datatable-tbody > tr > td:first-child {
+      padding-left: 2rem;
+    }
+
+    .invoice-line-actions-col {
+      padding-right: 2rem;
+    }
+
+    .p-datatable-tbody > tr:last-child > td {
+      border-bottom: none;
+    }
+
+    td.invoice-line-amount-col,
+    th.invoice-line-amount-col {
+      padding: var(--space-table-y) var(--space-table-x);
+      padding-right: 0.35rem;
+      font-size: var(--fs-md);
+      font-weight: 600;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      box-sizing: border-box;
+    }
+  }
+}
+
+.invoice-amount-figure {
+  display: block;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-lines-total-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: var(--invoice-line-total-inset-right);
+  border-top: 2px solid var(--surface-border);
+  background: var(--surface-card, #fff);
+  border-radius: 0 0 var(--content-border-radius) var(--content-border-radius);
+}
+
+.invoice-lines-total-amount {
+  flex: 0 0 auto;
+  padding: var(--space-table-y) var(--space-table-x);
+  padding-right: 0.35rem;
+  text-align: right;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+.invoice-line-desc-col {
+  width: auto;
+  min-width: 0;
+}
+
+.invoice-line-actions-col {
+  padding-left: 0;
+  padding-right: 2rem;
+  text-align: center;
+  vertical-align: middle;
+
+  .p-button {
+    margin: 0;
+  }
 }
 
 .invoice-project-block {
@@ -86,3 +210,42 @@
   white-space: pre-wrap;
   font-size: var(--fs-sm);
 }
+
+.invoice-line-project-col {
+  width: 15rem;
+  min-width: 15rem;
+  max-width: 15rem;
+
+  ::ng-deep .p-select {
+    width: 100%;
+  }
+}
+
+.invoice-line-qty-col {
+  width: 6rem;
+  min-width: 6rem;
+  max-width: 6rem;
+}
+
+.invoice-line-rate-col {
+  width: 7rem;
+  min-width: 7rem;
+  max-width: 7rem;
+}
+
+:host ::ng-deep .invoice-lines-table .p-datatable-thead > tr > th.invoice-line-qty-col,
+:host ::ng-deep .invoice-lines-table .p-datatable-thead > tr > th.invoice-line-rate-col {
+  text-align: center;
+}
+
+.invoice-line-qty-input,
+.invoice-line-rate-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  ::ng-deep .p-inputtext {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+

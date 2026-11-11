@@ -353,8 +353,8 @@ export class HelpAgentChatPaneComponent implements OnInit {
         this.patchAction(messageIndex, actionIndex, { status: 'failed', error: res.result });
         return;
       }
-      this.patchAction(messageIndex, actionIndex, { status: 'done' });
-      this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text: `Done. ${res.result}` }]);
+      this.patchAction(messageIndex, actionIndex, { status: 'done', resultText: res.result });
+      this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text: res.result }]);
       this.persistChat();
       this.scrollLastMessageIntoView();
     } catch (err) {

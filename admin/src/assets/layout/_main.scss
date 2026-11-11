@@ -9,7 +9,7 @@
 
 .layout-main {
   flex: 1 1 auto;
-  padding-bottom: 2rem;
+  padding-bottom: var(--layout-help-agent-clearance);
 }
 
 /* Page title inside first content card (aligns card top with menu) – used by all app pages */

@@ -17,13 +17,42 @@ export class SimpleMarkdownPipe implements PipeTransform {
   }
 }
 
-/** Same-site path for a link target, or null when it points elsewhere (or isn't a usable URL). */
+const IN_APP_PATH =
+  /^\/(tasks|projects|organizations|people|clients|contacts|invoices|pipeline|forms|dashboard|time-entry|expenses|activity|bookings|care|settings|reports|schedule)(\/|$)/;
+
+/** Normalize legacy `/tasks/projects/:id/tasks/:taskId` (and board) to `?task=` deep links. */
+export function normalizeAppLinkPath(path: string): string {
+  const hashIdx = path.indexOf('#');
+  const pathAndQuery = hashIdx >= 0 ? path.slice(0, hashIdx) : path;
+  const hash = hashIdx >= 0 ? path.slice(hashIdx) : '';
+  const qIdx = pathAndQuery.indexOf('?');
+  const pathname = qIdx >= 0 ? pathAndQuery.slice(0, qIdx) : pathAndQuery;
+  const search = qIdx >= 0 ? pathAndQuery.slice(qIdx + 1) : '';
+  const nested = pathname.match(/^\/tasks\/projects\/([^/]+)(?:\/(board))?\/tasks\/([^/]+)$/);
+  if (nested) {
+    const [, projectId, board, taskId] = nested;
+    const base = board ? `/tasks/projects/${projectId}/board` : `/tasks/projects/${projectId}`;
+    const params = new URLSearchParams(search);
+    params.set('task', taskId);
+    const qs = params.toString();
+    return `${base}${qs ? `?${qs}` : ''}${hash}`;
+  }
+  return pathAndQuery + hash;
+}
+
+/** In-app route for a link target, or null when it isn't a Back Office page. */
 export function appLinkPath(raw: string): string | null {
+  const cleaned = raw.replace(/&amp;/g, '&').trim();
   try {
-    const url = new URL(raw.replace(/&amp;/g, '&'), window.location.origin);
-    if (url.origin !== window.location.origin) return null;
-    return `${url.pathname}${url.search}${url.hash}`;
+    const url = new URL(cleaned, window.location.origin);
+    const route = `${url.pathname}${url.search}${url.hash}`;
+    if (url.origin === window.location.origin) return normalizeAppLinkPath(route);
+    if (IN_APP_PATH.test(url.pathname)) return normalizeAppLinkPath(route);
+    return null;
   } catch {
+    if (cleaned.startsWith('/') && IN_APP_PATH.test(cleaned.split(/[?#]/)[0])) {
+      return normalizeAppLinkPath(cleaned);
+    }
     return null;
   }
 }

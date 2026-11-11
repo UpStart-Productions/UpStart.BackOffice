@@ -47,6 +47,7 @@ export const HELP_AGENT_WRITE_TOOLS: Readonly<Record<string, { title: string; co
   update_person: { title: 'Update person', confirm: 'Save' },
   link_person_to_organization: { title: 'Link person to organization', confirm: 'Link' },
   unlink_person_from_organization: { title: 'Unlink person from organization', confirm: 'Unlink' },
+  add_person_to_project: { title: 'Add person to project', confirm: 'Add' },
   create_task: { title: 'Create task', confirm: 'Create' },
   create_tasks: { title: 'Create tasks', confirm: 'Create' },
   update_task: { title: 'Update task', confirm: 'Save' },

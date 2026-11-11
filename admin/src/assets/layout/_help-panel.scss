@@ -305,6 +305,7 @@
   padding: 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--content-border-radius);
+  background: var(--surface-card, #fff);
 }
 
 .help-drawer .help-agent-action-head {
@@ -327,8 +328,19 @@
   overflow-wrap: anywhere;
 }
 
+.help-drawer .help-agent-action .p-message {
+  display: block;
+  margin: 0 0 0.75rem;
+}
+
 .help-drawer .help-agent-action-buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.help-drawer .help-agent-action-result {
+  margin: 0 0 0.25rem;
+  font-size: var(--fs-base);
+  line-height: 1.5;
 }

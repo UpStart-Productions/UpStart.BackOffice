@@ -1,4 +1,5 @@
 import { Component, computed, input, output, signal } from '@angular/core';
+import { SimpleMarkdownPipe } from '../../core/simple-markdown.pipe';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,6 +16,8 @@ export interface HelpAgentAction {
   args: Record<string, unknown>;
   status: 'pending' | 'running' | 'done' | 'cancelled' | 'failed';
   error?: string;
+  /** Markdown from MCP after a successful create/update (includes record link). */
+  resultText?: string;
 }
 
 type FieldKind = 'text' | 'list' | 'bool' | 'items';
@@ -61,7 +64,7 @@ function itemSummary(item: unknown): string {
 @Component({
   selector: 'app-help-agent-action-card',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, TagModule, ToggleSwitchModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, MessageModule, TagModule, ToggleSwitchModule, SimpleMarkdownPipe],
   template: `
     <div class="help-agent-action">
       <div class="help-agent-action-head">
@@ -100,6 +103,10 @@ function itemSummary(item: unknown): string {
 
       @if (action().status === 'failed' && action().error) {
         <p-message severity="error" size="small" [text]="action().error!" />
+      }
+
+      @if (action().status === 'done' && action().resultText) {
+        <div class="help-agent-action-result" [innerHTML]="action().resultText | simpleMarkdown: 'appLinks'"></div>
       }
 
       @if (action().status === 'pending' || action().status === 'running' || action().status === 'failed') {

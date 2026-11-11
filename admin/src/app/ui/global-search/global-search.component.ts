@@ -330,8 +330,8 @@ export class GlobalSearchComponent {
         return `/projects/${item.id}`;
       case 'task':
         return item.projectId
-          ? `/tasks/projects/${item.projectId}/tasks/${item.id}`
-          : '/tasks';
+          ? `/tasks/projects/${item.projectId}?task=${item.id}`
+          : `/tasks?task=${item.id}`;
       case 'timeEntry':
         return '/time-entry';
       case 'expense':

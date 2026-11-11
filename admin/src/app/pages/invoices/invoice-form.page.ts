@@ -29,6 +29,7 @@ import {
   RowActionsMenuComponent,
   type RowActionItem,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { DecimalInputComponent } from '../../ui/decimal-input/decimal-input.component';
 
 type Client = { id: string; name: string };
 type Project = { id: string; name: string; clientId: string | null };
@@ -79,6 +80,49 @@ type InvoicePreview = {
 
 type LineItemRow = { item: LineItem; index: number };
 
+/**
+ * DEV ONLY — remove when done tweaking invoice line UI.
+ * Pre-fills the new-invoice form under `ngDevMode` so you do not need to generate lines each time.
+ */
+const INVOICE_FORM_DEV_SEED_LINES: readonly LineItem[] = [
+  {
+    projectId: null,
+    description: 'Discovery workshop and requirements',
+    quantity: 3,
+    unitPrice: 125,
+    amount: 375,
+    timeEntryIds: [],
+    expenseIds: [],
+  },
+  {
+    projectId: null,
+    description: 'Homepage layout and responsive pass',
+    quantity: 6.5,
+    unitPrice: 110,
+    amount: 715,
+    timeEntryIds: [],
+    expenseIds: [],
+  },
+  {
+    projectId: null,
+    description: 'CMS training session',
+    quantity: 1.5,
+    unitPrice: 95,
+    amount: 142.5,
+    timeEntryIds: [],
+    expenseIds: [],
+  },
+  {
+    projectId: null,
+    description: 'Launch checklist and handoff',
+    quantity: 2,
+    unitPrice: 85,
+    amount: 170,
+    timeEntryIds: [],
+    expenseIds: [],
+  },
+];
+
 @Component({
   selector: 'app-invoice-form-page',
   standalone: true,
@@ -96,9 +140,11 @@ type LineItemRow = { item: LineItem; index: number };
     DateInputComponent,
     RecordAttributionComponent,
     RowActionsMenuComponent,
+    DecimalInputComponent,
   ],
   templateUrl: './invoice-form.page.html',
   styleUrl: './invoice-form.page.scss',
+  host: { class: 'invoice-form-page' },
 })
 export class InvoiceFormPage implements OnInit {
   private readonly api = inject(ApiService);
@@ -278,6 +324,10 @@ export class InvoiceFormPage implements OnInit {
       // Roles limited to their own invoices (e.g. caregivers) usually bill the organization; so does anyone with no clients.
       const ownOnly = areaLevel(this.session.me(), 'invoices') === 'own';
       if (ownOnly || clients.length === 0) await this.onBillToChange('TENANT');
+      if (typeof ngDevMode !== 'undefined' && ngDevMode) {
+        this.lineItems.set(INVOICE_FORM_DEV_SEED_LINES.map((li) => ({ ...li })));
+        this.savedSnapshot = this.snapshot();
+      }
     }
     this.loading.set(false);
   }

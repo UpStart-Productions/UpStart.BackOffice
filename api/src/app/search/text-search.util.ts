@@ -42,7 +42,6 @@ export function contactTextOr(q: string, linkedClientIdsFromCatalog: string[]) {
     { title: ic },
     { phone: ic },
     { emails: { some: { email: { contains: q.toLowerCase() } } } },
-    { tags: { some: { tag: { name: ic, scope: 'CRM' as const } } } },
     { accountLinks: { some: { client: { name: ic } } } },
     ...(linkedClientIdsFromCatalog.length
       ? [{ accountLinks: { some: { clientId: { in: linkedClientIdsFromCatalog } } } }]

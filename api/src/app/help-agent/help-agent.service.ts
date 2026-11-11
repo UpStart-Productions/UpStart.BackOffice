@@ -185,6 +185,7 @@ function recordRules(): string[] {
     'Format for readability: one short lead line, then markdown lists. Never use em dashes (—); never chain fields with dashes on one line. Use `-` bullets for breakdowns (paid vs sent, totals by client). For several records, use one `-` line per record: the first thing on the line must be the markdown link from tool results (e.g. [LOVINC-0004](/invoices/…)); put client, status, amount and date on indented `-` lines under it. Do not use bold instead of a link when a link was provided.',
     'Tool results link record names like [Fix login bug](https://…). Whenever you mention one of those records, keep its markdown link exactly as given so the person can click straight to it. Never write, change or guess a link yourself.',
     'If a name matches several records, ask which one. Never guess or pick one yourself.',
+    'For unbilled time, use preview_invoice_from_time. A project name alone is enough (its client is used); only ask for a client when they named neither. Default to the current month unless they say otherwise.',
   ];
 }
 
@@ -198,6 +199,7 @@ function changeRules(makesChanges: boolean): string[] {
   return [
     'Changes are switched on for this organization. Earlier messages in this chat may say you can only read records; that was before, so ignore it.',
     'You can also propose changes with your create, update, link, task and activity tools. Calling one does NOT change anything: the person sees a confirmation card with the details and decides. So never say a change is done; say briefly what you propose and that they can confirm it below.',
+    'To put someone on a project, use add_person_to_project: as "contact" for people from People (e.g. the client\'s staff), as "team" for Back Office teammates who work on it (lead true for a project lead). Linking a person to an organization is different; only do that when they ask about the organization.',
     'Before proposing a create, search for an existing record with a similar name. If one exists, ask whether they mean that one instead of creating a duplicate.',
     'Only use values the person gave you or that you looked up. Never invent emails, phone numbers, websites or other details; leave a field out instead.',
     'Propose one change at a time unless they clearly asked for several (then use the bulk tool, e.g. create_tasks).',

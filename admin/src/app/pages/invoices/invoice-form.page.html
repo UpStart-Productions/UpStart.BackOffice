@@ -182,7 +182,7 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card invoice-line-items-card">
           <div class="invoice-lines-header">
             <h4 class="showcase-section-title mb-0">Line items <app-help-text key="invoice.lineItems" /></h4>
             <p-button
@@ -197,23 +197,39 @@
           @if (lineItems().length === 0) {
             <p class="text-sm text-muted mt-3">No line items yet.</p>
           } @else {
-            <p-table [value]="lineItemRows()" styleClass="table-bordered mt-3">
+            <div
+              class="invoice-lines-table-bleed"
+              [class.invoice-lines-table-bleed--no-project]="hideLineProjectColumn"
+            >
+            <p-table [value]="lineItemRows()" styleClass="table-bordered invoice-lines-table">
+              <ng-template pTemplate="colgroup">
+                <colgroup>
+                  @if (!hideLineProjectColumn) {
+                    <col class="invoice-line-project-col" />
+                  }
+                  <col class="invoice-line-desc-col" />
+                  <col class="invoice-line-qty-col" />
+                  <col class="invoice-line-rate-col" />
+                  <col class="invoice-line-amount-col" />
+                  <col class="invoice-line-actions-col" />
+                </colgroup>
+              </ng-template>
               <ng-template pTemplate="header">
                 <tr>
                   @if (!hideLineProjectColumn) {
-                    <th style="width: 160px">Project</th>
+                    <th class="invoice-line-project-col">Project</th>
                   }
-                  <th>Description</th>
-                  <th style="width: 7.5rem">Qty/Hrs</th>
-                  <th style="width: 8rem">Rate</th>
-                  <th style="width: 100px">Amount</th>
-                  <th style="width: 40px"></th>
+                  <th class="invoice-line-desc-col">Description</th>
+                  <th class="invoice-line-qty-col">Qty/Hrs</th>
+                  <th class="invoice-line-rate-col">Rate</th>
+                  <th class="invoice-line-amount-col">Amount</th>
+                  <th class="col-actions invoice-line-actions-col" aria-hidden="true"></th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-row>
                 <tr>
                   @if (!hideLineProjectColumn) {
-                    <td>
+                    <td class="invoice-line-project-col">
                       <p-select
                         [options]="filteredProjects()"
                         optionLabel="name"
@@ -226,7 +242,7 @@
                       />
                     </td>
                   }
-                  <td>
+                  <td class="invoice-line-desc-col">
                     <textarea
                       pTextarea
                       [(ngModel)]="row.item.description"
@@ -234,27 +250,32 @@
                       rows="3"
                     ></textarea>
                   </td>
-                  <td>
-                    <input
-                      pInputText
-                      type="number"
+                  <td class="invoice-line-qty-col">
+                    <app-decimal-input
                       [(ngModel)]="row.item.quantity"
                       (ngModelChange)="calcLine(row.item)"
-                      class="w-full"
-                      step="0.01"
+                      [updateWhileTyping]="true"
+                      [emptyAsZero]="true"
+                      [showEmptyWhenZero]="true"
+                      [maxFractionDigits]="2"
+                      styleClass="w-full invoice-line-qty-input"
                     />
                   </td>
-                  <td>
-                    <input
-                      pInputText
-                      type="number"
+                  <td class="invoice-line-rate-col">
+                    <app-decimal-input
                       [(ngModel)]="row.item.unitPrice"
                       (ngModelChange)="calcLine(row.item)"
-                      class="w-full"
+                      [updateWhileTyping]="true"
+                      [emptyAsZero]="true"
+                      [showEmptyWhenZero]="true"
+                      [maxFractionDigits]="2"
+                      styleClass="w-full invoice-line-rate-input"
                     />
                   </td>
-                  <td class="text-right font-semibold">{{ formatCurrency(row.item.amount) }}</td>
-                  <td>
+                  <td class="invoice-line-amount-col">
+                    <span class="invoice-amount-figure">{{ formatCurrency(row.item.amount) }}</span>
+                  </td>
+                  <td class="col-actions invoice-line-actions-col">
                     <p-button
                       icon="pi pi-trash"
                       [text]="true"
@@ -267,13 +288,9 @@
                 </tr>
               </ng-template>
             </p-table>
-
-            <div class="flex justify-end gap-4 text-sm mt-4">
-              <span>Subtotal: <strong>{{ formatCurrency(subtotal) }}</strong></span>
-              @if (form.taxRate) {
-                <span>Tax: <strong>{{ formatCurrency(taxAmount) }}</strong></span>
-              }
-              <span>Total: <strong>{{ formatCurrency(total) }}</strong></span>
+            <div class="invoice-lines-total-bar" role="status" aria-label="Invoice total">
+              <div class="invoice-lines-total-amount invoice-amount-figure">{{ formatCurrency(total) }}</div>
+            </div>
             </div>
           }
         </div>
