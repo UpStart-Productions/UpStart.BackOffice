@@ -15,6 +15,8 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
+import { loadListSearch, saveListSearch } from '../../core/list-view-prefs.util';
 import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -53,7 +55,12 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
       <div class="card">
         <div class="toolbar">
           <div class="toolbar-search">
-            <app-toolbar-search-field placeholder="Search forms…" ariaLabel="Search forms" [(ngModel)]="query" />
+            <app-toolbar-search-field
+              placeholder="Search forms…"
+              ariaLabel="Search forms"
+              [ngModel]="query"
+              (ngModelChange)="onSearchChange($event)"
+            />
           </div>
         </div>
         <p-table [value]="filtered()" [loading]="loading()" styleClass="table-bordered" [paginator]="filtered().length > 50" [rows]="50">
@@ -157,7 +164,13 @@ export class FormsPage implements OnInit {
     return q ? this.items().filter((f) => f.name.toLowerCase().includes(q)) : this.items();
   }
 
+  onSearchChange(value: string) {
+    this.query = value;
+    saveListSearch(this.session, LIST_VIEW_KEYS.forms, value);
+  }
+
   async ngOnInit() {
+    this.query = loadListSearch(this.session, LIST_VIEW_KEYS.forms);
     await this.load();
   }
 

@@ -92,7 +92,7 @@ export type OrganizationImportResult = {
           <ng-template pTemplate="body" let-row>
             <tr>
               <td>{{ row.name }}</td>
-              <td>{{ row.email || '—' }}</td>
+              <td>{{ row.email }}</td>
               <td>{{ journeyLabel(row.journey) }}</td>
             </tr>
           </ng-template>

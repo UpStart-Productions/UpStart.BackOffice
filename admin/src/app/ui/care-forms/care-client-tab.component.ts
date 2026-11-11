@@ -64,7 +64,7 @@ const RECENT_VISITS = 10;
                   <th>Date</th>
                   <th>Worker</th>
                   <th>Time</th>
-                  <th>Duration</th>
+                  <th class="col-numeric">Duration</th>
                   <th>Status</th>
                 </tr>
               </ng-template>
@@ -73,7 +73,7 @@ const RECENT_VISITS = 10;
                   <td><a [routerLink]="['/care/visits', v.id]" class="text-primary">{{ v.startedAt | date: 'EEE, MMM d' }}</a></td>
                   <td>{{ v.worker.name }}</td>
                   <td>{{ v.startedAt | date: 'h:mm a' }}@if (v.endedAt) { – {{ v.endedAt | date: 'h:mm a' }}}</td>
-                  <td>{{ duration(v.durationMin) }}</td>
+                  <td class="col-numeric">{{ duration(v.durationMin) }}</td>
                   <td>
                     @if (v.status === 'IN_PROGRESS') {
                       <p-tag value="In progress" severity="info" />

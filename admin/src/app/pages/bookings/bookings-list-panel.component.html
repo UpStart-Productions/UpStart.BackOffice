@@ -14,7 +14,7 @@
         optionLabel="name"
         optionValue="id"
         [(ngModel)]="filterTypeId"
-        (ngModelChange)="load()"
+        (ngModelChange)="onFilterTypeChange($event)"
         [showClear]="true"
         placeholder="All types"
         styleClass="w-full"
@@ -46,20 +46,18 @@
           <app-row-actions-menu [items]="getRowActions(row)" ariaLabel="Booking actions" />
         </td>
         <td>{{ formatWhen(row.startAt) }}</td>
-        <td>{{ row.bookingType?.name ?? '—' }}</td>
+        <td>{{ row.bookingType?.name }}</td>
         <td>
           <div>{{ row.guestName }}</div>
           <div class="text-color-secondary text-sm">{{ row.guestEmail }}</div>
         </td>
-        <td>{{ row.guestOrg ?? '—' }}</td>
+        <td>{{ row.guestOrg }}</td>
         <td>
           <p-tag [value]="row.status" [severity]="statusSeverity(row.status)" />
         </td>
         <td>
           @if (row.lead) {
             <a [routerLink]="['/pipeline', row.lead.id]">{{ row.lead.organization }}</a>
-          } @else {
-            —
           }
         </td>
       </tr>

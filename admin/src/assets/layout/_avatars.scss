@@ -1,0 +1,49 @@
+// Canonical user avatar chrome (sm | med | lg). See .cursor/rules/avatar-sizes.mdc.
+
+.ubo-avatar {
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: 600;
+  box-sizing: border-box;
+
+  &--sm {
+    width: var(--avatar-size-sm);
+    height: var(--avatar-size-sm);
+    font-size: calc(var(--avatar-size-sm) * 0.4);
+  }
+
+  &--med {
+    width: var(--avatar-size-med);
+    height: var(--avatar-size-med);
+    font-size: calc(var(--avatar-size-med) * 0.4);
+  }
+
+  &--lg {
+    width: var(--avatar-size-lg);
+    height: var(--avatar-size-lg);
+    font-size: calc(var(--avatar-size-lg) * 0.4);
+  }
+}
+
+.ubo-avatar--empty {
+  border: 1px dashed color-mix(in srgb, var(--text-color-secondary, #6b7280) 70%, transparent);
+  color: var(--text-color-secondary, #6b7280);
+  background: transparent;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+
+  &.ubo-avatar--sm .pi {
+    font-size: calc(var(--avatar-size-sm) * 0.45);
+  }
+  &.ubo-avatar--med .pi {
+    font-size: calc(var(--avatar-size-med) * 0.45);
+  }
+  &.ubo-avatar--lg .pi {
+    font-size: calc(var(--avatar-size-lg) * 0.45);
+  }
+}

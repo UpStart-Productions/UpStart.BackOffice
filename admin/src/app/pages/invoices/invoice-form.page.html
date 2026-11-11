@@ -108,14 +108,15 @@
           </div>
           <div class="form-field showcase-full">
             <label for="notes">Notes</label>
-            <quill-editor
+            <app-quill-editor
               id="notes"
               name="notes"
               [(ngModel)]="form.notes"
+              [mentionClientId]="form.clientId || null"
               placeholder="Invoice notes…"
               [styles]="{ 'min-height': '120px' }"
               (onEditorCreated)="onNotesEditor($event)"
-            ></quill-editor>
+            ></app-quill-editor>
           </div>
         </div>
       </div>
@@ -220,9 +221,9 @@
                     <th class="invoice-line-project-col">Project</th>
                   }
                   <th class="invoice-line-desc-col">Description</th>
-                  <th class="invoice-line-qty-col">Qty/Hrs</th>
-                  <th class="invoice-line-rate-col">Rate</th>
-                  <th class="invoice-line-amount-col">Amount</th>
+                  <th class="col-numeric invoice-line-qty-col">Qty/Hrs</th>
+                  <th class="col-numeric invoice-line-rate-col">Rate</th>
+                  <th class="col-numeric invoice-line-amount-col">Amount</th>
                   <th class="col-actions invoice-line-actions-col" aria-hidden="true"></th>
                 </tr>
               </ng-template>
@@ -235,7 +236,7 @@
                         optionLabel="name"
                         optionValue="id"
                         [(ngModel)]="row.item.projectId"
-                        placeholder="—"
+                        placeholder="Select project"
                         [showClear]="true"
                         styleClass="w-full"
                         appendTo="body"
@@ -250,7 +251,7 @@
                       rows="3"
                     ></textarea>
                   </td>
-                  <td class="invoice-line-qty-col">
+                  <td class="col-numeric invoice-line-qty-col">
                     <app-decimal-input
                       [(ngModel)]="row.item.quantity"
                       (ngModelChange)="calcLine(row.item)"
@@ -261,7 +262,7 @@
                       styleClass="w-full invoice-line-qty-input"
                     />
                   </td>
-                  <td class="invoice-line-rate-col">
+                  <td class="col-numeric invoice-line-rate-col">
                     <app-decimal-input
                       [(ngModel)]="row.item.unitPrice"
                       (ngModelChange)="calcLine(row.item)"
@@ -272,7 +273,7 @@
                       styleClass="w-full invoice-line-rate-input"
                     />
                   </td>
-                  <td class="invoice-line-amount-col">
+                  <td class="col-numeric invoice-line-amount-col">
                     <span class="invoice-amount-figure">{{ formatCurrency(row.item.amount) }}</span>
                   </td>
                   <td class="col-actions invoice-line-actions-col">

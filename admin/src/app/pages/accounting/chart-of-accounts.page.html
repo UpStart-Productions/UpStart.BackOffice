@@ -46,7 +46,7 @@
           <th style="width: 90px">Code</th>
           <th>Name</th>
           <th style="width: 130px">Type</th>
-          <th style="width: 130px" class="text-right">Balance</th>
+          <th style="width: 130px" class="col-numeric">Balance</th>
           <th style="width: 100px">Status</th>
           <th style="width: 140px"></th>
         </tr>
@@ -62,7 +62,7 @@
             }
           </td>
           <td><p-tag [value]="account.type" [severity]="typeSeverity(account.type)" /></td>
-          <td class="text-right">{{ formatCurrency(account.balance) }}</td>
+          <td class="col-numeric">{{ formatCurrency(account.balance) }}</td>
           <td>
             <p-tag
               [value]="account.isActive ? 'Active' : 'Inactive'"

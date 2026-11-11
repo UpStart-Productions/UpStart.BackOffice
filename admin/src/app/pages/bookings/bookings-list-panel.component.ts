@@ -6,6 +6,10 @@ import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
+import { listViewFilterString, readListViewPrefs } from '../../core/list-view-prefs.storage';
+import { saveListFilter } from '../../core/list-view-prefs.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import {
   RowActionItem,
@@ -43,6 +47,7 @@ type BookingRow = {
 export class BookingsListPanelComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
 
   bookings = signal<BookingRow[]>([]);
   types = signal<BookingTypeOption[]>([]);
@@ -51,7 +56,16 @@ export class BookingsListPanelComponent implements OnInit {
   error = signal<string | null>(null);
 
   async ngOnInit() {
+    const prefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.bookings);
+    const typeId = listViewFilterString(prefs, 'bookingTypeId');
+    if (typeId) this.filterTypeId = typeId;
     await Promise.all([this.loadTypes(), this.load()]);
+  }
+
+  onFilterTypeChange(typeId: string | null) {
+    this.filterTypeId = typeId ?? '';
+    saveListFilter(this.session, LIST_VIEW_KEYS.bookings, 'bookingTypeId', typeId);
+    void this.load();
   }
 
   async loadTypes() {

@@ -24,6 +24,8 @@ import { QuillFileUploadService } from './core/quill-file-upload.service';
 import { quillFileUploadInitializer } from './core/quill-file-upload.initializer';
 import { QuillImageUploadService } from './core/quill-image-upload.service';
 import { quillImageUploadInitializer } from './core/quill-image-upload.initializer';
+import { quillPasteInitializer } from './core/quill-paste.initializer';
+import { QuillPasteService } from './core/quill-paste.service';
 
 const UpStartPreset = definePreset(Aura, {
   components: {
@@ -150,6 +152,12 @@ export const appConfig: ApplicationConfig = {
       provide: APP_INITIALIZER,
       useFactory: quillFileUploadInitializer,
       deps: [QuillFileUploadService, QuillService],
+      multi: true,
+    },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: quillPasteInitializer,
+      deps: [QuillPasteService, QuillService],
       multi: true,
     },
     provideQuillConfig({

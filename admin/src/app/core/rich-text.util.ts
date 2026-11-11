@@ -1,4 +1,4 @@
-import { quillHtmlToBreakable } from './quill-utils';
+import { dedupeQuillMentionGhostText, quillHtmlToBreakable } from './quill-utils';
 
 /** True when a Quill/HTML value has no visible text. */
 export function isEmptyRichText(value: string | null | undefined): boolean {
@@ -14,5 +14,5 @@ export function isEmptyRichText(value: string | null | undefined): boolean {
 export function richTextOrUndefined(value: string | null | undefined): string | undefined {
   if (isEmptyRichText(value)) return undefined;
   const html = value as string;
-  return quillHtmlToBreakable(html).trim();
+  return dedupeQuillMentionGhostText(quillHtmlToBreakable(html).trim());
 }

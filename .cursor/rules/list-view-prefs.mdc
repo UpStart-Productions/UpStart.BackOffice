@@ -1,0 +1,34 @@
+---
+description: Persist list view search, sort, and filters in localStorage
+globs: admin/src/app/pages/**/*list*.{ts,html},admin/src/app/pages/**/activity*.ts,admin/src/app/ui/activity/activity-section.component.ts
+alwaysApply: false
+---
+
+# List view preferences
+
+Every **list view** (table lists, Activity feed toolbar, bookings panels, form submissions) must restore and save:
+
+- **Search** (toolbar field)
+- **Sort** (`p-table` column sort or explicit sort control)
+- **Filters** (dropdowns, toggles, period, tabs when they filter the list)
+
+Use `admin/src/app/core/list-view-prefs.storage.ts` and `list-view-prefs.util.ts`. Keys live in `LIST_VIEW_KEYS` (or `form-submissions:{formId}` / `activity-feed:{context}`).
+
+## Per user
+
+Scope with `session.me()?.id` — same pattern as `nav-prefs.storage.ts`.
+
+## Implementation
+
+1. **On init** — `readListViewPrefs` → apply search, `sortField`/`sortOrder`, and `filters` before first load.
+2. **On change** — `saveListSearch`, `onTableSortSave`, or `saveListFilter` / `patchListViewPrefs`.
+3. **PrimeNG tables** — bind `[sortField]` / `[sortOrder]` from component state; `(onSort)` calls `onTableSortSave`.
+
+## URL query params
+
+When a list already syncs filters to the URL (Organizations, People, Activity), **still** write localStorage on change. On visit with **no** relevant query params, restore from localStorage (URL deep links override when params are present).
+
+## Do not
+
+- One-off `localStorage` keys per page (e.g. migrate `ubo-projects-show-inactive` into list prefs `filters.showInactive`).
+- Reset Activity feed toolbar to defaults on context change without loading that context’s saved prefs.

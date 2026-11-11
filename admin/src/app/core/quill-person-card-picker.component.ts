@@ -29,7 +29,7 @@ import type { QuillPersonCardPick } from './quill-person-card.types';
           @for (p of filtered(); track p.contactId) {
             <li role="presentation">
               <button type="button" class="mention-suggest-item" (click)="choose(p, $event)" role="option">
-                <div class="mention-suggest-item__avatar">
+                <div class="mention-suggest-item__avatar ubo-avatar ubo-avatar--med">
                   @if (photo(p); as src) {
                     <img [src]="src" alt="" />
                   } @else {

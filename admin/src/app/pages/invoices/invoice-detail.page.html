@@ -109,20 +109,20 @@
                 <th style="width: 160px">Project</th>
               }
               <th>Description</th>
-              <th class="invoice-detail-num-col">Qty/Hrs</th>
-              <th class="invoice-detail-num-col">Rate</th>
-              <th class="invoice-detail-num-col">Amount</th>
+              <th class="col-numeric invoice-detail-num-col">Qty/Hrs</th>
+              <th class="col-numeric invoice-detail-num-col">Rate</th>
+              <th class="col-numeric invoice-detail-num-col">Amount</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-li>
             <tr>
               @if (showProjectColumn) {
-                <td>{{ li.project?.name || '—' }}</td>
+                <td>{{ li.project?.name }}</td>
               }
               <td>{{ li.description }}</td>
-              <td class="invoice-detail-num-col">{{ li.quantity }}</td>
-              <td class="invoice-detail-num-col">{{ formatAmount(li.unitPrice) }}</td>
-              <td class="invoice-detail-num-col font-semibold">{{ formatAmount(li.amount) }}</td>
+              <td class="col-numeric invoice-detail-num-col">{{ li.quantity }}</td>
+              <td class="col-numeric invoice-detail-num-col">{{ formatAmount(li.unitPrice) }}</td>
+              <td class="col-numeric invoice-detail-num-col font-semibold">{{ formatAmount(li.amount) }}</td>
             </tr>
           </ng-template>
         </p-table>

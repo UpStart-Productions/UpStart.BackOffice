@@ -184,7 +184,7 @@ type SendRecipients = {
                   <ng-template #selectedItem let-option>
                     @if (option) {
                       <div class="invoice-send-contact-option invoice-send-contact-option--selected">
-                        <app-person [name]="option.contactName || option.email" [email]="option.email" [personId]="option.email" [size]="22" />
+                        <app-person [name]="option.contactName || option.email" [email]="option.email" [personId]="option.email" size="sm" />
                         <app-copy-email
                           [email]="option.email"
                           [muted]="true"
@@ -195,7 +195,7 @@ type SendRecipients = {
                   </ng-template>
                   <ng-template #item let-option>
                     <div class="invoice-send-contact-option">
-                      <app-person [name]="option.contactName || 'Project contact'" [email]="option.email" [personId]="option.email" [size]="22" />
+                      <app-person [name]="option.contactName || 'Project contact'" [email]="option.email" [personId]="option.email" size="sm" />
                       <app-copy-email
                         [email]="option.email"
                         [muted]="true"

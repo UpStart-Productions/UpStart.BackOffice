@@ -71,7 +71,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
     >
       <ng-template #item let-option>
         <div class="people-select-option">
-          <app-tm-avatar [person]="avatarPerson(option)" [size]="32" [showTitle]="false" />
+          <app-tm-avatar [person]="avatarPerson(option)" size="med" [showTitle]="false" />
           <span class="people-select-option-text">
             <span class="people-select-option-name">{{ option.label }}</span>
             <span class="people-select-option-email">{{ option.email || 'No email on file' }}</span>
@@ -81,7 +81,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
       <ng-template #selectedItem let-option>
         @if (option) {
           <div class="people-select-selected">
-            <app-tm-avatar [person]="avatarPerson(option)" [size]="24" [showTitle]="false" />
+            <app-tm-avatar [person]="avatarPerson(option)" size="sm" [showTitle]="false" />
             <span class="people-select-selected-label">{{ option.label }}</span>
           </div>
         }

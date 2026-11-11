@@ -1,0 +1,15 @@
+---
+description: Do not use em dash as empty cell / missing-data placeholder
+globs: admin/src/**/*.{ts,html}
+alwaysApply: false
+---
+
+# No em dash (`—`) for empty UI
+
+Do **not** show `—` (or `--`) when a list cell, table field, tag column, or stat has no value. Leave the cell **blank**.
+
+- Tables: `{{ value }}` or conditional blocks — not `?? '—'` / `|| '—'`.
+- Tag chips: `@empty` shows nothing (see `app-tag-chip-list`).
+- Task Manager empty custom fields: empty `.tm-cell-placeholder` (no character).
+- Select placeholders: use helpful text (e.g. “Select project”) or omit `placeholder`, not `—`.
+- Prose, titles, and labels may still use an em dash in running copy (e.g. “Bookings — Type name”).

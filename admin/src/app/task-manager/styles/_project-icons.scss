@@ -54,16 +54,8 @@
 }
 
 .mention-suggest-item__avatar {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
-  flex-shrink: 0;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-  height: 1.75rem;
-  justify-content: center;
   overflow: hidden;
-  width: 1.75rem;
+  font-weight: 700;
 
   img {
     display: block;

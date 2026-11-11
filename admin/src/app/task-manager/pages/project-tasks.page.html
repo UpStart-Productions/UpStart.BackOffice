@@ -53,7 +53,7 @@
             appendTo="body"
             [attr.aria-label]="memberDisplayName(m) || 'Project member'"
           >
-            <app-tm-avatar [person]="m" [size]="26" [showTitle]="false" />
+            <app-tm-avatar [person]="m" size="med" [showTitle]="false" />
           </span>
         }
         @if (p.members.length > 4) { <span class="tm-member-more">+{{ p.members.length - 4 }}</span> }
@@ -171,7 +171,7 @@
                   @if (t.assignee || t.dueOn || t.tags.length) {
                     <div class="tm-board-card-meta">
                       @if (t.assignee) {
-                        <app-tm-avatar [person]="t.assignee" [size]="22" />
+                        <app-tm-avatar [person]="t.assignee" size="sm" />
                       }
                       @if (t.dueOn) {
                         <span class="tm-board-card-due" [attr.data-tone]="dueTone(t.dueOn, t.isCompleted)">{{ dueLabel(t.dueOn) }}</span>
@@ -339,7 +339,7 @@
                   </div>
                   <div class="tm-grid-cell" role="gridcell">
                     <button type="button" class="tm-cell-btn" (click)="openAssignee($event, t)" [disabled]="!canEdit()">
-                      <app-tm-avatar [person]="t.assignee" [size]="22" />
+                      <app-tm-avatar [person]="t.assignee" size="sm" />
                       @if (t.assignee) { <span class="tm-cell-text">{{ t.assignee.firstName || t.assignee.name }}</span> }
                     </button>
                   </div>

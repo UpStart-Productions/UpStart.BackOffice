@@ -12,7 +12,7 @@ import { RecordAttributionComponent } from '../../ui/record-attribution/record-a
 import { SessionService } from '../../core/session.service';
 import { TableModule } from 'primeng/table';
 import { MessageService } from 'primeng/api';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ApiService } from '../../core/api.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
@@ -135,7 +135,7 @@ const INVOICE_FORM_DEV_SEED_LINES: readonly LineItem[] = [
     SelectModule,
     SelectButtonModule,
     TableModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     PageComponent,
     DateInputComponent,
     RecordAttributionComponent,

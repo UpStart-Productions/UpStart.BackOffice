@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDragPreview, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -49,7 +49,7 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
     SelectModule,
     TextareaModule,
     TooltipModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     CdkDropList,
     CdkDrag,
     CdkDragHandle,
@@ -181,7 +181,7 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
     <p-dialog [header]="editingText ? 'Edit text block' : 'Add text block'" [(visible)]="textVisible" [modal]="true" [style]="{ width: 'min(40rem, 96vw)' }">
       <p class="mt-0 text-color-secondary">Text people read, not a question: an intro, instructions or a note. On Page by question it gets its own screen.</p>
       <div class="form-field fb-text-quill">
-        <quill-editor [(ngModel)]="textHtml" placeholder="Write something…" [styles]="{ 'min-height': '160px' }"></quill-editor>
+        <app-quill-editor [(ngModel)]="textHtml" placeholder="Write something…" [styles]="{ 'min-height': '160px' }"></app-quill-editor>
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="textVisible = false" />

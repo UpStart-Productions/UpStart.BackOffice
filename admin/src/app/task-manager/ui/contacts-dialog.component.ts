@@ -84,7 +84,7 @@ type ContactsView = 'list' | 'newPerson';
           <ul class="tm-contact-readonly">
             @for (c of project().contacts; track c.id) {
               <li class="tm-contact-readonly-row">
-                <app-tm-avatar [person]="asPerson(c)" [size]="32" [showTitle]="false" />
+                <app-tm-avatar [person]="asPerson(c)" size="med" [showTitle]="false" />
                 <div class="tm-contact-readonly-main">
                   @if (c.contactId) {
                     <a [routerLink]="['/people', c.contactId]" class="tm-contact-name">{{ displayName(c) }}</a>

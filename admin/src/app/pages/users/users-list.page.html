@@ -5,7 +5,7 @@
   }
 </ng-container>
 <div class="card">
-<p-tabs [(value)]="tab">
+<p-tabs [value]="tab" (valueChange)="onTabChange($event)">
   <p-tablist>
     <p-tab value="users">Users</p-tab>
     <p-tab value="roles">Roles</p-tab>
@@ -20,7 +20,8 @@
     <div class="toolbar">
       <div class="toolbar-start">
         <p-select
-          [(ngModel)]="sortBy"
+          [ngModel]="sortBy"
+          (ngModelChange)="onSortByChange($event)"
           [options]="sortOptions"
           optionLabel="label"
           optionValue="value"
@@ -44,7 +45,7 @@
           <th>Name</th>
           <th>Email</th>
           <th>Role</th>
-          <th>Hourly rate</th>
+          <th class="col-numeric">Hourly rate</th>
           <th>Status</th>
         </tr>
       </ng-template>
@@ -66,7 +67,7 @@
               }
             </div>
           </td>
-          <td>{{ user.name || '—' }}</td>
+          <td>{{ user.name }}</td>
           <td><app-copy-email [email]="user.email" /></td>
           <td>
             {{ user.role === 'USER' && user.roleName ? user.roleName : roleLabel(user.role) }}
@@ -74,7 +75,7 @@
               <span class="text-color-secondary"> · {{ user.client.name }}</span>
             }
           </td>
-          <td>{{ user.hourlyRate != null ? ('$' + user.hourlyRate) : '—' }}</td>
+          <td class="col-numeric">{{ user.hourlyRate != null ? ('$' + user.hourlyRate) : '' }}</td>
           <td>
             <p-tag
               [value]="user.isActive ? 'Active' : 'Disabled'"

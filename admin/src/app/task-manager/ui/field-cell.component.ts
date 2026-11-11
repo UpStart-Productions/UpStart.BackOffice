@@ -30,7 +30,7 @@ import { FieldOption, TmField } from '../core/tm.types';
           />
         } @else {
           <button type="button" class="tm-cell-btn" [disabled]="!editable()" (click)="startText()">
-            @if (value()) { <span class="tm-cell-text">{{ value() }}</span> } @else { <span class="tm-cell-placeholder">—</span> }
+            @if (value()) { <span class="tm-cell-text">{{ value() }}</span> } @else { <span class="tm-cell-placeholder" aria-hidden="true"></span> }
           </button>
         }
       }
@@ -49,7 +49,7 @@ import { FieldOption, TmField } from '../core/tm.types';
           />
         } @else {
           <button type="button" class="tm-cell-btn tm-cell-num" [disabled]="!editable()" (click)="startText()">
-            @if (value() !== null && value() !== undefined) { {{ value() }} } @else { <span class="tm-cell-placeholder">—</span> }
+            @if (value() !== null && value() !== undefined) { {{ value() }} } @else { <span class="tm-cell-placeholder" aria-hidden="true"></span> }
           </button>
         }
       }
@@ -60,7 +60,7 @@ import { FieldOption, TmField } from '../core/tm.types';
       }
       @case ('DATE') {
         <button type="button" class="tm-cell-btn" [disabled]="!editable()" (click)="openDate($event)">
-          @if (value()) { {{ dateText() }} } @else { <span class="tm-cell-placeholder">—</span> }
+          @if (value()) { {{ dateText() }} } @else { <span class="tm-cell-placeholder" aria-hidden="true"></span> }
         </button>
       }
       @default {
@@ -70,7 +70,7 @@ import { FieldOption, TmField } from '../core/tm.types';
               <span class="ubo-tag-pill-label">{{ o.label }}</span>
             </span>
           } @empty {
-            <span class="tm-cell-placeholder">—</span>
+            <span class="tm-cell-placeholder" aria-hidden="true"></span>
           }
         </button>
       }

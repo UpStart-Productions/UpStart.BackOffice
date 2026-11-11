@@ -1,6 +1,7 @@
 import { Component, inject, input, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommunicationsApi, Interaction } from '../../core/communications.api';
+import { quillHtmlForDisplay } from '../../core/quill-utils';
 
 const PREVIEW_WORDS = 100;
 
@@ -111,7 +112,7 @@ export class MessageBodyComponent {
   }
 
   richHtml(): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(this.source());
+    return this.sanitizer.bypassSecurityTrustHtml(quillHtmlForDisplay(this.source()));
   }
 
   /** Inbox rows call this when the row is clicked. */

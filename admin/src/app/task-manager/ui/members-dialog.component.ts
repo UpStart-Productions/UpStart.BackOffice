@@ -78,7 +78,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
       <ul class="tm-member-list">
         @for (m of project().members; track m.id) {
           <li class="tm-member">
-            <app-tm-avatar [person]="m" [size]="32" />
+            <app-tm-avatar [person]="m" size="med" />
             <div class="tm-member-main">
               <strong>
                 {{ memberLabel(m) }}

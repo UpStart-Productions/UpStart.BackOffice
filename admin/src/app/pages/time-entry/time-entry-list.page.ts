@@ -14,6 +14,9 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS, listViewFilterString, readListViewPrefs } from '../../core/list-view-prefs.storage';
+import { saveListFilter } from '../../core/list-view-prefs.util';
+import { parseDateKey } from '../../core/date.util';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
@@ -178,9 +181,20 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   }
 
   private async init() {
-    this.viewUserId.set(this.session.me()?.id ?? '');
+    const me = this.session.me()?.id ?? '';
+    const prefs = readListViewPrefs(me, LIST_VIEW_KEYS.timeEntries);
+    const savedUser = listViewFilterString(prefs, 'viewUserId');
+    this.viewUserId.set(savedUser || me);
+    const savedDay = listViewFilterString(prefs, 'selectedDay');
+    const parsedDay = savedDay ? parseDateKey(savedDay) : null;
+    if (parsedDay) this.selectedDay.set(parsedDay);
     await Promise.all([this.loadProjects(), this.loadClients(), this.loadPeople(), this.loadAsanaStatus(), this.loadDaysWithTime()]);
     await this.loadWeek();
+  }
+
+  private persistTimeListPrefs() {
+    saveListFilter(this.session, LIST_VIEW_KEYS.timeEntries, 'viewUserId', this.viewUserId() || null);
+    saveListFilter(this.session, LIST_VIEW_KEYS.timeEntries, 'selectedDay', dateKey(this.selectedDay()));
   }
 
   async loadDaysWithTime() {
@@ -230,6 +244,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   async onViewUserChange(id: string | null) {
     this.viewUserId.set(id || (this.session.me()?.id ?? ''));
+    this.persistTimeListPrefs();
     this.resetCalendarProjectHints();
     await Promise.all([this.loadWeek(), this.loadDaysWithTime()]);
   }
@@ -298,26 +313,31 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   prevDay() {
     this.selectedDay.set(addDays(this.selectedDay(), -1));
+    this.persistTimeListPrefs();
     void this.loadWeekIfNeeded();
   }
 
   nextDay() {
     this.selectedDay.set(addDays(this.selectedDay(), 1));
+    this.persistTimeListPrefs();
     void this.loadWeekIfNeeded();
   }
 
   goToToday() {
     this.selectedDay.set(new Date());
+    this.persistTimeListPrefs();
     void this.loadWeek();
   }
 
   selectDay(d: Date) {
     this.selectedDay.set(new Date(d));
+    this.persistTimeListPrefs();
     void this.loadWeekIfNeeded();
   }
 
   jumpToDay(date: Date, popover: InlineCalendarPopoverComponent) {
     this.selectedDay.set(new Date(date));
+    this.persistTimeListPrefs();
     popover.hide();
     void this.loadWeekIfNeeded();
   }

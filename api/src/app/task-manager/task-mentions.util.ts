@@ -11,9 +11,11 @@ export function extractMentionedUserIds(html: string | null | undefined): string
   const ids = new Set<string>();
   for (const match of html.matchAll(MENTION_OPEN_TAG)) {
     const attrs = match[1] ?? '';
-    const type = readDataAttr(attrs, 'mention-type') ?? 'user';
+    const type = readDataAttr(attrs, 'mention-type') ?? readDataAttr(attrs, 'mentionType') ?? 'user';
     if (type !== 'user') continue;
-    const id = readDataAttr(attrs, 'id');
+    const raw = readDataAttr(attrs, 'id');
+    if (!raw) continue;
+    const id = raw.startsWith('user:') ? raw.slice(5) : raw.includes(':') ? null : raw;
     if (id) ids.add(id);
   }
   return [...ids];

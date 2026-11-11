@@ -162,7 +162,7 @@
                         [avatarUrl]="lead.contactAvatarUrl"
                         [personId]="lead.primaryContactId ?? lead.id"
                         [subtitle]="lead.contactRole"
-                        [size]="28"
+                        size="med"
                       />
                     </div>
                   }
@@ -443,7 +443,7 @@
               [avatarUrl]="c.avatarUrl"
               [personId]="c.id"
               [subtitle]="c.role"
-              [size]="36"
+              size="lg"
               [link]="canOpenContacts() ? ['/people', c.id] : null"
             />
             @if (c.isLeadContact) { <span class="card-contacts-tag">Primary</span> }

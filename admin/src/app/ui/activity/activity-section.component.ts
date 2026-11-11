@@ -1,4 +1,13 @@
 import { Component, computed, effect, inject, input, model, OnDestroy, OnInit, signal, untracked } from '@angular/core';
+import { SessionService } from '../../core/session.service';
+import {
+  activityFeedListKey,
+  listViewFilterBool,
+  listViewFilterString,
+  patchListViewPrefs,
+  readListViewPrefs,
+} from '../../core/list-view-prefs.storage';
+import { loadListSearch, saveListSearch } from '../../core/list-view-prefs.util';
 import { FormsModule } from '@angular/forms';
 import { ActivityFeedFilter, CommunicationsApi, TeamMember } from '../../core/communications.api';
 import { PeopleDirectoryOption, teamUsersToOptions } from '../../pages/projects/people-directory.util';
@@ -77,6 +86,7 @@ function endOfDayIso(key: string): string | null {
 })
 export class ActivitySectionComponent implements OnInit, OnDestroy {
   private readonly comms = inject(CommunicationsApi);
+  private readonly session = inject(SessionService);
 
   /** Record pages: same white `card` panel as forms and attachments. Activity page already has an outer card. */
   wrapCard = input(true);
@@ -146,15 +156,60 @@ export class ActivitySectionComponent implements OnInit, OnDestroy {
     return f === 'ALL' ? 'Search activity…' : `Search ${name}…`;
   });
 
+  private contextKey(): string {
+    const g = this.global();
+    const c = this.clientId();
+    const l = this.leadId();
+    const k = this.contactId();
+    return `${g ? 'g' : 'r'}:${c ?? ''}:${l ?? ''}:${k ?? ''}`;
+  }
+
+  private listKey(): string {
+    return activityFeedListKey(this.contextKey());
+  }
+
+  private persistFeedPrefs() {
+    const filters: Record<string, string | boolean> = {};
+    const loggedBy = this.loggedBy();
+    if (loggedBy) filters['loggedBy'] = loggedBy;
+    if (this.from()) filters['from'] = this.from();
+    if (this.to()) filters['to'] = this.to();
+    const type = this.typeFilter();
+    if (type !== 'ALL') filters['typeFilter'] = type;
+    if (this.showIncludePeopleToggle() && !this.includePeople()) filters['includePeople'] = 'false';
+    if (this.filtersOpen()) filters['filtersOpen'] = 'true';
+    patchListViewPrefs(this.session.me()?.id, this.listKey(), {
+      search: this.timelineQuery().trim() || undefined,
+      filters: Object.keys(filters).length ? filters : undefined,
+    });
+  }
+
+  private applyFeedPrefsFromStorage() {
+    const prefs = readListViewPrefs(this.session.me()?.id, this.listKey());
+    const search = loadListSearch(this.session, this.listKey());
+    this.timelineSearchDraft = search;
+    this.timelineQuery.set(search);
+    const loggedBy = listViewFilterString(prefs, 'loggedBy');
+    this.loggedBy.set(loggedBy);
+    this.from.set(listViewFilterString(prefs, 'from') ?? '');
+    this.to.set(listViewFilterString(prefs, 'to') ?? '');
+    const type = listViewFilterString(prefs, 'typeFilter') as ActivityToolbarTypeFilter | null;
+    if (type && ['ALL', 'EMAIL', 'CALL', 'MEETING', 'NOTE'].includes(type)) {
+      this.typeFilter.set(type);
+    } else {
+      this.typeFilter.set('ALL');
+    }
+    const includePeople = listViewFilterBool(prefs, 'includePeople');
+    this.includePeople.set(includePeople === false ? false : true);
+    this.filtersOpen.set(prefs.filters?.['filtersOpen'] === 'true' || prefs.filters?.['filtersOpen'] === true);
+  }
+
   constructor() {
     effect(() => {
-      const g = this.global();
-      const c = this.clientId();
-      const l = this.leadId();
-      const k = this.contactId();
-      const key = `${g ? 'g' : 'r'}:${c ?? ''}:${l ?? ''}:${k ?? ''}`;
+      const key = this.contextKey();
       if (this.lastContextKey === null) {
         this.lastContextKey = key;
+        untracked(() => this.applyFeedPrefsFromStorage());
         return;
       }
       if (key === this.lastContextKey) return;
@@ -164,15 +219,18 @@ export class ActivitySectionComponent implements OnInit, OnDestroy {
           clearTimeout(this.searchTimer);
           this.searchTimer = null;
         }
-        this.filtersOpen.set(false);
-        this.loggedBy.set(null);
-        this.from.set('');
-        this.to.set('');
-        this.timelineQuery.set('');
-        this.timelineSearchDraft = '';
-        this.typeFilter.set('ALL');
-        this.includePeople.set(true);
+        this.applyFeedPrefsFromStorage();
       });
+    });
+    effect(() => {
+      this.loggedBy();
+      this.from();
+      this.to();
+      this.typeFilter();
+      this.includePeople();
+      this.filtersOpen();
+      this.timelineQuery();
+      untracked(() => this.persistFeedPrefs());
     });
   }
 
@@ -194,6 +252,7 @@ export class ActivitySectionComponent implements OnInit, OnDestroy {
     this.searchTimer = setTimeout(() => {
       this.searchTimer = null;
       this.timelineQuery.set(value);
+      saveListSearch(this.session, this.listKey(), value);
     }, 300);
   }
 }

@@ -14,7 +14,7 @@ import { MoneyInputComponent } from '../../ui/money-input/money-input.component'
 import { AccordionModule } from 'primeng/accordion';
 import { TabsModule } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
@@ -91,7 +91,7 @@ type ProjectResponse = {
     MoneyInputComponent,
     AccordionModule,
     TabsModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     AppDialogModule,
     RowActionsMenuComponent,
     PageComponent,

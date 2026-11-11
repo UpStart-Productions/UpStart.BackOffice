@@ -1,0 +1,51 @@
+---
+description: User avatar sizes — sm, med, lg only (admin UI)
+globs: admin/src/**/*.{ts,html,scss}
+alwaysApply: false
+---
+
+# User avatar sizes
+
+Back Office uses **three** round user-avatar sizes everywhere except the help guide FAB (that marketing asset is not a user avatar).
+
+| Token | px | CSS variable | Use for |
+|-------|-----|--------------|---------|
+| **sm** | 22 | `--avatar-size-sm` | Dense rows: tables, timelines, multiselect options, pickers, chips |
+| **med** | 28 | `--avatar-size-med` | Default: cards, comments, dropdown rows, TM field buttons |
+| **lg** | 36 | `--avatar-size-lg` | Side panels, people lists, page title (`avatarOnly`), top-bar user menu, dialog member rows, upload dropzone thumb |
+
+Source of truth: `admin/src/app/core/avatar-size.ts`, `:root` in `assets/layout/_core.scss`, and global classes in `assets/layout/_avatars.scss`.
+
+## DOM classes (inspectable in devtools)
+
+- **Round avatar element:** `ubo-avatar ubo-avatar--sm` | `ubo-avatar--med` | `ubo-avatar--lg`
+- **Component host:** `ubo-avatar-size-sm` | `ubo-avatar-size-med` | `ubo-avatar-size-lg` on `app-person` and `app-tm-avatar`
+- **Unassigned TM slot:** add `ubo-avatar--empty` with the size modifier classes
+
+`app-person` / `app-tm-avatar` set these automatically from the `size` input. Static markup (top bar, @mention rows, Quill person cards, dropzone thumb, help chat bubbles) must include the same `ubo-avatar ubo-avatar--*` pair — do not size with inline `px` or lone CSS variables without the modifier class.
+
+## Components
+
+- **`app-person`** — CRM / activity / pipeline. `size="sm" | "med" | "lg"` (default `med`).
+- **`app-tm-avatar`** — Task Manager and `app-people`. Same `size` input.
+
+Do **not** pass pixel numbers to `size`. Do **not** add `xs`, `xl`, or ad-hoc `[size]="24"`.
+
+## When CSS must set diameter (no component)
+
+Prefer the **`ubo-avatar ubo-avatar--*`** classes. If a wrapper needs flex basis only, `flex: 0 0 var(--avatar-size-med)` is fine alongside those classes.
+
+## Choosing a size
+
+- Table or timeline row with name beside avatar → **sm**
+- Standard inline person with label → **med**
+- Side panel row, org people list, hero avatar on detail header → **lg**
+
+If unsure, use **med**.
+
+## Do not
+
+- Hand-roll a fourth size in component `styles:` or page SCSS
+- Use `p-avatar` for staff/contact photos (use `app-person` / `app-tm-avatar`)
+- Size profile upload previews with `sm`/`med`/`lg` when the control is full-width `avatar-dropzone` `fill` / logo mode (those are upload UX, not list avatars)
+- Rely on inline `width`/`height` in px instead of `ubo-avatar--*` classes

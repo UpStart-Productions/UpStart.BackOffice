@@ -17,6 +17,8 @@ import { map } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { FormsApi } from '../../core/forms.api';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS, listViewFilterBool, listViewFilterString, patchListViewPrefs, readListViewPrefs } from '../../core/list-view-prefs.storage';
+import { saveListFilter } from '../../core/list-view-prefs.util';
 import { areaLevel } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import {
@@ -192,7 +194,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                   optionLabel="label"
                   optionValue="value"
                   [ngModel]="mine()"
-                  (ngModelChange)="mine.set($event)"
+                  (ngModelChange)="setMine($event)"
                   [allowEmpty]="false"
                   ariaLabel="Whose items"
                 />
@@ -237,22 +239,24 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                           <span class="person-label">From</span>
                           <span class="person-value">
                             @if (ppl.from) {
-                              <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" [size]="22" />
-                            } @else { — }
+                              <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" size="sm" />
+                            }
                           </span>
                         </div>
                         <div class="person-line text-color-secondary">
                           <span class="person-label">To</span>
                           <span class="person-value person-list">
                             @for (p of ppl.to; track p.email) {
-                              <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="22" />
-                            } @empty { — }
+                              <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+                            }
                           </span>
                         </div>
                         <p-tag [value]="dir(item)" severity="secondary" class="person-tag" />
                       </td>
                       <td>
-                        <strong>{{ item.subject || '(no subject)' }}</strong>
+                        @if (item.subject?.trim(); as subj) {
+                          <strong>{{ subj }}</strong>
+                        }
                         <app-message-body #mb [item]="item" />
                       </td>
                     </tr>
@@ -285,8 +289,6 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                               <span class="side-list-detail">Pipeline card</span>
                             } @else if (row.clientId) {
                               <a [routerLink]="['/organizations', row.clientId]" class="side-list-title">{{ row.clientName }}</a>
-                            } @else {
-                              <span class="side-list-title">—</span>
                             }
                             @if (row.person) {
                               <span class="side-list-detail">
@@ -307,7 +309,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                             [class.side-list-value--overdue]="row.overdue"
                             [class.side-list-value--today]="row.dueToday && !row.overdue"
                           >{{ whenLabel(row) }}</span>
-                          <span class="side-list-value side-list-value--strong activity-todo-col-owner">{{ row.owner || '—' }}</span>
+                          <span class="side-list-value side-list-value--strong activity-todo-col-owner">{{ row.owner }}</span>
                         </div>
                       }
                     </div>
@@ -428,7 +430,9 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
       >
         @if (active(); as item) {
           <p class="mb-3">
-            <strong>{{ item.subject || '(no subject)' }}</strong><br />
+            @if (item.subject?.trim(); as subj) {
+              <strong>{{ subj }}</strong><br />
+            }
             <span class="text-color-secondary">{{ people(item) }}</span>
           </p>
           <div class="file-form">
@@ -713,6 +717,7 @@ export class ActivityPage implements OnInit {
   }
 
   async ngOnInit() {
+    this.restoreActivityPagePrefs();
     if (this.canForms()) this.formsApi.pending().then((r) => this.pendingSubmissions.set(r.length), () => this.pendingSubmissions.set(0));
     this.peopleLoading.set(true);
     const [orgs, people] = await Promise.all([
@@ -724,8 +729,45 @@ export class ActivityPage implements OnInit {
     this.peopleLoading.set(false);
   }
 
+  private restoreActivityPagePrefs() {
+    const snap = this.route.snapshot.queryParamMap;
+    const prefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.activity);
+    const mine = listViewFilterBool(prefs, 'mine');
+    if (mine === false) this.mine.set(false);
+    if (['tab', 'queue', 'organization', 'person'].some((k) => snap.has(k))) return;
+    const params: Record<string, string | null> = {};
+    const tab = listViewFilterString(prefs, 'tab');
+    if (tab === 'todo') params['tab'] = 'todo';
+    const queue = listViewFilterString(prefs, 'queue');
+    if (queue && queue !== 'reply') params['queue'] = queue;
+    const organization = listViewFilterString(prefs, 'organization');
+    if (organization) params['organization'] = organization;
+    const person = listViewFilterString(prefs, 'person');
+    if (person) params['person'] = person;
+    if (Object.keys(params).length) this.navigate(params);
+  }
+
+  private persistActivityPagePrefs() {
+    const filters: Record<string, string | boolean> = {
+      tab: this.tab(),
+      queue: this.queue(),
+      mine: this.mine(),
+    };
+    const organization = this.orgId();
+    if (organization) filters['organization'] = organization;
+    const person = this.personId();
+    if (person) filters['person'] = person;
+    patchListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.activity, { filters });
+  }
+
   private navigate(params: Record<string, string | null>) {
     void this.router.navigate([], { relativeTo: this.route, queryParams: params, queryParamsHandling: 'merge', replaceUrl: true });
+    this.persistActivityPagePrefs();
+  }
+
+  setMine(value: boolean) {
+    this.mine.set(value);
+    saveListFilter(this.session, LIST_VIEW_KEYS.activity, 'mine', value);
   }
 
   setTab(value: string | number | undefined) {

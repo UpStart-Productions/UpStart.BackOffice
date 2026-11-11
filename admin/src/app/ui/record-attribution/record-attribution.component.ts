@@ -28,7 +28,7 @@ import { resolveAssetUrl } from '../../core/asset-url.util';
             @for (user of avatarUsers(); track user.id; let i = $index) {
               @if (photoUrl(user); as src) {
                 <img
-                  class="record-attribution-avatar"
+                  class="record-attribution-avatar ubo-avatar ubo-avatar--sm"
                   [src]="src"
                   [alt]=""
                   [style.z-index]="avatarUsers().length - i"
@@ -37,10 +37,10 @@ import { resolveAssetUrl } from '../../core/asset-url.util';
                 />
               } @else {
                 <span
-                  class="record-attribution-avatar record-attribution-avatar--initials"
+                  class="record-attribution-avatar record-attribution-avatar--initials ubo-avatar ubo-avatar--sm"
                   [style.z-index]="avatarUsers().length - i"
                 >
-                  <small>{{ initials(user) }}</small>
+                  {{ initials(user) }}
                 </span>
               }
             }

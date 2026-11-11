@@ -1,4 +1,5 @@
 import { Component, computed, input } from '@angular/core';
+import { type AvatarSize, avatarHostSizeClass, avatarSizeClasses } from '../../core/avatar-size';
 import { RouterLink } from '@angular/router';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { avatarPalette, initials } from '../../task-manager/core/tm-format.util';
@@ -11,17 +12,17 @@ import { avatarPalette, initials } from '../../task-manager/core/tm-format.util'
   selector: 'app-person',
   standalone: true,
   imports: [RouterLink],
+  host: {
+    '[class]': 'hostSizeClass()',
+  },
   template: `
     <span class="person" [class.person--two-line]="!!subtitle()">
       @if (photo()) {
-        <img class="person-avatar" [src]="photo()!" alt="" [style.width.px]="size()" [style.height.px]="size()" />
+        <img [class]="personAvatarClass()" [src]="photo()!" alt="" />
       } @else {
         <span
-          class="person-avatar"
+          [class]="personAvatarClass()"
           aria-hidden="true"
-          [style.width.px]="size()"
-          [style.height.px]="size()"
-          [style.font-size.px]="size() * 0.4"
           [style.background]="palette().bg"
           [style.color]="palette().fg"
           >{{ letters() }}</span
@@ -45,14 +46,7 @@ import { avatarPalette, initials } from '../../task-manager/core/tm-format.util'
     :host { display: inline-flex; min-width: 0; max-width: 100%; vertical-align: middle; }
     .person { display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
     .person-avatar {
-      flex-shrink: 0;
-      border-radius: 50%;
-      object-fit: cover;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
       font-weight: 600;
-      line-height: 1;
     }
     .person-text { display: flex; flex-direction: column; min-width: 0; }
     .person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -68,7 +62,9 @@ export class PersonComponent {
   avatarUrl = input<string | null | undefined>(null);
   /** Stable id for the initials color (user or contact id). */
   personId = input<string | null | undefined>(null);
-  size = input(24);
+  size = input<AvatarSize>('med');
+  readonly personAvatarClass = computed(() => `person-avatar ${avatarSizeClasses(this.size())}`);
+  readonly hostSizeClass = computed(() => avatarHostSizeClass(this.size()));
   subtitle = input<string | null | undefined>(null);
   link = input<unknown[] | string | null | undefined>(null);
   avatarOnly = input(false);

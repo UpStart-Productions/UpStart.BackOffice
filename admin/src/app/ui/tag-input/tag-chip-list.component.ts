@@ -23,8 +23,6 @@ import { Component, input, output } from '@angular/core';
           </span>
         }
       </div>
-    } @else {
-      <span class="text-color-secondary">—</span>
     }
   `,
 })

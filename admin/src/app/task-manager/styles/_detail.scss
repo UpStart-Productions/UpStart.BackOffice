@@ -239,8 +239,8 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      width: 1.5rem;
-      height: 1.5rem;
+      width: var(--avatar-size-med);
+      height: var(--avatar-size-med);
       font-size: var(--fs-base);
       line-height: 1;
     }

@@ -9,6 +9,8 @@ import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
+import { loadListSearch, loadTableSort, onTableSortSave, saveListSearch } from '../../core/list-view-prefs.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
@@ -20,10 +22,7 @@ import {
 } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
-import {
-  invoiceDueFlag,
-  sortInvoicesForAttention,
-} from './invoice-status.util';
+import { invoiceDueFlag } from './invoice-status.util';
 
 type Invoice = {
   id: string;
@@ -38,6 +37,11 @@ type Invoice = {
   /** Null when the invoice is billed to the organization. */
   client: { id: string; name: string } | null;
   createdBy?: { id: string; firstName?: string | null; lastName?: string | null; email: string } | null;
+};
+
+type InvoiceTableRow = Invoice & {
+  billToSort: string;
+  createdBySort: string;
 };
 
 @Component({
@@ -91,6 +95,8 @@ export class InvoicesListPage implements OnInit {
   error = signal<string | null>(null);
   searchQuery = '';
   searchDebounced = signal('');
+  tableSortField = signal('issueDate');
+  tableSortOrder = signal<1 | -1>(-1);
 
   exportVisible = false;
   exportFrom = '';
@@ -100,14 +106,20 @@ export class InvoicesListPage implements OnInit {
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly filteredInvoices = computed(() => {
+  readonly searchedInvoices = computed(() => {
     const q = this.searchDebounced().trim().toLowerCase();
     const list = this.invoices();
-    const matches = !q
-      ? list
-      : list.filter((invoice) => this.invoiceMatchesSearch(invoice, q));
-    return sortInvoicesForAttention(matches);
+    if (!q) return list;
+    return list.filter((invoice) => this.invoiceMatchesSearch(invoice, q));
   });
+
+  readonly invoiceTableRows = computed((): InvoiceTableRow[] =>
+    this.searchedInvoices().map((inv) => ({
+      ...inv,
+      billToSort: this.billToLabel(inv),
+      createdBySort: this.createdByLabel(inv),
+    })),
+  );
 
   readonly overdueCount = computed(
     () => this.invoices().filter((inv) => invoiceDueFlag(inv.dueDate, inv.status) === 'overdue').length,
@@ -118,19 +130,38 @@ export class InvoicesListPage implements OnInit {
   );
 
   readonly emptyMessage = computed(() => {
-    if (this.searchDebounced().trim() && this.filteredInvoices().length === 0 && this.invoices().length > 0) {
+    if (this.searchDebounced().trim() && this.searchedInvoices().length === 0 && this.invoices().length > 0) {
       return 'No invoices match your search.';
     }
     return 'No invoices yet.';
   });
 
-  async ngOnInit() { await this.load(); }
+  async ngOnInit() {
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.invoices);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced.set(search);
+    }
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.invoices, { field: 'issueDate', order: -1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
+    await this.load();
+  }
+
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.invoices, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
+  }
 
   onSearchInput(value: string) {
     this.searchQuery = value;
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.searchDebounced.set(value);
+      saveListSearch(this.session, LIST_VIEW_KEYS.invoices, value);
       this.searchTimer = null;
     }, 150);
   }
@@ -138,6 +169,7 @@ export class InvoicesListPage implements OnInit {
   clearSearch() {
     this.searchQuery = '';
     this.searchDebounced.set('');
+    saveListSearch(this.session, LIST_VIEW_KEYS.invoices, '');
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
       this.searchTimer = null;

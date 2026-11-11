@@ -37,7 +37,7 @@
         <tr>
           <th style="width: 110px">Date</th>
           <th>Description</th>
-          <th style="width: 110px" class="text-right">Amount</th>
+          <th style="width: 110px" class="col-numeric">Amount</th>
           <th style="width: 240px">Category</th>
           <th style="width: 140px"></th>
         </tr>
@@ -46,7 +46,7 @@
         <tr>
           <td>{{ formatDate(txn.date) }}</td>
           <td>{{ txn.description }}</td>
-          <td class="text-right">{{ formatCurrency(txn.amount) }}</td>
+          <td class="col-numeric">{{ formatCurrency(txn.amount) }}</td>
           <td>
             @if (txn.journalEntryId) {
               <p-tag [value]="txn.account?.name ?? 'Posted'" severity="success" />

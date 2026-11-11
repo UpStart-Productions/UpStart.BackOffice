@@ -57,7 +57,7 @@ function clockLabel(thenMs: number): string {
 /** Notification bell: Just now · Nm ago · Yesterday · May 5 */
 export function formatRelativeTime(value: unknown, nowMs?: number): string {
   const thenMs = epochMs(value);
-  if (thenMs === null) return '—';
+  if (thenMs === null) return '';
   const anchor = typeof nowMs === 'number' ? nowMs : Date.now();
   let diffMs = anchor - thenMs;
   if (diffMs < 0) diffMs = 0;

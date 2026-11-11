@@ -20,7 +20,7 @@
           </p>
         } @else if (t.createdBy) {
           <span class="tm-inline-meta tm-detail-created-by">
-            <app-tm-avatar [person]="t.createdBy" [size]="24" />
+            <app-tm-avatar [person]="t.createdBy" size="sm" />
             <span class="tm-inline-meta-primary">{{ t.createdBy.name }}</span>
             <span class="tm-inline-meta-secondary">{{ createdOnLabel(t.createdAt) }}</span>
           </span>
@@ -113,7 +113,7 @@
         <dt>Assignee</dt>
         <dd>
           <button type="button" class="tm-field-btn" (click)="openAssignee($event)" [disabled]="!canEdit()">
-            <app-tm-avatar [person]="t.assignee" [size]="24" />
+            <app-tm-avatar [person]="t.assignee" size="sm" />
             <span>{{ t.assignee?.name ?? 'No assignee' }}</span>
           </button>
         </dd>
@@ -187,16 +187,16 @@
       <section class="tm-detail-section">
         <h3 class="tm-detail-heading tm-detail-heading--caps">Description</h3>
         @if (canEdit()) {
-          <quill-editor
+          <app-quill-editor
             class="tm-description-editor"
-            [modules]="mentionModules()"
+            [mentionProjectId]="t.projectId"
             [ngModel]="descriptionDraft"
             (ngModelChange)="onDescriptionChange($event)"
             (onBlur)="saveDescription()"
             placeholder="What is this task about?"
             [styles]="{ 'min-height': '90px' }"
             (onEditorCreated)="onDescriptionEditor($event)"
-          ></quill-editor>
+          ></app-quill-editor>
         } @else if (t.description) {
           <div class="ql-editor tm-rich" [innerHTML]="t.description"></div>
         } @else {
@@ -285,7 +285,7 @@
                 @if (s.dueOn) { {{ dueLabel(s.dueOn) }} } @else { <i class="pi pi-calendar tm-muted"></i> }
               </button>
               <button type="button" class="tm-cell-btn" (click)="openSubtaskAssignee($event, s)" [disabled]="!canEdit()" aria-label="Assign subtask">
-                <app-tm-avatar [person]="s.assignee" [size]="22" />
+                <app-tm-avatar [person]="s.assignee" size="sm" />
               </button>
               <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="openTask.emit(s.id)" aria-label="Open subtask">
                 <i class="pi pi-angle-right"></i>
@@ -336,7 +336,7 @@
               </li>
             } @else {
               <li class="tm-comment" [class.tm-comment--alt]="commentStripeAlt().has(c.id)">
-                <app-tm-avatar [person]="c.author" [size]="28" />
+                <app-tm-avatar [person]="c.author" size="med" />
                 <div class="tm-comment-main">
                   <div class="tm-comment-meta">
                     <strong>{{ authorName(c) }}</strong>
@@ -349,7 +349,7 @@
                     }
                   </div>
                   @if (editingCommentId() === c.id) {
-                    <quill-editor class="tm-comment-editor" [modules]="commentModules()" [(ngModel)]="editCommentDraft" [styles]="{ 'min-height': '60px' }"></quill-editor>
+                    <app-quill-editor class="tm-comment-editor" [mentionProjectId]="t.projectId" [mentionToolbar]="false" [(ngModel)]="editCommentDraft" [styles]="{ 'min-height': '60px' }"></app-quill-editor>
                     <div class="flex gap-2 mt-2">
                       <p-button label="Save" size="small" (onClick)="saveEditComment(c)" />
                       <p-button label="Cancel" size="small" [text]="true" severity="secondary" (onClick)="editingCommentId.set(null)" />
@@ -387,21 +387,22 @@
           </button>
         } @else {
           @for (composerKey of [taskId()]; track composerKey) {
-            <quill-editor
+            <app-quill-editor
               #commentEditor
               class="tm-description-editor tm-comment-editor"
-              [modules]="mentionModules()"
+              [mentionProjectId]="t.projectId"
+              [mentionToolbar]="false"
               [(ngModel)]="commentDraft"
               placeholder="Add a comment — type @ to mention someone"
               [styles]="{ 'min-height': '44px', 'max-height': '200px' }"
               (onEditorCreated)="onCommentComposerEditor($event)"
-            ></quill-editor>
+            ></app-quill-editor>
           }
           <div class="tm-composer-row">
             <div class="tm-followers">
               <span class="tm-muted">Followers</span>
               @for (f of t.followers.slice(0, 6); track f.id) {
-                <app-tm-avatar [person]="f" [size]="22" />
+                <app-tm-avatar [person]="f" size="sm" />
               }
               @if (t.followers.length > 6) { <span class="tm-muted">+{{ t.followers.length - 6 }}</span> }
             </div>

@@ -130,8 +130,6 @@
       padding-right: 0.35rem;
       font-size: var(--fs-md);
       font-weight: 600;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
       box-sizing: border-box;
     }
   }
@@ -233,10 +231,6 @@
   max-width: 7rem;
 }
 
-:host ::ng-deep .invoice-lines-table .p-datatable-thead > tr > th.invoice-line-qty-col,
-:host ::ng-deep .invoice-lines-table .p-datatable-thead > tr > th.invoice-line-rate-col {
-  text-align: center;
-}
 
 .invoice-line-qty-input,
 .invoice-line-rate-input {

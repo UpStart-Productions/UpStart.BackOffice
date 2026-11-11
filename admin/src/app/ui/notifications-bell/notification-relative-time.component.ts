@@ -11,7 +11,7 @@ import { formatRelativeTime } from '../../core/relative-time-format';
 })
 export class NotificationRelativeTimeComponent {
   iso = '';
-  protected text = '—';
+  protected text = '';
 
   @Input({ required: true })
   set createdAt(value: string) {

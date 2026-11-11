@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -65,7 +65,7 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
     RowActionsMenuComponent,
     RouterLink,
     SingleFileDropzoneComponent,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     FileViewerDialogComponent,
   ],
   styles: `
@@ -182,7 +182,7 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
               </div>
               <div class="form-field">
                 <label>Thank-you message <app-help-text key="forms.form.thankYou" /></label>
-                <quill-editor [(ngModel)]="thankYou" [readOnly]="!f.canEdit" placeholder="Thanks! Your answers were sent." [styles]="{ 'min-height': '120px' }"></quill-editor>
+                <app-quill-editor [(ngModel)]="thankYou" [readOnly]="!f.canEdit" mentionToolbar="minimal" placeholder="Thanks! Your answers were sent." [styles]="{ 'min-height': '120px' }"></app-quill-editor>
               </div>
             </div>
           </div>

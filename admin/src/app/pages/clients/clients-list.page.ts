@@ -9,6 +9,8 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
+import { loadListSearch, loadTableSort, onTableSortSave, saveListSearch } from '../../core/list-view-prefs.util';
 import { lastContactLabel } from '../../core/staleness.util';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -65,6 +67,8 @@ export class ClientsListPage implements OnInit {
   error = signal<string | null>(null);
   searchQuery = '';
   searchDebounced = signal('');
+  tableSortField = signal('name');
+  tableSortOrder = signal<1 | -1>(1);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly filteredClients = computed(() => {
@@ -81,7 +85,27 @@ export class ClientsListPage implements OnInit {
   );
 
   ngOnInit() {
+    this.restoreListPrefs();
     void this.load();
+  }
+
+  private restoreListPrefs() {
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.clients);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced.set(search);
+    }
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.clients, { field: 'name', order: 1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
+  }
+
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.clients, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
   }
 
   onSearchInput(value: string) {
@@ -89,6 +113,7 @@ export class ClientsListPage implements OnInit {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.searchDebounced.set(value);
+      saveListSearch(this.session, LIST_VIEW_KEYS.clients, value);
       this.searchTimer = null;
     }, 150);
   }
@@ -96,6 +121,7 @@ export class ClientsListPage implements OnInit {
   clearSearch() {
     this.searchQuery = '';
     this.searchDebounced.set('');
+    saveListSearch(this.session, LIST_VIEW_KEYS.clients, '');
   }
 
   async load() {

@@ -1,0 +1,31 @@
+---
+description: Quill rich-text editor conventions in the admin app
+globs: admin/**/*.{ts,html,scss}
+alwaysApply: false
+---
+
+# Quill editors (admin)
+
+## Every editor gets @mentions
+
+- Import **`APP_QUILL_IMPORTS`** and use **`<app-quill-editor>`** (not bare `quill-editor` / `QuillModule`).
+- Optional inputs on `<app-quill-editor>`:
+  - `mentionClientId` — organization scope (contacts, org tasks/projects).
+  - `mentionProjectId` — Task Manager project scope (members + tasks).
+  - `mentionContext="activity"` — activity log: org people, invoices, projects; **tasks only after 2+ typed chars** (`GET /mentions/candidates?context=activity&clientId=`).
+  - `mentionToolbar` — `full` (default), `minimal`, or `false` (comments).
+
+## Data + display
+
+- API: `GET /mentions/candidates` — list order is **people first** (users, contacts), then tasks/projects.
+- Read-only HTML: **`quillHtmlForDisplay`** in `quill-utils.ts` (task/project links).
+
+## Paste (clipboard)
+
+- **`quill-paste-clipboard.ts`** + `QuillPasteService`: in-app record URLs (task, TM/CRM project, organization, invoice, person) → `mention` embed with API title (not the raw URL).
+- Parsers: `quill-app-record-deep-link.util.ts`, `quill-link-paste.util.ts`.
+
+## Do not
+
+- Bare `<quill-editor>` on feature pages (use `<app-quill-editor>`).
+- Hand-roll `quill-mention` `source` callbacks per screen.

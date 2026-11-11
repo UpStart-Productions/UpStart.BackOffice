@@ -75,8 +75,8 @@ type Step = 'pick' | 'preview' | 'done';
           <ng-template pTemplate="body" let-row>
             <tr>
               <td>{{ rowLabel(row) }}</td>
-              <td>{{ row.email || '—' }}</td>
-              <td>{{ row.organization || '—' }}</td>
+              <td>{{ row.email }}</td>
+              <td>{{ row.organization }}</td>
             </tr>
           </ng-template>
         </p-table>

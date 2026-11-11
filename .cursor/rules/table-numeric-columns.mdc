@@ -1,0 +1,17 @@
+---
+description: Right-align numeric table columns (headers and cells)
+globs: admin/src/**/*.{html,ts,scss},admin/src/assets/layout/_app.scss
+alwaysApply: false
+---
+
+# Table numeric columns (`.col-numeric`)
+
+For **amounts, counts, rates, durations, quantities**, and similar numeric data in tables:
+
+- **Not** invoice **Number** columns (display numbers like `INV-1001` stay left-aligned like other labels).
+
+- Add **`col-numeric`** to the matching **`th` and `td`** (both header and body).
+- Styles live in `assets/layout/_app.scss` (right align + tabular figures).
+- Do **not** use ad-hoc `text-right` on table cells — use `col-numeric` so headers and values align and sort icons line up on sortable columns.
+
+Width/layout-specific classes (e.g. `invoice-line-qty-col`) stay alongside `col-numeric`.

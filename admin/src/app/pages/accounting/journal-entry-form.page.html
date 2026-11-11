@@ -31,8 +31,8 @@
           <ng-template pTemplate="header">
             <tr>
               <th>Account</th>
-              <th style="width: 130px">Debit</th>
-              <th style="width: 130px">Credit</th>
+              <th class="col-numeric" style="width: 130px">Debit</th>
+              <th class="col-numeric" style="width: 130px">Credit</th>
               <th style="width: 40px"></th>
             </tr>
           </ng-template>
@@ -48,7 +48,7 @@
                   styleClass="w-full"
                 />
               </td>
-              <td>
+              <td class="col-numeric">
                 <input
                   pInputText
                   type="number"
@@ -58,7 +58,7 @@
                   class="w-full"
                 />
               </td>
-              <td>
+              <td class="col-numeric">
                 <input
                   pInputText
                   type="number"

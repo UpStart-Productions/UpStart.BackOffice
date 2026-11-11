@@ -28,7 +28,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
           @if (allowClear() && currentId()) {
             <li>
               <button type="button" class="tm-picker-item" (click)="choose(null)">
-                <app-tm-avatar [person]="null" [size]="22" />
+                <app-tm-avatar [person]="null" size="sm" />
                 <span>Unassign</span>
               </button>
             </li>
@@ -36,7 +36,7 @@ import { TmAvatarComponent } from './tm-avatar.component';
           @for (p of filtered(); track p.id) {
             <li>
               <button type="button" class="tm-picker-item" [class.selected]="p.id === currentId()" (click)="choose(p)" role="option">
-                <app-tm-avatar [person]="p" [size]="22" [showTitle]="false" />
+                <app-tm-avatar [person]="p" size="sm" [showTitle]="false" />
                 <span class="tm-picker-name">{{ p.name }}</span>
                 <span class="tm-picker-meta">{{ p.isGuest ? 'Guest' : p.email }}</span>
               </button>

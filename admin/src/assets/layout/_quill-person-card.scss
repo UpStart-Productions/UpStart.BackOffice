@@ -59,10 +59,7 @@
 }
 
 .bo-person-card__avatar {
-  flex: 0 0 2rem;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
+  flex: 0 0 var(--avatar-size-med);
   overflow: hidden;
   background: var(--surface-100, #f3f4f6);
 

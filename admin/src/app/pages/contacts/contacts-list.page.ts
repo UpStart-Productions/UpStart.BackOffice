@@ -18,7 +18,14 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
 import { CrmTagsApi } from '../../core/crm-tags.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS, listViewFilterBool, listViewFilterString, readListViewPrefs } from '../../core/list-view-prefs.storage';
+import { loadListSearch, loadTableSort, onTableSortSave, saveListFilter, saveListSearch } from '../../core/list-view-prefs.util';
 import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
+
+type PeopleTableRow = ContactSummary & {
+  primaryEmail: string;
+  organizationsSort: string;
+};
 
 @Component({
   selector: 'app-contacts-list-page',
@@ -86,21 +93,30 @@ import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component
         </div>
 
         <p-table
-          [value]="contacts()"
+          [value]="peopleTableRows()"
           [loading]="loading()"
+          [sortField]="tableSortField()"
+          [sortOrder]="tableSortOrder()"
+          (onSort)="onTableSort($event)"
           styleClass="table-bordered"
-          [paginator]="contacts().length > pageSize"
+          [paginator]="peopleTableRows().length > pageSize"
           [rows]="pageSize"
         >
           <ng-template pTemplate="header">
             <tr>
               <th class="network-list-leading-col"></th>
-              <th pSortableColumn="firstName">
+              <th pSortableColumn="lastName">
                 Name
-                <p-sortIcon field="firstName" />
+                <p-sortIcon field="lastName" />
               </th>
-              <th>Email</th>
-              <th>Organizations</th>
+              <th pSortableColumn="primaryEmail">
+                Email
+                <p-sortIcon field="primaryEmail" />
+              </th>
+              <th pSortableColumn="organizationsSort">
+                Organizations
+                <p-sortIcon field="organizationsSort" />
+              </th>
               <th>Tags</th>
             </tr>
           </ng-template>
@@ -134,8 +150,6 @@ import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component
               <td>
                 @for (link of c.accountLinks; track link.clientId; let last = $last) {
                   <a [routerLink]="['/organizations', link.clientId]" class="text-primary">{{ link.client.name }}</a>{{ last ? '' : ', ' }}
-                } @empty {
-                  <span class="text-color-secondary">—</span>
                 }
               </td>
               <td>
@@ -186,7 +200,20 @@ export class ContactsListPage implements OnInit {
   query = '';
   review = signal(false);
   tag: string | null = null;
+  tableSortField = signal('lastName');
+  tableSortOrder = signal<1 | -1>(1);
   private timer: ReturnType<typeof setTimeout> | null = null;
+
+  readonly peopleTableRows = computed((): PeopleTableRow[] =>
+    this.contacts().map((c) => ({
+      ...c,
+      primaryEmail: c.emails[0]?.email ?? '',
+      organizationsSort: c.accountLinks
+        .map((link) => link.client.name)
+        .sort((a, b) => a.localeCompare(b))
+        .join(', '),
+    })),
+  );
 
   private readonly createPersonModal = viewChild.required(CreatePersonModalComponent);
   private readonly importModal = viewChild.required(PeopleImportModalComponent);
@@ -234,27 +261,52 @@ export class ContactsListPage implements OnInit {
 
   async ngOnInit() {
     void this.crmTags.load();
-    this.tag = this.route.snapshot.queryParamMap.get('tag');
-    const reviewParam = this.route.snapshot.queryParamMap.get('review');
-    this.review.set(reviewParam === 'true');
+    const listPrefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.people);
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.people);
+    if (search) this.query = search;
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.people, { field: 'lastName', order: 1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
+    const snap = this.route.snapshot.queryParamMap;
+    this.tag = snap.has('tag') ? snap.get('tag') : listViewFilterString(listPrefs, 'tag');
+    const reviewParam = snap.get('review');
+    if (reviewParam === 'true') {
+      this.review.set(true);
+    } else if (!snap.has('review')) {
+      const savedReview = listViewFilterBool(listPrefs, 'review');
+      if (savedReview === true) this.review.set(true);
+    }
     void this.comms.refreshReviewCount();
     await this.load();
+  }
+
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.people, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
   }
 
   onSearch(value: string) {
     this.query = value;
     if (this.timer) clearTimeout(this.timer);
-    this.timer = setTimeout(() => void this.load(), 250);
+    this.timer = setTimeout(() => {
+      saveListSearch(this.session, LIST_VIEW_KEYS.people, value);
+      void this.load();
+    }, 250);
   }
 
   onTag(value: string | null) {
     this.tag = value;
+    saveListFilter(this.session, LIST_VIEW_KEYS.people, 'tag', value);
     void this.router.navigate([], { queryParams: { tag: value || null }, queryParamsHandling: 'merge', replaceUrl: true });
     void this.load();
   }
 
   setReview(value: boolean) {
     this.review.set(value);
+    saveListFilter(this.session, LIST_VIEW_KEYS.people, 'review', value);
     void this.router.navigate([], {
       queryParams: { review: value ? 'true' : null },
       queryParamsHandling: 'merge',

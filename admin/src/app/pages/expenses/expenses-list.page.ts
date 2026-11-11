@@ -11,6 +11,16 @@ import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import { isPdfFile, isRasterImage } from '../../core/file-type.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
+import {
+  LIST_VIEW_KEYS,
+  listViewFilterString,
+  patchListViewPrefs,
+  periodFromListPrefs,
+  periodToListFilter,
+  readListViewPrefs,
+} from '../../core/list-view-prefs.storage';
+import { listPrefsUserId, loadListSearch, saveListSearch } from '../../core/list-view-prefs.util';
 import { defaultPeriod, resolveReportPeriod } from '../../core/period.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PeriodPickerComponent } from '../../ui/period-picker/period-picker.component';
@@ -83,6 +93,7 @@ const REIMBURSEMENT_SEVERITY: Record<ExpenseReimbursementStatus, TagSeverity> = 
 export class ExpensesListPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
+  private readonly session = inject(SessionService);
   private readonly modal = viewChild.required(ExpenseModalComponent);
 
   expenses = signal<Expense[]>([]);
@@ -233,9 +244,21 @@ export class ExpensesListPage implements OnInit {
       this.period();
       untracked(() => void this.loadExpenses());
     });
+    effect(() => {
+      this.period();
+      this.statusFilter();
+      this.clientFilter();
+      this.projectFilter();
+      this.personFilter();
+      this.categoryFilter();
+      this.filtersOpen();
+      this.searchDebounced();
+      untracked(() => this.persistListPrefs());
+    });
   }
 
   async ngOnInit() {
+    this.restoreListPrefs();
     try {
       const projects = await this.api.get<ProjectListItem[]>('/projects');
       this.projects.set(projects.filter((p) => p.isActive !== false));
@@ -244,8 +267,53 @@ export class ExpensesListPage implements OnInit {
     }
   }
 
+  private restoreListPrefs() {
+    const prefs = readListViewPrefs(listPrefsUserId(this.session), LIST_VIEW_KEYS.expenses);
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.expenses);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced.set(search);
+    }
+    const period = periodFromListPrefs(prefs);
+    if (period) this.period.set(period);
+    const f = prefs.filters ?? {};
+    const status = listViewFilterString(prefs, 'status');
+    if (status) this.statusFilter.set(status as StatusFilter);
+    const client = listViewFilterString(prefs, 'client');
+    if (client) this.clientFilter.set(client);
+    const project = listViewFilterString(prefs, 'project');
+    if (project) this.projectFilter.set(project);
+    const person = listViewFilterString(prefs, 'person');
+    if (person) this.personFilter.set(person);
+    const category = listViewFilterString(prefs, 'category');
+    if (category) this.categoryFilter.set(category);
+    if (f['filtersOpen'] === 'true') this.filtersOpen.set(true);
+  }
+
+  private persistListPrefs() {
+    const filters: Record<string, string | boolean> = {
+      period: periodToListFilter(this.period()),
+    };
+    const status = this.statusFilter();
+    if (status) filters['status'] = status;
+    const client = this.clientFilter();
+    if (client) filters['client'] = client;
+    const project = this.projectFilter();
+    if (project) filters['project'] = project;
+    const person = this.personFilter();
+    if (person) filters['person'] = person;
+    const category = this.categoryFilter();
+    if (category) filters['category'] = category;
+    if (this.filtersOpen()) filters['filtersOpen'] = 'true';
+    patchListViewPrefs(listPrefsUserId(this.session), LIST_VIEW_KEYS.expenses, {
+      search: this.searchDebounced().trim() || undefined,
+      filters,
+    });
+  }
+
   toggleFilters() {
     this.filtersOpen.update((open) => !open);
+    this.persistListPrefs();
   }
 
   clearFilterChip(key: ExpenseFilterChipKey) {
@@ -284,6 +352,8 @@ export class ExpensesListPage implements OnInit {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.searchDebounced.set(value);
+      saveListSearch(this.session, LIST_VIEW_KEYS.expenses, value);
+      this.persistListPrefs();
       this.searchTimer = null;
     }, 150);
   }
@@ -293,6 +363,7 @@ export class ExpensesListPage implements OnInit {
     if (this.projectFilter() && !this.projectOptions().some((p) => p.value === this.projectFilter())) {
       this.projectFilter.set('');
     }
+    this.persistListPrefs();
   }
 
   filterByCategory(category: string, event: Event) {

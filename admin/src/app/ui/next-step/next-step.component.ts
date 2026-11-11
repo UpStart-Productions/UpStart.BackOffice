@@ -60,7 +60,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
                     [email]="o.email"
                     [avatarUrl]="o.avatarUrl"
                     [personId]="o.id"
-                    [size]="28"
+                    size="med"
                   />
                 }
               </div>
@@ -111,7 +111,7 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
             <span class="next-step-meta">{{ dateLabel() }}</span>
           }
           @if (step()?.owner; as o) {
-            <app-person [firstName]="o.firstName" [lastName]="o.lastName" [name]="o.name" [email]="o.email" [avatarUrl]="o.avatarUrl" [personId]="o.id" [size]="20" />
+            <app-person [firstName]="o.firstName" [lastName]="o.lastName" [name]="o.name" [email]="o.email" [avatarUrl]="o.avatarUrl" [personId]="o.id" size="sm" />
           }
           @if (showInlineStatus()) {
             @if (step()?.overdue) {
@@ -178,10 +178,10 @@ type OwnerOption = { id: string; label: string; firstName: string | null; lastNa
             styleClass="w-full"
           >
             <ng-template #item let-option>
-              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" size="sm" />
             </ng-template>
             <ng-template #selectedItem let-option>
-              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" size="sm" />
             </ng-template>
           </p-select>
         </div>

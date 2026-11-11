@@ -252,7 +252,7 @@
                 </td>
                 <td>{{ key.name }}</td>
                 <td><code class="text-sm">{{ key.keyPrefix }}</code></td>
-                <td>{{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '—' }}</td>
+                <td>{{ key.lastUsedAt ? formatDate(key.lastUsedAt) : '' }}</td>
                 <td>{{ formatDate(key.createdAt) }}</td>
                 <td>
                   <p-tag
@@ -363,7 +363,7 @@
           @if (asana(); as status) {
             @if (status.connected) {
               <div class="flex flex-column gap-2 mb-3">
-                <div><strong>Workspace:</strong> {{ status.workspaceName ?? '—' }}</div>
+                <div><strong>Workspace:</strong> {{ status.workspaceName }}</div>
                 @if (status.connectedByEmail) {
                   <div><strong>Connected by:</strong> {{ status.connectedByEmail }}</div>
                 }

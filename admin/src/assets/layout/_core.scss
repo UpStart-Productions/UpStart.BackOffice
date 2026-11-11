@@ -1,4 +1,9 @@
 :root {
+  /* User avatars: sm | med | lg only (see .cursor/rules/avatar-sizes.mdc). */
+  --avatar-size-sm: 22px;
+  --avatar-size-med: 28px;
+  --avatar-size-lg: 36px;
+
   /* Expanded left nav (was 20rem); ~20% narrower to give laptops more content width. */
   --layout-sidebar-open-width: 16rem;
   /* Viewport inset for main column: left page gutter (2rem) + sidebar width — matches old 22rem when sidebar was 20rem. */

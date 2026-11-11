@@ -51,12 +51,7 @@ import { LayoutService } from './layout.service';
         background-color: transparent;
       }
       .topbar-user-avatar {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        object-fit: cover;
         display: block;
-        flex-shrink: 0;
       }
       .topbar-user-avatar--placeholder {
         display: inline-flex;
@@ -161,12 +156,12 @@ import { LayoutService } from './layout.service';
               <img
                 [src]="avatarSrc"
                 alt=""
-                class="topbar-user-avatar"
+                class="topbar-user-avatar ubo-avatar ubo-avatar--lg"
                 referrerpolicy="no-referrer"
                 (error)="avatarImageError = true"
               />
             } @else {
-              <span class="topbar-user-avatar topbar-user-avatar--placeholder" aria-hidden="true">
+              <span class="topbar-user-avatar topbar-user-avatar--placeholder ubo-avatar ubo-avatar--lg" aria-hidden="true">
                 <i class="pi pi-user"></i>
               </span>
             }

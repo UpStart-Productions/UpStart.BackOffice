@@ -14,6 +14,8 @@ import { resolveAssetUrl } from '../../core/asset-url.util';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { CognitoAuthService } from '../../core/cognito-auth.service';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS, listViewFilterString, patchListViewPrefs, readListViewPrefs } from '../../core/list-view-prefs.storage';
+import { loadListSearch, saveListFilter, saveListSearch } from '../../core/list-view-prefs.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import {
@@ -75,7 +77,32 @@ export class UsersListPage {
   addEditModalRef = viewChild<AddEditUserModalComponent>('addEditModal');
 
   ngOnInit() {
+    this.restoreListPrefs();
     void this.load();
+  }
+
+  private restoreListPrefs() {
+    const prefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.users);
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.users);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced = search;
+    }
+    const sortBy = listViewFilterString(prefs, 'sortBy') as SortBy | null;
+    if (sortBy === 'name' || sortBy === 'email' || sortBy === 'role') this.sortBy = sortBy;
+    const tab = listViewFilterString(prefs, 'tab');
+    if (tab === 'users' || tab === 'roles') this.tab = tab;
+  }
+
+  onSortByChange(value: SortBy) {
+    this.sortBy = value;
+    saveListFilter(this.session, LIST_VIEW_KEYS.users, 'sortBy', value);
+  }
+
+  onTabChange(value: string | number | undefined) {
+    const next = value === 'roles' ? 'roles' : 'users';
+    this.tab = next;
+    saveListFilter(this.session, LIST_VIEW_KEYS.users, 'tab', next);
   }
 
   get filteredUsers(): UserRow[] {
@@ -103,6 +130,7 @@ export class UsersListPage {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.searchDebounced = value;
+      saveListSearch(this.session, LIST_VIEW_KEYS.users, value);
       this.searchTimer = null;
     }, 150);
   }
@@ -110,6 +138,7 @@ export class UsersListPage {
   clearSearch() {
     this.searchQuery = '';
     this.searchDebounced = '';
+    saveListSearch(this.session, LIST_VIEW_KEYS.users, '');
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
       this.searchTimer = null;

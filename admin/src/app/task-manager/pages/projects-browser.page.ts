@@ -48,8 +48,8 @@ import { PageComponent } from '../../ui/layout/page.component';
               <th style="width: 2.5rem"></th>
               <th pSortableColumn="name">Project <p-sortIcon field="name" /></th>
               <th pSortableColumn="client.name">Client <p-sortIcon field="client.name" /></th>
-              <th pSortableColumn="openTaskCount" style="width: 9rem">Open tasks <p-sortIcon field="openTaskCount" /></th>
-              <th pSortableColumn="memberCount" style="width: 8rem">Members <p-sortIcon field="memberCount" /></th>
+              <th class="col-numeric" pSortableColumn="openTaskCount" style="width: 9rem">Open tasks <p-sortIcon field="openTaskCount" /></th>
+              <th class="col-numeric" pSortableColumn="memberCount" style="width: 8rem">Members <p-sortIcon field="memberCount" /></th>
               @if (seesAllProjects()) { <th style="width: 7rem">Billable</th> }
             </tr>
           </ng-template>
@@ -67,8 +67,8 @@ import { PageComponent } from '../../ui/layout/page.component';
                 @if (!p.isActive) { <span class="tm-client-chip tm-client-chip--archived">Inactive</span> }
               </td>
               <td>{{ p.client?.name ?? 'Personal' }}</td>
-              <td>{{ p.openTaskCount }}</td>
-              <td>{{ p.memberCount }}</td>
+              <td class="col-numeric">{{ p.openTaskCount }}</td>
+              <td class="col-numeric">{{ p.memberCount }}</td>
               @if (seesAllProjects()) {
                 <td><i class="pi" [class.pi-check-circle]="p.isBillable" [class.pi-circle]="!p.isBillable"></i></td>
               }

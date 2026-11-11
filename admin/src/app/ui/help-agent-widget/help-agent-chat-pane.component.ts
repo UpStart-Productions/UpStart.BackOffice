@@ -70,7 +70,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
           @for (msg of chatMessages(); track $index; let mi = $index) {
             @if (msg.role === 'assistant') {
               <div class="help-agent-chat-assistant">
-                <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
+                <img class="help-agent-avatar help-agent-msg-avatar ubo-avatar ubo-avatar--med" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
                 <div class="help-agent-chat-msg help-agent-chat-msg--assistant">
                   <div [innerHTML]="msg.text | simpleMarkdown: 'appLinks'"></div>
                   @if (msg.lookups?.length) {
@@ -98,7 +98,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
           }
           @if (chatSending()) {
             <div class="help-agent-chat-assistant">
-              <img class="help-agent-avatar help-agent-msg-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
+              <img class="help-agent-avatar help-agent-msg-avatar ubo-avatar ubo-avatar--med" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
               <div class="help-agent-chat-msg help-agent-typing" [attr.aria-label]="agentName + ' is typing'">
                 <span class="help-agent-typing-dot"></span>
                 <span class="help-agent-typing-dot"></span>
@@ -114,7 +114,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
       <div class="help-agent-chat-footer">
         <div class="help-agent-panel-toolbar">
           <span class="help-agent-toolbar-identity">
-            <img class="help-agent-avatar help-agent-toolbar-avatar" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
+            <img class="help-agent-avatar help-agent-toolbar-avatar ubo-avatar ubo-avatar--med" [src]="guideAvatarSrc" alt="" aria-hidden="true" />
             <span class="help-agent-toolbar-name">{{ agentName }}</span>
           </span>
           <div class="help-agent-toolbar-actions">

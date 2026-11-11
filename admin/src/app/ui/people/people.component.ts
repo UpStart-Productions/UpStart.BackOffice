@@ -110,7 +110,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
         }
         @for (c of orgPeople(); track c.id) {
           <div class="people-panel-org-row">
-            <app-tm-avatar [person]="orgRowPerson(c)" [size]="36" [showTitle]="false" />
+            <app-tm-avatar [person]="orgRowPerson(c)" size="lg" [showTitle]="false" />
             <div class="people-panel-org-main">
               <div class="people-panel-org-name-line">
                 <button type="button" class="people-panel-name-link" (click)="openPersonDetail(c.id)">
@@ -173,7 +173,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
         }
         @for (m of teamRows(); track m.id) {
           <div class="people-panel-org-row">
-            <app-tm-avatar [person]="m" [size]="36" [showTitle]="false" />
+            <app-tm-avatar [person]="m" size="lg" [showTitle]="false" />
             <div class="people-panel-org-main">
               <div class="people-panel-org-name-line">
                 <span class="people-panel-name-static">{{ m.name }}</span>
@@ -208,7 +208,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
       } @else {
         @for (contact of projectPeople(); track $index; let rowIndex = $index) {
           <div class="people-panel-project-row">
-            <app-tm-avatar [person]="projectRowPerson(contact)" [size]="36" [showTitle]="false" />
+            <app-tm-avatar [person]="projectRowPerson(contact)" size="lg" [showTitle]="false" />
             <div class="people-panel-project-main">
               <div class="people-panel-org-name-line">
                 @if (contact.contactId) {
@@ -254,7 +254,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
         }
         @for (m of teamRows(); track m.id) {
           <div class="people-panel-project-row">
-            <app-tm-avatar [person]="m" [size]="36" [showTitle]="false" />
+            <app-tm-avatar [person]="m" size="lg" [showTitle]="false" />
             <div class="people-panel-project-main">
               <div class="people-panel-org-name-line">
                 <span class="people-panel-name-static">{{ m.name }}</span>

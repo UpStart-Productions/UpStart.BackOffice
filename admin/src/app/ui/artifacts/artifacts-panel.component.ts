@@ -9,7 +9,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TabsModule } from 'primeng/tabs';
 import { MessageModule } from 'primeng/message';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
+import { quillHtmlForDisplay } from '../../core/quill-utils';
 import { ApiService } from '../../core/api.service';
 import { fileExtension, fileExtLabel, fileIconClass, isRasterImage } from '../../core/file-type.util';
 import { resolveAssetUrl } from '../../core/asset-url.util';
@@ -40,7 +41,7 @@ type Artifact = {
     InputTextModule,
     TabsModule,
     MessageModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     SingleFileDropzoneComponent,
     FileViewerDialogComponent,
   ],
@@ -167,12 +168,14 @@ type Artifact = {
                 <label>Title</label>
                 <input pInputText [(ngModel)]="newNoteTitle" placeholder="e.g. Research Notes" class="w-full" />
               </div>
-              <quill-editor
+              <app-quill-editor
                 [(ngModel)]="newNoteContent"
+                [mentionClientId]="clientId() ?? null"
+                [mentionProjectId]="projectId() ?? null"
                 placeholder="Write your note..."
                 [styles]="{ 'min-height': '140px' }"
                 (onEditorCreated)="onNoteEditor($event)"
-              ></quill-editor>
+              ></app-quill-editor>
               <button pButton label="Add Note" icon="pi pi-plus" severity="secondary" (click)="addNote()" [disabled]="!newNoteTitle || !newNoteContent"></button>
             </div>
             <div class="artifact-list">
@@ -236,7 +239,7 @@ export class ArtifactsPanelComponent {
   newNoteContent = '';
 
   sanitizeHtml(html?: string): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+    return this.sanitizer.bypassSecurityTrustHtml(quillHtmlForDisplay(html));
   }
 
   onNoteEditor(quill: Quill) {

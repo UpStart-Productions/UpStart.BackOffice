@@ -28,10 +28,6 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
       background: color-mix(in srgb, var(--primary-color) 8%, var(--surface-ground));
     }
     .avatar-dropzone-thumb {
-      width: 2.25rem;
-      height: 2.25rem;
-      border-radius: 50%;
-      object-fit: cover;
       flex-shrink: 0;
     }
     .avatar-dropzone-thumb--square {
@@ -188,7 +184,7 @@ const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
       >
         @if (displayUrl()) {
           <img
-            class="avatar-dropzone-thumb"
+            class="avatar-dropzone-thumb ubo-avatar ubo-avatar--lg"
             [class.avatar-dropzone-thumb--square]="thumbShape() === 'square'"
             [src]="displayUrl()!"
             alt=""

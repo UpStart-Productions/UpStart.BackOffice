@@ -12,6 +12,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ApiError, ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
+import { loadListSearch, saveListFilter, saveListSearch } from '../../core/list-view-prefs.util';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
@@ -257,6 +259,11 @@ export class PipelineBoardPage implements OnInit {
   });
 
   async ngOnInit() {
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.pipeline);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced.set(search);
+    }
     const fromUrl = this.route.snapshot.queryParamMap.get('pipeline');
     await this.loadPipelines(fromUrl);
     await this.loadLeads();
@@ -299,6 +306,7 @@ export class PipelineBoardPage implements OnInit {
 
   async selectPipeline(id: string) {
     this.pipelineId.set(id);
+    saveListFilter(this.session, LIST_VIEW_KEYS.pipeline, 'pipelineId', id);
     this.syncUrl();
     await this.loadLeads();
   }
@@ -310,6 +318,7 @@ export class PipelineBoardPage implements OnInit {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.searchDebounced.set(value);
+      saveListSearch(this.session, LIST_VIEW_KEYS.pipeline, value);
       this.searchTimer = null;
     }, 150);
   }
@@ -317,6 +326,7 @@ export class PipelineBoardPage implements OnInit {
   clearSearch() {
     this.searchQuery = '';
     this.searchDebounced.set('');
+    saveListSearch(this.session, LIST_VIEW_KEYS.pipeline, '');
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
       this.searchTimer = null;

@@ -29,8 +29,9 @@
     <p-table
       [value]="filteredProjects()"
       [loading]="loading()"
-      sortField="name"
-      [sortOrder]="1"
+      [sortField]="tableSortField()"
+      [sortOrder]="tableSortOrder()"
+      (onSort)="onTableSort($event)"
       styleClass="table-bordered"
     >
       <ng-template pTemplate="header">
@@ -44,7 +45,7 @@
             Client
             <p-sortIcon field="client.name" />
           </th>
-          <th pSortableColumn="hourlyRate">
+          <th class="col-numeric" pSortableColumn="hourlyRate">
             Rate
             <p-sortIcon field="hourlyRate" />
           </th>
@@ -67,7 +68,7 @@
             <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
           </td>
           <td>{{ (project.client?.name ?? 'Personal') }}</td>
-          <td>{{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : '—' }}</td>
+          <td class="col-numeric">{{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : '' }}</td>
           <td>
             <i
               class="pi"

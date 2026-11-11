@@ -93,15 +93,17 @@
       </div>
       <div class="form-field showcase-full">
         <label for="description">Description</label>
-        <quill-editor
+        <app-quill-editor
           id="description"
           name="description"
           [(ngModel)]="form.description"
           (ngModelChange)="touchForm()"
+          [mentionClientId]="form.clientId || null"
+          [mentionProjectId]="id() || null"
           placeholder="Project description…"
           [styles]="{ 'min-height': '140px' }"
           (onEditorCreated)="onDescriptionEditor($event)"
-        ></quill-editor>
+        ></app-quill-editor>
       </div>
     </div>
   </ng-template>

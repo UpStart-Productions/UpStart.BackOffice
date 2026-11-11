@@ -113,14 +113,15 @@
           </div>
           <div class="form-field showcase-full">
             <label for="notes">Notes</label>
-            <quill-editor
+            <app-quill-editor
               id="notes"
               name="notes"
               [(ngModel)]="form.notes"
+              [mentionClientId]="id()"
               placeholder="Notes…"
               [styles]="{ 'min-height': '140px' }"
               (onEditorCreated)="onNotesEditor($event)"
-            ></quill-editor>
+            ></app-quill-editor>
           </div>
           @if (isClient && !isClientFlow && !isNew) {
             <div class="showcase-row">
@@ -258,63 +259,6 @@
           }
 
           <app-client-forms-panel [clientId]="id()!" />
-
-          <div class="card card--side">
-            <div class="card-header">
-              <h3 class="card-title">Public Settings</h3>
-            </div>
-            <div class="side-panel-scroll">
-            <div class="flex align-items-center gap-2 mb-3">
-              <p-toggleSwitch
-                inputId="isPublicFeatured"
-                name="isPublicFeatured"
-                [(ngModel)]="form.isPublicFeatured"
-              />
-              <label for="isPublicFeatured">Public listing <app-help-text key="organization.publicListing" /></label>
-            </div>
-            @if (isClient) {
-              <div class="flex align-items-center gap-2 mb-3">
-                <p-toggleSwitch
-                  inputId="portalEnabled"
-                  [ngModel]="portalEnabled()"
-                  (ngModelChange)="onPortalToggle($event)"
-                  [disabled]="portalBusy()"
-                />
-                <label for="portalEnabled">Client portal enabled <app-help-text key="organization.clientPortal" /></label>
-              </div>
-              @if (portalEnabled() && portalUrl()) {
-                <div class="form-field">
-                  <label for="portalUrl">Portal link</label>
-                  <input pInputText id="portalUrl" [value]="portalUrl()!" readonly class="w-full" />
-                </div>
-                <div class="portal-actions field-action-row">
-                  <a
-                    pButton
-                    label="Open"
-                    icon="pi pi-external-link"
-                    severity="secondary"
-                    size="small"
-                    [href]="portalUrl()!"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  ></a>
-                  <button type="button" pButton label="Copy" icon="pi pi-copy" severity="secondary" size="small" (click)="copyPortalLink()"></button>
-                  <button
-                    type="button"
-                    pButton
-                    label="Regenerate"
-                    icon="pi pi-refresh"
-                    severity="warn"
-                    size="small"
-                    [outlined]="true"
-                    [loading]="portalBusy()"
-                    (click)="confirmRegeneratePortalLink()"
-                  ></button>
-                </div>
-              }
-            }
-            </div>
-          </div>
         </div>
       }
     </div>
@@ -327,4 +271,71 @@
       emptyMessage="This client is on every pipeline already, or there are no pipelines yet."
     />
   }
+
+  <p-dialog
+    header="Organization settings"
+    [visible]="publicSettingsVisible()"
+    (visibleChange)="onPublicSettingsVisible($event)"
+    [modal]="true"
+    [style]="{ width: 'min(36rem, 95vw)' }"
+    [contentStyle]="{ overflow: 'visible' }"
+    appendTo="body"
+  >
+    <ng-container *ngTemplateOutlet="clientPublicSettingsPanel" />
+    <div class="form-actions mt-3">
+      <p-button label="Close" severity="secondary" type="button" (click)="onPublicSettingsVisible(false)" />
+    </div>
+  </p-dialog>
+
+  <ng-template #clientPublicSettingsPanel>
+    <div class="flex align-items-center gap-2 mb-3">
+      <p-toggleSwitch
+        inputId="isPublicFeatured"
+        name="isPublicFeatured"
+        [(ngModel)]="form.isPublicFeatured"
+      />
+      <label for="isPublicFeatured">Public listing <app-help-text key="organization.publicListing" /></label>
+    </div>
+    @if (isClient) {
+      <div class="flex align-items-center gap-2 mb-3">
+        <p-toggleSwitch
+          inputId="portalEnabled"
+          [ngModel]="portalEnabled()"
+          (ngModelChange)="onPortalToggle($event)"
+          [disabled]="portalBusy()"
+        />
+        <label for="portalEnabled">Client portal enabled <app-help-text key="organization.clientPortal" /></label>
+      </div>
+      @if (portalEnabled() && portalUrl()) {
+        <div class="form-field">
+          <label for="portalUrl">Portal link</label>
+          <input pInputText id="portalUrl" [value]="portalUrl()!" readonly class="w-full" />
+        </div>
+        <div class="portal-actions field-action-row">
+          <a
+            pButton
+            label="Open"
+            icon="pi pi-external-link"
+            severity="secondary"
+            size="small"
+            [href]="portalUrl()!"
+            target="_blank"
+            rel="noopener noreferrer"
+          ></a>
+          <button type="button" pButton label="Copy" icon="pi pi-copy" severity="secondary" size="small" (click)="copyPortalLink()"></button>
+          <button
+            type="button"
+            pButton
+            label="Regenerate"
+            icon="pi pi-refresh"
+            severity="warn"
+            size="small"
+            [outlined]="true"
+            [loading]="portalBusy()"
+            (click)="confirmRegeneratePortalLink()"
+          ></button>
+        </div>
+      }
+    }
+  </ng-template>
 </app-page>

@@ -178,7 +178,7 @@
                       <th class="report-col-project">Project</th>
                     }
                     <th class="report-col-task-desc">Task / Description</th>
-                    <th class="report-col-duration text-right">Duration</th>
+                    <th class="report-col-duration col-numeric">Duration</th>
                     <th class="report-col-billable">Billable</th>
                   </tr>
                 </ng-template>
@@ -203,11 +203,11 @@
                     }
                     <td class="report-entry-task-desc report-col-task-desc">
                       <div class="report-entry-task">{{ row.taskName }}</div>
-                      @if (row.description !== '—') {
+                      @if (row.description?.trim()) {
                         <div class="report-entry-notes">{{ row.description }}</div>
                       }
                     </td>
-                    <td class="report-col-duration text-right font-semibold">{{ formatMin(row.durationMin) }}</td>
+                    <td class="report-col-duration col-numeric font-semibold">{{ formatMin(row.durationMin) }}</td>
                     <td class="report-col-billable">
                       <p-tag
                         [value]="row.billable ? 'Yes' : 'No'"
@@ -219,7 +219,7 @@
                 <ng-template pTemplate="footer">
                   <tr class="report-total-row">
                     <td [attr.colspan]="timeEntryDetailLeadingColspan()">Total</td>
-                    <td class="text-right">{{ formatMin(timeSummary().totalMin) }}</td>
+                    <td class="col-numeric">{{ formatMin(timeSummary().totalMin) }}</td>
                     <td></td>
                   </tr>
                 </ng-template>
@@ -231,10 +231,10 @@
                   <tr>
                     <th>Client</th>
                     <th>Project</th>
-                    <th class="text-right">Total</th>
-                    <th class="text-right">Billable</th>
-                    <th class="text-right">Non-billable</th>
-                    <th class="text-right">Entries</th>
+                    <th class="col-numeric">Total</th>
+                    <th class="col-numeric">Billable</th>
+                    <th class="col-numeric">Non-billable</th>
+                    <th class="col-numeric">Entries</th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-row>
@@ -253,19 +253,19 @@
                         {{ row.projectName }}
                       }
                     </td>
-                    <td class="text-right font-semibold">{{ formatMin(row.totalMin) }}</td>
-                    <td class="text-right">{{ formatMin(row.billableMin) }}</td>
-                    <td class="text-right">{{ formatMin(row.nonBillableMin) }}</td>
-                    <td class="text-right">{{ row.entryCount }}</td>
+                    <td class="col-numeric font-semibold">{{ formatMin(row.totalMin) }}</td>
+                    <td class="col-numeric">{{ formatMin(row.billableMin) }}</td>
+                    <td class="col-numeric">{{ formatMin(row.nonBillableMin) }}</td>
+                    <td class="col-numeric">{{ row.entryCount }}</td>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="footer">
                   <tr class="report-total-row">
                     <td colspan="2">Total</td>
-                    <td class="text-right">{{ formatMin(timeSummary().totalMin) }}</td>
-                    <td class="text-right">{{ formatMin(timeSummary().billableMin) }}</td>
-                    <td class="text-right">{{ formatMin(timeSummary().nonBillableMin) }}</td>
-                    <td class="text-right">{{ timeSummary().entryCount }}</td>
+                    <td class="col-numeric">{{ formatMin(timeSummary().totalMin) }}</td>
+                    <td class="col-numeric">{{ formatMin(timeSummary().billableMin) }}</td>
+                    <td class="col-numeric">{{ formatMin(timeSummary().nonBillableMin) }}</td>
+                    <td class="col-numeric">{{ timeSummary().entryCount }}</td>
                   </tr>
                 </ng-template>
               </p-table>
@@ -321,11 +321,11 @@
                 <ng-template pTemplate="header">
                   <tr>
                     <th>Client</th>
-                    <th class="text-right">Invoices</th>
-                    <th class="text-right">Total</th>
-                    <th class="text-right">Paid</th>
-                    <th class="text-right">Sent</th>
-                    <th class="text-right">Draft</th>
+                    <th class="col-numeric">Invoices</th>
+                    <th class="col-numeric">Total</th>
+                    <th class="col-numeric">Paid</th>
+                    <th class="col-numeric">Sent</th>
+                    <th class="col-numeric">Draft</th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-row>
@@ -333,18 +333,18 @@
                     <td>
                       <a [routerLink]="['/clients', row.clientId]" class="text-primary">{{ row.clientName }}</a>
                     </td>
-                    <td class="text-right">{{ row.invoiceCount }}</td>
-                    <td class="text-right font-semibold">{{ formatAmount(row.total) }}</td>
-                    <td class="text-right">{{ formatAmount(row.paid) }}</td>
-                    <td class="text-right">{{ formatAmount(row.sent) }}</td>
-                    <td class="text-right">{{ formatAmount(row.draft) }}</td>
+                    <td class="col-numeric">{{ row.invoiceCount }}</td>
+                    <td class="col-numeric font-semibold">{{ formatAmount(row.total) }}</td>
+                    <td class="col-numeric">{{ formatAmount(row.paid) }}</td>
+                    <td class="col-numeric">{{ formatAmount(row.sent) }}</td>
+                    <td class="col-numeric">{{ formatAmount(row.draft) }}</td>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="footer">
                   <tr class="report-total-row">
                     <td>Total</td>
-                    <td class="text-right">{{ invoiceSummary().count }}</td>
-                    <td class="text-right">{{ formatAmount(invoiceSummary().total) }}</td>
+                    <td class="col-numeric">{{ invoiceSummary().count }}</td>
+                    <td class="col-numeric">{{ formatAmount(invoiceSummary().total) }}</td>
                     <td colspan="3"></td>
                   </tr>
                 </ng-template>
@@ -357,7 +357,7 @@
                     <th>Number</th>
                     <th>Client</th>
                     <th>Issue date</th>
-                    <th class="text-right">Total</th>
+                    <th class="col-numeric">Total</th>
                     <th>Status</th>
                   </tr>
                 </ng-template>
@@ -373,7 +373,7 @@
                       <a [routerLink]="['/clients', inv.client.id]" class="text-primary">{{ inv.client.name }}</a>
                     </td>
                     <td>{{ formatDate(inv.issueDate) }}</td>
-                    <td class="text-right font-semibold">{{ formatAmount(inv.total) }}</td>
+                    <td class="col-numeric font-semibold">{{ formatAmount(inv.total) }}</td>
                     <td>
                       <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
                     </td>
@@ -393,19 +393,19 @@
             <div class="stat-cards report-stat-cards">
               <div class="stat-card stat-card--clients">
                 <small class="text-muted">Total spent</small>
-                <h3 class="m-0">—</h3>
+                <h3 class="m-0"></h3>
               </div>
               <div class="stat-card stat-card--projects">
                 <small class="text-muted">Expenses</small>
-                <h3 class="m-0">—</h3>
+                <h3 class="m-0"></h3>
               </div>
               <div class="stat-card stat-card--hours">
                 <small class="text-muted">Billable</small>
-                <h3 class="m-0">—</h3>
+                <h3 class="m-0"></h3>
               </div>
               <div class="stat-card stat-card--leads">
                 <small class="text-muted">Reimbursable</small>
-                <h3 class="m-0">—</h3>
+                <h3 class="m-0"></h3>
               </div>
             </div>
             <p class="text-muted report-empty">Expense reporting for this period is coming soon.</p>
@@ -469,16 +469,16 @@
             <p-table [value]="[taskSummary()]" styleClass="table-bordered report-table">
               <ng-template pTemplate="header">
                 <tr>
-                  <th class="text-right">New</th>
-                  <th class="text-right">Completed</th>
-                  <th class="text-right">Overdue</th>
+                  <th class="col-numeric">New</th>
+                  <th class="col-numeric">Completed</th>
+                  <th class="col-numeric">Overdue</th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-row>
                 <tr>
-                  <td class="text-right font-semibold">{{ row.newCount }}</td>
-                  <td class="text-right font-semibold">{{ row.completedCount }}</td>
-                  <td class="text-right font-semibold">{{ row.overdueCount }}</td>
+                  <td class="col-numeric font-semibold">{{ row.newCount }}</td>
+                  <td class="col-numeric font-semibold">{{ row.completedCount }}</td>
+                  <td class="col-numeric font-semibold">{{ row.overdueCount }}</td>
                 </tr>
               </ng-template>
             </p-table>
@@ -503,7 +503,7 @@
                         <a [routerLink]="taskLink(row)" class="text-primary font-semibold">{{ row.name }}</a>
                       </td>
                       <td>{{ row.projectName }}</td>
-                      <td>{{ row.assigneeName ?? '—' }}</td>
+                      <td>{{ row.assigneeName }}</td>
                       <td>{{ formatDate(row.createdAt) }}</td>
                     </tr>
                   </ng-template>
@@ -527,8 +527,8 @@
                         <a [routerLink]="taskLink(row)" class="text-primary font-semibold">{{ row.name }}</a>
                       </td>
                       <td>{{ row.projectName }}</td>
-                      <td>{{ row.assigneeName ?? '—' }}</td>
-                      <td>{{ row.completedAt ? formatDate(row.completedAt) : '—' }}</td>
+                      <td>{{ row.assigneeName }}</td>
+                      <td>{{ row.completedAt ? formatDate(row.completedAt) : '' }}</td>
                     </tr>
                   </ng-template>
                 </p-table>
@@ -552,7 +552,7 @@
                         <a [routerLink]="taskLink(row)" class="text-primary font-semibold">{{ row.name }}</a>
                       </td>
                       <td>{{ row.projectName }}</td>
-                      <td>{{ row.assigneeName ?? '—' }}</td>
+                      <td>{{ row.assigneeName }}</td>
                       <td>{{ formatDateOnly(row.dueOn) }}</td>
                       <td>
                         <p-tag
@@ -581,38 +581,38 @@
                   <tr>
                     <th>Worker</th>
                     <th>Client</th>
-                    <th>Scheduled</th>
-                    <th>Visited</th>
-                    <th>Difference</th>
-                    <th>Missed shifts</th>
-                    <th>Visits with no shift</th>
+                    <th class="col-numeric">Scheduled</th>
+                    <th class="col-numeric">Visited</th>
+                    <th class="col-numeric">Difference</th>
+                    <th class="col-numeric">Missed shifts</th>
+                    <th class="col-numeric">Visits with no shift</th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-r>
                   <tr>
                     <td>{{ r.workerName }}</td>
                     <td><a [routerLink]="['/clients', r.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ r.clientName }}</a></td>
-                    <td>{{ formatMin(r.scheduledMin) }}</td>
-                    <td>{{ formatMin(r.visitedMin) }}</td>
-                    <td>
+                    <td class="col-numeric">{{ formatMin(r.scheduledMin) }}</td>
+                    <td class="col-numeric">{{ formatMin(r.visitedMin) }}</td>
+                    <td class="col-numeric">
                       @if (r.visitedMin - r.scheduledMin === 0) {
                         0m
                       } @else {
                         <p-tag [value]="formatDiff(r.visitedMin - r.scheduledMin)" [severity]="r.visitedMin < r.scheduledMin ? 'warn' : 'info'" />
                       }
                     </td>
-                    <td>{{ r.missedShifts || '' }}</td>
-                    <td>{{ r.unscheduledVisits || '' }}</td>
+                    <td class="col-numeric">{{ r.missedShifts || '' }}</td>
+                    <td class="col-numeric">{{ r.unscheduledVisits || '' }}</td>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="footer">
                   <tr>
                     <td colspan="2"><strong>Total</strong></td>
-                    <td><strong>{{ formatMin(scheduleTotals().scheduledMin) }}</strong></td>
-                    <td><strong>{{ formatMin(scheduleTotals().visitedMin) }}</strong></td>
-                    <td><strong>{{ formatDiff(scheduleTotals().visitedMin - scheduleTotals().scheduledMin) }}</strong></td>
-                    <td><strong>{{ scheduleTotals().missedShifts || '' }}</strong></td>
-                    <td><strong>{{ scheduleTotals().unscheduledVisits || '' }}</strong></td>
+                    <td class="col-numeric"><strong>{{ formatMin(scheduleTotals().scheduledMin) }}</strong></td>
+                    <td class="col-numeric"><strong>{{ formatMin(scheduleTotals().visitedMin) }}</strong></td>
+                    <td class="col-numeric"><strong>{{ formatDiff(scheduleTotals().visitedMin - scheduleTotals().scheduledMin) }}</strong></td>
+                    <td class="col-numeric"><strong>{{ scheduleTotals().missedShifts || '' }}</strong></td>
+                    <td class="col-numeric"><strong>{{ scheduleTotals().unscheduledVisits || '' }}</strong></td>
                   </tr>
                 </ng-template>
               </p-table>

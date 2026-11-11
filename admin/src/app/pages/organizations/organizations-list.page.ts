@@ -12,6 +12,8 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { CrmTagsApi } from '../../core/crm-tags.api';
 import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS, listViewFilterString, readListViewPrefs } from '../../core/list-view-prefs.storage';
+import { loadListSearch, loadTableSort, onTableSortSave, saveListFilter, saveListSearch } from '../../core/list-view-prefs.util';
 import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
@@ -102,8 +104,16 @@ type StatusFilter = 'all' | AccountJourney;
             />
           </div>
         </div>
-        <p-table [value]="filtered()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="table-bordered"
-          [paginator]="filtered().length > 50" [rows]="50">
+        <p-table
+          [value]="filtered()"
+          [loading]="loading()"
+          [sortField]="tableSortField()"
+          [sortOrder]="tableSortOrder()"
+          (onSort)="onTableSort($event)"
+          styleClass="table-bordered"
+          [paginator]="filtered().length > 50"
+          [rows]="50"
+        >
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 3rem"></th>
@@ -181,8 +191,9 @@ export class OrganizationsListPage implements OnInit {
   tag = signal<string | null>(null);
   searchQuery = '';
   searchDebounced = signal('');
+  tableSortField = signal('name');
+  tableSortOrder = signal<1 | -1>(1);
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
-
   readonly filtered = computed(() => {
     const q = this.searchDebounced().trim().toLowerCase();
     const list = this.orgs();
@@ -192,13 +203,40 @@ export class OrganizationsListPage implements OnInit {
 
   ngOnInit() {
     void this.crmTags.load();
-    // Filters live in the URL (?status=PROSPECT&tag=Partner) so views can be bookmarked and linked.
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.organizations);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced.set(search);
+    }
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.organizations, { field: 'name', order: 1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
+    const listPrefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.organizations);
+    // Filters live in the URL (?status=CLIENT&tag=Partner); localStorage restores when params are absent.
     this.route.queryParamMap.subscribe((params) => {
       const s = params.get('status') as StatusFilter | null;
-      this.status.set(s && this.validStatusFilters.has(s) ? s : 'all');
-      this.tag.set(params.get('tag'));
+      let status: StatusFilter =
+        s && this.validStatusFilters.has(s) ? s : 'all';
+      let tag = params.get('tag');
+      if (!params.has('status')) {
+        const saved = listViewFilterString(listPrefs, 'status') as StatusFilter | null;
+        if (saved && this.validStatusFilters.has(saved)) status = saved;
+      }
+      if (!params.has('tag')) {
+        tag = listViewFilterString(listPrefs, 'tag');
+      }
+      this.status.set(status);
+      this.tag.set(tag);
       void this.load();
     });
+  }
+
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.organizations, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
   }
 
   onTypeFilter(value: AccountJourney | null) {
@@ -208,6 +246,8 @@ export class OrganizationsListPage implements OnInit {
   setFilter(change: { status?: StatusFilter; tag?: string | null }) {
     const status = change.status ?? this.status();
     const tag = 'tag' in change ? change.tag : this.tag();
+    saveListFilter(this.session, LIST_VIEW_KEYS.organizations, 'status', status === 'all' ? null : status);
+    saveListFilter(this.session, LIST_VIEW_KEYS.organizations, 'tag', tag);
     void this.router.navigate([], {
       queryParams: { status: status === 'all' ? null : status, tag: tag || null },
       queryParamsHandling: 'merge',
@@ -217,7 +257,11 @@ export class OrganizationsListPage implements OnInit {
   onSearchInput(value: string) {
     this.searchQuery = value;
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.searchDebounced.set(value), 150);
+    this.searchTimer = setTimeout(() => {
+      this.searchDebounced.set(value);
+      saveListSearch(this.session, LIST_VIEW_KEYS.organizations, value);
+      this.searchTimer = null;
+    }, 150);
   }
 
   statusLabel(org: OrganizationRow): string {

@@ -324,8 +324,8 @@ export class ReportsPage implements OnInit {
         clientName: e.project?.client?.name ?? e.client?.name ?? 'Personal',
         projectId: e.project?.id ?? null,
         projectName: e.project?.name ?? 'No project',
-        taskName: e.projectTask?.name ?? '—',
-        description: e.description?.trim() || '—',
+        taskName: e.projectTask?.name ?? '',
+        description: e.description?.trim() ?? '',
         durationMin: e.durationMin ?? 0,
         billable: this.isEntryBillable(e),
       })),
@@ -578,7 +578,7 @@ export class ReportsPage implements OnInit {
   }
 
   formatDateOnly(key: string | null): string {
-    if (!key) return '—';
+    if (!key) return '';
     const [y, m, d] = key.split('-').map(Number);
     if (!y || !m || !d) return key;
     return new Date(y, m - 1, d).toLocaleDateString('en-US', {

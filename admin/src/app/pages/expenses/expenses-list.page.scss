@@ -63,11 +63,16 @@
   gap: 1.25rem;
 }
 
+/* Shared column tracks so month totals and line amounts share the same right edge. */
+.expense-register-group {
+  --expense-register-grid: 2rem 6.75rem minmax(0, 1fr) 11rem 5.75rem;
+}
+
 .expense-register-group-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--expense-register-grid);
   align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem 0.75rem;
   margin-bottom: 0.35rem;
   padding: 0.5rem 0.65rem;
   border-radius: var(--content-border-radius, 6px);
@@ -75,6 +80,7 @@
 }
 
 .expense-register-group-label {
+  grid-column: 1 / 5;
   font-size: var(--fs-md);
   font-weight: 600;
   text-transform: uppercase;
@@ -83,10 +89,18 @@
 }
 
 .expense-register-group-total {
+  grid-column: 5;
+  justify-self: end;
+  width: 100%;
+  text-align: right;
   font-size: var(--fs-lg);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-color);
+}
+
+.expense-register-group .side-list {
+  padding-inline: 0.65rem;
 }
 
 /* side-list zeroes first-row top padding; month groups need the same inset as other rows. */
@@ -97,7 +111,7 @@
 .side-list-row.expense-register-row {
   /* Flex + variable amount width was shifting the person column row to row. */
   display: grid;
-  grid-template-columns: 2rem 6.75rem minmax(0, 1fr) 11rem 5.75rem;
+  grid-template-columns: var(--expense-register-grid);
   align-items: start;
   gap: 0.5rem 0.75rem;
   cursor: pointer;

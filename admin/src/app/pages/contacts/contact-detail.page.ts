@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -6,7 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TagModule } from 'primeng/tag';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ApiService } from '../../core/api.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
@@ -34,7 +34,7 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
     InputTextModule,
     MessageModule,
     TagModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     PageComponent,
     ActivitySectionComponent,
     TagInputComponent,
@@ -50,7 +50,7 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
       backLabel="Back to People"
     >
       @if (contact(); as c) {
-        <app-person pageLead [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" [size]="40" [avatarOnly]="true" />
+        <app-person pageLead [name]="name(c)" [firstName]="c.firstName" [lastName]="c.lastName" [email]="c.emails[0]?.email" [avatarUrl]="c.avatarUrl" [personId]="c.id" size="lg" [avatarOnly]="true" />
       }
       <ng-container ngProjectAs="[pageActions]">
         @if (contact()) {
@@ -115,14 +115,15 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
                 </div>
                 <div class="form-field showcase-full">
                   <label for="notes">Notes</label>
-                  <quill-editor
+                  <app-quill-editor
                     id="notes"
                     name="notes"
                     [(ngModel)]="form.notes"
+                    [mentionClientId]="mentionClientId()"
                     placeholder="Notes…"
                     [styles]="{ 'min-height': '140px' }"
                     (onEditorCreated)="onNotesEditor($event)"
-                  ></quill-editor>
+                  ></app-quill-editor>
                 </div>
                 <div class="form-field showcase-full">
                   <label for="personTags">Tags</label>
@@ -238,6 +239,11 @@ export class ContactDetailPage implements OnInit {
   private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
 
   contact = signal<ContactSummary | null>(null);
+  readonly mentionClientId = computed(() => {
+    const links = this.contact()?.accountLinks ?? [];
+    const primary = links.find((l) => l.isPrimary) ?? links[0];
+    return primary?.clientId ?? null;
+  });
   readonly attribution = signal<RecordAttributionDto | null>(null);
   error = signal<string | null>(null);
   saving = signal(false);

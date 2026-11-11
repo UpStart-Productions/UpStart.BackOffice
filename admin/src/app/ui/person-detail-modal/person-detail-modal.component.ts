@@ -38,7 +38,7 @@ import { PersonComponent } from '../person/person.component';
             [email]="c.emails[0]?.email"
             [avatarUrl]="c.avatarUrl"
             [personId]="c.id"
-            [size]="40"
+            size="lg"
             [subtitle]="c.title"
           />
           @if (c.phone) {

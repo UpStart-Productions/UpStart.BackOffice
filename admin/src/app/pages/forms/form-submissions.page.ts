@@ -10,6 +10,13 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import type { FormSubmissionFilter, FormSubmissionListItemDto } from '@upstart/back-office/shared';
 import { FormsApi } from '../../core/forms.api';
+import { SessionService } from '../../core/session.service';
+import {
+  formSubmissionsListKey,
+  listViewFilterString,
+  readListViewPrefs,
+} from '../../core/list-view-prefs.storage';
+import { listPrefsUserId, loadListSearch, saveListFilter, saveListSearch } from '../../core/list-view-prefs.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { OrganizationSelectComponent } from '../../ui/organization-select/organization-select.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
@@ -81,10 +88,15 @@ const TAB_STATUS: Record<Tab, FormSubmissionFilter | undefined> = {
         </p-tabs>
         <div class="toolbar mt-3">
           <div class="toolbar-search">
-            <app-toolbar-search-field placeholder="Search by name, email or organization…" ariaLabel="Search submissions" [(ngModel)]="query" />
+            <app-toolbar-search-field
+              placeholder="Search by name, email or organization…"
+              ariaLabel="Search submissions"
+              [ngModel]="query"
+              (ngModelChange)="onSearchChange($event)"
+            />
           </div>
           <div class="sub-client-filter">
-            <app-organization-select inputId="subClient" [(value)]="clientId" />
+            <app-organization-select inputId="subClient" [value]="clientId()" (valueChange)="onClientFilterChange($event)" />
           </div>
         </div>
         <p-table [value]="filtered()" [loading]="loading()" styleClass="table-bordered" [paginator]="filtered().length > 50" [rows]="50">
@@ -138,6 +150,7 @@ export class FormSubmissionsPage implements OnInit {
   private readonly forms = inject(FormsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly session = inject(SessionService);
 
   readonly formId = this.route.snapshot.paramMap.get('id') ?? '';
   readonly statusTag = SUBMISSION_STATUS_TAG;
@@ -196,9 +209,34 @@ export class FormSubmissionsPage implements OnInit {
     return this.items().filter((r) => [r.submitterName, r.submitterEmail, r.submitterOrganization, r.clientName].some((v) => v?.toLowerCase().includes(q)));
   }
 
+  private listKey(): string {
+    return formSubmissionsListKey(this.formId);
+  }
+
+  onSearchChange(value: string) {
+    this.query = value;
+    saveListSearch(this.session, this.listKey(), value);
+  }
+
+  onClientFilterChange(clientId: string | null) {
+    this.clientId.set(clientId);
+    saveListFilter(this.session, this.listKey(), 'clientId', clientId);
+    void this.load();
+  }
+
   async ngOnInit() {
+    const prefs = readListViewPrefs(listPrefsUserId(this.session), this.listKey());
+    const search = loadListSearch(this.session, this.listKey());
+    if (search) this.query = search;
+    const clientId = listViewFilterString(prefs, 'clientId');
+    if (clientId) this.clientId.set(clientId);
     const t = this.route.snapshot.queryParamMap.get('tab') as Tab | null;
-    if (t && t in TAB_STATUS) this.tab.set(t);
+    if (t && t in TAB_STATUS) {
+      this.tab.set(t);
+    } else {
+      const savedTab = listViewFilterString(prefs, 'tab') as Tab | null;
+      if (savedTab && savedTab in TAB_STATUS) this.tab.set(savedTab);
+    }
     try {
       const f = await this.forms.form(this.formId);
       this.formName.set(f.name);
@@ -236,6 +274,7 @@ export class FormSubmissionsPage implements OnInit {
   setTab(value: string | number | undefined) {
     const tab = (typeof value === 'string' && value in TAB_STATUS ? value : 'pending') as Tab;
     this.tab.set(tab);
+    saveListFilter(this.session, this.listKey(), 'tab', tab);
     void this.router.navigate([], { queryParams: { tab: tab === 'pending' ? null : tab }, replaceUrl: true });
     void this.load();
   }

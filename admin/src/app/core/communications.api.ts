@@ -229,7 +229,7 @@ export function senderAndRecipients(i: Pick<Interaction, 'participants'>): {
 export function participantParts(i: Pick<Interaction, 'participants'>): { from: string; to: string } {
   const from = i.participants.find((p) => p.role === 'FROM');
   const rest = i.participants.filter((p) => p.role !== 'FROM').map(personLabel);
-  return { from: from ? personLabel(from) : '—', to: rest.length ? rest.join(', ') : '—' };
+  return { from: from ? personLabel(from) : '', to: rest.length ? rest.join(', ') : '' };
 }
 
 export const DIRECTION_LABEL = { INBOUND: 'Incoming', OUTBOUND: 'Outgoing', INTERNAL: 'Internal' } as const;

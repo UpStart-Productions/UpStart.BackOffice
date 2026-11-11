@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, OnInit, signal, viewChild, viewChildren } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -11,9 +12,10 @@ import { TagModule } from 'primeng/tag';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { MessageService } from 'primeng/api';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { richTextOrUndefined } from '../../core/rich-text.util';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
@@ -77,9 +79,11 @@ type ClientForm = {
   selector: 'app-client-form-page',
   standalone: true,
   imports: [
+    NgTemplateOutlet,
     FormsModule,
     RouterLink,
     ButtonModule,
+    AppDialogModule,
     InputTextModule,
     MessageModule,
     ToggleSwitchModule,
@@ -88,7 +92,7 @@ type ClientForm = {
     TableModule,
     TabsModule,
     TagModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     PageComponent,
     PhoneInputComponent,
     ArtifactsPanelComponent,
@@ -132,6 +136,14 @@ export class ClientFormPage implements OnInit {
   headerMenu(): RowActionItem[] {
     if (this.isNew) return [];
     const items: RowActionItem[] = [];
+    if (this.canEdit()) {
+      items.push({
+        id: 'public-settings',
+        label: 'Organization settings',
+        icon: 'pi pi-cog',
+        command: () => this.openPublicSettings(),
+      });
+    }
     if (this.form.journey !== 'CLIENT' && this.canEdit()) {
       items.push({ id: 'make-client', label: 'Make client', icon: 'pi pi-check', disabled: this.saving(), command: () => void this.makeClient() });
     }
@@ -161,6 +173,7 @@ export class ClientFormPage implements OnInit {
   backLink = '/organizations';
 
   id = signal<string | null>(null);
+  readonly publicSettingsVisible = signal(false);
   loading = signal(true);
   saving = signal(false);
   portalBusy = signal(false);
@@ -446,6 +459,14 @@ export class ClientFormPage implements OnInit {
   /** Projects and Client portal show only for clients. */
   get isClient(): boolean {
     return this.form.journey === 'CLIENT';
+  }
+
+  openPublicSettings() {
+    this.publicSettingsVisible.set(true);
+  }
+
+  onPublicSettingsVisible(visible: boolean) {
+    this.publicSettingsVisible.set(visible);
   }
 
   /** Page title. */

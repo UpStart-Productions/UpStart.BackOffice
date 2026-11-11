@@ -38,20 +38,20 @@
             <p-table [value]="pl.revenue" styleClass="table-bordered mt-2">
               <ng-template pTemplate="header"><tr><th colspan="2">Revenue</th></tr></ng-template>
               <ng-template pTemplate="body" let-row>
-                <tr><td>{{ row.name }}</td><td class="text-right">{{ formatCurrency(row.balance) }}</td></tr>
+                <tr><td>{{ row.name }}</td><td class="col-numeric">{{ formatCurrency(row.balance) }}</td></tr>
               </ng-template>
               <ng-template pTemplate="footer">
-                <tr class="font-semibold"><td>Total Revenue</td><td class="text-right">{{ formatCurrency(pl.totalRevenue) }}</td></tr>
+                <tr class="font-semibold"><td>Total Revenue</td><td class="col-numeric">{{ formatCurrency(pl.totalRevenue) }}</td></tr>
               </ng-template>
             </p-table>
 
             <p-table [value]="pl.expenses" styleClass="table-bordered mt-4">
               <ng-template pTemplate="header"><tr><th colspan="2">Expenses</th></tr></ng-template>
               <ng-template pTemplate="body" let-row>
-                <tr><td>{{ row.name }}</td><td class="text-right">{{ formatCurrency(row.balance) }}</td></tr>
+                <tr><td>{{ row.name }}</td><td class="col-numeric">{{ formatCurrency(row.balance) }}</td></tr>
               </ng-template>
               <ng-template pTemplate="footer">
-                <tr class="font-semibold"><td>Total Expenses</td><td class="text-right">{{ formatCurrency(pl.totalExpenses) }}</td></tr>
+                <tr class="font-semibold"><td>Total Expenses</td><td class="col-numeric">{{ formatCurrency(pl.totalExpenses) }}</td></tr>
               </ng-template>
             </p-table>
 
@@ -66,30 +66,30 @@
             <p-table [value]="bs.assets" styleClass="table-bordered mt-2">
               <ng-template pTemplate="header"><tr><th colspan="2">Assets</th></tr></ng-template>
               <ng-template pTemplate="body" let-row>
-                <tr><td>{{ row.name }}</td><td class="text-right">{{ formatCurrency(row.balance) }}</td></tr>
+                <tr><td>{{ row.name }}</td><td class="col-numeric">{{ formatCurrency(row.balance) }}</td></tr>
               </ng-template>
               <ng-template pTemplate="footer">
-                <tr class="font-semibold"><td>Total Assets</td><td class="text-right">{{ formatCurrency(bs.totalAssets) }}</td></tr>
+                <tr class="font-semibold"><td>Total Assets</td><td class="col-numeric">{{ formatCurrency(bs.totalAssets) }}</td></tr>
               </ng-template>
             </p-table>
 
             <p-table [value]="bs.liabilities" styleClass="table-bordered mt-4">
               <ng-template pTemplate="header"><tr><th colspan="2">Liabilities</th></tr></ng-template>
               <ng-template pTemplate="body" let-row>
-                <tr><td>{{ row.name }}</td><td class="text-right">{{ formatCurrency(row.balance) }}</td></tr>
+                <tr><td>{{ row.name }}</td><td class="col-numeric">{{ formatCurrency(row.balance) }}</td></tr>
               </ng-template>
               <ng-template pTemplate="footer">
-                <tr class="font-semibold"><td>Total Liabilities</td><td class="text-right">{{ formatCurrency(bs.totalLiabilities) }}</td></tr>
+                <tr class="font-semibold"><td>Total Liabilities</td><td class="col-numeric">{{ formatCurrency(bs.totalLiabilities) }}</td></tr>
               </ng-template>
             </p-table>
 
             <p-table [value]="equityRows(bs)" styleClass="table-bordered mt-4">
               <ng-template pTemplate="header"><tr><th colspan="2">Equity</th></tr></ng-template>
               <ng-template pTemplate="body" let-row>
-                <tr><td>{{ row.name }}</td><td class="text-right">{{ formatCurrency(row.balance) }}</td></tr>
+                <tr><td>{{ row.name }}</td><td class="col-numeric">{{ formatCurrency(row.balance) }}</td></tr>
               </ng-template>
               <ng-template pTemplate="footer">
-                <tr class="font-semibold"><td>Total Equity</td><td class="text-right">{{ formatCurrency(bs.totalEquity) }}</td></tr>
+                <tr class="font-semibold"><td>Total Equity</td><td class="col-numeric">{{ formatCurrency(bs.totalEquity) }}</td></tr>
               </ng-template>
             </p-table>
 
@@ -108,23 +108,23 @@
                 <tr>
                   <th style="width: 90px">Code</th>
                   <th>Account</th>
-                  <th class="text-right">Debit</th>
-                  <th class="text-right">Credit</th>
+                  <th class="col-numeric">Debit</th>
+                  <th class="col-numeric">Credit</th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-row>
                 <tr>
                   <td>{{ row.code }}</td>
                   <td>{{ row.name }}</td>
-                  <td class="text-right">{{ row.debit ? formatCurrency(row.debit) : '' }}</td>
-                  <td class="text-right">{{ row.credit ? formatCurrency(row.credit) : '' }}</td>
+                  <td class="col-numeric">{{ row.debit ? formatCurrency(row.debit) : '' }}</td>
+                  <td class="col-numeric">{{ row.credit ? formatCurrency(row.credit) : '' }}</td>
                 </tr>
               </ng-template>
               <ng-template pTemplate="footer">
                 <tr class="font-semibold">
                   <td colspan="2">Totals</td>
-                  <td class="text-right">{{ formatCurrency(tb.totals.debit) }}</td>
-                  <td class="text-right">{{ formatCurrency(tb.totals.credit) }}</td>
+                  <td class="col-numeric">{{ formatCurrency(tb.totals.debit) }}</td>
+                  <td class="col-numeric">{{ formatCurrency(tb.totals.credit) }}</td>
                 </tr>
               </ng-template>
             </p-table>

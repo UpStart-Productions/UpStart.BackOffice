@@ -54,7 +54,7 @@ export function personCardInnerHtml(value: QuillPersonCardValue): string {
   if (phone) lines.push(detail(phone, `tel:${phone.replace(/\s/g, '')}`));
 
   return `<span class="bo-person-card__inner">
-    <span class="bo-person-card__avatar">${avatarInner(value)}</span>
+    <span class="bo-person-card__avatar ubo-avatar ubo-avatar--med">${avatarInner(value)}</span>
     <span class="bo-person-card__body">
       <span class="bo-person-card__name">${escapeHtml(value.name)}</span>
       ${lines.join('')}

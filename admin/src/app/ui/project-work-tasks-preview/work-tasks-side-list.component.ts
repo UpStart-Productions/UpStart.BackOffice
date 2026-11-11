@@ -34,7 +34,7 @@ function projectOf(task: WorkTaskSideListItem): { id: string; name: string } | n
         @for (task of tasks(); track task.id) {
           <div class="side-list-row">
             @if (showAssignee()) {
-              <app-tm-avatar [person]="task.assignee" [size]="28" />
+              <app-tm-avatar [person]="task.assignee" size="med" />
             }
             <div class="side-list-body">
               <a

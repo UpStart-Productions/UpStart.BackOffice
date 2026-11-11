@@ -12,7 +12,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SkeletonModule } from 'primeng/skeleton';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -46,7 +46,7 @@ import { CreatableSelectComponent } from '../creatable-select/creatable-select.c
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { parseDateKey } from '../../core/date.util';
 import { NextActionOptionsLoader } from '../../core/next-action-options.loader';
-import { isBlankHtml, mentionQuillModules } from '../../task-manager/core/tm-mentions';
+import { isBlankHtml } from '../../task-manager/core/tm-mentions';
 
 /** One timeline row: an item, and for an email thread how many messages it holds. */
 type TimelineRow = { item: Interaction; threadKey: string | null; threadCount: number; nested: boolean };
@@ -133,7 +133,7 @@ function nowForInput(): string {
     SelectModule,
     SelectButtonModule,
     SkeletonModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     MessageBodyComponent,
     RowActionsMenuComponent,
   ],
@@ -173,11 +173,22 @@ function nowForInput(): string {
           @if (quickType === 'EMAIL' && emailToLabel()) {
             <p class="quick-log-email-to text-color-secondary">{{ emailToLabel() }}</p>
           }
-          <quill-editor
+          <div class="form-field quick-log-subject">
+            <label for="quickLogSubject">Subject <span class="text-color-secondary">(optional)</span></label>
+            <input
+              pInputText
+              id="quickLogSubject"
+              [(ngModel)]="quickSubject"
+              class="w-full"
+              [placeholder]="quickSubjectPlaceholder()"
+            />
+          </div>
+          <app-quill-editor
             class="quick-log-text"
             [(ngModel)]="quickText"
-            [modules]="logQuillModules"
-            [placeholder]="quickPlaceholder() + ' Type @ to mention someone.'"
+            [mentionClientId]="clientId()"
+            mentionContext="activity"
+            [placeholder]="quickPlaceholder() + ' Type @ for people, invoices, projects; type to search tasks.'"
             [styles]="{ 'min-height': '120px' }"
             (onEditorCreated)="onLogBodyEditor($event)"
             aria-label="What happened"
@@ -223,7 +234,7 @@ function nowForInput(): string {
         <div class="activity-skeleton" aria-busy="true" aria-label="Loading activity">
           @for (n of skeletonRows; track n) {
             <div class="activity-item">
-              <p-skeleton shape="circle" size="2rem" />
+              <p-skeleton shape="circle" styleClass="activity-avatar-skeleton" />
               <div class="activity-body">
                 <p-skeleton width="45%" height="1rem" styleClass="mb-2" />
                 <p-skeleton width="30%" height="0.8rem" />
@@ -251,14 +262,19 @@ function nowForInput(): string {
           </div>
           <div class="activity-body">
             <div class="activity-head">
-              <strong>{{ item.subject || '(no subject)' }}</strong>
               <span class="activity-when">
                 @if (logger(item); as who) {
-                  <app-person [name]="who.name" [firstName]="who.firstName" [lastName]="who.lastName" [avatarUrl]="who.avatarUrl" [personId]="who.id" [size]="20" />
+                  <app-person [name]="who.name" [firstName]="who.firstName" [lastName]="who.lastName" [avatarUrl]="who.avatarUrl" [personId]="who.id" size="med" />
                 }
                 <span class="activity-date" [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
-                <app-row-actions-menu [items]="entryActions(item)" ariaLabel="Activity actions" />
               </span>
+              @if (item.subject?.trim(); as subj) {
+                <strong class="activity-subject">{{ subj }}</strong>
+              }
+              <span class="activity-head-grow" aria-hidden="true"></span>
+              <div class="activity-item-actions">
+                <app-row-actions-menu [items]="entryActions(item)" ariaLabel="Activity actions" />
+              </div>
             </div>
             <div class="activity-meta">
               @if (item.location) {
@@ -266,11 +282,11 @@ function nowForInput(): string {
               }
               @let ppl = people(item);
               @for (p of ppl.from; track p.userId ?? p.contactId ?? p.email) {
-                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="20" />
+                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
               }
               @if (ppl.from.length && ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
               @for (p of ppl.to; track p.userId ?? p.contactId ?? p.email) {
-                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [size]="20" />
+                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
               }
               @if (!logger(item) && item.captures.length) {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
@@ -347,18 +363,19 @@ function nowForInput(): string {
           <p class="quick-log-email-to text-color-secondary">{{ emailToLabel() }}</p>
         }
         <div class="form-field">
-          <label for="logSubject">Subject</label>
+          <label for="logSubject">Subject <span class="text-color-secondary">(optional)</span></label>
           <input pInputText id="logSubject" [(ngModel)]="logSubject" class="w-full" [placeholder]="subjectPlaceholder()" />
         </div>
         <div class="form-field">
           <label for="logBody">Notes / next steps</label>
           @if (logVisible) {
-            <quill-editor
+            <app-quill-editor
               id="logBody"
               name="logBody"
               [(ngModel)]="logBody"
-              [modules]="logQuillModules"
-              placeholder="Notes, next steps… Type @ to mention someone."
+              [mentionClientId]="clientId()"
+              mentionContext="activity"
+              placeholder="Notes, next steps… Type @ for people, invoices, projects; type to search tasks."
               [styles]="{ 'min-height': '140px' }"
               (onEditorCreated)="onLogBodyEditor($event)"
             />
@@ -393,7 +410,7 @@ function nowForInput(): string {
                   [lastName]="option.lastName"
                   [avatarUrl]="option.avatarUrl"
                   [personId]="option.id"
-                  [size]="22"
+                  size="sm"
                 />
               </ng-template>
               <ng-template #selecteditems let-options let-removeChip="removeChip">
@@ -405,7 +422,7 @@ function nowForInput(): string {
                       [lastName]="option.lastName"
                       [avatarUrl]="option.avatarUrl"
                       [personId]="option.id"
-                      [size]="26"
+                      size="med"
                     />
                     <button type="button" class="involved-chip-remove" [attr.aria-label]="'Remove ' + option.label" (click)="removeChip(option.id, $event)">
                       <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -465,12 +482,12 @@ function nowForInput(): string {
             panelStyleClass="involved-panel"
           >
             <ng-template #item let-option>
-              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+              <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" size="sm" />
             </ng-template>
             <ng-template #selecteditems let-options let-removeChip="removeChip">
               @for (option of options ?? []; track option.id) {
                 <span class="involved-chip">
-                  <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="26" />
+                  <app-person [name]="option.label" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" size="med" />
                   <button type="button" class="involved-chip-remove" [attr.aria-label]="'Remove ' + option.label" (click)="removeChip(option.id, $event)">
                     <svg viewBox="0 0 16 16" aria-hidden="true">
                       <path fill="currentColor" fill-rule="evenodd" d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16ZM5.1 4.2 8 7.1l2.9-2.9 0.9 0.9L8.9 8l2.9 2.9-0.9 0.9L8 8.9l-2.9 2.9-0.9-0.9L7.1 8 4.2 5.1l0.9-0.9Z" />
@@ -560,10 +577,10 @@ function nowForInput(): string {
             styleClass="w-full"
           >
             <ng-template #item let-option>
-              <app-person [name]="option.name" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+              <app-person [name]="option.name" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" size="sm" />
             </ng-template>
             <ng-template #selectedItem let-option>
-              <app-person [name]="option.name" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" [size]="22" />
+              <app-person [name]="option.name" [firstName]="option.firstName" [lastName]="option.lastName" [avatarUrl]="option.avatarUrl" [personId]="option.id" size="sm" />
             </ng-template>
           </p-select>
         </div>
@@ -597,14 +614,25 @@ function nowForInput(): string {
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     .activity-item { display: flex; gap: 0.85rem; padding: 0.9rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
     .activity-item:first-of-type { border-top: 0; }
+    :host ::ng-deep .activity-avatar-skeleton {
+      width: var(--avatar-size-med) !important;
+      height: var(--avatar-size-med) !important;
+    }
     .activity-icon { --c: var(--text-color-secondary, #6b7280); flex: 0 0 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
     .activity-icon--EMAIL { --c: #2563eb; }
     .activity-icon--CALL { --c: #16a34a; }
     .activity-icon--MEETING { --c: #7c3aed; }
     .activity-icon--NOTE { --c: #d97706; }
     .activity-body { flex: 1; min-width: 0; }
-    .activity-head { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
-    .activity-head strong { min-width: 0; }
+    .activity-head {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      min-width: 0;
+      padding-bottom: 0.45rem;
+    }
+    .activity-subject { flex: 1 1 auto; min-width: 0; }
     .activity-when {
       display: inline-flex;
       align-items: center;
@@ -613,6 +641,8 @@ function nowForInput(): string {
       font-size: var(--fs-base);
       line-height: 1.5rem;
     }
+    .activity-head-grow { flex: 1 1 auto; min-width: 0; }
+    .activity-item-actions { display: flex; flex: 0 0 auto; align-items: center; }
     .activity-date {
       white-space: nowrap;
       font-size: inherit;
@@ -620,7 +650,7 @@ function nowForInput(): string {
       color: var(--text-color-secondary, #6b7280);
       cursor: default;
     }
-    :host ::ng-deep .activity-when .row-actions-trigger {
+    :host ::ng-deep .activity-item-actions .row-actions-trigger {
       width: 1.75rem;
       height: 1.75rem;
       padding: 0 !important;
@@ -818,23 +848,8 @@ export class ActivityTimelineComponent {
   );
 
   // Quick log (inline bar)
-  /** @mention: your team and this organization's people. Loaded with the involved-people list. */
-  private mentionPeople(): Person[] {
-    const toPerson = (o: InvolvedOption): Person => ({
-      id: o.id,
-      name: o.label,
-      email: '',
-      firstName: o.firstName,
-      lastName: o.lastName,
-      avatarUrl: o.avatarUrl,
-      role: '',
-      isGuest: false,
-    });
-    return [...this.teamOptions().map(toPerson), ...this.contactOptions().map(toPerson)];
-  }
-  readonly logQuillModules = mentionQuillModules(() => Promise.resolve(this.mentionPeople()));
-
   quickType: InteractionType = 'NOTE';
+  quickSubject = '';
   quickText = '';
   emailToLabel = signal<string | null>(null);
   quickFollow = false;
@@ -848,6 +863,13 @@ export class ActivityTimelineComponent {
     if (this.quickType === 'MEETING') return 'What was decided?';
     if (this.quickType === 'EMAIL') return 'What did you send?';
     return 'What happened?';
+  }
+
+  quickSubjectPlaceholder(): string {
+    if (this.quickType === 'MEETING') return 'e.g. Discovery meeting';
+    if (this.quickType === 'NOTE') return 'e.g. Follow-up';
+    if (this.quickType === 'EMAIL') return 'e.g. Follow-up on proposal';
+    return 'e.g. Intake call';
   }
 
   // Log dialog state
@@ -1049,7 +1071,7 @@ export class ActivityTimelineComponent {
     this.logWhen = nowForInput();
     this.logDirection = 'OUTBOUND';
     this.logWhere = '';
-    this.logSubject = '';
+    this.logSubject = fromQuick ? this.quickSubject.trim() : '';
     this.logBody = fromQuick && !isBlankHtml(this.quickText) ? this.quickText : '';
     this.involvedIds = [];
     this.logError.set(null);
@@ -1188,6 +1210,7 @@ export class ActivityTimelineComponent {
       await this.comms.log({
         type: this.quickType,
         ...this.logTarget(),
+        subject: this.quickSubject.trim() || undefined,
         bodyText: richTextOrUndefined(text),
         direction: this.quickType === 'NOTE' ? 'INTERNAL' : 'OUTBOUND',
       });
@@ -1198,6 +1221,7 @@ export class ActivityTimelineComponent {
         await this.comms.setNextStep(clientId, { text: this.quickNextAction!.trim(), date: day ? day.toISOString() : null });
       }
       this.quickText = '';
+      this.quickSubject = '';
       this.quickFollow = false;
       this.quickNextAction = null;
       this.quickNextDate = '';

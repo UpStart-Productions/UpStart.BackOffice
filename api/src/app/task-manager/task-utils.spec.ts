@@ -92,6 +92,9 @@ describe('mentions', () => {
       '<span class="mention" data-id="u2" data-value="Brynne">@Brynne</span> ' +
       '<span class="mention" data-id="u1" data-value="Jeff">@Jeff</span></p>';
     expect(extractMentionedUserIds(html)).toEqual(['u1', 'u2']);
+    expect(extractMentionedUserIds('<span class="mention" data-mention-type="user" data-id="user:u3">@A</span>')).toEqual([
+      'u3',
+    ]);
   });
   it('ignores non-user mention types', () => {
     expect(extractMentionedUserIds('<span class="mention" data-mention-type="task" data-id="t1">x</span>')).toEqual([]);

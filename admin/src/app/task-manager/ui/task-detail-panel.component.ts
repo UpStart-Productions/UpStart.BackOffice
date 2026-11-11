@@ -2,7 +2,7 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { Component, computed, effect, ElementRef, HostListener, inject, input, OnDestroy, output, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { QuillModule } from 'ngx-quill';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
@@ -14,7 +14,7 @@ import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/singl
 import { SessionService } from '../../core/session.service';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, createdOnLabel, dueLabel, dueTone, fileSizeLabel, recurrenceLabel, relativeTime } from '../core/tm-format.util';
-import { isBlankHtml, mentionQuillModules } from '../core/tm-mentions';
+import { isBlankHtml } from '../core/tm-mentions';
 import { EditorOverlayDismissGuard } from '../../core/editor-overlay-dismiss-guard.service';
 import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
@@ -37,7 +37,7 @@ import { TmTaskProjectsComponent } from './task-projects.component';
     TmTagPickerComponent,
     TmTaskProjectsComponent,
     FormsModule,
-    QuillModule,
+    ...APP_QUILL_IMPORTS,
     ButtonModule,
     SelectModule,
     TooltipModule,
@@ -151,15 +151,6 @@ export class TmTaskDetailComponent implements OnDestroy {
     }
     return alt;
   });
-  readonly mentionModules = computed(() => {
-    const projectId = this.task()?.projectId;
-    return mentionQuillModules(() => (projectId ? this.store.people(projectId) : Promise.resolve([])));
-  });
-  readonly commentModules = computed(() => {
-    const projectId = this.task()?.projectId;
-    return mentionQuillModules(() => (projectId ? this.store.people(projectId) : Promise.resolve([])), { toolbar: false });
-  });
-
   readonly dueLabel = dueLabel;
   readonly dueTone = dueTone;
   readonly recurrenceLabel = recurrenceLabel;

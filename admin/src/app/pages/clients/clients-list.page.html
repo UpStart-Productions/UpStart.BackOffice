@@ -18,7 +18,14 @@
         />
       </div>
     </div>
-    <p-table [value]="filteredClients()" [loading]="loading()" sortField="name" [sortOrder]="1" styleClass="table-bordered">
+    <p-table
+      [value]="filteredClients()"
+      [loading]="loading()"
+      [sortField]="tableSortField()"
+      [sortOrder]="tableSortOrder()"
+      (onSort)="onTableSort($event)"
+      styleClass="table-bordered"
+    >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>

@@ -9,6 +9,18 @@ import { TagModule } from 'primeng/tag';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
+import {
+  LIST_VIEW_KEYS,
+  listViewFilterBool,
+  readListViewPrefs,
+} from '../../core/list-view-prefs.storage';
+import {
+  loadListSearch,
+  loadTableSort,
+  onTableSortSave,
+  saveListFilter,
+  saveListSearch,
+} from '../../core/list-view-prefs.util';
 import { PageComponent } from '../../ui/layout/page.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import {
@@ -17,8 +29,6 @@ import {
 } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type Project = { id: string; name: string; isBillable: boolean; isActive: boolean; hourlyRate?: number; client: { id: string; name: string } | null };
-
-const SHOW_INACTIVE_KEY = 'ubo-projects-show-inactive:v1';
 
 @Component({
   selector: 'app-projects-list-page',
@@ -76,6 +86,8 @@ export class ProjectsListPage implements OnInit {
   showInactive = signal(false);
   searchQuery = '';
   searchDebounced = signal('');
+  tableSortField = signal('name');
+  tableSortOrder = signal<1 | -1>(1);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -104,29 +116,35 @@ export class ProjectsListPage implements OnInit {
   });
 
   async ngOnInit() {
-    this.loadShowInactivePref();
+    this.restoreListPrefs();
     await this.load();
   }
 
   setShowInactive(value: boolean) {
     this.showInactive.set(value);
-    try {
-      localStorage.setItem(this.showInactiveStorageKey(), value ? 'true' : 'false');
-    } catch {
-      // Preference won't persist.
-    }
+    saveListFilter(this.session, LIST_VIEW_KEYS.projects, 'showInactive', value);
   }
 
-  private loadShowInactivePref() {
-    try {
-      this.showInactive.set(localStorage.getItem(this.showInactiveStorageKey()) === 'true');
-    } catch {
-      // Ignore bad stored data.
+  private restoreListPrefs() {
+    const prefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.projects);
+    const search = loadListSearch(this.session, LIST_VIEW_KEYS.projects);
+    if (search) {
+      this.searchQuery = search;
+      this.searchDebounced.set(search);
     }
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.projects, { field: 'name', order: 1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
+    const showInactive = listViewFilterBool(prefs, 'showInactive');
+    if (showInactive === true) this.showInactive.set(true);
   }
 
-  private showInactiveStorageKey(): string {
-    return `${SHOW_INACTIVE_KEY}:${this.session.me()?.id ?? 'anon'}`;
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.projects, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
   }
 
   onSearchInput(value: string) {
@@ -134,6 +152,7 @@ export class ProjectsListPage implements OnInit {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.searchDebounced.set(value);
+      saveListSearch(this.session, LIST_VIEW_KEYS.projects, value);
       this.searchTimer = null;
     }, 150);
   }
@@ -141,6 +160,7 @@ export class ProjectsListPage implements OnInit {
   clearSearch() {
     this.searchQuery = '';
     this.searchDebounced.set('');
+    saveListSearch(this.session, LIST_VIEW_KEYS.projects, '');
     if (this.searchTimer) {
       clearTimeout(this.searchTimer);
       this.searchTimer = null;

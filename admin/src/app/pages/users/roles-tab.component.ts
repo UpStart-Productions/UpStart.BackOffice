@@ -30,7 +30,6 @@ type RoleRow = {
 const ADMIN_DESCRIPTION =
   'Everything in the organization, including users, settings, setup, accounting, reports and all invoices. Only admins can delete records and projects.';
 
-const AVATAR_SIZE = 28;
 
 /**
  * Roles tab on the Users page. Roles are fixed: Admin, Member and Guest. Nothing here is editable.
@@ -72,9 +71,7 @@ const AVATAR_SIZE = 28;
               [attr.aria-label]="membersAriaLabel(role)"
               (click)="openUsers(role)"
             >
-              @if (!role.userCount) {
-                <span class="text-color-secondary">—</span>
-              } @else {
+              @if (role.userCount) {
                 <span class="role-avatar-stack">
                   @for (u of previewUsers(role); track u.id) {
                     <span class="role-avatar-stack-item">
@@ -86,7 +83,7 @@ const AVATAR_SIZE = 28;
                         [email]="u.email"
                         [avatarUrl]="u.avatarUrl"
                         [personId]="u.id"
-                        [size]="avatarSize"
+                        size="med"
                       />
                     </span>
                   }
@@ -133,7 +130,7 @@ const AVATAR_SIZE = 28;
                   [avatarUrl]="u.avatarUrl"
                   [personId]="u.id"
                   [subtitle]="userRowSubtitle(u)"
-                  [size]="36"
+                  size="lg"
                 />
                 <app-copy-email [email]="u.email" [muted]="true" [block]="true" />
               </button>
@@ -239,7 +236,6 @@ export class RolesTabComponent implements OnInit {
   /** Kept for the Users page binding; roles never change here. */
   readonly changed = output<void>();
 
-  readonly avatarSize = AVATAR_SIZE;
 
   rows = signal<RoleRow[]>([]);
   loading = signal(true);

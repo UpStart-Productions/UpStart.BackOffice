@@ -33,20 +33,23 @@
       />
     }
     <p-table
-      [value]="filteredInvoices()"
+      [value]="invoiceTableRows()"
       [loading]="loading()"
+      [sortField]="tableSortField()"
+      [sortOrder]="tableSortOrder()"
+      (onSort)="onTableSort($event)"
       styleClass="table-bordered"
     >
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
-          <th>Number</th>
-          <th>Bill to</th>
-          <th>Created by</th>
-          <th>Issue Date</th>
-          <th>Due Date</th>
-          <th>Total</th>
-          <th>Status</th>
+          <th pSortableColumn="number">Number <p-sortIcon field="number" /></th>
+          <th pSortableColumn="billToSort">Bill to <p-sortIcon field="billToSort" /></th>
+          <th pSortableColumn="createdBySort">Created by <p-sortIcon field="createdBySort" /></th>
+          <th pSortableColumn="issueDate">Issue Date <p-sortIcon field="issueDate" /></th>
+          <th pSortableColumn="dueDate">Due Date <p-sortIcon field="dueDate" /></th>
+          <th class="col-numeric" pSortableColumn="total">Total <p-sortIcon field="total" /></th>
+          <th pSortableColumn="status">Status <p-sortIcon field="status" /></th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-inv>
@@ -65,13 +68,13 @@
           <td>{{ formatDate(inv.issueDate) }}</td>
           <td>
             <div class="invoice-due-cell">
-              <span>{{ inv.dueDate ? formatDate(inv.dueDate) : '—' }}</span>
+              <span>{{ inv.dueDate ? formatDate(inv.dueDate) : '' }}</span>
               @if (dueFlagLabel(inv); as label) {
                 <p-tag [value]="label" [severity]="dueFlagSeverity(inv)" />
               }
             </div>
           </td>
-          <td>{{ formatAmount(inv.total) }}</td>
+          <td class="col-numeric">{{ formatAmount(inv.total) }}</td>
           <td>
             <p-tag [value]="inv.status" [severity]="statusSeverity(inv.status)" />
           </td>

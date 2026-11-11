@@ -35,7 +35,7 @@ const slugify = (s: string) =>
       <div class="card">
         <p-table [value]="tenants()" [loading]="loading()" styleClass="table-bordered">
           <ng-template pTemplate="header">
-            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th><th>Modules</th><th>Your rate</th></tr>
+            <tr><th style="width: 3rem"></th><th>Name</th><th>Slug</th><th>Internal domains</th><th>Modules</th><th class="col-numeric">Your rate</th></tr>
           </ng-template>
           <ng-template pTemplate="body" let-t>
             <tr>
@@ -45,13 +45,13 @@ const slugify = (s: string) =>
                 @if (t.slug === tenant.currentSlug()) { <p-tag value="Current" severity="info" styleClass="ml-2" /> }
               </td>
               <td><code>{{ t.slug }}</code></td>
-              <td>{{ t.internalDomains.length ? t.internalDomains.join(', ') : '—' }}</td>
+              <td>{{ t.internalDomains.length ? t.internalDomains.join(', ') : '' }}</td>
               <td>
                 <span class="module-tags">
-                  @for (m of t.modules; track m) { <p-tag [value]="moduleLabel(m)" severity="secondary" /> } @empty { — }
+                  @for (m of t.modules; track m) { <p-tag [value]="moduleLabel(m)" severity="secondary" /> }
                 </span>
               </td>
-              <td>{{ t.myHourlyRate != null ? '$' + t.myHourlyRate.toFixed(2) + '/hr' : '—' }}</td>
+              <td class="col-numeric">{{ t.myHourlyRate != null ? '$' + t.myHourlyRate.toFixed(2) + '/hr' : '' }}</td>
             </tr>
           </ng-template>
         </p-table>
