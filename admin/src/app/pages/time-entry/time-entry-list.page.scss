@@ -9,6 +9,8 @@
   --harvest-muted: var(--color-text-muted);
   --harvest-today-bg: #f5f3ff;
   --harvest-row-hover: #fafbfc;
+  /* Fixed actions track so day total hours line up with entry durations (buttons sit to the right). */
+  --timesheet-actions-col: 14.25rem;
   font-size: var(--fs-base);
   color: var(--harvest-text);
 }
@@ -169,12 +171,16 @@
   margin: 0 -2rem -2rem;
 }
 
-.entry-row {
-  display: flex;
+.entry-row,
+.day-total {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto var(--timesheet-actions-col);
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
+  column-gap: 1.5rem;
   padding: 1.125rem 2rem;
+}
+
+.entry-row {
   border-bottom: 1px solid var(--harvest-border);
 
   &:hover {
@@ -209,7 +215,6 @@
 
 .entry-billable-toggle {
   flex: 0 0 auto;
-  padding-top: 0.15rem;
 }
 
 .entry-details {
@@ -249,11 +254,21 @@
 }
 
 .entry-actions {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  justify-self: stretch;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.entry-billable-badge-wrap {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   align-self: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
 }
 
 .entry-duration {
@@ -273,23 +288,52 @@
 }
 
 .day-total {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding: 1rem 2rem 0;
-  border-top: 1px solid var(--harvest-border);
+  border-top: 2px solid var(--harvest-border);
+  background: var(--surface-100, #f3f4f6);
 
-  .day-total-label {
-    font-size: var(--fs-base);
+  .day-total-value {
+    font-size: var(--fs-xl);
+  }
+
+  .day-total-suffix {
+    margin-left: 0.2rem;
+    font-size: var(--fs-sm);
     font-weight: 600;
     color: var(--harvest-muted);
   }
 
-  .day-total-value {
-    font-size: var(--fs-lg);
-    font-weight: 700;
+  .day-total-actions {
+    margin-left: 7px;
+    gap: 0.625rem;
+  }
+
+  .day-total-breakdown {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    font-size: var(--fs-sm);
+    line-height: 1.25;
+    color: var(--harvest-muted);
+    text-align: right;
+  }
+
+  .day-total-breakdown-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+
+  .day-total-breakdown-label {
+    font-weight: 500;
+  }
+
+  .day-total-breakdown-value {
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
+    color: var(--harvest-text);
   }
 }
 

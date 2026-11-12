@@ -1,15 +1,15 @@
 <app-page title="Timesheet">
   @if (viewingSelf()) {
     <ng-container ngProjectAs="[pageActions]">
-      <p-button
-        label="Import CSV"
-        icon="pi pi-upload"
-        severity="secondary"
-        [outlined]="true"
-        [loading]="importing()"
-        (onClick)="triggerCsvPicker()"
-      />
-      <p-button label="Track time" icon="pi pi-plus" (onClick)="openTrackTimeModal()" />
+      <span class="split-action">
+        <p-button label="Track time" icon="pi pi-plus" (onClick)="openTrackTimeModal()" />
+        <app-row-actions-menu
+          class="split-action-more"
+          [attached]="true"
+          [items]="trackTimeMenuActions()"
+          ariaLabel="More timesheet actions"
+        />
+      </span>
     </ng-container>
   }
   @if (error()) {
@@ -127,18 +127,6 @@
         @if (runningEntry(); as run) {
           <article class="entry-row running">
             <div class="entry-main">
-              @if (canToggleEntryBillable()) {
-                <div class="entry-billable-toggle">
-                  <p-toggleSwitch
-                    class="small"
-                    [ngModel]="run.isBillable"
-                    (ngModelChange)="setEntryBillable(run, $event)"
-                    [disabled]="billableToggleDisabled(run)"
-                    [attr.aria-label]="run.isBillable ? 'Billable' : 'Non-billable'"
-                    [title]="billableToggleTitle(run)"
-                  />
-                </div>
-              }
               <div class="entry-details">
                 <h3 class="entry-project">
                   <i class="pi pi-clock entry-running-icon" aria-hidden="true"></i>
@@ -154,6 +142,23 @@
                   <p class="entry-notes">{{ run.description }}</p>
                 }
               </div>
+            </div>
+            <div class="entry-billable-badge-wrap">
+              @if (canToggleEntryBillable()) {
+                <p-toggleSwitch
+                  class="small entry-billable-toggle"
+                  [ngModel]="run.isBillable"
+                  (ngModelChange)="setEntryBillable(run, $event)"
+                  [disabled]="billableToggleDisabled(run)"
+                  [attr.aria-label]="run.isBillable ? 'Billable' : 'Non-billable'"
+                  [title]="billableToggleTitle(run)"
+                />
+              }
+              <p-tag
+                styleClass="entry-billable-badge"
+                [value]="run.isBillable ? 'Billable' : 'Non-billable'"
+                [severity]="run.isBillable ? 'success' : 'secondary'"
+              />
             </div>
             <div class="entry-actions">
               <span class="entry-duration entry-duration-live">{{ entryDurationLabel(run) }}</span>
@@ -174,18 +179,6 @@
           @if (entry.stoppedAt) {
             <article class="entry-row">
               <div class="entry-main">
-                @if (canToggleEntryBillable()) {
-                  <div class="entry-billable-toggle">
-                    <p-toggleSwitch
-                      class="small"
-                      [ngModel]="entry.isBillable"
-                      (ngModelChange)="setEntryBillable(entry, $event)"
-                      [disabled]="billableToggleDisabled(entry)"
-                      [attr.aria-label]="entry.isBillable ? 'Billable' : 'Non-billable'"
-                      [title]="billableToggleTitle(entry)"
-                    />
-                  </div>
-                }
                 <div class="entry-details">
                   <h3 class="entry-project">{{ projectTitle(entry) }}</h3>
                   @if (entry.projectTask?.name) {
@@ -198,6 +191,23 @@
                     <p class="entry-notes">{{ entry.description }}</p>
                   }
                 </div>
+              </div>
+              <div class="entry-billable-badge-wrap">
+                @if (canToggleEntryBillable()) {
+                  <p-toggleSwitch
+                    class="small entry-billable-toggle"
+                    [ngModel]="entry.isBillable"
+                    (ngModelChange)="setEntryBillable(entry, $event)"
+                    [disabled]="billableToggleDisabled(entry)"
+                    [attr.aria-label]="entry.isBillable ? 'Billable' : 'Non-billable'"
+                    [title]="billableToggleTitle(entry)"
+                  />
+                }
+                <p-tag
+                  styleClass="entry-billable-badge"
+                  [value]="entry.isBillable ? 'Billable' : 'Non-billable'"
+                  [severity]="entry.isBillable ? 'success' : 'secondary'"
+                />
               </div>
               <div class="entry-actions">
                 <span class="entry-duration">{{ entryDurationLabel(entry) }}</span>
@@ -242,9 +252,26 @@
         }
 
         @if (dayEntries().length > 0 || runningEntry()) {
-          <footer class="day-total">
-            <span class="day-total-label">Total:</span>
-            <span class="day-total-value">{{ formatMin(dayTotalMin()) }}</span>
+          <footer
+            class="day-total"
+            role="status"
+            [attr.aria-label]="dayTotalAriaLabel()"
+          >
+            <div class="entry-main" aria-hidden="true"></div>
+            <div class="entry-billable-badge-wrap" aria-hidden="true"></div>
+            <div class="entry-actions day-total-actions">
+              <span class="entry-duration day-total-value">
+                {{ formatMin(dayTotalMin()) }}<span class="day-total-suffix" aria-hidden="true">hrs</span>
+              </span>
+              @if (dayNonBillableMin() > 0) {
+                <div class="day-total-breakdown" aria-hidden="true">
+                  <span class="day-total-breakdown-item">
+                    <span class="day-total-breakdown-label">Non-billable</span>
+                    <span class="day-total-breakdown-value">{{ formatMin(dayNonBillableMin()) }}</span>
+                  </span>
+                </div>
+              }
+            </div>
           </footer>
         }
       </div>

@@ -597,7 +597,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Import CSV',
-        body: 'Bulk-load entries from a spreadsheet export.',
+        body: 'On your own timesheet, open the ⋮ menu on Track time and choose Import CSV to bulk-load entries from a spreadsheet export.',
       },
       {
         heading: 'Other people\'s time',

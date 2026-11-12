@@ -20,12 +20,14 @@ import { parseDateKey } from '../../core/date.util';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { TagModule } from 'primeng/tag';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
 import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-directory.util';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
+import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { TimeEntryModalComponent } from './time-entry-modal.component';
 import type { ClientOption, Project, TimeEntry, TimeEntryTask } from './time-entry.types';
 import {
@@ -53,7 +55,9 @@ import {
     InlineCalendarPopoverComponent,
     PeopleSelectComponent,
     TimeEntryModalComponent,
+    RowActionsMenuComponent,
     ToggleSwitchModule,
+    TagModule,
     AppPopoverModule,
   ],
   templateUrl: './time-entry-list.page.html',
@@ -78,6 +82,15 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
   /** Whose timesheet is shown; defaults to the signed-in user. */
   viewUserId = signal<string>('');
   readonly viewingSelf = computed(() => !this.viewUserId() || this.viewUserId() === this.session.me()?.id);
+  readonly trackTimeMenuActions = computed<RowActionItem[]>(() => [
+    {
+      id: 'import-csv',
+      label: 'Import CSV',
+      icon: 'pi pi-upload',
+      disabled: this.importing(),
+      command: () => this.triggerCsvPicker(),
+    },
+  ]);
   /** Tenant admins and super users can flip billable on any visible entry. */
   readonly canToggleEntryBillable = computed(() => {
     const me = this.session.me();
@@ -136,20 +149,9 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
       );
   });
 
-  readonly dayTotalMin = computed(() => {
-    const running = this.runningEntry();
-    const key = dateKey(this.selectedDay());
-    let total = 0;
-    for (const e of this.entries()) {
-      if (dateKey(new Date(e.startedAt)) !== key) continue;
-      if (!e.stoppedAt) {
-        if (e.id === running?.id) total += this.runningElapsedMin();
-      } else {
-        total += e.durationMin ?? 0;
-      }
-    }
-    return total;
-  });
+  readonly dayTotalMin = computed(() => this.sumSelectedDayMinutes());
+
+  readonly dayNonBillableMin = computed(() => this.sumSelectedDayMinutes('non-billable'));
 
   readonly weekTotalMin = computed(() => {
     const running = this.runningEntry();
@@ -680,6 +682,41 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
 
   formatMin(min: number): string {
     return formatDurationMin(min);
+  }
+
+  dayTotalAriaLabel(): string {
+    const total = this.formatMin(this.dayTotalMin());
+    const nonBillable = this.dayNonBillableMin();
+    if (nonBillable <= 0) {
+      return `Day total ${total} hours`;
+    }
+    return `Day total ${total} hours, non-billable ${this.formatMin(nonBillable)}`;
+  }
+
+  private sumSelectedDayMinutes(kind?: 'billable' | 'non-billable'): number {
+    const running = this.runningEntry();
+    const key = dateKey(this.selectedDay());
+    let total = 0;
+    for (const e of this.entries()) {
+      if (dateKey(new Date(e.startedAt)) !== key) continue;
+      let min = 0;
+      if (!e.stoppedAt) {
+        if (e.id === running?.id) min = this.runningElapsedMin();
+      } else {
+        min = e.durationMin ?? 0;
+      }
+      if (min <= 0) continue;
+      const billable = this.isEntryBillableForSummary(e);
+      if (kind === 'billable' && !billable) continue;
+      if (kind === 'non-billable' && billable) continue;
+      total += min;
+    }
+    return total;
+  }
+
+  private isEntryBillableForSummary(entry: TimeEntry): boolean {
+    if (entry.project?.isBillable === false) return false;
+    return !!entry.isBillable;
   }
 
   workTasks(entry: TimeEntry): TimeEntryTask[] {
