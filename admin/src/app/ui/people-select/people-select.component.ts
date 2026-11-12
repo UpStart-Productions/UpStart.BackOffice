@@ -6,37 +6,15 @@ import {
   toDirectoryAvatarPerson,
 } from '../../pages/projects/people-directory.util';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
+import { PickRowComponent } from '../pick-row/pick-row.component';
+import { personPickSubtitle } from '../pick-row/pick-row.util';
 
-/** Searchable people dropdown (avatar, Last First, email) — use everywhere we pick a tenant person. */
+/** Searchable people dropdown (avatar, First Last, email underneath) — use everywhere we pick a tenant person. */
 @Component({
   selector: 'app-people-select',
   standalone: true,
-  imports: [FormsModule, SelectModule, TmAvatarComponent],
+  imports: [FormsModule, SelectModule, TmAvatarComponent, PickRowComponent],
   styles: `
-    .people-select-option {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      min-width: 0;
-      padding: 0.15rem 0;
-    }
-    .people-select-option-text {
-      display: flex;
-      flex-direction: column;
-      gap: 0.05rem;
-      min-width: 0;
-    }
-    .people-select-option-name {
-      font-weight: 600;
-      line-height: 1.25;
-    }
-    .people-select-option-email {
-      font-size: var(--fs-sm);
-      color: var(--text-color-secondary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
     .people-select-selected {
       display: flex;
       align-items: center;
@@ -62,6 +40,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
       [filterPlaceholder]="filterPlaceholder()"
       [showClear]="true"
       [loading]="loading()"
+      [disabled]="disabled()"
       [placeholder]="placeholder()"
       [styleClass]="styleClass()"
       [fluid]="true"
@@ -70,13 +49,7 @@ import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
       [attr.aria-label]="ariaLabel()"
     >
       <ng-template #item let-option>
-        <div class="people-select-option">
-          <app-tm-avatar [person]="avatarPerson(option)" size="med" [showTitle]="false" />
-          <span class="people-select-option-text">
-            <span class="people-select-option-name">{{ option.label }}</span>
-            <span class="people-select-option-email">{{ option.email || 'No email on file' }}</span>
-          </span>
-        </div>
+        <app-pick-row [person]="avatarPerson(option)" [title]="option.label" [subtitle]="subtitle(option)" />
       </ng-template>
       <ng-template #selectedItem let-option>
         @if (option) {
@@ -102,9 +75,14 @@ export class PeopleSelectComponent {
   /** When false, the list is not type-to-filter (short lists). Default true. */
   filterable = input(true, { transform: booleanAttribute });
   styleClass = input('w-full');
+  disabled = input(false, { transform: booleanAttribute });
   ariaLabel = input('Search and select a person');
 
   readonly avatarPerson = toDirectoryAvatarPerson;
+
+  subtitle(option: PeopleDirectoryOption): string {
+    return personPickSubtitle(option.email);
+  }
 
   onModelChange(value: string | null) {
     this.pickId.set(value);

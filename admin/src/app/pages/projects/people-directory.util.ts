@@ -1,5 +1,6 @@
 import { Person } from '../../task-manager/core/tm.types';
 import { PeopleDirectoryEntry } from './people-directory.types';
+import { personPickName } from '../../ui/pick-row/pick-row.util';
 
 export type PeopleDirectoryOption = PeopleDirectoryEntry & { label: string };
 
@@ -19,11 +20,9 @@ export function sortPeopleByLastName(entries: PeopleDirectoryEntry[]): PeopleDir
   });
 }
 
+/** Picker label: "First Last" (list stays sorted by last name). */
 export function directoryListLabel(entry: PeopleDirectoryEntry): string {
-  const last = entry.lastName.trim();
-  const first = entry.firstName.trim();
-  if (last && first) return `${last}, ${first}`;
-  return entry.displayName;
+  return personPickName({ firstName: entry.firstName, lastName: entry.lastName, name: entry.displayName });
 }
 
 export function toDirectoryOptions(entries: PeopleDirectoryEntry[]): PeopleDirectoryOption[] {

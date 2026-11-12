@@ -44,11 +44,18 @@ Use what already exists before writing CSS: the shared app classes and PrimeNG c
   - `mode="organization"` + `clientId` on client/org pages
   - `mode="project"` + `projectContacts` / `projectContactsChange` on projects
   - Includes: **People** title, **Add person** button (new-only modal), **Add existing person** picker, list
-- **Picker control:** `app-people-select` — the **only** searchable person dropdown (label: **Add existing person**, placeholder: **Search and select…**). Used in `app-people`, Task Share, nowhere else.
+- **Picker control:** `app-people-select` — the **only** searchable person dropdown field (Add existing person, Care worker, timesheet person, form-builder assignee, Task Share). Popover pickers anchored to a cell use `app-people-pick-list` instead.
 - **Data:** `PeoplePickerLoader` (`admin/src/app/core/people-picker.loader.ts`)
 - **New person modal:** `app-create-person-modal` (create only — no “existing person” tab)
 
 Do not add another people side panel, `people-card`, or inline pickers on feature pages.
+
+## Picker rows (canonical)
+
+- **Row:** `app-pick-row` (`admin/src/app/ui/pick-row/`): avatar (`person`) or record icon (`icon`, a PrimeIcons class), **bold title**, **secondary line underneath**, optional `tag` (`p-tag`, e.g. Guest). Every row in every picker is two lines.
+- **People names:** `personPickName()` → **First Last**; `personPickSubtitle()` → email or `No email on file` (`pick-row.util.ts`).
+- **Styles:** `assets/layout/_pick-row.scss` only. The Quill **@mention** list builds the same `.pick-row` markup in `core/mention-quill.util.ts` (records: task → project, project → client, invoice → bill-to · total · date).
+- **Popover people list:** `app-people-pick-list` (search + pick rows + optional Unassign). Used by `app-tm-person-picker` (task assignee) and the Quill person-card picker. Dropdown fields use `app-people-select`.
 
 ## Organization links panel (canonical)
 

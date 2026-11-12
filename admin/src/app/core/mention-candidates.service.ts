@@ -53,6 +53,7 @@ type MentionInvoiceCandidate = {
   kind: 'invoice';
   id: string;
   label: string;
+  detail?: string;
 };
 
 type MentionCandidate =
@@ -201,6 +202,7 @@ export class MentionCandidatesService {
         id: candidate.id,
         value: candidate.label,
         mentionType: 'invoice',
+        detail: candidate.detail,
       };
     }
     if (candidate.kind === 'crmProject') {

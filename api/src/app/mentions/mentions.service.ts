@@ -52,6 +52,8 @@ export type MentionInvoiceCandidateDto = {
   kind: 'invoice';
   id: string;
   label: string;
+  /** Secondary line in the @ list: bill-to name, total, issue date. */
+  detail: string;
 };
 
 export type MentionCandidateDto =
@@ -249,14 +251,19 @@ export class MentionsService {
             }
           : {}),
       },
-      select: { id: true, displayNumber: true },
+      select: { id: true, displayNumber: true, billToName: true, total: true, issueDate: true },
       orderBy: { issueDate: 'desc' },
       take: 15,
     });
+    const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+    const date = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
     return rows.map((row) => ({
       kind: 'invoice',
       id: `invoice:${row.id}`,
       label: row.displayNumber,
+      detail: [row.billToName?.trim(), money.format(Number(row.total)), date.format(row.issueDate)]
+        .filter(Boolean)
+        .join(' · '),
     }));
   }
 

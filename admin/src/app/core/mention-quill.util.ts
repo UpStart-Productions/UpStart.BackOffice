@@ -1,5 +1,6 @@
 import { resolveAssetUrl } from './asset-url.util';
 import { avatarPalette, initials } from '../task-manager/core/tm-format.util';
+import { personPickName, personPickSubtitle } from '../ui/pick-row/pick-row.util';
 
 export type MentionQuillItem = {
   id: string;
@@ -13,6 +14,8 @@ export type MentionQuillItem = {
   projectId?: string;
   projectName?: string;
   clientName?: string;
+  /** Secondary line for records that have no project/client field (e.g. invoices). */
+  detail?: string;
 };
 
 function appendHighlightedText(container: HTMLElement, text: string, searchTerm: string): void {
@@ -25,17 +28,35 @@ function appendHighlightedText(container: HTMLElement, text: string, searchTerm:
   const start = lower.indexOf(term);
   if (start > 0) container.append(text.slice(0, start));
   const match = document.createElement('strong');
-  match.className = 'mention-suggest-item__match';
+  match.className = 'pick-row__match';
   match.textContent = text.slice(start, start + term.length);
   container.append(match);
   if (start + term.length < text.length) container.append(text.slice(start + term.length));
 }
 
-function renderUserItem(item: MentionQuillItem, searchTerm: string): HTMLElement {
+/** Same markup as app-pick-row (assets/layout/_pick-row.scss): lead, bold title, secondary line underneath. */
+function renderPickRow(lead: HTMLElement, title: string, subtitle: string, searchTerm: string, extraClass = ''): HTMLElement {
   const row = document.createElement('div');
-  row.className = 'mention-suggest-item';
-  const avatar = document.createElement('div');
-  avatar.className = 'mention-suggest-item__avatar ubo-avatar ubo-avatar--med';
+  row.className = `mention-suggest-item pick-row ${extraClass}`.trim();
+  const leadWrap = document.createElement('span');
+  leadWrap.className = 'pick-row__lead';
+  leadWrap.appendChild(lead);
+  const text = document.createElement('span');
+  text.className = 'pick-row__text';
+  const titleEl = document.createElement('span');
+  titleEl.className = 'pick-row__title';
+  appendHighlightedText(titleEl, title, searchTerm);
+  const sub = document.createElement('span');
+  sub.className = 'pick-row__sub';
+  appendHighlightedText(sub, subtitle, searchTerm);
+  text.append(titleEl, sub);
+  row.append(leadWrap, text);
+  return row;
+}
+
+function renderUserItem(item: MentionQuillItem, searchTerm: string): HTMLElement {
+  const avatar = document.createElement('span');
+  avatar.className = 'pick-row__avatar ubo-avatar ubo-avatar--med';
   const photo = resolveAssetUrl(item.avatarUrl?.trim() || null);
   if (photo) {
     const img = document.createElement('img');
@@ -53,17 +74,8 @@ function renderUserItem(item: MentionQuillItem, searchTerm: string): HTMLElement
       email: item.email ?? '',
     });
   }
-  const name = document.createElement('span');
-  name.className = 'mention-suggest-item__name';
-  appendHighlightedText(name, item.value, searchTerm);
-  row.append(avatar, name);
-  if (item.email?.trim()) {
-    const email = document.createElement('span');
-    email.className = 'mention-suggest-item__email';
-    appendHighlightedText(email, item.email.trim(), searchTerm);
-    row.appendChild(email);
-  }
-  return row;
+  const name = personPickName({ firstName: item.firstName, lastName: item.lastName, name: item.value });
+  return renderPickRow(avatar, name, personPickSubtitle(item.email), searchTerm);
 }
 
 function renderRecordItem(
@@ -71,24 +83,18 @@ function renderRecordItem(
   searchTerm: string,
   extraClass: string,
   iconClass: string,
+  fallbackSubtitle: string,
 ): HTMLElement {
-  const row = document.createElement('div');
-  row.className = `mention-suggest-item mention-suggest-item--record ${extraClass}`;
-  const icon = document.createElement('span');
-  icon.className = `mention-suggest-item__record-icon pi ${iconClass}`;
+  const icon = document.createElement('i');
+  icon.className = `pick-row__icon pi ${iconClass}`;
   icon.setAttribute('aria-hidden', 'true');
-  const title = document.createElement('span');
-  title.className = 'mention-suggest-item__name';
-  appendHighlightedText(title, item.value.trim(), searchTerm);
-  row.append(icon, title);
-  const sub = item.projectName?.trim() || item.clientName?.trim() || item.organizationName?.trim();
-  if (sub) {
-    const line = document.createElement('span');
-    line.className = 'mention-suggest-item__email';
-    appendHighlightedText(line, sub, searchTerm);
-    row.appendChild(line);
-  }
-  return row;
+  const sub =
+    item.detail?.trim() ||
+    item.projectName?.trim() ||
+    item.clientName?.trim() ||
+    item.organizationName?.trim() ||
+    fallbackSubtitle;
+  return renderPickRow(icon, item.value.trim(), sub, searchTerm, extraClass);
 }
 
 export type MentionCandidateKind = 'user' | 'contact' | 'task' | 'project' | 'invoice' | 'crmProject';
@@ -194,10 +200,10 @@ export function unbindMentionPopoverOutsideClose(el: HTMLElement): void {
 export function renderMentionDropdownItem(item: MentionQuillItem, searchTerm: string): HTMLElement {
   const type = item.mentionType ?? 'user';
   if (type === 'contact') return renderUserItem(item, searchTerm);
-  if (type === 'task') return renderRecordItem(item, searchTerm, 'mention-suggest-item--task', 'pi-check-square');
+  if (type === 'task') return renderRecordItem(item, searchTerm, 'mention-suggest-item--task', 'pi-check-square', 'Task');
   if (type === 'project' || type === 'crmProject')
-    return renderRecordItem(item, searchTerm, 'mention-suggest-item--project', 'pi-folder');
-  if (type === 'client') return renderRecordItem(item, searchTerm, 'mention-suggest-item--client', 'pi-building');
-  if (type === 'invoice') return renderRecordItem(item, searchTerm, 'mention-suggest-item--invoice', 'pi-file');
+    return renderRecordItem(item, searchTerm, 'mention-suggest-item--project', 'pi-folder', 'No client');
+  if (type === 'client') return renderRecordItem(item, searchTerm, 'mention-suggest-item--client', 'pi-building', 'Organization');
+  if (type === 'invoice') return renderRecordItem(item, searchTerm, 'mention-suggest-item--invoice', 'pi-file', 'Invoice');
   return renderUserItem(item, searchTerm);
 }

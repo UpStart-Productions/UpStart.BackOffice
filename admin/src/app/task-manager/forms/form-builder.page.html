@@ -158,7 +158,7 @@
           </div>
           <div class="form-field mb-3">
             <label for="fb-assignee">Assignee</label>
-            <p-select inputId="fb-assignee" [options]="assigneeOptions()" optionLabel="name" optionValue="id" [ngModel]="d.assigneeId" (ngModelChange)="set('assigneeId', $event)" [filter]="true" [disabled]="!canEdit()" styleClass="w-full" appendTo="body" />
+            <app-people-select inputId="fb-assignee" [options]="assigneeOptions()" [pickId]="d.assigneeId" (pickIdChange)="set('assigneeId', $event)" placeholder="Unassigned" [disabled]="!canEdit()" ariaLabel="Assignee" />
           </div>
           <div class="form-field">
             <label for="fb-tags">Tags</label>

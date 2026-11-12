@@ -1,0 +1,75 @@
+// Two-line picker row (canonical): avatar or record icon, title, secondary line underneath.
+// Used by app-pick-row (people dropdowns, task assignee popover, Quill person-card picker)
+// and by the Quill @mention list, which builds the same markup in mention-quill.util.ts.
+
+.pick-row {
+  align-items: center;
+  display: flex;
+  gap: 0.625rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.pick-row__lead {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 var(--avatar-size-med);
+  justify-content: center;
+}
+
+.pick-row__icon {
+  color: var(--brand-primary);
+  font-size: 1rem;
+}
+
+.pick-row__avatar {
+  font-weight: 700;
+  overflow: hidden;
+
+  img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+  }
+}
+
+.pick-row__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.pick-row__title-line {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.pick-row__title,
+.pick-row__sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-row__title {
+  color: var(--text-color);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.pick-row__sub {
+  color: var(--text-color-secondary);
+  font-size: var(--fs-sm);
+  line-height: 1.25;
+}
+
+.pick-row__match {
+  font-weight: 700;
+}

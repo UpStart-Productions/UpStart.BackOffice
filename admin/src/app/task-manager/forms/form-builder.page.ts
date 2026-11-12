@@ -15,6 +15,8 @@ import { TmApiService } from '../core/tm-api.service';
 import { TmStoreService } from '../core/tm-store.service';
 import { FormAccess, FormQuestion, FormQuestionType, Person, TmForm, TmProject } from '../core/tm.types';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
+import { teamUsersToOptions } from '../../pages/projects/people-directory.util';
 import { ACCESS_OPTIONS, formApiUrl, formPageUrl } from './form-links';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -57,7 +59,7 @@ type Draft = {
 @Component({
   selector: 'app-tm-form-builder-page',
   standalone: true,
-  imports: [PageComponent, RowActionsMenuComponent, 
+  imports: [PageComponent, RowActionsMenuComponent, PeopleSelectComponent, 
     FormsModule,
     ButtonModule,
     InputTextModule,
@@ -98,7 +100,8 @@ export class FormBuilderPage {
   readonly canEdit = computed(() => !!this.project()?.permissions.canEdit);
   readonly sections = computed(() => [...(this.project()?.sections ?? [])].sort((a, b) => a.sortOrder - b.sortOrder));
   readonly sectionOptions = computed(() => [{ id: null as string | null, name: 'First section' }, ...this.sections()]);
-  readonly assigneeOptions = computed(() => [{ id: null as string | null, name: 'Unassigned' }, ...this.people()]);
+  /** Clearing the picker leaves the task unassigned. */
+  readonly assigneeOptions = computed(() => teamUsersToOptions(this.people()));
   readonly pageUrl = computed(() => formPageUrl(this.form()?.slug ?? ''));
   readonly apiUrl = computed(() => formApiUrl(this.form()?.slug ?? ''));
   readonly targetOptions = computed(() => [

@@ -24,7 +24,7 @@ When the user needs to **pick one record from a list** (people, tasks, clients, 
 
 ## Rich rows (avatar, subtitle)
 
-For **people**, use **`app-people-select`** (see `ui-reuse-RRY.mdc`). For other entities, use `#item` / `#selectedItem` on `p-select` once; if a second screen needs the same row layout, extract a shared component first (RRY).
+Every picker row is **`app-pick-row`**: avatar (people) or icon (records), bold title, secondary line underneath — always two lines. For **people**, use **`app-people-select`** (see `ui-reuse-RRY.mdc`). For other entities, put `app-pick-row` in the `#item` template; if a second screen needs the same row layout, extract a shared component first (RRY).
 
 ```html
 <p-select
@@ -43,7 +43,7 @@ For **people**, use **`app-people-select`** (see `ui-reuse-RRY.mdc`). For other 
   appendTo="body"
 >
   <ng-template #item let-option>
-    <!-- avatar + primary line + secondary line -->
+    <app-pick-row [icon]="'pi-folder'" [title]="option.label" [subtitle]="option.clientName" />
   </ng-template>
 </p-select>
 ```
@@ -51,7 +51,7 @@ For **people**, use **`app-people-select`** (see `ui-reuse-RRY.mdc`). For other 
 ## Cross-system people lists
 
 - API: `GET /search/people?limit=250` (optional `q`, `excludeProjectId`). Implementation: `api/src/app/search/people-directory.service.ts`.
-- Sort **last name, then first name**; show **Last, First** in the list when both exist.
+- Sort **last name, then first name**; show **First Last** (title) with the **email underneath** (secondary line). No email → `No email on file`.
 
 ## Do not
 
