@@ -9,7 +9,8 @@
   --harvest-muted: var(--color-text-muted);
   --harvest-today-bg: #f5f3ff;
   --harvest-row-hover: #fafbfc;
-  /* Fixed actions track so day total hours line up with entry durations (buttons sit to the right). */
+  /* Fixed billable + actions tracks so toggles, badges, and hours line up row to row. */
+  --timesheet-billable-col: 9.75rem;
   --timesheet-actions-col: 14.25rem;
   font-size: var(--fs-base);
   color: var(--harvest-text);
@@ -174,7 +175,7 @@
 .entry-row,
 .day-total {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto var(--timesheet-actions-col);
+  grid-template-columns: minmax(0, 1fr) var(--timesheet-billable-col) var(--timesheet-actions-col);
   align-items: center;
   column-gap: 1.5rem;
   padding: 1.125rem 2rem;
@@ -263,12 +264,14 @@
 }
 
 .entry-billable-badge-wrap {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
   align-self: center;
+  justify-self: start;
+  justify-content: flex-start;
+  width: 100%;
   gap: 0.5rem;
-  padding: 0 0.25rem;
+  padding: 0;
 }
 
 .entry-duration {
