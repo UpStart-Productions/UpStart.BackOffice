@@ -29,6 +29,10 @@ describe('email-layout', () => {
     expect(html).toContain('cid:upstart-logo');
     expect(html).toContain('background:#7c3aed');
     expect(html).toContain('Technology that serves your mission.');
+    expect(html.indexOf('Receipt from UpStart Productions')).toBeLessThan(
+      html.indexOf('Technology that serves your mission.'),
+    );
+    expect(html.indexOf('You’re receiving this email from')).toBeLessThan(html.indexOf('cid:upstart-logo'));
     expect(html).not.toMatch(/back office/i);
     expect(html).not.toContain('784-7046');
     expect(html).not.toMatch(/or call/i);

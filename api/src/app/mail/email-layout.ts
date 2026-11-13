@@ -71,13 +71,7 @@ export function wrapClientEmail(params: {
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f4f4f5;margin:0;padding:24px;">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;">
-    <div style="background:#7c3aed;padding:8px 32px;">
-      <p style="margin:0;font-size:12px;line-height:1.3;color:#ffffff;font-weight:500;letter-spacing:0.01em;">Technology that serves your mission.</p>
-    </div>
-    <div style="padding:28px 32px 0;">
-      <img src="cid:${LOGO_CID}" alt="${escapeHtml(EMAIL_BRAND.name)}" width="180" style="display:block;height:48px;width:auto;border:0;" />
-    </div>
-    <div style="padding:24px 32px 32px;">
+    <div style="padding:28px 32px 32px;">
       <h1 style="margin:0 0 6px;font-size:26px;line-height:1.25;color:#2d2d2d;font-weight:600;">${escapeHtml(params.title)}</h1>
       ${params.subtitle ? `<p style="margin:0 0 24px;font-size:14px;color:#6b6b6b;">${escapeHtml(params.subtitle)}</p>` : ''}
       ${facts.length ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 8px;"><tr>${factCols}</tr></table>` : ''}
@@ -88,7 +82,7 @@ export function wrapClientEmail(params: {
       ${params.extraHtml ?? ''}
       ${params.closing ? `<p style="margin:28px 0 0;font-size:15px;color:#2d2d2d;">${escapeHtml(params.closing)}</p>` : ''}
     </div>
-    <div style="padding:0 32px 28px;">
+    <div style="padding:0 32px 20px;">
       <hr style="border:none;border-top:1px solid #e5e5e5;margin:0 0 16px;" />
       <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#6b6b6b;">
         Questions? Contact us at
@@ -97,6 +91,12 @@ export function wrapClientEmail(params: {
       <p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#8a8a8a;">
         You’re receiving this email from ${escapeHtml(EMAIL_BRAND.legalName)}.
       </p>
+    </div>
+    <div style="padding:8px 32px 24px;">
+      <img src="cid:${LOGO_CID}" alt="${escapeHtml(EMAIL_BRAND.name)}" width="180" style="display:block;height:48px;width:auto;border:0;" />
+    </div>
+    <div style="background:#7c3aed;padding:8px 32px;">
+      <p style="margin:0;font-size:12px;line-height:1.3;color:#ffffff;font-weight:500;letter-spacing:0.01em;">Technology that serves your mission.</p>
     </div>
   </div>
 </body>
