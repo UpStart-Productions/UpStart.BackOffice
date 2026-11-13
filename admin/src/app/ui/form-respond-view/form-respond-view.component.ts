@@ -74,7 +74,7 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
                 }
               </p>
               @if (pg.intro) {
-                <p class="text-color-secondary cp-intro">{{ pg.intro }}</p>
+                <div class="text-color-secondary cp-intro cp-rich" [innerHTML]="pg.intro"></div>
               }
               @for (f of pg.fields; track f.id) {
                 <app-form-field-input
@@ -169,7 +169,7 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
           <h3 class="cp-section">{{ sec.name }}</h3>
         }
         @if (sec.description) {
-          <p class="text-color-secondary cp-intro">{{ sec.description }}</p>
+          <div class="text-color-secondary cp-intro cp-rich" [innerHTML]="sec.description"></div>
         }
         @for (f of sec.fields; track f.id) {
           <app-form-field-input
@@ -316,8 +316,9 @@ export class FormRespondViewComponent {
     const out: RespondPage[] = [];
     for (const s of sections) {
       if (layout === 'questions') {
-        if (s.description) out.push({ section: s, fields: [], question: false, intro: s.description });
-        for (const fld of s.fields) out.push({ section: s, fields: [fld], question: !isContentField(fld) });
+        // The section's intro sits above its first item (its own screen only when the section is empty).
+        if (s.description && !s.fields.length) out.push({ section: s, fields: [], question: false, intro: s.description });
+        s.fields.forEach((fld, fi) => out.push({ section: s, fields: [fld], question: !isContentField(fld), intro: fi === 0 ? s.description : null }));
       } else {
         out.push({ section: s, fields: s.fields, question: false });
       }

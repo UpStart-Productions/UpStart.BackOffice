@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
-  FORM_CONTENT_MAX, formProfile, isSelectFieldType, plainTextToHtml, type FormDefinition, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
+  FORM_CONTENT_MAX, formProfile, isSelectFieldType, sectionDescriptionHtml, type FormDefinition, type FormFieldDto, type FormFieldOption, type FormFieldType, type FormProfile, type FormSectionDto,
   type FormSubfieldDto,
 } from '@upstart/back-office/shared';
 import { PrismaService } from '../prisma/prisma.service';
@@ -54,7 +54,7 @@ export class FormStructureService {
     });
     return rows
       .filter((s) => !opts.filledOnly || s.fields.length)
-      .map((s) => ({ id: s.id, name: s.name, description: s.description, fields: s.fields.map(fieldView) }));
+      .map((s) => ({ id: s.id, name: s.name, description: sectionDescriptionHtml(s.description), fields: s.fields.map(fieldView) }));
   }
 
   /** Every field of a form, in order. */
@@ -86,7 +86,7 @@ export class FormStructureService {
   async definitionSections(formId: string): Promise<FormDefinition['sections']> {
     return (await this.sections(formId)).map((s) => ({
       name: s.name,
-      description: s.description ?? null,
+      description: sectionDescriptionHtml(s.description),
       fields: s.fields.map((f) => ({
         name: f.name,
         type: f.type,
@@ -119,14 +119,10 @@ export class FormStructureService {
     const start = (last?.sortOrder ?? -1) + 1;
     for (const [si, sec] of sections.entries()) {
       const section = await db.formSection.create({
-        data: { formId: form.id, name: sec.name, sortOrder: start + si },
+        data: { formId: form.id, name: sec.name, description: sectionDescriptionHtml(sec.description), sortOrder: start + si },
         select: { id: true },
       });
-      // An old-style section intro in the file becomes a text block at the top.
-      const items = sec.description?.trim()
-        ? [{ name: plainTextToHtml(sec.description), type: 'CONTENT' as const, required: false }, ...sec.fields]
-        : sec.fields;
-      for (const [fi, f] of items.entries()) {
+      for (const [fi, f] of sec.fields.entries()) {
         let stored: Prisma.InputJsonValue | typeof Prisma.DbNull = Prisma.DbNull;
         if (f.type === 'GROUP') {
           try {
@@ -162,9 +158,9 @@ export class FormStructureService {
     if (!name) throw new BadRequestException('Name is required');
     const last = await this.prisma.formSection.findFirst({ where: { formId }, orderBy: { sortOrder: 'desc' }, select: { sortOrder: true } });
     const s = await this.prisma.formSection.create({
-      data: { formId, name, description: description?.trim() || null, sortOrder: (last?.sortOrder ?? -1) + 1 },
+      data: { formId, name, description: sectionDescriptionHtml(description), sortOrder: (last?.sortOrder ?? -1) + 1 },
     });
-    return { id: s.id, name: s.name, description: s.description, fields: [] };
+    return { id: s.id, name: s.name, description: sectionDescriptionHtml(s.description), fields: [] };
   }
 
   /** Rename a section and, when given, change its intro. */
@@ -174,9 +170,9 @@ export class FormStructureService {
     if (!name) throw new BadRequestException('Name is required');
     const s = await this.prisma.formSection.update({
       where: { id },
-      data: { name, ...(description !== undefined ? { description: description?.trim() || null } : {}) },
+      data: { name, ...(description !== undefined ? { description: sectionDescriptionHtml(description) } : {}) },
     });
-    return { id: s.id, name: s.name, description: s.description };
+    return { id: s.id, name: s.name, description: sectionDescriptionHtml(s.description) };
   }
 
   /** Deletes the section and its fields; their answers disappear from every response. */

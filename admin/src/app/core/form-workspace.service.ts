@@ -15,7 +15,7 @@ export type WorkspaceConfig = {
   /** The view shown when the URL has none and the form has no sections. */
   emptyView: string;
   load(): Promise<WorkspaceForm>;
-  addSection(name: string): Promise<string>;
+  addSection(name: string, description?: string | null): Promise<string>;
   reorderSections(ids: string[]): Promise<void>;
 };
 
@@ -49,10 +49,10 @@ export class FormWorkspaceService {
   }
 
   /** Add a section and return its id. */
-  async addSection(name: string): Promise<string> {
+  async addSection(name: string, description?: string | null): Promise<string> {
     const c = this.config();
     if (!c) throw new Error('No form is open');
-    const id = await c.addSection(name);
+    const id = await c.addSection(name, description);
     await this.reload();
     this.changed.update((n) => n + 1);
     return id;

@@ -114,25 +114,24 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
             }
           </div>
           <div class="page-header-actions">
-            <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
             @if (f.canEdit) {
-              @if (f.published && !f.hasUnpublishedChanges) {
-                <p-button label="Unpublish" icon="pi pi-eye-slash" severity="secondary" [outlined]="true" [loading]="publishing()" (onClick)="confirmUnpublish()" />
-              } @else {
+              <span class="split-action">
                 <p-button
-                  [label]="f.published ? 'Publish changes' : 'Publish'"
-                  icon="pi pi-send"
-                  severity="secondary"
-                  [outlined]="true"
-                  [loading]="publishing()"
-                  [disabled]="isDirty()"
-                  (onClick)="publish()"
+                  label="Save"
+                  icon="pi pi-check"
+                  [loading]="saving()"
+                  [disabled]="!isDirty()"
+                  (onClick)="save()"
                 />
-              }
-            }
-            <p-button label="Preview" icon="pi pi-eye" severity="secondary" [outlined]="true" (onClick)="openPreview()" />
-            @if (f.canEdit) {
-              <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!isDirty()" (onClick)="save()" />
+                <app-row-actions-menu
+                  class="split-action-more"
+                  [attached]="true"
+                  [items]="headerActions()"
+                  ariaLabel="More form actions"
+                />
+              </span>
+            } @else if (headerActions().length) {
+              <app-row-actions-menu [items]="headerActions()" ariaLabel="Form actions" />
             }
           </div>
         }
@@ -731,17 +730,37 @@ export class FormEditPage implements OnInit {
   }
 
   headerActions(): RowActionItem[] {
+    const f = this.form();
     const items: RowActionItem[] = [
       { id: 'preview', label: 'Preview', icon: 'pi pi-eye', command: () => this.openPreview() },
-      { id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() },
     ];
-    const f = this.form();
-    if (f?.canEdit) items.splice(1, 0, { id: 'import', label: 'Import form file', icon: 'pi pi-file-import', command: () => this.openImport() });
-    // With changes waiting, the header button publishes them; Unpublish moves here.
-    if (f?.canEdit && f.published && f.hasUnpublishedChanges) {
-      items.push({ id: 'unpublish', label: 'Unpublish', icon: 'pi pi-eye-slash', command: () => this.confirmUnpublish() });
+    if (f?.canEdit) {
+      if (!f.published || f.hasUnpublishedChanges) {
+        items.push({
+          id: 'publish',
+          label: f.published ? 'Publish changes' : 'Publish',
+          icon: 'pi pi-send',
+          disabled: this.isDirty() || this.publishing(),
+          command: () => void this.publish(),
+        });
+      }
+      if (f.published) {
+        items.push({
+          id: 'unpublish',
+          label: 'Unpublish',
+          icon: 'pi pi-eye-slash',
+          disabled: this.publishing(),
+          command: () => this.confirmUnpublish(),
+        });
+      }
+      items.push({ id: 'import-sep', kind: 'separator' });
+      items.push({ id: 'import', label: 'Import form file', icon: 'pi pi-file-import', command: () => this.openImport() });
     }
-    if (this.form()?.canDelete) items.push({ id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove() });
+    items.push({ id: 'export', label: 'Export form file', icon: 'pi pi-download', command: () => void this.exportFile() });
+    if (f?.canDelete) {
+      items.push({ id: 'delete-sep', kind: 'separator' });
+      items.push({ id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove() });
+    }
     return items;
   }
 

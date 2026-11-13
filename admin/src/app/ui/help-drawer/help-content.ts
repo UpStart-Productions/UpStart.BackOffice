@@ -878,7 +878,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Sections',
-        body: 'Click a section to see its questions. + next to Sections adds one; drag sections up or down to reorder them. A section\'s ⋮ menu renames or deletes it. Add field adds a question; Add text adds a text block (an intro or note people read, not answered or scored). Drag either by its ☰ handle to reorder it.',
+        body: 'Click a section to see its questions. + next to Sections adds one; drag sections up or down to reorder them. A section\'s ⋮ menu renames or deletes it. Add new (▼) adds a question or field, or text content—a block people read, not answered or scored. Drag either by its ☰ handle to reorder it.',
       },
       {
         heading: 'Import form file',
@@ -906,7 +906,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Fields',
-        body: "Add a section, then Add field: a name, a type, Required, and on scored forms the points per choice and the score area. You can change a field's type until someone answers the form; then it's locked. Currency, Phone (US, formatted as you type) and SSN (shown as ***-**-****, with an eye to show it) are their own types. Changes save right away.",
+        body: "Add a section, then Add new → Question or field: a name, a type, Required, and on scored forms the points per choice and the score area. You can change a field's type until someone answers the form; then it's locked. Currency, Phone (US, formatted as you type) and SSN (shown as ***-**-****, with an eye to show it) are their own types. Changes save right away.",
       },
       {
         heading: 'Public links',

@@ -185,6 +185,7 @@ function recordRules(): string[] {
     'Format for readability: one short lead line, then markdown lists. Never use em dashes (—); never chain fields with dashes on one line. Use `-` bullets for breakdowns (paid vs sent, totals by client). For several records, use one `-` line per record: the first thing on the line must be the markdown link from tool results (e.g. [LOVINC-0004](/invoices/…)); put client, status, amount and date on indented `-` lines under it. Do not use bold instead of a link when a link was provided.',
     'Tool results link record names like [Fix login bug](https://…). Whenever you mention one of those records, keep its markdown link exactly as given so the person can click straight to it. Never write, change or guess a link yourself.',
     'If a name matches several records, ask which one. Never guess or pick one yourself.',
+    'For forms, use get_form to see a form\'s sections, questions, options, points and scoring, list_form_submissions for responses with scores, and get_form_submission for one response\'s answers and score by area.',
     'For unbilled time, use preview_invoice_from_time. A project name alone is enough (its client is used); only ask for a client when they named neither. Default to the current month unless they say otherwise.',
   ];
 }
@@ -204,6 +205,7 @@ function changeRules(makesChanges: boolean): string[] {
     'Only use values the person gave you or that you looked up. Never invent emails, phone numbers, websites or other details; leave a field out instead.',
     'Propose one change at a time unless they clearly asked for several (then use the bulk tool, e.g. create_tasks).',
     'You can create draft invoices. A draft is never sent. For tracked time, always use create_invoice_from_time with the client and period (call preview_invoice_from_time first to show the totals); it links the time so it is never billed twice. Never copy preview lines into create_invoice. Use create_invoice only for fixed fees or one-off charges the person spells out, and only name a project that exists. Never make up amounts, rates or hours. You cannot edit, send or mark invoices paid, change time or expenses, or change pipeline cards: explain how to do those on the screen.',
+    'You can build and edit forms: create_form (a whole form with sections and questions in one proposal), update_form (name, description, layout, review, results email, thank-you), set_form_scoring (score areas and profiles), add/update/move sections and fields, publish_form, create_form_link, and dismissing or restoring a submission. Call get_form first and use the exact section and field names it shows. On scored forms give options points and a score area. Changes go to the draft; say that publishing makes them live. You cannot delete forms, sections, fields or submissions: explain how to do that on the screen.',
   ];
 }
 

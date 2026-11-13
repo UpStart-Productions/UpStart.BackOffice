@@ -31,12 +31,17 @@ export const HELP_AGENT_READ_TOOLS: ReadonlySet<string> = new Set([
   'get_task_project',
   'list_pipelines',
   'list_pipeline_cards',
+  'list_forms',
+  'get_form',
+  'list_form_submissions',
+  'get_form_submission',
 ]);
 
 /**
  * Changes the guide may propose. It never runs these itself: the widget shows a confirmation card and only
  * POST /help-agent/actions/run (after the person clicks) calls them. Invoices only as new drafts: no
- * editing, sending or marking paid. Expenses, time and pipeline changes are left out.
+ * editing, sending or marking paid. Forms: build and edit (no deleting forms, sections, fields or submissions).
+ * Expenses, time and pipeline changes are left out.
  */
 export const HELP_AGENT_WRITE_TOOLS: Readonly<Record<string, { title: string; confirm: string }>> = {
   create_organization: { title: 'Create organization', confirm: 'Create' },
@@ -58,6 +63,18 @@ export const HELP_AGENT_WRITE_TOOLS: Readonly<Record<string, { title: string; co
   log_activity: { title: 'Log activity', confirm: 'Log it' },
   create_invoice_from_time: { title: 'Create draft invoice from time', confirm: 'Create draft' },
   create_invoice: { title: 'Create draft invoice', confirm: 'Create draft' },
+  create_form: { title: 'Create form', confirm: 'Create' },
+  update_form: { title: 'Update form', confirm: 'Save' },
+  set_form_scoring: { title: 'Set form scoring', confirm: 'Save' },
+  publish_form: { title: 'Publish form', confirm: 'Publish' },
+  unpublish_form: { title: 'Unpublish form', confirm: 'Unpublish' },
+  add_form_section: { title: 'Add form section', confirm: 'Add' },
+  update_form_section: { title: 'Update form section', confirm: 'Save' },
+  move_form_section: { title: 'Move form section', confirm: 'Move' },
+  add_form_field: { title: 'Add form field', confirm: 'Add' },
+  update_form_field: { title: 'Update form field', confirm: 'Save' },
+  create_form_link: { title: 'Create form link', confirm: 'Create' },
+  set_form_submission_status: { title: 'Change submission status', confirm: 'Save' },
 };
 
 export const isHelpAgentWriteTool = (name: string): boolean =>
@@ -83,6 +100,10 @@ export const HELP_AGENT_TOOL_LABELS: Record<string, string> = {
   get_task_project: 'task projects',
   list_pipelines: 'pipelines',
   list_pipeline_cards: 'pipelines',
+  list_forms: 'forms',
+  get_form: 'forms',
+  list_form_submissions: 'form submissions',
+  get_form_submission: 'form submissions',
 };
 
 /** Longest tool result passed back to the model; longer ones are cut with a note. */

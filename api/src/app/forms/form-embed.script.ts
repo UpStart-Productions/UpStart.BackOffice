@@ -428,22 +428,27 @@ export const FORM_EMBED_SCRIPT = String.raw`/* UpStart Back Office form embed. <
           var at = step;
           setTimeout(function () { if (step === at) nextBtn.click(); }, 350);
         }
-        // One block per section: its title (unless the layout shows it), old-style intro, and its items.
+        // One block per section: its title (unless the layout shows it), its formatted intro, and its items.
         var blocks = form.sections.map(function (s, si) {
           var parts = [];
           if (layout === 'page' || layout === 'steps') parts.push(el('h3', { className: 'ubo-section', text: s.name }));
-          if (s.description) {
-            var intro = el('p', { className: 'ubo-description', text: s.description });
-            if (layout === 'questions') pages.push({ node: el('div', { className: 'ubo-section-body' }, [el('p', { className: 'ubo-kicker', text: s.name }), intro]), fields: [], question: false });
-            else parts.push(intro);
+          var intro = s.description ? richText(s.description) : null;
+          if (intro) intro.className += ' ubo-description';
+          if (intro && layout !== 'questions') parts.push(intro);
+          // Page by question: the intro sits above the section's first item (its own screen only if the section is empty).
+          if (intro && layout === 'questions' && !s.fields.length) {
+            pages.push({ node: el('div', { className: 'ubo-section-body' }, [el('p', { className: 'ubo-kicker', text: s.name }), intro]), fields: [], question: false });
           }
           var own = [];
-          s.fields.forEach(function (f) {
+          s.fields.forEach(function (f, fi) {
             var x = field(f, f.type === 'SINGLE_SELECT' ? autoNext : null, base + '/files');
             if (!x.content) fields.push({ def: f, ui: x });
             own.push({ def: f, ui: x });
             if (layout === 'questions') {
-              pages.push({ node: el('div', { className: 'ubo-section-body' }, [el('p', { className: 'ubo-kicker', text: s.name }), x.node]), fields: x.content ? [] : [{ def: f, ui: x }], question: !x.content });
+              var kids = [el('p', { className: 'ubo-kicker', text: s.name })];
+              if (intro && fi === 0) kids.push(intro);
+              kids.push(x.node);
+              pages.push({ node: el('div', { className: 'ubo-section-body' }, kids), fields: x.content ? [] : [{ def: f, ui: x }], question: !x.content });
             } else parts.push(x.node);
           });
           return { section: s, fields: own.filter(function (x) { return !x.ui.content; }), node: el('div', { className: 'ubo-section-body', 'data-section': String(si) }, parts) };

@@ -3,7 +3,7 @@ import {
   BadRequestException, ForbiddenException, GoneException, HttpException, HttpStatus, Injectable, NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import {
-  computeFormScores, normalizeFormSettings, publicSections,
+  computeFormScores, normalizeFormSettings, publicSections, sectionDescriptionHtml,
   type FormFieldDto, type FormFileRef, type FormPublicDraftDto, type FormPublicFormDto, type FormPublicLinkDto, type FormPublicSubmitResultDto, type FormResultDto,
   type FormScores, type FormScoring, type FormSectionDto, type FormSnapshot,
 } from '@upstart/back-office/shared';
@@ -118,7 +118,9 @@ export class FormPublicService {
     const v = link.kind === 'NEW' ? link.form.publishedVersion : null;
     if (v) {
       const snap = v.snapshot as unknown as FormSnapshot;
-      return { name: snap.name, description: snap.description, sections: snap.sections ?? [], scoring: snap.scoring ?? null };
+      // Published before section intros were formatted text: plain-text intros become paragraphs.
+      const sections = (snap.sections ?? []).map((sec) => ({ ...sec, description: sectionDescriptionHtml(sec.description) }));
+      return { name: snap.name, description: snap.description, sections, scoring: snap.scoring ?? null };
     }
     return { name: link.form.name, description: link.form.description, sections: await this.structure.sections(link.formId), scoring: null };
   }

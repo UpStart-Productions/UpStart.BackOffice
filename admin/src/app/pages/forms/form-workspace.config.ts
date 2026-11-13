@@ -13,7 +13,7 @@ export function freeFormWorkspace(forms: FormsApi, id: string): WorkspaceConfig 
     ],
     emptyView: 'settings',
     load: () => forms.form(id),
-    addSection: async (name) => (await forms.addSection(id, name)).id,
+    addSection: async (name, description) => (await forms.addSection(id, name, description)).id,
     reorderSections: async (ids) => {
       await forms.reorderSections(id, ids);
     },

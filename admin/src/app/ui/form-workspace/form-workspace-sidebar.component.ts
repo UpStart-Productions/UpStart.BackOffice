@@ -6,7 +6,10 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
+import { htmlHasText } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
+import { HelpTextComponent } from '../help-text/help-text.component';
 import { FormWorkspaceService } from '../../core/form-workspace.service';
 
 /**
@@ -16,7 +19,7 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
 @Component({
   selector: 'app-form-workspace-sidebar',
   standalone: true,
-  imports: [NgClass, FormsModule, RouterLink, RouterLinkActive, ButtonModule, InputTextModule, AppDialogModule, CdkDropList, CdkDrag, CdkDragPlaceholder],
+  imports: [NgClass, FormsModule, RouterLink, RouterLinkActive, ButtonModule, InputTextModule, AppDialogModule, ...APP_QUILL_IMPORTS, HelpTextComponent, CdkDropList, CdkDrag, CdkDragPlaceholder],
   template: `
     <nav class="tm-sidebar" aria-label="Form">
       @if (ws.form(); as f) {
@@ -76,10 +79,14 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
       }
     </nav>
 
-    <p-dialog header="Add section" [(visible)]="addVisible" [modal]="true" [style]="{ width: 'min(28rem, 96vw)' }">
+    <p-dialog header="Add section" [(visible)]="addVisible" [modal]="true" [style]="{ width: 'min(40rem, 96vw)' }">
       <div class="form-field">
         <label for="fwSectionName">Name</label>
         <input pInputText id="fwSectionName" class="w-full" [(ngModel)]="newName" (keydown.enter)="add()" />
+      </div>
+      <div class="form-field mt-3">
+        <label>Description <app-help-text key="form.builder.sectionDescription" /></label>
+        <app-quill-editor [(ngModel)]="newDescription" placeholder="Optional" [styles]="{ 'min-height': '120px' }"></app-quill-editor>
       </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="adding()" (onClick)="addVisible = false" />
@@ -148,6 +155,7 @@ export class FormWorkspaceSidebarComponent {
 
   addVisible = false;
   newName = '';
+  newDescription = '';
   adding = signal(false);
 
   /** Questions in a section (text blocks don't count). */
@@ -183,6 +191,7 @@ export class FormWorkspaceSidebarComponent {
 
   openAdd() {
     this.newName = '';
+    this.newDescription = '';
     this.addVisible = true;
   }
 
@@ -192,7 +201,7 @@ export class FormWorkspaceSidebarComponent {
     if (!f || !name) return;
     this.adding.set(true);
     try {
-      const id = await this.ws.addSection(name);
+      const id = await this.ws.addSection(name, htmlHasText(this.newDescription) ? this.newDescription : null);
       this.addVisible = false;
       await this.router.navigate(this.ws.config()?.base ?? ['/forms', f.id], { queryParams: { view: id } });
     } catch (err) {

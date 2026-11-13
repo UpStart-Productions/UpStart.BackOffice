@@ -2,8 +2,9 @@ import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDragPreview
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
-import { MessageService } from 'primeng/api';
+import { MenuItem, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { SplitButtonModule } from 'primeng/splitbutton';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
@@ -12,6 +13,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import {
   FORM_FIELD_TYPE_ICONS,
   FORM_FIELD_TYPE_LABELS,
+  htmlHasText,
   isSelectFieldType,
   type FormFieldDto,
   type FormFieldType,
@@ -44,6 +46,7 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
   imports: [
     FormsModule,
     ButtonModule,
+    SplitButtonModule,
     CheckboxModule,
     InputTextModule,
     SelectModule,
@@ -66,29 +69,36 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
     @if (!sectionId()) {
     <div class="field-action-row toolbar">
       <span class="font-medium mr-1">Sections <app-help-text key="form.builder.sections" /></span>
-      <input
-        pInputText
-        [(ngModel)]="newSectionName"
-        placeholder="New section name"
-        class="flex-1"
-        aria-label="New section name"
-        (keydown.enter)="addSection()"
-      />
-      <p-button label="Add" icon="pi pi-plus" size="small" [loading]="adding()" [disabled]="!newSectionName.trim()" (onClick)="addSection()" />
+      <span class="flex-1"></span>
+      <p-button label="Add section" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNewSection()" />
     </div>
     }
 
     @for (s of shownSections(); track s.id) {
       <div class="fb-section" [class.fb-section--single]="!!sectionId()">
         <div class="fb-section-header">
-          <app-row-actions-menu [items]="sectionActions(s, indexOf(s))" ariaLabel="Section actions" />
-          <span class="fb-section-name">{{ s.name }}</span>
+          <span class="fb-cell-actions">
+            <span class="fb-drag-handle fb-drag-handle--placeholder" aria-hidden="true"><i class="pi pi-bars"></i></span>
+            <app-row-actions-menu [items]="sectionActions(s, indexOf(s))" ariaLabel="Section actions" />
+          </span>
+          <span class="card-title">{{ s.name }}</span>
           <span class="flex-1"></span>
-          <p-button label="Add text" icon="pi pi-align-left" size="small" severity="secondary" [outlined]="true" (onClick)="openText(s, null)" />
-          <p-button label="Add field" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNewField(s)" />
+          <p-splitButton
+            label="Add new"
+            icon="pi pi-plus"
+            size="small"
+            severity="secondary"
+            [outlined]="true"
+            [model]="addNewMenuItems"
+            appendTo="body"
+            title="Add a question, field, or text content"
+            (onClick)="onAddNewMain(s)"
+            (onDropdownClick)="bindAddNewSection(s)"
+            (onMenuShow)="bindAddNewSection(s)"
+          />
         </div>
         @if (s.description) {
-          <p class="fb-section-intro">{{ s.description }}</p>
+          <div class="fb-section-intro fb-rich" [innerHTML]="s.description"></div>
         }
         <div class="fb-fields" cdkDropList cdkDropListLockAxis="y" [cdkDropListData]="s" (cdkDropListDropped)="dropField($event)">
           @for (f of s.fields; track f.id) {
@@ -164,14 +174,15 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
       <p class="mt-3 mb-0">No sections yet. Add one, then add fields to it.</p>
     }
 
-    <p-dialog header="Edit section" [(visible)]="sectionVisible" [modal]="true" [style]="{ width: 'min(32rem, 96vw)' }">
+    <p-dialog [header]="editingSection ? 'Edit section' : 'Add section'" [(visible)]="sectionVisible" [modal]="true" [style]="{ width: 'min(40rem, 96vw)' }">
       <div class="form-field">
         <label for="fbSectionName">Name</label>
-        <input pInputText id="fbSectionName" class="w-full" [(ngModel)]="sectionName" />
+        <input pInputText id="fbSectionName" class="w-full" [(ngModel)]="sectionName" (keydown.enter)="saveSection()" />
       </div>
-      @if (editingSection?.description) {
-        <p class="mb-0 text-color-secondary">This section has an old-style intro. To change it, add a text block at the top of the section instead.</p>
-      }
+      <div class="form-field mt-3">
+        <label>Description <app-help-text key="form.builder.sectionDescription" /></label>
+        <app-quill-editor [(ngModel)]="sectionDescription" placeholder="Optional" [styles]="{ 'min-height': '120px' }"></app-quill-editor>
+      </div>
       <ng-template pTemplate="footer">
         <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="sectionVisible = false" />
         <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!sectionName.trim()" (onClick)="saveSection()" />
@@ -290,9 +301,6 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
       gap: 0.5rem;
       margin-bottom: 0.5rem;
     }
-    .fb-section-name {
-      font-weight: 600;
-    }
     .fb-cell-actions {
       display: inline-flex;
       align-items: center;
@@ -302,6 +310,11 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
       cursor: grab;
       color: var(--drag-handle-color);
       padding: 0 0.15rem;
+    }
+    .fb-drag-handle--placeholder {
+      visibility: hidden;
+      pointer-events: none;
+      cursor: default;
     }
     /* Questions: one compact block each (name, then type/required/area chips, then choices). */
     /* In a card the list runs edge to edge (rows keep the card's 2rem inset), with a line between rows. */
@@ -456,6 +469,17 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
       margin: 0 0 0.75rem;
       color: var(--text-color-secondary);
     }
+    .fb-rich ::ng-deep p {
+      margin: 0 0 0.4rem;
+    }
+    .fb-rich ::ng-deep p:last-child {
+      margin-bottom: 0;
+    }
+    .fb-rich ::ng-deep ul,
+    .fb-rich ::ng-deep ol {
+      margin: 0 0 0.4rem;
+      padding-left: 1.25rem;
+    }
     .fb-text-quill {
       width: 100%;
       margin-top: 0.75rem;
@@ -496,7 +520,44 @@ export class FormBuilderComponent {
     return this.form().sections.findIndex((x) => x.id === s.id);
   }
 
-  /** Question types (text blocks have their own Add text button). */
+  /** Section targeted by the Add new split menu (stable menu model — do not rebuild per change detection). */
+  private addNewSectionId: string | null = null;
+
+  readonly addNewMenuItems: MenuItem[] = [
+    {
+      label: 'Question or field',
+      icon: 'pi pi-plus',
+      command: () => {
+        const s = this.sectionForAddNew();
+        if (s) this.openNewField(s);
+      },
+    },
+    {
+      label: 'Text content',
+      icon: 'pi pi-align-left',
+      command: () => {
+        const s = this.sectionForAddNew();
+        if (s) this.openText(s, null);
+      },
+    },
+  ];
+
+  bindAddNewSection(section: Section) {
+    this.addNewSectionId = section.id;
+  }
+
+  onAddNewMain(section: Section) {
+    this.bindAddNewSection(section);
+    this.openNewField(section);
+  }
+
+  private sectionForAddNew(): Section | null {
+    const id = this.addNewSectionId;
+    if (!id) return null;
+    return this.form().sections.find((s) => s.id === id) ?? null;
+  }
+
+  /** Question types (text blocks use Add new → Text content). */
   readonly typeOptions = computed(() =>
     this.profile()
       .fieldTypes.filter((value) => value !== 'CONTENT')
@@ -536,13 +597,12 @@ export class FormBuilderComponent {
     }
   }
 
-  adding = signal(false);
   saving = signal(false);
-  newSectionName = '';
 
   sectionVisible = false;
   editingSection: Section | null = null;
   sectionName = '';
+  sectionDescription = '';
 
   fieldVisible = false;
   fieldSection: Section | null = null;
@@ -611,36 +671,33 @@ export class FormBuilderComponent {
     }
   }
 
-  async addSection() {
-    const name = this.newSectionName.trim();
-    if (!name) return;
-    this.adding.set(true);
-    try {
-      await this.api.post(`${this.apiBase()}/forms/${this.form().id}/sections`, { name });
-      this.newSectionName = '';
-      this.changed.emit();
-    } catch (err) {
-      this.fail('Could not add section', err);
-    } finally {
-      this.adding.set(false);
-    }
+  openNewSection() {
+    this.editingSection = null;
+    this.sectionName = '';
+    this.sectionDescription = '';
+    this.sectionVisible = true;
   }
 
   openEditSection(s: Section) {
     this.editingSection = s;
     this.sectionName = s.name;
+    this.sectionDescription = s.description ?? '';
     this.sectionVisible = true;
   }
 
+  /** Adds a new section, or saves the one being edited (name and optional description). */
   async saveSection() {
-    if (!this.editingSection) return;
+    const name = this.sectionName.trim();
+    if (!name || this.saving()) return;
+    const body = { name, description: htmlHasText(this.sectionDescription) ? this.sectionDescription : null };
     this.saving.set(true);
     try {
-      await this.api.patch(`${this.apiBase()}/sections/${this.editingSection.id}`, { name: this.sectionName.trim() });
+      if (this.editingSection) await this.api.patch(`${this.apiBase()}/sections/${this.editingSection.id}`, body);
+      else await this.api.post(`${this.apiBase()}/forms/${this.form().id}/sections`, body);
       this.sectionVisible = false;
       this.changed.emit();
     } catch (err) {
-      this.fail('Could not save section', err);
+      this.fail(this.editingSection ? 'Could not save section' : 'Could not add section', err);
     } finally {
       this.saving.set(false);
     }

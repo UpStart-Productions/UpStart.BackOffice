@@ -174,7 +174,7 @@ export type FormFieldDto = {
 export function subfieldAsField(sf: FormSubfieldDto): FormFieldDto {
   return { id: sf.id, name: sf.name, type: sf.type, options: sf.options, required: false };
 }
-/** `description`: optional intro shown under the section title. */
+/** `description`: optional formatted intro (clean HTML) shown under the section title. */
 export type FormSectionDto = { id: string; name: string; description?: string | null; fields: FormFieldDto[] };
 
 /** Per role: what people with that role can do with a form. Admins can always edit. */
@@ -460,6 +460,13 @@ export function cleanFormHtml(html: string): string {
 /** Whether formatted text has any words in it. */
 export function htmlHasText(html: string | null | undefined): boolean {
   return !!(html ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
+
+/** A section's description as clean HTML, or null when it has no words (older plain-text intros become paragraphs). */
+export function sectionDescriptionHtml(v: unknown): string | null {
+  if (typeof v !== 'string' || !htmlHasText(v)) return null;
+  const html = /<[a-z][^>]*>/i.test(v) ? cleanFormHtml(v.trim()) : plainTextToHtml(v);
+  return html.slice(0, FORM_CONTENT_MAX) || null;
 }
 
 /** The thank-you as clean HTML (older plain-text messages become paragraphs). */
@@ -861,7 +868,7 @@ export function parseFormDefinition(input: unknown): FormDefinition {
         scoreGroupId: type !== 'GROUP' && typeof f.scoreGroupId === 'string' && groupIds.has(f.scoreGroupId) ? f.scoreGroupId : null,
       };
     });
-    const description = typeof s?.description === 'string' ? s.description.trim().slice(0, 2000) || null : null;
+    const description = sectionDescriptionHtml(s?.description);
     return { name: sName, description, fields };
   });
   if (!sections.some((s: { fields: unknown[] }) => s.fields.length)) throw new Error('The form file has no fields');

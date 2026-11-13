@@ -2,7 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested,
 } from 'class-validator';
-import { FORM_FIELD_TYPES, FORM_SUBFIELD_TYPES, type FormFieldType, type FormLinkVerify, type FormSubfieldType } from '@upstart/back-office/shared';
+import { FORM_CONTENT_MAX, FORM_FIELD_TYPES, FORM_SUBFIELD_TYPES, type FormFieldType, type FormLinkVerify, type FormSubfieldType } from '@upstart/back-office/shared';
 
 const VERIFY: FormLinkVerify[] = ['NONE', 'PASSCODE', 'EMAIL_CODE'];
 
@@ -23,8 +23,8 @@ class SubfieldDto {
 
 export class SectionDto {
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
-  /** Optional intro under the section title (null or empty clears it). Left out: unchanged. */
-  @IsOptional() @IsString() @MaxLength(2000) description?: string | null;
+  /** Optional formatted intro under the section title (null or empty clears it). Left out: unchanged. */
+  @IsOptional() @IsString() @MaxLength(FORM_CONTENT_MAX) description?: string | null;
 }
 
 export class CreateFieldDto {

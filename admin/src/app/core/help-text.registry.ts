@@ -153,6 +153,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Optional parts of the app this tenant can use. When a module is off its menu items, role options and pages are hidden. Turning it off keeps its data.',
   // Form builder (shared by every form)
   'form.builder.sections': 'Groups of fields on the form, e.g. Contact details, Background. Add a section, then add fields to it.',
+  'form.builder.sectionDescription': "Optional text under the section title. On Page by question it shows above the section's first question.",
   'form.builder.fieldType': "What the field holds. You can change it until someone answers the form; after that it's locked, because answers are stored in the type's shape.",
   'form.builder.options': 'The choices people can pick from. Renaming a choice keeps what was already picked.',
   'form.builder.optionsScored':

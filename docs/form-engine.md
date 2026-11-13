@@ -94,9 +94,12 @@ logic) are added to the profile type and switched on per profile.
   keep them out of answers, counts, scoring, submissions and exports; `mergeFormValues` ignores them. The builder adds them
   with **Add text**. Public pages render them (UBO's page via Angular's sanitizer, the embed script and the website through
   a safe-tag copy).
-- `FormSection.description` is retired: migration `20261031170100_section_intros_to_text_blocks` turned each intro into a
-  text block at the top of its section, and form files with section descriptions import them as text blocks. Published
-  snapshots may still carry one, so public pages still show it.
+- `FormSection.description`: an optional formatted intro (Quill HTML, up to `FORM_CONTENT_MAX`), edited in the builder's
+  Edit section dialog and shown under the section title. `sectionDescriptionHtml()` in shared cleans it on save and on
+  read (older plain-text intros, including ones in published snapshots, become paragraphs). Form files import and export
+  it as the section's `description`. On Page by question it shows above the section's first item (its own screen only
+  when the section is empty). (Migration `20261031170100_section_intros_to_text_blocks` had moved the old plain-text
+  intros into text blocks; those stay text blocks.)
 - `FormSettings.layout`: `page | steps | questions | accordion | tabs` (default `page`). Labels: One page, Page by section
   (`steps`), Page by question (`questions`), Accordion, Tabs. Returned in `FormPublicFormDto.layout`; UBO's public page
   (`pages/forms/public-form.page.ts`) and the embed script follow it. Paged layouts put "About you" last on new-response

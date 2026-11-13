@@ -136,7 +136,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                         }
                       </p>
                       @if (pg.intro) {
-                        <p class="text-color-secondary cp-intro">{{ pg.intro }}</p>
+                        <div class="text-color-secondary cp-intro cp-rich" [innerHTML]="pg.intro"></div>
                       }
                       @for (f of pg.fields; track f.id) {
                         <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="onChange(f, $event); picked(f)" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
@@ -215,7 +215,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
                   <h3 class="cp-section">{{ sec.name }}</h3>
                 }
                 @if (sec.description) {
-                  <p class="text-color-secondary cp-intro">{{ sec.description }}</p>
+                  <div class="text-color-secondary cp-intro cp-rich" [innerHTML]="sec.description"></div>
                 }
                 @for (f of sec.fields; track f.id) {
                   <app-form-field-input class="mb-3" [field]="f" [value]="values[f.id] ?? null" (valueChange)="onChange(f, $event)" [showRequired]="true" [choices]="true" [fileUpload]="uploadFile" />
@@ -467,8 +467,9 @@ export class PublicFormPage implements OnInit, OnDestroy {
     const out: PublicPage[] = [];
     for (const s of f.sections) {
       if (this.layout() === 'questions') {
-        if (s.description) out.push({ section: s, fields: [], question: false, intro: s.description });
-        for (const fld of s.fields) out.push({ section: s, fields: [fld], question: !isContentField(fld) });
+        // The section's intro sits above its first item (its own screen only when the section is empty).
+        if (s.description && !s.fields.length) out.push({ section: s, fields: [], question: false, intro: s.description });
+        s.fields.forEach((fld, fi) => out.push({ section: s, fields: [fld], question: !isContentField(fld), intro: fi === 0 ? s.description : null }));
       } else {
         out.push({ section: s, fields: s.fields, question: false });
       }
