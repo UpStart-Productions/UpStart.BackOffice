@@ -16,7 +16,7 @@ The repo includes:
 
 - `amplify.yml` — build spec if you use AWS Amplify for the admin app
 - `docker-compose.prod.yml` — API + Postgres containers for a VM
-- `api/Dockerfile` — API image (Chromium included for invoice PDFs)
+- `api/Dockerfile` — API image (invoice PDFs via pdfmake; no headless browser)
 - `scripts/deploy.sh` — pull image and restart containers on the server
 - `.env.production.example` — production environment template
 

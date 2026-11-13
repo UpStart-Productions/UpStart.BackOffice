@@ -470,7 +470,7 @@ export class InvoicesController {
       await this.pay.cancelForInvoice(invoice.id);
     }
 
-    // Draft save: drop cached PDF so the next download regenerates once; do not run Chromium here.
+    // Draft save: drop cached PDF so the next download regenerates once; PDF is not built on save.
     await this.storageFolders.removeInvoicePdf(invoice.clientId, invoice.displayNumber);
 
     if (dto.status === 'SENT') {

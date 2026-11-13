@@ -1,9 +1,10 @@
-import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import sharp from 'sharp';
 import { currentTenantId, runUnscoped } from '../tenancy/tenant-context';
-import puppeteer, { type Browser, type HTTPRequest } from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
-import { getUpstartLogoDataUri } from './brand-logo';
+import { getUpstartLogoPng } from './brand-logo';
+import { type InvoicePdfInput, type InvoicePdfLineItem, renderInvoicePdfBuffer } from './invoice-pdfmake.util';
 
 type Numeric = { toString(): string } | number;
 
@@ -27,109 +28,124 @@ type InvoiceData = {
   total: Numeric;
   billToName?: string | null;
   billToAddress?: string | null;
-  /** TENANT: a person billing the organization, so the PDF is from them, not from the organization. */
   billTo?: string | null;
   createdById?: string | null;
   client?: { name: string; email?: string | null; address?: string | null; city?: string | null; state?: string | null; zip?: string | null } | null;
   lineItems: LineItem[];
 };
 
-function fmt(val: Numeric | null | undefined): string {
-  if (val == null) return '$0.00';
-  return '$' + Number(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-const PDF_SET_CONTENT_TIMEOUT_MS = 25_000;
-
 @Injectable()
-export class PdfService implements OnModuleDestroy {
+export class PdfService {
   private readonly logger = new Logger(PdfService.name);
-  private browserPromise: Promise<Browser> | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
-  async onModuleDestroy() {
-    if (!this.browserPromise) return;
-    try {
-      const browser = await this.browserPromise;
-      await browser.close();
-    } catch {
-      /* ignore shutdown races */
-    }
-    this.browserPromise = null;
-  }
-
   async generateInvoicePdf(
     invoice: InvoiceData,
     fromName: string,
     payUrl?: string | null,
   ): Promise<Buffer> {
+    const started = Date.now();
     const person = invoice.billTo === 'TENANT' && invoice.createdById ? await this.submitter(invoice.createdById) : null;
     const profile = person
       ? null
       : await this.prisma.organizationProfile.findUnique({ where: { tenantId: currentTenantId() } });
-    const html = await this.buildInvoiceHtml(invoice, fromName, profile, payUrl, person);
 
-    const started = Date.now();
-    const browser = await this.getBrowser();
-    const page = await browser.newPage();
-  const onRequest = (req: HTTPRequest) => {
-      const url = req.url();
-      if (url === 'about:blank' || url.startsWith('data:')) {
-        void req.continue();
-      } else {
-        void req.abort();
-      }
+    const displayName = person?.name || profile?.companyName?.trim() || fromName;
+    const logoImage = person ? null : await this.resolveLogoImage(profile?.logoUrl);
+    const fromDetailsLines = person
+      ? person.email ? [person.email] : []
+      : formatFromDetailsLines(profile);
+
+    const c = invoice.client;
+    const billToLines = [
+      invoice.billToName || c?.name,
+      ...(invoice.billToAddress
+        ? invoice.billToAddress.split(/\r?\n/)
+        : [
+            c?.address,
+            c?.city && c?.state ? `${c.city}, ${c.state} ${c.zip ?? ''}`.trim() : (c?.city || c?.state || ''),
+          ]),
+    ]
+      .map((line) => line?.toString().trim())
+      .filter((line): line is string => !!line);
+
+    const lineItems: InvoicePdfLineItem[] = invoice.lineItems.map((item) => ({
+      description: item.description,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+      amount: Number(item.amount),
+      projectId: item.projectId ?? item.project?.id ?? null,
+      projectName: item.project?.name ?? null,
+    }));
+
+    const input: InvoicePdfInput = {
+      displayNumber: invoice.displayNumber,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      notes: invoice.notes,
+      subtotal: Number(invoice.subtotal),
+      taxRate: invoice.taxRate != null ? Number(invoice.taxRate) : null,
+      taxAmount: invoice.taxAmount != null ? Number(invoice.taxAmount) : null,
+      total: Number(invoice.total),
+      billToLines,
+      fromDisplayName: displayName,
+      fromDetailsLines,
+      logoImage,
+      lineItems,
+      payUrl: payUrl ?? null,
     };
+
+    const buffer = await renderInvoicePdfBuffer(input);
+    this.logger.log(`Invoice PDF ${invoice.displayNumber}: pdfmake ${Date.now() - started}ms`);
+    return buffer;
+  }
+
+  private async resolveLogoImage(logoUrl?: string | null): Promise<string | null> {
+    const fromTenant = await this.loadLogoDataUri(logoUrl);
+    if (fromTenant) return fromTenant;
+    const fallback = getUpstartLogoPng();
+    if (!fallback?.length) return null;
+    return `data:image/png;base64,${fallback.toString('base64')}`;
+  }
+
+  private async loadLogoDataUri(logoUrl?: string | null): Promise<string | null> {
+    const raw = logoUrl?.trim();
+    if (!raw) return null;
     try {
-      await page.setRequestInterception(true);
-      page.on('request', onRequest);
-      const contentStarted = Date.now();
-      await page.setContent(html, {
-        waitUntil: 'domcontentloaded',
-        timeout: PDF_SET_CONTENT_TIMEOUT_MS,
-      });
-      const pdfStarted = Date.now();
-      const pdf = await page.pdf({
-        format: 'Letter',
-        printBackground: true,
-        margin: { top: '0.75in', bottom: '0.75in', left: '0.75in', right: '0.75in' },
-      });
-      this.logger.log(
-        `Invoice PDF ${invoice.displayNumber}: render ${pdfStarted - contentStarted}ms, print ${Date.now() - pdfStarted}ms, total ${Date.now() - started}ms`,
-      );
-      return Buffer.from(pdf);
-    } finally {
-      page.off('request', onRequest);
-      await page.close();
+      const key = this.storage.keyFromUrl(raw);
+      if (!key || key.startsWith('http')) return null;
+      const buffer = await this.storage.read(key);
+      if (!buffer.length) return null;
+      return this.bufferToPdfImageDataUri(buffer, key);
+    } catch (err) {
+      this.logger.warn(`Could not load tenant logo for invoice PDF: ${String(err)}`);
+      return null;
     }
   }
 
-  private async getBrowser(): Promise<Browser> {
-    if (!this.browserPromise) {
-      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
-      this.browserPromise = puppeteer.launch({
-        headless: true,
-        ...(executablePath ? { executablePath } : {}),
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-        ],
-      });
+  private async bufferToPdfImageDataUri(buffer: Buffer, key: string): Promise<string | null> {
+    const lower = key.toLowerCase();
+    if (lower.endsWith('.png')) {
+      return `data:image/png;base64,${buffer.toString('base64')}`;
     }
-    return this.browserPromise;
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
+      return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    }
+    if (lower.endsWith('.webp') || lower.endsWith('.gif') || lower.endsWith('.svg')) {
+      try {
+        const png = await sharp(buffer).png().toBuffer();
+        return `data:image/png;base64,${png.toString('base64')}`;
+      } catch {
+        return null;
+      }
+    }
+    return `data:image/jpeg;base64,${buffer.toString('base64')}`;
   }
 
-  /** Who submitted an invoice to the organization. By id, unscoped: a super user's row belongs to no tenant. */
   private async submitter(userId: string): Promise<{ name: string; email: string } | null> {
     const u = await runUnscoped(() =>
       this.prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true, name: true, email: true } }),
@@ -138,235 +154,20 @@ export class PdfService implements OnModuleDestroy {
     const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.name?.trim() || u.email;
     return { name, email: u.email };
   }
-
-  private async buildInvoiceHtml(
-    invoice: InvoiceData,
-    fromName: string,
-    profile?: {
-      companyName?: string | null;
-      logoUrl?: string | null;
-      address?: string | null;
-      city?: string | null;
-      state?: string | null;
-      zip?: string | null;
-      phone?: string | null;
-    } | null,
-    payUrl?: string | null,
-    person?: { name: string; email: string } | null,
-  ): Promise<string> {
-    const displayName = person?.name || profile?.companyName?.trim() || fromName;
-    const logoUri = person ? null : await this.resolveLogoDataUri(profile?.logoUrl);
-    const fallbackLogo = person ? null : getUpstartLogoDataUri();
-    const logoHtml = logoUri
-      ? `<img src="${logoUri}" alt="${escapeHtml(displayName)}" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
-      : fallbackLogo
-        ? `<img src="${fallbackLogo}" alt="UpStart" style="height:48px;width:auto;display:block;margin-bottom:8px;" />`
-        : `<div class="company">${escapeHtml(displayName)}</div>`;
-    const fromDetails = person ? escapeHtml(person.email) : formatFromDetails(profile);
-
-    const projectSections = buildProjectSections(invoice.lineItems);
-
-    // The invoice's bill-to snapshot; older invoices fall back to the client record.
-    const c = invoice.client;
-    const clientAddr = [
-      invoice.billToName || c?.name,
-      ...(invoice.billToAddress
-        ? invoice.billToAddress.split(/\r?\n/)
-        : [
-            c?.address,
-            c?.city && c?.state ? `${c.city}, ${c.state} ${c.zip ?? ''}`.trim() : (c?.city || c?.state || ''),
-          ]),
-    ].filter(Boolean).map((line) => escapeHtml(String(line))).join('<br>');
-
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; color: #2d2d2d; background: #ffffff; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
-  .company { font-size: 22px; font-weight: 600; color: #2d2d2d; }
-  .from-details { font-size: 12px; color: #6b6b6b; line-height: 1.45; margin-top: 4px; }
-  .invoice-label { font-size: 28px; font-weight: 500; color: #6b6b6b; }
-  .invoice-number { font-size: 18px; font-weight: 600; color: #7c3aed; }
-  .meta { display: flex; gap: 48px; margin-bottom: 40px; }
-  .meta-block label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6b6b; display: block; margin-bottom: 4px; }
-  .meta-block p { font-size: 14px; color: #2d2d2d; line-height: 1.5; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  thead tr { background: #f5f3ff; }
-  th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #5b21b6; border-bottom: 2px solid #ddd6fe; }
-  th.num { text-align: right; white-space: nowrap; }
-  th.col-qty, td.col-qty { width: 96px; min-width: 96px; white-space: nowrap; }
-  th.col-rate, td.col-rate { width: 80px; min-width: 80px; white-space: nowrap; }
-  th.col-amount, td.col-amount { width: 96px; min-width: 96px; white-space: nowrap; }
-  td { padding: 10px 12px; border-bottom: 1px solid #eaeaea; vertical-align: top; }
-  td.desc { white-space: pre-line; }
-  .num { text-align: right; }
-  .project-section { margin-bottom: 28px; }
-  .project-heading { font-size: 15px; font-weight: 600; color: #5b21b6; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #ddd6fe; }
-  .totals { display: flex; justify-content: flex-end; }
-  .totals-table { min-width: 280px; }
-  .totals-table td { border: none; padding: 4px 12px; }
-  .totals-table .total-row td { font-weight: 700; font-size: 15px; border-top: 2px solid #7c3aed; padding-top: 10px; margin-top: 6px; color: #2d2d2d; }
-  .notes { margin-top: 32px; padding: 16px; background: #ffffff; border-radius: 6px; font-size: 13px; color: #6b6b6b; border: 1px solid #eaeaea; }
-  .notes label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b6b6b; display: block; margin-bottom: 6px; }
-  .pay { margin-top: 32px; text-align: center; }
-  .pay a { display: inline-block; background: #7c3aed; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 28px; border-radius: 6px; }
-  .pay p { margin: 10px auto 0; max-width: 420px; font-size: 12px; line-height: 1.5; color: #6b6b6b; }
-</style>
-</head>
-<body>
-<div class="header">
-  <div>
-    ${logoHtml}
-    ${fromDetails ? `<div class="from-details">${fromDetails}</div>` : ''}
-  </div>
-  <div style="text-align:right">
-    <div class="invoice-label">Invoice</div>
-    <div class="invoice-number">${invoice.displayNumber}</div>
-  </div>
-</div>
-
-<div class="meta">
-  <div class="meta-block">
-    <label>Bill To</label>
-    <p>${clientAddr}</p>
-  </div>
-  <div class="meta-block">
-    <label>Issue Date</label>
-    <p>${fmtDate(invoice.issueDate)}</p>
-  </div>
-  ${invoice.dueDate ? `<div class="meta-block"><label>Due Date</label><p>${fmtDate(invoice.dueDate)}</p></div>` : ''}
-</div>
-
-${projectSections}
-
-<div class="totals">
-  <table class="totals-table">
-    <tr><td>Subtotal</td><td class="num">${fmt(invoice.subtotal)}</td></tr>
-    ${invoice.taxRate ? `<tr><td>Tax (${(Number(invoice.taxRate) * 100).toFixed(2)}%)</td><td class="num">${fmt(invoice.taxAmount)}</td></tr>` : ''}
-    <tr class="total-row"><td>Total</td><td class="num">${fmt(invoice.total)}</td></tr>
-  </table>
-</div>
-
-${hasNotes(invoice.notes) ? `<div class="notes"><label>Notes</label>${invoice.notes}</div>` : ''}
-${payUrl ? `<div class="pay"><a href="${escapeHtml(payUrl)}">Securely Pay Invoice</a><p>This will open a secure payment page on our website. Stripe securely handles your transaction. UpStart Productions does not see or store your card or bank information.</p></div>` : ''}
-</body>
-</html>`;
-  }
-
-  private async resolveLogoDataUri(logoUrl?: string | null): Promise<string | null> {
-    const raw = logoUrl?.trim();
-    if (!raw) return null;
-    try {
-      const key = this.storage.keyFromUrl(raw);
-      if (!key || key.startsWith('http')) return null;
-      const buffer = await this.storage.read(key);
-      if (!buffer.length) return null;
-      const mime = mimeFromLogoKey(key);
-      return `data:${mime};base64,${buffer.toString('base64')}`;
-    } catch (err) {
-      this.logger.warn(`Could not load tenant logo for invoice PDF: ${String(err)}`);
-      return null;
-    }
-  }
 }
 
-function mimeFromLogoKey(key: string): string {
-  const lower = key.toLowerCase();
-  if (lower.endsWith('.png')) return 'image/png';
-  if (lower.endsWith('.webp')) return 'image/webp';
-  if (lower.endsWith('.gif')) return 'image/gif';
-  return 'image/jpeg';
-}
-
-function hasNotes(notes?: string | null): boolean {
-  if (!notes?.trim()) return false;
-  const text = notes
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/\u00a0/g, ' ')
-    .trim();
-  return text.length > 0;
-}
-
-function formatFromDetails(profile?: {
+function formatFromDetailsLines(profile?: {
   address?: string | null;
   city?: string | null;
   state?: string | null;
   zip?: string | null;
   phone?: string | null;
-} | null): string {
-  if (!profile) return '';
+} | null): string[] {
+  if (!profile) return [];
   const cityLine = profile.city && profile.state
     ? `${profile.city}, ${profile.state} ${profile.zip ?? ''}`.trim()
     : (profile.city || profile.state || profile.zip || '');
   return [profile.address, cityLine, profile.phone]
     .map((part) => part?.trim())
-    .filter(Boolean)
-    .map((part) => escapeHtml(part!))
-    .join('<br>');
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function buildProjectSections(lineItems: LineItem[]): string {
-  const tableHead = `
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th class="num col-qty">Qty / Hrs</th>
-        <th class="num col-rate">Rate</th>
-        <th class="num col-amount">Amount</th>
-      </tr>
-    </thead>`;
-
-  const groupMap = new Map<string, { projectId: string | null; projectName: string; items: LineItem[] }>();
-  for (const item of lineItems) {
-    const projectId = item.projectId ?? item.project?.id ?? null;
-    const key = projectId ?? '__none__';
-    let group = groupMap.get(key);
-    if (!group) {
-      group = {
-        projectId,
-        projectName: item.project?.name ?? 'Other',
-        items: [],
-      };
-      groupMap.set(key, group);
-    }
-    group.items.push(item);
-  }
-
-  // Preserve line-item order (newest-first) for both project section order and rows within.
-  const groups = [...groupMap.values()];
-
-  return groups.map((group) => {
-    const rows = group.items.map((item) => `
-      <tr>
-        <td class="desc">${escapeHtml(item.description)}</td>
-        <td class="num col-qty">${Number(item.quantity).toFixed(2)}</td>
-        <td class="num col-rate">${fmt(item.unitPrice)}</td>
-        <td class="num col-amount">${fmt(item.amount)}</td>
-      </tr>`).join('');
-
-    const heading = group.projectId
-      ? `<div class="project-heading">${escapeHtml(group.projectName)}</div>`
-      : '';
-
-    return `
-      <div class="project-section">
-        ${heading}
-        <table>
-          ${tableHead}
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`;
-  }).join('');
+    .filter((part): part is string => !!part);
 }
