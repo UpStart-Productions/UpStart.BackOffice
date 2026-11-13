@@ -89,7 +89,7 @@
           }
           <div class="invoice-detail-header__meta-block invoice-detail-header__meta-block--total">
             <span class="invoice-detail-header__meta-label">Total</span>
-            <p class="invoice-detail-header__meta-value invoice-detail-header__meta-value--strong">
+            <p class="invoice-lines-total-amount invoice-amount-figure">
               {{ formatAmount(inv.total) }}
             </p>
             @if (inv.status === 'PAID' && inv.amountPaid != null && inv.amountPaid !== inv.total) {
@@ -128,11 +128,15 @@
         </p-table>
 
         <div class="invoice-detail-totals">
-          <span>Subtotal: <strong>{{ formatAmount(inv.subtotal) }}</strong></span>
           @if (inv.taxRate) {
-            <span>Tax: <strong>{{ formatAmount(inv.taxAmount ?? 0) }}</strong></span>
+            <p class="invoice-detail-totals__tax text-md">
+              Tax: <strong>{{ formatAmount(inv.taxAmount ?? 0) }}</strong>
+            </p>
           }
-          <span>Total: <strong>{{ formatAmount(inv.total) }}</strong></span>
+          <div class="invoice-lines-total-bar invoice-lines-total-bar--with-label" role="status">
+            <span class="invoice-lines-total-label">Total</span>
+            <span class="invoice-lines-total-amount invoice-amount-figure">{{ formatAmount(inv.total) }}</span>
+          </div>
         </div>
       }
 

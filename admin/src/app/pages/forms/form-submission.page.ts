@@ -407,7 +407,7 @@ export class FormSubmissionPage implements OnInit {
 
   exportPdf() {
     const r = this.s();
-    if (r) exportSubmissionPdf(r);
+    if (r) void exportSubmissionPdf(r);
   }
 
   exportExcel() {

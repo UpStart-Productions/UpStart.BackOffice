@@ -23,6 +23,7 @@ import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { CreatePortalSessionDto } from './dto/create-portal-session.dto';
 import { toPortalArtifact } from './portal-artifact.util';
 import { toPortalClientView } from './portal-client.util';
+import { InvoicePdfDeliveryService } from '../invoices/invoice-pdf-delivery.service';
 import { PayService } from '../pay/pay.service';
 import { invoicesForProject, toPortalInvoice } from './portal-invoice.util';
 import {
@@ -66,6 +67,7 @@ export class PortalController {
     private readonly portalSession: PortalSessionService,
     private readonly storageFolders: StorageFoldersService,
     private readonly pay: PayService,
+    private readonly invoicePdf: InvoicePdfDeliveryService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
@@ -198,7 +200,7 @@ export class PortalController {
       throw new NotFoundException('Invoice not found');
     }
 
-    const pdfBuffer = await this.readOrGenerateInvoicePdf(invoice);
+    const pdfBuffer = await this.invoicePdf.renderAndStore(invoice);
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -244,14 +246,6 @@ export class PortalController {
       'Content-Length': buffer.length,
     });
     res.send(buffer);
-  }
-
-  private async readOrGenerateInvoicePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
-    const stored = await this.storageFolders.readInvoicePdf(invoice.clientId, invoice.displayNumber);
-    if (!stored) {
-      throw new NotFoundException('Invoice PDF not found');
-    }
-    return stored;
   }
 
   private async requirePortalClient(clientId: string) {

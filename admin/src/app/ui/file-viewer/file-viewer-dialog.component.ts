@@ -1,5 +1,6 @@
 import { Component, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { filenameFromContentDisposition } from '../../core/content-disposition.util';
 import { PdfFrameComponent } from '../pdf-frame/pdf-frame.component';
@@ -16,16 +17,15 @@ export type ViewerFile = {
 };
 
 /**
- * One window for viewing a photo, video or PDF, with Download under it. Download saves the file without
- * opening it. Used for task attachments and an invoice's PDF.
+ * One window for viewing a photo, video or PDF. Download is in the header (left of close).
+ * Used for task attachments, invoice PDFs, receipts, and artifacts.
  */
 @Component({
   selector: 'app-file-viewer-dialog',
   standalone: true,
-  imports: [AppDialogModule, PdfFrameComponent],
+  imports: [AppDialogModule, ButtonModule, PdfFrameComponent],
   template: `
     <p-dialog
-      [header]="file()?.name ?? ''"
       [visible]="!!file()"
       (visibleChange)="!$event && closed.emit()"
       [modal]="true"
@@ -34,6 +34,21 @@ export type ViewerFile = {
       [style]="{ width: 'min(60rem, 96vw)' }"
       appendTo="body"
     >
+      <ng-template pTemplate="header">
+        @if (file(); as f) {
+          <div class="fv-header">
+            <span class="fv-header-title" [title]="f.name">{{ f.name }}</span>
+            <p-button
+              label="Download"
+              icon="pi pi-download"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="downloadHeader(f)"
+            />
+          </div>
+        }
+      </ng-template>
       @if (file(); as f) {
         @switch (f.kind) {
           @case ('video') {
@@ -46,13 +61,32 @@ export type ViewerFile = {
             <img class="fv-media fv-image" [src]="f.url" [alt]="f.name" />
           }
         }
-        <div class="fv-footer">
-          <a [href]="f.url ?? '#'" class="text-primary" (click)="download(f, $event)"><i class="pi pi-download mr-1"></i>Download</a>
-        </div>
       }
     </p-dialog>
   `,
   styles: `
+    :host ::ng-deep .p-dialog-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .fv-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+      min-width: 0;
+    }
+    .fv-header-title {
+      flex: 1;
+      min-width: 0;
+      font-size: 1.125rem;
+      font-weight: 600;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .fv-media {
       display: block;
       width: 100%;
@@ -67,9 +101,6 @@ export type ViewerFile = {
     .fv-pdf {
       display: block;
       --pdf-frame-height: 70vh;
-    }
-    .fv-footer {
-      margin-top: 0.75rem;
     }
   `,
 })
@@ -106,12 +137,15 @@ export class FileViewerDialogComponent {
     }
   }
 
+  protected downloadHeader(f: ViewerFile) {
+    void this.download(f);
+  }
+
   /**
    * Save without opening. Files come from the API's address, where browsers ignore the download attribute,
    * so fetch the file and save a local copy.
    */
-  protected async download(f: ViewerFile, event: MouseEvent) {
-    event.preventDefault();
+  private async download(f: ViewerFile) {
     try {
       if (f.download) return await f.download();
       const { blob, downloadName } =

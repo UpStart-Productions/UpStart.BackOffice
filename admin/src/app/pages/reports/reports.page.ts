@@ -3,7 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import type { MenuItem } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { UIChart } from 'primeng/chart';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { SplitButtonModule } from 'primeng/splitbutton';
@@ -13,7 +12,8 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { areaEnabled, type CareScheduledVsActualRowDto } from '@upstart/back-office/shared';
-import { chartColorMode, chartSeriesColors } from '../../core/chart-palette';
+import { buildReportProjectDoughnut, type ReportProjectDoughnut } from '../../core/report-project-doughnut.util';
+import { ReportChartComponent } from '../../ui/charts/report-chart.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { dateKey, formatDurationMin, parseDateKey } from '../time-entry/timesheet.utils';
 import { dateInPeriod, defaultPeriod, resolveReportPeriod } from '../../core/period.util';
@@ -122,7 +122,7 @@ type TaskProjectRow = {
     FormsModule,
     RouterLink,
     ButtonModule,
-    UIChart,
+    ReportChartComponent,
     MessageModule,
     SelectModule,
     SplitButtonModule,
@@ -166,10 +166,9 @@ export class ReportsPage implements OnInit {
     return `${min > 0 ? '+' : '-'}${formatDurationMin(Math.abs(min))}`;
   }
 
-  @ViewChild('totalChartRef') totalChartRef?: UIChart;
-  @ViewChild('billableChartRef') billableChartRef?: UIChart;
-  @ViewChild('nonBillableChartRef') nonBillableChartRef?: UIChart;
-
+  @ViewChild('totalChartRef') totalChartRef?: ReportChartComponent;
+  @ViewChild('billableChartRef') billableChartRef?: ReportChartComponent;
+  @ViewChild('nonBillableChartRef') nonBillableChartRef?: ReportChartComponent;
 
   activeTab = 0;
   loading = signal(false);
@@ -631,50 +630,16 @@ export class ReportsPage implements OnInit {
     return (entry.project?.isBillable ?? true) && entry.isBillable;
   }
 
-  private buildProjectChart(
-    rows: TimeProjectRow[],
-    getMin: (row: TimeProjectRow) => number,
-  ): { data: { labels: string[]; datasets: { data: number[]; backgroundColor: string[] }[] }; options: Record<string, unknown> } | null {
-    return this.buildCountByProjectChart(rows, (r) => Math.round((getMin(r) / 60) * 100) / 100, 'hrs');
+  private buildProjectChart(rows: TimeProjectRow[], getMin: (row: TimeProjectRow) => number): ReportProjectDoughnut | null {
+    return buildReportProjectDoughnut(rows, (r) => Math.round((getMin(r) / 60) * 100) / 100, 'hrs');
   }
 
   private buildCountByProjectChart<T extends { clientName: string; projectName: string }>(
     rows: T[],
     getValue: (row: T) => number,
     unitLabel = 'tasks',
-  ): { data: { labels: string[]; datasets: { data: number[]; backgroundColor: string[] }[] }; options: Record<string, unknown> } | null {
-    const filtered = rows.filter((r) => getValue(r) > 0);
-    if (filtered.length === 0) return null;
-
-    return {
-      data: {
-        labels: filtered.map((r) => r.projectName),
-        datasets: [
-          {
-            data: filtered.map((r) => getValue(r)),
-            backgroundColor: chartSeriesColors(filtered.length, chartColorMode('doughnut')),
-          },
-        ],
-      },
-      options: {
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: { boxWidth: 10, font: { size: 11 } },
-          },
-          tooltip: {
-            callbacks: {
-              title: (items: { dataIndex: number }[]) => {
-                const row = filtered[items[0].dataIndex];
-                return `${row.clientName} — ${row.projectName}`;
-              },
-              label: (ctx: { parsed: number }) => `${ctx.parsed} ${unitLabel}`,
-            },
-          },
-        },
-        maintainAspectRatio: false,
-      },
-    };
+  ): ReportProjectDoughnut | null {
+    return buildReportProjectDoughnut(rows, getValue, unitLabel);
   }
 
   private async runInvoiceReportExport(format: 'pdf' | 'excel') {
@@ -791,9 +756,9 @@ export class ReportsPage implements OnInit {
     };
   }
 
-  private chartImageForExport(chart: UIChart | undefined, title: string) {
+  private chartImageForExport(chart: ReportChartComponent | undefined, title: string) {
     if (!chart) return undefined;
-    const imageDataUrl = chart.getBase64Image();
+    const imageDataUrl = chart.toBase64Image();
     if (!imageDataUrl) return undefined;
     return { title, imageDataUrl };
   }

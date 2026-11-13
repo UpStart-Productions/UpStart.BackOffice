@@ -67,6 +67,12 @@
   gap: 0.35rem;
 }
 
+.time-chart-box {
+  position: relative;
+  height: 11rem;
+  width: 100%;
+}
+
 .time-chart-title {
   font-size: var(--fs-base);
   font-weight: 600;

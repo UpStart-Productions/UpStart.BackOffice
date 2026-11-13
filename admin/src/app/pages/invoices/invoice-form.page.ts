@@ -80,49 +80,6 @@ type InvoicePreview = {
 
 type LineItemRow = { item: LineItem; index: number };
 
-/**
- * DEV ONLY — remove when done tweaking invoice line UI.
- * Pre-fills the new-invoice form under `ngDevMode` so you do not need to generate lines each time.
- */
-const INVOICE_FORM_DEV_SEED_LINES: readonly LineItem[] = [
-  {
-    projectId: null,
-    description: 'Discovery workshop and requirements',
-    quantity: 3,
-    unitPrice: 125,
-    amount: 375,
-    timeEntryIds: [],
-    expenseIds: [],
-  },
-  {
-    projectId: null,
-    description: 'Homepage layout and responsive pass',
-    quantity: 6.5,
-    unitPrice: 110,
-    amount: 715,
-    timeEntryIds: [],
-    expenseIds: [],
-  },
-  {
-    projectId: null,
-    description: 'CMS training session',
-    quantity: 1.5,
-    unitPrice: 95,
-    amount: 142.5,
-    timeEntryIds: [],
-    expenseIds: [],
-  },
-  {
-    projectId: null,
-    description: 'Launch checklist and handoff',
-    quantity: 2,
-    unitPrice: 85,
-    amount: 170,
-    timeEntryIds: [],
-    expenseIds: [],
-  },
-];
-
 @Component({
   selector: 'app-invoice-form-page',
   standalone: true,
@@ -170,7 +127,8 @@ export class InvoiceFormPage implements OnInit {
   loading = signal(true);
   saving = signal(false);
   generating = signal(false);
-  error = signal<string | null>(null);
+  /** Set only when loading an existing draft fails (replaces the whole form). */
+  loadError = signal<string | null>(null);
   generateMessage = signal<string | null>(null);
   missingRates = signal<InvoicePreview['missingRates']>([]);
   clients = signal<Client[]>([]);
@@ -318,16 +276,13 @@ export class InvoiceFormPage implements OnInit {
         this.onClientChange();
         this.savedSnapshot = this.snapshot();
       } catch (err) {
-        this.error.set(err instanceof Error ? err.message : 'Failed to load invoice');
+        this.loadError.set(err instanceof Error ? err.message : 'Failed to load invoice');
       }
     } else {
       // Roles limited to their own invoices (e.g. caregivers) usually bill the organization; so does anyone with no clients.
       const ownOnly = areaLevel(this.session.me(), 'invoices') === 'own';
       if (ownOnly || clients.length === 0) await this.onBillToChange('TENANT');
-      if (typeof ngDevMode !== 'undefined' && ngDevMode) {
-        this.lineItems.set(INVOICE_FORM_DEV_SEED_LINES.map((li) => ({ ...li })));
-        this.savedSnapshot = this.snapshot();
-      }
+      this.savedSnapshot = this.snapshot();
     }
     this.loading.set(false);
   }
@@ -394,17 +349,16 @@ export class InvoiceFormPage implements OnInit {
 
   async generateFromTime() {
     if (!this.billingTenant && !this.form.clientId) {
-      this.error.set('Select a client before generating from time');
+      this.toast.add({ severity: 'warn', summary: 'Client required', detail: 'Select a client before generating from time.' });
       return;
     }
     const period = this.period();
     if (period.periodType === 'custom' && (!period.from || !period.to)) {
-      this.error.set('Select a custom date range');
+      this.toast.add({ severity: 'warn', summary: 'Date range required', detail: 'Select a custom date range.' });
       return;
     }
 
     this.generating.set(true);
-    this.error.set(null);
     this.generateMessage.set(null);
     this.missingRates.set([]);
 
@@ -469,7 +423,11 @@ export class InvoiceFormPage implements OnInit {
         `Loaded ${timeLines.length} time line${timeLines.length === 1 ? '' : 's'}${expenseNote} (${preview.period.label}). Review and edit before saving.`,
       );
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to generate from time');
+      this.toast.add({
+        severity: 'error',
+        summary: 'Generate failed',
+        detail: err instanceof Error ? err.message : 'Failed to generate from time',
+      });
     } finally {
       this.generating.set(false);
     }
@@ -480,15 +438,7 @@ export class InvoiceFormPage implements OnInit {
   }
 
   async save() {
-    if (!this.billingTenant && !this.form.clientId) { this.error.set('Client is required'); return; }
-    if (this.billingTenant && !this.form.billToName.trim()) { this.error.set('Bill-to name is required'); return; }
-    if (this.lineItems().length === 0) { this.error.set('At least one line item is required'); return; }
-    for (const li of this.lineItems()) {
-      if (!li.description.trim()) { this.error.set('Each line item needs a description'); return; }
-      if (li.quantity <= 0) { this.error.set('Each line item needs hours greater than zero'); return; }
-    }
     this.saving.set(true);
-    this.error.set(null);
     try {
       const lineItems = this.lineItems().map((li, i) => ({
         projectId: li.projectId || undefined,
@@ -540,7 +490,8 @@ export class InvoiceFormPage implements OnInit {
         });
       }
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Save failed');
+      const detail = err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Save failed';
+      this.toast.add({ severity: 'error', summary: 'Save failed', detail });
     } finally { this.saving.set(false); }
   }
 
@@ -565,7 +516,11 @@ export class InvoiceFormPage implements OnInit {
     try {
       await this.api.downloadPdf(`/invoices/${id}/pdf`, `${number}.pdf`);
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'PDF download failed');
+      this.toast.add({
+        severity: 'error',
+        summary: 'Download failed',
+        detail: err instanceof Error ? err.message : 'PDF download failed',
+      });
     }
   }
 
@@ -601,7 +556,11 @@ export class InvoiceFormPage implements OnInit {
           await this.api.delete(`/invoices/${id}`);
           await this.router.navigate(['/invoices']);
         } catch (err) {
-          this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Delete failed');
+          this.toast.add({
+            severity: 'error',
+            summary: 'Delete failed',
+            detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Delete failed',
+          });
         }
       },
     });

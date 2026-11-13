@@ -8,7 +8,6 @@ import { Request, Response } from 'express';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { JournalPostingService } from '../accounting/journal-posting.service';
-import { publicFromName } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
@@ -23,7 +22,7 @@ import { PayService } from '../pay/pay.service';
 import { expenseLinkField, InvoiceFromTimeService, timeLinkField } from './invoice-from-time.service';
 import { PayrollExportQueryDto } from './dto/payroll-export-query.dto';
 import { buildProjectContacts } from './invoice-send-recipients.util';
-import { PdfService } from './pdf.service';
+import { InvoicePdfDeliveryService } from './invoice-pdf-delivery.service';
 import { currentTenantId } from '../tenancy/tenant-context';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { AccessGuard, Area, Action } from '../access/access.guard';
@@ -97,7 +96,7 @@ export class InvoicesController {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly pdf: PdfService,
+    private readonly invoicePdf: InvoicePdfDeliveryService,
     private readonly mail: MailService,
     private readonly storageFolders: StorageFoldersService,
     private readonly invoiceFromTime: InvoiceFromTimeService,
@@ -474,7 +473,7 @@ export class InvoicesController {
     await this.storageFolders.removeInvoicePdf(invoice.clientId, invoice.displayNumber);
 
     if (dto.status === 'SENT') {
-      await this.generateAndStorePdf(invoice);
+      await this.invoicePdf.renderAndStore(invoice);
     }
     return withLinkIds(invoice);
   }
@@ -497,7 +496,7 @@ export class InvoicesController {
     });
     if (!invoice) throw new NotFoundException('Invoice not found');
 
-    const pdfBuffer = await this.resolveInvoicePdfForDownload(invoice);
+    const pdfBuffer = await this.resolveInvoicePdf(invoice);
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -584,7 +583,7 @@ export class InvoicesController {
 
     await this.journalPosting.reverseInvoiceIssued(invoice.id);
     await this.pay.cancelForInvoice(invoice.id);
-    await this.generateAndStorePdf(invoice);
+    await this.invoicePdf.renderAndStore(invoice);
     return withLinkIds(invoice);
   }
 
@@ -604,7 +603,7 @@ export class InvoicesController {
 
     let pdfBuffer: Buffer;
     try {
-      pdfBuffer = await this.resolveInvoicePdfForSend(invoice);
+      pdfBuffer = await this.resolveInvoicePdf(invoice);
     } catch (err) {
       this.logger.error(`Invoice PDF generation failed (${id}): ${err}`);
       return {
@@ -693,40 +692,9 @@ export class InvoicesController {
     }
   }
 
-  private async renderInvoicePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
-    const fromName = publicFromName(process.env.MAIL_FROM_NAME);
-    const payUrl = await this.pay.payUrlForInvoice(invoice);
-    return this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
-  }
-
-  private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
-    const pdfBuffer = await this.renderInvoicePdf(invoice);
-    await this.storageFolders.saveInvoicePdf(
-      invoice.clientId,
-      invoice.displayNumber,
-      pdfBuffer,
-    );
-    return pdfBuffer;
-  }
-
-  /** Use stored PDF when present; drafts regenerate on first download after each save. */
-  private async resolveInvoicePdfForDownload(invoice: InvoiceWithDetails): Promise<Buffer> {
-    const stored = await this.storageFolders.readInvoicePdf(invoice.clientId, invoice.displayNumber);
-    if (stored) return stored;
-    if (invoice.status === 'DRAFT') {
-      return this.generateAndStorePdf(invoice);
-    }
-    throw new NotFoundException(
-      'Stored invoice PDF not found. It is created when the invoice is first sent.',
-    );
-  }
-
-  /** First send generates and stores; resend reuses the stored PDF. */
-  private async resolveInvoicePdfForSend(invoice: InvoiceWithDetails): Promise<Buffer> {
-    if (invoice.status === 'DRAFT') {
-      return this.generateAndStorePdf(invoice);
-    }
-    return this.resolveInvoicePdfForDownload(invoice);
+  /** Always pdfmake via {@link InvoicePdfDeliveryService} (View/Download PDF, email attachment). */
+  private resolveInvoicePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
+    return this.invoicePdf.renderAndStore(invoice);
   }
 }
 

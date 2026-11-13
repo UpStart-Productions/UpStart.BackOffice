@@ -1,0 +1,38 @@
+// Invoice line amounts + bottom total bar (edit form + read-only detail).
+.invoice-amount-figure {
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-lines-total-bar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  box-sizing: border-box;
+  border-top: 2px solid var(--surface-border);
+  background: var(--surface-card, #fff);
+}
+
+.invoice-lines-total-bar--with-label {
+  gap: 1rem;
+  padding: var(--space-table-y) var(--space-table-x);
+}
+
+.invoice-lines-total-label {
+  flex: 0 0 auto;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-color);
+}
+
+.invoice-lines-total-amount {
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-color);
+  box-sizing: border-box;
+}

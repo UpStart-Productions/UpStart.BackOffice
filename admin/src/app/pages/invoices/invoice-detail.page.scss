@@ -93,13 +93,6 @@
   color: var(--text-color);
 }
 
-.invoice-detail-header__meta-value--strong {
-  font-size: var(--fs-xl);
-  font-weight: 700;
-  line-height: 1.25;
-  font-variant-numeric: tabular-nums;
-}
-
 .invoice-detail-header__meta-detail {
   margin: 0.15rem 0 0;
   font-size: 0.8125rem;
@@ -125,13 +118,15 @@
 }
 
 .invoice-detail-totals {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 1rem 1.5rem;
-  margin-top: 1rem;
-  padding-right: var(--invoice-detail-inset-x);
-  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0;
+}
+
+.invoice-detail-totals__tax {
+  margin: 0.75rem 0 0;
+  padding: 0 var(--invoice-detail-inset-x);
+  text-align: right;
 }
 
 .invoice-detail-notes-block {

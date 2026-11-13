@@ -90,7 +90,7 @@
             <p class="text-muted report-empty">Choose a period and run the report to see time data.</p>
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
-          } @else {
+          } @else if (activeTab === 0) {
             @if (timeByProject().length > 0) {
               <div class="report-toolbar">
                 <p-splitButton
@@ -113,14 +113,14 @@
                     <span class="time-chart-title">
                       Total hrs ({{ formatMin(timeSummary().totalMin) }})
                     </span>
-                    <p-chart
-                      #totalChartRef
-                      type="doughnut"
-                      [data]="chart.data"
-                      [options]="chart.options"
-                      height="9.5rem"
-                      ariaLabel="Total hours by project"
-                    />
+                    <div class="time-chart-box">
+                      <app-report-chart
+                        #totalChartRef
+                        type="doughnut"
+                        [data]="chart.chartData"
+                        [options]="chart.options"
+                      />
+                    </div>
                   </div>
                 }
                 @if (billableTimeChart(); as chart) {
@@ -128,14 +128,14 @@
                     <span class="time-chart-title">
                       Billable hrs ({{ formatMin(timeSummary().billableMin) }})
                     </span>
-                    <p-chart
-                      #billableChartRef
-                      type="doughnut"
-                      [data]="chart.data"
-                      [options]="chart.options"
-                      height="9.5rem"
-                      ariaLabel="Billable hours by project"
-                    />
+                    <div class="time-chart-box">
+                      <app-report-chart
+                        #billableChartRef
+                        type="doughnut"
+                        [data]="chart.chartData"
+                        [options]="chart.options"
+                      />
+                    </div>
                   </div>
                 }
                 @if (nonBillableTimeChart(); as chart) {
@@ -143,14 +143,14 @@
                     <span class="time-chart-title">
                       Non-billable hrs ({{ formatMin(timeSummary().nonBillableMin) }})
                     </span>
-                    <p-chart
-                      #nonBillableChartRef
-                      type="doughnut"
-                      [data]="chart.data"
-                      [options]="chart.options"
-                      height="9.5rem"
-                      ariaLabel="Non-billable hours by project"
-                    />
+                    <div class="time-chart-box">
+                      <app-report-chart
+                        #nonBillableChartRef
+                        type="doughnut"
+                        [data]="chart.chartData"
+                        [options]="chart.options"
+                      />
+                    </div>
                   </div>
                 }
               </div>
@@ -278,7 +278,7 @@
             <p class="text-muted report-empty">Choose a period and run the report to see invoice data.</p>
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
-          } @else {
+          } @else if (activeTab === 1) {
             @if (filteredInvoicesList().length > 0) {
               <div class="report-toolbar">
                 <p-splitButton
@@ -389,7 +389,7 @@
             <p class="text-muted report-empty">Choose a period and run the report to see expense data.</p>
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
-          } @else {
+          } @else if (activeTab === 2) {
             <div class="stat-cards report-stat-cards">
               <div class="stat-card stat-card--clients">
                 <small class="text-muted">Total spent</small>
@@ -417,7 +417,7 @@
             <p class="text-muted report-empty">Choose a period and run the report to see task data.</p>
           } @else if (loading()) {
             <p class="text-muted report-empty">Loading…</p>
-          } @else {
+          } @else if (activeTab === 3) {
             @if (newTasksChart() || completedTasksChart() || overdueTasksChart()) {
               <div class="time-summary-charts">
                 @if (newTasksChart(); as chart) {
@@ -425,13 +425,13 @@
                     <span class="time-chart-title">
                       New tasks ({{ taskSummary().newCount }})
                     </span>
-                    <p-chart
-                      type="doughnut"
-                      [data]="chart.data"
-                      [options]="chart.options"
-                      height="9.5rem"
-                      ariaLabel="New tasks by project"
-                    />
+                    <div class="time-chart-box">
+                      <app-report-chart
+                        type="doughnut"
+                        [data]="chart.chartData"
+                        [options]="chart.options"
+                      />
+                    </div>
                   </div>
                 }
                 @if (completedTasksChart(); as chart) {
@@ -439,13 +439,13 @@
                     <span class="time-chart-title">
                       Completed ({{ taskSummary().completedCount }})
                     </span>
-                    <p-chart
-                      type="doughnut"
-                      [data]="chart.data"
-                      [options]="chart.options"
-                      height="9.5rem"
-                      ariaLabel="Completed tasks by project"
-                    />
+                    <div class="time-chart-box">
+                      <app-report-chart
+                        type="doughnut"
+                        [data]="chart.chartData"
+                        [options]="chart.options"
+                      />
+                    </div>
                   </div>
                 }
                 @if (overdueTasksChart(); as chart) {
@@ -453,13 +453,13 @@
                     <span class="time-chart-title">
                       Overdue ({{ taskSummary().overdueCount }})
                     </span>
-                    <p-chart
-                      type="doughnut"
-                      [data]="chart.data"
-                      [options]="chart.options"
-                      height="9.5rem"
-                      ariaLabel="Overdue tasks by project"
-                    />
+                    <div class="time-chart-box">
+                      <app-report-chart
+                        type="doughnut"
+                        [data]="chart.chartData"
+                        [options]="chart.options"
+                      />
+                    </div>
                   </div>
                 }
               </div>
@@ -573,9 +573,10 @@
               <p class="text-muted report-empty">Choose a period and run the report to compare scheduled and visited hours.</p>
             } @else if (loading()) {
               <p class="text-muted report-empty">Loading…</p>
-            } @else if (!scheduleRows().length) {
-              <p class="text-muted report-empty">No shifts or visits in this period.</p>
-            } @else {
+            } @else if (activeTab === 4) {
+              @if (!scheduleRows().length) {
+                <p class="text-muted report-empty">No shifts or visits in this period.</p>
+              } @else {
               <p-table [value]="scheduleRows()" styleClass="table-bordered report-table">
                 <ng-template pTemplate="header">
                   <tr>
@@ -616,6 +617,7 @@
                   </tr>
                 </ng-template>
               </p-table>
+              }
             }
           </p-tabpanel>
         }

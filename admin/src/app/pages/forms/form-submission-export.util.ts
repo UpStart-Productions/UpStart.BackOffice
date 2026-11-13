@@ -1,13 +1,14 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { FORM_FIELD_TYPE_LABELS, formatFormValue, formFieldPoints, questionFields, type FormFieldDto, type FormSectionDto, type FormSubmissionDto } from '@upstart/back-office/shared';
+import {
+  downloadPdfDocument,
+  pdfBaseDocument,
+  pdfDataTable,
+  pdfSectionTitle,
+  type PdfDocumentDefinition,
+} from '../../core/pdfmake-browser.util';
 
 /** Download submissions: one as a PDF or Excel file, or many as an analysis workbook (Answers, Results, Questions). */
-
-const tableLineColor: [number, number, number] = [243, 243, 243];
-const tableHeadStyles = { fillColor: [124, 58, 237] as [number, number, number], textColor: 255, lineColor: tableLineColor };
-const tableCellStyles = { lineColor: tableLineColor, lineWidth: 0.4 };
 
 function fileBase(s: FormSubmissionDto): string {
   const who = s.submitterOrganization ?? s.submitterName ?? s.submitterEmail ?? 'submission';
@@ -27,93 +28,71 @@ function band(s: FormSubmissionDto) {
 
 const round = (n: number) => Math.round(n);
 
-export function exportSubmissionPdf(s: FormSubmissionDto): void {
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-  const margin = 40;
-  const width = pdf.internal.pageSize.getWidth() - margin * 2;
-  const bottom = pdf.internal.pageSize.getHeight() - margin;
-  let y = margin;
+export async function exportSubmissionPdf(s: FormSubmissionDto): Promise<void> {
+  const content: PdfDocumentDefinition['content'] = [
+    { text: s.formName, style: 'title', margin: [0, 0, 0, 8] },
+  ];
 
-  const ensure = (h: number) => {
-    if (y + h > bottom) {
-      pdf.addPage();
-      y = margin;
-    }
-  };
-  const text = (t: string, size: number, bold = false, gap = 4) => {
-    pdf.setFont('helvetica', bold ? 'bold' : 'normal');
-    pdf.setFontSize(size);
-    for (const line of pdf.splitTextToSize(t, width) as string[]) {
-      ensure(size + gap);
-      pdf.text(line, margin, y);
-      y += size + gap;
-    }
-  };
-
-  text(s.formName, 18, true);
-  y += 4;
   const who = [s.submitterName, s.submitterOrganization, s.submitterEmail, s.submitterPhone].filter(Boolean).join(', ');
-  if (who) text(who, 11);
-  text(`Submitted ${submittedAt(s)}${s.versionNumber ? `, version ${s.versionNumber}` : ''}`, 11);
-  y += 12;
+  if (who) content.push({ text: who, style: 'body' });
+  content.push({
+    text: `Submitted ${submittedAt(s)}${s.versionNumber ? `, version ${s.versionNumber}` : ''}`,
+    style: 'body',
+    margin: [0, 0, 0, 12],
+  });
 
   const sc = s.scores;
   if (sc) {
     const b = band(s);
-    text('Results', 14, true);
-    text(`Total score: ${sc.total} of ${sc.max} points (${round(sc.percent)}%)`, 11, true);
+    content.push({ text: 'Results', style: 'subsection', margin: [0, 0, 0, 6] });
+    content.push({
+      text: `Total score: ${sc.total} of ${sc.max} points (${round(sc.percent)}%)`,
+      style: 'bodyBold',
+    });
     if (b) {
-      text(`Profile: ${b.label}`, 11, true);
-      if (b.description) text(b.description, 10);
+      content.push({ text: `Profile: ${b.label}`, style: 'bodyBold', margin: [0, 4, 0, 0] });
+      if (b.description) content.push({ text: b.description, style: 'bodySm', margin: [0, 4, 0, 0] });
       if (b.nextSteps.length) {
-        y += 4;
-        text('Next steps', 10, true);
-        for (const step of b.nextSteps) text(`- ${step}`, 10);
+        content.push({ text: 'Next steps', style: 'bodyBold', margin: [0, 8, 0, 4] });
+        for (const step of b.nextSteps) {
+          content.push({ text: `• ${step}`, style: 'bodySm' });
+        }
       }
     }
     if (sc.groups.length) {
-      y += 6;
-      autoTable(pdf, {
-        startY: y,
-        margin: { left: margin, right: margin },
-        head: [['Area', 'Points', 'Score']],
-        body: sc.groups.map((g) => [g.name, `${g.score} of ${g.max}`, `${round(g.percent)}%`]),
-        theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 4, ...tableCellStyles },
-        headStyles: tableHeadStyles,
-        columnStyles: { 1: { cellWidth: 80 }, 2: { cellWidth: 60 } },
-      });
-      y = finalY(pdf) + 18;
+      content.push(
+        pdfDataTable(
+          ['Area', 'Points', 'Score'],
+          sc.groups.map((g) => [g.name, `${g.score} of ${g.max}`, `${round(g.percent)}%`]),
+          { widths: ['*', 80, 60] },
+        ),
+      );
     }
   }
 
   for (const sec of s.sections) {
     const qs = questionFields(sec.fields);
     if (!qs.length) continue;
-    ensure(40);
-    text(sec.name, 13, true);
+    content.push(pdfSectionTitle(sec.name, 8));
     const scored = qs.some((f) => formFieldPoints(f, null) !== null);
-    autoTable(pdf, {
-      startY: y,
-      margin: { left: margin, right: margin },
-      head: [scored ? ['Question', 'Answer', 'Points'] : ['Question', 'Answer']],
-      body: qs.map((f) => {
-        const row = [f.name, formatFormValue(f, s.values[f.id]) || 'No answer'];
-        if (scored) {
-          const p = formFieldPoints(f, s.values[f.id]);
-          row.push(p === null ? '' : String(p));
-        }
-        return row;
-      }),
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 4, ...tableCellStyles },
-      headStyles: tableHeadStyles,
-      columnStyles: scored ? { 0: { cellWidth: width * 0.45 }, 2: { cellWidth: 50 } } : { 0: { cellWidth: width * 0.45 } },
+    const head = scored ? ['Question', 'Answer', 'Points'] : ['Question', 'Answer'];
+    const body = qs.map((f) => {
+      const row: (string | number)[] = [f.name, formatFormValue(f, s.values[f.id]) || 'No answer'];
+      if (scored) {
+        const p = formFieldPoints(f, s.values[f.id]);
+        row.push(p === null ? '' : String(p));
+      }
+      return row;
     });
-    y = finalY(pdf) + 18;
+    content.push(
+      pdfDataTable(head, body, {
+        widths: scored ? ['*', '*', 50] : ['*', '*'],
+      }),
+    );
   }
 
-  pdf.save(`${fileBase(s)}.pdf`);
+  const doc = pdfBaseDocument(content, { pageSize: 'LETTER' });
+  await downloadPdfDocument(doc, `${fileBase(s)}.pdf`);
 }
 
 export function exportSubmissionExcel(s: FormSubmissionDto): void {
@@ -273,6 +252,3 @@ function withFilter(sheet: XLSX.WorkSheet, rows: Cell[][]): void {
   sheet['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(0, rows.length - 1), c: cols - 1 } }) };
 }
 
-function finalY(pdf: jsPDF): number {
-  return (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 0;
-}

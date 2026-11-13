@@ -4,7 +4,7 @@
   backLabel="Back to Invoices"
 >
   <ng-container ngProjectAs="[pageActions]">
-    @if (!loading() && !error()) {
+    @if (!loading() && !loadError()) {
       <span class="split-action">
         <p-button
           label="Save Invoice"
@@ -20,13 +20,13 @@
     }
   </ng-container>
   <ng-container ngProjectAs="[pageTitleTrail]">
-    @if (!loading() && !error() && isDraftEdit) {
+    @if (!loading() && !loadError() && isDraftEdit) {
       <app-record-attribution [attribution]="attribution()" />
     }
   </ng-container>
-  @if (error()) {
+  @if (loadError()) {
     <div class="card">
-      <p-message severity="error" [text]="error()!" />
+      <p-message severity="error" [text]="loadError()!" />
     </div>
   } @else if (!loading()) {
     <div class="showcase-flex-col">

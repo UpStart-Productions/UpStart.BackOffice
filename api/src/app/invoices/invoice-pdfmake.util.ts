@@ -24,12 +24,13 @@ const pdfStyles: StyleDictionary = {
   invoiceLabel: { fontSize: 22, color: MUTED },
   invoiceNumber: { fontSize: 14, bold: true, color: BRAND_PURPLE },
   metaLabel: { fontSize: 9, color: MUTED, bold: true },
-  metaValue: { fontSize: 11, color: TEXT },
+  metaValue: { fontSize: 11, color: TEXT, lineHeight: 1.4 },
   companyName: { fontSize: 16, bold: true, color: TEXT },
-  fromDetails: { fontSize: 10, color: MUTED },
+  fromDetails: { fontSize: 10, color: MUTED, lineHeight: 1.4 },
   projectHeading: { fontSize: 12, bold: true, color: BRAND_PURPLE_DARK, margin: [0, 12, 0, 6] },
   tableHeader: { fontSize: 9, bold: true, color: BRAND_PURPLE_DARK },
-  tableCell: { fontSize: 10, color: TEXT },
+  tableCell: { fontSize: 10, color: TEXT, lineHeight: 1.4 },
+  totalRow: { fontSize: 14, color: TEXT, bold: true },
   notesLabel: { fontSize: 9, color: MUTED, bold: true, margin: [0, 16, 0, 4] },
   payNote: { fontSize: 9, color: MUTED, alignment: 'center', margin: [0, 6, 0, 0] },
 };
@@ -144,22 +145,30 @@ function buildDocument(input: InvoicePdfInput): TDocumentDefinitions {
   if (input.payUrl) {
     content.push({
       margin: [0, 20, 0, 0],
-      table: {
-        widths: ['*'],
-        body: [
-          [
-            {
-              text: 'Securely Pay Invoice',
-              link: input.payUrl,
-              color: '#ffffff',
-              bold: true,
-              fontSize: 11,
-              alignment: 'center',
-            },
-          ],
-        ],
-      },
-      layout: payButtonLayout(),
+      columns: [
+        { width: '*', text: '' },
+        {
+          width: 'auto',
+          table: {
+            widths: [232],
+            body: [
+              [
+                {
+                  text: 'Securely Pay Invoice with Stripe',
+                  link: input.payUrl,
+                  color: '#ffffff',
+                  bold: true,
+                  fontSize: 11,
+                  alignment: 'center',
+                },
+              ],
+            ],
+          },
+          layout: payButtonLayout(),
+          borderRadius: 8,
+        },
+        { width: '*', text: '' },
+      ],
     });
     content.push({
       text: 'This opens a secure payment page. Stripe handles the transaction. UpStart Productions does not see or store your card or bank information.',
@@ -251,43 +260,42 @@ function lineItemsTableLayout() {
 }
 
 function buildTotalsTable(input: InvoicePdfInput): Content {
-  const rows: Content[][] = [
-    [
-      { text: 'Subtotal', style: 'tableCell' },
-      { text: fmtMoney(input.subtotal), style: 'tableCell', alignment: 'right' },
-    ],
-  ];
+  const lineWidths: (string | number)[] = ['*', 56, 64, 72];
+  const rows: Content[][] = [];
   if (input.taxRate) {
     rows.push([
-      { text: `Tax (${(input.taxRate * 100).toFixed(2)}%)`, style: 'tableCell' },
+      { text: `Tax (${(input.taxRate * 100).toFixed(2)}%)`, style: 'tableCell', colSpan: 3 },
+      { text: '' },
+      { text: '' },
       { text: fmtMoney(input.taxAmount ?? 0), style: 'tableCell', alignment: 'right' },
     ]);
   }
+  const totalCell = { fontSize: 14, bold: true, color: TEXT, lineHeight: 1.35 };
   rows.push([
-    { text: 'Total', bold: true, style: 'tableCell' },
-    { text: fmtMoney(input.total), bold: true, style: 'tableCell', alignment: 'right' },
+    { text: 'Total', ...totalCell, colSpan: 3 },
+    { text: '' },
+    { text: '' },
+    { text: fmtMoney(input.total), ...totalCell, alignment: 'right' },
   ]);
 
   return {
-    columns: [
-      { width: '*', text: '' },
-      {
-        width: 220,
-        table: { widths: ['*', 80], body: rows },
-        layout: {
-          hLineWidth: (i: number, node: { table: { body: unknown[] } }) =>
-            i === node.table.body.length ? 2 : i === 0 ? 0 : 0.5,
-          vLineWidth: () => 0,
-          hLineColor: (i: number, node: { table: { body: unknown[] } }) =>
-            i === node.table.body.length ? BRAND_PURPLE : TABLE_BORDER,
-          paddingLeft: () => 8,
-          paddingRight: () => 8,
-          paddingTop: () => 4,
-          paddingBottom: () => 4,
-        },
-      },
-    ],
+    table: { widths: lineWidths, body: rows },
+    layout: totalsTableLayout(),
     margin: [0, 8, 0, 0],
+  };
+}
+
+function totalsTableLayout() {
+  return {
+    hLineWidth: (i: number, node: { table: { body: unknown[] } }) =>
+      i === node.table.body.length ? 2 : i === 0 ? 0 : 0.5,
+    vLineWidth: () => 0,
+    hLineColor: (i: number, node: { table: { body: unknown[] } }) =>
+      i === node.table.body.length ? BRAND_PURPLE : TABLE_BORDER,
+    paddingLeft: () => 8,
+    paddingRight: () => 8,
+    paddingTop: () => 6,
+    paddingBottom: () => 6,
   };
 }
 

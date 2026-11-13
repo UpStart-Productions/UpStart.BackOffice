@@ -1,7 +1,13 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { formatDurationMin } from '../time-entry/timesheet.utils';
+import {
+  downloadPdfDocument,
+  pdfBaseDocument,
+  pdfChartRow,
+  pdfDataTable,
+  pdfMetaLines,
+  pdfSectionTitle,
+} from '../../core/pdfmake-browser.util';
 
 export type TimeReportRow = {
   clientName: string;
@@ -47,146 +53,69 @@ export type TimeReportExportData = {
   filenameBase: string;
 };
 
-const tableLineColor: [number, number, number] = [243, 243, 243];
-const tableHeadStyles = {
-  fillColor: [124, 58, 237] as [number, number, number],
-  textColor: 255,
-  lineColor: tableLineColor,
-};
-const tableFootStyles = {
-  fillColor: [245, 245, 245] as [number, number, number],
-  textColor: 0,
-  fontStyle: 'bold' as const,
-  lineColor: tableLineColor,
-};
-const tableCellStyles = {
-  lineColor: tableLineColor,
-  lineWidth: 0.4,
-};
-
 export async function exportTimeReportPdf(data: TimeReportExportData): Promise<void> {
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-  const margin = 40;
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  let y = margin;
+  const summaryLine = `Total: ${formatDurationMin(data.summary.totalMin)} | Billable: ${formatDurationMin(data.summary.billableMin)} | Non-billable: ${formatDurationMin(data.summary.nonBillableMin)}`;
+  const meta = [`Period: ${data.periodLabel}`, ...(data.filterSummary ? [data.filterSummary] : []), summaryLine];
 
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(18);
-  pdf.text('Time Report', margin, y);
-  y += 22;
-
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(11);
-  pdf.text(`Period: ${data.periodLabel}`, margin, y);
-  y += 16;
-
-  if (data.filterSummary) {
-    pdf.text(data.filterSummary, margin, y);
-    y += 16;
-  }
-
-  pdf.text(
-    `Total: ${formatDurationMin(data.summary.totalMin)} | Billable: ${formatDurationMin(data.summary.billableMin)} | Non-billable: ${formatDurationMin(data.summary.nonBillableMin)}`,
-    margin,
-    y,
+  const chartEntries = [data.charts.total, data.charts.billable, data.charts.nonBillable].filter(
+    (c): c is TimeReportChartImage => Boolean(c),
   );
-  y += 24;
+  const chartBlock = pdfChartRow(chartEntries, { pageOrientation: 'landscape' });
 
-  const chartEntries = [
-    data.charts.total,
-    data.charts.billable,
-    data.charts.nonBillable,
-  ].filter((c): c is TimeReportChartImage => Boolean(c));
-
-  if (chartEntries.length > 0) {
-    const gap = 12;
-    const slotWidth = (pageWidth - margin * 2 - gap * (chartEntries.length - 1)) / chartEntries.length;
-    const chartAreaHeight = 130;
-    let x = margin;
-
-    for (const chart of chartEntries) {
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(10);
-      pdf.text(chart.title, x, y, { maxWidth: slotWidth });
-
-      const img = await loadImage(chart.imageDataUrl);
-      const maxImgHeight = chartAreaHeight - 16;
-      const scale = Math.min(slotWidth / img.width, maxImgHeight / img.height);
-      const width = img.width * scale;
-      const height = img.height * scale;
-      pdf.addImage(chart.imageDataUrl, 'PNG', x, y + 14, width, height);
-      x += slotWidth + gap;
-    }
-
-    y += chartAreaHeight + 20;
-  }
-
-  autoTable(pdf, {
-    startY: y,
-    head: [['Client', 'Project', 'Total', 'Billable', 'Non-billable', 'Entries']],
-    body: data.rows.map((row) => [
-      row.clientName,
-      row.projectName,
-      formatDurationMin(row.totalMin),
-      formatDurationMin(row.billableMin),
-      formatDurationMin(row.nonBillableMin),
-      String(row.entryCount),
-    ]),
-    foot: [
-      [
-        'Total',
-        '',
-        formatDurationMin(data.summary.totalMin),
-        formatDurationMin(data.summary.billableMin),
-        formatDurationMin(data.summary.nonBillableMin),
-        String(data.summary.entryCount),
-      ],
+  const doc = pdfBaseDocument(
+    [
+      { text: 'Time Report', style: 'title', margin: [0, 0, 0, 8] },
+      ...pdfMetaLines(meta),
+      ...(chartBlock ? [chartBlock] : []),
+      pdfSectionTitle('Hours by project', chartBlock ? 0 : 16),
+      pdfDataTable(
+        ['Client', 'Project', 'Total', 'Billable', 'Non-billable', 'Entries'],
+        data.rows.map((row) => [
+          row.clientName,
+          row.projectName,
+          formatDurationMin(row.totalMin),
+          formatDurationMin(row.billableMin),
+          formatDurationMin(row.nonBillableMin),
+          String(row.entryCount),
+        ]),
+        {
+          foot: [
+            [
+              'Total',
+              '',
+              formatDurationMin(data.summary.totalMin),
+              formatDurationMin(data.summary.billableMin),
+              formatDurationMin(data.summary.nonBillableMin),
+              String(data.summary.entryCount),
+            ],
+          ],
+          numericColumns: [2, 3, 4, 5],
+        },
+      ),
+      pdfSectionTitle('Time entries', 8),
+      pdfDataTable(
+        ['Date', 'Client', 'Project', 'Task', 'Description', 'Duration', 'Billable'],
+        data.entries.map((entry) => [
+          entry.date,
+          entry.clientName,
+          entry.projectName,
+          entry.taskName,
+          entry.description,
+          formatDurationMin(entry.durationMin),
+          entry.billable ? 'Yes' : 'No',
+        ]),
+        {
+          foot: [['Total', '', '', '', '', formatDurationMin(data.summary.totalMin), '']],
+          widths: ['auto', '*', '*', 90, 150, 'auto', 'auto'],
+          fontSize: 8,
+          numericColumns: [5],
+        },
+      ),
     ],
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 4, ...tableCellStyles },
-    headStyles: tableHeadStyles,
-    footStyles: tableFootStyles,
-  });
+    { pageOrientation: 'landscape' },
+  );
 
-  const afterSummary = getAutoTableFinalY(pdf) + 24;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(12);
-  pdf.text('Time entries', margin, afterSummary - 10);
-
-  autoTable(pdf, {
-    startY: afterSummary,
-    head: [['Date', 'Client', 'Project', 'Task', 'Description', 'Duration', 'Billable']],
-    body: data.entries.map((entry) => [
-      entry.date,
-      entry.clientName,
-      entry.projectName,
-      entry.taskName,
-      entry.description,
-      formatDurationMin(entry.durationMin),
-      entry.billable ? 'Yes' : 'No',
-    ]),
-    foot: [
-      [
-        'Total',
-        '',
-        '',
-        '',
-        '',
-        formatDurationMin(data.summary.totalMin),
-        '',
-      ],
-    ],
-    theme: 'grid',
-    styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak', ...tableCellStyles },
-    columnStyles: {
-      3: { cellWidth: 90 },
-      4: { cellWidth: 150 },
-    },
-    headStyles: tableHeadStyles,
-    footStyles: tableFootStyles,
-  });
-
-  pdf.save(`${data.filenameBase}.pdf`);
+  await downloadPdfDocument(doc, `${data.filenameBase}.pdf`);
 }
 
 export function exportTimeReportExcel(data: TimeReportExportData): void {
@@ -254,17 +183,4 @@ export function exportTimeReportExcel(data: TimeReportExportData): void {
   XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
   XLSX.utils.book_append_sheet(workbook, entriesSheet, 'Entries');
   XLSX.writeFile(workbook, `${data.filenameBase}.xlsx`);
-}
-
-function getAutoTableFinalY(pdf: jsPDF): number {
-  return (pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? 0;
-}
-
-function loadImage(dataUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to load chart image'));
-    img.src = dataUrl;
-  });
 }

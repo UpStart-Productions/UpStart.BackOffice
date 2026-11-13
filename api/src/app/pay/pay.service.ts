@@ -9,12 +9,10 @@ import {
 import type { Invoice, Payable } from '@prisma/client';
 import Stripe from 'stripe';
 import { JournalPostingService } from '../accounting/journal-posting.service';
-import { PdfService } from '../invoices/pdf.service';
-import { publicFromName } from '../mail/email-layout';
+import { InvoicePdfDeliveryService } from '../invoices/invoice-pdf-delivery.service';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicTenantService } from '../tenancy/public-tenant.service';
-import { invoicePdfKey } from '../storage/storage-keys.util';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import {
   buildPayUrl,
@@ -51,7 +49,7 @@ export class PayService {
     private readonly prisma: PrismaService,
     private readonly stripe: StripeService,
     private readonly journalPosting: JournalPostingService,
-    private readonly pdf: PdfService,
+    private readonly invoicePdf: InvoicePdfDeliveryService,
     private readonly mail: MailService,
     private readonly tenants: PublicTenantService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
@@ -91,27 +89,8 @@ export class PayService {
       throw new NotFoundException('Invoice not found');
     }
 
-    const key = invoicePdfKey(invoice.clientId, invoice.displayNumber);
     const filename = `${invoice.displayNumber}.pdf`;
-    if (invoice.status !== 'DRAFT') {
-      if (!(await this.storage.exists(key))) {
-        throw new NotFoundException('Invoice PDF not found');
-      }
-      return { buffer: await this.storage.read(key), filename };
-    }
-
-    if (await this.storage.exists(key)) {
-      return { buffer: await this.storage.read(key), filename };
-    }
-
-    const fromName = publicFromName(process.env.MAIL_FROM_NAME);
-    const payUrl = await this.payUrlForInvoice(invoice);
-    const buffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
-    await this.storage.upload({
-      buffer,
-      key,
-      mimeType: 'application/pdf',
-    });
+    const buffer = await this.invoicePdf.renderAndStore(invoice);
     return { buffer, filename };
   }
 
