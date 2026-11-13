@@ -29,6 +29,7 @@ function makeHarness(
     contactEmails: [] as Row[],
     links: [] as Row[],
     interactions: [] as Row[],
+    artifacts: [] as Row[],
     captures: [] as Row[],
     verifications: [] as Row[],
     leads: opts.leads ?? [],
@@ -129,6 +130,7 @@ function makeHarness(
       },
       updateMany: async ({ where, data }: Row) => (db.clientUpdates.push({ id: where.id, ...data }), { count: 1 }),
     },
+    artifact: { create: async ({ data }: Row) => (db.artifacts.push(data), data) },
     contactAccount: {
       createMany: async ({ data }: Row) => {
         const fresh = data.filter((d: Row) => !db.links.some((l) => l.contactId === d.contactId && l.clientId === d.clientId));
@@ -185,6 +187,27 @@ describe('CommunicationsIngestService', () => {
     const { db, service } = makeHarness({ knownContacts: [{ email: 'sally@familyclient.test', clientIds: ['client-A'] }] });
     await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('outbound-bcc.eml')) });
     expect(db.interactions[0]).toMatchObject({ direction: 'OUTBOUND', source: 'BCC', status: 'FILED', loggedByUserId: 'u-lori' });
+  });
+
+  it('saves real attachments as artifacts on the interaction and its client, skipping inline images', async () => {
+    const { db, service } = makeHarness({ knownContacts: [{ email: 'sally@familyclient.test', clientIds: ['client-A'] }] });
+    const res = await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('outbound-bcc-attachment.eml')) });
+
+    expect(res).toMatchObject({ status: 'created', filing: 'FILED', attachmentsSaved: 1 });
+    expect(db.artifacts).toEqual([
+      expect.objectContaining({
+        tenantId: TENANT, interactionId: res.interactionId, clientId: 'client-A', leadId: null,
+        type: 'FILE', title: 'agreement.pdf', mimeType: 'application/pdf',
+      }),
+    ]);
+    expect(db.artifacts[0].fileUrl).toMatch(/^clients\/client-A\/email\/.+\.pdf$/);
+  });
+
+  it('keeps attachments of unfiled mail in the tenant staging folder', async () => {
+    const { db, service } = makeHarness();
+    await service.ingest({ recipients: RECIPIENTS, rawBase64: b64(fixture('outbound-bcc-attachment.eml')) });
+    expect(db.artifacts[0]).toMatchObject({ clientId: null, leadId: null });
+    expect(db.artifacts[0].fileUrl).toMatch(/^inbound-email\/default\/attachments\//);
   });
 
   it('stores one interaction when two partners forward the same message', async () => {

@@ -6,6 +6,13 @@ export interface ParsedAddress {
   name?: string;
 }
 
+export interface ParsedAttachment {
+  filename: string;
+  contentType: string;
+  size: number;
+  content: Buffer;
+}
+
 export interface ParsedEmail {
   /** Message-ID without angle brackets. */
   messageId: string | null;
@@ -20,6 +27,8 @@ export interface ParsedEmail {
   text: string | null;
   hasHtml: boolean;
   attachmentCount: number;
+  /** Real attachments only: inline images referenced by the HTML body (signature logos) are left out. */
+  attachments: ParsedAttachment[];
   /**
    * Mailbox that auto-forwarded this message to us, from Gmail's X-Forwarded-For header
    * (first address). ASSUMPTION: Gmail filter forwards set this; verify with a real sample.
@@ -79,6 +88,14 @@ export async function parseRawEmail(raw: Buffer): Promise<ParsedEmail> {
     text: parsed.text?.trim() || null,
     hasHtml: !!parsed.html,
     attachmentCount: parsed.attachments?.length ?? 0,
+    attachments: (parsed.attachments ?? [])
+      .filter((a) => !a.related && a.content?.length)
+      .map((a, i) => ({
+        filename: a.filename?.trim() || `attachment-${i + 1}`,
+        contentType: a.contentType || 'application/octet-stream',
+        size: a.size ?? a.content.length,
+        content: a.content,
+      })),
     forwardedFor,
   };
 }

@@ -1,10 +1,11 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { extname } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { IngestEmailDto } from './dto/ingest-email.dto';
 import { aliasCandidates, normalizeEmail, splitName } from './email-address.util';
-import { parseRawEmail } from './email-parse.util';
+import { parseRawEmail, type ParsedAttachment } from './email-parse.util';
 import { decideFiling, type ContactMatch, type FilingReason } from './filing.util';
 import {
   isGmailForwardingConfirmation,
@@ -37,8 +38,8 @@ export interface IngestResult {
   clientId?: string | null;
   leadId?: string | null;
   contactsCreated?: number;
-  /** Attachments are parsed but not stored yet (later step). */
-  attachmentsIgnored?: number;
+  /** Attachments saved as Artifacts linked to the interaction. */
+  attachmentsSaved?: number;
 }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -282,6 +283,16 @@ export class CommunicationsIngestService {
       throw err;
     }
 
+    // 9b. Attachments become Artifacts on the interaction (and the client/lead when filed),
+    // so they show in Activity and in the record's Attachments panel.
+    const attachmentsSaved = await this.saveAttachments(
+      parsed.attachments,
+      interactionId,
+      tenantId,
+      decision.clientId,
+      decision.leadId,
+    );
+
     // 10. Bump "last contacted" where it moved forward.
     const contactIds = [...new Set(external.map((p) => contactIdByEmail.get(p.email)).filter((c): c is string => !!c))];
     if (contactIds.length) {
@@ -328,8 +339,54 @@ export class CommunicationsIngestService {
       clientId: decision.clientId,
       leadId: decision.leadId,
       contactsCreated,
-      attachmentsIgnored: parsed.attachmentCount,
+      attachmentsSaved,
     };
+  }
+
+  /** One failed attachment is logged and skipped; it never loses the email itself. */
+  private async saveAttachments(
+    attachments: ParsedAttachment[],
+    interactionId: string,
+    tenantId: string,
+    clientId: string | null,
+    leadId: string | null,
+  ): Promise<number> {
+    // Filed mail goes straight to the record's folder; unfiled mail waits in a tenant staging folder.
+    // Filing later only sets clientId/leadId on the Artifact; the stored key does not need to move.
+    const folder = clientId
+      ? `clients/${clientId}/email`
+      : leadId
+        ? `leads/${leadId}/email`
+        : `inbound-email/${tenantId}/attachments`;
+    let saved = 0;
+    for (const a of attachments) {
+      const key = `${folder}/${randomUUID()}${extname(a.filename)}`;
+      try {
+        await this.storage.upload({
+          buffer: a.content,
+          key,
+          mimeType: a.contentType,
+          originalFilename: a.filename,
+        });
+        await this.prisma.artifact.create({
+          data: {
+            tenantId,
+            interactionId,
+            clientId,
+            leadId,
+            type: 'FILE',
+            title: a.filename,
+            fileUrl: key,
+            fileSize: a.size,
+            mimeType: a.contentType,
+          },
+        });
+        saved++;
+      } catch (err) {
+        this.logger.warn(`Attachment "${a.filename}" on ${interactionId} not saved: ${(err as Error).message}`);
+      }
+    }
+    return saved;
   }
 
   private resolveDate(headerDate: Date | null, receivedAt?: string): Date {

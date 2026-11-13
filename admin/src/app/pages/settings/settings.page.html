@@ -157,6 +157,19 @@
         </p-accordion-content>
       </p-accordion-panel>
 
+      <p-accordion-panel value="email-capture">
+        <p-accordion-header>
+          <span class="settings-accordion-header">
+            <i class="pi pi-inbox settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
+            <span class="settings-accordion-title">Email capture</span>
+            <span class="settings-accordion-meta">CC capture address to log email</span>
+          </span>
+        </p-accordion-header>
+        <p-accordion-content>
+          <app-email-capture-settings />
+        </p-accordion-content>
+      </p-accordion-panel>
+
       <p-accordion-panel value="activity">
         <p-accordion-header>
           <span class="settings-accordion-header">
@@ -268,19 +281,6 @@
               </tr>
             </ng-template>
           </p-table>
-        </p-accordion-content>
-      </p-accordion-panel>
-
-      <p-accordion-panel value="email-capture">
-        <p-accordion-header>
-          <span class="settings-accordion-header">
-            <i class="pi pi-inbox settings-accordion-status settings-status-neutral" aria-hidden="true"></i>
-            <span class="settings-accordion-title">Email capture</span>
-            <span class="settings-accordion-meta">CC capture address to log email</span>
-          </span>
-        </p-accordion-header>
-        <p-accordion-content>
-          <app-email-capture-settings />
         </p-accordion-content>
       </p-accordion-panel>
 
