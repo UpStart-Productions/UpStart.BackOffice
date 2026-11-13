@@ -34,6 +34,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
               type="button"
               class="page-header-back"
               [routerLink]="link"
+              [queryParams]="backQueryParams()"
               [ariaLabel]="backLabel()"
             />
           }
@@ -82,6 +83,8 @@ export class PageComponent {
   /** Shows the back arrow before the title. */
   backLink = input<string | unknown[] | null>(null);
   backLabel = input('Back');
+  /** Query params for the back link (e.g. return to a specific Activity list). */
+  backQueryParams = input<Record<string, string> | null>(null);
   /** Help-text key shown as the ⓘ after the title. */
   helpKey = input<string | null>(null);
 }

@@ -95,31 +95,11 @@ describe('ActivityService.queues', () => {
     ],
   });
 
-  it('Needs reply: latest message is theirs and has waited past the threshold', async () => {
-    h.prisma.interaction.findMany
-      .mockResolvedValueOnce([
-        email('t1-new', 't1', 'INBOUND', 3), email('t1-old', 't1', 'OUTBOUND', 5), // waiting 3 days → listed
-        email('t2-new', 't2', 'OUTBOUND', 3), email('t2-old', 't2', 'INBOUND', 5), // we replied → not listed
-        email('t3', 't3', 'INBOUND', 1), // too recent → not listed
-      ])
-      .mockResolvedValueOnce([]);
-    const r = await h.svc.queues(admin, {});
-    expect(r.reply.map((x) => x.refKey)).toEqual(['t1']);
-    expect(r.reply[0].person).toBe('Maria');
-  });
-
-  it('snoozed rows are hidden', async () => {
-    h.prisma.activitySnooze.findMany.mockResolvedValue([{ queue: 'REPLY', refKey: 't1' }]);
-    h.prisma.interaction.findMany.mockResolvedValueOnce([email('t1-new', 't1', 'INBOUND', 3)]).mockResolvedValueOnce([]);
+  it('Needs reply is no longer computed: empty list, zero count, not in the nav badge', async () => {
+    h.prisma.interaction.findMany.mockResolvedValue([]);
     const r = await h.svc.queues(admin, {});
     expect(r.reply).toEqual([]);
-  });
-
-  it('Mine: Needs reply only on threads I am on', async () => {
-    h.prisma.interaction.findMany.mockResolvedValueOnce([email('x', 't9', 'INBOUND', 4, false)]).mockResolvedValueOnce([]);
-    expect((await h.svc.queues(admin, { mine: true })).reply).toEqual([]);
-    h.prisma.interaction.findMany.mockResolvedValueOnce([email('x', 't9', 'INBOUND', 4, false)]).mockResolvedValueOnce([]);
-    expect((await h.svc.queues(admin, { mine: false })).reply).toHaveLength(1);
+    expect(r.counts.reply).toBe(0);
   });
 
   it('Next steps: only ones that are set, soonest first, overdue flagged', async () => {

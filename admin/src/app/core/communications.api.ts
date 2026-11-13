@@ -292,7 +292,7 @@ export class CommunicationsApi {
 
   /** Number of emails waiting in the Unfiled inbox. */
   readonly unfiledCount = signal(0);
-  /** My Activity → To do items (Needs reply, Next steps, Unfiled); drives the Activity nav badge. */
+  /** My Activity → To do items (Next steps, Unfiled); drives the Activity nav badge. */
   readonly activityCount = signal(0);
 
   /** Bumped whenever activity or a next step changes, so every open timeline, header and To do list reloads. */

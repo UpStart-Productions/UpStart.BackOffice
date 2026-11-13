@@ -249,7 +249,7 @@ export class ActivityService {
   }
 
   /**
-   * Activity → To do. mine (default): Needs reply on threads I am on; next steps and quiet clients I own or that have
+   * Activity → To do. mine (default): next steps and quiet clients I own or that have
    * no owner. Unfiled is shared triage and is not narrowed by mine. Optional clientId / contactId narrow every queue to that record.
    */
   async queues(user: UserContext, q: ActivityQueuesQueryDto) {
@@ -277,56 +277,9 @@ export class ActivityService {
       ...(q.contactId ? { contactLinks: { some: { contactId: q.contactId } } } : {}),
     };
 
-    // Needs reply: the latest message on a filed email thread came from outside and has waited long enough.
-    const emails = await this.prisma.interaction.findMany({
-      where: {
-        AND: [
-          reach,
-          { type: 'EMAIL', status: 'FILED', occurredAt: { gte: new Date(now.getTime() - REPLY_LOOKBACK_DAYS * DAY) } },
-          q.clientId ? { clientId: q.clientId } : {},
-          q.contactId ? { participants: { some: { contactId: q.contactId } } } : {},
-        ],
-      },
-      orderBy: { occurredAt: 'desc' },
-      select: {
-        id: true,
-        threadKey: true,
-        direction: true,
-        occurredAt: true,
-        subject: true,
-        clientId: true,
-        client: { select: { name: true } },
-        participants: { select: { role: true, name: true, email: true, contactId: true, userId: true } },
-      },
-    });
-    const threads = new Map<string, typeof emails>();
-    for (const e of emails) {
-      const key = e.threadKey || e.id;
-      const list = threads.get(key);
-      if (list) list.push(e);
-      else threads.set(key, [e]);
-    }
-    const replyCutoff = now.getTime() - needsReplyDays * DAY;
+    // Needs reply was removed (Nov 2026): replies are tracked in email, and UBO only sees replies that
+    // are captured. The empty list and zero count stay so older clients (iOS app) keep working.
     const reply: QueueRow[] = [];
-    for (const [key, list] of threads) {
-      const latest = list[0];
-      if (latest.direction !== 'INBOUND' || latest.occurredAt.getTime() > replyCutoff) continue;
-      if (isSnoozed('REPLY', key)) continue;
-      if (mine && !list.some((m) => m.participants.some((p) => p.userId === user.id))) continue;
-      const from = latest.participants.find((p) => p.role === 'FROM');
-      reply.push({
-        queue: 'REPLY',
-        refKey: key,
-        clientId: latest.clientId,
-        clientName: latest.client?.name ?? null,
-        contactId: from?.contactId ?? null,
-        person: from ? from.name?.trim() || from.email : null,
-        title: latest.subject?.trim() || '(no subject)',
-        at: latest.occurredAt.toISOString(),
-        interactionId: latest.id,
-      });
-    }
-    reply.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? ''));
 
     // Next steps: every next step that is set (organizations and pipeline cards), soonest first; overdue ones flagged.
     // An organization without a next step is fine and is not listed.
@@ -450,9 +403,9 @@ export class ActivityService {
     };
   }
 
-  /** Nav badge: my Needs reply, next steps overdue or due today, and Unfiled. Gone quiet is a review list, not counted. */
+  /** Nav badge: my next steps overdue or due today, and Unfiled. Gone quiet is a review list, not counted. */
   async count(user: UserContext): Promise<{ count: number }> {
     const r = await this.queues(user, { mine: true });
-    return { count: r.counts.reply + r.counts.nextStepDue + r.counts.unfiled };
+    return { count: r.counts.nextStepDue + r.counts.unfiled };
   }
 }

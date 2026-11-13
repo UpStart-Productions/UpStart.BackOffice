@@ -59,9 +59,9 @@
   --brand-ink: #1a1828;
   --sidebar-bg: #1d2b36;
 
-  /* ── Links ── */
-  --color-text-link: var(--brand-blue-600);
-  --color-text-link-hover: var(--brand-blue-700);
+  /* ── Links: the one link style for the app (brand purple, underline on hover) ── */
+  --color-text-link: var(--brand-primary);
+  --color-text-link-hover: var(--brand-primary-hover);
 
   /* Prime / legacy aliases */
   --color-primary: var(--brand-violet-600);

@@ -607,62 +607,12 @@ function nowForInput(): string {
     .quick-log-next-text { flex: 2 1 16rem; min-width: 0; }
     .quick-log-next-date { flex: 1 1 10rem; min-width: 0; }
     .quick-log-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-    .activity-item--nested { margin-left: 2.85rem; border-top-style: dashed; }
-    .activity-thread-toggle { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; padding: 0.25rem 0; border: 0; background: transparent; color: #1d4ed8; cursor: pointer; font: inherit; }
-    :host ::ng-deep .activity-via { margin: 0.15rem 0 0.35rem; }
     .activity-type-option { display: inline-flex; align-items: center; gap: 0.5rem; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-    .activity-item { display: flex; gap: 0.85rem; padding: 0.9rem 0; border-top: 1px solid var(--surface-border, #e5e7eb); }
-    .activity-item:first-of-type { border-top: 0; }
     :host ::ng-deep .activity-avatar-skeleton {
       width: var(--avatar-size-med) !important;
       height: var(--avatar-size-med) !important;
     }
-    .activity-icon { --c: var(--text-color-secondary, #6b7280); flex: 0 0 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
-    .activity-icon--EMAIL { --c: #2563eb; }
-    .activity-icon--CALL { --c: #16a34a; }
-    .activity-icon--MEETING { --c: #7c3aed; }
-    .activity-icon--NOTE { --c: #d97706; }
-    .activity-body { flex: 1; min-width: 0; }
-    .activity-head {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      width: 100%;
-      min-width: 0;
-      padding-bottom: 0.45rem;
-    }
-    .activity-subject { flex: 1 1 auto; min-width: 0; }
-    .activity-when {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      flex: 0 0 auto;
-      font-size: var(--fs-base);
-      line-height: 1.5rem;
-    }
-    .activity-head-grow { flex: 1 1 auto; min-width: 0; }
-    .activity-item-actions { display: flex; flex: 0 0 auto; align-items: center; }
-    .activity-date {
-      white-space: nowrap;
-      font-size: inherit;
-      line-height: inherit;
-      color: var(--text-color-secondary, #6b7280);
-      cursor: default;
-    }
-    :host ::ng-deep .activity-item-actions .row-actions-trigger {
-      width: 1.75rem;
-      height: 1.75rem;
-      padding: 0 !important;
-    }
-    :host ::ng-deep .activity-when .person-name {
-      display: inline-flex;
-      align-items: center;
-      font-size: inherit;
-      line-height: inherit;
-    }
-    .activity-arrow { font-size: var(--fs-sm); color: var(--text-color-secondary); }
-    .activity-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.25rem 0; font-size: var(--fs-sm); color: var(--text-color-secondary, #6b7280); }
     .activity-more { text-align: center; margin-top: 0.5rem; }
     .log-form { display: flex; flex-direction: column; gap: 1rem; }
     .involved-chip {

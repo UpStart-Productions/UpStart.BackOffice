@@ -34,7 +34,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
   standalone: true,
   imports: [DatePipe, RouterLink, ButtonModule, MessageModule, ProgressBarModule, TabsModule, TagModule, AcceptResponseDialogComponent, PageComponent, RowActionsMenuComponent, SsnTextComponent],
   template: `
-    <app-page [title]="pageTitle()" [backLink]="backLink()" [backLabel]="'Back to submissions'" helpKey="forms.submission.page">
+    <app-page [title]="pageTitle()" [backLink]="backLink()" [backQueryParams]="backQuery" [backLabel]="fromActivity ? 'Back to Activity' : 'Back to submissions'" helpKey="forms.submission.page">
       <ng-container ngProjectAs="[pageMeta]">
         @if (s(); as r) {
           @if (!r.submittedAt) {
@@ -419,7 +419,12 @@ export class FormSubmissionPage implements OnInit {
     const r = this.s();
     return r ? `${r.formName}: ${r.submitterName ?? r.submitterEmail ?? 'Submission'}` : 'Submission';
   });
-  backLink = computed(() => (this.s() ? ['/forms', this.s()!.formId, 'submissions'] : '/forms'));
+  /** Opened from Activity → Form submissions: the back arrow (and leaving after delete) returns there. */
+  readonly fromActivity = this.route.snapshot.queryParamMap.get('from') === 'activity';
+  readonly backQuery: Record<string, string> | null = this.fromActivity ? { tab: 'todo', queue: 'forms' } : null;
+  backLink = computed(() =>
+    this.fromActivity ? '/activity' : this.s() ? ['/forms', this.s()!.formId, 'submissions'] : '/forms',
+  );
 
   round(n: number) {
     return Math.round(n);
@@ -483,7 +488,9 @@ export class FormSubmissionPage implements OnInit {
       accept: async () => {
         try {
           await this.forms.deleteSubmission(r.id);
-          await this.router.navigate(['/forms', r.formId, 'submissions']);
+          await (this.fromActivity
+            ? this.router.navigate(['/activity'], { queryParams: this.backQuery })
+            : this.router.navigate(['/forms', r.formId, 'submissions']));
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : 'Failed' });
         }

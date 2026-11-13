@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
@@ -16,10 +17,13 @@ import { TagModule } from 'primeng/tag';
 import { map } from 'rxjs';
 import { ApiService } from '../../core/api.service';
 import { FormsApi } from '../../core/forms.api';
+import { PipelinesApi } from '../../core/pipelines.api';
+import { personCardInnerHtml } from '../../core/quill-person-card-render';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SessionService } from '../../core/session.service';
 import { LIST_VIEW_KEYS, listViewFilterBool, listViewFilterString, patchListViewPrefs, readListViewPrefs } from '../../core/list-view-prefs.storage';
 import { saveListFilter } from '../../core/list-view-prefs.util';
-import { areaLevel } from '@upstart/back-office/shared';
+import { areaLevel, type PendingSubmissionDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import {
   ActivityQueues,
@@ -27,11 +31,10 @@ import {
   ContactSummary,
   contactName,
   Interaction,
-  participantLine,
   QueueRow,
   relativeTime,
   senderAndRecipients,
-  directionLabel,
+  interactionIcon,
 } from '../../core/communications.api';
 import { contactIdFromDirectoryId, PeoplePickerLoader } from '../../core/people-picker.loader';
 import { PeopleDirectoryOption, toDirectoryOptions } from '../projects/people-directory.util';
@@ -47,7 +50,7 @@ import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
 type Tab = 'todo' | 'all';
-type QueueKey = 'reply' | 'nextStep' | 'quiet' | 'unfiled';
+type QueueKey = 'unfiled' | 'forms' | 'nextStep' | 'quiet';
 type Org = { id: string; name: string; journey?: 'PROSPECT' | 'CLIENT' | 'NONE'; isActive?: boolean };
 type Option = { id: string; label: string };
 type OrgDetail = {
@@ -93,14 +96,14 @@ function contactSummariesToPeopleOptions(contacts: ContactSummary[]): PeopleDire
 }
 
 const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['thresholds']) => string }> = {
-  reply: { label: 'Needs reply', help: (t) => `They wrote last and nobody has answered in ${t.needsReplyDays}+ day${t.needsReplyDays === 1 ? '' : 's'}.` },
+  forms: { label: 'Form submissions', help: () => 'Submissions waiting for review. Click one to review it.' },
   nextStep: { label: 'Next steps', help: () => 'Every next step that is set, soonest first. Overdue ones are tagged.' },
   quiet: { label: 'Gone quiet', help: (t) => `Active clients with no contact in ${t.goneQuietDays}+ days.` },
   unfiled: { label: 'Unfiled', help: () => "Captured email that couldn't be matched to one organization." },
 };
 
 /**
- * Activity: All activity across organizations (default tab), and To do (Needs reply, Next steps, Gone quiet, Unfiled).
+ * Activity: All activity across organizations (default tab), and To do (Unfiled, Form submissions, Next steps, Gone quiet).
  * URL: omit `tab` (or `tab=all`) for All activity; `tab=todo` (legacy `tab=inbox`) for To do. A `queue` without `tab` implies To do.
  * Optionally narrowed to one organization or person. Record pages link here with "Open full view".
  */
@@ -108,6 +111,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
   selector: 'app-activity-page',
   standalone: true,
   imports: [
+    InputTextModule,
     DatePipe,
     FormsModule,
     RouterLink,
@@ -140,10 +144,10 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
             <label for="activityOrg">Organization</label>
             <p-select
               inputId="activityOrg"
-              [options]="orgs()"
+              [options]="orgFilterOptions()"
               optionLabel="name"
               optionValue="id"
-              [ngModel]="orgId()"
+              [ngModel]="orgFilterValue()"
               (ngModelChange)="setOrg($event)"
               [filter]="true"
               filterBy="name"
@@ -182,6 +186,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 [wrapCard]="false"
                 [global]="true"
                 [clientId]="orgId()"
+                [leadId]="cardId()"
                 [contactId]="personId()"
                 [organizationName]="org()?.name ?? undefined"
                 [showNextActionOnQuickLog]="!!orgId() && !personId()"
@@ -205,11 +210,8 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               }
 
               <div class="queue-grid">
-                @for (q of queueKeys; track q) {
+                @for (q of queueKeys(); track q) {
                   <app-queue-card [label]="info[q].label" [count]="countOf(q)" [help]="info[q].help(thresholds())" [active]="queue() === q" (pick)="setQueue(q)" />
-                }
-                @if (canForms()) {
-                  <app-queue-card label="Form submissions" [count]="pendingSubmissions()" help="Waiting for review in Forms." link="/forms" />
                 }
               </div>
 
@@ -217,54 +219,73 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 <div class="skeleton-list" aria-busy="true">
                   @for (n of [1, 2, 3]; track n) { <p-skeleton height="2.5rem" /> }
                 </div>
-              } @else if (queue() === 'unfiled') {
-                <p-table [value]="unfiled()" styleClass="table-bordered" dataKey="id">
+              } @else if (queue() === 'forms') {
+                <p-table [value]="submissions()" styleClass="table-bordered" dataKey="id">
                   <ng-template pTemplate="header">
                     <tr>
-                      <th style="width: 3rem"></th>
-                      <th style="width: 8rem">Received</th>
-                      <th style="width: 20rem">People</th>
-                      <th>Subject</th>
+                      <th style="width: 10rem">Submitted</th>
+                      <th style="width: 20rem">From</th>
+                      <th>Form</th>
                     </tr>
                   </ng-template>
-                  <ng-template pTemplate="body" let-item>
-                    <tr class="clickable-row" (click)="mb.toggle()">
-                      <td (click)="$event.stopPropagation()">
-                        <app-row-actions-menu [items]="unfiledActions(item)" ariaLabel="Email actions" />
-                      </td>
-                      <td><span [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span></td>
+                  <ng-template pTemplate="body" let-p>
+                    <tr>
+                      <td><span [title]="(p.createdAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(p.createdAt) }}</span></td>
                       <td>
-                        @let ppl = sendersOf(item);
-                        <div class="person-line">
-                          <span class="person-label">From</span>
-                          <span class="person-value">
-                            @if (ppl.from) {
-                              <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" size="sm" />
-                            }
-                          </span>
-                        </div>
-                        <div class="person-line text-color-secondary">
-                          <span class="person-label">To</span>
-                          <span class="person-value person-list">
-                            @for (p of ppl.to; track p.email) {
-                              <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
-                            }
-                          </span>
-                        </div>
-                        <p-tag [value]="dir(item)" severity="secondary" class="person-tag" />
-                      </td>
-                      <td>
-                        @if (item.subject?.trim(); as subj) {
-                          <strong>{{ subj }}</strong>
+                        <a [routerLink]="['/forms/submissions', p.id]" [queryParams]="{ from: 'activity' }">{{ p.submitterName ?? p.submitterEmail ?? 'Anonymous' }}</a>
+                        @if (p.submitterName && p.submitterEmail) {
+                          <div class="text-color-secondary">{{ p.submitterEmail }}</div>
                         }
-                        <app-message-body #mb [item]="item" />
                       </td>
+                      <td>{{ p.formName }}</td>
                     </tr>
                   </ng-template>
                   <ng-template pTemplate="emptymessage">
-                    <tr><td colspan="4"><div class="empty-state"><i class="pi pi-check-circle" aria-hidden="true"></i><p>Nothing to file. You're all caught up.</p></div></td></tr>
+                    <tr><td colspan="3" class="text-color-secondary">Nothing waiting for review.</td></tr>
                   </ng-template>
                 </p-table>
+              } @else if (queue() === 'unfiled') {
+                @if (!unfiled().length) {
+                  <div class="empty-state">
+                    <i class="pi pi-inbox" aria-hidden="true"></i>
+                    <p>Nothing to file.</p>
+                  </div>
+                }
+                @for (item of unfiled(); track item.id) {
+                  @let ppl = sendersOf(item);
+                  <div class="activity-item">
+                    <div class="activity-icon activity-icon--{{ item.type }}" [attr.aria-label]="item.type" role="img">
+                      <i class="pi {{ icon(item.type) }}" aria-hidden="true"></i>
+                    </div>
+                    <div class="activity-body">
+                      <div class="activity-head">
+                        <span class="activity-when">
+                          <span class="activity-date" [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
+                        </span>
+                        @if (item.subject?.trim(); as subj) {
+                          <strong class="activity-subject">{{ subj }}</strong>
+                        }
+                        <span class="activity-head-grow" aria-hidden="true"></span>
+                        <div class="activity-item-actions">
+                          <p-button label="File message" icon="pi pi-folder" size="small" severity="secondary" [outlined]="true" (onClick)="openFile(item)" />
+                        </div>
+                      </div>
+                      <div class="activity-meta">
+                        @if (ppl.from) {
+                          <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" size="sm" />
+                        }
+                        @if (ppl.from && ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
+                        @for (p of ppl.to; track p.email) {
+                          <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+                        }
+                        @if (item.captures.length) {
+                          <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
+                        }
+                      </div>
+                      <app-message-body [item]="item" />
+                    </div>
+                  </div>
+                }
               } @else {
                 @if (!queueRows().length) {
                   <div class="empty-state"><i class="pi pi-check-circle" aria-hidden="true"></i><p>Nothing here. You're all caught up.</p></div>
@@ -382,16 +403,11 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 <h3 class="card-title">Details</h3>
               </div>
               <div class="side-panel-scroll">
-              <div class="side-name"><a [routerLink]="['/people', p.id]">{{ personLabel(p) }}</a></div>
-              <dl class="side-details">
-                @if (p.title) { <div><dt>Title</dt><dd>{{ p.title }}</dd></div> }
-                @for (e of p.emails; track e.id) { <div><dt>{{ e.isPrimary ? 'Email' : 'Other email' }}</dt><dd><a [href]="'mailto:' + e.email">{{ e.email }}</a></dd></div> }
-                @if (p.phone) { <div><dt>Phone</dt><dd><a [href]="'tel:' + p.phone">{{ p.phone }}</a></dd></div> }
-                @if (p.tags.length) {
-                  <div><dt>Tags</dt><dd><app-tag-chip-list [tags]="p.tags" /></dd></div>
-                }
-                <div class="side-inline"><dt>Last contact:</dt><dd>{{ p.lastContactAt ? rel(p.lastContactAt) : 'None logged' }}</dd></div>
-              </dl>
+              <div class="bo-person-card side-person-card" role="link" tabindex="0" [attr.aria-label]="'Open ' + personLabel(p)" (click)="openPersonPage($event, p.id)" (keydown.enter)="openPersonPage($event, p.id)" [innerHTML]="personCard(p)"></div>
+              @if (p.tags.length) {
+                <app-tag-chip-list [tags]="p.tags" class="side-person-tags" />
+              }
+              <p class="side-person-last text-color-secondary">Last contact {{ p.lastContactAt ? rel(p.lastContactAt) : 'none logged' }}</p>
               @if (p.notes) {
                 <div class="side-notes">{{ plain(p.notes) }}</div>
               }
@@ -433,8 +449,17 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
             @if (item.subject?.trim(); as subj) {
               <strong>{{ subj }}</strong><br />
             }
-            <span class="text-color-secondary">{{ people(item) }}</span>
           </p>
+          @let fp = sendersOf(item);
+          <div class="activity-meta file-people">
+            @if (fp.from) {
+              <app-person [name]="fp.from.name" [email]="fp.from.email" [avatarUrl]="fp.from.avatarUrl" [personId]="fp.from.contactId ?? fp.from.userId ?? fp.from.email" size="sm" />
+            }
+            @if (fp.from && fp.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
+            @for (p of fp.to; track p.email) {
+              <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+            }
+          </div>
           <div class="file-form">
             <p-selectbutton
               [options]="kindOptions"
@@ -444,8 +469,57 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               [allowEmpty]="false"
               (onChange)="targetId = null"
             />
+            @if (kind === 'lead' && pipelines().length > 1) {
+              <p-select
+                [options]="pipelines()"
+                optionLabel="name"
+                optionValue="id"
+                [ngModel]="pipelineId()"
+                (ngModelChange)="pipelineId.set($event); targetId = null; newLaneId = lanes()[0]?.id ?? null"
+                placeholder="Choose a pipeline"
+                ariaLabel="Pipeline"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            }
+            @if (kind === 'lead') {
+              <div class="flex align-items-center gap-2">
+                <p-checkbox inputId="newCard" [(ngModel)]="newCard" [binary]="true" (onChange)="targetId = null" />
+                <label for="newCard">New pipeline card</label>
+              </div>
+            }
+            @if (kind === 'lead' && newCard) {
+              <div class="form-field">
+                <label for="newCardLane">Lane</label>
+                <p-select inputId="newCardLane" [options]="lanes()" optionLabel="name" optionValue="id" [(ngModel)]="newLaneId" placeholder="Choose a lane" styleClass="w-full" appendTo="body" />
+              </div>
+              <div class="form-field">
+                <label for="newCardOrg">Organization</label>
+                <p-select
+                  inputId="newCardOrg"
+                  [options]="orgOptions()"
+                  optionLabel="label"
+                  optionValue="label"
+                  [(ngModel)]="newOrg"
+                  [editable]="true"
+                  [filter]="false"
+                  [showClear]="true"
+                  placeholder="Choose an organization or type a new name"
+                  styleClass="w-full"
+                  appendTo="body"
+                />
+              </div>
+              <div class="form-field">
+                <label for="newCardContact">Contact</label>
+                <input pInputText id="newCardContact" [(ngModel)]="newContact" class="w-full" />
+              </div>
+              <div class="form-field">
+                <label for="newCardEmail">Email</label>
+                <input pInputText id="newCardEmail" [(ngModel)]="newEmail" class="w-full" />
+              </div>
+            } @else {
             <p-select
-              [options]="kind === 'client' ? orgOptions() : leads()"
+              [options]="kind === 'client' ? orgOptions() : leadOptions()"
               optionLabel="label"
               optionValue="id"
               [(ngModel)]="targetId"
@@ -458,6 +532,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               styleClass="w-full"
               appendTo="body"
             />
+            }
             @if (kind === 'client') {
               <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="learn" [(ngModel)]="learn" [binary]="true" />
@@ -471,7 +546,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
         }
         <ng-template pTemplate="footer">
           <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="fileVisible = false" />
-          <p-button label="File" icon="pi pi-check" [loading]="saving()" [disabled]="!targetId" (onClick)="saveFile()" />
+          <p-button label="File" icon="pi pi-check" [loading]="saving()" [disabled]="!canSaveFile()" (onClick)="saveFile()" />
         </ng-template>
       </p-dialog>
     </app-page>
@@ -485,6 +560,10 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
     .side-details dt { color: var(--text-color-secondary, #6b7280); }
     .side-details dd { margin: 0; overflow-wrap: anywhere; }
     .side-inline { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .side-person-card { display: block; cursor: pointer; margin: -0.5rem -0.65rem 0.5rem; }
+    .side-person-card:hover .bo-person-card__name { text-decoration: underline; }
+    .side-person-tags { display: block; margin-bottom: 0.5rem; }
+    .side-person-last { margin: 0; font-size: var(--fs-sm); }
     .side-notes { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--surface-border, #e5e7eb); white-space: pre-line; }
     .side-row { padding: 0.4rem 0; }
     .side-next-step { display: block; margin: 0.25rem 0 0.6rem; }
@@ -587,12 +666,8 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
     }
     .text-overdue { color: #b91c1c; font-weight: 600; }
     .file-form { display: flex; flex-direction: column; gap: 1rem; }
+    .activity-meta.file-people { margin: 0.25rem 0 1.25rem; }
     .clickable-row { cursor: pointer; }
-    .person-line { display: flex; gap: 0.5rem; min-width: 0; }
-    .person-label { flex: 0 0 2.5rem; color: var(--text-color-secondary); }
-    .person-value { min-width: 0; overflow-wrap: anywhere; }
-    .person-list { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
-    .person-tag { display: inline-block; margin-top: 0.35rem; }
     .skeleton-list { display: flex; flex-direction: column; gap: 0.75rem; }
   `,
 })
@@ -604,10 +679,12 @@ export class ActivityPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly formsApi = inject(FormsApi);
+  private readonly pipelinesApi = inject(PipelinesApi);
+  private readonly sanitizer = inject(DomSanitizer);
   private readonly session = inject(SessionService);
   /** Forms submissions waiting for review (a To do card that opens Forms). */
   readonly canForms = computed(() => !!areaLevel(this.session.me(), 'forms'));
-  readonly pendingSubmissions = signal(0);
+  readonly submissions = signal<PendingSubmissionDto[]>([]);
 
   private readonly params = toSignal(this.route.queryParamMap.pipe(map((p) => p)), { initialValue: this.route.snapshot.queryParamMap });
 
@@ -620,15 +697,17 @@ export class ActivityPage implements OnInit {
     return 'all';
   });
   readonly orgId = computed(() => this.params().get('organization') || null);
+  /** A pipeline card picked in the Organization filter because it has no organization record yet. */
+  readonly cardId = computed(() => (this.orgId() ? null : this.params().get('card') || null));
   readonly personId = computed(() => this.params().get('person') || null);
   readonly personPickId = computed(() => (this.personId() ? `contact:${this.personId()}` : null));
   readonly queue = computed<QueueKey>(() => {
     const q = this.params().get('queue');
-    return q === 'nextStep' || q === 'quiet' || q === 'unfiled' ? q : 'reply';
+    return q === 'nextStep' || q === 'quiet' || (q === 'forms' && this.canForms()) ? q : 'unfiled';
   });
 
   readonly info = QUEUE_INFO;
-  readonly queueKeys: QueueKey[] = ['reply', 'nextStep', 'quiet', 'unfiled'];
+  readonly queueKeys = computed<QueueKey[]>(() => (this.canForms() ? ['unfiled', 'forms', 'nextStep', 'quiet'] : ['unfiled', 'nextStep', 'quiet']));
   readonly scopeOptions = [
     { label: 'Mine', value: true },
     { label: "Everyone's", value: false },
@@ -640,8 +719,40 @@ export class ActivityPage implements OnInit {
   peopleLoading = signal(false);
   /** True while loading org contacts for the Activity header person filter. */
   orgContactsLoading = signal(false);
-  leads = signal<Option[]>([]);
+  leads = signal<(Option & { pipelineId: string | null; clientId: string | null })[]>([]);
+  pipelines = signal<{ id: string; name: string; stages: { id: string; name: string }[] }[]>([]);
+  /** Lanes of the chosen pipeline (or the only one), for a new card. */
+  readonly lanes = computed(() => {
+    const list = this.pipelines();
+    const pid = this.pipelineId();
+    return (list.find((p) => p.id === pid) ?? list[0])?.stages ?? [];
+  });
+  newCard = false;
+  newOrg: string | null = '';
+  newContact = '';
+  newEmail = '';
+  newLaneId: string | null = null;
+  /** File dialog: which pipeline's cards to list (only asked when there is more than one). */
+  pipelineId = signal<string | null>(null);
+  readonly leadOptions = computed(() => {
+    const pid = this.pipelineId();
+    return this.pipelines().length > 1 && pid ? this.leads().filter((l) => l.pipelineId === pid) : this.leads();
+  });
   readonly orgOptions = computed(() => this.orgs().map((o) => ({ id: o.id, label: o.name })));
+  /** Organization filter: every organization, plus pipeline cards not linked to one (value "card:<id>"). */
+  readonly orgFilterOptions = computed(() => {
+    const out: { id: string; name: string }[] = this.orgs().map((o) => ({ id: o.id, name: o.name }));
+    const seen = new Set(out.map((o) => o.name.trim().toLowerCase()));
+    for (const l of this.leads()) {
+      if (l.clientId) continue;
+      const key = l.label.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ id: `card:${l.id}`, name: l.label });
+    }
+    return out.sort((a, b) => a.name.localeCompare(b.name));
+  });
+  readonly orgFilterValue = computed(() => this.orgId() ?? (this.cardId() ? `card:${this.cardId()}` : null));
   readonly org = computed(() => {
     const id = this.orgId();
     return id ? this.orgs().find((o) => o.id === id) ?? { id, name: 'Organization' } : null;
@@ -665,16 +776,19 @@ export class ActivityPage implements OnInit {
   queuesLoading = signal(false);
   queuesError = signal<string | null>(null);
   readonly thresholds = computed(() => this.queues()?.thresholds ?? { needsReplyDays: 2, goneQuietDays: 30 });
-  readonly unfiled = computed(() => this.queues()?.unfiled ?? []);
+  // Unfiled mail is on no card, so a card filter shows none.
+  readonly unfiled = computed(() => (this.cardId() ? [] : this.queues()?.unfiled ?? []));
   readonly queueRows = computed<QueueRow[]>(() => {
     const q = this.queues();
     if (!q) return [];
     const key = this.queue();
-    return key === 'reply' ? q.reply : key === 'nextStep' ? q.nextStep : key === 'quiet' ? q.quiet : [];
+    const card = this.cardId();
+    if (card) return key === 'nextStep' ? q.nextStep.filter((r) => r.leadId === card) : [];
+    return key === 'nextStep' ? q.nextStep : key === 'quiet' ? q.quiet : [];
   });
   readonly todoTotal = computed(() => {
     const c = this.queues()?.counts;
-    return c ? c.reply + c.nextStepDue + c.unfiled : 0;
+    return c ? c.nextStepDue + c.unfiled : 0;
   });
 
   // File dialog (Unfiled)
@@ -691,9 +805,8 @@ export class ActivityPage implements OnInit {
   ];
 
   readonly sendersOf = senderAndRecipients;
+  readonly icon = interactionIcon;
   rel = relativeTime;
-  dir = directionLabel;
-  people = (i: Interaction) => participantLine(i);
 
   constructor() {
     effect(() => {
@@ -714,14 +827,28 @@ export class ActivityPage implements OnInit {
       const contactId = this.personId();
       untracked(() => void this.loadPerson(contactId));
     });
+    // Save the page's view (tab, To do list, organization/person, Mine) whenever it changes.
+    effect(() => {
+      this.tab();
+      this.queue();
+      this.orgId();
+      this.cardId();
+      this.personId();
+      this.mine();
+      untracked(() => {
+        if (this.prefsReady) this.persistActivityPagePrefs();
+      });
+    });
   }
 
   async ngOnInit() {
-    this.restoreActivityPagePrefs();
-    if (this.canForms()) this.formsApi.pending().then((r) => this.pendingSubmissions.set(r.length), () => this.pendingSubmissions.set(0));
+    await this.restoreActivityPagePrefs();
+    void this.loadCardsAndPipelines();
+    if (this.canForms()) this.formsApi.pending().then((r) => this.submissions.set(r), () => this.submissions.set([]));
     this.peopleLoading.set(true);
     const [orgs, people] = await Promise.all([
-      this.api.get<Org[]>('/clients').catch(() => [] as Org[]),
+      // Every journey (the endpoint's default leaves out prospects, which have next steps too).
+      this.api.get<Org[]>('/clients?journey=PROSPECT,CLIENT,NONE').catch(() => [] as Org[]),
       this.peopleLoader.loadCrmContacts().catch(() => [] as PeopleDirectoryOption[]),
     ]);
     this.orgs.set([...orgs].sort((a, b) => a.name.localeCompare(b.name)));
@@ -729,22 +856,35 @@ export class ActivityPage implements OnInit {
     this.peopleLoading.set(false);
   }
 
-  private restoreActivityPagePrefs() {
+  /** False until saved prefs are restored, so the defaults on first load never overwrite them. */
+  private prefsReady = false;
+
+  private async restoreActivityPagePrefs() {
     const snap = this.route.snapshot.queryParamMap;
     const prefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.activity);
     const mine = listViewFilterBool(prefs, 'mine');
     if (mine === false) this.mine.set(false);
-    if (['tab', 'queue', 'organization', 'person'].some((k) => snap.has(k))) return;
+    if (['tab', 'queue', 'organization', 'card', 'person'].some((k) => snap.has(k))) {
+      this.prefsReady = true;
+      this.persistActivityPagePrefs();
+      return;
+    }
     const params: Record<string, string | null> = {};
     const tab = listViewFilterString(prefs, 'tab');
     if (tab === 'todo') params['tab'] = 'todo';
+    // Restore the last To do list (Unfiled is the default, so it needs no param; old 'reply' is ignored).
     const queue = listViewFilterString(prefs, 'queue');
-    if (queue && queue !== 'reply') params['queue'] = queue;
+    if (queue === 'forms' || queue === 'nextStep' || queue === 'quiet') params['queue'] = queue;
     const organization = listViewFilterString(prefs, 'organization');
     if (organization) params['organization'] = organization;
+    const card = listViewFilterString(prefs, 'card');
+    if (card && !organization) params['card'] = card;
     const person = listViewFilterString(prefs, 'person');
     if (person) params['person'] = person;
-    if (Object.keys(params).length) this.navigate(params);
+    if (Object.keys(params).length) {
+      await this.router.navigate([], { relativeTo: this.route, queryParams: params, queryParamsHandling: 'merge', replaceUrl: true });
+    }
+    this.prefsReady = true;
   }
 
   private persistActivityPagePrefs() {
@@ -755,14 +895,16 @@ export class ActivityPage implements OnInit {
     };
     const organization = this.orgId();
     if (organization) filters['organization'] = organization;
+    const card = this.cardId();
+    if (card) filters['card'] = card;
     const person = this.personId();
     if (person) filters['person'] = person;
     patchListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.activity, { filters });
   }
 
   private navigate(params: Record<string, string | null>) {
+    // Saved by the prefs effect once the URL (and so tab/queue/organization/person) has actually changed.
     void this.router.navigate([], { relativeTo: this.route, queryParams: params, queryParamsHandling: 'merge', replaceUrl: true });
-    this.persistActivityPagePrefs();
   }
 
   setMine(value: boolean) {
@@ -781,12 +923,13 @@ export class ActivityPage implements OnInit {
   }
 
   setQueue(q: QueueKey) {
-    this.navigate({ tab: 'todo', queue: q === 'reply' ? null : q });
+    this.navigate({ tab: 'todo', queue: q === 'unfiled' ? null : q });
   }
 
   setOrg(id: string | null) {
     this.orgNextActionTag.set(null);
-    this.navigate({ organization: id || null, person: null });
+    if (id?.startsWith('card:')) this.navigate({ organization: null, card: id.slice(5), person: null });
+    else this.navigate({ organization: id || null, card: null, person: null });
   }
 
   onOrgNextStepHeaderStatus(tag: { label: string; severity: 'danger' | 'warn' } | null) {
@@ -794,13 +937,40 @@ export class ActivityPage implements OnInit {
   }
 
   setPerson(pickId: string | null) {
-    this.navigate({ person: contactIdFromDirectoryId(pickId), organization: null });
+    this.navigate({ person: contactIdFromDirectoryId(pickId), organization: null, card: null });
   }
 
   countOf(q: QueueKey): number {
+    if (q === 'forms') return this.submissions().length;
+    if (this.cardId()) {
+      const n = this.queues()?.nextStep.filter((r) => r.leadId === this.cardId()).length ?? 0;
+      return q === 'nextStep' ? n : 0;
+    }
     const c = this.queues()?.counts;
     if (!c) return 0;
     return c[q];
+  }
+
+  /** The standard person card (same markup as person cards in notes), for the person Details panel. */
+  personCard(p: ContactSummary): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(
+      personCardInnerHtml({
+        contactId: p.id,
+        name: contactName(p),
+        firstName: p.firstName ?? '',
+        lastName: p.lastName ?? null,
+        role: p.title ?? null,
+        email: p.emails[0]?.email ?? '',
+        phone: p.phone ?? '',
+        avatarUrl: p.avatarUrl ?? null,
+      }),
+    );
+  }
+
+  /** Card click opens the person; its own email and phone links still work. */
+  openPersonPage(event: Event, id: string) {
+    if ((event.target as HTMLElement | null)?.closest('a')) return;
+    void this.router.navigate(['/people', id]);
   }
 
   personLabel(p: ContactSummary): string {
@@ -809,16 +979,12 @@ export class ActivityPage implements OnInit {
 
   whenHeader(): string {
     const q = this.queue();
-    return q === 'reply' ? 'Waiting since' : q === 'nextStep' ? 'Due' : 'Last contact';
+    return q === 'nextStep' ? 'Due' : 'Last contact';
   }
 
   whenLabel(row: QueueRow): string {
     if (!row.at) return row.queue === 'NEXT_STEP' ? 'No date' : 'Never';
     const d = new Date(row.at);
-    if (row.queue === 'REPLY') {
-      const days = Math.floor((Date.now() - d.getTime()) / DAY);
-      return `${days} day${days === 1 ? '' : 's'} (${relativeTime(row.at)})`;
-    }
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
   }
 
@@ -900,18 +1066,7 @@ export class ActivityPage implements OnInit {
 
   rowActions(row: QueueRow): RowActionItem[] {
     const actions: RowActionItem[] = [];
-    if (row.queue === 'REPLY') {
-      if (row.clientId) {
-        actions.push({
-          id: 'thread',
-          label: 'Open timeline',
-          icon: 'pi pi-comments',
-          command: () => this.navigate({ tab: null, queue: null, organization: row.clientId, person: null }),
-        });
-      }
-      actions.push({ id: 'done', label: 'No reply needed', icon: 'pi pi-check', command: () => void this.snooze(row, null, 'Cleared') });
-      actions.push({ id: 'snooze', label: 'Snooze 3 days', icon: 'pi pi-clock', command: () => void this.snooze(row, 3, 'Snoozed') });
-    } else if (row.queue === 'NEXT_STEP') {
+    if (row.queue === 'NEXT_STEP') {
       if (row.leadId) {
         actions.push({ id: 'card', label: 'Open pipeline card', icon: 'pi pi-external-link', command: () => void this.router.navigate(['/pipeline', row.leadId]) });
       } else if (row.clientId) {
@@ -925,8 +1080,17 @@ export class ActivityPage implements OnInit {
     return actions;
   }
 
-  unfiledActions(item: Interaction): RowActionItem[] {
-    return [{ id: 'file', label: 'File…', icon: 'pi pi-folder', command: () => void this.openFile(item) }];
+  /** Pipeline cards and pipelines: for the Organization filter (unlinked cards) and the File dialog. */
+  private cardsLoaded: Promise<void> = Promise.resolve();
+  private loadCardsAndPipelines(): Promise<void> {
+    this.cardsLoaded = Promise.all([
+      this.api.get<{ id: string; organization: string; pipelineId: string | null; clientId: string | null }[]>('/leads').catch(() => []),
+      this.pipelinesApi.list().catch(() => []),
+    ]).then(([leads, pipelines]) => {
+      this.leads.set(leads.map((l) => ({ id: l.id, label: l.organization, pipelineId: l.pipelineId ?? null, clientId: l.clientId ?? null })));
+      this.pipelines.set(pipelines.map((p) => ({ id: p.id, name: p.name, stages: [...p.stages].sort((a, b) => a.sortOrder - b.sortOrder).map((l) => ({ id: l.id, name: l.name })) })));
+    });
+    return this.cardsLoaded;
   }
 
   async openFile(item: Interaction) {
@@ -936,19 +1100,48 @@ export class ActivityPage implements OnInit {
     this.learn = true;
     this.fileError.set(null);
     this.fileVisible = true;
-    if (this.leads().length === 0) {
-      const leads = await this.api.get<{ id: string; organization: string }[]>('/leads').catch(() => []);
-      this.leads.set(leads.map((l) => ({ id: l.id, label: l.organization })));
-    }
+    await this.cardsLoaded;
+    this.pipelineId.set(this.pipelines()[0]?.id ?? null);
+    // New card: prefill from the sender.
+    const from = senderAndRecipients(item).from;
+    const email = from?.email ?? '';
+    this.newCard = false;
+    this.newContact = from?.name?.trim() ?? '';
+    this.newEmail = email;
+    this.newOrg = '';
+    this.newLaneId = this.lanes()[0]?.id ?? null;
+  }
+
+  canSaveFile(): boolean {
+    if (this.kind === 'lead' && this.newCard) return !!(this.newOrg ?? '').trim() && !!this.newLaneId;
+    return !!this.targetId;
   }
 
   async saveFile() {
     const item = this.active();
-    if (!item || !this.targetId) return;
+    if (!item || !this.canSaveFile()) return;
     this.saving.set(true);
     this.fileError.set(null);
     try {
-      const res = await this.comms.file(item.id, this.kind === 'client' ? { clientId: this.targetId, learn: this.learn } : { leadId: this.targetId });
+      if (this.kind === 'lead' && this.newCard) {
+        // Create the card in the chosen lane, then file the email to it.
+        const senderContactId = senderAndRecipients(item).from?.contactId ?? undefined;
+        const orgName = (this.newOrg ?? '').trim();
+        // Picked an existing organization: link the card to it.
+        const existingOrg = this.orgOptions().find((o) => o.label.trim().toLowerCase() === orgName.toLowerCase());
+        const created = await this.api.post<{ id: string; organization: string; pipelineId: string | null }>('/leads', {
+          organization: existingOrg?.label ?? orgName,
+          ...(existingOrg ? { clientId: existingOrg.id } : {}),
+          primaryContact: this.newContact.trim() || undefined,
+          email: this.newEmail.trim() || undefined,
+          stageId: this.newLaneId,
+          source: 'INBOUND',
+          ...(senderContactId ? { primaryContactId: senderContactId } : {}),
+        });
+        this.leads.update((l) => [...l, { id: created.id, label: created.organization, pipelineId: created.pipelineId ?? null, clientId: existingOrg?.id ?? null }]);
+        this.targetId = created.id;
+      }
+      const res = await this.comms.file(item.id, this.kind === 'client' ? { clientId: this.targetId!, learn: this.learn } : { leadId: this.targetId! });
       this.fileVisible = false;
       const parts = ['Filed.'];
       if (res.threadItemsFiled) parts.push(`${res.threadItemsFiled} more from the same thread filed too.`);

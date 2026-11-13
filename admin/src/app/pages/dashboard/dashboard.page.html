@@ -16,13 +16,6 @@
     <div class="queue-grid queue-grid--page">
       @if (can('inbox')) {
         <app-queue-card
-          label="Needs reply"
-          accent="red"
-          [count]="counts()?.reply ?? 0"
-          [help]="'Waiting ' + needsReplyDays() + '+ day' + (needsReplyDays() === 1 ? '' : 's') + ' for an answer.'"
-          link="/activity"
-        />
-        <app-queue-card
           label="Next steps due"
           accent="orange"
           [count]="counts()?.nextStepDue ?? 0"
@@ -108,7 +101,7 @@
                 } @else {
                   <p class="side-list-empty">No next steps due in the next week.</p>
                 }
-              } @else if (activityTab() === 'quiet') {
+              } @else {
                 @if (quiet().length) {
                   <div class="side-list">
                     @for (r of quiet(); track r.refKey) {
@@ -127,34 +120,6 @@
                 } @else {
                   <p class="side-list-empty">Every active client has been in touch recently.</p>
                 }
-              } @else if (replies().length) {
-                <div class="side-list">
-                  @for (r of replies(); track r.refKey) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        @if (r.clientId) {
-                          <a class="side-list-title" [routerLink]="['/organizations', r.clientId]">{{ r.clientName }}</a>
-                        } @else if (r.contactId) {
-                          <a class="side-list-title" [routerLink]="['/people', r.contactId]">{{ r.person || 'Unknown sender' }}</a>
-                        } @else {
-                          <span class="side-list-title">{{ r.person || 'Unknown sender' }}</span>
-                        }
-                        <span class="side-list-detail">
-                          @if (r.clientId && r.contactId && r.person) {
-                            <a [routerLink]="['/people', r.contactId]">{{ r.person }}</a>: {{ r.title }}
-                          } @else if (r.clientId && r.person) {
-                            {{ r.person }}: {{ r.title }}
-                          } @else {
-                            {{ r.title }}
-                          }
-                        </span>
-                      </div>
-                      <span class="side-list-value">{{ waiting(r) }}</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <p class="side-list-empty">Nothing waiting on a reply.</p>
               }
             </app-dashboard-panel>
           }

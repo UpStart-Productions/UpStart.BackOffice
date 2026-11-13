@@ -51,7 +51,7 @@ type Booking = {
 };
 
 type PanelId = 'tasks' | 'time' | 'activity' | 'invoices' | 'bookings' | 'submissions' | 'shifts';
-type ActivityTab = 'replies' | 'nextSteps' | 'quiet';
+type ActivityTab = 'nextSteps' | 'quiet';
 type Panel = { id: PanelId; area: PermissionArea; wide?: boolean };
 
 /** The three old Activity cards, collapsed into the Activity panel wherever the first of them sat. */
@@ -161,7 +161,7 @@ export class DashboardPage implements OnInit, OnDestroy {
   readonly stopping = signal(false);
 
   /** Which list the Activity card is showing. The footer link opens that same list. */
-  readonly activityTab = signal<ActivityTab>('replies');
+  readonly activityTab = signal<ActivityTab>('nextSteps');
 
   // ── Access ───────────────────────────────────────────────────────────────
 
@@ -221,17 +221,14 @@ export class DashboardPage implements OnInit, OnDestroy {
   // ── Activity queues ──────────────────────────────────────────────────────
 
   readonly counts = computed(() => this.queues().data?.counts ?? null);
-  readonly needsReplyDays = computed(() => this.queues().data?.thresholds.needsReplyDays ?? 2);
 
   readonly nextSteps = computed<QueueRow[]>(() => {
     const horizon = addDaysKey(todayKey(), LOOKAHEAD_DAYS);
     return (this.queues().data?.nextStep ?? []).filter((r) => r.overdue || r.dueToday || (r.at && dateKey(new Date(r.at)) <= horizon));
   });
-  readonly replies = computed(() => this.queues().data?.reply ?? []);
   readonly quiet = computed(() => this.queues().data?.quiet ?? []);
 
   readonly activityTabs = computed<DashboardPanelTab[]>(() => [
-    { id: 'replies', label: 'Needs reply', count: this.replies().length, countTone: 'danger' },
     { id: 'nextSteps', label: 'Next steps', count: this.nextSteps().length, countTone: 'warning' },
     { id: 'quiet', label: 'Gone quiet', count: this.quiet().length, countTone: 'info' },
   ]);
@@ -239,12 +236,10 @@ export class DashboardPage implements OnInit, OnDestroy {
   /** Footer opens Activity → To do with the matching queue (All activity is the page default). */
   readonly activityQuery = computed(() => {
     switch (this.activityTab()) {
-      case 'nextSteps':
-        return { tab: 'todo', queue: 'nextStep' };
       case 'quiet':
         return { tab: 'todo', queue: 'quiet' };
       default:
-        return { tab: 'todo' };
+        return { tab: 'todo', queue: 'nextStep' };
     }
   });
 
@@ -394,10 +389,6 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   invoiceBalance(i: Invoice): number {
     return this.balance(i);
-  }
-
-  waiting(r: QueueRow): string {
-    return r.at ? relativeTime(r.at) : '';
   }
 
   lastContact(r: QueueRow): string {
