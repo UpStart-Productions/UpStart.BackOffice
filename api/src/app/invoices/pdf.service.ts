@@ -1,6 +1,6 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { currentTenantId, runUnscoped } from '../tenancy/tenant-context';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser, type HTTPRequest } from 'puppeteer';
 import { PrismaService } from '../prisma/prisma.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { getUpstartLogoDataUri } from './brand-logo';
@@ -43,14 +43,28 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+const PDF_SET_CONTENT_TIMEOUT_MS = 25_000;
+
 @Injectable()
-export class PdfService {
+export class PdfService implements OnModuleDestroy {
   private readonly logger = new Logger(PdfService.name);
+  private browserPromise: Promise<Browser> | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
+
+  async onModuleDestroy() {
+    if (!this.browserPromise) return;
+    try {
+      const browser = await this.browserPromise;
+      await browser.close();
+    } catch {
+      /* ignore shutdown races */
+    }
+    this.browserPromise = null;
+  }
 
   async generateInvoicePdf(
     invoice: InvoiceData,
@@ -63,30 +77,56 @@ export class PdfService {
       : await this.prisma.organizationProfile.findUnique({ where: { tenantId: currentTenantId() } });
     const html = await this.buildInvoiceHtml(invoice, fromName, profile, payUrl, person);
 
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
-    const browser = await puppeteer.launch({
-      headless: true,
-      ...(executablePath ? { executablePath } : {}),
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    });
-
+    const started = Date.now();
+    const browser = await this.getBrowser();
+    const page = await browser.newPage();
+  const onRequest = (req: HTTPRequest) => {
+      const url = req.url();
+      if (url === 'about:blank' || url.startsWith('data:')) {
+        void req.continue();
+      } else {
+        void req.abort();
+      }
+    };
     try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setRequestInterception(true);
+      page.on('request', onRequest);
+      const contentStarted = Date.now();
+      await page.setContent(html, {
+        waitUntil: 'domcontentloaded',
+        timeout: PDF_SET_CONTENT_TIMEOUT_MS,
+      });
+      const pdfStarted = Date.now();
       const pdf = await page.pdf({
         format: 'Letter',
         printBackground: true,
         margin: { top: '0.75in', bottom: '0.75in', left: '0.75in', right: '0.75in' },
       });
+      this.logger.log(
+        `Invoice PDF ${invoice.displayNumber}: render ${pdfStarted - contentStarted}ms, print ${Date.now() - pdfStarted}ms, total ${Date.now() - started}ms`,
+      );
       return Buffer.from(pdf);
     } finally {
-      await browser.close();
+      page.off('request', onRequest);
+      await page.close();
     }
+  }
+
+  private async getBrowser(): Promise<Browser> {
+    if (!this.browserPromise) {
+      const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH?.trim();
+      this.browserPromise = puppeteer.launch({
+        headless: true,
+        ...(executablePath ? { executablePath } : {}),
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+        ],
+      });
+    }
+    return this.browserPromise;
   }
 
   /** Who submitted an invoice to the organization. By id, unscoped: a super user's row belongs to no tenant. */

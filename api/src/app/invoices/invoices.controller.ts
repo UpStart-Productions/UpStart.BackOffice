@@ -470,7 +470,9 @@ export class InvoicesController {
       await this.pay.cancelForInvoice(invoice.id);
     }
 
-    // Draft saves must not block on Chromium PDF (gateway timeouts in production). Preview/send still generate on demand.
+    // Draft save: drop cached PDF so the next download regenerates once; do not run Chromium here.
+    await this.storageFolders.removeInvoicePdf(invoice.clientId, invoice.displayNumber);
+
     if (dto.status === 'SENT') {
       await this.generateAndStorePdf(invoice);
     }
@@ -691,10 +693,14 @@ export class InvoicesController {
     }
   }
 
-  private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
+  private async renderInvoicePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
     const fromName = publicFromName(process.env.MAIL_FROM_NAME);
     const payUrl = await this.pay.payUrlForInvoice(invoice);
-    const pdfBuffer = await this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
+    return this.pdf.generateInvoicePdf(invoice, fromName, payUrl);
+  }
+
+  private async generateAndStorePdf(invoice: InvoiceWithDetails): Promise<Buffer> {
+    const pdfBuffer = await this.renderInvoicePdf(invoice);
     await this.storageFolders.saveInvoicePdf(
       invoice.clientId,
       invoice.displayNumber,
@@ -703,18 +709,16 @@ export class InvoicesController {
     return pdfBuffer;
   }
 
-  /** Drafts: generate a preview PDF. Sent/paid/void: serve the stored copy from send only. */
+  /** Use stored PDF when present; drafts regenerate on first download after each save. */
   private async resolveInvoicePdfForDownload(invoice: InvoiceWithDetails): Promise<Buffer> {
+    const stored = await this.storageFolders.readInvoicePdf(invoice.clientId, invoice.displayNumber);
+    if (stored) return stored;
     if (invoice.status === 'DRAFT') {
       return this.generateAndStorePdf(invoice);
     }
-    const stored = await this.storageFolders.readInvoicePdf(invoice.clientId, invoice.displayNumber);
-    if (!stored) {
-      throw new NotFoundException(
-        'Stored invoice PDF not found. It is created when the invoice is first sent.',
-      );
-    }
-    return stored;
+    throw new NotFoundException(
+      'Stored invoice PDF not found. It is created when the invoice is first sent.',
+    );
   }
 
   /** First send generates and stores; resend reuses the stored PDF. */
