@@ -1,7 +1,14 @@
 <app-page title="Invoices">
   <ng-container ngProjectAs="[pageActions]">
-    <p-button label="Export" icon="pi pi-download" severity="secondary" [outlined]="true" (onClick)="openExport()" />
-    <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
+    <span class="split-action">
+      <a pButton label="New Invoice" icon="pi pi-plus" routerLink="/invoices/new"></a>
+      <app-row-actions-menu
+        class="split-action-more"
+        [attached]="true"
+        [items]="headerMenuActions()"
+        ariaLabel="More invoice list actions"
+      />
+    </span>
   </ng-container>
   @if (error()) {
     <div class="card">
@@ -19,19 +26,6 @@
         />
       </div>
     </div>
-    @if (overdueCount() > 0) {
-      <p-message
-        severity="error"
-        [text]="overdueCount() + ' overdue invoice' + (overdueCount() === 1 ? '' : 's') + ' need attention.'"
-        styleClass="mb-3"
-      />
-    } @else if (dueCount() > 0) {
-      <p-message
-        severity="warn"
-        [text]="dueCount() + ' unpaid invoice' + (dueCount() === 1 ? '' : 's') + ' with upcoming due dates.'"
-        styleClass="mb-3"
-      />
-    }
     <p-table
       [value]="invoiceTableRows()"
       [loading]="loading()"

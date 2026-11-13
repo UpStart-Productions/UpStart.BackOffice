@@ -647,7 +647,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   invoices: {
     title: 'Invoices',
-    intro: 'Every invoice, newest first. Overdue and due-soon warnings appear above the table.',
+    intro: 'Every invoice, newest first. Overdue and due-soon rows are highlighted in the table.',
     sections: [
       {
         heading: 'New Invoice',
@@ -655,7 +655,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Export',
-        body: 'Downloads a CSV of Sent and Paid invoices addressed to your organization, issued in the date range you pick: person, hours, time, reimbursements and total per invoice. Use it for payroll or accounting.',
+        body: 'Open the ⋮ menu on New Invoice → Export all invoices. Downloads a CSV of Sent and Paid invoices addressed to your organization, issued in the date range you pick: person, hours, time, reimbursements and total per invoice. Use it for payroll or accounting.',
       },
       {
         heading: 'Status',

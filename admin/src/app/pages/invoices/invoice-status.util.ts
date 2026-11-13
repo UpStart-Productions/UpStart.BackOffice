@@ -1,5 +1,8 @@
 export type InvoiceDueFlag = 'overdue' | 'due' | null;
 
+/** Unpaid invoices within this many calendar days of the due date show due-soon highlighting. */
+export const INVOICE_DUE_SOON_DAYS = 14;
+
 export type InvoiceDueSortable = {
   status: string;
   dueDate?: string | null;
@@ -17,7 +20,7 @@ export function isUnpaidInvoiceStatus(status: string): boolean {
   return status !== 'PAID' && status !== 'VOID';
 }
 
-/** Unpaid invoice with a due date — should be highlighted in lists. */
+/** Unpaid invoice overdue, or due within {@link INVOICE_DUE_SOON_DAYS} — highlighted in lists. */
 export function invoiceDueFlag(
   dueDate: string | null | undefined,
   status: string,
@@ -27,7 +30,13 @@ export function invoiceDueFlag(
 
   const due = startOfDay(new Date(dueDate));
   const today = startOfDay(asOf);
-  return due < today ? 'overdue' : 'due';
+  if (due < today) return 'overdue';
+
+  const dueSoonThrough = new Date(today);
+  dueSoonThrough.setDate(dueSoonThrough.getDate() + INVOICE_DUE_SOON_DAYS);
+  if (due <= startOfDay(dueSoonThrough)) return 'due';
+
+  return null;
 }
 
 export function isInvoiceOverdue(

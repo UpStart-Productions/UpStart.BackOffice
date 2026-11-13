@@ -470,7 +470,10 @@ export class InvoicesController {
       await this.pay.cancelForInvoice(invoice.id);
     }
 
-    await this.generateAndStorePdf(invoice);
+    // Draft saves must not block on Chromium PDF (gateway timeouts in production). Preview/send still generate on demand.
+    if (dto.status === 'SENT') {
+      await this.generateAndStorePdf(invoice);
+    }
     return withLinkIds(invoice);
   }
 

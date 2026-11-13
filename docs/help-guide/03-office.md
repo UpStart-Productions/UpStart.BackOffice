@@ -54,7 +54,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Invoices
 
-**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **Add to pipeline** (when your role allows) puts the invoice on a pipeline you pick, in that pipeline's **first lane** — one card per pipeline per invoice. Team members with Pipeline access who left pipeline notifications on get an in-app alert when the invoice is added and when the card moves. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue/due warnings may appear above the table.
+**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **Add to pipeline** (when your role allows) puts the invoice on a pipeline you pick, in that pipeline's **first lane** — one card per pipeline per invoice. Team members with Pipeline access who left pipeline notifications on get an in-app alert when the invoice is added and when the card moves. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue invoices and unpaid invoices due within the next two weeks are highlighted in the table (red and yellow backgrounds).
 
 ### Bill to: a client or your organization
 
@@ -65,7 +65,7 @@ The two are tracked separately: the same hour, or the same expense, can go on th
 
 ### Export
 
-**Export** (next to **New Invoice**) downloads a CSV of **Sent** and **Paid** invoices addressed to your organization with an issue date in the range you pick (defaults to last month). One row per invoice: invoice number, person, email, issue date, status, paid date, hours, time amount, reimbursements, other lines, tax and total. Use it for payroll or accounting. If you're not an admin, the export only includes your own invoices and invoices with time or expenses from projects you lead.
+**Export all invoices** (**New Invoice** → ⋮ menu) downloads a CSV of **Sent** and **Paid** invoices addressed to your organization with an issue date in the range you pick (defaults to last month). One row per invoice: invoice number, person, email, issue date, status, paid date, hours, time amount, reimbursements, other lines, tax and total. Use it for payroll or accounting. If you're not an admin, the export only includes your own invoices and invoices with time or expenses from projects you lead.
 
 ## Forms
 

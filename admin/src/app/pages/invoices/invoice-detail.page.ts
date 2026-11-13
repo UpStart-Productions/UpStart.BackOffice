@@ -126,14 +126,6 @@ export class InvoiceDetailPage implements OnInit {
     const inv = this.invoice();
     if (!inv) return [];
     const actions: RowActionItem[] = [];
-    if (this.canAddToPipeline()) {
-      actions.push({
-        id: 'pipeline',
-        label: 'Add to pipeline',
-        icon: 'pi pi-share-alt',
-        command: () => void this.pipelineDialog()?.open(),
-      });
-    }
     actions.push({
       id: 'pdf',
       label: 'Download PDF',
@@ -144,7 +136,7 @@ export class InvoiceDetailPage implements OnInit {
       actions.push({
         id: 'resend',
         label: 'Resend',
-        icon: 'pi pi-replay',
+        icon: 'pi pi-envelope',
         command: () => void this.resend(),
       });
     }
@@ -152,8 +144,16 @@ export class InvoiceDetailPage implements OnInit {
       actions.push({
         id: 'retract',
         label: 'Retract',
-        icon: 'pi pi-undo',
+        icon: 'pi pi-ban',
         command: () => this.confirmRetract(),
+      });
+    }
+    if (this.canAddToPipeline()) {
+      actions.push({
+        id: 'pipeline',
+        label: 'Add to pipeline',
+        icon: 'pi pi-share-alt',
+        command: () => void this.pipelineDialog()?.open(),
       });
     }
     if (this.canDeleteInvoice()) {

@@ -121,13 +121,14 @@ export class InvoicesListPage implements OnInit {
     })),
   );
 
-  readonly overdueCount = computed(
-    () => this.invoices().filter((inv) => invoiceDueFlag(inv.dueDate, inv.status) === 'overdue').length,
-  );
-
-  readonly dueCount = computed(
-    () => this.invoices().filter((inv) => invoiceDueFlag(inv.dueDate, inv.status) === 'due').length,
-  );
+  readonly headerMenuActions = computed<RowActionItem[]>(() => [
+    {
+      id: 'export',
+      label: 'Export all invoices',
+      icon: 'pi pi-download',
+      command: () => this.openExport(),
+    },
+  ]);
 
   readonly emptyMessage = computed(() => {
     if (this.searchDebounced().trim() && this.searchedInvoices().length === 0 && this.invoices().length > 0) {
@@ -257,14 +258,21 @@ export class InvoicesListPage implements OnInit {
   }
 
   getRowActions(invoice: Invoice): RowActionItem[] {
-    const actions: RowActionItem[] = [
-      {
-        id: 'pdf',
-        label: 'Download PDF',
-        icon: 'pi pi-file-pdf',
-        command: () => this.downloadPdf(invoice),
-      },
-    ];
+    const actions: RowActionItem[] = [];
+    if (invoice.status === 'DRAFT') {
+      actions.push({
+        id: 'edit',
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => this.router.navigate(['/invoices', invoice.id, 'edit']),
+      });
+    }
+    actions.push({
+      id: 'pdf',
+      label: 'Download PDF',
+      icon: 'pi pi-file-pdf',
+      command: () => this.downloadPdf(invoice),
+    });
     if (invoice.status === 'DRAFT') {
       actions.push({
         id: 'send',
@@ -276,7 +284,7 @@ export class InvoicesListPage implements OnInit {
       actions.push({
         id: 'resend',
         label: 'Resend',
-        icon: 'pi pi-replay',
+        icon: 'pi pi-envelope',
         command: () => this.send(invoice, true),
       });
     }
@@ -288,19 +296,11 @@ export class InvoicesListPage implements OnInit {
         command: () => this.markPaid(invoice),
       });
     }
-    if (invoice.status === 'DRAFT') {
-      actions.push({
-        id: 'edit',
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => this.router.navigate(['/invoices', invoice.id, 'edit']),
-      });
-    }
     if (invoice.status === 'SENT') {
       actions.push({
         id: 'retract',
         label: 'Retract',
-        icon: 'pi pi-undo',
+        icon: 'pi pi-ban',
         command: () => this.confirmRetract(invoice),
       });
     }
