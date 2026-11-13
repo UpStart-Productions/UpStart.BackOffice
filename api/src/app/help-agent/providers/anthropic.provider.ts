@@ -72,7 +72,8 @@ export class AnthropicHelpAgentProvider implements HelpAgentProvider {
         ANTHROPIC_API_URL,
         {
           model,
-          max_tokens: 4096,
+          // Room for a long make_report (its rows are output tokens).
+          max_tokens: 16_000,
           system: systemPrompt,
           messages,
           tools: tools.map((t) => ({ name: t.name, description: t.description, input_schema: t.inputSchema })),
@@ -84,7 +85,7 @@ export class AnthropicHelpAgentProvider implements HelpAgentProvider {
             'anthropic-version': ANTHROPIC_VERSION,
             'content-type': 'application/json',
           },
-          timeout: 60_000,
+          timeout: 180_000,
           validateStatus: () => true,
         },
       );

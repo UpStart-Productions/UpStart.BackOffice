@@ -6,6 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { TagModule } from 'primeng/tag';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { FORM_FIELD_TYPE_LABELS } from '@upstart/back-office/shared';
 
 /** A change the guide proposed. Nothing runs until the person confirms it on this card. */
 export interface HelpAgentAction {
@@ -49,12 +50,46 @@ function labelFor(key: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-function itemSummary(item: unknown): string {
-  if (!item || typeof item !== 'object') return String(item ?? '');
-  return Object.entries(item as Record<string, unknown>)
-    .filter(([k, v]) => !HIDDEN.has(k) && v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => `${labelFor(k)}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
-    .join('; ');
+const HEADLINE_KEYS = ['name', 'label', 'title'];
+
+/** One value as short text: field types by their app label, yes/no for booleans. */
+function scalarText(key: string, value: unknown): string {
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (key === 'type' && typeof value === 'string' && value in FORM_FIELD_TYPE_LABELS) {
+    return FORM_FIELD_TYPE_LABELS[value as keyof typeof FORM_FIELD_TYPE_LABELS];
+  }
+  return String(value);
+}
+
+/**
+ * An item (and any lists inside it, e.g. a form's sections with their fields) as indented outline lines:
+ * its name first, other plain values in parentheses, nested lists below it.
+ */
+function itemLines(item: unknown, indent: string, marker: string): string[] {
+  if (!item || typeof item !== 'object') return [`${indent}${marker}${String(item ?? '')}`];
+  const entries = Object.entries(item as Record<string, unknown>).filter(
+    ([k, v]) => !HIDDEN.has(k) && v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && !v.length),
+  );
+  const headKey = HEADLINE_KEYS.find((k) => entries.some(([e, v]) => e === k && typeof v === 'string'));
+  const head = headKey ? String(entries.find(([k]) => k === headKey)![1]) : '';
+  const plain = entries
+    .filter(([k, v]) => k !== headKey && (typeof v !== 'object' || (Array.isArray(v) && v.every((x) => typeof x !== 'object'))))
+    .map(([k, v]) => (Array.isArray(v) ? `${labelFor(k)}: ${v.join(', ')}` : `${labelFor(k)}: ${scalarText(k, v)}`));
+  const nested = entries.filter(([, v]) => typeof v === 'object' && !(Array.isArray(v) && v.every((x) => typeof x !== 'object')));
+  const line = head ? `${head}${plain.length ? ` (${plain.join(', ')})` : ''}` : plain.join('; ');
+  const out = [`${indent}${marker}${line}`];
+  const inner = indent + ' '.repeat(Math.max(marker.length, 2));
+  for (const [k, v] of nested) {
+    out.push(`${inner}${labelFor(k)}:`);
+    const list = Array.isArray(v) ? v : [v];
+    list.forEach((x) => out.push(...itemLines(x, inner + '  ', '- ')));
+  }
+  return out;
+}
+
+/** A list of items as a numbered outline. */
+function itemsOutline(items: unknown[]): string {
+  return items.flatMap((v, i) => itemLines(v, '', `${i + 1}. `)).join('\n');
 }
 
 /**
@@ -165,9 +200,9 @@ export class HelpAgentActionCardComponent {
       } else if (Array.isArray(value) && value.every((v) => typeof v === 'string')) {
         out.push({ key, label: labelFor(key), kind: 'list', display: value.join(', ') });
       } else if (Array.isArray(value)) {
-        out.push({ key, label: labelFor(key), kind: 'items', display: value.map((v, i) => `${i + 1}. ${itemSummary(v)}`).join('\n') });
+        out.push({ key, label: labelFor(key), kind: 'items', display: itemsOutline(value) });
       } else if (typeof value === 'object') {
-        out.push({ key, label: labelFor(key), kind: 'items', display: itemSummary(value) });
+        out.push({ key, label: labelFor(key), kind: 'items', display: itemLines(value, '', '').join('\n') });
       } else {
         out.push({ key, label: labelFor(key), kind: 'text', display: String(value) });
       }

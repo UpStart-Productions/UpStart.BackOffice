@@ -14,7 +14,9 @@ import {
   type HelpAgentAskRequest,
   type HelpAgentHistoryMessage,
   type HelpAgentPageContext,
+  type HelpAgentReport,
 } from '@upstart/back-office/shared';
+import { HelpAgentReportViewerComponent } from './help-agent-report-viewer.component';
 import { describePickedElement, describeSelection, type PickedContext } from './help-agent-pick';
 import { HelpAgentActionCardComponent, type HelpAgentAction } from './help-agent-action-card.component';
 import { ButtonModule } from 'primeng/button';
@@ -33,6 +35,8 @@ interface HelpAgentChatMessage {
   lookups?: string[];
   /** Changes the guide proposed; each runs only when confirmed on its card. */
   actions?: HelpAgentAction[];
+  /** Reports the guide built; each opens in a large view with Export PDF. */
+  reports?: HelpAgentReport[];
 }
 
 const GUIDE_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
@@ -62,6 +66,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
     TooltipModule,
     SimpleMarkdownPipe,
     HelpAgentActionCardComponent,
+    HelpAgentReportViewerComponent,
   ],
   template: `
     <div class="help-agent-chat-pane">
@@ -79,6 +84,16 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
                       severity="secondary"
                       [value]="'Looked up ' + msg.lookups!.join(', ')"
                       icon="pi pi-search"
+                    />
+                  }
+                  @for (report of msg.reports ?? []; track report.id) {
+                    <p-button
+                      styleClass="help-agent-report-link"
+                      [link]="true"
+                      size="small"
+                      icon="pi pi-file"
+                      [label]="report.title"
+                      (onClick)="openReport(report)"
                     />
                   }
                   @for (action of msg.actions ?? []; track $index; let ai = $index) {
@@ -200,6 +215,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
         </div>
       </div>
     </div>
+    <app-help-agent-report-viewer [report]="openedReport()" [(visible)]="reportVisible" />
   `,
 })
 export class HelpAgentChatPaneComponent implements OnInit {
@@ -305,6 +321,7 @@ export class HelpAgentChatPaneComponent implements OnInit {
         answer: string;
         lookups?: string[];
         actions?: Array<Omit<HelpAgentAction, 'status' | 'error'>>;
+        reports?: HelpAgentReport[];
       }>('/help-agent/ask', body);
       const actions = (res.actions ?? []).map((a) => ({ ...a, status: 'pending' as const }));
       this.chatMessages.update((msgs) => [
@@ -314,6 +331,7 @@ export class HelpAgentChatPaneComponent implements OnInit {
           text: res.answer,
           ...(res.lookups?.length ? { lookups: res.lookups } : {}),
           ...(actions.length ? { actions } : {}),
+          ...(res.reports?.length ? { reports: res.reports } : {}),
         },
       ]);
     } catch (err) {
@@ -326,6 +344,14 @@ export class HelpAgentChatPaneComponent implements OnInit {
       this.chatSending.set(false);
       this.scrollLastMessageIntoView();
     }
+  }
+
+  readonly openedReport = signal<HelpAgentReport | null>(null);
+  readonly reportVisible = signal(false);
+
+  openReport(report: HelpAgentReport) {
+    this.openedReport.set(report);
+    this.reportVisible.set(true);
   }
 
   patchAction(messageIndex: number, actionIndex: number, patch: Partial<HelpAgentAction>) {

@@ -35,6 +35,7 @@ export const HELP_AGENT_READ_TOOLS: ReadonlySet<string> = new Set([
   'get_form',
   'list_form_submissions',
   'get_form_submission',
+  'list_activity',
 ]);
 
 /**
@@ -104,6 +105,7 @@ export const HELP_AGENT_TOOL_LABELS: Record<string, string> = {
   get_form: 'forms',
   list_form_submissions: 'form submissions',
   get_form_submission: 'form submissions',
+  list_activity: 'activity',
 };
 
 /** Longest tool result passed back to the model; longer ones are cut with a note. */

@@ -2,9 +2,13 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import {
   HELP_AGENT_NAME,
+  HELP_AGENT_REPORT_TOOL,
+  normalizeHelpAgentReport,
   normalizeHelpLabel,
+  type HelpAgentReport,
   tasksOnly,
   type HelpAgentHistoryMessage,
   type HelpAgentPageContext,
@@ -14,7 +18,7 @@ import { HELP_AGENT_UI_LABELS } from '@upstart/back-office/shared/help-labels';
 import type { UserContext } from '../common/app.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { decryptSecret, encryptSecret } from './help-agent-crypto.util';
-import { HelpAgentProvider, HelpAgentToolCallLog, HelpAgentTurn } from './help-agent-provider.interface';
+import { HelpAgentProvider, HelpAgentToolCallLog, HelpAgentToolSpec, HelpAgentTurn } from './help-agent-provider.interface';
 import { AnthropicHelpAgentProvider } from './providers/anthropic.provider';
 import { OpenAiHelpAgentProvider } from './providers/openai.provider';
 import { GeminiHelpAgentProvider } from './providers/gemini.provider';
@@ -30,7 +34,8 @@ import {
 } from './help-agent-mcp.client';
 
 /** Most record lookups for one question. */
-const MAX_TOOL_CALLS = 6;
+/** Includes make_report (a report is usually one or two lookups, then the report). */
+const MAX_TOOL_CALLS = 8;
 
 const SETTINGS_ID = 'default';
 
@@ -131,6 +136,8 @@ export interface HelpAgentAnswer {
   lookups: string[];
   /** Changes the guide proposes; each runs only when the person confirms it (POST /help-agent/actions/run). */
   actions: Array<{ tool: string; title: string; confirm: string; args: Record<string, unknown> }>;
+  /** Reports built this turn (make_report): the widget shows a link that opens each one in a large view. */
+  reports: HelpAgentReport[];
 }
 
 /** Modes: guide only (help files, no record data) or reads records (tools through the MCP server). */
@@ -185,6 +192,8 @@ function recordRules(): string[] {
     'Format for readability: one short lead line, then markdown lists. Never use em dashes (—); never chain fields with dashes on one line. Use `-` bullets for breakdowns (paid vs sent, totals by client). For several records, use one `-` line per record: the first thing on the line must be the markdown link from tool results (e.g. [LOVINC-0004](/invoices/…)); put client, status, amount and date on indented `-` lines under it. Do not use bold instead of a link when a link was provided.',
     'Tool results link record names like [Fix login bug](https://…). Whenever you mention one of those records, keep its markdown link exactly as given so the person can click straight to it. Never write, change or guess a link yourself.',
     'If a name matches several records, ask which one. Never guess or pick one yourself.',
+    'Reports: when they ask for a report, a PDF or something to print or export, look the records up, then call make_report once with the content. Use only values from your tool results, list every matching record (never a sample), leave totals to the report, and reply with one short line. A report is only for reading: it never changes anything.',
+    'For communication history (emails, calls, meetings, notes with a person or organization), use list_activity; for a report of it, put each item in a conversation block, oldest first.',
     'For forms, use get_form to see a form\'s sections, questions, options, points and scoring, list_form_submissions for responses with scores, and get_form_submission for one response\'s answers and score by area.',
     'For unbilled time, use preview_invoice_from_time. A project name alone is enough (its client is used); only ask for a client when they named neither. Default to the current month unless they say otherwise.',
   ];
@@ -330,31 +339,51 @@ export class HelpAgentService {
       }
 
       if (mode.readsRecords && provider.generateWithTools) {
+        // make_report runs here, not on the MCP server: it only shapes what was already looked up.
+        const reports: HelpAgentReport[] = [];
+        const looked: string[] = [];
+        const callTool = async (name: string, args: Record<string, unknown>) => {
+          if (name !== HELP_AGENT_REPORT_TOOL.name) {
+            const out = await mode.session.call(name, args);
+            if (!out.isError) looked.push(HELP_AGENT_TOOL_LABELS[name] ?? name);
+            return out;
+          }
+          try {
+            const report = normalizeHelpAgentReport(args, { id: randomUUID(), sources: [...new Set(looked)], createdAt: new Date().toISOString() });
+            reports.push(report);
+            return { text: `Report "${report.title}" is ready; the person opens it from a link under your reply. Introduce it in one short line.`, isError: false };
+          } catch (err) {
+            return { text: err instanceof Error ? err.message : 'That report could not be built.', isError: true };
+          }
+        };
         const run = await provider.generateWithTools({
           systemPrompt,
           messages,
           model: row.model,
           apiKey,
-          tools: mode.session.tools,
-          callTool: (name, args) => mode.session.call(name, args),
+          tools: [...mode.session.tools, HELP_AGENT_REPORT_TOOL as unknown as HelpAgentToolSpec],
+          callTool,
           maxToolCalls: MAX_TOOL_CALLS,
           ...(mode.makesChanges ? { isWriteTool: isHelpAgentWriteTool } : {}),
         });
         const proposed = run.proposedActions.map((a) => ({ ...a, proposed: true }));
+        // A report's contents are record data: the usage log keeps only its title.
+        const logged = run.toolCalls.map((c) => (c.tool === HELP_AGENT_REPORT_TOOL.name ? { ...c, args: { title: c.args['title'] } } : c));
         await this.logUsage(options.caller?.userId, row.model, true, {
           ...run,
-          toolCalls: [...run.toolCalls, ...proposed],
+          toolCalls: [...logged, ...proposed],
         });
-        const lookups = [...new Set(run.toolCalls.map((c) => HELP_AGENT_TOOL_LABELS[c.tool] ?? c.tool))];
+        const lookups = [...new Set(run.toolCalls.filter((c) => c.tool !== HELP_AGENT_REPORT_TOOL.name).map((c) => HELP_AGENT_TOOL_LABELS[c.tool] ?? c.tool))];
         const actions = run.proposedActions.map((a) => ({ ...a, ...HELP_AGENT_WRITE_TOOLS[a.tool] }));
         const answer =
-          run.text.trim() || (actions.length ? "Here's what I'd do. Nothing changes until you confirm." : '');
-        return { answer, lookups, actions };
+          run.text.trim() ||
+          (actions.length ? "Here's what I'd do. Nothing changes until you confirm." : reports.length ? 'Your report is ready.' : '');
+        return { answer, lookups, actions, reports };
       }
 
       const answer = await provider.generate({ systemPrompt, messages, model: row.model, apiKey });
       await this.logUsage(options.caller?.userId, row.model, false, null);
-      return { answer, lookups: [], actions: [] };
+      return { answer, lookups: [], actions: [], reports: [] };
     } finally {
       if (mode.readsRecords) await mode.session.close();
     }
