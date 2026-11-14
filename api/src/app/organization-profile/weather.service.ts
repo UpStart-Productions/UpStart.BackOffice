@@ -106,17 +106,23 @@ export class WeatherService {
     if (!city && !zip) return null;
     const cacheKey = `${city}|${state}|${zip}`;
     const hit = this.geoCache.get(cacheKey);
-    if (hit && Date.now() - hit.at < 24 * 3_600_000) return hit.coords;
+    // Found: keep for a day. Looked up fine but no match: retry after an hour.
+    if (hit && Date.now() - hit.at < (hit.coords ? 24 * 3_600_000 : 3_600_000)) return hit.coords;
 
     const stateName = state ? (US_STATES[state.toUpperCase()] ?? state) : '';
     let coords: Coords | null = null;
+    let answered = false;
     for (const name of [city, zip].filter((x): x is string => !!x)) {
       try {
         const res = await fetch(
           `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=10&language=en&format=json`,
           { signal: AbortSignal.timeout(5000) },
         );
-        if (!res.ok) continue;
+        if (!res.ok) {
+          this.log.warn(`Geocoding ${name}: Open-Meteo ${res.status}`);
+          continue;
+        }
+        answered = true;
         const j = (await res.json()) as { results?: { latitude: number; longitude: number; name: string; admin1?: string; country_code?: string }[] };
         const results = j.results ?? [];
         const match =
@@ -131,7 +137,8 @@ export class WeatherService {
         this.log.warn(`Geocoding failed: ${err instanceof Error ? err.message : err}`);
       }
     }
-    this.geoCache.set(cacheKey, { at: Date.now(), coords });
+    // Never remember a failed lookup (timeout, network, 5xx): that used to blank the weather for 24 hours.
+    if (answered) this.geoCache.set(cacheKey, { at: Date.now(), coords });
     return coords;
   }
 }

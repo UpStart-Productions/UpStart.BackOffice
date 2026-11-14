@@ -77,6 +77,7 @@
       <ng-template pTemplate="emptymessage">
         @if (firstRunEmpty()) {
           <app-empty-state
+            requires="accounts" requiresText="Invoices are billed to an account."
             art="invoices"
             shape="table-rows"
             [columns]="ghostColumns"

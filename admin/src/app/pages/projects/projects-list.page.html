@@ -87,6 +87,7 @@
       <ng-template pTemplate="emptymessage">
         @if (firstRunEmpty()) {
           <app-empty-state
+            requires="accounts" requiresText="Client projects are linked to an account."
             art="projects"
             shape="table-rows"
             [columns]="ghostColumns"

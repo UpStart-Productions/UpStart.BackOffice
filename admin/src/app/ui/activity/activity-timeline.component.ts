@@ -244,7 +244,7 @@ function nowForInput(): string {
           }
         </div>
       } @else if (items().length === 0) {
-        <app-empty-state art="activity" [artSize]="global() ? 'large' : 'compact'" shape="list" [rows]="4" [hint]="emptyMessage()" />
+        <app-empty-state [requires]="global() ? 'accounts' : null" art="activity" [artSize]="global() ? 'large' : 'compact'" shape="list" [rows]="4" [hint]="emptyMessage()" />
       } @else if (visible().length === 0) {
         <div class="empty-state">
           <i class="pi" [class.pi-search]="query().trim()" [class.pi-filter]="!query().trim()" aria-hidden="true"></i>
@@ -818,7 +818,7 @@ export class ActivityTimelineComponent implements OnDestroy {
   readonly emptyMessage = computed(() =>
     this.canLog()
       ? 'Calls, meetings, emails and notes show up here. Log one above.'
-      : 'Calls, meetings, emails and notes show up here.',
+      : 'Calls, meetings, emails and notes you log on accounts and people show up here.',
   );
 
   // Quick log (inline bar)

@@ -1,8 +1,9 @@
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { SkeletonModule } from 'primeng/skeleton';
+import { FIRST_RUN_PREREQS, FirstRunPrereq, FirstRunService } from '../../core/first-run.service';
 
 /** What a ghost table cell looks like. `blank` keeps the column empty (e.g. the row-actions column). */
 export type EmptyGhostCell = 'blank' | 'avatar' | 'text' | 'strong' | 'avatar-text' | 'date' | 'amount' | 'tag';
@@ -128,6 +129,7 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
         @if (body()) {
           <p class="empty-ghost-body">{{ body() }}</p>
         }
+        <ng-container *ngTemplateOutlet="needsNote" />
         @if (actionLabel()) {
           @if (actionLink(); as link) {
             <a pButton [label]="actionLabel()!" size="small" [routerLink]="link"></a>
@@ -149,8 +151,25 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
             alt=""
           />
         }
-        <p class="empty-ghost-hint">{{ hint() }}</p>
+        <div class="empty-ghost-hint-text">
+          <p class="empty-ghost-hint">{{ hint() }}</p>
+          <ng-container *ngTemplateOutlet="needsNote" />
+        </div>
       </div>
+    </ng-template>
+
+    <ng-template #needsNote>
+      @if (missing(); as m) {
+        <p class="empty-ghost-needs">
+          <i class="pi pi-info-circle" aria-hidden="true"></i>
+          <span>
+            @if (requiresText()) {
+              {{ requiresText() }}
+            }
+            <a [routerLink]="m.link">{{ m.label }}</a> to get started.
+          </span>
+        </p>
+      }
     </ng-template>
   `,
 })
@@ -181,7 +200,30 @@ export class EmptyStateComponent {
   readonly artSize = input<'large' | 'compact'>('large');
   /** Use the still version (dense screens like the Dashboard, where many animations would play at once). */
   readonly artStatic = input(false);
+  /**
+   * A record this screen needs first (e.g. invoices need an account). When none exists yet, a short note with a link
+   * to create it shows under the body or hint. Checked only while this empty state is on screen.
+   */
+  readonly requires = input<FirstRunPrereq | null>(null);
+  /** Why it's needed, one short sentence, e.g. "Invoices are billed to an account." */
+  readonly requiresText = input<string | null>(null);
   readonly action = output<void>();
+
+  private readonly firstRun = inject(FirstRunService);
+  readonly missing = signal<{ label: string; link: string } | null>(null);
+
+  constructor() {
+    effect(() => {
+      const kind = this.requires();
+      untracked(() => {
+        this.missing.set(null);
+        if (!kind) return;
+        void this.firstRun.has(kind).then((has) => {
+          if (this.requires() === kind) this.missing.set(has ? null : FIRST_RUN_PREREQS[kind]);
+        });
+      });
+    });
+  }
 
   readonly artSrc = computed(() => {
     const name = this.art();

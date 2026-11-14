@@ -121,6 +121,32 @@ tr.empty-ghost-overlay-row > td {
   color: var(--text-color-secondary);
 }
 
+/* "Do this first" note (requires). */
+.empty-ghost-needs {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  justify-content: center;
+  margin: -0.4rem 0 0.9rem;
+  font-size: var(--fs-base);
+  color: var(--text-color-secondary);
+  line-height: 1.5;
+}
+.empty-ghost-needs .pi {
+  color: var(--primary-color);
+  font-size: var(--fs-sm);
+}
+.empty-ghost-hint-text {
+  min-width: 0;
+}
+.empty-ghost-hint-text .empty-ghost-needs {
+  justify-content: flex-start;
+  margin: 0 0 0.35rem;
+}
+.empty-ghost-hint-row--large .empty-ghost-hint-text .empty-ghost-needs {
+  justify-content: center;
+}
+
 /* ── Message card ── */
 .empty-ghost-card {
   pointer-events: auto;

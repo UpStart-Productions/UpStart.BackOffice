@@ -234,6 +234,7 @@
         } @empty {
           @if (!runningEntry()) {
             <app-empty-state
+              requires="projects" requiresText="Time is tracked against a project so it can be billed."
               art="time"
               shape="list"
               [rows]="4"
