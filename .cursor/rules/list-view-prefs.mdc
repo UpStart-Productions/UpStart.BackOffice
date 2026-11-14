@@ -6,7 +6,7 @@ alwaysApply: false
 
 # List view preferences
 
-Every **list view** (table lists, Activity feed toolbar, bookings panels, form submissions) must restore and save:
+Every **list view** (table lists, Activity feed toolbar, Bookings / Booking types panels, form submissions) must restore and save:
 
 - **Search** (toolbar field)
 - **Sort** (`p-table` column sort or explicit sort control)

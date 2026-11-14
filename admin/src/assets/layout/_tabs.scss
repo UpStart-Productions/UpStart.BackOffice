@@ -3,7 +3,7 @@
   height: 4px;
 }
 
-/* Main card with tabs + list table (Bookings, Users, …): no extra horizontal inset on tab body. */
+/* Main card with tabs + list table — see .cursor/rules/tab-panels.mdc (Bookings reference). */
 .card.card--tabs-list .p-tabpanels {
   padding: 1rem 0 0;
 }

@@ -1,9 +1,58 @@
+---
+description: PrimeNG tabs — side panels, main-card list pages, tab-strip filters, table width
+globs: admin/src/app/**/*.{html,ts,scss},admin/src/assets/layout/_tabs.scss,.cursor/rules/tab-panels.mdc
+alwaysApply: false
+---
+
 # Tab panels (show one view)
 
-When the UI must switch between **Accounts | People** (or similar) in a side card:
+Use PrimeNG **`p-tabs`** / **`p-tablist`** / **`p-tab`** / **`p-tabpanels`** / **`p-tabpanel`**. Reference: **Bookings** (`admin/src/app/pages/bookings/`), **Activity** side panel, **Users**, **Reports**.
 
-1. **Tabs control:** PrimeNG **`p-tabs`** / **`p-tablist`** / **`p-tab`** / **`p-tabpanels`** / **`p-tabpanel`** — same as Activity, Reports, Artifacts, Bookings. Do not hand-roll a custom tab strip unless the product explicitly asks.
-2. **Layout CSS:** never set `display: flex` (or other `display`) on **all** `.p-tabpanel` hosts in `::ng-deep` — inactive panels use `[hidden]`; flex on every panel stacks them. Scope flex layout to **`.p-tabpanel.p-tabpanel-active`** only. In a flex side card, set **`.p-tablist { flex-shrink: 0 }`** so the strip does not collapse after layout.
-3. **Side card:** use **`.card.card--side.card--side-tabs`** (`_side-panels.scss`) so headerless “scroll whole card” rules do not swallow the tab strip.
-4. **Main card + list table (Bookings, Users, …):** **`card card--tabs-list`** on the card so tab body has no extra horizontal inset beyond the card’s own padding. Do **not** negative-margin tables past the card padding.
-5. **Rows in the list:** compact **`app-account-card` / `app-person-card` / `app-pipeline-card-card`** (or `app-record-card` for “All …”) inside `.side-panel-scroll`, with `[pickerMode]="true"` and `[selected]` — not custom pick-row buttons. 
+Do not hand-roll a custom tab strip unless the product explicitly asks.
+
+## Main content card: tabs + list table
+
+**Reference:** `bookings.page.html`, `bookings-list-panel`, `booking-types-list-panel`, styles in `admin/src/assets/layout/_tabs.scss`.
+
+### Markup
+
+1. Wrap tabs in **`div.card.card--tabs-list`** (standard `.card` **2rem** padding stays — tabs and table share that inset).
+2. **`p-table`** lives in the tab panel with **`styleClass="table-bordered"`**, column sort + `LIST_VIEW_KEYS` prefs (see `list-view-prefs.mdc`). Same width behavior as Clients / Projects: **full width of the padded card interior**, not edge-to-edge on the white card.
+3. Tab panel child (e.g. `app-bookings-list-panel`): **`display: block; width: 100%; min-width: 0`** on `:host` so the table is not narrowed by the custom element.
+
+```html
+<div class="card card--tabs-list">
+  <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+    <p-tablist>…</p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="…">
+        <app-…-list-panel />
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+</div>
+```
+
+### CSS (`_tabs.scss`)
+
+- **`.card.card--tabs-list .p-tabpanels`** — `padding: 1rem 0 0` only (top gap under the tab rule).
+- **`.card.card--tabs-list .p-tabpanel`** — `padding: 0` (removes PrimeNG’s extra horizontal inset so the table aligns with the tab labels).
+
+### Do not
+
+- **Negative horizontal margins** on tables (`-2rem`, `card-list-table-bleed`, etc.) to cancel card padding. Tables stay inside the card padding (user-confirmed: Bookings).
+- Put filters **below** the tab strip when they belong on one tab only — see tab-strip filters below.
+
+### Tab-strip filter (one tab)
+
+When a filter applies to a single tab (e.g. Bookings → type), put it **inside `p-tablist`**, **far right**, inline with tab labels, **above** the grey tab rule. Page owns filter state + list prefs; panel takes `@input()` and reloads. Flex the tablist (`margin-left: auto` on the filter wrapper) — see `bookings.page.ts` styles.
+
+## Side card (Activity, etc.)
+
+1. **Panel:** **`.card.card--side.card--side-tabs`** (`_side-panels.scss`) so headerless “scroll whole card” rules do not swallow the tab strip.
+2. **Layout CSS:** never set `display: flex` (or other `display`) on **all** `.p-tabpanel` hosts in `::ng-deep` — inactive panels use `[hidden]`; flex on every panel stacks them. Scope flex layout to **`.p-tabpanel.p-tabpanel-active`** only. Set **`.p-tablist { flex-shrink: 0 }`** in flex side cards.
+3. **Rows in the list:** compact **`app-account-card` / `app-person-card` / `app-pipeline-card-card`** (or `app-record-card`) inside **`.side-panel-scroll`**, with `[pickerMode]="true"` and `[selected]` — not custom pick-row buttons.
+
+## Global tab chrome
+
+- Active ink bar: **4px** — `.p-tabs .p-tablist-active-bar` in `_tabs.scss`.

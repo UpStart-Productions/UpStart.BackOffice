@@ -88,3 +88,7 @@ Do not add another people side panel, `people-card`, or inline pickers on featur
 - **Grid + drag:** `.dashboard-grid` / `.dashboard-grid-slot` (3 columns; Activity uses `span-2`) with CDK `cdkDropList cdkDropListOrientation="mixed"`; styles and panel-content classes (`.dashboard-stats`, `.dashboard-timer`) in `assets/layout/_dashboard.scss`. Order is saved per user in localStorage.
 - Icon colors: info, success, warning, danger, neutral. Never purple (reserved for action buttons).
 
+## Main card: tabs + `p-table`
+
+Follow **`tab-panels.mdc`**: `card card--tabs-list`, `table-bordered`, sort prefs, table width inside card padding (Bookings is the reference). Do not bleed tables past card padding.
+
