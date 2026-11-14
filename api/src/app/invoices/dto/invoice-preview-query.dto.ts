@@ -16,4 +16,6 @@ export class InvoicePreviewQueryDto {
   @ApiPropertyOptional() @IsInt() @Min(1) @Max(4) @IsOptional() @Type(() => Number) quarter?: number;
   @ApiPropertyOptional() @IsString() @IsOptional() from?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() to?: string;
+  /** 'true': only time on projects that are billable now (the Dashboard's unbilled work). */
+  @ApiPropertyOptional() @IsIn(['true', 'false']) @IsOptional() billableProjectsOnly?: 'true' | 'false';
 }

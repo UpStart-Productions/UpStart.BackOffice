@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="title"><title id="title">Action could not be completed</title><g stroke-linecap="round" stroke-linejoin="round"><path id="backdrop" d="M62 169C36 144 43 113 65 98C86 84 87 54 117 45C147 35 166 56 187 51C222 42 253 61 264 87C277 117 259 138 267 162C278 195 246 216 213 212C181 208 163 220 136 210C110 200 84 191 62 169Z" fill="#EDE8FC"/>
+<g id="failure-badge"><circle cx="164" cy="130" r="62" fill="#F4C3BE"/><circle cx="155" cy="118" r="61" fill="white" stroke="#28334A" stroke-width="1.5"/><circle cx="155" cy="118" r="47" fill="#FFF0ED"/>
+<g id="cross" stroke="#D96967" stroke-width="8"><path id="cross-first" d="M139 102L171 134"/><path id="cross-second" d="M171 102L139 134"/></g></g>
+<g id="failure-accents" stroke="#7C5CE7" stroke-width="2"><path d="M230 80L237 74M239 94L247 92"/></g><circle id="failure-dot" cx="87" cy="158" r="3" fill="#BCE5D8"/><circle cx="105" cy="72" r="3" fill="#C9D4E6"/>
+</g></svg>

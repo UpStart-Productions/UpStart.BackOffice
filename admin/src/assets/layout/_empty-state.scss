@@ -1,0 +1,146 @@
+/* Ghosted empty state (app-empty-state). Shapes are PrimeNG p-skeleton; this file only lays them out. */
+
+/* ── Table rows (inside a p-table emptymessage) ── */
+tr.empty-ghost-row {
+  height: 3.5rem;
+  pointer-events: none;
+}
+tr.empty-ghost-row > td {
+  vertical-align: middle;
+}
+.empty-ghost-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 8rem;
+}
+.empty-ghost-inline > p-skeleton {
+  flex: 1;
+}
+.empty-ghost-inline > p-skeleton:first-child {
+  flex: none;
+}
+.empty-ghost-right {
+  margin-left: auto;
+}
+/* Secondary shapes are a lighter gray than the main line in each row. */
+.empty-ghost-light {
+  opacity: 0.55;
+}
+
+/* Zero-height row whose card floats up over the ghost rows. */
+tr.empty-ghost-overlay-row > td {
+  position: relative;
+  height: 0;
+  padding: 0 !important;
+  border: 0 !important;
+}
+.empty-ghost-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+/* ── List (dashboard panels, side lists) ── */
+.empty-ghost-list-rows {
+  position: relative;
+}
+.empty-ghost-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0;
+}
+.empty-ghost-list-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.empty-ghost-overlay--list {
+  top: 0;
+}
+.empty-ghost-hint {
+  margin: 0.25rem 0 0.35rem;
+  font-size: var(--fs-base);
+  color: var(--text-color-secondary);
+}
+
+/* ── Cards (board lanes) ── */
+.empty-ghost-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+/* ── Bars (empty chart). Same gray as p-skeleton; hand-styled because skeleton can't take a % height. ── */
+.empty-ghost-bars {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  min-height: 3rem;
+}
+.empty-ghost-bar-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+.empty-ghost-bar-track {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+}
+.empty-ghost-bar {
+  display: block;
+  width: 100%;
+  border-radius: 3px;
+  background: var(--p-skeleton-background);
+}
+.empty-ghost-bar-label {
+  font-size: var(--fs-xs);
+  text-align: center;
+  color: var(--text-color-secondary);
+}
+
+/* ── Message card ── */
+.empty-ghost-card {
+  pointer-events: auto;
+  max-width: 22rem;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--content-border-radius, 12px);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.06);
+}
+.empty-ghost-title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--text-color);
+}
+.empty-ghost-body {
+  margin: 0.25rem 0 0.9rem;
+  font-size: var(--fs-base);
+  color: var(--text-color-secondary);
+  line-height: 1.5;
+}
+.empty-ghost-card > :first-child:not(.empty-ghost-title) {
+  display: block;
+  margin: 0 auto 0.75rem;
+}

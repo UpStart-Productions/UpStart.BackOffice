@@ -16,6 +16,7 @@ import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmTaskDetailComponent } from '../ui/task-detail-panel.component';
 import { TmProjectIconComponent } from '../ui/tm-project-icon.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type Bucket = { key: string; label: string; tasks: MyTask[] };
 
@@ -23,7 +24,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
 @Component({
   selector: 'app-tm-my-tasks-page',
   standalone: true,
-  imports: [PageComponent, TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, MultiSelectModule, TmTaskDetailComponent, TmDueDatePickerComponent],
+  imports: [EmptyStateComponent, PageComponent, TmProjectIconComponent, FormsModule, RouterLink, ButtonModule, ToggleSwitchModule, MultiSelectModule, TmTaskDetailComponent, TmDueDatePickerComponent],
   template: `
     <div class="tm-page" [class.tm-with-detail]="!!taskId()">
       <app-page title="My tasks">
@@ -54,6 +55,15 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
         <div class="tm-page-loading"><i class="pi pi-spin pi-spinner"></i></div>
       } @else if (error()) {
         <div class="card"><p class="text-color-secondary">{{ error() }}</p></div>
+      } @else if (!tasks().length && !tagFilter().length) {
+        <app-empty-state
+          shape="list"
+          [rows]="5"
+          title="No tasks assigned to you yet"
+          body="Tasks you're assigned in any project show up here, grouped by when they're due."
+          actionLabel="Browse projects"
+          actionLink="/tasks/projects"
+        />
       } @else {
         <div class="tm-grid tm-my-grid">
           @for (b of buckets(); track b.key) {
@@ -112,7 +122,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
           @if (!tasks().length) {
             <div class="tm-empty-state">
               <i class="pi pi-check-circle"></i>
-              <p>No tasks assigned to you. Tasks you're assigned in any project show up here.</p>
+              <p>No tasks match these tags.</p>
             </div>
           }
         </div>

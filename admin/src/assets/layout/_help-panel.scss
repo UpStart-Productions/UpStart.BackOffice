@@ -373,3 +373,117 @@
   font-size: var(--fs-base);
   line-height: 1.5;
 }
+
+/* ── JD saved conversations (list replaces the chat while open) ─────────── */
+.help-drawer .help-agent-chat-log--hidden {
+  display: none !important;
+}
+
+.help-drawer .help-agent-threads {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+}
+
+.help-drawer .help-agent-threads-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-drawer .help-agent-threads-title {
+  font-weight: 600;
+}
+
+.help-drawer .help-agent-threads-note,
+.help-drawer .help-agent-threads-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+}
+
+.help-drawer .help-agent-threads-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Fades out and folds up when deleted. */
+.help-drawer .help-agent-thread {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--surface-border);
+  max-height: 4rem;
+  opacity: 1;
+  transition:
+    opacity 0.2s ease,
+    max-height 0.25s ease 0.12s,
+    padding 0.25s ease 0.12s;
+
+  &:first-child {
+    border-top: 0;
+  }
+}
+
+.help-drawer .help-agent-thread--leaving {
+  opacity: 0;
+  max-height: 0;
+  padding-block: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-drawer .help-agent-thread {
+    transition: none;
+  }
+}
+
+.help-drawer .help-agent-thread--current .help-agent-thread-name {
+  color: var(--color-text-link);
+}
+
+.help-drawer .help-agent-thread-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.5rem;
+  margin-left: -0.5rem;
+  border: 0;
+  border-radius: var(--content-border-radius);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--p-content-hover-background, #f3f4f6);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--p-primary-color);
+    outline-offset: 1px;
+  }
+}
+
+.help-drawer .help-agent-thread-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.help-drawer .help-agent-thread-meta {
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+}
+
+.help-drawer .help-agent-thread-rename {
+  flex: 1 1 auto;
+  min-width: 0;
+}

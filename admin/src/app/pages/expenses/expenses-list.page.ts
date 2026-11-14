@@ -29,6 +29,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
 import { ExpenseModalComponent } from './expense-modal.component';
 import { Expense, ExpenseBillingStatus, ExpenseProject, ExpenseReimbursementStatus } from './expense.types';
+import { EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type ProjectListItem = {
   id: string;
@@ -72,6 +73,7 @@ const REIMBURSEMENT_SEVERITY: Record<ExpenseReimbursementStatus, TagSeverity> = 
   selector: 'app-expenses-list-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     FileViewerDialogComponent,
     PersonComponent,
     DatePipe,
@@ -127,6 +129,9 @@ export class ExpensesListPage implements OnInit {
   });
 
   /** Shown above the expense list (period, dropdown filters, search). */
+  /** Filters other than the period (category, account, project, status, person, search). */
+  readonly hasNarrowingFilters = computed(() => this.activeFilterChips().some((c) => c.key !== 'period'));
+
   readonly activeFilterChips = computed((): ExpenseFilterChip[] => {
     const chips: ExpenseFilterChip[] = [];
     const bounds = resolveReportPeriod(this.period());

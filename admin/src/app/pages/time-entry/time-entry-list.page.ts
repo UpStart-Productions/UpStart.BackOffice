@@ -46,11 +46,13 @@ import {
   startOfWeek,
   weekDays,
 } from './timesheet.utils';
+import { EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 @Component({
   selector: 'app-time-entry-list-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     DateNavComponent,
     ButtonModule,
     DatePickerModule,

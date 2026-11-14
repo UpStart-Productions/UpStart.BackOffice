@@ -7,6 +7,7 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type JournalEntrySource = 'MANUAL' | 'INVOICE_ISSUED' | 'INVOICE_PAYMENT' | 'BANK_IMPORT';
 
@@ -36,7 +37,7 @@ const SOURCE_LABEL: Record<JournalEntrySource, string> = {
 @Component({
   selector: 'app-journal-list-page',
   standalone: true,
-  imports: [RouterLink, ButtonModule, MessageModule, TableModule, TagModule, PageComponent],
+  imports: [RouterLink, ButtonModule, MessageModule, TableModule, TagModule, PageComponent, EmptyStateComponent],
   templateUrl: './journal-list.page.html',
 })
 export class JournalListPage implements OnInit {
@@ -44,6 +45,8 @@ export class JournalListPage implements OnInit {
   private readonly deleteConfirm = inject(ConfirmDeleteService);
 
   entries = signal<JournalEntry[]>([]);
+  /** Ghost columns for the empty state, one per header (date, source, memo, amount, actions). */
+  readonly ghostColumns: EmptyGhostCell[] = ['date', 'tag', 'text', 'amount', 'blank'];
   loading = signal(true);
   error = signal<string | null>(null);
 

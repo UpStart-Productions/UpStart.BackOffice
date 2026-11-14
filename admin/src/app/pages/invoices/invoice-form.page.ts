@@ -137,6 +137,8 @@ export class InvoiceFormPage implements OnInit {
 
   /** Generate from time: the period (app-period-picker) and an optional project. */
   period = signal(defaultPeriod());
+  /** From the Dashboard's unbilled work: match its rule (only projects that are billable now). */
+  private billableProjectsOnly = false;
   generate = {
     projectId: '' as string,
   };
@@ -299,6 +301,7 @@ export class InvoiceFormPage implements OnInit {
         const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
         const from = /^\d{4}-\d{2}-\d{2}$/.test(qp.get('from') ?? '') ? qp.get('from')! : '2000-01-01';
         this.period.update((p) => ({ ...p, periodType: 'custom', from, to: today }));
+        this.billableProjectsOnly = true;
         this.loading.set(false);
         await this.generateFromTime();
         return;
@@ -400,6 +403,7 @@ export class InvoiceFormPage implements OnInit {
       if (this.generate.projectId) {
         params.set('projectId', this.generate.projectId);
       }
+      if (this.billableProjectsOnly) params.set('billableProjectsOnly', 'true');
 
       const preview = await this.api.get<InvoicePreview>(`/invoices/preview?${params}`);
       this.missingRates.set(preview.missingRates);

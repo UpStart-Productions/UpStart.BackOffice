@@ -954,3 +954,69 @@
   &[data-stripe='gold'] { --stripe-color: var(--palette-gold-light); }
   &[data-stripe='red'] { --stripe-color: var(--palette-red-light); }
 }
+
+/* JD suggests: up to three suggestions, each a sentence with its buttons. */
+.jd-suggestions {
+  display: flex;
+  flex-direction: column;
+}
+
+.jd-suggestion {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--surface-border);
+
+  &:first-child {
+    border-top: 0;
+    padding-top: 0.25rem;
+  }
+}
+
+.jd-suggestion-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: var(--color-severity-info-bg);
+  color: var(--color-severity-info-text);
+}
+
+.jd-suggestion-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.jd-suggestion-text {
+  margin: 0.15rem 0 0.5rem;
+  line-height: 1.45;
+}
+
+.jd-suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Customize dialog: one row per card with an on/off switch. */
+.dashboard-customize-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.dashboard-customize-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--surface-border);
+
+  &:first-child {
+    border-top: 0;
+  }
+}

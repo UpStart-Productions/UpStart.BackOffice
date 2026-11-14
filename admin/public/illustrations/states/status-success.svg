@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="title"><title id="title">Action completed</title><g stroke-linecap="round" stroke-linejoin="round"><path id="backdrop" d="M62 169C36 144 43 113 65 98C86 84 87 54 117 45C147 35 166 56 187 51C222 42 253 61 264 87C277 117 259 138 267 162C278 195 246 216 213 212C181 208 163 220 136 210C110 200 84 191 62 169Z" fill="#EDE8FC"/>
+<g id="success-badge"><circle cx="164" cy="130" r="62" fill="#BCE5D8"/><circle cx="155" cy="118" r="61" fill="white" stroke="#28334A" stroke-width="1.5"/><circle cx="155" cy="118" r="47" fill="#EDF8F3"/>
+<path id="checkmark" d="M131 118L148 135L180 101" stroke="#368876" stroke-width="8"/></g>
+<g id="success-sparkles" fill="#B6A3F1" stroke="#28334A" stroke-width="1.2"><path d="M239 72Q240 81 248 83Q240 85 239 94Q237 85 229 83Q237 81 239 72Z"/><path d="M82 157Q83 163 88 164Q83 165 82 171Q81 165 76 164Q81 163 82 157Z"/></g>
+<circle id="success-dot" cx="101" cy="73" r="3" fill="#BCE5D8"/>
+</g></svg>

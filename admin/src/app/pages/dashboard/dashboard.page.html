@@ -1,5 +1,6 @@
 <app-page [title]="greeting()" helpKey="dashboard.page">
   <ng-container ngProjectAs="[pageActions]">
+    <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" size="small" (onClick)="customizeOpen.set(true)" />
     @if (showScope()) {
       <p-selectbutton
         [options]="scopeOptions"
@@ -149,7 +150,11 @@
                 <div class="dashboard-money-body">
                   <figure class="dashboard-chart" [attr.aria-label]="'Invoiced and collected, ' + finBounds().label">
                     <div class="dashboard-chart-canvas">
-                      <app-report-chart type="bar" [data]="chartData()" [options]="chartOptions" />
+                      @if (firstRun()) {
+                        <app-empty-state shape="bars" [bars]="6" />
+                      } @else {
+                        <app-report-chart type="bar" [data]="chartData()" [options]="chartOptions" />
+                      }
                     </div>
                   </figure>
                   <div class="dashboard-money-actions">
@@ -189,6 +194,10 @@
                     <nmp-lucide-icon class="wx-main" [name]="weatherIcon()" />
                   }
                 </span>
+              } @else {
+                <!-- No weather (no business address, or still loading): plain sun. The @if above counts as projected
+                     content even when false, so the panel's own fallback icon never shows. -->
+                <i panelIcon class="pi pi-sun"></i>
               }
               @if (weather(); as w) {
                 <div panelHeaderAlt class="dashboard-weather-head">
@@ -246,7 +255,9 @@
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                   }
                 }
-                @if (!todayOverdue().length && !todayDue().length) {
+                @if (firstRun()) {
+                  <app-empty-state shape="list" [rows]="3" hint="Overdue items and anything due today show up here." />
+                } @else if (!todayOverdue().length && !todayDue().length) {
                   <p class="dashboard-quiet">Nothing due today.</p>
                 }
                 @if (staleNextSteps().length) {
@@ -293,7 +304,9 @@
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                   }
                 }
-                @if (!workOverdue().length && !workNew().length && !workDue().length) {
+                @if (!tasks().data.length) {
+                  <app-empty-state shape="list" [rows]="4" hint="Tasks assigned to you show up here, with who assigned them." />
+                } @else if (!workOverdue().length && !workNew().length && !workDue().length) {
                   <p class="dashboard-quiet">Nothing new and nothing due this week.</p>
                 }
                 @if (workLater()) {
@@ -315,8 +328,6 @@
                   <span class="dashboard-stat-value">{{ openCount() }} open</span>
                   @if (pipelineValue() > 0) {
                     <span class="dashboard-stat-note" pTooltip="Total of Estimated value on open cards in this pipeline" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ money(pipelineValue(), 0) }} estimated · {{ pipelineValued() }} of {{ openCount() }} cards have a value</span>
-                  } @else {
-                    <span class="dashboard-stat-note">Add an estimated value on cards to see pipeline $</span>
                   }
                 </div>
                 @if (openCount()) {
@@ -346,6 +357,8 @@
                   @for (r of quietRows(); track r.key) {
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                   }
+                } @else if (firstRun()) {
+                  <app-empty-state shape="list" [rows]="3" hint="Accounts you haven't been in touch with lately show up here." />
                 } @else {
                   <p class="dashboard-quiet">Everyone has heard from you recently.</p>
                 }
@@ -355,6 +368,32 @@
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                   }
                 }
+              }
+            </app-dashboard-panel>
+          }
+
+          <!-- ── JD suggests ─────────────────────────────────────────────── -->
+          @case ('jd') {
+            <app-dashboard-panel [title]="agentName + ' suggests'" icon="pi-sparkles" [color]="panelColor('jd')" [fill]="true">
+              @if (suggestions().length) {
+                <div class="jd-suggestions">
+                  @for (s of suggestions(); track s.key) {
+                    <div class="jd-suggestion">
+                      <span class="jd-suggestion-icon" aria-hidden="true"><i class="pi" [class]="'pi ' + suggestionIcon[s.kind]"></i></span>
+                      <div class="jd-suggestion-body">
+                        <p class="jd-suggestion-text">{{ s.text }}</p>
+                        <div class="jd-suggestion-actions">
+                          <p-button [label]="s.action.label" size="small" (onClick)="runSuggestion(s)" />
+                          <p-button label="Not now" size="small" severity="secondary" [text]="true" pTooltip="Hide this for 3 days" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" (onClick)="notNow(s)" />
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else if (firstRun()) {
+                <app-empty-state shape="list" [rows]="3" [hint]="'As you add work, ' + agentName + ' suggests what to do next here.'" />
+              } @else {
+                <p class="dashboard-quiet">Nothing to suggest right now. Nice work.</p>
               }
             </app-dashboard-panel>
           }
@@ -383,6 +422,8 @@
                     </ng-container>
                   </app-record-card>
                 }
+              } @else if (firstRun()) {
+                <app-empty-state shape="list" [rows]="4" hint="New activity since your last visit shows up here." />
               } @else {
                 <p class="dashboard-quiet">Nothing new in the last week.</p>
               }
@@ -447,14 +488,18 @@
                   }
 
                   <!-- Daily bars sit at the bottom of the card. -->
-                  <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
-                    @for (d of weekDays(); track d.key) {
-                      <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                        <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
-                        <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
-                      </div>
-                    }
-                  </div>
+                  @if (weekMinutes() === 0 && firstRun()) {
+                    <app-empty-state shape="bars" height="4.5rem" [labels]="weekDayLabels()" />
+                  } @else {
+                    <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
+                      @for (d of weekDays(); track d.key) {
+                        <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                          <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
+                          <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
               }
             </app-dashboard-panel>
@@ -531,9 +576,11 @@
         </div>
       </div>
       <p class="unbilled-how">
-        Counted: finished time marked billable on this account that isn't on any invoice, at the entry's rate, else the project's, else the person's.
-        Lines tagged below are worth a second look.
+        Counted: finished billable time on this account's billable projects, after its last sent or paid invoice and not on any invoice yet, at the entry's rate, else the project's, else the person's.
       </p>
+      @if (excludedNote(d); as note) {
+        <p class="unbilled-how">{{ note }}</p>
+      }
 
       @for (g of d.projects; track g.projectId ?? 'none') {
         <section class="unbilled-group">
@@ -622,6 +669,30 @@
         <a pButton label="Open account" severity="secondary" [outlined]="true" [routerLink]="['/accounts', d.clientId]" (click)="unbilledOpen.set(false)"></a>
         <a pButton label="Create invoice" [routerLink]="'/invoices/new'" [queryParams]="unbilledInvoiceQuery(d.clientId, unbilledSince(d))" (click)="unbilledOpen.set(false)"></a>
       }
+    </ng-template>
+  </p-dialog>
+  <!-- Customize: which cards show, and a way back to the default layout. Widths take care of themselves. -->
+  <p-dialog
+    header="Customize dashboard"
+    [visible]="customizeOpen()"
+    (visibleChange)="customizeOpen.set($event)"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: 'min(26rem, 96vw)' }"
+  >
+    <p class="unbilled-how" style="margin-top: 0">Turn cards on or off. Drag cards on the page to reorder them; widths adjust on their own.</p>
+    <ul class="dashboard-customize-list">
+      @for (r of customizeRows(); track r.id) {
+        <li class="dashboard-customize-row">
+          <label [for]="'cust-' + r.id">{{ r.label }}</label>
+          <p-toggleswitch [inputId]="'cust-' + r.id" [ngModel]="r.shown" (ngModelChange)="setPanelShown(r.id, $event)" />
+        </li>
+      }
+    </ul>
+    <ng-template pTemplate="footer">
+      <p-button label="Reset to default" severity="secondary" [text]="true" (onClick)="resetLayout()" />
+      <p-button label="Done" (onClick)="customizeOpen.set(false)" />
     </ng-template>
   </p-dialog>
 </app-page>

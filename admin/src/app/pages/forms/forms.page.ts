@@ -21,12 +21,14 @@ import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/singl
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 /** Forms: free-standing forms (sign-ups, assessments, feedback) with public links and submissions. */
 @Component({
   selector: 'app-forms-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     DatePipe,
     FormsModule,
     RouterLink,
@@ -109,7 +111,18 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
-            <tr><td colspan="7">{{ loading() ? '' : 'No forms yet.' }}</td></tr>
+            @if (!loading() && !error() && items().length === 0) {
+              <app-empty-state
+                shape="table-rows"
+                [columns]="ghostColumns"
+                title="Build your first form"
+                body="Use forms for intake, sign-ups and surveys, and see every submission in one place."
+                actionLabel="New form"
+                (action)="openNew()"
+              />
+            } @else if (!loading()) {
+              <tr><td colspan="7">No forms match your search.</td></tr>
+            }
           </ng-template>
         </p-table>
       </div>
@@ -154,6 +167,8 @@ export class FormsPage implements OnInit {
   private readonly confirmDelete = inject(ConfirmDeleteService);
 
   items = signal<FreeFormListItemDto[]>([]);
+  /** Ghost columns for the empty state, one per header (actions, form, used for, status, submissions, updated, created by). */
+  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'strong', 'text', 'tag', 'amount', 'date', 'avatar-text'];
   loading = signal(true);
   error = signal<string | null>(null);
   creating = signal(false);

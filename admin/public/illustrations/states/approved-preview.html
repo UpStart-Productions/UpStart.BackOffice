@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Upstart approved state animations</title><style>body{margin:0;padding:24px;background:#fcfcfb}main{max-width:1100px;margin:auto}</style></head><body><main>
+<div id="upstart-motion-preview">
+  <style>
+    #upstart-motion-preview{color-scheme:light dark;--up-ink:light-dark(#28334a,#e9e6f5);--up-surface:light-dark(#fff,#242132);--up-border:light-dark(#e7e9ef,#3e394f);font-family:system-ui,sans-serif;color:var(--up-ink)}
+    #upstart-motion-preview .up-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    #upstart-motion-preview .up-state{min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 10px;background:var(--up-surface);border:1px solid var(--up-border);border-radius:14px}
+    #upstart-motion-preview .up-art{width:100%;max-width:320px;aspect-ratio:4/3;display:flex;align-items:center}
+    #upstart-motion-preview .up-art>svg{width:100%;height:auto;overflow:visible}
+    #upstart-motion-preview h3{margin:0;font-size:14px;font-weight:500}
+    #upstart-motion-preview .up-replay{font:inherit;font-size:13px;background:light-dark(#f0eafa,#403252);color:var(--up-ink);border:1px solid var(--up-border);border-radius:7px;padding:8px 16px;cursor:pointer}
+    #upstart-motion-preview .up-replay:focus-visible{outline:2px solid #7c5ce7;outline-offset:3px}
+    #upstart-motion-preview .up-small{display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;font-size:13px}
+    #upstart-motion-preview .up-small svg{width:28px;height:28px;flex-shrink:0}
+    #upstart-motion-preview .up-reserve{height:40px}
+    @media(max-width:560px){#upstart-motion-preview .up-grid{grid-template-columns:1fr}#upstart-motion-preview .up-art{max-width:270px}#upstart-motion-preview .up-state{padding:16px}}
+  </style>
+  <div class="up-grid">
+    <section class="up-state" data-state="invoice" aria-label="Empty invoices animation">
+      <h3>Empty invoices</h3>
+      <div class="up-art"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="invoice-title"><title id="invoice-title" data-part="title">No invoices yet</title><g stroke-linecap="round" stroke-linejoin="round"><path id="invoice-backdrop" data-part="backdrop" d="M62 169C36 144 43 113 65 98C86 84 87 54 117 45C147 35 166 56 187 51C222 42 253 61 264 87C277 117 259 138 267 162C278 195 246 216 213 212C181 208 163 220 136 210C110 200 84 191 62 169Z" fill="#EDE8FC"/>
+<g id="invoice-tray-back" data-part="tray-back" stroke="#28334A" stroke-width="1.5"><path d="M84 185L105 155Q108 151 114 151H226Q232 151 235 156L255 185V209H84Z" fill="#B6A3F1"/><path d="M106 155L116 181M234 155L224 181" stroke="#9C83E8"/></g>
+<g id="invoice-back-sheet" data-part="back-sheet" transform="rotate(-8 162 130)"><rect x="102" y="72" width="115" height="130" rx="9" fill="#F6F7FB" stroke="#28334A" stroke-width="1.5"/></g>
+<g id="invoice-invoice-sheet" data-part="invoice-sheet" transform="rotate(6 170 129)">
+<path d="M128 48H204L228 72V196Q228 203 221 203H128Q120 203 120 195V56Q120 48 128 48Z" fill="white" stroke="#28334A" stroke-width="1.5"/>
+<path id="invoice-fold" data-part="fold" d="M204 48V65Q204 72 211 72H228" fill="#DFE6F1" stroke="#28334A" stroke-width="1.5"/>
+<g id="invoice-invoice-header" data-part="invoice-header" fill="#7C5CE7"><rect x="134" y="75" width="53" height="6" rx="2"/><rect x="134" y="87" width="34" height="4" rx="2"/></g>
+<path d="M134 106H214M134 164H214" stroke="#C9D4E6" stroke-width="1.5"/>
+<g id="invoice-invoice-rows" data-part="invoice-rows" fill="#C9D4E6"><rect x="134" y="117" width="7" height="7" rx="2"/><rect x="148" y="119" width="41" height="3" rx="1.5"/><rect x="202" y="119" width="12" height="3" rx="1.5"/><rect x="134" y="132" width="7" height="7" rx="2"/><rect x="148" y="134" width="33" height="3" rx="1.5"/><rect x="202" y="134" width="12" height="3" rx="1.5"/><rect x="134" y="147" width="7" height="7" rx="2"/><rect x="148" y="149" width="39" height="3" rx="1.5"/><rect x="202" y="149" width="12" height="3" rx="1.5"/></g>
+<rect id="invoice-invoice-total" data-part="invoice-total" x="134" y="175" width="80" height="12" rx="4" fill="#BCE5D8"/>
+</g>
+<path id="invoice-tray-front" data-part="tray-front" d="M84 184H131Q137 184 140 190L143 195Q146 200 153 200H186Q192 200 196 194L199 189Q202 184 209 184H255L250 209Q248 217 239 217H101Q91 217 89 208Z" fill="#AE97EF" stroke="#28334A" stroke-width="1.5"/>
+<g id="invoice-sprig" data-part="sprig" stroke="#28334A" stroke-width="1.5"><path d="M79 215Q75 191 63 175"/><path id="invoice-leaf-top" data-part="leaf-top" d="M67 183Q41 173 44 151Q71 155 67 183Z" fill="#BCE5D8"/><path id="invoice-leaf-bottom" data-part="leaf-bottom" d="M74 201Q51 213 39 192Q57 181 74 201Z" fill="#BCE5D8"/></g>
+<g id="invoice-sparkles" data-part="sparkles" fill="#B6A3F1" stroke="#28334A" stroke-width="1.2"><path d="M268 101Q269 111 278 113Q269 115 268 125Q266 115 257 113Q266 111 268 101Z"/><path d="M282 139Q283 145 288 146Q283 147 282 153Q281 147 276 146Q281 145 282 139Z"/></g>
+</g></svg></div>
+      <div class="up-reserve" aria-hidden="true"></div>
+      <button class="up-replay" type="button">Replay invoices</button>
+    </section>
+    <section class="up-state" data-state="success" aria-label="Success animation">
+      <h3>Success</h3>
+      <div class="up-art"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="success-title"><title id="success-title" data-part="title">Action completed</title><g stroke-linecap="round" stroke-linejoin="round"><path id="success-backdrop" data-part="backdrop" d="M62 169C36 144 43 113 65 98C86 84 87 54 117 45C147 35 166 56 187 51C222 42 253 61 264 87C277 117 259 138 267 162C278 195 246 216 213 212C181 208 163 220 136 210C110 200 84 191 62 169Z" fill="#EDE8FC"/>
+<g id="success-success-badge" data-part="success-badge"><circle cx="164" cy="130" r="62" fill="#BCE5D8"/><circle cx="155" cy="118" r="61" fill="white" stroke="#28334A" stroke-width="1.5"/><circle cx="155" cy="118" r="47" fill="#EDF8F3"/>
+<path id="success-checkmark" data-part="checkmark" d="M131 118L148 135L180 101" stroke="#368876" stroke-width="8"/></g>
+<g id="success-success-sparkles" data-part="success-sparkles" fill="#B6A3F1" stroke="#28334A" stroke-width="1.2"><path d="M239 72Q240 81 248 83Q240 85 239 94Q237 85 229 83Q237 81 239 72Z"/><path d="M82 157Q83 163 88 164Q83 165 82 171Q81 165 76 164Q81 163 82 157Z"/></g>
+<circle id="success-success-dot" data-part="success-dot" cx="101" cy="73" r="3" fill="#BCE5D8"/>
+</g></svg></div>
+      <div class="up-small"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-labelledby="success_small-title"><title id="success_small-title" data-part="title">Success</title><g stroke-linecap="round" stroke-linejoin="round"><circle id="success_small-badge" data-part="badge" cx="16" cy="16" r="13" fill="#EDF8F3" stroke="#368876" stroke-width="1.5"/><path id="success_small-checkmark" data-part="checkmark" d="M10 16L14 20L22 12" stroke="#368876" stroke-width="2.4"/></g></svg><span>Changes saved</span></div>
+      <button class="up-replay" type="button">Replay success</button>
+    </section>
+    <section class="up-state" data-state="failure" aria-label="Failure animation">
+      <h3>Failure</h3>
+      <div class="up-art"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="failure-title"><title id="failure-title" data-part="title">Action could not be completed</title><g stroke-linecap="round" stroke-linejoin="round"><path id="failure-backdrop" data-part="backdrop" d="M62 169C36 144 43 113 65 98C86 84 87 54 117 45C147 35 166 56 187 51C222 42 253 61 264 87C277 117 259 138 267 162C278 195 246 216 213 212C181 208 163 220 136 210C110 200 84 191 62 169Z" fill="#EDE8FC"/>
+<g id="failure-failure-badge" data-part="failure-badge"><circle cx="164" cy="130" r="62" fill="#F4C3BE"/><circle cx="155" cy="118" r="61" fill="white" stroke="#28334A" stroke-width="1.5"/><circle cx="155" cy="118" r="47" fill="#FFF0ED"/>
+<g id="failure-cross" data-part="cross" stroke="#D96967" stroke-width="8"><path id="failure-cross-first" data-part="cross-first" d="M139 102L171 134"/><path id="failure-cross-second" data-part="cross-second" d="M171 102L139 134"/></g></g>
+<g id="failure-failure-accents" data-part="failure-accents" stroke="#7C5CE7" stroke-width="2"><path d="M230 80L237 74M239 94L247 92"/></g><circle id="failure-failure-dot" data-part="failure-dot" cx="87" cy="158" r="3" fill="#BCE5D8"/><circle cx="105" cy="72" r="3" fill="#C9D4E6"/>
+</g></svg></div>
+      <div class="up-small"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-labelledby="failure_small-title"><title id="failure_small-title" data-part="title">Failure</title><g stroke-linecap="round" stroke-linejoin="round"><circle id="failure_small-badge" data-part="badge" cx="16" cy="16" r="13" fill="#FFF0ED" stroke="#D96967" stroke-width="1.5"/><g id="failure_small-cross" data-part="cross" stroke="#D96967" stroke-width="2.4"><path id="failure_small-cross-first" data-part="cross-first" d="M12 12L20 20"/><path id="failure_small-cross-second" data-part="cross-second" d="M20 12L12 20"/></g></g></svg><span>Could not save</span></div>
+      <button class="up-replay" type="button">Replay failure</button>
+    </section>
+  </div>
+  <script src="approved-state-motion.js"></script>
+</div>
+
+</main></body></html>

@@ -164,8 +164,17 @@
 
     @if (loading()) {
       <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2" aria-hidden="true"></i>Loading…</p>
+    } @else if (!expenseGroups().length && !hasNarrowingFilters()) {
+      <app-empty-state
+        shape="list"
+        [rows]="4"
+        title="No expenses in this period"
+        body="Expenses you record show up here with their category, amount and receipt."
+        actionLabel="New Expense"
+        (action)="openNew()"
+      />
     } @else if (!expenseGroups().length) {
-      <p class="side-list-empty">No expenses in this period.</p>
+      <p class="side-list-empty">No expenses match these filters.</p>
     } @else {
       <div class="expense-register">
         @for (group of expenseGroups(); track group.key) {

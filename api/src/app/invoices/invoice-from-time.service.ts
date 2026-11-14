@@ -89,6 +89,7 @@ export class InvoiceFromTimeService {
     projectId?: string;
     userId?: string;
     periodType: InvoicePeriodType;
+    billableProjectsOnly?: 'true' | 'false';
     month?: number;
     year?: number;
     quarter?: number;
@@ -107,6 +108,7 @@ export class InvoiceFromTimeService {
         ...(params.clientId ? { clientId: params.clientId } : {}),
         ...(params.projectId ? { projectId: params.projectId } : {}),
         ...(params.userId ? { userId: params.userId } : {}),
+        ...(params.billableProjectsOnly === 'true' ? { project: { isBillable: true } } : {}),
       },
       include: {
         project: { select: { id: true, name: true, hourlyRate: true } },
@@ -211,6 +213,26 @@ export class InvoiceFromTimeService {
   }
 
   /**
+   * Each client's most recent sent or paid invoice date, end of that day. Work on or before it counts as
+   * billed: older invoices were often written by hand, so their time entries were never linked to them.
+   */
+  private async lastInvoiceCutoffs(clientIds?: string[]): Promise<Map<string, Date>> {
+    const rows = await this.prisma.invoice.groupBy({
+      by: ['clientId'],
+      where: { status: { in: ['SENT', 'PAID'] }, clientId: clientIds ? { in: clientIds } : { not: null } },
+      _max: { issueDate: true },
+    });
+    const out = new Map<string, Date>();
+    for (const r of rows) {
+      if (!r.clientId || !r._max.issueDate) continue;
+      const d = new Date(r._max.issueDate);
+      d.setHours(23, 59, 59, 999);
+      out.set(r.clientId, d);
+    }
+    return out;
+  }
+
+  /**
    * Dashboard "Unbilled work": finished billable time and billable expenses not yet on a client invoice,
    * totalled per client. clientIds limits to clients the role can reach; userId to one person's entries.
    * Time with no rate is counted in hours but not in the amount (missingRateHours).
@@ -225,6 +247,8 @@ export class InvoiceFromTimeService {
           isBillable: true,
           stoppedAt: { not: null },
           clientId: clientWhere,
+          // Only time on projects that are billable now (not time with no project or on a non-billable project).
+          project: { isBillable: true },
           ...(when ? { startedAt: when } : {}),
           ...(params.userId ? { userId: params.userId } : {}),
         },
@@ -240,7 +264,7 @@ export class InvoiceFromTimeService {
         where: {
           isBillable: true,
           invoiceLineItemId: null,
-          project: { clientId: clientWhere },
+          project: { clientId: clientWhere, isBillable: true },
           ...(when ? { incurredAt: when } : {}),
           ...(params.userId ? { userId: params.userId } : {}),
         },
@@ -248,6 +272,11 @@ export class InvoiceFromTimeService {
       }),
     ]);
 
+    const cutoffs = await this.lastInvoiceCutoffs(params.clientIds?.in);
+    const afterCutoff = (clientId: string, d: Date) => {
+      const c = cutoffs.get(clientId);
+      return !c || d > c;
+    };
     type Row = { clientId: string; clientName: string; hours: number; timeAmount: number; expenseAmount: number; missingRateHours: number; since: string | null };
     const byClient = new Map<string, Row>();
     const row = (id: string, name: string): Row => {
@@ -263,7 +292,7 @@ export class InvoiceFromTimeService {
       if (!r.since || iso < r.since) r.since = iso;
     };
     for (const e of entries) {
-      if (!e.client) continue;
+      if (!e.client || !afterCutoff(e.client.id, e.startedAt)) continue;
       const r = row(e.client.id, e.client.name);
       const hours = (e.durationMin ?? 0) / 60;
       const rate = resolveHourlyRate(e as unknown as TimeEntryForInvoice);
@@ -274,7 +303,7 @@ export class InvoiceFromTimeService {
     }
     for (const x of expenses) {
       const client = x.project?.client;
-      if (!client) continue;
+      if (!client || !afterCutoff(client.id, x.incurredAt)) continue;
       const r = row(client.id, client.name);
       const isMileage = x.miles != null && x.mileageRate != null;
       r.expenseAmount += isMileage ? Number(x.miles) * Number(x.mileageRate) : Number(x.amount);
@@ -332,7 +361,10 @@ export class InvoiceFromTimeService {
     ]);
     if (!client) return null;
 
-    const cutoff = lastInvoice?.issueDate ?? null;
+    const cutoff = lastInvoice?.issueDate ? new Date(lastInvoice.issueDate) : null;
+    if (cutoff) cutoff.setHours(23, 59, 59, 999);
+    /** Hours and expenses left out by the rules, so the popup can say what isn't counted. */
+    const excluded = { beforeLastInvoiceHours: 0, noProjectHours: 0, notBillableProjectHours: 0, expensesBeforeLastInvoice: 0 };
     const round = (n: number) => Math.round(n * 100) / 100;
     type Line = {
       id: string;
@@ -357,6 +389,19 @@ export class InvoiceFromTimeService {
     };
     const groups = new Map<string, Group>();
     for (const e of entries) {
+      const entryHours = (e.durationMin ?? 0) / 60;
+      if (!e.project) {
+        excluded.noProjectHours += entryHours;
+        continue;
+      }
+      if (!e.project.isBillable) {
+        excluded.notBillableProjectHours += entryHours;
+        continue;
+      }
+      if (cutoff && e.startedAt <= cutoff) {
+        excluded.beforeLastInvoiceHours += entryHours;
+        continue;
+      }
       const key = e.project?.id ?? 'none';
       let g = groups.get(key);
       if (!g) {
@@ -397,7 +442,16 @@ export class InvoiceFromTimeService {
     const projects = [...groups.values()]
       .map((g) => ({ ...g, hours: round(g.hours), amount: round(g.amount), missingRateHours: round(g.missingRateHours), beforeLastInvoiceHours: round(g.beforeLastInvoiceHours) }))
       .sort((a, b) => b.amount - a.amount || b.hours - a.hours);
-    const expenseLines = expenses.map((x) => {
+    const expenseLines = expenses
+      .filter((x) => {
+        if (x.project && x.project.isBillable === false) return false;
+        if (cutoff && x.incurredAt <= cutoff) {
+          excluded.expensesBeforeLastInvoice += 1;
+          return false;
+        }
+        return true;
+      })
+      .map((x) => {
       const isMileage = x.miles != null && x.mileageRate != null;
       return {
         id: x.id,
@@ -423,6 +477,12 @@ export class InvoiceFromTimeService {
       total: round(timeAmount + expenseAmount),
       projects,
       expenses: expenseLines,
+      excluded: {
+        beforeLastInvoiceHours: round(excluded.beforeLastInvoiceHours),
+        noProjectHours: round(excluded.noProjectHours),
+        notBillableProjectHours: round(excluded.notBillableProjectHours),
+        expensesBeforeLastInvoice: excluded.expensesBeforeLastInvoice,
+      },
     };
   }
 

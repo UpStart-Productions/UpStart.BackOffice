@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none" role="img" aria-labelledby="title"><title id="title">No invoices yet</title><g stroke-linecap="round" stroke-linejoin="round"><path id="backdrop" d="M62 169C36 144 43 113 65 98C86 84 87 54 117 45C147 35 166 56 187 51C222 42 253 61 264 87C277 117 259 138 267 162C278 195 246 216 213 212C181 208 163 220 136 210C110 200 84 191 62 169Z" fill="#EDE8FC"/>
+<g id="tray-back" stroke="#28334A" stroke-width="1.5"><path d="M84 185L105 155Q108 151 114 151H226Q232 151 235 156L255 185V209H84Z" fill="#B6A3F1"/><path d="M106 155L116 181M234 155L224 181" stroke="#9C83E8"/></g>
+<g id="back-sheet" transform="rotate(-8 162 130)"><rect x="102" y="72" width="115" height="130" rx="9" fill="#F6F7FB" stroke="#28334A" stroke-width="1.5"/></g>
+<g id="invoice-sheet" transform="rotate(6 170 129)">
+<path d="M128 48H204L228 72V196Q228 203 221 203H128Q120 203 120 195V56Q120 48 128 48Z" fill="white" stroke="#28334A" stroke-width="1.5"/>
+<path id="fold" d="M204 48V65Q204 72 211 72H228" fill="#DFE6F1" stroke="#28334A" stroke-width="1.5"/>
+<g id="invoice-header" fill="#7C5CE7"><rect x="134" y="75" width="53" height="6" rx="2"/><rect x="134" y="87" width="34" height="4" rx="2"/></g>
+<path d="M134 106H214M134 164H214" stroke="#C9D4E6" stroke-width="1.5"/>
+<g id="invoice-rows" fill="#C9D4E6"><rect x="134" y="117" width="7" height="7" rx="2"/><rect x="148" y="119" width="41" height="3" rx="1.5"/><rect x="202" y="119" width="12" height="3" rx="1.5"/><rect x="134" y="132" width="7" height="7" rx="2"/><rect x="148" y="134" width="33" height="3" rx="1.5"/><rect x="202" y="134" width="12" height="3" rx="1.5"/><rect x="134" y="147" width="7" height="7" rx="2"/><rect x="148" y="149" width="39" height="3" rx="1.5"/><rect x="202" y="149" width="12" height="3" rx="1.5"/></g>
+<rect id="invoice-total" x="134" y="175" width="80" height="12" rx="4" fill="#BCE5D8"/>
+</g>
+<path id="tray-front" d="M84 184H131Q137 184 140 190L143 195Q146 200 153 200H186Q192 200 196 194L199 189Q202 184 209 184H255L250 209Q248 217 239 217H101Q91 217 89 208Z" fill="#AE97EF" stroke="#28334A" stroke-width="1.5"/>
+<g id="sprig" stroke="#28334A" stroke-width="1.5"><path d="M79 215Q75 191 63 175"/><path id="leaf-top" d="M67 183Q41 173 44 151Q71 155 67 183Z" fill="#BCE5D8"/><path id="leaf-bottom" d="M74 201Q51 213 39 192Q57 181 74 201Z" fill="#BCE5D8"/></g>
+<g id="sparkles" fill="#B6A3F1" stroke="#28334A" stroke-width="1.2"><path d="M268 101Q269 111 278 113Q269 115 268 125Q266 115 257 113Q266 111 268 101Z"/><path d="M282 139Q283 145 288 146Q283 147 282 153Q281 147 276 146Q281 145 282 139Z"/></g>
+</g></svg>

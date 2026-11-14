@@ -85,9 +85,20 @@
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="6" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
-        </tr>
+        @if (firstRunEmpty()) {
+          <app-empty-state
+            shape="table-rows"
+            [columns]="ghostColumns"
+            title="Start your first project"
+            body="Projects group the time, tasks and billing for work you do for an account."
+            actionLabel="New Project"
+            actionLink="/projects/new"
+          />
+        } @else if (!loading()) {
+          <tr>
+            <td colspan="6" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
+          </tr>
+        }
       </ng-template>
     </p-table>
   </div>

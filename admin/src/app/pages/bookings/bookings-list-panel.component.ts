@@ -12,6 +12,7 @@ import {
   RowActionItem,
   RowActionsMenuComponent,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type BookingRow = {
   id: string;
@@ -28,7 +29,7 @@ type BookingRow = {
 @Component({
   selector: 'app-bookings-list-panel',
   standalone: true,
-  imports: [RouterLink, TableModule, MessageModule, TagModule, RowActionsMenuComponent],
+  imports: [RouterLink, TableModule, MessageModule, TagModule, RowActionsMenuComponent, EmptyStateComponent],
   templateUrl: './bookings-list-panel.component.html',
   styles: `
     :host {
@@ -60,6 +61,11 @@ export class BookingsListPanelComponent {
       leadSort: row.lead?.organization ?? '',
     })),
   );
+
+  /** Ghost columns for the empty state, one per header (actions, when, type, guest, organization, status, lead). */
+  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'date', 'text', 'avatar-text', 'text', 'tag', 'text'];
+  /** No bookings at all yet (no type filter): show the ghosted empty state. */
+  readonly firstRunEmpty = computed(() => !this.loading() && !this.error() && this.bookings().length === 0 && !this.bookingTypeId());
 
   readonly emptyMessage = computed(() =>
     this.bookingTypeId() ? 'No bookings match this type.' : 'No bookings yet.',

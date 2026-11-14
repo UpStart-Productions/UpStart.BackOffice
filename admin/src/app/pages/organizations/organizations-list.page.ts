@@ -21,6 +21,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
 import type { OrganizationRow } from '../clients/clients-list.page';
 import { OrganizationsImportModalComponent } from '../../ui/organizations-import-modal/organizations-import-modal.component';
 import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type StatusFilter = 'all' | AccountJourney;
 
@@ -29,6 +30,7 @@ type StatusFilter = 'all' | AccountJourney;
   selector: 'app-organizations-list-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -141,11 +143,22 @@ type StatusFilter = 'all' | AccountJourney;
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
+            @if (firstRunEmpty()) {
+              <app-empty-state
+                shape="table-rows"
+                [columns]="ghostColumns"
+                title="Add your first account"
+                body="Accounts are the families, companies and organizations you work with."
+                actionLabel="New Account"
+                actionLink="/accounts/new"
+              />
+            } @else if (!loading()) {
             <tr>
               <td colspan="5" class="text-center p-4 text-color-secondary">
                 {{ searchDebounced().trim() || status() !== 'all' || tag() ? 'No accounts match these filters.' : 'No accounts yet.' }}
               </td>
             </tr>
+            }
           </ng-template>
         </p-table>
       </div>
@@ -193,6 +206,12 @@ export class OrganizationsListPage implements OnInit {
   searchDebounced = signal('');
   tableSortField = signal('name');
   tableSortOrder = signal<1 | -1>(1);
+  /** Ghost columns for the empty state, one per header (actions, name, status, email, tags). */
+  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'avatar-text', 'tag', 'text', 'tag'];
+  /** No accounts at all yet (no search or filters): show the ghosted empty state. */
+  readonly firstRunEmpty = computed(
+    () => !this.loading() && !this.error() && this.orgs().length === 0 && !this.searchDebounced().trim() && this.status() === 'all' && !this.tag(),
+  );
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   readonly filtered = computed(() => {
     const q = this.searchDebounced().trim().toLowerCase();

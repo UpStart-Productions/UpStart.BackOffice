@@ -1,6 +1,6 @@
 import { HELP_AGENT_SUPPORT_TOOL, supportTopicIdFromLabel } from '@upstart/back-office/shared';
 import { buildClientEnvironment } from '../support-feedback-modal/support-feedback-modal.component';
-import { Component, computed, DestroyRef, effect, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, effect, ElementRef, inject, OnInit, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
@@ -24,6 +24,14 @@ import { HelpAgentActionCardComponent, type HelpAgentAction } from './help-agent
 import { ButtonModule } from 'primeng/button';
 import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
+import { areaLevel, type PermissionArea } from '@upstart/back-office/shared';
+import { CommunicationsApi } from '../../core/communications.api';
+import { FormsApi } from '../../core/forms.api';
+import { TmApiService } from '../../task-manager/core/tm-api.service';
+import { jdPlaceholder } from './help-agent-greeting';
+import { JdThreadsService, type JdThreadSummary } from '../../core/jd-threads.service';
+import { relativeTime } from '../../core/communications.api';
+import { AutofocusDirective } from '../autofocus.directive';
 import { SessionService } from '../../core/session.service';
 import { SimpleMarkdownPipe } from '../../core/simple-markdown.pipe';
 import { HelpAgentPickOverlayService } from '../../core/help-agent-pick-overlay.service';
@@ -41,7 +49,12 @@ interface HelpAgentChatMessage {
   reports?: HelpAgentReport[];
 }
 
-const GUIDE_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
+/** The old single conversation kept in the browser; not carried over, just cleared. */
+const LEGACY_CHAT_STORAGE_PREFIX = 'ubo-guide-chat-';
+/** Which saved conversation was open last, per person, per browser (the conversations live on the server). */
+const GUIDE_THREAD_STORAGE_PREFIX = 'ubo-guide-thread-';
+/** Save the conversation this long after the last change. */
+const SAVE_DEBOUNCE_MS = 700;
 const GUIDE_CHAT_MAX_MESSAGES = 80;
 /** Wait for a highlight to settle before reading it. */
 const SELECTION_SETTLE_MS = 250;
@@ -69,10 +82,74 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
     SimpleMarkdownPipe,
     HelpAgentActionCardComponent,
     HelpAgentReportViewerComponent,
+    AutofocusDirective,
   ],
   template: `
     <div class="help-agent-chat-pane">
-      <div class="help-agent-chat-log" #chatLog (click)="onChatLogClick($event)">
+      @if (showThreads()) {
+        <div class="help-agent-threads" role="region" aria-label="Conversations">
+          <div class="help-agent-threads-head">
+            <span class="help-agent-threads-title">Conversations</span>
+            <span class="help-agent-threads-note">Kept 30 days after last use. Only you can see them.</span>
+          </div>
+          @if (threadsLoading()) {
+            <p class="help-agent-threads-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+          } @else if (!threads().length) {
+            <p class="help-agent-threads-empty">No saved conversations yet.</p>
+          } @else {
+            <ul class="help-agent-threads-list">
+              @for (t of threads(); track t.id) {
+                <li class="help-agent-thread" [class.help-agent-thread--current]="t.id === threadId()" [class.help-agent-thread--leaving]="leavingThreads().has(t.id)">
+                  @if (renamingId() === t.id) {
+                    <input
+                      #renameInput
+                      appAutofocus
+                      class="p-inputtext p-component help-agent-thread-rename"
+                      [value]="t.title"
+                      aria-label="Conversation name"
+                      (keydown.enter)="saveRename(t, renameInput.value)"
+                      (keydown.escape)="renamingId.set(null)"
+                      (blur)="saveRename(t, renameInput.value)"
+                    />
+                  } @else {
+                    <button type="button" class="help-agent-thread-open" (click)="openThread(t.id)">
+                      <span class="help-agent-thread-name">{{ t.title }}</span>
+                      <span class="help-agent-thread-meta">{{ threadWhen(t) }}{{ t.recordType ? ' · ' + recordLabel(t.recordType) : '' }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="help-agent-panel-icon-btn"
+                      (click)="renamingId.set(t.id)"
+                      pTooltip="Rename"
+                      tooltipPosition="top"
+                      [showDelay]="darkTooltipShowDelayMs"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      appendTo="body"
+                      [attr.aria-label]="'Rename ' + t.title"
+                    >
+                      <i class="pi pi-pencil"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="help-agent-panel-icon-btn help-agent-panel-icon-btn--danger"
+                      (click)="deleteThread(t.id)"
+                      pTooltip="Delete"
+                      tooltipPosition="top"
+                      [showDelay]="darkTooltipShowDelayMs"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      appendTo="body"
+                      [attr.aria-label]="'Delete ' + t.title"
+                    >
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+      <div class="help-agent-chat-log" #chatLog (click)="onChatLogClick($event)" [class.help-agent-chat-log--hidden]="showThreads()">
         <div class="help-agent-chat-log-inner">
           @for (msg of chatMessages(); track $index; let mi = $index) {
             @if (msg.role === 'assistant') {
@@ -138,6 +215,35 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
             <button
               type="button"
               class="help-agent-panel-icon-btn"
+              (click)="newChat()"
+              [disabled]="!chatMessages().length && !showThreads()"
+              pTooltip="New conversation"
+              tooltipPosition="top"
+              [showDelay]="darkTooltipShowDelayMs"
+              tooltipStyleClass="ubo-dark-tooltip"
+              appendTo="body"
+              aria-label="New conversation"
+            >
+              <i class="pi pi-plus"></i>
+            </button>
+            <button
+              type="button"
+              class="help-agent-panel-icon-btn"
+              [class.help-agent-panel-icon-btn--active]="showThreads()"
+              (click)="toggleThreads()"
+              [attr.aria-pressed]="showThreads()"
+              pTooltip="Conversations"
+              tooltipPosition="top"
+              [showDelay]="darkTooltipShowDelayMs"
+              tooltipStyleClass="ubo-dark-tooltip"
+              appendTo="body"
+              aria-label="Conversations"
+            >
+              <i class="pi pi-history"></i>
+            </button>
+            <button
+              type="button"
+              class="help-agent-panel-icon-btn"
               [class.help-agent-panel-icon-btn--active]="picking()"
               (click)="togglePicking()"
               [attr.aria-pressed]="picking()"
@@ -169,12 +275,12 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
               class="help-agent-panel-icon-btn help-agent-panel-icon-btn--danger"
               (click)="clearChat()"
               [disabled]="!chatMessages().length"
-              pTooltip="Clear conversation"
+              pTooltip="Delete this conversation"
               tooltipPosition="top"
               [showDelay]="darkTooltipShowDelayMs"
               tooltipStyleClass="ubo-dark-tooltip"
               appendTo="body"
-              aria-label="Clear conversation"
+              aria-label="Delete this conversation"
             >
               <i class="pi pi-trash"></i>
             </button>
@@ -204,7 +310,7 @@ const GUIDE_AVATAR_SRC = '/images/guide-jd-avatar.png';
             [formControl]="chatInput"
             [autoResize]="true"
             rows="3"
-            placeholder="How do I create an invoice from time entries?"
+            [placeholder]="placeholder()"
             (keydown)="onPromptKeydown($event)"
           ></textarea>
           <p-button
@@ -228,6 +334,235 @@ export class HelpAgentChatPaneComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly sidePanel = inject(HelpSidePanelService);
   private readonly pickOverlay = inject(HelpAgentPickOverlayService);
+  private readonly comms = inject(CommunicationsApi);
+  private readonly formsApi = inject(FormsApi);
+  private readonly tm = inject(TmApiService);
+  private readonly jdThreads = inject(JdThreadsService);
+
+  // ── Saved conversations ──────────────────────────────────────────────────
+  /** The open conversation on the server (null until the first message is saved). */
+  readonly threadId = signal<string | null>(null);
+  /** A record the open conversation is tied to (set when JD was opened from that record). */
+  private threadRecord: { type: string; id: string } | null = null;
+  readonly showThreads = signal(false);
+  readonly threads = signal<JdThreadSummary[]>([]);
+  readonly threadsLoading = signal(false);
+  readonly renamingId = signal<string | null>(null);
+  readonly leavingThreads = signal<Set<string>>(new Set());
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private saving: Promise<void> | null = null;
+  private handledRequest = 0;
+
+  toggleThreads() {
+    const show = !this.showThreads();
+    this.showThreads.set(show);
+    if (show) void this.loadThreads();
+  }
+
+  private async loadThreads() {
+    this.threadsLoading.set(true);
+    try {
+      this.threads.set(await this.jdThreads.list());
+    } catch {
+      this.threads.set([]);
+    } finally {
+      this.threadsLoading.set(false);
+    }
+  }
+
+  threadWhen(t: JdThreadSummary): string {
+    return relativeTime(t.updatedAt);
+  }
+
+  recordLabel(type: string): string {
+    return type === 'account' ? 'Account' : type === 'lead' ? 'Pipeline card' : type === 'invoice' ? 'Invoice' : type;
+  }
+
+  /** Start a fresh conversation (the current one stays saved). */
+  async newChat() {
+    await this.flushSave();
+    this.threadId.set(null);
+    this.threadRecord = null;
+    this.chatMessages.set([]);
+    this.rememberThread(null);
+    this.showThreads.set(false);
+    queueMicrotask(() => this.chatInputEl()?.nativeElement.focus());
+  }
+
+  async openThread(id: string) {
+    await this.flushSave();
+    try {
+      const t = await this.jdThreads.get(id);
+      this.applyThread(t.id, t.messages, t.recordType && t.recordId ? { type: t.recordType, id: t.recordId } : null);
+      this.showThreads.set(false);
+      this.scrollLastMessageIntoView();
+    } catch {
+      void this.loadThreads();
+    }
+  }
+
+  async saveRename(t: JdThreadSummary, title: string) {
+    if (this.renamingId() !== t.id) return;
+    this.renamingId.set(null);
+    const clean = title.trim();
+    if (!clean || clean === t.title) return;
+    this.threads.update((list) => list.map((x) => (x.id === t.id ? { ...x, title: clean } : x)));
+    try {
+      await this.jdThreads.update(t.id, { title: clean });
+    } catch {
+      void this.loadThreads();
+    }
+  }
+
+  async deleteThread(id: string) {
+    this.leavingThreads.update((s) => new Set(s).add(id));
+    try {
+      await this.jdThreads.remove(id);
+      setTimeout(() => {
+        this.threads.update((list) => list.filter((t) => t.id !== id));
+        this.leavingThreads.update((s) => {
+          const next = new Set(s);
+          next.delete(id);
+          return next;
+        });
+      }, 350);
+      if (this.threadId() === id) {
+        this.threadId.set(null);
+        this.threadRecord = null;
+        this.chatMessages.set([]);
+        this.rememberThread(null);
+      }
+    } catch {
+      this.leavingThreads.update((s) => {
+        const next = new Set(s);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  private applyThread(id: string | null, messages: unknown[], record: { type: string; id: string } | null) {
+    this.threadId.set(id);
+    this.threadRecord = record;
+    this.chatMessages.set(this.cleanRestored(messages));
+    this.rememberThread(id);
+  }
+
+  private rememberThread(id: string | null) {
+    const userId = this.session.me()?.id;
+    if (!userId) return;
+    try {
+      if (id) localStorage.setItem(`${GUIDE_THREAD_STORAGE_PREFIX}${userId}`, id);
+      else localStorage.removeItem(`${GUIDE_THREAD_STORAGE_PREFIX}${userId}`);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** Save soon after a change: the first save creates the conversation (named from the first question). */
+  private scheduleSave() {
+    if (this.saveTimer) clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.saveNow();
+    }, SAVE_DEBOUNCE_MS);
+  }
+
+  private async flushSave() {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+      await this.saveNow();
+    } else if (this.saving) {
+      await this.saving;
+    }
+  }
+
+  private async saveNow() {
+    if (this.saving) await this.saving;
+    const messages = this.chatMessages().slice(-GUIDE_CHAT_MAX_MESSAGES);
+    if (!messages.length) return;
+    const run = (async () => {
+      try {
+        const id = this.threadId();
+        if (id) {
+          await this.jdThreads.update(id, { messages });
+        } else {
+          const firstQuestion = messages.find((m) => m.role === 'user')?.text ?? '';
+          const t = await this.jdThreads.create({
+            title: firstQuestion.slice(0, 80),
+            messages,
+            recordType: this.threadRecord?.type ?? null,
+            recordId: this.threadRecord?.id ?? null,
+          });
+          this.threadId.set(t.id);
+          this.rememberThread(t.id);
+        }
+      } catch {
+        // Not saved this time; the next change tries again.
+      }
+    })();
+    this.saving = run;
+    await run;
+    this.saving = null;
+  }
+
+  /** Opened from elsewhere (e.g. a Dashboard suggestion): resume that record's conversation or start one, then ask. */
+  private async handleOpenRequest(req: { recordType?: string; recordId?: string; title?: string; prompt?: string }) {
+    await this.flushSave();
+    this.showThreads.set(false);
+    let resumed = false;
+    if (req.recordType && req.recordId) {
+      try {
+        const t = await this.jdThreads.forRecord(req.recordType, req.recordId);
+        if (t) {
+          this.applyThread(t.id, t.messages, { type: req.recordType, id: req.recordId });
+          resumed = true;
+        }
+      } catch {
+        // Start a new one below.
+      }
+    }
+    if (!resumed) {
+      this.applyThread(null, [], req.recordType && req.recordId ? { type: req.recordType, id: req.recordId } : null);
+    }
+    if (req.prompt) {
+      this.chatInput.setValue(req.prompt);
+      await this.sendChatMessage();
+    }
+  }
+
+  /** Chat box placeholder: a greeting with the person's name and a nudge (see help-agent-greeting.ts). */
+  readonly placeholder = signal('How can I help?');
+  private placeholderShownFor = false;
+
+  /** New greeting each time the guide opens; nudges use the person's own data where it's cheap to get. */
+  private async refreshPlaceholder() {
+    const me = this.session.me();
+    const can = (area: PermissionArea) => !!areaLevel(me, area);
+    const firstName = me?.firstName?.trim() || null;
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const [tasks, queues, invoices, submissions] = await Promise.all([
+      can('tasks') ? this.tm.myTasks().catch(() => null) : null,
+      can('inbox') ? this.comms.queues({ mine: true }).catch(() => null) : null,
+      can('invoices') ? this.api.get<{ status: string }[]>('/invoices').catch(() => null) : null,
+      can('forms') ? this.formsApi.pending().catch(() => null) : null,
+    ]);
+    const open = (tasks ?? []).filter((t) => !t.isCompleted);
+    this.placeholder.set(
+      jdPlaceholder({
+        firstName,
+        can,
+        overdueTasks: open.filter((t) => t.dueOn && t.dueOn < todayKey).length,
+        dueTodayTasks: open.filter((t) => t.dueOn === todayKey).length,
+        draftInvoices: (invoices ?? []).filter((i) => i.status === 'DRAFT').length,
+        quietAccount: queues?.quiet?.[0]?.clientName ?? null,
+        unfiledEmails: queues?.counts.unfiled ?? 0,
+        pendingSubmissions: submissions?.length ?? 0,
+      }),
+    );
+  }
 
   readonly guideAvatarSrc = GUIDE_AVATAR_SRC;
   readonly agentName = HELP_AGENT_NAME;
@@ -261,6 +596,24 @@ export class HelpAgentChatPaneComponent implements OnInit {
 
   constructor() {
     effect(() => {
+      const req = this.jdThreads.request();
+      if (!req || req.nonce === this.handledRequest) return;
+      untracked(() => {
+        if (!this.chatStorageReady) return;
+        this.handledRequest = req.nonce;
+        void this.handleOpenRequest(req);
+      });
+    });
+    effect(() => {
+      const active = this.guideActive();
+      if (active && !this.placeholderShownFor) {
+        this.placeholderShownFor = true;
+        void this.refreshPlaceholder();
+      } else if (!active) {
+        this.placeholderShownFor = false;
+      }
+    });
+    effect(() => {
       if (!this.guideActive()) {
         if (this.picking()) this.stopPicking();
         return;
@@ -293,8 +646,14 @@ export class HelpAgentChatPaneComponent implements OnInit {
       if (this.selectionTimer) clearTimeout(this.selectionTimer);
     });
 
-    this.restoreChat();
+    await this.restoreChat();
     this.chatStorageReady = true;
+    // A request that arrived before the panel was ready.
+    const pending = this.jdThreads.request();
+    if (pending && pending.nonce !== this.handledRequest) {
+      this.handledRequest = pending.nonce;
+      void this.handleOpenRequest(pending);
+    }
   }
 
   async sendChatMessage() {
@@ -584,30 +943,53 @@ export class HelpAgentChatPaneComponent implements OnInit {
     el.dispatchEvent(new Event('input'));
   }
 
-  clearChat() {
+  /** Delete the open conversation (from the server too) and start fresh. */
+  async clearChat() {
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+    if (this.saving) await this.saving;
+    const id = this.threadId();
+    this.threadId.set(null);
+    this.threadRecord = null;
     this.chatMessages.set([]);
-    const key = this.storageKey();
-    if (key) {
+    this.rememberThread(null);
+    if (id) {
       try {
-        localStorage.removeItem(key);
+        await this.jdThreads.remove(id);
       } catch {
-        /* ignore */
+        /* already gone */
       }
     }
   }
 
-  private storageKey(): string | null {
-    const id = this.session.me()?.id;
-    return id ? `${GUIDE_CHAT_STORAGE_PREFIX}${id}` : null;
+
+  /** Reopen the conversation that was open last on this browser (saved on the server). */
+  private async restoreChat() {
+    const userId = this.session.me()?.id;
+    if (!userId) return;
+    let id: string | null = null;
+    try {
+      localStorage.removeItem(`${LEGACY_CHAT_STORAGE_PREFIX}${userId}`);
+      id = localStorage.getItem(`${GUIDE_THREAD_STORAGE_PREFIX}${userId}`);
+    } catch {
+      id = null;
+    }
+    if (!id) return;
+    try {
+      const t = await this.jdThreads.get(id);
+      this.applyThread(t.id, t.messages, t.recordType && t.recordId ? { type: t.recordType, id: t.recordId } : null);
+    } catch {
+      // Deleted or expired: start fresh.
+      this.rememberThread(null);
+    }
   }
 
-  private restoreChat() {
-    const key = this.storageKey();
-    if (!key) return;
+  /** Messages from storage: keep valid ones; a change that was running when the page closed may not have finished. */
+  private cleanRestored(raw: unknown[]): HelpAgentChatMessage[] {
     try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return;
-      const data = JSON.parse(raw) as { messages?: unknown };
+      const data = { messages: raw as unknown };
       const messages = Array.isArray(data.messages)
         ? data.messages.filter(
             (m): m is HelpAgentChatMessage =>
@@ -618,7 +1000,7 @@ export class HelpAgentChatPaneComponent implements OnInit {
           )
         : [];
       // A change that was running when the page closed may or may not have gone through.
-      this.chatMessages.set(
+      return (
         messages.map((m) =>
           m.actions?.some((a) => a.status === 'running')
             ? {
@@ -630,24 +1012,17 @@ export class HelpAgentChatPaneComponent implements OnInit {
                 ),
               }
             : m,
-        ),
+        )
       );
     } catch {
-      // Bad or leftover storage — start fresh.
+      return [];
     }
   }
 
+  /** Conversations are saved on the server now (see scheduleSave). */
   private persistChat() {
-    if (!this.chatStorageReady) return;
-    const key = this.storageKey();
-    if (!key) return;
-    const messages = this.chatMessages().slice(-GUIDE_CHAT_MAX_MESSAGES);
-    if (!messages.length) return;
-    try {
-      localStorage.setItem(key, JSON.stringify({ messages }));
-    } catch {
-      // Quota or private mode — chat still works for this page view.
-    }
+    if (!this.chatStorageReady || !this.chatMessages().length) return;
+    this.scheduleSave();
   }
 
   async copyChat() {

@@ -21,6 +21,7 @@ import { SessionService } from '../../core/session.service';
 import { LIST_VIEW_KEYS, listViewFilterBool, listViewFilterString, readListViewPrefs } from '../../core/list-view-prefs.storage';
 import { loadListSearch, loadTableSort, onTableSortSave, saveListFilter, saveListSearch } from '../../core/list-view-prefs.util';
 import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type PeopleTableRow = ContactSummary & {
   primaryEmail: string;
@@ -31,6 +32,7 @@ type PeopleTableRow = ContactSummary & {
   selector: 'app-contacts-list-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     FormsModule,
     RouterLink,
     CreatePersonModalComponent,
@@ -162,6 +164,16 @@ type PeopleTableRow = ContactSummary & {
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
+            @if (!loading() && !error() && contacts().length === 0 && !query && !tag && !review()) {
+              <app-empty-state
+                shape="table-rows"
+                [columns]="ghostColumns"
+                title="Add your first person"
+                body="People are the contacts at your accounts, plus anyone else you work with."
+                actionLabel="New Person"
+                (action)="openNew()"
+              />
+            } @else if (!loading()) {
             <tr>
               <td colspan="5">
                 <div class="empty-state">
@@ -170,6 +182,7 @@ type PeopleTableRow = ContactSummary & {
                 </div>
               </td>
             </tr>
+            }
           </ng-template>
         </p-table>
       </div>
@@ -195,6 +208,8 @@ export class ContactsListPage implements OnInit {
   readonly canEdit = () => this.session.can('contacts', 'edit');
 
   contacts = signal<ContactSummary[]>([]);
+  /** Ghost columns for the empty state, one per header (avatar, name, email, accounts, tags). */
+  readonly ghostColumns: EmptyGhostCell[] = ['avatar', 'strong', 'text', 'text', 'tag'];
   loading = signal(true);
   error = signal<string | null>(null);
   query = '';

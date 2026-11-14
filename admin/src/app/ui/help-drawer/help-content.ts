@@ -215,7 +215,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Cards',
-        body: 'Financial health has a date range picker; Collected, Outstanding, Unbilled work and Net (Drafts to send for non-admins) and the Invoiced vs collected chart all follow it, plus Needs action: drafts to send, overdue invoices and clients with unbilled work. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them): the three oldest overdue, New for you and Due this week, each with a check button to mark it done. Pipeline & relationships shows open cards, their estimated value, each lane with its card count, Gone quiet accounts and next steps this week. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My shifts (Care) lists your shifts with Start visit and Open visit.',
+        body: 'Financial health has a date range picker; Collected, Outstanding, Unbilled work and Net (Drafts to send for non-admins) and the Invoiced vs collected chart all follow it, plus Needs action: drafts to send, overdue invoices and clients with unbilled work. The guide suggestions card lists up to three things worth doing (an account gone quiet, an overdue or waiting invoice, unbilled work); its button opens the guide with the request ready, and Not now hides one for 3 days. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them): the three oldest overdue, New for you and Due this week, each with a check button to mark it done. Pipeline & relationships shows open cards, their estimated value, each lane with its card count, Gone quiet accounts and next steps this week. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My shifts (Care) lists your shifts with Start visit and Open visit.',
       },
       {
         heading: "Mine / Everyone's",
@@ -223,7 +223,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Rearranging',
-        body: 'Drag a card by the grip handle in its header to move it. Cards fill rows in your order, and the last card in a row stretches to fill the space left. Your order is remembered on this computer and browser.',
+        body: 'Customize (top right) turns cards on or off; Reset to default brings them all back. Drag a card by the grip handle in its header to move it. Cards fill rows in your order, and the last card in a row stretches to fill the space left. Your order is remembered on this computer and browser.',
       },
     ],
   },

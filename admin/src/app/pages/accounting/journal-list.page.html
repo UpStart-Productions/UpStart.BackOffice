@@ -42,9 +42,16 @@
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="5" class="text-center p-4 text-color-secondary">No journal entries yet.</td>
-        </tr>
+        @if (!loading() && !error()) {
+          <app-empty-state
+            shape="table-rows"
+            [columns]="ghostColumns"
+            title="Your journal starts here"
+            body="Accounting entries show up here as you work, and you can add your own."
+            actionLabel="New Entry"
+            actionLink="/accounting/journal/new"
+          />
+        }
       </ng-template>
     </p-table>
   </div>

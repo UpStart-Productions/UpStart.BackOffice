@@ -10,12 +10,14 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
 import { TableModule } from 'primeng/table';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { TooltipModule } from 'primeng/tooltip';
 import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 import {
   areaLevel,
+  HELP_AGENT_NAME,
   isAdminRole,
   type CareShiftDto,
   type PendingSubmissionDto,
@@ -26,6 +28,8 @@ import { CareApi } from '../../core/care.api';
 import { FormsApi } from '../../core/forms.api';
 import { ActivityQueues, CommunicationsApi, QueueRow, relativeTime } from '../../core/communications.api';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
+import { HelpSidePanelService } from '../../core/help-side-panel.service';
+import { JdThreadsService } from '../../core/jd-threads.service';
 import { SessionService } from '../../core/session.service';
 import { lastContactLabel } from '../../core/staleness.util';
 import { TmApiService } from '../../task-manager/core/tm-api.service';
@@ -34,6 +38,7 @@ import { MyTask, Person } from '../../task-manager/core/tm.types';
 import { ReportChartComponent } from '../../ui/charts/report-chart.component';
 import { DashboardPanelComponent, DashboardPanelColor } from '../../ui/dashboard-panel/dashboard-panel.component';
 import { PageComponent } from '../../ui/layout/page.component';
+import { EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 import { RecordCardComponent, RecordCardTone } from '../../ui/record-card/record-card.component';
 import { invoiceDueFlag, isUnpaidInvoiceStatus } from '../invoices/invoice-status.util';
 import type { TimeEntry } from '../time-entry/time-entry.types';
@@ -134,6 +139,8 @@ type UnbilledDetail = {
     lines: UnbilledLine[];
   }[];
   expenses: { id: string; date: string; project: string; projectBillable: boolean | null; description: string; amount: number; beforeLastInvoice: boolean }[];
+  /** What the rules leave out (shown as a note). */
+  excluded?: { beforeLastInvoiceHours: number; noProjectHours: number; notBillableProjectHours: number; expensesBeforeLastInvoice: number };
 };
 
 type ProfitLoss = { totalRevenue: number; totalExpenses: number; netIncome: number };
@@ -157,7 +164,7 @@ export type DashRow = {
   at?: string;
 };
 
-type PanelId = 'money' | 'today' | 'work' | 'pipeline' | 'feed' | 'time' | 'shifts';
+type PanelId = 'money' | 'jd' | 'today' | 'work' | 'pipeline' | 'feed' | 'time' | 'shifts';
 /** Card width: full row, half a row, or a third of a row. */
 export type PanelSize = 'full' | 'twoThirds' | 'half' | 'third';
 type Panel = { id: PanelId; size: PanelSize; visible: (d: DashboardPage) => boolean };
@@ -165,6 +172,7 @@ type Panel = { id: PanelId; size: PanelSize; visible: (d: DashboardPage) => bool
 /** Default order and widths. The grid back-fills gaps so rows stay full after a drag. */
 const PANELS: Panel[] = [
   { id: 'money', size: 'twoThirds', visible: (d) => d.can('invoices') },
+  { id: 'jd', size: 'third', visible: (d) => d.guideReady() && (d.can('inbox') || d.can('invoices')) },
   { id: 'today', size: 'half', visible: (d) => d.can('tasks') || d.can('inbox') || d.can('bookings') || d.can('forms') || d.can('schedule') },
   { id: 'work', size: 'half', visible: (d) => d.can('tasks') },
   { id: 'pipeline', size: 'third', visible: (d) => d.can('pipeline') || d.can('inbox') },
@@ -195,6 +203,29 @@ const FIN_RANGE_KEY = 'ubo-dashboard-fin-range:v1';
 /** Mine / Everyone's and the Today weather toggle, per person, per browser. */
 const SCOPE_KEY = 'ubo-dashboard-mine:v1';
 const WEATHER_OPEN_KEY = 'ubo-dashboard-weather-open:v1';
+
+/** Cards turned off in Customize, per person, per browser. */
+const HIDDEN_KEY = 'ubo-dashboard-hidden:v1';
+
+/** JD suggests: snoozed suggestions (key → until) and how often each kind was dismissed. */
+const SUGGEST_SNOOZE_KEY = 'ubo-dashboard-suggest-snooze:v1';
+const SUGGEST_COUNTS_KEY = 'ubo-dashboard-suggest-dismissed:v1';
+
+type SuggestionKind = 'quiet' | 'overdue' | 'draft' | 'unbilled' | 'combo';
+type Suggestion = {
+  key: string;
+  kind: SuggestionKind;
+  accountId: string | null;
+  accountName: string;
+  text: string;
+  score: number;
+  action: {
+    label: string;
+    jd?: { recordType: string; recordId: string; title: string; prompt: string };
+    link?: unknown[] | string;
+    query?: Record<string, string>;
+  };
+};
 
 /** Each person's card order, per browser. v2: the redesigned cards. */
 const ORDER_KEY = 'ubo-dashboard-panel-order:v2';
@@ -249,6 +280,7 @@ function monthStart(offset = 0): Date {
     SelectModule,
     TagModule,
     TableModule,
+    ToggleSwitchModule,
     AppDialogModule,
     TooltipModule,
     LucideIconComponent,
@@ -256,6 +288,7 @@ function monthStart(offset = 0): Date {
     PageComponent,
     RecordCardComponent,
     ReportChartComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './dashboard.page.html',
 })
@@ -270,6 +303,88 @@ export class DashboardPage implements OnInit, OnDestroy {
   private readonly pipelinesApi = inject(PipelinesApi);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly helpPanel = inject(HelpSidePanelService);
+  private readonly jdThreads = inject(JdThreadsService);
+
+  /** Cards the person turned off in Customize. */
+  readonly hiddenPanels = signal<Set<string>>(new Set());
+
+  // ── Customize ────────────────────────────────────────────────────────────
+
+  readonly customizeOpen = signal(false);
+
+  /** Every card this person's role can use, in their order, with whether it's showing. */
+  readonly customizeRows = computed(() => {
+    const hidden = this.hiddenPanels();
+    const shown = this.panels().map((p) => p.id as string);
+    const available = PANELS.filter((p) => p.visible(this));
+    const ordered = [...available].sort((a, b) => {
+      const ai = shown.indexOf(a.id);
+      const bi = shown.indexOf(b.id);
+      return (ai < 0 ? 99 + PANELS.indexOf(a) : ai) - (bi < 0 ? 99 + PANELS.indexOf(b) : bi);
+    });
+    return ordered.map((p) => ({ id: p.id, label: this.panelLabel(p.id), shown: !hidden.has(p.id) }));
+  });
+
+  panelLabel(id: PanelId): string {
+    switch (id) {
+      case 'money':
+        return 'Financial health';
+      case 'jd':
+        return `${this.agentName} suggests`;
+      case 'today':
+        return 'Today';
+      case 'work':
+        return 'My work';
+      case 'pipeline':
+        return 'Pipeline & relationships';
+      case 'feed':
+        return 'Since last time';
+      case 'time':
+        return 'My time';
+      case 'shifts':
+        return 'My shifts';
+    }
+  }
+
+  setPanelShown(id: string, shown: boolean) {
+    this.hiddenPanels.update((s) => {
+      const next = new Set(s);
+      if (shown) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    this.saveHidden();
+  }
+
+  /** Every card back on, in the default order. */
+  resetLayout() {
+    this.hiddenPanels.set(new Set());
+    this.savedOrder.set([]);
+    try {
+      localStorage.removeItem(this.key(ORDER_KEY));
+    } catch {
+      /* ignore */
+    }
+    this.saveHidden();
+  }
+
+  private saveHidden() {
+    try {
+      localStorage.setItem(this.key(HIDDEN_KEY), JSON.stringify([...this.hiddenPanels()]));
+    } catch {
+      // Not remembered.
+    }
+  }
+
+  private loadHidden() {
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(this.key(HIDDEN_KEY)) ?? '[]');
+      if (Array.isArray(parsed)) this.hiddenPanels.set(new Set(parsed.filter((x): x is string => typeof x === 'string')));
+    } catch {
+      // Show everything.
+    }
+  }
 
   readonly scopeOptions = [
     { label: 'Mine', value: true },
@@ -368,12 +483,18 @@ export class DashboardPage implements OnInit, OnDestroy {
   private readonly savedOrder = signal<string[]>([]);
 
   readonly panels = computed(() => {
-    const allowed = PANELS.filter((p) => p.visible(this));
-    const rank = new Map(this.savedOrder().map((id, i) => [id, i]));
-    return allowed
-      .map((p, i) => ({ p, i }))
-      .sort((a, b) => (rank.get(a.p.id) ?? PANELS.length + a.i) - (rank.get(b.p.id) ?? PANELS.length + b.i))
-      .map(({ p }) => p);
+    const allowed = PANELS.filter((p) => p.visible(this) && !this.hiddenPanels().has(p.id));
+    const saved = this.savedOrder().filter((id) => allowed.some((p) => p.id === id));
+    // Saved order first; a card the person hasn't placed yet (e.g. a new one) goes in at its default spot.
+    const order = [...saved];
+    for (const p of allowed) {
+      if (order.includes(p.id)) continue;
+      const defaultIndex = PANELS.findIndex((x) => x.id === p.id);
+      const before = PANELS.slice(defaultIndex + 1).find((x) => order.includes(x.id));
+      const at = before ? order.indexOf(before.id) : order.length;
+      order.splice(at, 0, p.id);
+    }
+    return order.map((id) => allowed.find((p) => p.id === id)!);
   });
 
   /**
@@ -654,6 +775,18 @@ export class DashboardPage implements OnInit, OnDestroy {
     return dates[0] ?? null;
   }
 
+  /** "Not counted: 41 hrs before the last invoice · 3 hrs with no project" (empty when nothing was left out). */
+  excludedNote(d: UnbilledDetail): string {
+    const x = d.excluded;
+    if (!x) return '';
+    const parts: string[] = [];
+    if (x.beforeLastInvoiceHours) parts.push(`${this.hours(x.beforeLastInvoiceHours)} on or before the last invoice`);
+    if (x.noProjectHours) parts.push(`${this.hours(x.noProjectHours)} with no project`);
+    if (x.notBillableProjectHours) parts.push(`${this.hours(x.notBillableProjectHours)} on non-billable projects`);
+    if (x.expensesBeforeLastInvoice) parts.push(`${x.expensesBeforeLastInvoice} ${x.expensesBeforeLastInvoice === 1 ? 'expense' : 'expenses'} before the last invoice`);
+    return parts.length ? `Not counted: ${parts.join(' · ')}.` : '';
+  }
+
   rateLabel(l: UnbilledLine): string {
     if (l.rate == null) return 'No rate';
     const src = l.rateSource === 'entry' ? 'entry' : l.rateSource === 'project' ? 'project' : l.rateSource === 'person' ? 'person' : '';
@@ -802,6 +935,12 @@ export class DashboardPage implements OnInit, OnDestroy {
   });
 
   readonly todayLoading = computed(() => this.tasks().loading || this.queues().loading);
+  /** A brand-new workspace (no tasks, invoices, pipeline cards or next steps yet): list panels show ghosted empty states. */
+  readonly firstRun = computed(() => {
+    const t = this.tasks(), inv = this.invoices(), l = this.leads(), q = this.queues();
+    if (t.loading || inv.loading || l.loading || q.loading) return false;
+    return !t.data.length && !inv.data.length && !l.data.length && !this.nextStepRows().length;
+  });
 
   async markDone(row: DashRow) {
     if (!row.done || this.busyRow()) return;
@@ -1096,6 +1235,7 @@ export class DashboardPage implements OnInit, OnDestroy {
   });
 
   /** Hours per day, Monday through Sunday, as bar heights. */
+  readonly weekDayLabels = computed(() => this.weekDays().map((d) => d.label));
   readonly weekDays = computed(() => {
     const start = startOfWeek(new Date());
     const days = Array.from({ length: 7 }, (_, i) => {
@@ -1228,6 +1368,185 @@ export class DashboardPage implements OnInit, OnDestroy {
     if (!this.weatherHere()) void this.loadWeather(true);
   }
 
+  // ── JD suggests ──────────────────────────────────────────────────────────
+  //
+  // Plain checks over data the page already has (no AI to decide what to suggest): accounts gone quiet,
+  // unbilled work, invoice drafts sitting, overdue invoices. Scored by money and days; one account with
+  // two problems becomes one combined suggestion. "Not now" hides one for 3 days; dismissing a kind
+  // three times pushes that kind down. Clicking the main button opens JD on that account's conversation
+  // with the request already sent, or goes straight to the invoice when that's quicker.
+
+  readonly guideReady = computed(() => this.helpPanel.guideConfigured());
+  /** The guide's display name (shared constant; never hard-code it). */
+  readonly agentName = HELP_AGENT_NAME;
+  private readonly snoozes = signal<Record<string, number>>({});
+  private readonly dismissCounts = signal<Record<string, number>>({});
+
+  readonly suggestions = computed<Suggestion[]>(() => {
+    const now = Date.now();
+    const snoozed = this.snoozes();
+    const counts = this.dismissCounts();
+    const out: Suggestion[] = [];
+    const byAccount = new Map<string, Suggestion[]>();
+    const add = (s: Suggestion) => {
+      if ((snoozed[s.key] ?? 0) > now) return;
+      s.score -= (counts[s.kind] ?? 0) >= 3 ? 40 : 0;
+      out.push(s);
+      if (s.accountId) byAccount.set(s.accountId, [...(byAccount.get(s.accountId) ?? []), s]);
+    };
+
+    if (this.can('inbox')) {
+      for (const r of (this.queues().data?.quiet ?? []).slice(0, 8)) {
+        if (!r.clientId) continue;
+        const days = r.at ? daysBetween(r.at) : null;
+        const name = r.clientName || r.title;
+        add({
+          key: `quiet:${r.clientId}`,
+          kind: 'quiet',
+          accountId: r.clientId,
+          accountName: name,
+          text: days != null ? `${name} hasn't heard from you in ${days} days. Want a quick check-in?` : `You haven't been in touch with ${name} yet. Want to reach out?`,
+          score: 20 + Math.min(days ?? 30, 90) / 3,
+          action: {
+            label: 'Draft it',
+            jd: {
+              recordType: 'account',
+              recordId: r.clientId,
+              title: `Check in with ${name}`,
+              prompt: `Draft a short, friendly check-in email to ${name}. ${days != null ? `It's been ${days} days since we were last in touch. ` : ''}Look at our recent activity and any open items with them first, and keep it under 120 words.`,
+            },
+          },
+        });
+      }
+    }
+
+    if (this.can('invoices')) {
+      for (const i of this.overdueInvoices().slice(0, 5)) {
+        const days = i.dueDate ? daysBetween(i.dueDate) : 0;
+        const name = i.billToName || i.client?.name || 'the client';
+        const amount = this.money(this.balance(i), 0);
+        add({
+          key: `overdue:${i.id}`,
+          kind: 'overdue',
+          accountId: i.client?.id ?? null,
+          accountName: name,
+          text: `${name} is ${days} ${days === 1 ? 'day' : 'days'} past due on ${i.displayNumber} (${amount}). Want a friendly reminder?`,
+          score: 40 + Math.min(this.balance(i) / 100, 40) + Math.min(days, 30),
+          action: {
+            label: 'Draft reminder',
+            jd: {
+              recordType: i.client ? 'account' : 'invoice',
+              recordId: i.client?.id ?? i.id,
+              title: `Reminder: ${i.displayNumber}`,
+              prompt: `Draft a friendly payment reminder to ${name} for invoice ${i.displayNumber}: ${amount}, due ${i.dueDate ? this.shortDate(i.dueDate) : 'recently'} (${days} days ago). Keep it warm and short, and include the amount and invoice number.`,
+            },
+          },
+        });
+      }
+      for (const i of this.draftInvoices()) {
+        const age = daysBetween(i.issueDate);
+        if (age < 2) continue;
+        const name = i.billToName || i.client?.name || 'a client';
+        add({
+          key: `draft:${i.id}`,
+          kind: 'draft',
+          accountId: i.client?.id ?? null,
+          accountName: name,
+          text: `${i.displayNumber} for ${name} (${this.money(Number(i.total ?? 0), 0)}) has been a draft for ${age} days. Ready to send it?`,
+          score: 30 + Math.min(Number(i.total ?? 0) / 100, 40),
+          action: { label: 'Review & send', link: ['/invoices', i.id] },
+        });
+      }
+      for (const c of (this.unbilled().data?.clients ?? []).filter((x) => x.total >= 100).slice(0, 5)) {
+        add({
+          key: `unbilled:${c.clientId}`,
+          kind: 'unbilled',
+          accountId: c.clientId,
+          accountName: c.clientName,
+          text: `${c.clientName} has ${this.money(c.total, 0)} of work you haven't billed yet (${this.hours(c.hours)}). Want to invoice it?`,
+          score: 35 + Math.min(c.total / 100, 50),
+          action: { label: 'Create invoice', link: '/invoices/new', query: this.unbilledInvoiceQuery(c.clientId, c.since) },
+        });
+      }
+    }
+
+    // One account, two problems (gone quiet plus money waiting): one suggestion that handles both.
+    for (const [accountId, list] of byAccount) {
+      const quiet = list.find((s) => s.kind === 'quiet');
+      const money = list.find((s) => s.kind === 'draft' || s.kind === 'unbilled' || s.kind === 'overdue');
+      if (!quiet || !money) continue;
+      const name = quiet.accountName;
+      const combined: Suggestion = {
+        key: `combo:${accountId}`,
+        kind: 'combo',
+        accountId,
+        accountName: name,
+        text:
+          money.kind === 'overdue'
+            ? `${name} has gone quiet and has an overdue invoice. Want one note that checks in and nudges the payment?`
+            : money.kind === 'draft'
+              ? `${name} has gone quiet, and their invoice is sitting in drafts. Send it with a short check-in?`
+              : `${name} has gone quiet, and there's unbilled work for them. Invoice it and check in at the same time?`,
+        score: quiet.score + money.score + 15,
+        action: {
+          label: 'Draft it',
+          jd: {
+            recordType: 'account',
+            recordId: accountId,
+            title: `Check in with ${name}`,
+            prompt: `${name} has gone quiet, and ${money.kind === 'overdue' ? 'they have an overdue invoice' : money.kind === 'draft' ? 'their invoice is still a draft' : 'there is unbilled work for them'}. Look at our recent activity and their invoices, then draft one short, friendly email that checks in and ${money.kind === 'overdue' ? 'gently reminds them about the payment' : 'lets them know the invoice is on its way'}.`,
+          },
+        },
+      };
+      if ((snoozed[combined.key] ?? 0) > now) continue;
+      for (const s of [quiet, money]) out.splice(out.indexOf(s), 1);
+      out.push(combined);
+    }
+
+    return out.sort((a, b) => b.score - a.score).slice(0, 3);
+  });
+
+  runSuggestion(s: Suggestion) {
+    if (s.action.jd) {
+      this.jdThreads.openFor(s.action.jd);
+    } else if (s.action.link) {
+      void this.router.navigate(Array.isArray(s.action.link) ? s.action.link : [s.action.link], { queryParams: s.action.query ?? {} });
+    }
+  }
+
+  /** Hide for 3 days. Three dismissals of one kind push that kind down the list. */
+  notNow(s: Suggestion) {
+    const until = Date.now() + 3 * 86_400_000;
+    this.snoozes.update((m) => ({ ...m, [s.key]: until }));
+    this.dismissCounts.update((m) => ({ ...m, [s.kind]: (m[s.kind] ?? 0) + 1 }));
+    try {
+      localStorage.setItem(this.key(SUGGEST_SNOOZE_KEY), JSON.stringify(this.snoozes()));
+      localStorage.setItem(this.key(SUGGEST_COUNTS_KEY), JSON.stringify(this.dismissCounts()));
+    } catch {
+      // Not remembered.
+    }
+  }
+
+  private loadSuggestionPrefs() {
+    try {
+      const now = Date.now();
+      const raw = JSON.parse(localStorage.getItem(this.key(SUGGEST_SNOOZE_KEY)) ?? '{}') as Record<string, number>;
+      this.snoozes.set(Object.fromEntries(Object.entries(raw).filter(([, until]) => typeof until === 'number' && until > now)));
+      const counts = JSON.parse(localStorage.getItem(this.key(SUGGEST_COUNTS_KEY)) ?? '{}') as Record<string, number>;
+      this.dismissCounts.set(counts && typeof counts === 'object' ? counts : {});
+    } catch {
+      // Fresh start.
+    }
+  }
+
+  readonly suggestionIcon: Record<SuggestionKind, string> = {
+    quiet: 'pi-user',
+    overdue: 'pi-exclamation-circle',
+    draft: 'pi-send',
+    unbilled: 'pi-clock',
+    combo: 'pi-sparkles',
+  };
+
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   /** Saving starts after the saved view is read, so defaults never overwrite it. */
@@ -1241,8 +1560,10 @@ export class DashboardPage implements OnInit, OnDestroy {
       const scope = localStorage.getItem(this.key(SCOPE_KEY));
       if (scope === 'mine' || scope === 'everyone') this.mine.set(scope === 'mine');
       if (localStorage.getItem(this.key(WEATHER_OPEN_KEY)) === '1') this.weatherShown.set(true);
-      // Card order and last visit are per person too.
+      // Card order, hidden cards, suggestion snoozes and last visit are per person too.
       this.loadOrder();
+      this.loadHidden();
+      this.loadSuggestionPrefs();
       this.loadLastVisit();
     } catch {
       // Defaults.

@@ -23,6 +23,7 @@ import {
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
 import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
 import { invoiceDueFlag } from './invoice-status.util';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type Invoice = {
   id: string;
@@ -60,6 +61,7 @@ type InvoiceTableRow = Invoice & {
     AppDialogModule,
     DateInputComponent,
     HelpTextComponent,
+    EmptyStateComponent,
   ],
   templateUrl: './invoices-list.page.html',
   styles: [
@@ -129,6 +131,11 @@ export class InvoicesListPage implements OnInit {
       command: () => this.openExport(),
     },
   ]);
+
+  /** Ghost columns, one per table header (actions, number, bill to, created by, issue, due, total, status). */
+  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'strong', 'avatar-text', 'text', 'date', 'date', 'amount', 'tag'];
+  /** No invoices at all yet (not a search with no matches): show the ghosted empty state. */
+  readonly firstRunEmpty = computed(() => !this.loading() && !this.error() && this.invoices().length === 0);
 
   readonly emptyMessage = computed(() => {
     if (this.searchDebounced().trim() && this.searchedInvoices().length === 0 && this.invoices().length > 0) {

@@ -27,6 +27,7 @@ import {
   RowActionsMenuComponent,
   RowActionItem,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 type Project = { id: string; name: string; isBillable: boolean; isActive: boolean; hourlyRate?: number; client: { id: string; name: string } | null };
 
@@ -34,6 +35,7 @@ type Project = { id: string; name: string; isBillable: boolean; isActive: boolea
   selector: 'app-projects-list-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -100,6 +102,11 @@ export class ProjectsListPage implements OnInit {
     if (!q) return list;
     return list.filter((project) => this.projectMatchesSearch(project, q));
   });
+
+  /** Ghost columns for the empty state, one per header (actions, name, account, rate, billable, status). */
+  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'strong', 'avatar-text', 'amount', 'tag', 'tag'];
+  /** No projects at all yet: show the ghosted empty state. */
+  readonly firstRunEmpty = computed(() => !this.loading() && !this.error() && this.projects().length === 0);
 
   readonly emptyMessage = computed(() => {
     const q = this.searchDebounced().trim();

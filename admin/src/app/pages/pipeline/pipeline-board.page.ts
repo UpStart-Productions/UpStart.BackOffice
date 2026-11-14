@@ -31,6 +31,7 @@ import {
   saveHiddenLaneIds,
   saveSelectedPipelineId,
 } from '../../core/pipeline-lane-visibility.storage';
+import { EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
 
 export type Lead = {
   id: string;
@@ -89,6 +90,7 @@ type TransferMode = 'move' | 'copy';
   selector: 'app-pipeline-board-page',
   standalone: true,
   imports: [
+    EmptyStateComponent,
     PersonComponent,
     HelpTextComponent,
     FormsModule,
@@ -130,6 +132,8 @@ export class PipelineBoardPage implements OnInit {
   pipelineId = signal<string | null>(null);
   leads = signal<Lead[]>([]);
   loading = signal(true);
+  /** Nothing on this pipeline yet: lanes show ghost cards instead of "Drop cards here". */
+  readonly boardEmpty = computed(() => !this.loading() && this.leads().length === 0);
   error = signal<string | null>(null);
   searchQuery = '';
   searchDebounced = signal('');

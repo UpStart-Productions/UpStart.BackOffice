@@ -270,6 +270,7 @@ model User {
   clientAssignments         ClientAssignment[]          @relation("ClientAssignmentUser")
   helpAgentSettingsUpdates  HelpAgentSettings[]         @relation("HelpAgentSettingsUpdatedBy")
   helpAgentUsages           HelpAgentUsage[]            @relation("HelpAgentUsageUser")
+  helpAgentThreads          HelpAgentThread[]           @relation("HelpAgentThreadUser")
   clientNextActions         Client[]                    @relation("ClientNextActionOwner")
   activitySnoozes           ActivitySnooze[]            @relation("ActivitySnoozeBy")
   clientsCreated            Client[]                    @relation("ClientCreatedBy")
@@ -1730,6 +1731,7 @@ model Tenant {
   careShiftSeries             CareShiftSeries[]
   superUserRates              SuperUserRate[]
   helpAgentUsages             HelpAgentUsage[]
+  helpAgentThreads            HelpAgentThread[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -1932,6 +1934,26 @@ model HelpAgentSettings {
   updatedAt       DateTime   @updatedAt
 
   updatedByUser User? @relation("HelpAgentSettingsUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+}
+
+/// One conversation with the Back Office guide (JD). Private to its owner; deleted 30 days after it was last used.
+/// recordType/recordId tie it to a record (an account, a pipeline card) so opening JD there resumes it.
+model HelpAgentThread {
+  id         String   @id @default(cuid())
+  tenantId   String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  userId     String
+  user       User     @relation("HelpAgentThreadUser", fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  /// The chat as the panel shows it: [{ role, text, lookups?, actions?, reports? }].
+  messages   Json     @default("[]")
+  recordType String?
+  recordId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, userId, updatedAt])
+  @@index([tenantId, userId, recordType, recordId])
 }
 
 /// One row per question asked of the Back Office guide: tokens used and, when it read records, which

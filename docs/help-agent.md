@@ -7,6 +7,7 @@ In-app chat assistant (“Back Office Guide” in the UI) that answers questions
 - `GET/PUT /help-agent/settings` — super user only
 - `GET /help-agent/status` — `{ configured: boolean }`, any authenticated back-office user (widget gate)
 - `POST /help-agent/ask` — any back-office user; system prompt includes role label (Super user, Admin, Tasks only, User) and the current page (see below)
+- `GET/POST /help-agent/threads`, `GET/PUT/DELETE /help-agent/threads/:id`, `GET /help-agent/threads/for-record?recordType=&recordId=` — saved conversations (`HelpAgentThread`). Always the signed-in person's own (filtered by `userId`, inside the tenant); nobody else can read them, admins included. Messages are the panel's chat objects (max 80, ~600 KB). Threads untouched for 30 days are deleted when the list is read (no scheduler). The panel remembers the open thread id per browser (`ubo-guide-thread-<userId>`); the old single local conversation (`ubo-guide-chat-<userId>`) is cleared, not imported. `JdThreadsService.openFor({ recordType, recordId, title, prompt })` opens the panel on a record's conversation and sends the prompt (used by Dashboard suggestions).
 
 ## Name
 

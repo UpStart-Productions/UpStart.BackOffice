@@ -199,7 +199,13 @@
                 </div>
               }
 
-              @if (leadsForLane(lane.id).length === 0) {
+              @if (boardEmpty()) {
+                <app-empty-state
+                  shape="cards"
+                  [rows]="$first ? 3 : $index === 1 ? 2 : 1"
+                  [hint]="$first ? 'Cards for deals and prospects show up here. Drag them across lanes as they move.' : null"
+                />
+              } @else if (leadsForLane(lane.id).length === 0) {
                 <div class="pipeline-empty">Drop cards here</div>
               }
             </div>

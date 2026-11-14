@@ -48,8 +48,17 @@
       </tr>
     </ng-template>
     <ng-template pTemplate="emptymessage">
-      <tr>
-        <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
-      </tr>
+      @if (firstRunEmpty()) {
+        <app-empty-state
+          shape="table-rows"
+          [columns]="ghostColumns"
+          title="Your bookings will show up here"
+          body="When someone books time with you, you'll see who, when and what for."
+        />
+      } @else if (!loading()) {
+        <tr>
+          <td colspan="7" class="text-center p-4 text-color-secondary">{{ emptyMessage() }}</td>
+        </tr>
+      }
     </ng-template>
 </p-table>

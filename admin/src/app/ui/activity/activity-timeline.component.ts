@@ -47,6 +47,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
 import { parseDateKey } from '../../core/date.util';
 import { NextActionOptionsLoader } from '../../core/next-action-options.loader';
 import { isBlankHtml } from '../../task-manager/core/tm-mentions';
+import { EmptyStateComponent } from '../empty-state/empty-state.component';
 
 /** One timeline row: an item, and for an email thread how many messages it holds. */
 type TimelineRow = { item: Interaction; threadKey: string | null; threadCount: number; nested: boolean };
@@ -116,7 +117,7 @@ function nowForInput(): string {
 @Component({
   selector: 'app-activity-timeline',
   standalone: true,
-  imports: [PersonComponent, 
+  imports: [EmptyStateComponent, PersonComponent, 
     DatePipe,
     FormsModule,
     RouterLink,
@@ -243,10 +244,7 @@ function nowForInput(): string {
           }
         </div>
       } @else if (items().length === 0) {
-        <div class="empty-state">
-          <i class="pi pi-comments" aria-hidden="true"></i>
-          <p>{{ emptyMessage() }}</p>
-        </div>
+        <app-empty-state shape="list" [rows]="4" [hint]="emptyMessage()" />
       } @else if (visible().length === 0) {
         <div class="empty-state">
           <i class="pi" [class.pi-search]="query().trim()" [class.pi-filter]="!query().trim()" aria-hidden="true"></i>
@@ -819,8 +817,8 @@ export class ActivityTimelineComponent implements OnDestroy {
   }
   readonly emptyMessage = computed(() =>
     this.canLog()
-      ? 'No activity yet. Log a call, meeting, email, or note above.'
-      : 'No activity yet.',
+      ? 'Calls, meetings, emails and notes show up here. Log one above.'
+      : 'Calls, meetings, emails and notes show up here.',
   );
 
   // Quick log (inline bar)

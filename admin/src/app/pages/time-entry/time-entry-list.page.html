@@ -233,18 +233,14 @@
           }
         } @empty {
           @if (!runningEntry()) {
-            <div class="empty-day">
-              <p>No time tracked for this day.</p>
-              @if (viewingSelf()) {
-              <button
-                type="button"
-                pButton
-                label="+ Track time"
-                [text]="true"
-                (click)="openTrackTimeModal()"
-              ></button>
-              }
-            </div>
+            <app-empty-state
+              shape="list"
+              [rows]="4"
+              title="No time tracked for this day"
+              [body]="viewingSelf() ? 'Start a timer or add time you already worked.' : null"
+              [actionLabel]="viewingSelf() ? 'Track time' : null"
+              (action)="openTrackTimeModal()"
+            />
           }
         }
 
