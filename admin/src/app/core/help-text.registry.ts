@@ -11,6 +11,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'lead.contactSource': 'How they found you or how you met, e.g. referral, inbound, event.',
   'lead.serviceInterest': 'Which of your services they are interested in. Pick all that apply.',
   'lead.nextActionDate': 'When the next step is due. Cards show a red warning on the board once this date passes.',
+  'lead.estimatedValue': 'What this opportunity is worth if you win it. Adds up into pipeline value on the Dashboard.',
+  'lead.expectedCloseDate': 'When you expect the deal to close, win or lose.',
   'lead.nextAction': 'What you plan to do next. This leads the card on the pipeline board.',
   'lead.makeClient':
     'The account becomes a client so projects, time and invoices are available. The card leaves the board (not deleted). People, email and files stay on the account.',

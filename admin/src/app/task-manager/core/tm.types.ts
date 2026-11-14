@@ -109,6 +109,10 @@ export type TaskMembership = {
 export type MyTask = TaskSummary & {
   project: { id: string; name: string; color: string | null; icon: string | null };
   parent: { id: string; name: string } | null;
+  /** Who created (gave you) the task. */
+  createdBy?: Person | null;
+  /** Latest comment, for "new activity" on the Dashboard. */
+  lastComment?: { at: string; author: Person | null } | null;
 };
 
 export type TaskComment = {

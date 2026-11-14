@@ -211,23 +211,19 @@ const PROJECT_FORM: HelpArticle = {
 export const HELP_CONTENT: Record<string, HelpArticle> = {
   dashboard: {
     title: 'Dashboard',
-    intro: 'Your landing page after sign-in: what needs you today. You only see the parts your role can use.',
+    intro: 'How the business is doing and what needs you today. You only see the cards your role can use.',
     sections: [
       {
-        heading: 'Count cards',
-        body: 'Next steps due, Tasks due, Overdue invoices and Unfiled. Click a card to open that list in Activity, Tasks or Invoices.',
-      },
-      {
         heading: 'Cards',
-        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Next steps and Gone quiet; click an account, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. Submissions lists form submissions waiting for review in every form you can see; click one to review and accept it. My shifts (Care) lists your shifts for the next week, with Start visit on today\'s and Open visit once started. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, Bookings, Forms or the Schedule.',
+        body: 'Financial health shows Collected, Outstanding, Unbilled work and Net this month (Drafts to send for non-admins), a six-month Invoiced vs collected chart, and Needs action: drafts to send, overdue invoices and clients with unbilled work. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them) under New for you and Due this week. Pipeline & relationships shows open cards, their estimated value, each lane with its card count, Gone quiet accounts and next steps this week. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My shifts (Care) lists your shifts with Start visit and Open visit.',
       },
       {
         heading: "Mine / Everyone's",
-        body: "Switches the Activity counts and lists and the invoice figures between your own items and the whole team's. My tasks and My time are always yours.",
+        body: "Switches the Activity lists, invoice figures and unbilled work between your own items and the whole team's. My work and My time are always yours.",
       },
       {
         heading: 'Rearranging',
-        body: 'Drag a card by the ⋯ handle in its header to move it. Your order is remembered on this computer and browser.',
+        body: 'Drag a card by the ⋯ handle in its header to move it. Cards are full, half or a third of the row wide; the others fill any gaps. Your order is remembered on this computer and browser.',
       },
     ],
   },

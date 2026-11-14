@@ -1,320 +1,424 @@
-<app-page title="Dashboard" helpKey="dashboard.page">
-  @if (showScope()) {
-    <p-selectbutton
-      pageActions
-      [options]="scopeOptions"
-      optionLabel="label"
-      optionValue="value"
-      [ngModel]="mine()"
-      (ngModelChange)="mine.set($event)"
-      [allowEmpty]="false"
-      ariaLabel="Whose items"
-    />
-  }
+<app-page [title]="greeting()" helpKey="dashboard.page">
+  <ng-container ngProjectAs="[pageActions]">
+    @if (showScope()) {
+      <p-selectbutton
+        [options]="scopeOptions"
+        optionLabel="label"
+        optionValue="value"
+        [ngModel]="mine()"
+        (ngModelChange)="mine.set($event)"
+        [allowEmpty]="false"
+        ariaLabel="Whose items"
+      />
+    }
+  </ng-container>
+  <p pageSubtitle class="page-header-subtitle dashboard-summary">
+    <span class="dashboard-summary-date">{{ todayText }}</span>
+    <span>{{ summary() }}</span>
+  </p>
 
-  @if (can('inbox') || can('tasks') || can('invoices')) {
-    <div class="queue-grid queue-grid--page">
-      @if (can('inbox')) {
-        <app-queue-card
-          label="Next steps due"
-          accent="orange"
-          [count]="counts()?.nextStepDue ?? 0"
-          help="Overdue or due today."
-          link="/activity"
-          [queryParams]="{ queue: 'nextStep' }"
-        />
-      }
-      @if (can('tasks')) {
-        <app-queue-card label="Tasks due" accent="blue" [count]="tasksDueCount()" help="Your tasks, overdue or due today." link="/tasks" />
-      }
-      @if (can('invoices')) {
-        <app-queue-card label="Overdue invoices" accent="rose" [count]="overdueInvoices().length" help="Sent and past the due date." link="/invoices" />
-      }
-      @if (can('inbox')) {
-        <app-queue-card
-          label="Unfiled"
-          accent="teal"
-          [count]="counts()?.unfiled ?? 0"
-          help="Captured email to file."
-          link="/activity"
-          [queryParams]="{ queue: 'unfiled' }"
-        />
-      }
-    </div>
-  }
+  <!-- One row: record card, then badge, then done check or action button on the right. -->
+  <ng-template #row let-r>
+    <app-record-card
+      variant="compact"
+      [singleLine]="true"
+      [title]="r.title"
+      [subtitle]="r.subtitle ?? null"
+      [link]="r.link ?? null"
+      [linkQuery]="r.query ?? null"
+      [icon]="r.person ? null : (r.icon ?? 'circle')"
+      [tone]="r.tone ?? null"
+      [person]="r.person ?? null"
+    >
+      <ng-container ngProjectAs="[recordActions]">
+        @if (r.isNew) {
+          <p-tag value="New" severity="info" pTooltip="New since your last visit" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+        }
+        @if (r.badge) {
+          <p-tag [value]="r.badge.label" [severity]="r.badge.severity" [pTooltip]="r.badge.hint ?? ''" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+        }
+        @if (r.action) {
+          <a
+            pButton
+            [label]="r.action.label"
+            size="small"
+            [severity]="r.action.primary ? 'primary' : 'secondary'"
+            [outlined]="!r.action.primary"
+            [routerLink]="r.action.link"
+            [queryParams]="r.action.query ?? null"
+          ></a>
+        }
+        @if (r.done) {
+          <p-button
+            icon="pi pi-check-circle"
+            size="small"
+            severity="secondary"
+            [text]="true"
+            styleClass="icon-action-btn"
+            [ariaLabel]="'Mark done: ' + r.title"
+            pTooltip="Mark done"
+            tooltipPosition="left"
+            tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"
+            [loading]="busyRow() === r.key"
+            (onClick)="markDone(r)"
+          />
+        }
+      </ng-container>
+    </app-record-card>
+  </ng-template>
 
   <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="panels()" (cdkDropListDropped)="onPanelDrop($event)">
     @for (p of panels(); track p.id) {
-      <div class="dashboard-grid-slot" [class.span-2]="p.wide" cdkDrag [cdkDragData]="p">
+      <div class="dashboard-grid-slot" [class]="'dashboard-grid-slot dashboard-grid-slot--' + p.size" cdkDrag [cdkDragData]="p">
         @switch (p.id) {
-          @case ('tasks') {
-            <app-dashboard-panel title="My tasks" icon="pi-check-square" color="info" link="/tasks">
+          <!-- ── Financial health ───────────────────────────────────────── -->
+          @case ('money') {
+            <app-dashboard-panel title="Financial health" [subtitle]="monthName + ' so far'" icon="pi-wallet" [color]="panelColor('money')" link="/reports" [fill]="true">
+              @if (invoices().loading) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else if (invoices().error) {
+                <p class="side-list-empty">{{ invoices().error }}</p>
+              } @else {
+                <div class="dashboard-stats dashboard-stats--4">
+                  <div class="dashboard-stat" pTooltip="Money received from invoices paid this month, compared with last month up to the same day" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                    <span class="dashboard-stat-label">Collected</span>
+                    <span class="dashboard-stat-value">{{ money(collectedThisMonth(), 0) }}</span>
+                    <span class="dashboard-stat-note">
+                      @if (collectedDelta(); as d) {
+                        <span [class]="d >= 0 ? 'dashboard-up' : 'dashboard-down'">{{ d >= 0 ? '↑' : '↓' }} {{ d >= 0 ? d : -d }}%</span> vs last month
+                      } @else {
+                        Paid invoices this month
+                      }
+                    </span>
+                  </div>
+                  <div class="dashboard-stat" pTooltip="Sent invoices not paid yet. Overdue ones are past their due date" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                    <span class="dashboard-stat-label">Outstanding</span>
+                    <span class="dashboard-stat-value">{{ money(outstandingTotal(), 0) }}</span>
+                    <span class="dashboard-stat-note">
+                      @if (overdueTotal() > 0) {
+                        <span class="dashboard-down">{{ money(overdueTotal(), 0) }} overdue</span> · {{ overdueInvoices().length }} {{ overdueInvoices().length === 1 ? 'invoice' : 'invoices' }}
+                      } @else {
+                        Nothing overdue
+                      }
+                    </span>
+                  </div>
+                  <div class="dashboard-stat" pTooltip="Finished billable time and billable expenses not on an invoice yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                    <span class="dashboard-stat-label">Unbilled work</span>
+                    <span class="dashboard-stat-value">{{ money(unbilled().data?.total ?? 0, 0) }}</span>
+                    <span class="dashboard-stat-note">
+                      {{ hours(unbilled().data?.hours ?? 0) }}
+                      @if ((unbilled().data?.expenseAmount ?? 0) > 0) {
+                        + {{ money(unbilled().data!.expenseAmount, 0) }} expenses
+                      }
+                    </span>
+                  </div>
+                  @if (pnl().data; as p) {
+                    <div class="dashboard-stat" pTooltip="Income minus expenses this month, from Accounting" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                      <span class="dashboard-stat-label">Net this month</span>
+                      <span class="dashboard-stat-value">{{ money(p.netIncome, 0) }}</span>
+                      <span class="dashboard-stat-note">Income minus expenses</span>
+                    </div>
+                  } @else {
+                    <div class="dashboard-stat" pTooltip="Invoices saved as drafts and not sent yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                      <span class="dashboard-stat-label">Drafts to send</span>
+                      <span class="dashboard-stat-value">{{ draftInvoices().length }}</span>
+                      <span class="dashboard-stat-note">Invoices not sent yet</span>
+                    </div>
+                  }
+                </div>
+
+                <div class="dashboard-money-body">
+                  <figure class="dashboard-chart" aria-label="Invoiced and collected, last six months">
+                    <figcaption class="dashboard-section-label">Invoiced vs collected</figcaption>
+                    <div class="dashboard-chart-canvas">
+                      <app-report-chart type="bar" [data]="chartData()" [options]="chartOptions" />
+                    </div>
+                  </figure>
+                  <div class="dashboard-money-actions">
+                    <p class="dashboard-section-label">Needs action</p>
+                    @if (moneyActions().length) {
+                      @for (r of moneyActions(); track r.key) {
+                        <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                      }
+                    } @else {
+                      <p class="dashboard-quiet">All caught up: no drafts, nothing overdue, nothing unbilled.</p>
+                    }
+                  </div>
+                </div>
+              }
+            </app-dashboard-panel>
+          }
+
+          <!-- ── Today ──────────────────────────────────────────────────── -->
+          @case ('today') {
+            <app-dashboard-panel
+              title="Today"
+              [subtitle]="(todayOverdue().length + todayDue().length) + ' things'"
+              icon="pi-sun"
+              [color]="weather() ? weatherTone() : panelColor('today')"
+              [iconToggles]="!!weather()"
+              [sky]="weatherSky()"
+              [iconTooltip]="weather() ? (weatherShown() ? 'Back to Today' : 'Show the weather') : 'Today'"
+              [(altShown)]="weatherShown"
+              [fill]="true"
+            >
+              @if (weather()) {
+                <span panelIcon class="wx-icon" [attr.data-sky]="weatherSky()">
+                  @if (weatherPeek(); as peek) {
+                    <nmp-lucide-icon class="wx-peek" [name]="peek" />
+                    <nmp-lucide-icon class="wx-front" name="cloud" />
+                  } @else {
+                    <nmp-lucide-icon class="wx-main" [name]="weatherIcon()" />
+                  }
+                </span>
+              }
+              @if (weather(); as w) {
+                <div panelHeaderAlt class="dashboard-weather-head">
+                  <span class="dashboard-weather-temp">{{ w.temp }}°</span>
+                  <span class="dashboard-weather-text">
+                    {{ w.summary }} · H {{ w.high }}° L {{ w.low }}°
+                    @if (w.precipChance != null && w.precipChance >= 20) {
+                      · {{ w.precipChance }}% {{ precipWord() }}
+                    }
+                  </span>
+                  @if (!weatherHere()) {
+                    <p-button
+                      icon="pi pi-map-marker"
+                      size="small"
+                      severity="secondary"
+                      [text]="true"
+                      styleClass="icon-action-btn"
+                      ariaLabel="Use where I am"
+                      [pTooltip]="weatherHint()"
+                      tooltipPosition="top"
+                      tooltipStyleClass="ubo-dark-tooltip"
+                      [showDelay]="tipDelay"
+                      appendTo="body"
+                      (onClick)="useMyLocation()"
+                    />
+                  } @else if (w.place) {
+                    <span class="dashboard-weather-place">{{ w.place }}</span>
+                  }
+                </div>
+              }
+              @if (todayLoading()) {
+                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+              } @else {
+                @if (todayOverdue().length) {
+                  <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
+                  @for (r of todayOverdue(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                }
+                @if (todayDue().length) {
+                  <p class="dashboard-section-label">Today</p>
+                  @for (r of todayDue(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                }
+                @if (!todayOverdue().length && !todayDue().length) {
+                  <p class="dashboard-quiet">Nothing due today.</p>
+                }
+                @if (staleNextSteps().length) {
+                  <div class="dashboard-footnote">
+                    <i class="pi pi-history" aria-hidden="true"></i>
+                    <span>{{ staleNextSteps().length }} next {{ staleNextSteps().length === 1 ? 'step is' : 'steps are' }} over 30 days old</span>
+                    <a routerLink="/activity" [queryParams]="{ tab: 'todo', queue: 'nextStep' }">Clean up</a>
+                  </div>
+                }
+              }
+            </app-dashboard-panel>
+          }
+
+          <!-- ── My work ────────────────────────────────────────────────── -->
+          @case ('work') {
+            <app-dashboard-panel title="My work" icon="pi-check-square" [color]="panelColor('work')" link="/tasks" [fill]="true">
               @if (tasks().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (tasks().error) {
                 <p class="side-list-empty">{{ tasks().error }}</p>
-              } @else if (upcomingTasks().length) {
-                <app-work-tasks-side-list
-                  [tasks]="upcomingTasks()"
-                  taskOpenTarget="my-tasks"
-                  [showProjectLink]="true"
-                />
               } @else {
-                <p class="side-list-empty">Nothing due in the next week.</p>
-              }
-            </app-dashboard-panel>
-          }
-
-          @case ('activity') {
-            <app-dashboard-panel
-              title="Activity"
-              icon="pi-comments"
-              color="warning"
-              link="/activity"
-              [queryParams]="activityQuery()"
-              [tabs]="activityTabs()"
-              [(activeTab)]="activityTab"
-            >
-              @if (queues().loading && !queues().data) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (queues().error) {
-                <p class="side-list-empty">{{ queues().error }}</p>
-              } @else if (activityTab() === 'nextSteps') {
-                @if (nextSteps().length) {
-                  <div class="side-list">
-                    @for (r of nextSteps(); track r.refKey) {
-                      <div class="side-list-row">
-                        <div class="side-list-body">
-                          @if (r.leadId) {
-                            <a class="side-list-title" [routerLink]="['/pipeline', r.leadId]">{{ r.clientName || 'Pipeline card' }}</a>
-                          } @else if (r.clientId) {
-                            <a class="side-list-title" [routerLink]="['/accounts', r.clientId]">{{ r.clientName }}</a>
-                          } @else {
-                            <span class="side-list-title">{{ r.clientName || r.title }}</span>
-                          }
-                          <span class="side-list-detail">{{ nextStepDetail(r) }}</span>
-                        </div>
-                        <span class="side-list-value" [class]="nextStepTone(r)">{{ nextStepDue(r) }}</span>
-                      </div>
-                    }
-                  </div>
-                } @else {
-                  <p class="side-list-empty">No next steps due in the next week.</p>
+                @if (workNew().length) {
+                  <p class="dashboard-section-label">New for you</p>
+                  @for (r of workNew(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
                 }
-              } @else {
-                @if (quiet().length) {
-                  <div class="side-list">
-                    @for (r of quiet(); track r.refKey) {
-                      <div class="side-list-row">
-                        <div class="side-list-body">
-                          @if (r.clientId) {
-                            <a class="side-list-title" [routerLink]="['/accounts', r.clientId]">{{ r.clientName }}</a>
-                          } @else {
-                            <span class="side-list-title">{{ r.clientName || r.title }}</span>
-                          }
-                        </div>
-                        <span class="side-list-value">{{ lastContact(r) }}</span>
-                      </div>
-                    }
+                @if (workDue().length) {
+                  <p class="dashboard-section-label">Due this week</p>
+                  @for (r of workDue(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                }
+                @if (!workNew().length && !workDue().length) {
+                  <p class="dashboard-quiet">Nothing new and nothing due this week.</p>
+                }
+                @if (workLater()) {
+                  <div class="dashboard-footnote">
+                    <i class="pi pi-calendar" aria-hidden="true"></i>
+                    <span>{{ workLater() }} more {{ workLater() === 1 ? 'task' : 'tasks' }} due later or with no date</span>
+                    <a routerLink="/tasks">All tasks</a>
                   </div>
-                } @else {
-                  <p class="side-list-empty">Every active client has been in touch recently.</p>
                 }
               }
             </app-dashboard-panel>
           }
 
+          <!-- ── Pipeline & relationships ───────────────────────────────── -->
+          @case ('pipeline') {
+            <app-dashboard-panel title="Pipeline & relationships" icon="pi-users" [color]="panelColor('pipeline')" link="/pipeline" [fill]="true">
+              @if (can('pipeline') && mainPipeline()) {
+                <div class="dashboard-pipeline-head">
+                  <span class="dashboard-stat-value">{{ openCount() }} open</span>
+                  @if (pipelineValue() > 0) {
+                    <span class="dashboard-stat-note" pTooltip="Total of Estimated value on open cards in this pipeline" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ money(pipelineValue(), 0) }} estimated · {{ pipelineValued() }} of {{ openCount() }} cards have a value</span>
+                  } @else {
+                    <span class="dashboard-stat-note">Add an estimated value on cards to see pipeline $</span>
+                  }
+                </div>
+                @if (openCount()) {
+                  <div class="dashboard-lanes">
+                    @for (s of stageBars(); track s.id) {
+                      <a
+                        class="dashboard-lane"
+                        [class.dashboard-lane--empty]="!s.count"
+                        routerLink="/pipeline"
+                        [pTooltip]="s.count + (s.count === 1 ? ' card in ' : ' cards in ') + s.name + (s.value ? ', ' + money(s.value, 0) + ' estimated' : '')"
+                        tooltipPosition="top"
+                        tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"
+                      >
+                        <span class="dashboard-lane-name">{{ s.name }}</span>
+                        <span class="dashboard-lane-track" aria-hidden="true">
+                          <span class="dashboard-lane-fill" [style.width.%]="s.pct"></span>
+                        </span>
+                        <span class="dashboard-lane-count">{{ s.count }}</span>
+                      </a>
+                    }
+                  </div>
+                }
+              }
+              @if (can('inbox')) {
+                <p class="dashboard-section-label">Gone quiet</p>
+                @if (quietRows().length) {
+                  @for (r of quietRows(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                } @else {
+                  <p class="dashboard-quiet">Everyone has heard from you recently.</p>
+                }
+                @if (upcomingNextSteps().length) {
+                  <p class="dashboard-section-label">Next steps this week</p>
+                  @for (r of upcomingNextSteps(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                }
+              }
+            </app-dashboard-panel>
+          }
+
+          <!-- ── Since you were last here ───────────────────────────────── -->
+          @case ('feed') {
+            <app-dashboard-panel title="Since last time" [subtitle]="feedSubtitle()" icon="pi-bolt" [color]="panelColor('feed')" link="/activity" [fill]="true">
+              @if (feed().length) {
+                @for (r of feed(); track r.key) {
+                  <app-record-card
+                    variant="compact"
+                    [singleLine]="true"
+                    [title]="r.title"
+                    [subtitle]="r.subtitle ?? null"
+                    [link]="r.link ?? null"
+                    [linkQuery]="r.query ?? null"
+                    [icon]="r.person ? null : (r.icon ?? 'circle')"
+                    [tone]="r.tone ?? null"
+                    [person]="r.person ?? null"
+                  >
+                    <ng-container ngProjectAs="[recordActions]">
+                      @if (r.isNew) {
+                        <p-tag value="New" severity="info" pTooltip="New since your last visit" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+                      }
+                      <span class="dashboard-when" [pTooltip]="feedWhenFull(r)" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ feedWhen(r) }}</span>
+                    </ng-container>
+                  </app-record-card>
+                }
+              } @else {
+                <p class="dashboard-quiet">Nothing new in the last week.</p>
+              }
+            </app-dashboard-panel>
+          }
+
+          <!-- ── My time ────────────────────────────────────────────────── -->
           @case ('time') {
-            <app-dashboard-panel title="My time" icon="pi-clock" color="success" link="/time-entry">
+            <app-dashboard-panel title="My time" subtitle="This week" icon="pi-clock" [color]="panelColor('time')" link="/time-entry" [fill]="true">
               @if (time().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (time().error) {
                 <p class="side-list-empty">{{ time().error }}</p>
               } @else {
                 @if (runningEntry(); as running) {
-                  <div class="dashboard-timer dashboard-panel-pinned">
+                  <div class="dashboard-timer">
+                    <span class="dashboard-timer-dot" aria-hidden="true"></span>
                     <div class="dashboard-timer-main">
-                      <span class="dashboard-timer-label"><span class="dashboard-timer-dot" aria-hidden="true"></span>Timer running</span>
-                      @if (running.project) {
-                        <a class="side-list-title" [routerLink]="['/projects', running.project.id]">{{ running.project.name }}</a>
-                      } @else if (running.client) {
-                        <a class="side-list-title" [routerLink]="['/accounts', running.client.id]">{{ running.client.name }}</a>
-                      } @else {
-                        <span class="side-list-detail">No project</span>
-                      }
+                      <span class="dashboard-timer-label">{{ running.project?.name || running.client?.name || 'Timer running' }}</span>
                     </div>
                     <span class="dashboard-timer-elapsed">{{ elapsedLabel() }}</span>
-                    <p-button
-                      icon="pi pi-stop-circle"
-                      severity="secondary"
-                      [text]="true"
-                      ariaLabel="Stop timer"
-                      [loading]="stopping()"
-                      (onClick)="stopTimer()"
-                    />
+                    <p-button icon="pi pi-stop" size="small" severity="secondary" [outlined]="true" ariaLabel="Stop timer" pTooltip="Stop timer" tooltipPosition="left" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" [loading]="stopping()" (onClick)="stopTimer()" />
                   </div>
                 }
-                <div class="dashboard-stats dashboard-panel-pinned">
-                  <div class="dashboard-stat">
-                    <span class="dashboard-stat-label">Today</span>
-                    <span class="dashboard-stat-value">{{ todayLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
-                  </div>
-                  <div class="dashboard-stat">
-                    <span class="dashboard-stat-label">This week</span>
+                <div class="dashboard-time">
+                  <div class="dashboard-time-total">
                     <span class="dashboard-stat-value">{{ weekLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
+                    @if (billablePct() !== null) {
+                      <span class="dashboard-stat-note" pTooltip="Share of this week's hours marked billable" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ billablePct() }}% billable</span>
+                    } @else {
+                      <span class="dashboard-stat-note">Nothing logged yet</span>
+                    }
                   </div>
-                </div>
-                @if (weekEntries().length) {
-                  <div class="side-list">
-                    @for (e of weekEntries(); track e.id) {
-                      <div class="side-list-row">
-                        <div class="side-list-body">
-                          @if (e.project) {
-                            <a class="side-list-title" [routerLink]="['/projects', e.project.id]">{{ e.project.name }}</a>
-                          } @else if (e.client) {
-                            <a class="side-list-title" [routerLink]="['/accounts', e.client.id]">{{ e.client.name }}</a>
-                          } @else {
-                            <span class="side-list-title">No project</span>
-                          }
-                          <span class="side-list-detail">
-                            {{ timeDate(e) }}
-                            @if (e.task) {
-                              · <a [routerLink]="['/tasks']" [queryParams]="{ task: e.task.id }">{{ e.task.name }}</a>
-                            } @else if (timeNote(e)) {
-                              · {{ timeNote(e) }}
-                            }
-                          </span>
-                        </div>
-                        <span class="side-list-value side-list-value--strong">{{ timeDuration(e) }}</span>
+                  <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
+                    @for (d of weekDays(); track d.key) {
+                      <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                        <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
+                        <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
                       </div>
                     }
                   </div>
-                } @else if (!runningEntry()) {
-                  <p class="side-list-empty">Nothing logged this week.</p>
+                </div>
+                @if (!runningEntry()) {
+                  <a pButton label="Log time" icon="pi pi-play" size="small" severity="secondary" [outlined]="true" routerLink="/time-entry" class="dashboard-time-cta"></a>
                 }
               }
             </app-dashboard-panel>
           }
 
-          @case ('invoices') {
-            <app-dashboard-panel title="Invoices" icon="pi-receipt" color="info" link="/invoices">
-              @if (invoices().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (invoices().error) {
-                <p class="side-list-empty">{{ invoices().error }}</p>
-              } @else {
-                <div class="dashboard-stats dashboard-panel-pinned">
-                  <div class="dashboard-stat">
-                    <span class="dashboard-stat-label">Outstanding</span>
-                    <span class="dashboard-stat-value">{{ money(outstandingTotal()) }}</span>
-                  </div>
-                  <div class="dashboard-stat" [class.dashboard-stat--danger]="overdueTotal() > 0">
-                    <span class="dashboard-stat-label">Overdue ({{ overdueInvoices().length }})</span>
-                    <span class="dashboard-stat-value">{{ money(overdueTotal()) }}</span>
-                  </div>
-                </div>
-                <div class="side-list">
-                  <div class="side-list-row">
-                    <div class="side-list-body"><span class="side-list-title">Drafts to send</span></div>
-                    <span class="side-list-value side-list-value--strong">{{ draftCount() }}</span>
-                  </div>
-                  @for (inv of attentionInvoices(); track inv.id) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        <a class="side-list-title" [routerLink]="['/invoices', inv.id]">{{ inv.displayNumber }}</a>
-                        <span class="side-list-detail">
-                          @if (inv.client) {
-                            <a [routerLink]="['/accounts', inv.client.id]">{{ inv.billToName || inv.client.name }}</a>,
-                          } @else if (inv.billToName) {
-                            {{ inv.billToName }},
-                          }
-                          due {{ invoiceDue(inv) }}
-                        </span>
-                      </div>
-                      <span class="side-list-value" [class]="invoiceTone(inv)">{{ money(invoiceBalance(inv)) }}</span>
-                    </div>
-                  }
-                </div>
-              }
-            </app-dashboard-panel>
-          }
-
-          @case ('bookings') {
-            <app-dashboard-panel title="Upcoming bookings" icon="pi-calendar" color="success" link="/bookings">
-              @if (bookings().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (bookings().error) {
-                <p class="side-list-empty">{{ bookings().error }}</p>
-              } @else if (upcomingBookings().length) {
-                <div class="side-list">
-                  @for (b of upcomingBookings(); track b.id) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        @if (b.lead) {
-                          <a class="side-list-title" [routerLink]="['/pipeline', b.lead.id]">{{ b.guestName }}</a>
-                        } @else {
-                          <span class="side-list-title">{{ b.guestName }}</span>
-                        }
-                        <span class="side-list-detail">{{ b.bookingType?.name ?? b.guestOrg ?? '' }}</span>
-                      </div>
-                      <span class="side-list-value">{{ bookingWhen(b) }}</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <p class="side-list-empty">No bookings in the next week.</p>
-              }
-            </app-dashboard-panel>
-          }
-
-          @case ('submissions') {
-            <app-dashboard-panel title="Submissions" icon="pi-file-edit" color="warning" link="/forms">
-              @if (submissions().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (submissions().error) {
-                <p class="side-list-empty">{{ submissions().error }}</p>
-              } @else if (submissions().data.length) {
-                <div class="side-list">
-                  @for (p of submissions().data; track p.id) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        <a class="side-list-title" [routerLink]="['/forms/submissions', p.id]">{{ p.submitterName ?? p.submitterEmail ?? 'Submission' }}</a>
-                        <span class="side-list-detail">{{ p.formName }}</span>
-                      </div>
-                      <span class="side-list-value">{{ submittedWhen(p) }}</span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <p class="side-list-empty">Nothing waiting for review.</p>
-              }
-            </app-dashboard-panel>
-          }
-
+          <!-- ── My shifts (Care) ───────────────────────────────────────── -->
           @case ('shifts') {
-            <app-dashboard-panel title="My shifts" icon="pi-calendar-clock" color="success" link="/schedule">
+            <app-dashboard-panel title="My shifts" icon="pi-calendar-clock" [color]="panelColor('shifts')" link="/schedule" [fill]="true">
               @if (shifts().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (shifts().error) {
                 <p class="side-list-empty">{{ shifts().error }}</p>
               } @else if (myShifts().length) {
-                <div class="side-list">
-                  @for (s of myShifts(); track s.id) {
-                    <div class="side-list-row">
-                      <div class="side-list-body">
-                        <a class="side-list-title" [routerLink]="['/accounts', s.clientId]" [queryParams]="{ tab: 'care' }">{{ s.clientName }}</a>
-                        <span class="side-list-detail">{{ shiftWhen(s) }}</span>
-                      </div>
+                @for (s of myShifts(); track s.id) {
+                  <app-record-card
+                    variant="compact"
+                    [singleLine]="true"
+                    [title]="s.clientName"
+                    [subtitle]="shiftWhen(s)"
+                    [link]="['/accounts', s.clientId]"
+                    [linkQuery]="{ tab: 'care' }"
+                    icon="house"
+                    tone="success"
+                  >
+                    <ng-container ngProjectAs="[recordActions]">
                       @if (s.visitId) {
                         <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/care/visits', s.visitId]"></a>
                       } @else if (canStartShift(s)) {
                         <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="startingShift() === s.id" (onClick)="startShift(s)" />
                       }
-                    </div>
-                  }
-                </div>
+                    </ng-container>
+                  </app-record-card>
+                }
               } @else {
-                <p class="side-list-empty">No shifts in the next week.</p>
+                <p class="dashboard-quiet">No shifts in the next week.</p>
               }
             </app-dashboard-panel>
           }

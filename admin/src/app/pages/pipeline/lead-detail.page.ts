@@ -16,6 +16,7 @@ import { PageComponent } from '../../ui/layout/page.component';
 import { ArtifactsPanelComponent } from '../../ui/artifacts/artifacts-panel.component';
 import { ActivitySectionComponent } from '../../ui/activity/activity-section.component';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
+import { MoneyInputComponent } from '../../ui/money-input/money-input.component';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PeopleComponent } from '../../ui/people/people.component';
@@ -68,6 +69,7 @@ export const NEW_LEAD_PLACEHOLDER_ORG = 'Untitled organization';
     ArtifactsPanelComponent,
     ActivitySectionComponent,
     DateInputComponent,
+    MoneyInputComponent,
     RecordAttributionComponent,
   ],
   templateUrl: './lead-detail.page.html',
@@ -135,6 +137,8 @@ export class LeadDetailPage implements OnInit {
     nextAction: '' as string | null,
     nextActionDate: '',
     lastContactDate: '',
+    estimatedValue: null as number | null,
+    expectedCloseDate: '',
   };
 
   private savedSnapshot = '';
@@ -197,6 +201,8 @@ export class LeadDetailPage implements OnInit {
       nextAction: (lead['nextAction'] as string) ?? null,
       nextActionDate: toDateStr(lead['nextActionDate']),
       lastContactDate: toDateStr(lead['lastContactDate']),
+      estimatedValue: lead['estimatedValue'] == null ? null : Number(lead['estimatedValue']),
+      expectedCloseDate: toDateStr(lead['expectedCloseDate']),
     };
     this.account.set((lead['client'] as { id: string; name: string; journey: string } | null) ?? null);
     this.contactId.set((lead['primaryContactId'] as string) ?? null);
@@ -238,6 +244,8 @@ export class LeadDetailPage implements OnInit {
       nextAction: opt(this.form.nextAction),
       nextActionDate: optDate(this.form.nextActionDate),
       lastContactDate: optDate(this.form.lastContactDate),
+      estimatedValue: this.form.estimatedValue,
+      expectedCloseDate: optDate(this.form.expectedCloseDate),
       warmConnectionContactId: this.warmConnectionContactId(),
     };
   }

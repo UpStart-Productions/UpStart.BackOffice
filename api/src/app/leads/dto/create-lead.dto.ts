@@ -1,13 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LeadStage, LeadSource } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
+  Min,
 } from 'class-validator';
 
 const emptyToUndefined = ({ value }: { value: unknown }) =>
@@ -75,6 +77,18 @@ export class CreateLeadDto {
 
   @ApiPropertyOptional() @IsDateString() @IsOptional() nextActionDate?: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() lastContactDate?: string;
+
+  @ApiPropertyOptional({ description: 'What the opportunity is worth if won' })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @Type(() => Number)
+  estimatedValue?: number | null;
+
+  @ApiPropertyOptional({ description: 'When the deal is expected to close' })
+  @IsDateString()
+  @IsOptional()
+  expectedCloseDate?: string | null;
 
   @ApiPropertyOptional({ description: 'Link this card to an existing account' })
   @IsString()

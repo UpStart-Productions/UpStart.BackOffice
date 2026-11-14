@@ -1,5 +1,6 @@
 import { CdkDragHandle } from '@angular/cdk/drag-drop';
-import { Component, input, model } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { AfterViewInit, Component, ElementRef, input, model, NgZone, OnDestroy, inject, signal, viewChild } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
 import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
@@ -24,24 +25,76 @@ export type DashboardPanelTab = {
 @Component({
   selector: 'app-dashboard-panel',
   standalone: true,
-  imports: [CdkDragHandle, RouterLink, TooltipModule],
+  imports: [CdkDragHandle, NgTemplateOutlet, RouterLink, TooltipModule],
   template: `
     <section class="card dashboard-panel" [attr.aria-label]="title()">
-      <header class="dashboard-panel-header">
-        <span
-          class="dashboard-panel-icon"
-          [attr.data-color]="color()"
-          aria-hidden="true"
-          [pTooltip]="(iconTooltip() || title()).trim()"
-          tooltipPosition="bottom"
+      <header class="dashboard-panel-header" [class.dashboard-panel-header--sky]="!!sky()">
+        @if (sky(); as skyKey) {
+          <!-- Sky behind the icon tile; grows across the header when the alternate header shows. -->
+          <span class="dashboard-panel-sky" [attr.data-sky]="skyKey" [class.dashboard-panel-sky--open]="altShown()" aria-hidden="true">
+            <span class="sky-decor">
+              <i class="sky-bit"></i><i class="sky-bit"></i><i class="sky-bit"></i><i class="sky-bit"></i>
+              <i class="sky-bit"></i><i class="sky-bit"></i><i class="sky-bit"></i><i class="sky-bit"></i>
+              <i class="sky-bit"></i><i class="sky-bit"></i><i class="sky-bit"></i><i class="sky-bit"></i>
+            </span>
+          </span>
+        }
+        <ng-template #iconContent>
+          <ng-content select="[panelIcon]"><i [class]="'pi ' + icon()"></i></ng-content>
+        </ng-template>
+        @if (iconToggles()) {
+          <button
+            type="button"
+            class="dashboard-panel-icon dashboard-panel-icon--button"
+            [attr.data-color]="sky() ? null : color()"
+            [attr.data-sky]="sky()"
+            [attr.aria-pressed]="altShown()"
+            [attr.aria-label]="(iconTooltip() || title()).trim()"
+            [pTooltip]="(iconTooltip() || title()).trim()"
+            tooltipPosition="bottom"
+            [showDelay]="darkTooltipShowDelayMs"
+            tooltipStyleClass="ubo-dark-tooltip"
+            appendTo="body"
+            (click)="altShown.set(!altShown())"
+          >
+            <ng-container *ngTemplateOutlet="iconContent" />
+          </button>
+        } @else {
+          <span
+            class="dashboard-panel-icon"
+            [attr.data-color]="sky() ? null : color()"
+            aria-hidden="true"
+            [pTooltip]="(iconTooltip() || title()).trim()"
+            tooltipPosition="bottom"
+            [showDelay]="darkTooltipShowDelayMs"
+            tooltipStyleClass="dashboard-panel-icon-tooltip"
+            appendTo="body"
+          >
+            <ng-container *ngTemplateOutlet="iconContent" />
+          </span>
+        }
+        <div class="dashboard-panel-heading" [class.dashboard-panel-heading--alt]="altShown()">
+          <h3 class="dashboard-panel-title" [attr.aria-hidden]="altShown()">
+            {{ title() }}
+            @if (subtitle()) {
+              <span class="dashboard-panel-subtitle">{{ subtitle() }}</span>
+            }
+          </h3>
+          <div class="dashboard-panel-alt" [attr.aria-hidden]="!altShown()">
+            <ng-content select="[panelHeaderAlt]" />
+          </div>
+        </div>
+        <button
+          type="button"
+          class="dashboard-panel-handle"
+          cdkDragHandle
+          aria-label="Drag to reorder"
+          pTooltip="Drag to move this card"
+          tooltipPosition="top"
+          tooltipStyleClass="ubo-dark-tooltip"
           [showDelay]="darkTooltipShowDelayMs"
-          tooltipStyleClass="dashboard-panel-icon-tooltip"
           appendTo="body"
         >
-          <i [class]="'pi ' + icon()"></i>
-        </span>
-        <h3 class="dashboard-panel-title">{{ title() }}</h3>
-        <button type="button" class="dashboard-panel-handle" cdkDragHandle aria-label="Drag to reorder" title="Drag to reorder">
           <i class="pi pi-ellipsis-h" aria-hidden="true"></i>
         </button>
         @if (link(); as l) {
@@ -50,7 +103,11 @@ export type DashboardPanelTab = {
             [routerLink]="l"
             [queryParams]="queryParams()"
             [attr.aria-label]="'Open ' + title()"
-            [attr.title]="'Open ' + title()"
+            [pTooltip]="'Open ' + title()"
+            tooltipPosition="top"
+            tooltipStyleClass="ubo-dark-tooltip"
+            [showDelay]="darkTooltipShowDelayMs"
+            appendTo="body"
           >
             <i class="pi pi-arrow-right" aria-hidden="true"></i>
           </a>
@@ -78,7 +135,13 @@ export type DashboardPanelTab = {
         }
       }
       <ng-content select=".dashboard-panel-pinned" />
-      <div class="dashboard-panel-scroll">
+      <div
+        #scroll
+        class="dashboard-panel-scroll"
+        [class.dashboard-panel-scroll--fill]="fill()"
+        [class.dashboard-panel-scroll--fade]="moreBelow()"
+        (scroll)="updateFade()"
+      >
         <ng-content />
       </div>
     </section>
@@ -86,6 +149,8 @@ export type DashboardPanelTab = {
   styles: [
     `
       :host {
+        /* One inset on every side of a card: header, tabs and body all line up with it. */
+        --dashboard-panel-pad: 1.25rem;
         display: flex;
         flex-direction: column;
         flex: 1 1 auto;
@@ -99,7 +164,7 @@ export type DashboardPanelTab = {
         flex: 1 1 auto;
         margin: 0;
         min-height: 0;
-        padding: 2rem 0;
+        padding: var(--dashboard-panel-pad);
         border: 1px solid var(--surface-border);
         transition: box-shadow 0.15s ease;
       }
@@ -113,8 +178,19 @@ export type DashboardPanelTab = {
         align-items: center;
         gap: 0.75rem;
         flex-shrink: 0;
-        margin: -2rem 0 0;
-        padding: 0.75rem 2rem;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* The last header button's glyph sits on the card's inset line, like the icon tile on the left. */
+      .dashboard-panel-header > :last-child {
+        margin-right: -0.625rem;
+      }
+
+      /* Header buttons are taller than the icon tile; don't let them push the title row down. */
+      .dashboard-panel-handle,
+      .dashboard-panel-open {
+        margin-block: -0.125rem;
       }
 
       .dashboard-panel-icon {
@@ -149,6 +225,73 @@ export type DashboardPanelTab = {
         color: var(--color-severity-danger-text);
       }
 
+      /* Title and the alternate header (e.g. weather) share one spot: one fades out as the other slides in. */
+      .dashboard-panel-heading {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: grid;
+        align-items: center;
+      }
+
+      .dashboard-panel-heading > * {
+        grid-area: 1 / 1;
+        min-width: 0;
+      }
+
+      .dashboard-panel-title {
+        transition: opacity 0.2s ease;
+      }
+
+      .dashboard-panel-alt {
+        opacity: 0;
+        transform: translateX(-0.75rem);
+        pointer-events: none;
+        transition:
+          opacity 0.25s ease,
+          transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .dashboard-panel-heading--alt .dashboard-panel-title {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .dashboard-panel-heading--alt .dashboard-panel-alt {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dashboard-panel-title,
+        .dashboard-panel-alt {
+          transition: none;
+        }
+      }
+
+      /* With a weather sky behind it, the tile itself has no fill (the sky is its background). */
+      .dashboard-panel-icon[data-sky] {
+        background: transparent;
+      }
+
+      .dashboard-panel-icon--button {
+        padding: 0;
+        border: 0;
+        font: inherit;
+        cursor: pointer;
+        font-size: 1.15rem;
+        transition: filter 0.15s ease;
+      }
+
+      .dashboard-panel-icon--button:hover {
+        filter: brightness(0.95);
+      }
+
+      .dashboard-panel-icon--button:focus-visible {
+        outline: 2px solid var(--p-primary-color);
+        outline-offset: 2px;
+      }
+
       .dashboard-panel-title {
         flex: 1 1 auto;
         min-width: 0;
@@ -158,6 +301,13 @@ export type DashboardPanelTab = {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .dashboard-panel-subtitle {
+        margin-left: 0.5rem;
+        font-size: var(--fs-sm);
+        font-weight: 400;
+        color: var(--text-color-secondary);
       }
 
       .dashboard-panel-handle {
@@ -211,7 +361,8 @@ export type DashboardPanelTab = {
         flex-wrap: wrap;
         gap: 0.15rem 0.25rem;
         flex-shrink: 0;
-        padding: 0 2rem;
+        margin-top: 0.5rem;
+        padding: 0;
       }
 
       .dashboard-panel-tab {
@@ -246,7 +397,14 @@ export type DashboardPanelTab = {
     `,
   ],
 })
-export class DashboardPanelComponent {
+export class DashboardPanelComponent implements AfterViewInit, OnDestroy {
+  private readonly zone = inject(NgZone);
+  private readonly scrollEl = viewChild<ElementRef<HTMLElement>>('scroll');
+  private resizeObserver: ResizeObserver | null = null;
+  private mutationObserver: MutationObserver | null = null;
+  /** The body has more content below what's showing: fade the bottom edge. */
+  readonly moreBelow = signal(false);
+
   title = input.required<string>();
   /** PrimeIcons name without the "pi " prefix, e.g. "pi-clock". */
   icon = input.required<string>();
@@ -258,7 +416,45 @@ export class DashboardPanelComponent {
   link = input<string | unknown[] | null>(null);
   queryParams = input<Params | null>(null);
   tabs = input<DashboardPanelTab[] | null>(null);
+  /** Short muted text after the title (e.g. "November so far"). */
+  subtitle = input('');
+  /** Let the body grow with its content instead of scrolling at about six rows. */
+  fill = input(false);
+  /** The header icon is a button that swaps the title for the [panelHeaderAlt] content (and back). */
+  iconToggles = input(false);
+  /** Whether the alternate header is showing. */
+  altShown = model(false);
+  /**
+   * Weather sky behind the icon tile (clear-day, clear-night, partly-day, partly-night, cloudy, fog, rain, snow, storm).
+   * Styles live in _dashboard.scss. With iconToggles, the sky grows across the header with the alternate header.
+   */
+  sky = input<string | null>(null);
   activeTab = model('');
+
+  ngAfterViewInit() {
+    const el = this.scrollEl()?.nativeElement;
+    if (!el) return;
+    this.zone.runOutsideAngular(() => {
+      this.resizeObserver = new ResizeObserver(() => this.updateFade());
+      this.resizeObserver.observe(el);
+      // Rows arriving after load change the height without resizing the box.
+      this.mutationObserver = new MutationObserver(() => this.updateFade());
+      this.mutationObserver.observe(el, { childList: true, subtree: true });
+    });
+    this.updateFade();
+  }
+
+  ngOnDestroy() {
+    this.resizeObserver?.disconnect();
+    this.mutationObserver?.disconnect();
+  }
+
+  updateFade() {
+    const el = this.scrollEl()?.nativeElement;
+    if (!el) return;
+    const more = el.scrollHeight - el.scrollTop - el.clientHeight > 2;
+    if (more !== this.moreBelow()) this.moreBelow.set(more);
+  }
 
   countClass(tab: DashboardPanelTab): string {
     if (!tab.count) return 'count-badge count-badge--muted';

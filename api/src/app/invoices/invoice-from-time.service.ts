@@ -210,6 +210,85 @@ export class InvoiceFromTimeService {
     };
   }
 
+  /**
+   * Dashboard "Unbilled work": finished billable time and billable expenses not yet on a client invoice,
+   * totalled per client. clientIds limits to clients the role can reach; userId to one person's entries.
+   * Time with no rate is counted in hours but not in the amount (missingRateHours).
+   */
+  async unbilledSummary(params: { clientIds?: { in: string[] }; userId?: string }) {
+    const clientWhere: Prisma.StringNullableFilter = params.clientIds ?? { not: null };
+    const [entries, expenses] = await Promise.all([
+      this.prisma.timeEntry.findMany({
+        where: {
+          invoiceLineItemId: null,
+          isBillable: true,
+          stoppedAt: { not: null },
+          clientId: clientWhere,
+          ...(params.userId ? { userId: params.userId } : {}),
+        },
+        include: {
+          project: { select: { id: true, name: true, hourlyRate: true } },
+          projectTask: { select: { id: true, name: true } },
+          user: { select: { hourlyRate: true, isSuper: true } },
+          workTasks: timeEntryWorkTasksInclude,
+          client: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.expense.findMany({
+        where: {
+          isBillable: true,
+          invoiceLineItemId: null,
+          project: { clientId: clientWhere },
+          ...(params.userId ? { userId: params.userId } : {}),
+        },
+        include: { project: { select: { client: { select: { id: true, name: true } } } } },
+      }),
+    ]);
+
+    type Row = { clientId: string; clientName: string; hours: number; timeAmount: number; expenseAmount: number; missingRateHours: number; since: string | null };
+    const byClient = new Map<string, Row>();
+    const row = (id: string, name: string): Row => {
+      let r = byClient.get(id);
+      if (!r) {
+        r = { clientId: id, clientName: name, hours: 0, timeAmount: 0, expenseAmount: 0, missingRateHours: 0, since: null };
+        byClient.set(id, r);
+      }
+      return r;
+    };
+    const earliest = (r: Row, d: Date) => {
+      const iso = d.toISOString();
+      if (!r.since || iso < r.since) r.since = iso;
+    };
+    for (const e of entries) {
+      if (!e.client) continue;
+      const r = row(e.client.id, e.client.name);
+      const hours = (e.durationMin ?? 0) / 60;
+      const rate = resolveHourlyRate(e as unknown as TimeEntryForInvoice);
+      r.hours += hours;
+      if (rate == null) r.missingRateHours += hours;
+      else r.timeAmount += hours * rate;
+      earliest(r, e.startedAt);
+    }
+    for (const x of expenses) {
+      const client = x.project?.client;
+      if (!client) continue;
+      const r = row(client.id, client.name);
+      const isMileage = x.miles != null && x.mileageRate != null;
+      r.expenseAmount += isMileage ? Number(x.miles) * Number(x.mileageRate) : Number(x.amount);
+      earliest(r, x.incurredAt);
+    }
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const clients = [...byClient.values()]
+      .map((r) => ({ ...r, hours: round(r.hours), timeAmount: round(r.timeAmount), expenseAmount: round(r.expenseAmount), missingRateHours: round(r.missingRateHours), total: round(r.timeAmount + r.expenseAmount) }))
+      .sort((a, b) => b.total - a.total);
+    return {
+      total: round(clients.reduce((s, c) => s + c.total, 0)),
+      hours: round(clients.reduce((s, c) => s + c.hours, 0)),
+      expenseAmount: round(clients.reduce((s, c) => s + c.expenseAmount, 0)),
+      clients,
+    };
+  }
+
   /** The user's reimbursable expenses in the period not yet on an invoice to the tenant. Mileage shows miles x rate. */
   private async reimbursableExpenseLines(
     userId: string,

@@ -8,6 +8,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
 
 export type RecordCardVariant = 'compact' | 'card';
 export type RecordCardBadge = { label: string; severity?: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' };
+export type RecordCardTone = 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 export type RecordCardDetail = { icon: string; text: string; href?: string | null };
 
 /**
@@ -28,12 +29,13 @@ export type RecordCardDetail = { icon: string; text: string; href?: string | nul
       [class.record-card--card]="variant() === 'card'"
       [class.record-card--compact]="variant() === 'compact'"
       [class.record-card--selected]="selected()"
+      [class.record-card--single-line]="singleLine()"
     >
       <div class="record-card-head">
         @if (person(); as p) {
           <app-tm-avatar [person]="p" size="lg" [showTitle]="false" />
         } @else {
-          <span class="record-card-icon ubo-avatar ubo-avatar--lg" aria-hidden="true">
+          <span class="record-card-icon ubo-avatar ubo-avatar--lg" [attr.data-tone]="tone()" aria-hidden="true">
             <nmp-lucide-icon [name]="icon() ?? 'circle'" />
           </span>
         }
@@ -99,4 +101,8 @@ export class RecordCardComponent {
   titleClick = output<void>();
   /** Items for the small ⋮ menu on the right. */
   actions = input<RowActionItem[]>([]);
+  /** Title and subtitle stay on one line each and end in … when too long (Dashboard rows). */
+  singleLine = input(false);
+  /** Icon tile color (severity tokens). Default is the blue record icon. */
+  tone = input<RecordCardTone | null>(null);
 }

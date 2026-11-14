@@ -140,12 +140,30 @@ export class TasksService {
         ...taskSummaryInclude,
         project: { select: { id: true, name: true, color: true, icon: true } },
         parent: { select: { id: true, name: true } },
+        createdBy: { select: personSelect },
+        comments: {
+          where: { kind: 'COMMENT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { createdAt: true, author: { select: personSelect } },
+        },
       },
       orderBy: [{ dueOn: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
       take: 1000,
     });
     const summaries = await this.summaries(rows);
-    return summaries.map((summary, i) => ({ ...summary, project: rows[i].project, parent: rows[i].parent }));
+    // Dashboard "My work": who gave you the task and the latest comment on it.
+    return summaries.map((summary, i) => {
+      const row = rows[i];
+      const last = row.comments[0];
+      return {
+        ...summary,
+        project: row.project,
+        parent: row.parent,
+        createdBy: row.createdBy ? person(row.createdBy) : null,
+        lastComment: last ? { at: last.createdAt.toISOString(), author: last.author ? person(last.author) : null } : null,
+      };
+    });
   }
 
   /** Task picker search. With `projectId` and no query, returns the project's open tasks (for select dropdowns). */

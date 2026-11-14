@@ -86,6 +86,9 @@ function toLeadView<T extends LeadRow>(lead: T) {
     warmConnection: warmConnectionLabel(lead.warmConnection, warmConnectionContact),
     contactAvatarUrl: toPublicAssetUrl(avatar),
     warmConnectionAvatarUrl: toPublicAssetUrl(warmConnectionContact?.avatarUrl ?? null),
+    ...('estimatedValue' in lead && {
+      estimatedValue: (lead as { estimatedValue: unknown }).estimatedValue == null ? null : Number((lead as { estimatedValue: unknown }).estimatedValue),
+    }),
   };
   return withAttribution(lead, view);
 }
@@ -208,6 +211,8 @@ export class LeadsController {
           nextAction: dto.nextAction,
           nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : undefined,
           lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : undefined,
+          estimatedValue: dto.estimatedValue ?? undefined,
+          expectedCloseDate: dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : undefined,
         },
       });
       return tx.lead.findUniqueOrThrow({ where: { id: created.id }, include: linkInclude });
@@ -388,6 +393,8 @@ export class LeadsController {
           ...(dto.nextAction !== undefined && { nextAction: dto.nextAction }),
           ...(dto.nextActionDate !== undefined && { nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : null }),
           ...(dto.lastContactDate !== undefined && { lastContactDate: dto.lastContactDate ? new Date(dto.lastContactDate) : null }),
+          ...(dto.estimatedValue !== undefined && { estimatedValue: dto.estimatedValue }),
+          ...(dto.expectedCloseDate !== undefined && { expectedCloseDate: dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : null }),
           ...(dto.clientId !== undefined && { clientId: dto.clientId || null }),
         },
       });

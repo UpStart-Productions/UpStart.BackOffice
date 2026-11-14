@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.dto';
 import { UpdateActivitySettingsDto } from './dto/update-activity-settings.dto';
 import { UpdateGuideSettingsDto } from './dto/update-guide-settings.dto';
 import { UploadLogoDto } from './dto/upload-logo.dto';
 import { OrganizationProfileService } from './organization-profile.service';
+import { WeatherService } from './weather.service';
 import { AccessGuard, AdminOnly, SignedIn } from '../access/access.guard';
 
 @ApiTags('organization-profile')
@@ -12,7 +13,19 @@ import { AccessGuard, AdminOnly, SignedIn } from '../access/access.guard';
 @UseGuards(AccessGuard)
 @Controller('organization-profile')
 export class OrganizationProfileController {
-  constructor(private readonly profile: OrganizationProfileService) {}
+  constructor(
+    private readonly profile: OrganizationProfileService,
+    private readonly weather: WeatherService,
+  ) {}
+
+  /** Dashboard weather: at lat/lon when the browser shares them, else at the business address. Null when unknown. */
+  @Get('weather')
+  @SignedIn()
+  async weatherToday(@Query('lat') lat?: string, @Query('lon') lon?: string) {
+    const la = lat != null ? Number(lat) : undefined;
+    const lo = lon != null ? Number(lon) : undefined;
+    return (await this.weather.today(la, lo)) ?? { unavailable: true };
+  }
 
   /** Company name and logo for the signed-in tenant (all back-office users). */
   @Get('branding')

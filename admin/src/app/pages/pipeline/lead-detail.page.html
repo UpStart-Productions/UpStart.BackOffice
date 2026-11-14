@@ -126,6 +126,17 @@
               </div>
             </div>
 
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="estimatedValue">Estimated value <app-help-text key="lead.estimatedValue" /></label>
+                <app-money-input inputId="estimatedValue" name="estimatedValue" [(ngModel)]="form.estimatedValue" [min]="0" [minFractionDigits]="0" [maxFractionDigits]="2" />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="expectedCloseDate">Expected close <app-help-text key="lead.expectedCloseDate" /></label>
+                <app-date-input inputId="expectedCloseDate" name="expectedCloseDate" [(ngModel)]="form.expectedCloseDate" />
+              </div>
+            </div>
+
           </div>
         </form>
 

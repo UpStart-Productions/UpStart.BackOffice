@@ -46,25 +46,52 @@
   }
 }
 
+/*
+ * Card widths on a six-column grid: full (6), half (3), third (2).
+ * Medium screens: full is one row, half and third share two columns. Small screens: one column.
+ */
+.dashboard-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.dashboard-grid-slot--full { grid-column: span 6; }
+.dashboard-grid-slot--half { grid-column: span 3; }
+.dashboard-grid-slot--third { grid-column: span 2; }
+
+@media (max-width: 1200px) {
+  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-grid-slot--full { grid-column: span 2; }
+  .dashboard-grid-slot--half,
+  .dashboard-grid-slot--third { grid-column: span 1; }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-grid-slot--full,
+  .dashboard-grid-slot--half,
+  .dashboard-grid-slot--third { grid-column: span 1; }
+}
+
 /* ── Panel contents ─────────────────────────────────────────────────────── */
 
-/* Fixed block above the scroll region (timer, stats). Same 2rem inset as .dashboard-panel-scroll. */
+/* Fixed block above the scroll region (timer, stats). The card's own padding is the inset. */
 .dashboard-panel-pinned {
   flex-shrink: 0;
-  padding-inline: 2rem;
+  padding-top: 0.75rem;
 }
 
 /*
  * Scroll body for every dashboard widget (Tasks, Activity, Time, Invoices, Bookings).
- * One inset rule: 2rem horizontal (matches header/tabs/footer), top breathing room for first row or empty copy.
+ * The card padding (--dashboard-panel-pad, 1.25rem) is the inset on every side; 0.75rem gap under the header.
  */
 .dashboard-panel-scroll {
   box-sizing: border-box;
   flex: 0 1 auto;
   min-height: 0;
   max-height: 17rem;
-  padding: 1rem 2rem 0.35rem;
-  padding-inline-end: calc(2rem + var(--panel-scroll-gutter, 0.65rem));
+  padding: 0.75rem 0 0;
+  padding-inline-end: var(--panel-scroll-gutter, 0.65rem);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
@@ -214,3 +241,610 @@
   }
 }
 
+
+/* ── Redesigned cards (Nov 2026) ────────────────────────────────────────── */
+
+/* Wide cards are two columns; dense packing back-fills gaps so rows stay full after a drag. */
+.dashboard-grid {
+  grid-auto-flow: row dense;
+}
+
+.dashboard-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  font-size: var(--fs-base);
+  color: var(--text-color);
+}
+
+.dashboard-summary-date {
+  color: var(--text-color-secondary);
+  font-weight: 500;
+}
+
+/* Four figures in a row (Financial health); wraps to two on narrow screens. */
+.dashboard-stats--4 {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-stat-note {
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+}
+
+.dashboard-up {
+  color: var(--color-severity-success-text);
+  font-weight: 600;
+}
+
+.dashboard-down {
+  color: var(--color-severity-danger-text);
+  font-weight: 600;
+}
+
+/* Small uppercase label that starts a group of rows. */
+.dashboard-section-label {
+  margin: 0.75rem 0 0.15rem;
+  font-size: var(--fs-xs, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-color-secondary);
+
+  &:first-child {
+    margin-top: 0;
+  }
+}
+
+.dashboard-section-label--danger {
+  color: var(--color-severity-danger-text);
+}
+
+.dashboard-quiet {
+  margin: 0.5rem 0 0.75rem;
+  color: var(--text-color-secondary);
+}
+
+/* One muted line at the bottom of a card (stale next steps, tasks due later). */
+.dashboard-footnote {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.5rem;
+  background: var(--p-content-hover-background, #f3f4f6);
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+
+  span {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  a {
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+/* Financial health: chart beside the action list. */
+.dashboard-money-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.dashboard-chart {
+  flex: 3 1 20rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.dashboard-chart-canvas {
+  position: relative;
+  height: 12.5rem;
+}
+
+.dashboard-money-actions {
+  flex: 2 1 18rem;
+  min-width: 0;
+}
+
+/* Pipeline: count, value, stage bar and legend. */
+.dashboard-pipeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.dashboard-when {
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+}
+
+/* My time: weekly total beside a Monday–Sunday bar strip. */
+.dashboard-time {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5rem;
+  margin: 0.25rem 0 1rem;
+}
+
+.dashboard-time-total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.dashboard-week {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  height: 4.5rem;
+}
+
+.dashboard-week-day {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.dashboard-week-bar {
+  display: block;
+  border-radius: 3px;
+  background: var(--color-severity-success-text);
+}
+
+.dashboard-week-bar--empty {
+  background: var(--surface-border);
+}
+
+.dashboard-week-label {
+  font-size: var(--fs-xs, 0.75rem);
+  text-align: center;
+  color: var(--text-color-secondary);
+}
+
+.dashboard-week-label--today {
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.dashboard-time-cta {
+  align-self: flex-start;
+}
+
+.dashboard-week-bar {
+  max-height: calc(100% - 1.2rem);
+}
+
+/* Cards that grow with their content instead of scrolling (fill input on app-dashboard-panel). */
+/* Fill cards: the body takes the card's remaining height and scrolls inside it. */
+.dashboard-panel-scroll.dashboard-panel-scroll--fill {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
+  scrollbar-gutter: auto;
+  padding-inline-end: 0;
+}
+
+/* Half and third cards have one fixed height; longer content scrolls inside the card. Full-width cards size to fit. */
+.dashboard-grid {
+  --dashboard-card-height: 400px;
+}
+
+.dashboard-grid-slot--half,
+.dashboard-grid-slot--third {
+  height: var(--dashboard-card-height);
+}
+
+/* Pipeline lanes: one row per lane, name, a bar sized to its share of cards, and the count. */
+.dashboard-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.dashboard-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 0.4rem;
+  margin: 0 -0.4rem;
+  border-radius: var(--content-border-radius);
+  color: var(--text-color);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--p-content-hover-background, #f3f4f6);
+    text-decoration: none;
+  }
+}
+
+.dashboard-lane-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-lane-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--p-content-hover-background, #f3f4f6);
+  overflow: hidden;
+}
+
+.dashboard-lane-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-severity-info-text);
+}
+
+.dashboard-lane-count {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-lane--empty {
+  color: var(--text-color-secondary);
+
+  .dashboard-lane-count {
+    font-weight: 400;
+  }
+}
+
+/* Dashboard card bodies still scroll (wheel, trackpad, touch, keyboard) but show no scrollbar. */
+.dashboard-panel-scroll {
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+  padding-inline-end: 0;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Bottom fade while a card has more below (set by app-dashboard-panel; off once scrolled to the end). */
+.dashboard-panel-scroll--fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 3rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 3rem), transparent);
+}
+
+/* Today: weather in the card header (click the icon tile to swap it in for "Today"). */
+.dashboard-weather-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: var(--fs-sm);
+}
+
+.dashboard-weather-temp {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
+
+.dashboard-weather-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color-secondary);
+}
+
+.dashboard-weather-place {
+  flex-shrink: 0;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+}
+
+/* ── Weather sky (Today card header) ─────────────────────────────────────
+ * .dashboard-panel-sky sits behind the icon tile at tile size. When the weather header shows
+ * (.dashboard-panel-sky--open) it grows across the header, stopping before the ⋯ and → buttons.
+ * Gradients and icon colors per condition, loosely after Apple Weather. Decorations (.sky-bit):
+ * stars at night, drifting clouds, falling rain or snow.
+ */
+.dashboard-panel-header--sky {
+  position: relative;
+
+  .dashboard-panel-icon,
+  .dashboard-panel-heading,
+  .dashboard-panel-handle,
+  .dashboard-panel-open {
+    position: relative;
+    z-index: 1;
+  }
+
+}
+
+.dashboard-panel-sky {
+  --sky-a: #3d84d6;
+  --sky-b: #6fb0ef;
+  --sky-text: #fff;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2rem;
+  height: 2rem;
+  margin: auto 0;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: linear-gradient(160deg, var(--sky-b) 0%, var(--sky-a) 100%);
+  transition:
+    width 0.42s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dashboard-panel-sky--open {
+  width: calc(100% - 5.25rem);
+  height: 2.5rem;
+}
+
+/* Clear day: bright sky running left to right, with a warm glow behind the sun. */
+.dashboard-panel-sky[data-sky='clear-day'] {
+  --sky-a: #1a7ff0;
+  --sky-b: #3d9bf5;
+  background:
+    radial-gradient(circle at 1rem 50%, rgba(255, 228, 120, 0.35) 0, rgba(255, 228, 120, 0) 2.6rem),
+    linear-gradient(90deg, #1a7ff0 0%, #3d9bf5 55%, #7cc6fb 100%);
+}
+/* Brighter sky: a slightly stronger shadow keeps the white text readable. */
+.dashboard-panel-sky[data-sky='clear-day'] ~ .dashboard-panel-heading .dashboard-weather-head {
+  text-shadow: 0 1px 3px rgba(0, 40, 100, 0.45);
+}
+.dashboard-panel-sky[data-sky='partly-day'] { --sky-a: #4a5869; --sky-b: #687789; }
+.dashboard-panel-sky[data-sky='cloudy'] { --sky-a: #46525f; --sky-b: #6c7a89; }
+.dashboard-panel-sky[data-sky='fog'] { --sky-a: #545d68; --sky-b: #808a95; }
+.dashboard-panel-sky[data-sky='rain'] { --sky-a: #2b3a4d; --sky-b: #506378; }
+.dashboard-panel-sky[data-sky='snow'] { --sky-a: #45607e; --sky-b: #7390ae; }
+.dashboard-panel-sky[data-sky='storm'] { --sky-a: #1e2533; --sky-b: #46506a; }
+.dashboard-panel-sky[data-sky='clear-night'] { --sky-a: #0a1530; --sky-b: #22356a; }
+.dashboard-panel-sky[data-sky='partly-night'] { --sky-a: #121d36; --sky-b: #34466b; }
+
+/* Weather details read white on the sky once it opens. */
+.dashboard-panel-header--sky .dashboard-panel-heading--alt {
+  .dashboard-weather-head {
+    padding-left: 0.35rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+
+  .dashboard-weather-temp,
+  .dashboard-weather-text,
+  .dashboard-weather-place {
+    color: #fff;
+  }
+
+  .p-button.icon-action-btn {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .p-button.icon-action-btn:not(:disabled):hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* Icon colors: yellow sun, pale moon, white clouds. */
+.wx-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.wx-main { color: #fff; }
+.wx-icon[data-sky='clear-day'] .wx-main {
+  color: #fde047;
+  filter: drop-shadow(0 0 4px rgba(253, 224, 71, 0.7));
+}
+.wx-icon[data-sky='clear-night'] .wx-main {
+  color: #fef3c7;
+  filter: drop-shadow(0 0 3px rgba(254, 243, 199, 0.5));
+}
+.wx-icon[data-sky='storm'] .wx-main { color: #fde68a; }
+
+/* Partly cloudy: sun or moon peeking from behind a white cloud. */
+.wx-peek {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.25rem;
+  font-size: 0.85rem;
+  color: #fde047;
+  filter: drop-shadow(0 0 3px rgba(253, 224, 71, 0.6));
+}
+.wx-icon[data-sky='partly-night'] .wx-peek {
+  color: #fef3c7;
+  filter: none;
+}
+.wx-front {
+  position: relative;
+  top: 0.12rem;
+  left: -0.08rem;
+  color: #fff;
+
+  /* Solid cloud so the sun or moon tucks in behind it. */
+  svg {
+    fill: rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* Decorations: hidden in the tile, shown once the sky opens. */
+.sky-decor {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.15s;
+  pointer-events: none;
+}
+
+.dashboard-panel-sky--open .sky-decor {
+  opacity: 1;
+}
+
+.sky-bit {
+  position: absolute;
+  display: none;
+}
+
+/* Stars (clear and partly cloudy nights). */
+.dashboard-panel-sky[data-sky$='night'] .sky-bit {
+  display: block;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  animation: sky-twinkle 3s ease-in-out infinite;
+}
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(1) { left: 18%; top: 22%; animation-delay: 0s; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(2) { left: 27%; top: 64%; animation-delay: 0.6s; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(3) { left: 36%; top: 34%; animation-delay: 1.2s; width: 1px; height: 1px; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(4) { left: 44%; top: 74%; animation-delay: 1.9s; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(5) { left: 52%; top: 18%; animation-delay: 0.3s; width: 3px; height: 3px; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(6) { left: 61%; top: 52%; animation-delay: 2.4s; width: 1px; height: 1px; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(7) { left: 69%; top: 28%; animation-delay: 1.5s; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(8) { left: 77%; top: 70%; animation-delay: 0.9s; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(9) { left: 84%; top: 20%; animation-delay: 2.1s; width: 1px; height: 1px; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(10) { left: 91%; top: 46%; animation-delay: 0.4s; }
+.dashboard-panel-sky[data-sky$='night'] .sky-bit:nth-child(n + 11) { display: none; }
+
+/* Soft clouds drifting (partly cloudy, cloudy, fog, rain, snow, storm). */
+.dashboard-panel-sky:is([data-sky^='partly'], [data-sky='cloudy'], [data-sky='fog'], [data-sky='rain'], [data-sky='snow'], [data-sky='storm'])
+  .sky-bit:nth-child(-n + 3) {
+  /* Classic cartoon cloud: a rounded base plus a small and a large puff on top. Solid white, faded as one
+     piece so the overlaps don't show. Size comes from font-size (1em wide base ≈ 2rem). */
+  display: block;
+  width: 2em;
+  height: 0.62em;
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0.24;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  &::before {
+    width: 0.8em;
+    height: 0.8em;
+    left: 0.28em;
+    top: -0.4em;
+  }
+
+  &::after {
+    width: 1.05em;
+    height: 1.05em;
+    left: 0.78em;
+    top: -0.6em;
+  }
+  /* Longhands, so each cloud keeps its own delay below. */
+  animation-name: sky-drift;
+  animation-duration: 75s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+/* Three clouds a third of a lap apart, at different heights and sizes. */
+.dashboard-panel-sky .sky-bit:nth-child(1) { font-size: 1rem; top: 58%; animation-delay: 0s; }
+.dashboard-panel-sky .sky-bit:nth-child(2) { font-size: 0.7rem; top: 42%; animation-delay: -25s; }
+.dashboard-panel-sky .sky-bit:nth-child(3) { font-size: 0.85rem; top: 66%; animation-delay: -50s; }
+.dashboard-panel-sky[data-sky='fog'] .sky-bit:nth-child(-n + 3) { opacity: 0.38; }
+
+/* Rain streaks and snowflakes falling. */
+.dashboard-panel-sky:is([data-sky='rain'], [data-sky='storm']) .sky-bit:nth-child(n + 4) {
+  display: block;
+  top: -30%;
+  width: 1px;
+  height: 0.55rem;
+  background: rgba(219, 234, 254, 0.7);
+  transform: rotate(14deg);
+  animation-name: sky-fall;
+  animation-duration: 0.9s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.dashboard-panel-sky[data-sky='snow'] .sky-bit:nth-child(n + 4) {
+  display: block;
+  top: -20%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  animation-name: sky-fall;
+  animation-duration: 3.2s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.dashboard-panel-sky .sky-bit:nth-child(4) { left: 12%; animation-delay: 0s; }
+.dashboard-panel-sky .sky-bit:nth-child(5) { left: 23%; animation-delay: -0.35s; }
+.dashboard-panel-sky .sky-bit:nth-child(6) { left: 34%; animation-delay: -0.7s; }
+.dashboard-panel-sky .sky-bit:nth-child(7) { left: 45%; animation-delay: -0.15s; }
+.dashboard-panel-sky .sky-bit:nth-child(8) { left: 56%; animation-delay: -0.55s; }
+.dashboard-panel-sky .sky-bit:nth-child(9) { left: 67%; animation-delay: -0.25s; }
+.dashboard-panel-sky .sky-bit:nth-child(10) { left: 78%; animation-delay: -0.8s; }
+.dashboard-panel-sky .sky-bit:nth-child(11) { left: 88%; animation-delay: -0.45s; }
+.dashboard-panel-sky .sky-bit:nth-child(12) { left: 95%; animation-delay: -0.6s; }
+
+/* Storm: an occasional flash. */
+.dashboard-panel-sky--open[data-sky='storm']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  animation: sky-flash 7s ease-in-out infinite 1.5s;
+}
+
+@keyframes sky-twinkle {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+/* Left edge to right edge of the sky, however wide it is. */
+@keyframes sky-drift {
+  from { left: -3rem; }
+  to { left: 100%; }
+}
+
+@keyframes sky-fall {
+  from { transform: translateY(0) rotate(14deg); }
+  to { transform: translateY(3.2rem) rotate(14deg); }
+}
+
+@keyframes sky-flash {
+  0%, 90%, 100% { opacity: 0; }
+  92% { opacity: 0.35; }
+  94% { opacity: 0; }
+  96% { opacity: 0.2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-panel-sky { transition: none; }
+  .sky-bit,
+  .dashboard-panel-sky--open[data-sky='storm']::after { animation: none !important; }
+}

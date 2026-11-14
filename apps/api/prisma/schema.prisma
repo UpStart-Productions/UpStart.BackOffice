@@ -389,6 +389,10 @@ model Lead {
   nextAction        String?      @db.Text
   nextActionDate    DateTime?
   lastContactDate   DateTime?
+  /// What the opportunity is worth if won. Drives pipeline value on the dashboard.
+  estimatedValue    Decimal?     @db.Decimal(12, 2)
+  /// When the person expects the deal to close.
+  expectedCloseDate DateTime?
   convertedClientId String?      @unique
   /// Linked organization, only after Make client/partner or an explicit link — not created on save.
   clientId          String?

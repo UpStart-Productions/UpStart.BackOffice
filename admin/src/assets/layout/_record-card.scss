@@ -49,3 +49,25 @@ a.record-card-title:hover,
 
 // Right-hand icons are standard small icon buttons (same box as every other small icon button), so they line up
 // with icons in panels above and below. Don't resize them here.
+
+// Icon tile tones (Dashboard rows): same severity tokens as dashboard panel icons. No purple (actions only).
+.record-card-icon[data-tone='success'] { color: var(--color-severity-success-text); background: var(--color-severity-success-bg); }
+.record-card-icon[data-tone='warning'] { color: var(--color-severity-warning-text); background: var(--color-severity-warning-bg); }
+.record-card-icon[data-tone='danger'] { color: var(--color-severity-danger-text); background: var(--color-severity-danger-bg); }
+.record-card-icon[data-tone='info'] { color: var(--color-severity-info-text); background: var(--color-severity-info-bg); }
+.record-card-icon[data-tone='neutral'] { color: var(--text-color-secondary); background: var(--p-content-hover-background, #f3f4f6); }
+
+// One line per title and subtitle, ending in … (singleLine input).
+.record-card--single-line {
+  .record-card-head { align-items: center; }
+  .record-card-title-line { flex-wrap: nowrap; }
+  .record-card-title,
+  .record-card-subtitle {
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .record-card-title { flex: 0 1 auto; }
+}
