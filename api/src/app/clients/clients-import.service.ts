@@ -39,7 +39,7 @@ export class ClientsImportService {
       throw new BadRequestException(err instanceof Error ? err.message : 'Could not parse that file');
     }
     if (rows.length === 0) {
-      throw new BadRequestException('No organizations found in that file');
+      throw new BadRequestException('No accounts found in that file');
     }
     if (rows.length > ORG_IMPORT_MAX_ROWS) {
       throw new BadRequestException(

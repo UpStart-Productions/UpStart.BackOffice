@@ -11,7 +11,7 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { HelpTextComponent } from '../help-text/help-text.component';
 
 /**
- * Organizations side panel for a person: linked organizations, role, and link/unlink.
+ * Accounts side panel for a person: linked accounts, role, and link/unlink.
  * The only place this panel is built. Callers pass the person and take the updated person back.
  */
 @Component({
@@ -21,7 +21,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
   template: `
     <div class="card card--side">
       <div class="card-header">
-        <h3 class="card-title">Organizations</h3>
+        <h3 class="card-title">Accounts</h3>
       </div>
       <div class="side-panel-scroll">
         @for (l of contact().accountLinks; track l.clientId) {
@@ -38,7 +38,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
               [text]="true"
               size="small"
               (onClick)="confirmUnlink(l.client)"
-              aria-label="Remove organization link"
+              aria-label="Remove account link"
             />
           </div>
         } @empty {
@@ -53,7 +53,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
       </div>
       <div class="side-panel-controls">
       <div class="form-field mt-3 mb-2">
-        <label for="linkOrg">Link to an organization <app-help-text key="person.organizationLinks" /></label>
+        <label for="linkOrg">Link to an account <app-help-text key="person.organizationLinks" /></label>
         <p-select
           inputId="linkOrg"
           [options]="clients()"
@@ -130,11 +130,11 @@ export class OrganizationLinksComponent implements OnInit {
 
   orgLink(client: { id: string; journey: string }): string[] {
     return client.journey === 'CLIENT'
-      ? ['/clients', client.id]
-      : ['/organizations', client.id];
+      ? ['/accounts', client.id]
+      : ['/accounts', client.id];
   }
 
-  /** For a person with no organization: make an organization named after them and link it. */
+  /** For a person with no account: make an account named after them and link it. */
   async createClientFromContact() {
     const c = this.contact();
     try {

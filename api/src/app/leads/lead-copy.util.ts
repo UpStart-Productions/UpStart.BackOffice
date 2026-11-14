@@ -27,7 +27,7 @@ const leadScalars = {
   primaryContactId: true,
 } as const;
 
-/** Duplicate a pipeline card only — same organization link and people, no new Client row. */
+/** Duplicate a pipeline card only — same account link and people, no new Client row. */
 export async function copyLeadCard(
   db: CopyDb,
   sourceId: string,

@@ -59,7 +59,7 @@ type ExpenseWithLinks = Prisma.ExpenseGetPayload<{ include: typeof expenseInclud
 
 /** Billable: Not billed, then Invoiced (on a client invoice), then Paid (that invoice is paid). */
 export type ExpenseBillingStatus = 'UNBILLED' | 'INVOICED' | 'PAID';
-/** Reimbursable: Not submitted, then Submitted (on the person's invoice to the organization), then Reimbursed (paid). */
+/** Reimbursable: Not submitted, then Submitted (on the person's invoice to the business), then Reimbursed (paid). */
 export type ExpenseReimbursementStatus = 'NOT_SUBMITTED' | 'SUBMITTED' | 'REIMBURSED';
 
 type LinkedInvoice = { id: string; displayNumber: string; status: string } | null | undefined;
@@ -108,7 +108,7 @@ export class ExpensesController {
     if (!project) throw new NotFoundException('Project not found');
   }
 
-  /** The organization's mileage rate per mile (Settings → Expenses and Invoicing), or null when not set. */
+  /** The business's mileage rate per mile (Settings → Expenses and Invoicing), or null when not set. */
   @Get('mileage-rate')
   async mileageRate() {
     return { rate: await this.currentMileageRate() };
@@ -124,7 +124,7 @@ export class ExpensesController {
 
   /**
    * Amount and mileage fields for a save. Miles set: amount = miles x rate (the expense keeps the rate it was first
-   * saved with; a new mileage expense uses the organization's current rate). Miles null: a regular expense again.
+   * saved with; a new mileage expense uses the business's current rate). Miles null: a regular expense again.
    */
   private async mileageFields(
     dto: { miles?: number | null; amount?: number },

@@ -323,7 +323,7 @@ export class GlobalSearchComponent {
   private routeFor(item: SearchResultItem): string {
     switch (item.type) {
       case 'client':
-        return `/organizations/${item.id}`;
+        return `/accounts/${item.id}`;
       case 'contact':
         return `/people/${item.id}`;
       case 'project':
@@ -353,7 +353,7 @@ export class GlobalSearchComponent {
       case 'careShift':
         return '/schedule';
       case 'interaction':
-        if (item.clientId) return `/organizations/${item.clientId}`;
+        if (item.clientId) return `/accounts/${item.clientId}`;
         if (item.leadId) return `/pipeline/${item.leadId}`;
         return '/activity';
       case 'user':

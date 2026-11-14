@@ -18,9 +18,9 @@ import { PersonComponent } from '../person/person.component';
 type OwnerOption = { id: string; label: string; firstName: string | null; lastName: string | null; avatarUrl: string | null };
 
 /**
- * One-line next step for an organization: what happens next, when, and who owns it.
+ * One-line next step for an account: what happens next, when, and who owns it.
  * Done records "Done: …" on the timeline, clears the step and opens the editor for the next one.
- * Used in the organization page's right-hand panel and on the Activity page.
+ * Used in the account page's right-hand panel and on the Activity page.
  *
  * When `showInlineStatus` is false, overdue / due-today tags are omitted here — use `headerStatus` in the card header instead (e.g. Activity → Next action).
  */

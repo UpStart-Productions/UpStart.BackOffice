@@ -41,7 +41,7 @@ export type OrganizationImportResult = {
   imports: [AppDialogModule, ButtonModule, MessageModule, TableModule, SingleFileDropzoneComponent],
   template: `
     <p-dialog
-      header="Import organizations"
+      header="Import accounts"
       [visible]="visible()"
       (visibleChange)="onVisibleChange($event)"
       [modal]="true"
@@ -60,9 +60,9 @@ export type OrganizationImportResult = {
             accept=".csv,.xlsx,.xls,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
             [maxBytes]="2 * 1024 * 1024"
             [uploading]="busy()"
-            emptyTitle="Organization list"
+            emptyTitle="Account list"
             emptyHint="Drop a CSV or Excel file or click to browse"
-            selectedTitle="Organization list"
+            selectedTitle="Account list"
             replaceHint="Drop or click to replace"
             emptyIcon="pi-file-import"
             (fileChange)="onFile($event)"
@@ -114,7 +114,7 @@ export type OrganizationImportResult = {
 
       @if (step() === 'done' && result()) {
         <p class="mt-0">
-          Created <strong>{{ result()!.created }}</strong> organizations.
+          Created <strong>{{ result()!.created }}</strong> accounts.
           @if (result()!.skipped) {
             Skipped <strong>{{ result()!.skipped }}</strong> duplicate{{ result()!.skipped === 1 ? '' : 's' }}.
           }
@@ -206,7 +206,7 @@ export class OrganizationsImportModalComponent {
       this.toast.add({
         severity: 'success',
         summary: 'Import complete',
-        detail: `Created ${result.created} organizations.`,
+        detail: `Created ${result.created} accounts.`,
       });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Import failed');

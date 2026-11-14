@@ -52,12 +52,12 @@ function personName(u: { firstName?: string | null; lastName?: string | null; na
 }
 
 /**
- * Activity: the timeline across organizations and people, the next step on an organization,
+ * Activity: the timeline across accounts and people, the next step on an account,
  * and the To do queues (Needs reply, Next steps, Gone quiet, Unfiled).
  *
- * Visibility rule: an email or logged activity shows on the organization it is filed to and on the page of every
- * person on it. It never shows on the other organizations those people belong to. Activity on a person that is
- * not filed to any organization shows on each of their organizations when "include people's activity" is on.
+ * Visibility rule: an email or logged activity shows on the account it is filed to and on the page of every
+ * person on it. It never shows on the other accounts those people belong to. Activity on a person that is
+ * not filed to any account shows on each of their accounts when "include people's activity" is on.
  */
 @Injectable()
 export class ActivityService {
@@ -75,9 +75,9 @@ export class ActivityService {
 
   private async assertClient(user: UserContext, clientId: string) {
     const ids = await this.access.clientIds(user);
-    if (ids && !ids.includes(clientId)) throw new NotFoundException('Organization not found.');
+    if (ids && !ids.includes(clientId)) throw new NotFoundException('Account not found.');
     const client = await this.prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
-    if (!client) throw new NotFoundException('Organization not found.');
+    if (!client) throw new NotFoundException('Account not found.');
   }
 
   private async orgContactIds(clientId: string): Promise<string[]> {
@@ -85,7 +85,7 @@ export class ActivityService {
     return [...new Set(links.map((l) => l.contactId))];
   }
 
-  /** The timeline: one organization, one person, or everything (Activity page). Newest first. */
+  /** The timeline: one account, one person, or everything (Activity page). Newest first. */
   async feed(user: UserContext, q: ActivityFeedQueryDto) {
     const limit = clampLimit(q.limit);
     const and: Prisma.InteractionWhereInput[] = [await this.reach(user)];
@@ -144,7 +144,7 @@ export class ActivityService {
     const people = new Set(peopleIds);
     const items = page.map((r) => {
       const view = toInteractionView(r, false);
-      // On an organization's timeline, say whose activity pulled in an item that is not filed to it.
+      // On an account's timeline, say whose activity pulled in an item that is not filed to it.
       const via =
         q.clientId && r.clientId !== q.clientId
           ? ((r.participants ?? []) as { contactId: string | null; name: string | null; email: string }[])
@@ -282,7 +282,7 @@ export class ActivityService {
     const reply: QueueRow[] = [];
 
     // Next steps: every next step that is set (organizations and pipeline cards), soonest first; overdue ones flagged.
-    // An organization without a next step is fine and is not listed.
+    // An account without a next step is fine and is not listed.
     const dueBy = endOfToday(now);
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);

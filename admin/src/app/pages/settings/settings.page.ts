@@ -84,7 +84,7 @@ interface OrganizationProfile {
   state: string;
   zip: string;
   phone: string;
-  /** Where invoices billed to the organization (e.g. by caregivers) are sent by default. */
+  /** Where invoices billed to the business (e.g. by caregivers) are sent by default. */
   billingEmail?: string;
   attribution?: RecordAttributionDto;
 }

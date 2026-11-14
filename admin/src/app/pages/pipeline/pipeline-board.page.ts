@@ -375,7 +375,7 @@ export class PipelineBoardPage implements OnInit {
       return;
     }
     if (lead.trackedClientId) {
-      void this.router.navigate(['/clients', lead.trackedClientId]);
+      void this.router.navigate(['/accounts', lead.trackedClientId]);
       return;
     }
     if (lead.projectId) {
@@ -501,7 +501,7 @@ export class PipelineBoardPage implements OnInit {
         this.toast.add({
           severity: 'success',
           summary: 'Copied',
-          detail: `Another card on ${pipelineName} (${laneName}). The organization was not duplicated.`,
+          detail: `Another card on ${pipelineName} (${laneName}). The account was not duplicated.`,
           life: 3500,
         });
       } else {

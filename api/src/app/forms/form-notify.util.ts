@@ -65,7 +65,7 @@ export async function notifyFormSubmitted(
 }
 
 /**
- * A result was attached to (or moved onto) a client or organization: tell the staff assigned to it who can see the
+ * A result was attached to (or moved onto) a client or account: tell the staff assigned to it who can see the
  * answers, not the person who did it.
  */
 export async function notifyFormAttached(

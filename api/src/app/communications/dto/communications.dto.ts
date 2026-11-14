@@ -17,7 +17,7 @@ export class LogInteractionDto {
   @ApiProperty({ enum: MANUAL_TYPES }) @IsIn(MANUAL_TYPES as unknown as string[]) type!: ManualType;
   @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() leadId?: string;
-  @ApiPropertyOptional({ description: 'Log on a person: filed to their organization when they have exactly one.' })
+  @ApiPropertyOptional({ description: 'Log on a person: filed to their account when they have exactly one.' })
   @IsString() @IsOptional() contactId?: string;
   @ApiPropertyOptional({ description: 'Defaults to now.' }) @IsISO8601() @IsOptional() occurredAt?: string;
   @ApiPropertyOptional() @IsString() @MaxLength(300) @IsOptional() subject?: string;
@@ -35,7 +35,7 @@ export class LogInteractionDto {
 export class ForwardInteractionDto {
   @ApiPropertyOptional({ description: 'Team members to email and notify.' })
   @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() userIds?: string[];
-  @ApiPropertyOptional({ description: 'Organization people to email.' })
+  @ApiPropertyOptional({ description: 'Account people to email.' })
   @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @IsOptional() contactIds?: string[];
 }
 

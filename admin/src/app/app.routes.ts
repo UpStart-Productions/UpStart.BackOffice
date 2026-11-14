@@ -28,7 +28,7 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/task-form/task-form.page').then((m) => m.TaskFormPage),
   },
   {
-    // Public form links (Care's intake or one organization's form), optionally behind a passcode or emailed code.
+    // Public form links (Care's intake or one account's form), optionally behind a passcode or emailed code.
     path: 'care-form/:token',
     loadComponent: () => import('./pages/forms/public-form.page').then((m) => m.PublicFormPage),
   },
@@ -124,38 +124,29 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./pages/accounting/accounting-reports.page').then((m) => m.AccountingReportsPage),
       },
-      // ── CRM: organizations and people. Client detail uses /clients/:id (same page) so nav stays on Clients.
+      // ── CRM: accounts (organizations, households, anyone you do business with) and people.
       {
-        path: 'organizations',
+        path: 'accounts',
         loadComponent: () =>
           import('./pages/organizations/organizations-list.page').then((m) => m.OrganizationsListPage),
       },
       {
-        path: 'organizations/new',
+        path: 'accounts/new',
         loadComponent: () =>
           import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
       },
       {
-        path: 'organizations/:id',
+        path: 'accounts/:id',
         loadComponent: () =>
           import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
       },
-      {
-        path: 'clients',
-        pathMatch: 'full',
-        loadComponent: () =>
-          import('./pages/clients/clients-list.page').then((m) => m.ClientsListPage),
-      },
-      {
-        path: 'clients/new',
-        pathMatch: 'full',
-        redirectTo: () => inject(Router).parseUrl('/organizations/new?journey=CLIENT&from=clients'),
-      },
-      {
-        path: 'clients/:id',
-        loadComponent: () =>
-          import('./pages/clients/client-form.page').then((m) => m.ClientFormPage),
-      },
+      // Old URLs (bookmarks, links saved in notes): Organizations became Accounts, and Clients is the Client filter.
+      { path: 'organizations', pathMatch: 'full', redirectTo: 'accounts' },
+      { path: 'organizations/new', pathMatch: 'full', redirectTo: 'accounts/new' },
+      { path: 'organizations/:id', redirectTo: 'accounts/:id' },
+      { path: 'clients', pathMatch: 'full', redirectTo: () => inject(Router).parseUrl('/accounts?status=CLIENT') },
+      { path: 'clients/new', pathMatch: 'full', redirectTo: () => inject(Router).parseUrl('/accounts/new?journey=CLIENT') },
+      { path: 'clients/:id', redirectTo: 'accounts/:id' },
       {
         path: 'activity',
         loadComponent: () =>
@@ -175,7 +166,7 @@ export const appRoutes: Route[] = [
       },
       { path: 'contacts', pathMatch: 'full', redirectTo: 'people' },
       { path: 'contacts/:id', redirectTo: 'people/:id' },
-      // The old Network rolodex: people and organizations tagged Network.
+      // The old Network rolodex: people and accounts tagged Network.
       { path: 'network', pathMatch: 'full', redirectTo: () => inject(Router).parseUrl('/people?tag=Network') },
       {
         path: 'network/new',

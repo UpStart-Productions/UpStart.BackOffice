@@ -43,7 +43,7 @@ type LineItem = {
   unitPrice: number;
   amount: number;
   timeEntryIds: string[];
-  /** Reimbursable expenses (invoices billed to the organization only). */
+  /** Reimbursable expenses (invoices billed to the business only). */
   expenseIds: string[];
   projectName?: string;
 };
@@ -67,7 +67,7 @@ type InvoicePreview = {
     projectName: string;
     lines: InvoicePreviewLine[];
   }>;
-  /** Unbilled reimbursable expenses; only when billing the organization. */
+  /** Unbilled reimbursable expenses; only when billing the business. */
   expenses: InvoicePreviewLine[];
   canGenerate: boolean;
   missingRates: Array<{
@@ -142,7 +142,7 @@ export class InvoiceFormPage implements OnInit {
   };
 
   form = {
-    /** Who the invoice is addressed to: a client, or the organization (e.g. a caregiver billing for their hours). */
+    /** Who the invoice is addressed to: a client, or the business (e.g. a caregiver billing for their hours). */
     billTo: 'CLIENT' as BillTo,
     clientId: '',
     billToName: '',
@@ -279,7 +279,7 @@ export class InvoiceFormPage implements OnInit {
         this.loadError.set(err instanceof Error ? err.message : 'Failed to load invoice');
       }
     } else {
-      // Roles limited to their own invoices (e.g. caregivers) usually bill the organization; so does anyone with no clients.
+      // Roles limited to their own invoices (e.g. caregivers) usually bill the business; so does anyone with no clients.
       const ownOnly = areaLevel(this.session.me(), 'invoices') === 'own';
       if (ownOnly || clients.length === 0) await this.onBillToChange('TENANT');
       this.savedSnapshot = this.snapshot();
@@ -303,7 +303,7 @@ export class InvoiceFormPage implements OnInit {
     return percent / 100;
   }
 
-  /** Switching to the organization prefills its bill-to (editable); switching to a client clears it (the client's details are used). */
+  /** Switching to the business prefills its bill-to (editable); switching to a client clears it (the client's details are used). */
   async onBillToChange(billTo: BillTo) {
     this.form.billTo = billTo;
     if (billTo === 'TENANT') {

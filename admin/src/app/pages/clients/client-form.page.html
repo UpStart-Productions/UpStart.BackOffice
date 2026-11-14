@@ -1,7 +1,7 @@
 <app-page
   [title]="pageTitle"
   [backLink]="backLink"
-  [backLabel]="backLink === '/clients' ? 'Back to Clients' : 'Back to Organizations'"
+  backLabel="Back to Accounts"
 >
   <ng-container ngProjectAs="[pageActions]">
     @if (!loading() && !error()) {
@@ -273,7 +273,7 @@
   }
 
   <p-dialog
-    header="Organization settings"
+    header="Account settings"
     [visible]="publicSettingsVisible()"
     (visibleChange)="onPublicSettingsVisible($event)"
     [modal]="true"

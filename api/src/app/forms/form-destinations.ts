@@ -24,7 +24,7 @@ export type SubmitOutcome = { message?: string; resultToken?: string; responseId
 
 /**
  * What a module does with its forms' public submissions. The engine handles links, verification and
- * checking answers; the destination decides where they go (Care: a pending intake, or an organization's copy).
+ * checking answers; the destination decides where they go (Care: a pending intake, or an account's copy).
  */
 export interface FormDestination {
   /** The module that owns the forms (Form.module). */

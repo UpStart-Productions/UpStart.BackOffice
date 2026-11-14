@@ -13,7 +13,7 @@ import { CrmTagsApi } from '../../core/crm-tags.api';
 import { AvatarDropzoneComponent } from '../avatar-dropzone/avatar-dropzone.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
 
-/** Sentinel value in the organization picker for inline org creation. */
+/** Sentinel value in the account picker for inline org creation. */
 export const NEW_ORGANIZATION_OPTION_ID = '__new_organization__';
 
 type OrgOption = { id: string; name: string };
@@ -115,7 +115,7 @@ export type CreatedPerson = ContactSummary & { makeLead?: boolean; leadEmail?: s
       </div>
       @if (showOrgPicker()) {
         <div class="form-field">
-          <label for="nClient">Organization (optional)</label>
+          <label for="nClient">Account (optional)</label>
           <p-select
             inputId="nClient"
             [options]="orgOptions()"
@@ -125,21 +125,21 @@ export type CreatedPerson = ContactSummary & { makeLead?: boolean; leadEmail?: s
             [filter]="true"
             filterBy="name"
             [showClear]="true"
-            placeholder="Link to an organization"
+            placeholder="Link to an account"
             styleClass="w-full"
             appendTo="body"
           />
         </div>
         @if (creatingOrg()) {
           <div class="org-stub">
-            <p class="org-stub-title">New organization</p>
+            <p class="org-stub-title">New account</p>
             <div class="form-field">
-              <label for="nOrgName">Organization name</label>
+              <label for="nOrgName">Account name</label>
               <input pInputText id="nOrgName" [(ngModel)]="form.newOrg.name" class="w-full" />
             </div>
             <div class="form-row">
               <div class="form-field">
-                <label for="nOrgEmail">Organization email</label>
+                <label for="nOrgEmail">Account email</label>
                 <input pInputText id="nOrgEmail" type="email" [(ngModel)]="form.newOrg.email" class="w-full" />
               </div>
               <div class="form-field">
@@ -152,7 +152,7 @@ export type CreatedPerson = ContactSummary & { makeLead?: boolean; leadEmail?: s
       }
       @if (linkingOrg()) {
         <div class="form-field">
-          <label for="nRole">Role at organization <app-help-text key="person.orgRole" /></label>
+          <label for="nRole">Role at account <app-help-text key="person.orgRole" /></label>
           <input pInputText id="nRole" [(ngModel)]="form.role" class="w-full" placeholder="e.g. Board member" />
         </div>
       }
@@ -199,7 +199,7 @@ export class CreatePersonFormComponent {
 
   readonly orgOptions = computed(() => {
     const list = this.clients();
-    const newOpt: OrgOption = { id: NEW_ORGANIZATION_OPTION_ID, name: 'New organization' };
+    const newOpt: OrgOption = { id: NEW_ORGANIZATION_OPTION_ID, name: 'New account' };
     return [newOpt, ...list];
   });
 
@@ -266,7 +266,7 @@ export class CreatePersonFormComponent {
       return;
     }
     if (this.creatingOrg() && !this.form.newOrg.name.trim()) {
-      this.formError.set('Organization name is required when creating a new organization.');
+      this.formError.set('Account name is required when creating a new account.');
       return;
     }
     this.saving.set(true);

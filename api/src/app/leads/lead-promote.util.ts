@@ -25,7 +25,7 @@ export type PromoteDb = Pick<
   | 'dimensionValue'
 >;
 
-/** Copy card people onto an organization and set primary on the account link. */
+/** Copy card people onto an account and set primary on the account link. */
 export async function linkLeadPeopleToClient(db: PromoteDb, leadId: string, clientId: string) {
   const lead = await db.lead.findUniqueOrThrow({
     where: { id: leadId },
@@ -46,7 +46,7 @@ export async function linkLeadPeopleToClient(db: PromoteDb, leadId: string, clie
 }
 
 /**
- * Create or update the organization for a pipeline card (Make client / Make partner / link then promote).
+ * Create or update the account for a pipeline card (Make client / Make partner / link then promote).
  */
 export async function promoteLeadToOrganization(
   db: PromoteDb,

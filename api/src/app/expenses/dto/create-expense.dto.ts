@@ -20,6 +20,6 @@ export class CreateExpenseDto {
   @ApiPropertyOptional() @IsBoolean() @IsOptional() isBillable?: boolean;
   @ApiPropertyOptional() @IsString() @IsOptional() paymentMethod?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() notes?: string;
-  /** Mileage: miles driven. The amount is miles x the organization's mileage rate; send null to make it a regular expense. */
+  /** Mileage: miles driven. The amount is miles x the business's mileage rate; send null to make it a regular expense. */
   @ApiPropertyOptional({ nullable: true }) @IsNumber() @IsOptional() @Min(0.01) @Type(() => Number) miles?: number | null;
 }

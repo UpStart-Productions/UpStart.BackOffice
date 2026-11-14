@@ -291,7 +291,7 @@ function nowForInput(): string {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
               }
               @if (showOrgNames() && item.client; as org) {
-                <a [routerLink]="['/organizations', org.id]">{{ org.name }}</a>
+                <a [routerLink]="['/accounts', org.id]">{{ org.name }}</a>
               }
             </div>
             @if (item.via?.length) {
@@ -693,7 +693,7 @@ export class ActivityTimelineComponent implements OnDestroy {
   clientId = input<string | null>();
   leadId = input<string | null>();
   contactId = input<string | null>();
-  /** Every organization (Activity page). Ignored when clientId, leadId or contactId is set. */
+  /** Every account (Activity page). Ignored when clientId, leadId or contactId is set. */
   global = input(false);
   /** Extra filters from the Activity page (type, who logged it, dates, search). */
   feedFilter = input<ActivityFeedFilter | null>(null);
@@ -703,7 +703,7 @@ export class ActivityTimelineComponent implements OnDestroy {
   hideInlineFilters = input(false);
   /** Show an "Open full view" link to the Activity page (record pages). */
   showFullViewLink = input(true);
-  /** Second group heading: the organization these people belong to. */
+  /** Second group heading: the account these people belong to. */
   organizationName = input<string>();
   /** Quick log: "Set the next action" (organizations only; person pages pass false for parity). */
   showNextActionOnQuickLog = input(true);
@@ -726,9 +726,9 @@ export class ActivityTimelineComponent implements OnDestroy {
     return null;
   });
   readonly canLog = computed(() => !!this.clientId() || !!this.leadId() || !!this.contactId());
-  /** Next action row applies only when logging on an organization and the host allows it. */
+  /** Next action row applies only when logging on an account and the host allows it. */
   readonly canSetFollowUp = computed(() => !!this.clientId() && this.showNextActionOnQuickLog());
-  /** Organization names on items whenever the feed spans organizations. */
+  /** Account names on items whenever the feed spans organizations. */
   readonly showOrgNames = computed(() => !this.clientId() && !this.leadId());
   readonly includePeople = model(true);
   readonly fullViewParams = computed<Record<string, string> | null>(() => {
@@ -1174,7 +1174,7 @@ export class ActivityTimelineComponent implements OnDestroy {
     }
   }
 
-  /** Where a logged activity goes: the organization, card or person this timeline is for. */
+  /** Where a logged activity goes: the account, card or person this timeline is for. */
   private async refreshEmailToLabel() {
     const loggingEmail = this.quickType === 'EMAIL' || (this.logVisible && this.logType === 'EMAIL');
     if (!loggingEmail) {

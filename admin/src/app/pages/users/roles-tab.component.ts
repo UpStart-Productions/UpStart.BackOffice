@@ -28,7 +28,7 @@ type RoleRow = {
 };
 
 const ADMIN_DESCRIPTION =
-  'Everything in the organization, including users, settings, setup, accounting, reports and all invoices. Only admins can delete records and projects.';
+  'Everything in the business, including users, settings, setup, accounting, reports and all invoices. Only admins can delete records and projects.';
 
 
 /**

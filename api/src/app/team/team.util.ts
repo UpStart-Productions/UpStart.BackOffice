@@ -7,7 +7,7 @@ import { person } from '../task-manager/task-mappers';
 import { PersonDto, personSelect } from '../task-manager/task-people.util';
 
 /**
- * Staff on a client or project, shown in the People panel next to the organization's contacts.
+ * Staff on a client or project, shown in the People panel next to the account's contacts.
  *  - Project staff are its members (ProjectMember), the same list as its task board.
  *  - Client staff are its assignments (ClientAssignment, which also decides reach for "own" roles),
  *    plus everyone on the client's projects (shown only; that doesn't assign them to the client).

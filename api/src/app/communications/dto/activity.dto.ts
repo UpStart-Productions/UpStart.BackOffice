@@ -8,11 +8,11 @@ export type ActivityQueueKey = (typeof ACTIVITY_QUEUES)[number];
 
 const toBool = ({ value }: { value: unknown }) => value === true || value === 'true' || value === '1';
 
-/** Filters for the activity feed. With clientId or contactId it is that record's timeline; with neither, every organization. */
+/** Filters for the activity feed. With clientId or contactId it is that record's timeline; with neither, every account. */
 export class ActivityFeedQueryDto {
   @ApiPropertyOptional() @IsString() @IsOptional() clientId?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() contactId?: string;
-  @ApiPropertyOptional({ description: "With clientId: also show its people's activity that is not filed to any organization. Default true." })
+  @ApiPropertyOptional({ description: "With clientId: also show its people's activity that is not filed to any account. Default true." })
   @Transform(toBool) @IsBoolean() @IsOptional() includePeople?: boolean;
   @ApiPropertyOptional({ enum: TYPES }) @IsIn(TYPES as unknown as string[]) @IsOptional() type?: (typeof TYPES)[number];
   @ApiPropertyOptional() @IsString() @IsOptional() loggedByUserId?: string;

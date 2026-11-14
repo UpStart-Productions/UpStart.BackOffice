@@ -115,7 +115,7 @@ const TAB_STATUS: Record<Tab, FormSubmissionFilter | undefined> = {
               <td><a [routerLink]="['/forms/submissions', r.id]" class="text-primary">{{ r.submitterName ?? r.submitterEmail ?? 'Untitled' }}</a></td>
               <td>
                 @if (r.clientId) {
-                  <a [routerLink]="['/clients', r.clientId]" class="text-primary">{{ r.clientName }}</a>
+                  <a [routerLink]="['/accounts', r.clientId]" class="text-primary">{{ r.clientName }}</a>
                 } @else {
                   {{ r.submitterOrganization ?? '' }}
                 }

@@ -31,7 +31,7 @@ export type OrganizationRow = {
 };
 
 /**
- * Clients (under Office): the organizations you're working for. Same records as Organizations,
+ * Clients (under Office): the accounts you're working for. Same records as Accounts,
  * limited to status Client. Active and Inactive come from each client record.
  */
 @Component({
@@ -155,7 +155,7 @@ export class ClientsListPage implements OnInit {
         id: 'edit',
         label: this.canEdit() ? 'Edit' : 'Open',
         icon: this.canEdit() ? 'pi pi-pencil' : 'pi pi-arrow-right',
-        command: () => this.router.navigate(['/clients', client.id]),
+        command: () => this.router.navigate(['/accounts', client.id]),
       },
     ];
     if (this.canDelete()) {

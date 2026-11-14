@@ -123,7 +123,7 @@ export class ClientsController {
     return this.clientPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
   }
 
-  /** Organizations. ?journey=CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */
+  /** Accounts. ?journey=CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */
   @Get()
   async list(
     @Req() req: Request,
@@ -269,7 +269,7 @@ export class ClientsController {
     const hasDims = Object.values(dimensions).some((v) => v !== undefined);
     if (hasDims) await setClientDimensions(this.prisma, tenantId, id, dimensions);
     if (dto.journey === 'CLIENT' && existing.journey !== 'CLIENT') {
-      // Won: the pipeline holds opportunities, so this organization's open cards come off the board.
+      // Won: the pipeline holds opportunities, so this account's open cards come off the board.
       await this.prisma.lead.updateMany({ where: { clientId: id, archivedAt: null }, data: { archivedAt: new Date() } });
     }
     const client = await this.prisma.client.update({

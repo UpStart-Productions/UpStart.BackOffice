@@ -32,7 +32,7 @@ export async function ensureCrmTags(db: TagCatalogDb, names: string[]): Promise<
   return ids;
 }
 
-/** Replace an organization's tags dimension with exactly these names. */
+/** Replace an account's tags dimension with exactly these names. */
 export async function setClientTags(
   db: CrmTagsDb,
   clientId: string,
@@ -57,5 +57,5 @@ export function hasContactTagWhere(_name: string | undefined): Prisma.ContactWhe
   return {};
 }
 
-/** @deprecated Use hasContactTagWhere for people or clientIdsWithTagName for organizations. */
+/** @deprecated Use hasContactTagWhere for people or clientIdsWithTagName for accounts. */
 export const hasTagWhere = hasContactTagWhere;

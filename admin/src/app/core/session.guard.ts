@@ -98,7 +98,7 @@ export const superGuard = adminGuard;
 
 /** URL prefix -> the permission area it belongs to. Anything unlisted (dashboard, etc.) is open to every user. */
 const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
-  ['/organizations', 'clients'], ['/clients', 'clients'], ['/people', 'contacts'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'], ['/forms', 'forms'],
+  ['/accounts', 'clients'], ['/organizations', 'clients'], ['/clients', 'clients'], ['/people', 'contacts'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'], ['/forms', 'forms'],
   ['/booking-types', 'bookings'], ['/inbox', 'inbox'], ['/activity', 'inbox'], ['/projects', 'projects'],
   ['/tasks', 'tasks'], ['/time-entry', 'time'], ['/expenses', 'expenses'], ['/invoices', 'invoices'],
   ['/reports', 'reports'], ['/care/visits', 'visits'], ['/schedule', 'schedule'], ['/care', 'care'],

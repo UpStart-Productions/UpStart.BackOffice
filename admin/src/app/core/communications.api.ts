@@ -38,9 +38,9 @@ export interface Interaction {
   clientId: string | null;
   leadId: string | null;
   threadKey?: string | null;
-  /** The organization it is filed to (shown on the Activity page). */
+  /** The account it is filed to (shown on the Activity page). */
   client?: { id: string; name: string } | null;
-  /** On an organization's timeline: the people whose activity pulled this in (not filed to the organization). */
+  /** On an account's timeline: the people whose activity pulled this in (not filed to the account). */
   via?: string[];
   participants: InteractionParticipant[];
   captures: { capturedByEmail: string; userId: string | null }[];
@@ -130,7 +130,7 @@ export interface LogInteractionPayload {
   type: InteractionType;
   clientId?: string;
   leadId?: string;
-  /** Log on a person: filed to their organization when they have exactly one. */
+  /** Log on a person: filed to their account when they have exactly one. */
   contactId?: string;
   occurredAt?: string;
   subject?: string;
@@ -142,7 +142,7 @@ export interface LogInteractionPayload {
   userIds?: string[];
 }
 
-/** Filters for the activity feed. clientId / contactId: that record; neither: every organization. */
+/** Filters for the activity feed. clientId / contactId: that record; neither: every account. */
 export interface ActivityFeedFilter {
   clientId?: string | null;
   contactId?: string | null;
@@ -314,7 +314,7 @@ export class CommunicationsApi {
     }
   }
 
-  /** Timeline for one organization or person, or every organization (Activity page). */
+  /** Timeline for one account or person, or every account (Activity page). */
   activity(filter: ActivityFeedFilter, before?: string | null, limit?: number): Promise<TimelinePage> {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(filter)) {

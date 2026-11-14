@@ -57,7 +57,7 @@ export class CommunicationsController {
     return this.interactions.get(id);
   }
 
-  /** Staff for Who was involved. Anyone who can open Activity on an organization or pipeline card. */
+  /** Staff for Who was involved. Anyone who can open Activity on an account or pipeline card. */
   @Get('team')
   @Area('inbox', 'clients', 'contacts', 'pipeline')
   team() {

@@ -25,7 +25,7 @@ type PickListSection = {
 };
 
 const PICK_LIST_SECTIONS: { id: string; heading: string; entity: DimensionEntity }[] = [
-  { id: 'organizations', heading: 'Organizations', entity: 'CLIENT' },
+  { id: 'organizations', heading: 'Accounts', entity: 'CLIENT' },
   { id: 'people', heading: 'People', entity: 'CONTACT' },
   { id: 'tasks', heading: 'Tasks', entity: 'TASK' },
 ];

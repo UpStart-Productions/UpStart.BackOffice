@@ -130,17 +130,16 @@ export class ShellComponent implements OnInit {
     };
     const items: NavItem[] = [
       { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
-      // CRM is relationships: opportunities (Pipeline), every organization and person, bookings and the
-      // unfiled-email queue. Office is the work: Clients (current clients), projects, time and billing.
+      // CRM is relationships: opportunities (Pipeline), every account and person, bookings and the
+      // unfiled-email queue. Office is the work: projects, time and billing. (Clients = Accounts filtered to Client.)
       ...section('CRM', [
         { area: 'inbox', label: 'Activity', icon: 'pi-comments', route: '/activity', badge: this.comms.activityCount() },
         { area: 'pipeline', label: 'Pipeline', icon: 'square-kanban', lucide: true, route: '/pipeline' },
-        { area: 'clients', label: 'Organizations', icon: 'pi-building', route: '/organizations' },
+        { area: 'clients', label: 'Accounts', icon: 'pi-building', route: '/accounts' },
         { area: 'contacts', label: 'People', icon: 'pi-address-book', route: '/people', badge: this.comms.reviewCount() },
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       ]),
       ...section('Office', [
-        { area: 'clients', label: 'Clients', icon: 'pi-users', route: '/clients' },
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
         { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: tasksRoute },
         { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },

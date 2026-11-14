@@ -32,7 +32,7 @@ export class ClientFormsApi {
   moveInfo(id: string) {
     return this.api.get<FormAttachInfoDto>(`${this.base}/records/${id}/attach-info`);
   }
-  /** Every client and organization the user reaches (Attach and Move pickers). */
+  /** Every client and account the user reaches (Attach and Move pickers). */
   targets() {
     return this.api.get<FormAttachTargetDto[]>(`${this.base}/targets`);
   }

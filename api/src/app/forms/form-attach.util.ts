@@ -35,7 +35,7 @@ function target(c: TargetRow): FormAttachTargetDto {
   };
 }
 
-/** Every client and organization the user reaches, for the attach picker (with status, tags and people). */
+/** Every client and account the user reaches, for the attach picker (with status, tags and people). */
 export async function attachTargets(db: Db, reach: string[] | null): Promise<FormAttachTargetDto[]> {
   const rows = await db.client.findMany({
     where: reach === null ? {} : { id: { in: reach } },

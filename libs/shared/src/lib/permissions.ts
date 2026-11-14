@@ -37,7 +37,7 @@ export const OWNABLE_AREAS: readonly PermissionArea[] = ['clients', 'contacts', 
 
 export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   /** Organizations and the Clients list (the same records). */
-  clients: 'Organizations',
+  clients: 'Accounts',
   contacts: 'People',
   pipeline: 'Pipeline',
   bookings: 'Bookings',

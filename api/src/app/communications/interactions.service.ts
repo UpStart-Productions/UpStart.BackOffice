@@ -28,7 +28,7 @@ export const listInclude = {
   },
   captures: { select: { capturedByEmail: true, userId: true } },
   loggedBy: { select: { id: true, name: true, firstName: true, lastName: true, avatarUrl: true } },
-  /** The organization it is filed to, for feeds that span organizations (Activity page). */
+  /** The account it is filed to, for feeds that span organizations (Activity page). */
   client: { select: { id: true, name: true } },
   /** Email attachments (saved as Artifacts on ingest), so the entry can link to each file. */
   artifacts: { where: { type: 'FILE' as const }, select: { id: true, title: true, fileUrl: true, mimeType: true }, orderBy: { createdAt: 'asc' as const } },
@@ -329,10 +329,10 @@ export class InteractionsService {
   }
 
   /**
-   * Log a call, meeting, note, or outbound email by hand, on an organization, a pipeline card, or a person.
-   * Logged on a person (contactId only): filed to their organization when they have exactly one; with none or
-   * several it stays on the person (no organization) and shows on their page and, via "include people's activity",
-   * on each of their organizations.
+   * Log a call, meeting, note, or outbound email by hand, on an account, a pipeline card, or a person.
+   * Logged on a person (contactId only): filed to their account when they have exactly one; with none or
+   * several it stays on the person (no account) and shows on their page and, via "include people's activity",
+   * on each of their accounts.
    */
   async log(dto: LogInteractionDto, user: { id: string; email: string }) {
     if (dto.clientId && dto.leadId) {

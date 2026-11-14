@@ -43,7 +43,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
             <p-tag [value]="statusTag[r.status].label" [severity]="statusTag[r.status].severity" />
           }
           @if (r.clientId) {
-            <a [routerLink]="['/organizations', r.clientId]" class="text-primary">Open {{ r.clientName }}</a>
+            <a [routerLink]="['/accounts', r.clientId]" class="text-primary">Open {{ r.clientName }}</a>
           }
         }
       </ng-container>

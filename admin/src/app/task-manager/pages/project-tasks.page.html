@@ -31,7 +31,7 @@
         <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
       </button>
       @if (p.client) {
-        <a class="tm-client-chip tm-client-chip--header" [routerLink]="['/clients', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
+        <a class="tm-client-chip tm-client-chip--header" [routerLink]="['/accounts', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
       } @else {
         <span class="tm-client-chip tm-client-chip--header tm-client-chip--personal">Personal</span>
       }

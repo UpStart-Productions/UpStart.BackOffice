@@ -79,7 +79,7 @@ function listItem(r: ListRow): ClientFormResultListItemDto {
 }
 
 /**
- * Client forms on client and organization pages: a record's results, adding one, viewing and editing it (auto-saved),
+ * Client forms on client and account pages: a record's results, adding one, viewing and editing it (auto-saved),
  * Submit / Reopen, moving it, and share links. Each form sets Read or Edit per role (admins always edit); Clients reach
  * applies. The page's Forms panel also lists other forms' responses attached to the record, for people with Forms.
  * Responses waiting for review (public submissions not yet attached) are handled in Forms, not here.
@@ -116,7 +116,7 @@ export class ClientFormsController {
       // Only published forms can be added (drafts are still being built).
       if (level === 'edit' && f.publishedVersionId) options.push({ formId: f.id, name: f.name, copies: s.copies, myAccess: level });
     }
-    // Other forms' responses attached here (e.g. an assessment accepted into an organization): people with Forms.
+    // Other forms' responses attached here (e.g. an assessment accepted into an account): people with Forms.
     const otherForms = allows(user, 'forms', 'view') ? { form: { module: M, NOT: { settings: { path: ['client', 'enabled'], equals: true } } } } : null;
     const rows = await this.prisma.formResponse.findMany({
       where: {
@@ -208,13 +208,13 @@ export class ClientFormsController {
     return attachInfo(this.prisma, record.form);
   }
 
-  /** Every client and organization the user reaches, with status, tags and people (Attach and Move pickers). */
+  /** Every client and account the user reaches, with status, tags and people (Attach and Move pickers). */
   @Get('targets')
   async targets(@Req() req: Request): Promise<FormAttachTargetDto[]> {
     return attachTargets(this.prisma, await this.access.clientIds(req.user as UserContext));
   }
 
-  /** Move a result to another client or organization (e.g. it was added to the wrong one). Its share links go along. */
+  /** Move a result to another client or account (e.g. it was added to the wrong one). Its share links go along. */
   @Patch('records/:id/client')
   async changeClient(@Req() req: Request, @Param('id') id: string, @Body() dto: ChangeResultClientDto) {
     const user = req.user as UserContext;

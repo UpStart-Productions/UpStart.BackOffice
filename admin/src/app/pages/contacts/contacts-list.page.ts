@@ -84,7 +84,7 @@ type PeopleTableRow = ContactSummary & {
           </div>
           <div class="toolbar-search">
             <app-toolbar-search-field
-              placeholder="Search name, email, or organization…"
+              placeholder="Search name, email, or account…"
               ariaLabel="Search people"
               [ngModel]="query"
               (ngModelChange)="onSearch($event)"
@@ -114,7 +114,7 @@ type PeopleTableRow = ContactSummary & {
                 <p-sortIcon field="primaryEmail" />
               </th>
               <th pSortableColumn="organizationsSort">
-                Organizations
+                Accounts
                 <p-sortIcon field="organizationsSort" />
               </th>
               <th>Tags</th>
@@ -149,7 +149,7 @@ type PeopleTableRow = ContactSummary & {
               <td><app-copy-email [email]="c.emails[0]?.email" /></td>
               <td>
                 @for (link of c.accountLinks; track link.clientId; let last = $last) {
-                  <a [routerLink]="['/organizations', link.clientId]" class="text-primary">{{ link.client.name }}</a>{{ last ? '' : ', ' }}
+                  <a [routerLink]="['/accounts', link.clientId]" class="text-primary">{{ link.client.name }}</a>{{ last ? '' : ', ' }}
                 }
               </td>
               <td>

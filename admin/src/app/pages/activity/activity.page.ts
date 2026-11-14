@@ -100,13 +100,13 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
   forms: { label: 'Form submissions', help: () => 'Submissions waiting for review. Click one to review it.' },
   nextStep: { label: 'Next steps', help: () => 'Every next step that is set, soonest first. Overdue ones are tagged.' },
   quiet: { label: 'Gone quiet', help: (t) => `Active clients with no contact in ${t.goneQuietDays}+ days.` },
-  unfiled: { label: 'Unfiled', help: () => "Captured email that couldn't be matched to one organization." },
+  unfiled: { label: 'Unfiled', help: () => "Captured email that couldn't be matched to one account." },
 };
 
 /**
- * Activity: All activity across organizations (default tab), and To do (Unfiled, Form submissions, Next steps, Gone quiet).
+ * Activity: All activity across accounts (default tab), and To do (Unfiled, Form submissions, Next steps, Gone quiet).
  * URL: omit `tab` (or `tab=all`) for All activity; `tab=todo` (legacy `tab=inbox`) for To do. A `queue` without `tab` implies To do.
- * Optionally narrowed to one organization or person. Record pages link here with "Open full view".
+ * Optionally narrowed to one account or person. Record pages link here with "Open full view".
  */
 @Component({
   selector: 'app-activity-page',
@@ -142,7 +142,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
       <ng-container ngProjectAs="[pageActions]">
         <div class="activity-header-filters">
           <div class="form-field activity-header-filter">
-            <label for="activityOrg">Organization</label>
+            <label for="activityOrg">Account</label>
             <p-select
               inputId="activityOrg"
               [options]="orgFilterOptions()"
@@ -154,7 +154,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               filterBy="name"
               filterPlaceholder="Search…"
               [showClear]="true"
-              placeholder="All organizations"
+              placeholder="All accounts"
               appendTo="body"
               [fluid]="true"
               styleClass="w-full"
@@ -295,7 +295,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                   <div class="activity-todo-register" role="region" [attr.aria-label]="info[queue()].label + ' queue'">
                     <div class="activity-todo-register-head" role="row">
                       <span class="activity-todo-col-actions" aria-hidden="true"></span>
-                      <span class="activity-todo-head-label">Organization / person</span>
+                      <span class="activity-todo-head-label">Account / person</span>
                       <span class="activity-todo-head-label">Why it's here</span>
                       <span class="activity-todo-head-label">{{ whenHeader() }}</span>
                       <span class="activity-todo-head-label">Owner</span>
@@ -311,7 +311,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                               <a [routerLink]="['/pipeline', row.leadId]" class="side-list-title">{{ row.clientName || 'Pipeline card' }}</a>
                               <span class="side-list-detail">Pipeline card</span>
                             } @else if (row.clientId) {
-                              <a [routerLink]="['/organizations', row.clientId]" class="side-list-title">{{ row.clientName }}</a>
+                              <a [routerLink]="['/accounts', row.clientId]" class="side-list-title">{{ row.clientName }}</a>
                             }
                             @if (row.person) {
                               <span class="side-list-detail">
@@ -371,7 +371,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               </div>
               <div class="side-panel-scroll">
               <div class="side-name">
-                <a [routerLink]="['/organizations', o.id]">{{ orgDetail()?.name ?? o.name }}</a>
+                <a [routerLink]="['/accounts', o.id]">{{ orgDetail()?.name ?? o.name }}</a>
                 @if (orgDetail(); as d) {
                   @if (d.journey === 'CLIENT') {
                     <p-tag [value]="d.isActive === false ? 'Client · Inactive' : 'Client · Active'" [severity]="d.isActive === false ? 'secondary' : 'success'" />
@@ -418,17 +418,17 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
 
             <div class="card card--side">
               <div class="card-header">
-                <h3 class="card-title">Organizations</h3>
+                <h3 class="card-title">Accounts</h3>
               </div>
               <div class="side-panel-scroll">
               @for (l of p.accountLinks; track l.clientId) {
                 <div class="side-row">
-                  <a [routerLink]="['/organizations', l.clientId]">{{ l.client.name }}</a>
+                  <a [routerLink]="['/accounts', l.clientId]">{{ l.client.name }}</a>
                   @if (l.role) { <div class="text-color-secondary">{{ l.role }}</div> }
                 </div>
                 <app-next-step [clientId]="l.clientId" variant="panel" class="side-next-step" />
               } @empty {
-                <p class="text-color-secondary mb-0">Not linked to an organization.</p>
+                <p class="text-color-secondary mb-0">Not linked to an account.</p>
               }
               </div>
             </div>
@@ -496,7 +496,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 <p-select inputId="newCardLane" [options]="lanes()" optionLabel="name" optionValue="id" [(ngModel)]="newLaneId" placeholder="Choose a lane" styleClass="w-full" appendTo="body" />
               </div>
               <div class="form-field">
-                <label for="newCardOrg">Organization</label>
+                <label for="newCardOrg">Account</label>
                 <p-select
                   inputId="newCardOrg"
                   [options]="orgOptions()"
@@ -506,7 +506,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                   [editable]="true"
                   [filter]="false"
                   [showClear]="true"
-                  placeholder="Choose an organization or type a new name"
+                  placeholder="Choose an account or type a new name"
                   styleClass="w-full"
                   appendTo="body"
                 />
@@ -529,8 +529,8 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
               filterBy="label"
               filterPlaceholder="Search…"
               [showClear]="true"
-              [placeholder]="kind === 'client' ? 'Choose an organization' : 'Choose a pipeline card'"
-              [ariaLabel]="kind === 'client' ? 'Organization' : 'Pipeline card'"
+              [placeholder]="kind === 'client' ? 'Choose an account' : 'Choose a pipeline card'"
+              [ariaLabel]="kind === 'client' ? 'Account' : 'Pipeline card'"
               styleClass="w-full"
               appendTo="body"
             />
@@ -538,7 +538,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
             @if (kind === 'client') {
               <div class="flex align-items-center gap-2">
                 <p-checkbox inputId="learn" [(ngModel)]="learn" [binary]="true" />
-                <label for="learn">Link the people on this email to the organization</label>
+                <label for="learn">Link the people on this email to the account</label>
               </div>
             }
             @if (fileError()) {
@@ -700,7 +700,7 @@ export class ActivityPage implements OnInit {
     return 'all';
   });
   readonly orgId = computed(() => this.params().get('organization') || null);
-  /** A pipeline card picked in the Organization filter because it has no organization record yet. */
+  /** A pipeline card picked in the Account filter because it has no account record yet. */
   readonly cardId = computed(() => (this.orgId() ? null : this.params().get('card') || null));
   readonly personId = computed(() => this.params().get('person') || null);
   readonly personPickId = computed(() => (this.personId() ? `contact:${this.personId()}` : null));
@@ -717,7 +717,7 @@ export class ActivityPage implements OnInit {
   ];
 
   orgs = signal<Org[]>([]);
-  /** Tenant-wide CRM people (when no organization filter). */
+  /** Tenant-wide CRM people (when no account filter). */
   allPeopleOptions = signal<PeopleDirectoryOption[]>([]);
   peopleLoading = signal(false);
   /** True while loading org contacts for the Activity header person filter. */
@@ -742,7 +742,7 @@ export class ActivityPage implements OnInit {
     return this.pipelines().length > 1 && pid ? this.leads().filter((l) => l.pipelineId === pid) : this.leads();
   });
   readonly orgOptions = computed(() => this.orgs().map((o) => ({ id: o.id, label: o.name })));
-  /** Organization filter: every organization, plus pipeline cards not linked to one (value "card:<id>"). */
+  /** Account filter: every account, plus pipeline cards not linked to one (value "card:<id>"). */
   readonly orgFilterOptions = computed(() => {
     const out: { id: string; name: string }[] = this.orgs().map((o) => ({ id: o.id, name: o.name }));
     const seen = new Set(out.map((o) => o.name.trim().toLowerCase()));
@@ -758,7 +758,7 @@ export class ActivityPage implements OnInit {
   readonly orgFilterValue = computed(() => this.orgId() ?? (this.cardId() ? `card:${this.cardId()}` : null));
   readonly org = computed(() => {
     const id = this.orgId();
-    return id ? this.orgs().find((o) => o.id === id) ?? { id, name: 'Organization' } : null;
+    return id ? this.orgs().find((o) => o.id === id) ?? { id, name: 'Account' } : null;
   });
   orgPeople = signal<ContactSummary[]>([]);
   orgDetail = signal<OrgDetail | null>(null);
@@ -767,7 +767,7 @@ export class ActivityPage implements OnInit {
   readonly hasContext = computed(() => !!this.orgId() || !!this.personId());
   person = signal<ContactSummary | null>(null);
 
-  /** Person filter: all CRM people, or only people linked to the selected organization. */
+  /** Person filter: all CRM people, or only people linked to the selected account. */
   readonly personFilterOptions = computed(() =>
     this.orgId() ? contactSummariesToPeopleOptions(this.orgPeople()) : this.allPeopleOptions(),
   );
@@ -803,7 +803,7 @@ export class ActivityPage implements OnInit {
   saving = signal(false);
   fileError = signal<string | null>(null);
   readonly kindOptions = [
-    { label: 'Organization', value: 'client' },
+    { label: 'Account', value: 'client' },
     { label: 'Pipeline card', value: 'lead' },
   ];
 
@@ -1117,7 +1117,7 @@ export class ActivityPage implements OnInit {
     return actions;
   }
 
-  /** Pipeline cards and pipelines: for the Organization filter (unlinked cards) and the File dialog. */
+  /** Pipeline cards and pipelines: for the Account filter (unlinked cards) and the File dialog. */
   private cardsLoaded: Promise<void> = Promise.resolve();
   private loadCardsAndPipelines(): Promise<void> {
     this.cardsLoaded = Promise.all([
@@ -1164,7 +1164,7 @@ export class ActivityPage implements OnInit {
         // Create the card in the chosen lane, then file the email to it.
         const senderContactId = senderAndRecipients(item).from?.contactId ?? undefined;
         const orgName = (this.newOrg ?? '').trim();
-        // Picked an existing organization: link the card to it.
+        // Picked an existing account: link the card to it.
         const existingOrg = this.orgOptions().find((o) => o.label.trim().toLowerCase() === orgName.toLowerCase());
         const created = await this.api.post<{ id: string; organization: string; pipelineId: string | null }>('/leads', {
           organization: existingOrg?.label ?? orgName,
@@ -1182,7 +1182,7 @@ export class ActivityPage implements OnInit {
       this.fileVisible = false;
       const parts = ['Filed.'];
       if (res.threadItemsFiled) parts.push(`${res.threadItemsFiled} more from the same thread filed too.`);
-      if (res.contactsLinked) parts.push(`Linked ${res.contactsLinked} contact${res.contactsLinked === 1 ? '' : 's'} to the organization.`);
+      if (res.contactsLinked) parts.push(`Linked ${res.contactsLinked} contact${res.contactsLinked === 1 ? '' : 's'} to the account.`);
       this.toast.add({ severity: 'success', summary: 'Filed', detail: parts.join(' ') });
       void this.comms.refreshUnfiledCount();
       this.comms.notifyActivityChanged();

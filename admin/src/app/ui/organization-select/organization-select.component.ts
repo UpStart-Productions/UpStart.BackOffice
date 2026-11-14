@@ -4,8 +4,8 @@ import { SelectModule } from 'primeng/select';
 import { ApiService } from '../../core/api.service';
 
 /**
- * Searchable organization picker (the organizations the user can reach). Value is the organization id.
- * Same control as the Link to an organization picker; use this one for new screens.
+ * Searchable organization picker (the accounts the user can reach). Value is the account id.
+ * Same control as the Link to an account picker; use this one for new screens.
  */
 @Component({
   selector: 'app-organization-select',
@@ -35,7 +35,7 @@ export class OrganizationSelectComponent implements OnInit {
 
   value = model<string | null>(null);
   inputId = input<string | undefined>(undefined);
-  /** Organizations to leave out (e.g. ones that already have this form). */
+  /** Accounts to leave out (e.g. ones that already have this form). */
   exclude = input<string[]>([]);
   /** Only organizations with status Client (e.g. Add to care). */
   clientsOnly = input(false);

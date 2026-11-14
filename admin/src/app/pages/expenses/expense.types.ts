@@ -30,7 +30,7 @@ export type Expense = {
   /** Billable only: Not billed, on a client invoice, or that invoice is paid. Null when not billable. */
   billingStatus?: ExpenseBillingStatus | null;
   billingInvoice?: ExpenseInvoiceRef | null;
-  /** Reimbursable only: not on an invoice to the organization yet, on one, or that invoice is paid. Null when not reimbursable. */
+  /** Reimbursable only: not on an invoice to the business yet, on one, or that invoice is paid. Null when not reimbursable. */
   reimbursementStatus?: ExpenseReimbursementStatus | null;
   reimbursementInvoice?: ExpenseInvoiceRef | null;
   attribution?: RecordAttributionDto;

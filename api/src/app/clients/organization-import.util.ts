@@ -101,7 +101,7 @@ function parseOrganizationImportTable(rows: string[][]): ParsedOrganizationImpor
 
   if (map.name < 0) {
     throw new Error(
-      'Could not tell which column is the organization name. Add a header row, or put the name in the first column.',
+      'Could not tell which column is the account name. Add a header row, or put the name in the first column.',
     );
   }
 
@@ -151,7 +151,7 @@ function locateHeaderRow(rows: string[][]): { map: ColumnMap; headerRowIndex: nu
 }
 
 function rowHasRecognizedHeader(headerCells: string[]): boolean {
-  return findColumn(headerCells, NAME_COLUMNS, ['org', 'company', 'name']) >= 0;
+  return findColumn(headerCells, NAME_COLUMNS, ['org', 'company', 'account', 'name']) >= 0;
 }
 
 function inferColumnMapFromData(rows: string[][], startRow: number): ColumnMap {

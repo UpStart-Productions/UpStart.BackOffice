@@ -315,7 +315,7 @@ export class ActivityToolbarPanelComponent {
   toDate = input('');
   toDateChange = output<string>();
 
-  /** Full + record when scoped to an organization. */
+  /** Full + record when scoped to an account. */
   includePeople = input(true);
   includePeopleChange = output<boolean>();
   showIncludePeopleToggle = input(false);

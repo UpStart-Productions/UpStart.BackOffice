@@ -333,7 +333,7 @@ export class LeadDetailPage implements OnInit {
   async save() {
     const org = this.form.organization.trim();
     if (!org || org === NEW_LEAD_PLACEHOLDER_ORG) {
-      this.error.set('Organization name is required');
+      this.error.set('Account name is required');
       return;
     }
     const leadId = this.id();
@@ -387,8 +387,8 @@ export class LeadDetailPage implements OnInit {
     this.error.set(null);
     try {
       const client = await this.api.post<{ id: string }>(`/leads/${this.id()}/promote-partner`, {});
-      this.toast.add({ severity: 'success', summary: 'Partner added', detail: 'The organization is on your list; the card leaves the board.' });
-      await this.router.navigate(['/organizations', client.id]);
+      this.toast.add({ severity: 'success', summary: 'Partner added', detail: 'The account is on your list; the card leaves the board.' });
+      await this.router.navigate(['/accounts', client.id]);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not add partner');
     } finally {
@@ -406,7 +406,7 @@ export class LeadDetailPage implements OnInit {
         code ? { code } : {},
       );
       this.showConvertDialog.set(false);
-      this.router.navigate(['/organizations', client.id]);
+      this.router.navigate(['/accounts', client.id]);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Conversion failed');
     } finally { this.converting.set(false); }

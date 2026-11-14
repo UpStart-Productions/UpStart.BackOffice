@@ -8,7 +8,7 @@
       <p-tag value="Client" severity="success" />
     }
     @if (account(); as acct) {
-      <a [routerLink]="['/organizations', acct.id]" class="text-primary">Open organization</a>
+      <a [routerLink]="['/accounts', acct.id]" class="text-primary">Open account</a>
     }
   </ng-container>
   <ng-container ngProjectAs="[pageActions]">
@@ -47,7 +47,7 @@
           <div class="showcase-flex-col">
             <div class="showcase-row">
               <div class="form-field showcase-half">
-                <label for="organization">Organization <span class="required-dot" aria-hidden="true"></span></label>
+                <label for="organization">Account <span class="required-dot" aria-hidden="true"></span></label>
                 <input pInputText id="organization" name="organization" [(ngModel)]="form.organization" class="w-full" placeholder="Nonprofit Name" />
               </div>
               <div class="form-field showcase-half">

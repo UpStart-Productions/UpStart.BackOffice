@@ -24,11 +24,11 @@ const INVOICE_FORM: HelpArticle = {
   sections: [
     {
       heading: 'Bill to',
-      body: 'A client: pick the client. Bill-to email and address fill in from the client and can be changed for this invoice. The client\'s Invoice Code is prepended to the invoice number (e.g. UPSP-0001), so the client needs one before you invoice. Our organization: you bill your own organization for your work; bill-to fills in from Settings → Business.',
+      body: 'A client: pick the client. Bill-to email and address fill in from the client and can be changed for this invoice. The client\'s Invoice Code is prepended to the invoice number (e.g. UPSP-0001), so the client needs one before you invoice. Our business: you bill your own business for your work; bill-to fills in from Settings → Business.',
     },
     {
       heading: 'Generate from time',
-      body: 'Billing a client pulls the client\'s uninvoiced billable time and billable expenses on its projects, at cost. Billing your organization pulls your own uninvoiced time (billable or not) and your uninvoiced reimbursable expenses, including mileage, at your own hourly rate first. Pick the period (month, quarter or a date range), optionally one project. Time entries must fall entirely within the period. If you see "missing an hourly rate", set a rate on the entry, project or user and generate again. The same hour can be on a client invoice and on your invoice to your organization, but not on two of the same kind.',
+      body: 'Billing a client pulls the client\'s uninvoiced billable time and billable expenses on its projects, at cost. Billing your business pulls your own uninvoiced time (billable or not) and your uninvoiced reimbursable expenses, including mileage, at your own hourly rate first. Pick the period (month, quarter or a date range), optionally one project. Time entries must fall entirely within the period. If you see "missing an hourly rate", set a rate on the entry, project or user and generate again. The same hour can be on a client invoice and on your invoice to your business, but not on two of the same kind.',
     },
     {
       heading: 'Line items',
@@ -46,20 +46,20 @@ const INVOICE_FORM: HelpArticle = {
 };
 
 const ORG_DETAIL: HelpArticle = {
-  title: 'Organization',
-  intro: 'Everything about one organization lives here: details, tags, people, projects, emails and files.',
+  title: 'Account',
+  intro: 'Everything about one account lives here: details, tags, people, projects, emails and files.',
   sections: [
     {
       heading: 'Contact and details',
-      body: 'After name: address, city, state and zip. Then Phone and Email on one row and Website and LinkedIn Profile on the next. Below that: Notes, then Invoice Code when Status is Client. Services and Products are free-form lists (press Enter to add each). Focus areas and Tags share one row; focus areas use preset sectors such as Recovery or Education. Tags say what the organization is to you (Partner, Vendor, or anything you type) and are shared with People.',
+      body: 'After name: address, city, state and zip. Then Phone and Email on one row and Website and LinkedIn Profile on the next. Below that: Notes, then Invoice Code when Status is Client. Services and Products are free-form lists (press Enter to add each). Focus areas and Tags share one row; focus areas use preset sectors such as Recovery or Education. Tags say what the account is to you (Partner, Vendor, or anything you type) and are shared with People.',
     },
     {
       heading: 'Status',
-      body: 'Client or Partner / other on the Details form (existing records). Make client on a pipeline card creates or updates the organization as a Client. Client turns on projects, time and invoices.',
+      body: 'Client or Partner / other on the Details form (existing records). Make client on a pipeline card creates or updates the account as a Client. Client turns on projects, time and invoices.',
     },
     {
       heading: 'Make client',
-      body: 'Turns a partner / other organization into a client. Any open pipeline card for it leaves the board, since the opportunity is won.',
+      body: 'Turns a partner / other account into a client. Any open pipeline card for it leaves the board, since the opportunity is won.',
     },
     {
       heading: 'Invoice Code',
@@ -67,23 +67,23 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'People',
-        body: 'The people at this organization. Click a name to open their People profile. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this organization (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add existing person / Add new person. The red trash control on the right removes them from this organization only; they stay in People. Your own staff show here too, tagged Team (or Guest): add them with Add existing person to assign them to this organization, and everyone on its projects is listed with the projects they are on. Remove project staff from the project.',
+        body: 'The people at this account. Click a name to open their People profile. The line under a name is their role there when one is set, otherwise their title. Role is how they relate to this account (board member, case manager, family). Title is their job. People are added automatically when you file an email from them, or use Add existing person / Add new person. The red trash control on the right removes them from this account only; they stay in People. Your own staff show here too, tagged Team (or Guest): add them with Add existing person to assign them to this account, and everyone on its projects is listed with the projects they are on. Remove project staff from the project.',
     },
     {
       heading: 'Next action',
-      body: 'Set and update the next action on Activity: pick this organization at the top of the page, or choose Work on it from Activity → To do. You can also tick Set the next action when logging in the Activity panel below (same picker as Pipeline Next Action). Done records "Done: …" on the timeline, clears it, and asks for the next one. Every next action shows on Activity → To do → Next steps, with overdue ones in red.',
+      body: 'Set and update the next action on Activity: pick this account at the top of the page, or choose Work on it from Activity → To do. You can also tick Set the next action when logging in the Activity panel below (same picker as Pipeline Next Action). Done records "Done: …" on the timeline, clears it, and asks for the next one. Every next action shows on Activity → To do → Next steps, with overdue ones in red.',
     },
     {
       heading: 'Activity',
-      body: 'Emails, calls, meetings and notes for this organization. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by (see the ? tooltip), From and To dates, Type (All, Emails, Calls, Meetings, Notes), and Include people\'s activity (on by default; also shows activity logged on this organization\'s people that isn\'t filed to any organization—"From [name]\'s activity"). Below that, the quick log logs a Note, Call or Meeting in one line (type @ to mention a teammate or one of their people; teammates get a notification); tick Set the next action to set it at the same time (Next Action picker); More details… opens the full form. Email filed to another organization never shows here. Email threads show their newest message; expand for earlier ones. Search and type apply together to the list. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
+      body: 'Emails, calls, meetings and notes for this account. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by (see the ? tooltip), From and To dates, Type (All, Emails, Calls, Meetings, Notes), and Include people\'s activity (on by default; also shows activity logged on this account\'s people that isn\'t filed to any account—"From [name]\'s activity"). Below that, the quick log logs a Note, Call or Meeting in one line (type @ to mention a teammate or one of their people; teammates get a notification); tick Set the next action to set it at the same time (Next Action picker); More details… opens the full form. Email filed to another account never shows here. Email threads show their newest message; expand for earlier ones. Search and type apply together to the list. In the full form, on a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this account. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Emails appear when the capture address is CC\'d on the thread.',
     },
     {
       heading: 'Files, links and notes',
-      body: 'Upload files (drag and drop works), add links, or write notes that stay with the organization.',
+      body: 'Upload files (drag and drop works), add links, or write notes that stay with the account.',
     },
     {
       heading: 'Public Settings',
-      body: 'Public listing marks the organization for a public partner or network site that reads it from Back Office (save Details to apply). For clients, Client portal enabled gives a bookmarkable link with no login or password; copy it to share. Regenerate link makes the old one stop working.',
+      body: 'Public listing marks the account for a public partner or network site that reads it from Back Office (save Details to apply). For clients, Client portal enabled gives a bookmarkable link with no login or password; copy it to share. Regenerate link makes the old one stop working.',
     },
     {
       heading: 'Forms',
@@ -97,12 +97,12 @@ const ORG_DETAIL: HelpArticle = {
 };
 
 const NEW_ORG: HelpArticle = {
-  title: 'New organization',
-  intro: 'Add an organization. Only the name is required. Set Status and Tags on the form; use Make client when they become a client. Open opportunities belong on the Pipeline instead.',
+  title: 'New account',
+  intro: 'Add an account. Only the name is required. Set Status and Tags on the form; use Make client when they become a client. Open opportunities belong on the Pipeline instead.',
   sections: [
     {
       heading: 'Status and tags',
-      body: 'New organizations start as Partner / other. Change Status to Client when you start doing billable work, or add tags such as Partner any time. Neither adds a pipeline card.',
+      body: 'New accounts start as Partner / other. Change Status to Client when you start doing billable work, or add tags such as Partner any time. Neither adds a pipeline card.',
     },
     {
       heading: 'Tags',
@@ -116,8 +116,8 @@ const LEAD_DETAIL: HelpArticle = {
   intro: 'One opportunity: who it\'s with, where it stands, and what happens next.',
   sections: [
     {
-      heading: 'Organization and contacts',
-      body: 'The main form is the organization (name, email, phone, website, category, service interest, next action, and dates). On the right, Primary Contact and Warm Connect are separate panels: pick or add a person in each. Person details live on the person record. After Make client or Make partner, Open organization goes to that record.',
+      heading: 'Account and contacts',
+      body: 'The main form is the account (name, email, phone, website, category, service interest, next action, and dates). On the right, Primary Contact and Warm Connect are separate panels: pick or add a person in each. Person details live on the person record. After Make client or Make partner, Open organization goes to that record.',
     },
     {
       heading: 'Category and next action',
@@ -125,7 +125,7 @@ const LEAD_DETAIL: HelpArticle = {
     },
     {
       heading: 'Lane',
-      body: 'Where the card sits on the board. Changing it here is the same as dragging the card. Lanes track the conversation; they don\'t change the organization\'s status.',
+      body: 'Where the card sits on the board. Changing it here is the same as dragging the card. Lanes track the conversation; they don\'t change the account\'s status.',
     },
     {
       heading: 'Next action',
@@ -137,11 +137,11 @@ const LEAD_DETAIL: HelpArticle = {
     },
     {
       heading: 'Make client and Make partner',
-      body: 'Make client when they sign on: creates the organization as a Client, copies people, and removes the card from the board. Make partner adds the organization with the Partner tag and removes the card from the board. Delete in the ⋮ menu removes a card you no longer need.',
+      body: 'Make client when they sign on: creates the account as a Client, copies people, and removes the card from the board. Make partner adds the account with the Partner tag and removes the card from the board. Delete in the ⋮ menu removes a card you no longer need.',
     },
     {
       heading: 'Activity and files',
-      body: 'Log activity records a call, meeting, email, or note. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by, From and To dates, Type (All, Emails, Calls, Meetings, Notes), and Include people\'s activity when the card is scoped to an organization. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this organization. Search and type apply together to the list. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Filed emails show here too, along with files, links and notes.',
+      body: 'Log activity records a call, meeting, email, or note. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by, From and To dates, Type (All, Emails, Calls, Meetings, Notes), and Include people\'s activity when the card is scoped to an account. On a call, Who called is We called, They called, or Internal. The caller is on the left, then an arrow, then who was called. On a meeting, Where is the place or link. Notes / next steps is a formatted note. Who was involved lists Our team and the people at this account. Search and type apply together to the list. The menu on an entry can Forward it (email the people you pick, and notify teammates), Create task (pick a task project, section, title, and who it is assigned to), or Delete it after you confirm. Filed emails show here too, along with files, links and notes.',
     },
   ],
 };
@@ -219,7 +219,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Cards',
-        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Next steps and Gone quiet; click an organization, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. Submissions lists form submissions waiting for review in every form you can see; click one to review and accept it. My shifts (Care) lists your shifts for the next week, with Start visit on today\'s and Open visit once started. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, Bookings, Forms or the Schedule.',
+        body: 'My tasks shows what is due in the next week, overdue first. Click a task or the project under it. Activity is one wider card with tabs for Next steps and Gone quiet; click an account, person, or pipeline card. My time shows a running timer, your hours today and this week, and the entries from this week, newest first; click a project, organization, or task. Invoices shows the amount outstanding, overdue, drafts to send and invoices coming due; click an invoice or its client. Upcoming bookings lists confirmed bookings in the next week; a guest tied to a pipeline card opens that card. Submissions lists form submissions waiting for review in every form you can see; click one to review and accept it. My shifts (Care) lists your shifts for the next week, with Start visit on today\'s and Open visit once started. A long list scrolls inside the card. The arrow next to the drag handle opens Tasks, Activity, the timesheet, Invoices, Bookings, Forms or the Schedule.',
       },
       {
         heading: "Mine / Everyone's",
@@ -235,23 +235,23 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── CRM ────────────────────────────────────────────────
   activity: {
     title: 'Activity',
-    intro: 'Every email, call, meeting and note across your organizations (All activity), and what needs attention (To do).',
+    intro: 'Every email, call, meeting and note across your accounts (All activity), and what needs attention (To do).',
     sections: [
       {
         heading: 'All activity',
-        body: "Every email, call, meeting and note, newest first. On All activity, the search bar and the filters button (sliders icon) are at the top; open filters for Logged by (see the ? tooltip), dates, and type. With an organization picked, filters also include Include people's activity, and the quick log sits below. Person at the top of the page is a CRM contact on the thread, not the same as Logged by. Email threads show their newest message; expand to see earlier ones.",
+        body: "Every email, call, meeting and note, newest first. On All activity, the search bar and the filters button (sliders icon) are at the top; open filters for Logged by (see the ? tooltip), dates, and type. With an account picked, filters also include Include people's activity, and the quick log sits below. Person at the top of the page is a CRM contact on the thread, not the same as Logged by. Email threads show their newest message; expand to see earlier ones.",
       },
       {
         heading: 'To do',
-        body: 'Unfiled: captured email that could not be matched. Form submissions (roles with Forms) opens Forms, where submissions wait for review. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that organization here with its next step), or snooze it. How many days count as gone quiet is in Settings → Activity.',
+        body: 'Unfiled: captured email that could not be matched. Form submissions (roles with Forms) opens Forms, where submissions wait for review. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that account here with its next step), or snooze it. How many days count as gone quiet is in Settings → Activity.',
       },
       {
         heading: 'Filing unfiled email',
-        body: 'Under Unfiled, use File… and choose an Organization or a Pipeline card. Leave "Link the people on this email to the organization" on so their next email files itself.',
+        body: 'Under Unfiled, use File… and choose an Account or a Pipeline card. Leave "Link the people on this email to the account" on so their next email files itself.',
       },
       {
-        heading: 'One organization or person',
-        body: 'Pick an organization or person to the right of the page title. With an organization picked, the Person list only includes people linked to that organization. Panels on the right show the next step, details and people (for a person: details and their organizations), next to the same search, filters and quick log as All activity. Click the name in Details to open their page.',
+        heading: 'One account or person',
+        body: 'Pick an account or person to the right of the page title. With an account picked, the Person list only includes people linked to that account. Panels on the right show the next step, details and people (for a person: details and their accounts), next to the same search, filters and quick log as All activity. Click the name in Details to open their page.',
       },
     ],
   },
@@ -266,11 +266,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Moving cards',
-        body: 'Drag a card between lanes as the conversation moves. Lanes don\'t change anything else. When they sign on, use Make client: the organization becomes a Client and the card leaves the board. When it\'s going nowhere, delete the card from the ⋮ menu.',
+        body: 'Drag a card between lanes as the conversation moves. Lanes don\'t change anything else. When they sign on, use Make client: the account becomes a Client and the card leaves the board. When it\'s going nowhere, delete the card from the ⋮ menu.',
       },
       {
         heading: 'New Lead',
-        body: 'Opens the full card right away (including the People panel) and adds it to the first lane. Replace the placeholder organization name and Save. CRM → Organizations only gets a record after Make client or Make partner.',
+        body: 'Opens the full card right away (including the People panel) and adds it to the first lane. Replace the placeholder organization name and Save. CRM → Accounts only gets a record after Make client or Make partner.',
       },
       {
         heading: 'Editing lanes',
@@ -286,8 +286,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   'pipeline/:id': LEAD_DETAIL,
 
   organizations: {
-    title: 'Organizations',
-    intro: 'Clients, partners and other organizations you have added — not every open pipeline opportunity.',
+    title: 'Accounts',
+    intro: 'Clients, partners and other accounts you have added — not every open pipeline opportunity.',
     sections: [
       {
         heading: 'Filters',
@@ -295,11 +295,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Status',
-        body: 'Make client on a pipeline card creates the Client record. Mark a client Inactive on the organization page when the work ends.',
+        body: 'Make client on a pipeline card creates the Client record. Mark a client Inactive on the account page when the work ends.',
       },
       {
-        heading: 'New Organization',
-        body: 'New Organization (with a ⋮ menu attached) adds one record as Partner / other by default. Import organizations uploads CSV or Excel; preview the first 10 rows, then import. Headers like Organization, Email, and Status are matched automatically. Use Status and Tags on the record to classify them; Make client when they become a client. For someone you are still trying to win, use Pipeline → New Lead instead.',
+        heading: 'New Account',
+        body: 'New Account (with a ⋮ menu attached) adds one record as Partner / other by default. Import accounts uploads CSV or Excel; preview the first 10 rows, then import. Headers like Account, Email, and Status are matched automatically. Use Status and Tags on the record to classify them; Make client when they become a client. For someone you are still trying to win, use Pipeline → New Lead instead.',
       },
     ],
   },
@@ -308,15 +308,15 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   clients: {
     title: 'Clients',
-    intro: 'The organizations you\'re working for right now. Projects, time and invoices hang off these.',
+    intro: 'The accounts you\'re working for right now. Projects, time and invoices hang off these.',
     sections: [
       {
         heading: 'Who shows here',
-        body: 'Organizations with status Client. Active and Inactive show in the Status column. Open opportunities are on the Pipeline until you Make client.',
+        body: 'Accounts with status Client. Active and Inactive show in the Status column. Open opportunities are on the Pipeline until you Make client.',
       },
       {
         heading: 'New Client',
-        body: 'Adds an organization as a client straight away. For someone you\'re still trying to win, add them to the Pipeline instead.',
+        body: 'Adds an account as a client straight away. For someone you\'re still trying to win, add them to the Pipeline instead.',
       },
       {
         heading: 'Last contact',
@@ -328,15 +328,15 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   people: {
     title: 'People',
-    intro: 'Everyone you deal with. A person can belong to one or more organizations, or none.',
+    intro: 'Everyone you deal with. A person can belong to one or more accounts, or none.',
     sections: [
       {
         heading: 'Adding a person',
-        body: 'New Person (with a ⋮ menu attached) asks for first and last name, their email, phone, title, LinkedIn and personal URL, optional photo, and optionally an organization and tags. Import people uploads a CSV or Excel file; you preview the first 10 rows, then import. Headers like Name, Email, and Organization are matched automatically. Organizations that are not already in Back Office are created as Partner / other with no tags, then people are linked. Pick New organization in the Organization list to add name, email and website for a stub organization and link this person to it. Role is how they relate to that organization (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one organization.',
+        body: 'New Person (with a ⋮ menu attached) asks for first and last name, their email, phone, title, LinkedIn and personal URL, optional photo, and optionally an account and tags. Import people uploads a CSV or Excel file; you preview the first 10 rows, then import. Headers like Name, Email, and Account are matched automatically. Accounts that are not already in Back Office are created as Partner / other with no tags, then people are linked. Pick New account in the Account list to add name, email and website for a stub organization and link this person to it. Role is how they relate to that account (board member, case manager, family). Title is their job, and it stays the same if they belong to more than one account.',
       },
       {
         heading: 'Tags',
-        body: 'Filter by a tag with the tag list at the top. Network is everyone from the old Network page (people you\'ve talked to); Partner is someone who works with you. Tags are shared with Organizations.',
+        body: 'Filter by a tag with the tag list at the top. Network is everyone from the old Network page (people you\'ve talked to); Partner is someone who works with you. Tags are shared with Accounts.',
       },
       {
         heading: 'Needs review',
@@ -350,7 +350,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'people/:id': {
     title: 'Person',
-    intro: 'One person, their organizations, tags and everything you\'ve logged with them.',
+    intro: 'One person, their accounts, tags and everything you\'ve logged with them.',
     sections: [
       {
         heading: 'Profile',
@@ -369,12 +369,12 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Partner, Referral source or anything you type. Press Enter to add one, then Save.',
       },
       {
-        heading: 'Organizations',
-        body: 'Link to an organization with an optional role: how they relate to it, such as board member or case manager. Title on the profile is their job. Unlink removes the link without deleting anything. Someone with no organization (an individual client) can become a client with Make client from this person.',
+        heading: 'Accounts',
+        body: 'Link to an account with an optional role: how they relate to it, such as board member or case manager. Title on the profile is their job. Unlink removes the link without deleting anything. Someone with no account (an individual client) can become a client with Make client from this person.',
       },
       {
         heading: 'Activity',
-        body: 'Emails, calls, meetings and notes involving this person, across all their organizations. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by, From and To dates, and Type (Include people\'s activity does not apply on a person timeline). The quick log records here; you can also use Log activity on the organization or pipeline card. The menu on an entry can Forward it, Create task, or Delete it after you confirm.',
+        body: 'Emails, calls, meetings and notes involving this person, across all their accounts. Search and the filters button (sliders icon) match Activity → All activity: open filters for Logged by, From and To dates, and Type (Include people\'s activity does not apply on a person timeline). The quick log records here; you can also use Log activity on the account or pipeline card. The menu on an entry can Forward it, Create task, or Delete it after you confirm.',
       },
     ],
   },
@@ -620,7 +620,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Status',
-        body: 'Billable: Not billed, then Invoiced once it is on a client invoice, then Client paid when that invoice is paid. Reimbursable: Not submitted, then Submitted once it is on the person\'s invoice to the organization, then Reimbursed when that invoice is paid. The invoice number links to the invoice. Voiding an invoice puts its expenses back to Not billed or Not submitted.',
+        body: 'Billable: Not billed, then Invoiced once it is on a client invoice, then Client paid when that invoice is paid. Reimbursable: Not submitted, then Submitted once it is on the person\'s invoice to the business, then Reimbursed when that invoice is paid. The invoice number links to the invoice. Voiding an invoice puts its expenses back to Not billed or Not submitted.',
       },
       {
         heading: 'On an invoice',
@@ -632,7 +632,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Reimbursable and billable',
-        body: 'Reimbursable means someone paid personally and should be paid back; it goes on that person\'s invoice to the organization. Billable to client means it is charged to the client at cost on their next invoice; it needs a project for that client. An expense can be both.',
+        body: 'Reimbursable means someone paid personally and should be paid back; it goes on that person\'s invoice to the business. Billable to client means it is charged to the client at cost on their next invoice; it needs a project for that client. An expense can be both.',
       },
       {
         heading: 'Mileage',
@@ -651,11 +651,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New Invoice',
-        body: 'Starts a draft. Bill a client or your organization, then add lines by hand or use Generate from time.',
+        body: 'Starts a draft. Bill a client or your business, then add lines by hand or use Generate from time.',
       },
       {
         heading: 'Export',
-        body: 'Open the ⋮ menu on New Invoice → Export all invoices. Downloads a CSV of Sent and Paid invoices addressed to your organization, issued in the date range you pick: person, hours, time, reimbursements and total per invoice. Use it for payroll or accounting.',
+        body: 'Open the ⋮ menu on New Invoice → Export all invoices. Downloads a CSV of Sent and Paid invoices addressed to your business, issued in the date range you pick: person, hours, time, reimbursements and total per invoice. Use it for payroll or accounting.',
       },
       {
         heading: 'Status',
@@ -797,7 +797,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Users tab',
-        body: 'Add User creates the user and sends a sign-in invite. Each user has a role and an optional hourly rate, used on invoices when a project has no rate of its own. Use the ⋮ menu on a row to edit, resend the invite, disable or delete. After fixing someone\'s email, send them a new sign-in invite. You can\'t change your own email. The same email can be a user in more than one organization, each with its own role; if they already have a sign-in they keep their password and just get a notice.',
+        body: 'Add User creates the user and sends a sign-in invite. Each user has a role and an optional hourly rate, used on invoices when a project has no rate of its own. Use the ⋮ menu on a row to edit, resend the invite, disable or delete. After fixing someone\'s email, send them a new sign-in invite. You can\'t change your own email. The same email can be a user in more than one business, each with its own role; if they already have a sign-in they keep their password and just get a notice.',
       },
       {
         heading: 'Roles tab',
@@ -807,11 +807,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   settings: {
     title: 'Settings',
-    intro: 'Organization-wide setup. Each section saves on its own.',
+    intro: 'Business-wide setup. Each section saves on its own.',
     sections: [
       {
         heading: 'Business',
-        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your organization are sent.',
+        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your business are sent.',
       },
       {
         heading: 'Expenses and Invoicing',
@@ -924,7 +924,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Tabs',
-        body: 'In progress (started on a public link or website but not sent yet; never removed automatically), Waiting for review (when the form reviews submissions), Attached, Dismissed and All. Each row shows the client or organization it was attached to, and the score and profile on scored forms. Pick a client in the filter to see only theirs.',
+        body: 'In progress (started on a public link or website but not sent yet; never removed automatically), Waiting for review (when the form reviews submissions), Attached, Dismissed and All. Each row shows the client or account it was attached to, and the score and profile on scored forms. Pick a client in the filter to see only theirs.',
       },
       {
         heading: 'Export Excel',
@@ -946,7 +946,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Attach',
-        body: 'Pick the client or organization it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Organizations / All narrows the search. New client creates a client with the sender as its person. New pipeline card adds an Inbound card only (sender on the card\'s People, with a link back to the response and, for scored forms, a note of the profile and score). Next shows who will be able to see the answers; Attach to [name] (or Add to pipeline) finishes and adds a note to its Activity.',
+        body: 'Pick the client or account it belongs to. Suggestions (a match on the sender\'s email or name) show when there are any; Use selects one. Clients / Accounts / All narrows the search. New client creates a client with the sender as its person. New pipeline card adds an Inbound card only (sender on the card\'s People, with a link back to the response and, for scored forms, a note of the profile and score). Next shows who will be able to see the answers; Attach to [name] (or Add to pipeline) finishes and adds a note to its Activity.',
       },
       {
         heading: 'Dismiss and delete',
@@ -969,7 +969,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Move or delete',
-        body: "In the ⋮ menu. Move picks another client or organization (with the same check as Attach) and takes its share links along. Delete removes the answers; the form stays.",
+        body: "In the ⋮ menu. Move picks another client or account (with the same check as Attach) and takes its share links along. Delete removes the answers; the form stays.",
       },
     ],
   },
@@ -1012,7 +1012,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── Platform (super users) ─────────────────────────────
   tenants: {
     title: 'Tenants',
-    intro: 'Organizations on the platform. Super users only.',
+    intro: 'Businesses on the platform. Super users only.',
     sections: [
       {
         heading: 'Add tenant',

@@ -7,9 +7,9 @@ import { ActivityService } from './activity.service';
 import { ActivityFeedQueryDto, ActivityQueuesQueryDto, SetNextStepDto, SnoozeDto } from './dto/activity.dto';
 
 /**
- * Activity: the timeline across organizations and people, To do queues, and an organization's next step.
+ * Activity: the timeline across accounts and people, To do queues, and an account's next step.
  * The Activity page uses the inbox area (labelled Activity); record pages reach the feed and next step through
- * Organizations, People or Pipeline access.
+ * Accounts, People or Pipeline access.
  */
 @ApiTags('activity')
 @ApiBearerAuth()

@@ -305,7 +305,7 @@ export class InvoiceFromTimeService {
     if (ids.length === 0) return;
     const tenant = target.billTo === 'TENANT';
     if (tenant && !target.userId) {
-      throw new BadRequestException('Expenses can only be added to your own invoice to your organization');
+      throw new BadRequestException('Expenses can only be added to your own invoice to your business');
     }
 
     const unique = [...new Set(ids)];
@@ -328,7 +328,7 @@ export class InvoiceFromTimeService {
       if (target.userId && e.userId !== target.userId) {
         throw new BadRequestException('You can only invoice your own expenses');
       }
-      if (tenant && !e.isReimbursable) throw new BadRequestException('Only reimbursable expenses can be invoiced to your organization');
+      if (tenant && !e.isReimbursable) throw new BadRequestException('Only reimbursable expenses can be invoiced to your business');
       if (!tenant && !e.isBillable) throw new BadRequestException('Only billable expenses can be invoiced to a client');
       if (!tenant && e.project?.clientId !== target.clientId) {
         throw new BadRequestException('Expense is not on a project for this client');

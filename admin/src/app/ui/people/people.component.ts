@@ -28,7 +28,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 
 /**
  * Rubber-stamp People panel: pick existing (search), Add person (new-only modal), list.
- * Use on organizations/clients (`organization`) and projects (`project`).
+ * Use on accounts/clients (`organization`) and projects (`project`).
  */
 @Component({
   selector: 'app-people',
@@ -188,7 +188,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                       size="small"
                       styleClass="icon-action-btn"
                       [attr.aria-label]="'Remove ' + m.name"
-                      pTooltip="Remove from organization"
+                      pTooltip="Remove from account"
                       tooltipPosition="left"
                       [showDelay]="actionTooltipDelayMs"
                       tooltipStyleClass="ubo-dark-tooltip"
@@ -478,7 +478,7 @@ export class PeopleComponent {
 
   /** `organization` = linked People on a client/org; `project` = project contact list (draft). */
   mode = input.required<PeoplePanelMode>();
-  /** Organization id (required for organization mode). Also used when creating/linking from project. */
+  /** Account id (required for account mode). Also used when creating/linking from project. */
   clientId = input<string | null>(null);
   /** Pipeline card id (required for lead mode). */
   leadId = input<string | null>(null);

@@ -21,7 +21,7 @@ export type OrganizationProfileDto = {
   state: string;
   zip: string;
   phone: string;
-  /** Where invoices billed to the organization are sent by default. */
+  /** Where invoices billed to the business are sent by default. */
   billingEmail: string;
   /** Reimbursement per mile for Mileage expenses; null when not set. */
   mileageRate: number | null;

@@ -28,7 +28,7 @@ export class AcceptSubmissionDto {
   @IsOptional() @IsIn(['client', 'organization']) newKind?: 'client' | 'organization';
   /** new: its name. */
   @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
-  /** existing: the client or organization to attach the response to. */
+  /** existing: the client or account to attach the response to. */
   @IsOptional() @IsString() clientId?: string;
 }
 

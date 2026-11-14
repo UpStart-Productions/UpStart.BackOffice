@@ -76,7 +76,7 @@ export class CreateLeadDto {
   @ApiPropertyOptional() @IsDateString() @IsOptional() nextActionDate?: string;
   @ApiPropertyOptional() @IsDateString() @IsOptional() lastContactDate?: string;
 
-  @ApiPropertyOptional({ description: 'Link this card to an existing organization' })
+  @ApiPropertyOptional({ description: 'Link this card to an existing account' })
   @IsString()
   @IsOptional()
   clientId?: string | null;

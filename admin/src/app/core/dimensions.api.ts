@@ -8,7 +8,7 @@ export class DimensionsApi {
   private readonly clientDefs = signal<DimensionDefinitionDto[] | null>(null);
   private loadPromise: Promise<DimensionDefinitionDto[]> | null = null;
 
-  /** Cached CLIENT dimension definitions for organization forms. */
+  /** Cached CLIENT dimension definitions for account forms. */
   definitions(entity: DimensionEntity = 'CLIENT') {
     if (entity === 'CLIENT') return this.clientDefs();
     return null;

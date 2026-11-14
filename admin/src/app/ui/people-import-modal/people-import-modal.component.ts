@@ -56,7 +56,7 @@ type Step = 'pick' | 'preview' | 'done';
           skip <strong>{{ preview()!.summary.skip }}</strong> duplicate{{ preview()!.summary.skip === 1 ? '' : 's' }}.
           @if (preview()!.summary.organizationsToCreate > 0) {
             <span class="text-color-secondary">
-              {{ preview()!.summary.organizationsToCreate }} new organization{{
+              {{ preview()!.summary.organizationsToCreate }} new account{{
                 preview()!.summary.organizationsToCreate === 1 ? '' : 's'
               }}
               as Partner / other (no tags).
@@ -69,7 +69,7 @@ type Step = 'pick' | 'preview' | 'done';
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Organization</th>
+              <th>Account</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>

@@ -50,7 +50,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
           @if (v.invoiced) {
             <p-tag value="Invoiced" severity="secondary" />
           }
-          <a [routerLink]="['/clients', v.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">Open client</a>
+          <a [routerLink]="['/accounts', v.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">Open client</a>
         }
       </ng-container>
       <ng-container ngProjectAs="[pageActions]">
@@ -154,7 +154,7 @@ export class CareVisitPage implements OnInit, OnDestroy {
   readonly fileUpload = computed(() => (this.visit()?.formId ? this.formFiles.uploader(this.visit()!.formId!) : null));
   readonly fileOpen = computed(() => (this.visit() ? this.formFiles.opener(`/care/visits/${this.visit()!.id}/files`) : null));
   /** Back to the client (there is no separate visits list). */
-  readonly backLink = computed(() => (this.visit() ? ['/clients', this.visit()!.clientId] : '/clients'));
+  readonly backLink = computed(() => (this.visit() ? ['/accounts', this.visit()!.clientId] : '/clients'));
   error = signal<string | null>(null);
   ending = signal(false);
 
@@ -258,7 +258,7 @@ export class CareVisitPage implements OnInit, OnDestroy {
       accept: async () => {
         try {
           await this.care.deleteVisit(v.id);
-          await this.router.navigate(['/clients', v.clientId], { queryParams: { tab: 'care' } });
+          await this.router.navigate(['/accounts', v.clientId], { queryParams: { tab: 'care' } });
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : 'Failed' });
         }

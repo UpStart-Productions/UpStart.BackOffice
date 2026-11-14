@@ -56,7 +56,7 @@ export function parseAppRecordDeepLink(raw: string): AppRecordRef | null {
   }
 
   const client =
-    pathname.match(/^\/(?:clients|organizations|network)\/([^/]+)$/) ??
+    pathname.match(/^\/(?:accounts|clients|organizations|network)\/([^/]+)$/) ??
     null;
   if (client && client[1] !== 'new') {
     return { kind: 'client', clientId: client[1] };
@@ -84,7 +84,7 @@ export function recordDisplayPath(ref: AppRecordRef): string {
     case 'crmProject':
       return `/projects/${ref.projectId}`;
     case 'client':
-      return `/clients/${ref.clientId}`;
+      return `/accounts/${ref.clientId}`;
     case 'invoice':
       return `/invoices/${ref.invoiceId}`;
     case 'contact':
@@ -100,7 +100,7 @@ export function placeholderRecordTitle(ref: AppRecordRef): string {
     case 'crmProject':
       return 'Project';
     case 'client':
-      return 'Organization';
+      return 'Account';
     case 'invoice':
       return 'Invoice';
     case 'contact':
@@ -113,7 +113,7 @@ export function anchorTextLooksLikeUrl(text: string, href: string): boolean {
   const t = text.trim();
   if (!t) return true;
   if (/^https?:\/\//i.test(t)) return true;
-  if (href && (t === href.trim() || href.includes(t) || t.includes('/tasks/') || t.includes('/clients/'))) {
+  if (href && (t === href.trim() || href.includes(t) || t.includes('/tasks/') || t.includes('/clients/') || t.includes('/accounts/'))) {
     return true;
   }
   return false;

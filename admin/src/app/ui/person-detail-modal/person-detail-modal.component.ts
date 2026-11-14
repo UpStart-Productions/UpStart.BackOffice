@@ -63,7 +63,7 @@ import { PersonComponent } from '../person/person.component';
           }
           @if (c.accountLinks.length) {
             <div class="person-detail-modal-row person-detail-modal-row--orgs">
-              <span class="person-detail-modal-label">Organizations</span>
+              <span class="person-detail-modal-label">Accounts</span>
               <ul class="person-detail-modal-orgs">
                 @for (link of c.accountLinks; track link.clientId) {
                   <li>{{ link.client.name }}@if (link.role) { <span class="person-detail-modal-muted"> · {{ link.role }}</span> }</li>

@@ -34,7 +34,7 @@ function weekStartOf(d: Date): Date {
   return x;
 }
 
-/** Care → Schedule: a week of shifts per organization and worker, one-off or repeating weekly. */
+/** Care → Schedule: a week of shifts per account and worker, one-off or repeating weekly. */
 @Component({
   selector: 'app-care-schedule-page',
   standalone: true,

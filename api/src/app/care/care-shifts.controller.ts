@@ -86,7 +86,7 @@ function view(r: Row): CareShiftDto {
 }
 
 /**
- * Care → Schedule: shifts per organization and worker (or open), one-off or repeating weekly.
+ * Care → Schedule: shifts per account and worker (or open), one-off or repeating weekly.
  * Schedule: Own = the user's own shifts (they can only plan for themselves); All = everyone's, within the
  * organizations they reach. Workers are notified when a shift is assigned to them.
  */
@@ -248,9 +248,9 @@ export class CareShiftsController {
 
   private async assertClient(user: UserContext, clientId: string) {
     const ids = await this.access.clientIds(user);
-    if (ids !== null && !ids.includes(clientId)) throw new NotFoundException('Organization not found');
+    if (ids !== null && !ids.includes(clientId)) throw new NotFoundException('Account not found');
     const exists = await this.prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
-    if (!exists) throw new NotFoundException('Organization not found');
+    if (!exists) throw new NotFoundException('Account not found');
   }
 
   /** Own-level users can only plan their own shifts; the worker must be an active team member. */

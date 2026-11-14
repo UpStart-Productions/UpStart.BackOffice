@@ -203,7 +203,7 @@ export function renderMentionDropdownItem(item: MentionQuillItem, searchTerm: st
   if (type === 'task') return renderRecordItem(item, searchTerm, 'mention-suggest-item--task', 'pi-check-square', 'Task');
   if (type === 'project' || type === 'crmProject')
     return renderRecordItem(item, searchTerm, 'mention-suggest-item--project', 'pi-folder', 'No client');
-  if (type === 'client') return renderRecordItem(item, searchTerm, 'mention-suggest-item--client', 'pi-building', 'Organization');
+  if (type === 'client') return renderRecordItem(item, searchTerm, 'mention-suggest-item--client', 'pi-building', 'Account');
   if (type === 'invoice') return renderRecordItem(item, searchTerm, 'mention-suggest-item--invoice', 'pi-file', 'Invoice');
   return renderUserItem(item, searchTerm);
 }

@@ -10,7 +10,7 @@ class CreateCrmTagDto {
   @IsString() @MinLength(1) @MaxLength(60) name!: string;
 }
 
-/** Tags for organizations and people (Partner, Vendor...). Separate from task tags. */
+/** Tags for accounts and people (Partner, Vendor...). Separate from task tags. */
 @ApiTags('crm-tags')
 @ApiBearerAuth()
 @UseGuards(AccessGuard)
@@ -19,7 +19,7 @@ class CreateCrmTagDto {
 export class CrmTagsController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** All CRM tags (optionally filtered by ?q=), with how many organizations and people carry each. */
+  /** All CRM tags (optionally filtered by ?q=), with how many accounts and people carry each. */
   @Get()
   async list(@Query('q') q?: string) {
     const query = q?.trim();

@@ -475,7 +475,7 @@ export class SearchService {
 
     if (clients.length) {
       groups.push({
-        label: 'Organizations',
+        label: 'Accounts',
         type: 'client',
         items: clients.map((client) => ({
           type: 'client' as const,

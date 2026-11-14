@@ -124,7 +124,7 @@ export class InvoicesController {
     return this.access.level(user, 'invoices') === 'own';
   }
 
-  /** The tenant as a bill-to: its name, address from the organization profile, and billing email. */
+  /** The tenant as a bill-to: its name, address from the business profile, and billing email. */
   private async tenantBillTo(): Promise<{ name: string; email: string | null; address: string | null }> {
     const tenantId = currentTenantId();
     const [tenant, profile] = await Promise.all([
@@ -155,7 +155,7 @@ export class InvoicesController {
   }
 
   /**
-   * Invoices billed to the organization (Sent or Paid) issued in a date range, one row per invoice:
+   * Invoices billed to the business (Sent or Paid) issued in a date range, one row per invoice:
    * who submitted it, hours, pay for time, reimbursements and total. For handing to payroll or accounting.
    */
   @Get('payroll-export')

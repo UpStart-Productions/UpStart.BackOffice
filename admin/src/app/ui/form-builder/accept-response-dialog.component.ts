@@ -14,16 +14,16 @@ export type AcceptResponseChoice = { mode: 'new' | 'existing'; newKind?: 'client
 type Kind = 'clients' | 'organizations' | 'all';
 type Step = 'pick' | 'confirm';
 
-/** A record's status for the picker: Client, Prospect, or its first tag (Partner, Vendor…) for other organizations. */
+/** A record's status for the picker: Client, Prospect, or its first tag (Partner, Vendor…) for other accounts. */
 export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): string {
   if (t.journey === 'CLIENT') return 'Client';
   if (t.journey === 'PROSPECT') return 'Prospect';
-  return t.tags[0] ?? 'Organization';
+  return t.tags[0] ?? 'Account';
 }
 
 /**
  * The one dialog for putting a form response on a record: Attach (a submission) or Move (a result to another record).
- * Suggestions only select; the picker filters by Clients / Organizations / All and shows each record's status (and a
+ * Suggestions only select; the picker filters by Clients / Accounts / All and shows each record's status (and a
  * client's people); New client / New pipeline card (Attach only). Nothing is saved until the confirmation step, which
  * names the record and says who will be able to see the response. The caller does the API call.
  */
@@ -39,7 +39,7 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
             <p-selectbutton [options]="kindOptions" optionLabel="label" optionValue="value" [ngModel]="kind()" (ngModelChange)="kind.set($event)" [allowEmpty]="false" />
           </div>
           <div class="form-field mt-3">
-            <label for="arTarget">{{ kind() === 'clients' ? 'Client' : kind() === 'organizations' ? 'Organization' : 'Client or organization' }}</label>
+            <label for="arTarget">{{ kind() === 'clients' ? 'Client' : kind() === 'organizations' ? 'Account' : 'Client or account' }}</label>
             <p-select
               inputId="arTarget"
               [options]="shown()"
@@ -73,10 +73,10 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
           }
         } @else {
           <div class="form-field">
-            <label for="arName">{{ newKind() === 'client' ? 'New client name' : 'Organization name' }}</label>
+            <label for="arName">{{ newKind() === 'client' ? 'New client name' : 'Account name' }}</label>
             <input pInputText id="arName" class="w-full" [(ngModel)]="name" />
             <small class="text-color-secondary">
-              {{ newKind() === 'client' ? 'Creates a client, with the sender as its person.' : 'Adds an Inbound card to your pipeline, with the sender on it and a link back to this response. No organization list entry until you Make client or attach it to an existing one.' }}
+              {{ newKind() === 'client' ? 'Creates a client, with the sender as its person.' : 'Adds an Inbound card to your pipeline, with the sender on it and a link back to this response. No account list entry until you Make client or attach it to an existing one.' }}
             </small>
           </div>
           <p-button label="Pick an existing one instead" [text]="true" size="small" (onClick)="newKind.set(null)" />
@@ -99,7 +99,7 @@ export function targetStatus(t: Pick<FormAttachTargetDto, 'journey' | 'tags'>): 
             <p class="mt-0">Admins only.</p>
           }
           @if (i.visibility.limitedToAssigned) {
-            <p class="text-color-secondary mt-0">People whose role doesn't have Organizations: All only see it if they're assigned to {{ targetName() }}.</p>
+            <p class="text-color-secondary mt-0">People whose role doesn't have Accounts: All only see it if they're assigned to {{ targetName() }}.</p>
           }
         }
       }
@@ -137,7 +137,7 @@ export class AcceptResponseDialogComponent {
 
   readonly kindOptions = [
     { value: 'clients', label: 'Clients' },
-    { value: 'organizations', label: 'Organizations' },
+    { value: 'organizations', label: 'Accounts' },
     { value: 'all', label: 'All' },
   ];
 
@@ -147,7 +147,7 @@ export class AcceptResponseDialogComponent {
   formName = input('');
   /** Who sent it (name or email), shown in the confirmation. */
   sender = input<string | null>(null);
-  /** Client forms start on Clients, others on Organizations. */
+  /** Client forms start on Clients, others on Accounts. */
   isClientForm = input(false);
   /** Prefills a new record's name. */
   defaultName = input('');

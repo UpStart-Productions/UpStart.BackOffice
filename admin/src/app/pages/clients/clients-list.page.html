@@ -1,6 +1,6 @@
 <app-page title="Clients">
   @if (canCreate()) {
-    <a pageActions pButton label="New Client" icon="pi pi-plus" routerLink="/organizations/new" [queryParams]="{ type: 'client', from: 'clients' }"></a>
+    <a pageActions pButton label="New Client" icon="pi pi-plus" routerLink="/accounts/new" [queryParams]="{ type: 'client', from: 'clients' }"></a>
   }
   @if (error()) {
     <div class="card">
@@ -41,7 +41,7 @@
         <tr>
           <td><app-row-actions-menu [items]="getRowActions(client)" ariaLabel="Client actions" /></td>
           <td>
-            <a [routerLink]="['/clients', client.id]" class="text-primary">{{ client.name }}</a>
+            <a [routerLink]="['/accounts', client.id]" class="text-primary">{{ client.name }}</a>
           </td>
           <td>@if (client.code) { <code>{{ client.code }}</code> }</td>
           <td><app-copy-email [email]="client.email" /></td>

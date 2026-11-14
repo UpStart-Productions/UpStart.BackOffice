@@ -66,7 +66,7 @@ export class ExpenseModalComponent {
   paymentMethod = signal('');
   notes = signal('');
   miles = signal<number | null>(null);
-  /** Rate per mile: the expense's own rate when editing a mileage expense, else the organization's current rate. */
+  /** Rate per mile: the expense's own rate when editing a mileage expense, else the business's current rate. */
   mileageRate = signal<number | null>(null);
 
   receiptFile: File | null = null;

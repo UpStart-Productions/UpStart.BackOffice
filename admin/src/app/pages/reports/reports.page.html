@@ -188,7 +188,7 @@
                     @if (showProjectColumn()) {
                       <td class="report-col-client">
                         @if (row.clientId) {
-                          <a [routerLink]="['/clients', row.clientId]" class="text-primary">{{ row.clientName }}</a>
+                          <a [routerLink]="['/accounts', row.clientId]" class="text-primary">{{ row.clientName }}</a>
                         } @else {
                           {{ row.clientName }}
                         }
@@ -241,7 +241,7 @@
                   <tr>
                     <td>
                       @if (row.clientId) {
-                        <a [routerLink]="['/clients', row.clientId]" class="text-primary">{{ row.clientName }}</a>
+                        <a [routerLink]="['/accounts', row.clientId]" class="text-primary">{{ row.clientName }}</a>
                       } @else {
                         {{ row.clientName }}
                       }
@@ -331,7 +331,7 @@
                 <ng-template pTemplate="body" let-row>
                   <tr>
                     <td>
-                      <a [routerLink]="['/clients', row.clientId]" class="text-primary">{{ row.clientName }}</a>
+                      <a [routerLink]="['/accounts', row.clientId]" class="text-primary">{{ row.clientName }}</a>
                     </td>
                     <td class="col-numeric">{{ row.invoiceCount }}</td>
                     <td class="col-numeric font-semibold">{{ formatAmount(row.total) }}</td>
@@ -370,7 +370,7 @@
                       >{{ inv.displayNumber }}</a>
                     </td>
                     <td>
-                      <a [routerLink]="['/clients', inv.client.id]" class="text-primary">{{ inv.client.name }}</a>
+                      <a [routerLink]="['/accounts', inv.client.id]" class="text-primary">{{ inv.client.name }}</a>
                     </td>
                     <td>{{ formatDate(inv.issueDate) }}</td>
                     <td class="col-numeric font-semibold">{{ formatAmount(inv.total) }}</td>
@@ -592,7 +592,7 @@
                 <ng-template pTemplate="body" let-r>
                   <tr>
                     <td>{{ r.workerName }}</td>
-                    <td><a [routerLink]="['/clients', r.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ r.clientName }}</a></td>
+                    <td><a [routerLink]="['/accounts', r.clientId]" [queryParams]="{ tab: 'care' }" class="text-primary">{{ r.clientName }}</a></td>
                     <td class="col-numeric">{{ formatMin(r.scheduledMin) }}</td>
                     <td class="col-numeric">{{ formatMin(r.visitedMin) }}</td>
                     <td class="col-numeric">

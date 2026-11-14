@@ -34,7 +34,7 @@ type Invoice = {
   total: number;
   billTo?: 'CLIENT' | 'TENANT';
   billToName?: string | null;
-  /** Null when the invoice is billed to the organization. */
+  /** Null when the invoice is billed to the business. */
   client: { id: string; name: string } | null;
   createdBy?: { id: string; firstName?: string | null; lastName?: string | null; email: string } | null;
 };
@@ -225,7 +225,7 @@ export class InvoicesListPage implements OnInit {
       const params = new URLSearchParams({ from: this.exportFrom.slice(0, 10), to: this.exportTo.slice(0, 10) });
       const res = await this.api.get<{ filename: string; csv: string; count: number }>(`/invoices/payroll-export?${params}`);
       if (res.count === 0) {
-        this.exportError.set('No Sent or Paid invoices to your organization in this range.');
+        this.exportError.set('No Sent or Paid invoices to your business in this range.');
         return;
       }
       const url = URL.createObjectURL(new Blob([res.csv], { type: 'text/csv;charset=utf-8' }));

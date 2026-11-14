@@ -13,7 +13,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'lead.nextActionDate': 'When the next step is due. Cards show a red warning on the board once this date passes.',
   'lead.nextAction': 'What you plan to do next. This leads the card on the pipeline board.',
   'lead.makeClient':
-    'The organization becomes a client so projects, time and invoices are available. The card leaves the board (not deleted). People, email and files stay on the organization.',
+    'The account becomes a client so projects, time and invoices are available. The card leaves the board (not deleted). People, email and files stay on the account.',
   'pipeline.newBoard':
     'Starts with New Lead, Discovery, Proposal Sent and On Hold. Rename lanes and add more on the board.',
 
@@ -37,7 +37,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
 
   // Expenses
   'expense.reimbursable':
-    'Someone paid for this personally and should be paid back. It goes on their invoice to your organization: Not submitted, then Submitted, then Reimbursed when that invoice is paid.',
+    'Someone paid for this personally and should be paid back. It goes on their invoice to your business: Not submitted, then Submitted, then Reimbursed when that invoice is paid.',
   'expense.billable':
     "Charged to the client at cost. It needs a project for that client, and goes on the client's next invoice: Not billed, then Invoiced, then Client paid.",
   'expenses.page':
@@ -45,7 +45,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'expense.miles':
     'Miles times your mileage rate (Settings → Expenses and Invoicing). Set a rate there before saving mileage. A saved expense keeps the rate it was entered with.',
   'expense.category':
-    'Pick from your organization\'s list (Settings → Expenses and Invoicing). Mileage uses miles instead of amount.',
+    'Pick from your business\'s list (Settings → Expenses and Invoicing). Mileage uses miles instead of amount.',
   'expense.paymentMethod':
     'How you paid. Admins manage the list under Settings → Expenses and Invoicing.',
 
@@ -70,7 +70,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'user.hourlyRate': "Used on invoices for this person's time when the project has no hourly rate of its own.",
   'project.team.newLead': "Adds them as this project's Lead: they get a Guest login (by email invite) and see everyone's time, expenses and invoices on this project. If they already have a login here, they keep their role.",
   'roles.overview':
-    'Every organization has three roles: Admin, Member and Guest. They can\'t be changed. What else someone sees comes from assignment: the projects they are on (as a Lead or a Member) and, for Guests, the clients they are assigned to.',
+    'Every account has three roles: Admin, Member and Guest. They can\'t be changed. What else someone sees comes from assignment: the projects they are on (as a Lead or a Member) and, for Guests, the clients they are assigned to.',
 
   // Invoices
   'invoice.billToEmail': 'Where Send emails this invoice by default. You can pick a different address when sending.',
@@ -87,14 +87,14 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'invoice.lineItems':
     'Add lines manually or use Generate from time above. On a new invoice, generate or add lines before saving.',
   'invoice.exportToOrganization':
-    'CSV of Sent and Paid invoices to your organization in the date range: submitter, hours, time, reimbursements and total — for payroll or accounting.',
+    'CSV of Sent and Paid invoices to your business in the date range: submitter, hours, time, reimbursements and total — for payroll or accounting.',
 
   // People
   'person.orgRole':
-    'How this person relates to this organization, such as board member, case manager, or family. Title is their job, and it stays the same if they belong to more than one organization.',
+    'How this person relates to this account, such as board member, case manager, or family. Title is their job, and it stays the same if they belong to more than one account.',
   'contact.emailAddresses': 'Mail from any of these addresses is matched to this person.',
 
-  // Organizations / clients
+  // Accounts / clients
   'organization.newType':
     'Client turns on projects, time and invoices. Partner is tagged only. Open opportunities belong on the Pipeline (New Lead), not here.',
   'organization.journey':
@@ -103,21 +103,21 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Inactive keeps projects and history; use it when you are not actively working together.',
   'organization.tags': 'Partner, Vendor, Referral source… Press Enter to add. A partner can also be a client.',
   'organization.invoiceCode': 'Prepended to invoice numbers, e.g. UPSP-0001. Needed once you invoice.',
-  'organization.services': 'What this organization offers or is known for. Press Enter to add each service.',
-  'organization.products': 'Products this organization offers or is known for. Press Enter to add each one.',
-  'organization.focusAreas': 'Nonprofit sectors this organization works in, such as Recovery or Education. Press Enter to add each one.',
+  'organization.services': 'What this account offers or is known for. Press Enter to add each service.',
+  'organization.products': 'Products this account offers or is known for. Press Enter to add each one.',
+  'organization.focusAreas': 'Nonprofit sectors this account works in, such as Recovery or Education. Press Enter to add each one.',
   'organization.publicListing':
-    'When on, this organization can appear on a public partner or network listing that reads this flag from Back Office.',
+    'When on, this account can appear on a public partner or network listing that reads this flag from Back Office.',
   'organization.clientPortal':
     'A bookmarkable link for your client. No login or password. Turn on Client portal enabled to share the link.',
 
   // Settings — business
   'settings.business.profile':
-    'Company name, address and phone appear on invoices under your logo. Billing email is where invoices to your organization are sent.',
+    'Company name, address and phone appear on invoices under your logo. Billing email is where invoices to your business are sent.',
   'settings.business.logo': 'PNG, JPEG, GIF, or WebP. Max 5 MB.',
-  'settings.business.billingEmail': 'Where invoices addressed to your organization are sent by default.',
+  'settings.business.billingEmail': 'Where invoices addressed to your business are sent by default.',
   'settings.organizationFields':
-    'Hide removes a name from suggestion lists only; records that already have it keep it. Remove everywhere strips it from every matching record and from lists. Organization, people, and task lists are managed separately below.',
+    'Hide removes a name from suggestion lists only; records that already have it keep it. Remove everywhere strips it from every matching record and from lists. Account, people, and task lists are managed separately below.',
   'settings.expensesInvoicing.mileageRate':
     'Mileage expenses are miles times this rate. A saved expense keeps the rate it was entered with.',
   'settings.expensesInvoicing.categories':
@@ -176,7 +176,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.layout':
     'One page: everything on one scrolling page. Page by section: one section at a time with Next and Back. Page by question: one question or text block per screen; picking a single choice moves on by itself. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
   'forms.form.review':
-    'On: submissions wait under Waiting for review until you Attach them (to a client or organization, new or existing) or Dismiss them. Off: they are attached as they come in.',
+    'On: submissions wait under Waiting for review until you Attach them (to a client or account, new or existing) or Dismiss them. Off: they are attached as they come in.',
   'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
   'forms.form.thankYou':
     'Shown after someone sends the form, and in the email when Email people their results is on. Add links here, e.g. to book a call. Empty: "Thanks! … was sent to …".',
@@ -191,7 +191,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
   'forms.submissions.page': 'Everything sent through this form. In progress holds forms started but not sent yet. Open one to see the answers and score, then Attach or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
   'forms.submission.page':
-    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Attach picks the client or organization it belongs to (or a new one), then shows who will see it before you confirm. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
+    'One submission: the answers, the results (total score, profile and score areas) and who sent it. Attach picks the client or account it belongs to (or a new one), then shows who will see it before you confirm. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
   'forms.form.client':
     "Client forms: answers attach to a client and show in the Forms panel on the client's page. Name the form anything.",
   'forms.form.usedFor': 'Your own note on what this form is for. It shows in the Used for column of the Forms list. Optional.',
@@ -199,7 +199,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'One living copy: each client has one copy you keep up to date (like a profile); Add form opens it. New each time: every Add form or attached submission is a new dated result (like an intake).',
   'forms.form.visitChecklist': 'Care: caregivers fill this form in on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',
   'forms.form.access':
-    "Client forms: per role None, Read or Edit for the answers on client pages. Admins can always edit. People only see clients they can reach (assigned to them unless their role has Organizations: All). Designing the form is the Forms area.",
+    "Client forms: per role None, Read or Edit for the answers on client pages. Admins can always edit. People only see clients they can reach (assigned to them unless their role has Accounts: All). Designing the form is the Forms area.",
   'forms.result.page':
     "One client's answers to a client form. Answers save as you go; Submit when done. The ⋮ menu has Move, Share link (for someone outside, e.g. family) and Delete.",
   'forms.result.links':
@@ -222,7 +222,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'dashboard.page':
     "What needs you today. Activity (replies, next steps, and quiet clients) is one card with tabs. Tasks, time, invoices, and bookings are the others. Lists scroll; the arrow in the card header opens the full page. Mine / Everyone's switches Activity and invoices.",
   'activity.page':
-    "All activity is every email, call, meeting and note (first tab). To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. Pick an organization or person to narrow both.",
+    "All activity is every email, call, meeting and note (first tab). To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. Pick an account or person to narrow both.",
   'activity.loggedBy':
     'Only items a teammate saved in Back Office (notes, calls, meetings) or filed as their action. Not “who sent the email”—use Person for a CRM contact on the thread.',
   'settings.activity.needsReplyDays':
@@ -260,9 +260,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'platform.guideSetup':
     `The Guide answers “where do I click?” from docs/help-guide/. Signed-in users see ${HELP_AGENT_NAME} (guide avatar) bottom-left once configured. The API key is encrypted at rest and never shown again after saving.`,
 
-  // Organization links (person)
+  // Account links (person)
   'person.organizationLinks':
-    "Not linked to any organization is fine for an individual. Link below to connect them to a client record with a role.",
+    "Not linked to any account is fine for an individual. Link below to connect them to a client record with a role.",
 
   // Login / password
   'login.tempPassword': 'Your account uses a temporary password. Set a new password to continue.',
@@ -270,8 +270,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'login.resetConfirm': 'Enter the code from your email and your new password.',
 
   // Pipeline card
-  'lead.primaryContact': 'The main person at this organization for this opportunity.',
-  'lead.warmConnect': 'Someone who can introduce you to this organization.',
+  'lead.primaryContact': 'The main person at this account for this opportunity.',
+  'lead.warmConnect': 'Someone who can introduce you to this account.',
 
   // Time entry
   'timeEntry.notes': 'Optional description of what you worked on.',

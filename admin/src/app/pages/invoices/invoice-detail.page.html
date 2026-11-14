@@ -58,7 +58,7 @@
           <div class="invoice-detail-header__meta-block">
             <span class="invoice-detail-header__meta-label">Bill to</span>
             @if (inv.client?.id; as clientId) {
-              <a [routerLink]="['/clients', clientId]" class="invoice-detail-header__meta-value invoice-detail-client-link">
+              <a [routerLink]="['/accounts', clientId]" class="invoice-detail-header__meta-value invoice-detail-client-link">
                 {{ inv.billToName || inv.client?.name }}
               </a>
             } @else {

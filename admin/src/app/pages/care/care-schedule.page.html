@@ -75,7 +75,7 @@
                   <div class="sched-shift-time">
                     {{ s.startAt | date: 'h:mm a' }} – {{ s.endAt | date: 'h:mm a' }}
                   </div>
-                  <a [routerLink]="['/clients', s.clientId]" [queryParams]="{ tab: 'care' }" class="sched-shift-client text-primary">{{ s.clientName }}</a>
+                  <a [routerLink]="['/accounts', s.clientId]" [queryParams]="{ tab: 'care' }" class="sched-shift-client text-primary">{{ s.clientName }}</a>
                   <div class="sched-shift-meta">{{ s.worker?.name ?? 'Open shift' }}</div>
                   @if (s.repeatLabel || s.notes) {
                     <div class="sched-shift-extra">

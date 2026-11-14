@@ -486,7 +486,7 @@ export class FreeFormsController {
   }
 
   /**
-   * Accept a submission: attach to an existing organization, create a client (with the respondent as its person),
+   * Accept a submission: attach to an existing account, create a client (with the respondent as its person),
    * or add a pipeline card only (source Inbound; no CRM organization until promote or attach). A living client form
    * can't go to a client that already has its copy.
    */
@@ -499,7 +499,7 @@ export class FreeFormsController {
     const client = normalizeFormSettings(r.form.settings).client;
     let clientId: string;
     if (dto.mode === 'existing') {
-      if (!dto.clientId) throw new BadRequestException('Pick a client or organization');
+      if (!dto.clientId) throw new BadRequestException('Pick a client or account');
       const reach = await this.access.clientIds(user);
       if (reach !== null && !reach.includes(dto.clientId)) throw new NotFoundException('Client not found');
       const existing = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
@@ -513,7 +513,7 @@ export class FreeFormsController {
       );
     } else {
       const name = dto.name?.trim() || r.submitterOrganization?.trim();
-      if (!name) throw new BadRequestException('Enter the organization name');
+      if (!name) throw new BadRequestException('Enter the account name');
       // The card links back to the response, with a note of the profile and score for scored forms.
       const scores = r.scores as unknown as FormScores | null;
       const band = scores?.bandId ? bandsOf(r).find((x) => x.id === scores.bandId) : null;

@@ -139,7 +139,7 @@ export class ClientFormPage implements OnInit {
     if (this.canEdit()) {
       items.push({
         id: 'public-settings',
-        label: 'Organization settings',
+        label: 'Account settings',
         icon: 'pi pi-cog',
         command: () => this.openPublicSettings(),
       });
@@ -169,8 +169,8 @@ export class ClientFormPage implements OnInit {
     { value: 'CLIENT', label: 'Client' },
     { value: 'NONE', label: 'Partner / other' },
   ];
-  /** Where Back and Cancel go: Clients when opened from there, else Organizations. */
-  backLink = '/organizations';
+  /** Where Back and Cancel go: Clients when opened from there, else Accounts. */
+  backLink = '/accounts';
 
   id = signal<string | null>(null);
   readonly publicSettingsVisible = signal(false);
@@ -229,10 +229,8 @@ export class ClientFormPage implements OnInit {
     return this.snapshot() !== this.savedSnapshot;
   }
 
-  /** New or edit under Office → Clients (not CRM → Organizations). */
-  get isClientFlow(): boolean {
-    return this.backLink === '/clients';
-  }
+  /** New account started as a Client (?journey=CLIENT, e.g. the old Clients → New link). */
+  isClientFlow = false;
 
   private str(v: string | null | undefined): string {
     return v ?? '';
@@ -339,9 +337,7 @@ export class ClientFormPage implements OnInit {
     }
     const id = this.route.snapshot.paramMap.get('id');
     const params = this.route.snapshot.queryParamMap;
-    if (params.get('from') === 'clients' || this.router.url.startsWith('/clients/')) {
-      this.backLink = '/clients';
-    }
+    this.isClientFlow = params.get('journey') === 'CLIENT';
     if (!id) {
       if (this.isClientFlow) {
         this.form.journey = 'CLIENT';
@@ -439,7 +435,7 @@ export class ClientFormPage implements OnInit {
           summary: 'Saved',
           detail: `${created.name} added.`,
         });
-        const detailPath = this.backLink === '/clients' ? '/clients' : '/organizations';
+        const detailPath = '/accounts';
         await this.router.navigate([detailPath, created.id], { replaceUrl: true });
       } else {
         const updated = await this.api.put<ClientDto>(`/clients/${this.id()}`, payload);
@@ -471,12 +467,12 @@ export class ClientFormPage implements OnInit {
 
   /** Page title. */
   get pageTitle(): string {
-    if (!this.isNew) return this.form.name || 'Organization';
+    if (!this.isNew) return this.form.name || 'Account';
     if (this.isClientFlow) return 'New client';
-    return 'New organization';
+    return 'New account';
   }
 
-  /** Flip a prospect or other organization to Client. Copies nothing; reversible from the Status field. */
+  /** Flip a prospect or other account to Client. Copies nothing; reversible from the Status field. */
   async makeClient() {
     const id = this.id();
     if (!id || this.saving()) return;

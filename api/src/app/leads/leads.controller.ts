@@ -225,7 +225,7 @@ export class LeadsController {
     return toLeadView(lead);
   }
 
-  /** People on the pipeline card (before or after an organization link). */
+  /** People on the pipeline card (before or after an account link). */
   @Get(':id/people')
   async people(@Param('id') id: string) {
     const lead = await this.prisma.lead.findUnique({ where: { id }, select: { id: true, primaryContactId: true } });
@@ -327,7 +327,7 @@ export class LeadsController {
     return { accountName: lead.client?.name ?? null, contacts };
   }
 
-  /** Another card on the target pipeline — same organization / tracker link, not a new Client. */
+  /** Another card on the target pipeline — same account / tracker link, not a new Client. */
   @Action('create')
   @Post(':id/copy')
   async copy(@Param('id') id: string, @Body() dto: CopyLeadDto) {
@@ -440,9 +440,9 @@ export class LeadsController {
 
   /**
    * Make the lead's organization a Client and take the card off the board (history kept):
-   * the pipeline holds opportunities, and this one is won. Nothing is copied: the organization
+   * the pipeline holds opportunities, and this one is won. Nothing is copied: the account
    * already holds the contacts, timeline and files. The invoice code is optional and only needed
-   * once you invoice. Reversible from the organization's Status field.
+   * once you invoice. Reversible from the account's Status field.
    */
   @Action('edit')
   @Post(':id/convert')

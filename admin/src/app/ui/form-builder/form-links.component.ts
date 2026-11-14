@@ -19,7 +19,7 @@ import { HelpTextComponent } from '../help-text/help-text.component';
 import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-actions-menu.component';
 
 /**
- * The one public-links panel for any form: new-response links (form mode) or links to one organization's
+ * The one public-links panel for any form: new-response links (form mode) or links to one account's
  * response (record mode, Care). Each link can need a passcode or an emailed code. `apiBase` is the owning
  * module's API (e.g. "/care", "/form-admin"), which serves {apiBase}/forms/:id/links, {apiBase}/records/:id/links
  * and {apiBase}/links/:id/revoke.
@@ -197,7 +197,7 @@ export class FormLinksComponent {
   helpKey = input<string | null>(null);
   /** Form mode: new-response links of this form. */
   formId = input<string | null>(null);
-  /** Record mode: links to this organization's copy. */
+  /** Record mode: links to this account's copy. */
   recordId = input<string | null>(null);
   /** For a narrow side panel: a short list instead of the table. */
   compact = input(false);

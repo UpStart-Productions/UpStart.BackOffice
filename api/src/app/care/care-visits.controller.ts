@@ -72,7 +72,7 @@ function listItem(r: Row): CareVisitListItemDto {
 /**
  * Care → Visits: what happened on each visit (notes + the tenant's visit checklist), tied to time.
  * Ending a visit creates a time entry for the worker, so hours flow into invoicing as usual.
- * Visits: Own = the user's own visits; All = everyone's, within the organizations they reach.
+ * Visits: Own = the user's own visits; All = everyone's, within the accounts they reach.
  */
 @ApiTags('care')
 @ApiBearerAuth()
@@ -159,10 +159,10 @@ export class CareVisitsController {
     }
     await this.assertClient(user, dto.clientId);
     const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true, name: true } });
-    if (!client) throw new NotFoundException('Organization not found');
+    if (!client) throw new NotFoundException('Account not found');
     if (dto.shiftId) {
       const shift = await this.prisma.careShift.findUnique({ where: { id: dto.shiftId }, include: { visit: { select: { id: true } } } });
-      if (!shift || shift.clientId !== dto.clientId) throw new BadRequestException('That shift is not for this organization');
+      if (!shift || shift.clientId !== dto.clientId) throw new BadRequestException('That shift is not for this account');
       if (shift.visit) throw new ConflictException('This shift already has a visit');
     }
     const startedAt = dto.startedAt ? new Date(dto.startedAt) : new Date();
@@ -240,7 +240,7 @@ export class CareVisitsController {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  /** Own: my visits. All: visits at organizations I reach. */
+  /** Own: my visits. All: visits at accounts I reach. */
   private async scope(user: UserContext): Promise<Prisma.CareVisitWhereInput> {
     if (this.access.level(user, 'visits') !== 'all') return { userId: user.id };
     const reach = await this.access.clientIdFilter(user);
@@ -249,7 +249,7 @@ export class CareVisitsController {
 
   private async assertClient(user: UserContext, clientId: string) {
     const ids = await this.access.clientIds(user);
-    if (ids !== null && !ids.includes(clientId)) throw new NotFoundException('Organization not found');
+    if (ids !== null && !ids.includes(clientId)) throw new NotFoundException('Account not found');
   }
 
   private async find(user: UserContext, id: string) {

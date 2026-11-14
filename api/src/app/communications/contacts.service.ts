@@ -387,7 +387,7 @@ export class ContactsService {
       if (row.organization) {
         resolvedClientId = clientByName.get(row.organization.trim().toLowerCase()) ?? null;
         if (!resolvedClientId) {
-          statusMessage = `Organization "${row.organization}" will be created as Partner / other`;
+          statusMessage = `Account "${row.organization}" will be created as Partner / other`;
         }
       }
       out.push({ ...row, status, statusMessage, resolvedClientId });

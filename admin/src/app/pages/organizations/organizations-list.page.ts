@@ -24,7 +24,7 @@ import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component
 
 type StatusFilter = 'all' | AccountJourney;
 
-/** Every organization (prospects, clients, partners and others), filtered by status and tag. */
+/** Every account (prospects, clients, partners and others), filtered by status and tag. */
 @Component({
   selector: 'app-organizations-list-page',
   standalone: true,
@@ -54,17 +54,17 @@ type StatusFilter = 'all' | AccountJourney;
     `,
   ],
   template: `
-    <app-page title="Organizations">
+    <app-page title="Accounts">
       @if (canCreate()) {
         <ng-container ngProjectAs="[pageActions]">
           <span class="split-action">
-            <a pButton label="New Organization" icon="pi pi-plus" routerLink="/organizations/new"></a>
+            <a pButton label="New Account" icon="pi pi-plus" routerLink="/accounts/new"></a>
             @if (canEdit()) {
               <app-row-actions-menu
                 class="split-action-more"
                 [attached]="true"
                 [items]="headerMenu()"
-                ariaLabel="More organization actions"
+                ariaLabel="More account actions"
               />
             }
           </span>
@@ -98,7 +98,7 @@ type StatusFilter = 'all' | AccountJourney;
           <div class="toolbar-search">
             <app-toolbar-search-field
               placeholder="Search by name, email…"
-              ariaLabel="Search organizations"
+              ariaLabel="Search accounts"
               [ngModel]="searchQuery"
               (ngModelChange)="onSearchInput($event)"
             />
@@ -125,8 +125,8 @@ type StatusFilter = 'all' | AccountJourney;
           </ng-template>
           <ng-template pTemplate="body" let-org>
             <tr>
-              <td><app-row-actions-menu [items]="rowActions(org)" ariaLabel="Organization actions" /></td>
-              <td><a [routerLink]="['/organizations', org.id]" class="text-primary">{{ org.name }}</a></td>
+              <td><app-row-actions-menu [items]="rowActions(org)" ariaLabel="Account actions" /></td>
+              <td><a [routerLink]="['/accounts', org.id]" class="text-primary">{{ org.name }}</a></td>
               <td>
                 <p-tag [value]="statusLabel(org)" [severity]="org.journey === 'CLIENT' ? 'success' : 'secondary'" />
               </td>
@@ -143,7 +143,7 @@ type StatusFilter = 'all' | AccountJourney;
           <ng-template pTemplate="emptymessage">
             <tr>
               <td colspan="5" class="text-center p-4 text-color-secondary">
-                {{ searchDebounced().trim() || status() !== 'all' || tag() ? 'No organizations match these filters.' : 'No organizations yet.' }}
+                {{ searchDebounced().trim() || status() !== 'all' || tag() ? 'No accounts match these filters.' : 'No accounts yet.' }}
               </td>
             </tr>
           </ng-template>
@@ -170,7 +170,7 @@ export class OrganizationsListPage implements OnInit {
   readonly headerMenu = computed((): RowActionItem[] => [
     {
       id: 'import',
-      label: 'Import organizations',
+      label: 'Import accounts',
       icon: 'pi pi-upload',
       command: () => void this.openImport(),
     },
@@ -308,7 +308,7 @@ export class OrganizationsListPage implements OnInit {
       id: 'edit',
       label: this.canEdit() ? 'Edit' : 'Open',
       icon: this.canEdit() ? 'pi pi-pencil' : 'pi pi-arrow-right',
-      command: () => this.router.navigate(['/organizations', org.id]),
+      command: () => this.router.navigate(['/accounts', org.id]),
     });
     if (this.canDelete()) {
       actions.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(org) });

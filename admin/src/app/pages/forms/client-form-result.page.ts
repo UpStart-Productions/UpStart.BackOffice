@@ -124,7 +124,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
               <div class="side-list">
                 <div class="side-list-row">
                   <div class="side-list-body"><span class="side-list-title">Client</span></div>
-                  <a class="side-list-value text-primary" [routerLink]="['/clients', r.clientId]">{{ r.clientName }}</a>
+                  <a class="side-list-value text-primary" [routerLink]="['/accounts', r.clientId]">{{ r.clientName }}</a>
                 </div>
                 <div class="side-list-row">
                   <div class="side-list-body"><span class="side-list-title">Added</span></div>
@@ -247,7 +247,7 @@ export class ClientFormResultPage implements OnInit, OnDestroy {
 
   headerActions(): RowActionItem[] {
     return [
-      { id: 'move', label: 'Move to another client or organization', icon: 'pi pi-arrow-right-arrow-left', command: () => void this.openMove() },
+      { id: 'move', label: 'Move to another client or account', icon: 'pi pi-arrow-right-arrow-left', command: () => void this.openMove() },
       { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete() },
     ];
   }
@@ -313,7 +313,7 @@ export class ClientFormResultPage implements OnInit, OnDestroy {
       accept: async () => {
         try {
           await this.api.remove(r.id);
-          await this.router.navigate(['/clients', r.clientId]);
+          await this.router.navigate(['/accounts', r.clientId]);
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : 'Failed' });
         }

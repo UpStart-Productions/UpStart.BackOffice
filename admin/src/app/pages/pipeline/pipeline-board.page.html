@@ -35,7 +35,7 @@
       </div>
       <div class="toolbar-search">
         <app-toolbar-search-field
-          placeholder="Search by organization, contact, email…"
+          placeholder="Search by account, contact, email…"
           ariaLabel="Search pipeline"
           [ngModel]="searchQuery"
           (ngModelChange)="onSearchInput($event)"
@@ -367,7 +367,7 @@
     @if (transferMode() === 'copy') {
       <p-message
         severity="info"
-        text="Copy adds another pipeline card only. It does not duplicate the organization record."
+        text="Copy adds another pipeline card only. It does not duplicate the account record."
         styleClass="mt-3 mb-3"
       />
     }
@@ -431,7 +431,7 @@
   } @else if (contactsError()) {
     <p-message severity="error" [text]="contactsError()!" />
   } @else if (cardContacts().length === 0) {
-    <p class="text-color-secondary">No one is linked to this organization yet. Add a person on the card's page.</p>
+    <p class="text-color-secondary">No one is linked to this account yet. Add a person on the card's page.</p>
   } @else {
     <ul class="card-contacts">
       @for (c of cardContacts(); track c.id) {
