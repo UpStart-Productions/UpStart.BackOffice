@@ -39,3 +39,11 @@ describe('stripQuotedText', () => {
     expect(stripQuotedText(null)).toEqual({ body: null, quoted: false });
   });
 });
+
+describe('signature trimming', () => {
+  it('cuts at the standard "-- " delimiter and at mobile footers, keeping the full text available', () => {
+    expect(stripQuotedText('Sounds good.\n\n-- \nJane Doe\nDirector')).toEqual({ body: 'Sounds good.', quoted: true });
+    expect(stripQuotedText('Yes.\n\nSent from my iPhone')).toEqual({ body: 'Yes.', quoted: true });
+    expect(stripQuotedText('Thanks!\nJane\nDirector, Acme')).toEqual({ body: 'Thanks!\nJane\nDirector, Acme', quoted: false });
+  });
+});

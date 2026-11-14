@@ -6,7 +6,10 @@
 export function stripQuotedText(text: string | null | undefined): { body: string | null; quoted: boolean } {
   if (!text) return { body: text ?? null, quoted: false };
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
-  const cut = findQuoteStart(lines);
+  const quoteAt = findQuoteStart(lines);
+  // A signature above the quoted history is trimmed too ("Show quoted text" still reveals it all).
+  const sigAt = findSignatureStart(quoteAt === null ? lines : lines.slice(0, quoteAt));
+  const cut = sigAt ?? quoteAt;
   if (cut === null) return { body: text, quoted: false };
   const body = lines.slice(0, cut).join('\n').replace(/\s+$/, '');
   if (!body.trim()) return { body: text, quoted: false };
@@ -47,6 +50,19 @@ function findQuoteStart(lines: string[]): number | null {
       const rest = lines.slice(i).map((l) => l.trim()).filter(Boolean);
       if (rest.every((l) => l.startsWith('>'))) return i;
     }
+  }
+  return null;
+}
+
+/**
+ * Where a signature starts, using only unambiguous markers: the standard "-- " delimiter line and
+ * mobile footers ("Sent from my iPhone", "Get Outlook for iOS"). Signatures without a marker stay.
+ */
+export function findSignatureStart(lines: string[]): number | null {
+  for (let i = 1; i < lines.length; i++) {
+    const raw = lines[i];
+    if (raw === '-- ' || raw.trim() === '--') return i;
+    if (/^\s*(Sent from my |Get Outlook for )/i.test(raw)) return i;
   }
   return null;
 }

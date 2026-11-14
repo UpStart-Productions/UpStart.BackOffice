@@ -30,6 +30,8 @@ export const listInclude = {
   loggedBy: { select: { id: true, name: true, firstName: true, lastName: true, avatarUrl: true } },
   /** The organization it is filed to, for feeds that span organizations (Activity page). */
   client: { select: { id: true, name: true } },
+  /** Email attachments (saved as Artifacts on ingest), so the entry can link to each file. */
+  artifacts: { where: { type: 'FILE' as const }, select: { id: true, title: true, fileUrl: true, mimeType: true }, orderBy: { createdAt: 'asc' as const } },
 };
 
 type ParticipantRow = {
@@ -250,6 +252,12 @@ export class InteractionsService {
       },
     });
 
+    // Its attachments follow it, so they show in that record's Attachments panel.
+    await this.prisma.artifact.updateMany({
+      where: { interactionId: id },
+      data: { clientId: targetClientId, leadId: dto.leadId ?? null },
+    });
+
     // The rest of an id-based thread that is still unfiled goes to the same place.
     let threadItemsFiled = 0;
     if (existing.threadKey?.startsWith('mid:')) {
@@ -258,6 +266,12 @@ export class InteractionsService {
         data: { status: 'FILED', clientId: targetClientId, leadId: dto.leadId ?? null },
       });
       threadItemsFiled = res.count;
+      if (res.count) {
+        await this.prisma.artifact.updateMany({
+          where: { interaction: { tenantId: TENANT, threadKey: existing.threadKey, status: 'FILED' }, clientId: null, leadId: null },
+          data: { clientId: targetClientId, leadId: dto.leadId ?? null },
+        });
+      }
     }
 
     // Teach the system: outside contacts on this item now belong to the client,
@@ -296,6 +310,7 @@ export class InteractionsService {
       where: { id },
       data: { status: 'UNFILED', clientId: null, leadId: null },
     });
+    await this.prisma.artifact.updateMany({ where: { interactionId: id }, data: { clientId: null, leadId: null } });
     return { id, status: 'UNFILED' as const };
   }
 

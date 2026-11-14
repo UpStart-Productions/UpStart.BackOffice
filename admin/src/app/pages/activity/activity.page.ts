@@ -16,6 +16,7 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { map } from 'rxjs';
 import { ApiService } from '../../core/api.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { PipelinesApi } from '../../core/pipelines.api';
 import { personCardInnerHtml } from '../../core/quill-person-card-render';
@@ -190,6 +191,8 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 [contactId]="personId()"
                 [organizationName]="org()?.name ?? undefined"
                 [showNextActionOnQuickLog]="!!orgId() && !personId()"
+                [infiniteScroll]="!cardId()"
+                [pageSize]="5"
               />
             </p-tabpanel>
             <p-tabpanel value="todo">
@@ -254,6 +257,9 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 @for (item of unfiled(); track item.id) {
                   @let ppl = sendersOf(item);
                   <div class="activity-item">
+                    <div class="activity-item-actions">
+                      <app-row-actions-menu [items]="unfiledActions(item)" ariaLabel="Unfiled message actions" />
+                    </div>
                     <div class="activity-icon activity-icon--{{ item.type }}" [attr.aria-label]="item.type" role="img">
                       <i class="pi {{ icon(item.type) }}" aria-hidden="true"></i>
                     </div>
@@ -265,10 +271,6 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                         @if (item.subject?.trim(); as subj) {
                           <strong class="activity-subject">{{ subj }}</strong>
                         }
-                        <span class="activity-head-grow" aria-hidden="true"></span>
-                        <div class="activity-item-actions">
-                          <p-button label="File message" icon="pi pi-folder" size="small" severity="secondary" [outlined]="true" (onClick)="openFile(item)" />
-                        </div>
                       </div>
                       <div class="activity-meta">
                         @if (ppl.from) {
@@ -674,6 +676,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
 export class ActivityPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
+  private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly peopleLoader = inject(PeoplePickerLoader);
   private readonly toast = inject(MessageService);
   private readonly route = inject(ActivatedRoute);
@@ -1062,6 +1065,40 @@ export class ActivityPage implements OnInit {
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not update', detail: err instanceof Error ? err.message : 'Failed' });
     }
+  }
+
+  unfiledActions(item: Interaction): RowActionItem[] {
+    return [
+      { id: 'file', label: 'File message', icon: 'pi pi-folder', command: () => void this.openFile(item) },
+      {
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmRemoveUnfiled(item),
+      },
+    ];
+  }
+
+  private confirmRemoveUnfiled(item: Interaction) {
+    const label = item.subject?.trim() || 'this message';
+    this.confirmDelete.confirm({
+      message: `Delete "${label}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.comms.remove(item.id);
+          void this.comms.refreshUnfiledCount();
+          this.comms.notifyActivityChanged();
+          this.toast.add({ severity: 'success', summary: 'Deleted', detail: 'Message removed.' });
+        } catch (err) {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Could not delete',
+            detail: err instanceof Error ? err.message : 'Delete failed',
+          });
+        }
+      },
+    });
   }
 
   rowActions(row: QueueRow): RowActionItem[] {

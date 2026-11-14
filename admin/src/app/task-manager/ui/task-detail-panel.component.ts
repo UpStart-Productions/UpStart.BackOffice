@@ -53,13 +53,8 @@ import { TmTaskProjectsComponent } from './task-projects.component';
   animations: [
     trigger('pane', [
       // Explicit `open` state so `open => void` runs when @if removes the pane ( :leave on '' often skips ).
-      state(
-        'open',
-        style({
-          transform: 'translateX(0)',
-          opacity: 1,
-        }),
-      ),
+      // Steady state must not keep transform — it becomes a containing block and breaks body-appended popovers.
+      state('open', style({ opacity: 1 })),
       transition('void => open', [
         style({ transform: 'translateX(2rem)', opacity: 0 }),
         animate('220ms ease-out', style({ transform: 'translateX(0)', opacity: 1 })),

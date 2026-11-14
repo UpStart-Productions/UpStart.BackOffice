@@ -38,8 +38,6 @@ export function setPopoverArrowLeft(container: HTMLElement, px: number): void {
 export function layoutPopoverCentered(container: HTMLElement, trigger: HTMLElement): void {
   const tr = trigger.getBoundingClientRect();
   const targetCenterX = tr.left + tr.width / 2;
-  const scrollX = window.scrollX;
-  const scrollY = window.scrollY;
   const vw = document.documentElement.clientWidth;
 
   const panelW = container.offsetWidth;
@@ -49,10 +47,12 @@ export function layoutPopoverCentered(container: HTMLElement, trigger: HTMLEleme
     container.classList.contains('p-popover-flipped') ||
     container.hasAttribute('data-p-popover-flipped');
 
-  const top = flip ? tr.top + scrollY - panelH - gutter : tr.bottom + scrollY + gutter;
+  // Viewport coords; Prime's theme sets position:absolute on every pass — override with !important.
+  container.style.setProperty('position', 'fixed', 'important');
+  const top = flip ? tr.top - panelH - gutter : tr.bottom + gutter;
 
-  let left = targetCenterX + scrollX - panelW / 2;
-  left = Math.min(scrollX + vw - panelW - VIEWPORT_PAD, Math.max(scrollX + VIEWPORT_PAD, left));
+  let left = targetCenterX - panelW / 2;
+  left = Math.min(vw - panelW - VIEWPORT_PAD, Math.max(VIEWPORT_PAD, left));
 
   container.style.top = `${top}px`;
   container.style.left = `${left}px`;

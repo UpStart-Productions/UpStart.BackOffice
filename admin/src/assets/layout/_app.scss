@@ -862,6 +862,12 @@ table.table-bordered td.col-numeric {
   color: rgba(255, 255, 255, 0.95);
 }
 
+/* appCenterPopoverCaret uses viewport coordinates; only valid when the overlay is position:fixed. */
+body > .p-popover.tm-popover,
+body > .p-popover.ubo-dark-popover {
+  position: fixed !important;
+}
+
 /* Dark hover/detail popover — record attribution, timesheet calendar, field help (see .cursor/rules/dark-popover.mdc). */
 .ubo-dark-popover.p-popover {
   --ubo-dark-popover-bg: #36454f;

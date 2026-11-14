@@ -2,6 +2,8 @@ import { Component, inject, input, signal } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommunicationsApi, Interaction } from '../../core/communications.api';
 import { quillHtmlForDisplay } from '../../core/quill-utils';
+import { fileIconClass } from '../../core/file-type.util';
+import { resolveAssetUrl } from '../../core/asset-url.util';
 
 const PREVIEW_WORDS = 100;
 
@@ -61,11 +63,22 @@ function words(plain: string): string[] {
         </div>
       }
     }
+    @if (item().artifacts?.length) {
+      <div class="message-attachments" (click)="$event.stopPropagation()">
+        @for (a of item().artifacts; track a.id) {
+          <a class="message-attachment" [href]="fileHref(a.fileUrl)" target="_blank" rel="noopener">
+            <i class="pi {{ fileIcon(a.title, a.mimeType) }}" aria-hidden="true"></i>{{ a.title }}
+          </a>
+        }
+      </div>
+    }
     @if (error()) {
       <div class="message-error text-sm" role="alert">{{ error() }}</div>
     }
   `,
   styles: `
+    .message-attachments { display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; margin: 0.25rem 0 0.5rem; font-size: var(--fs-sm); }
+    .message-attachment { display: inline-flex; align-items: center; gap: 0.35rem; }
     .message-panel { margin: 0.5rem 0; max-height: 24rem; overflow: auto; background: var(--surface-50, #f9fafb); padding: 0.75rem; border-radius: 6px; }
     .message-text { white-space: pre-wrap; word-break: break-word; font: inherit; }
     .message-rich { padding: 0; height: auto; overflow: visible; }
@@ -74,6 +87,14 @@ function words(plain: string): string[] {
   `,
 })
 export class MessageBodyComponent {
+  /** Same file URL the Attachments panel uses. */
+  fileHref(key: string | null): string {
+    return key ? (resolveAssetUrl(`/api/uploads/${key}`) ?? '') : '';
+  }
+  fileIcon(name: string, mime: string | null): string {
+    return fileIconClass(name, mime);
+  }
+
   private readonly comms = inject(CommunicationsApi);
   private readonly sanitizer = inject(DomSanitizer);
 

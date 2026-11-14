@@ -19,6 +19,7 @@ function make() {
     lead: { findUnique: vi.fn(), updateMany: vi.fn() },
     contact: { findMany: vi.fn(), updateMany: vi.fn() },
     contactAccount: { createMany: vi.fn() },
+    artifact: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     user: { findMany: vi.fn(), findUnique: vi.fn() },
   };
   const mail = { sendRaw: vi.fn().mockResolvedValue({ sent: true }) };

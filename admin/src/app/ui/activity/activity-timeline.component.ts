@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, input, model, signal, untracked } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, input, model, OnDestroy, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -257,6 +257,9 @@ function nowForInput(): string {
       @for (row of rows(); track row.item.id) {
         @let item = row.item;
         <div class="activity-item" [class.activity-item--nested]="row.nested">
+          <div class="activity-item-actions">
+            <app-row-actions-menu [items]="entryActions(item)" ariaLabel="Activity actions" />
+          </div>
           <div class="activity-icon activity-icon--{{ item.type }}" [attr.aria-label]="item.type" role="img">
             <i class="pi {{ icon(item) }}" aria-hidden="true"></i>
           </div>
@@ -271,10 +274,6 @@ function nowForInput(): string {
               @if (item.subject?.trim(); as subj) {
                 <strong class="activity-subject">{{ subj }}</strong>
               }
-              <span class="activity-head-grow" aria-hidden="true"></span>
-              <div class="activity-item-actions">
-                <app-row-actions-menu [items]="entryActions(item)" ariaLabel="Activity actions" />
-              </div>
             </div>
             <div class="activity-meta">
               @if (item.location) {
@@ -310,7 +309,24 @@ function nowForInput(): string {
         </div>
       }
 
-      @if (nextBefore()) {
+      @if (infiniteScroll()) {
+        @if (loadingMore()) {
+          <div class="activity-infinite-loading" aria-busy="true" aria-label="Loading more activity">
+            @for (n of skeletonRows; track n) {
+              <div class="activity-item">
+                <p-skeleton shape="circle" styleClass="activity-avatar-skeleton" />
+                <div class="activity-body">
+                  <p-skeleton width="45%" height="1rem" styleClass="mb-2" />
+                  <p-skeleton width="30%" height="0.8rem" />
+                </div>
+              </div>
+            }
+          </div>
+        }
+        @if (nextBefore()) {
+          <div #loadSentinel class="activity-load-sentinel" aria-hidden="true"></div>
+        }
+      } @else if (nextBefore()) {
         <div class="activity-more">
           <p-button label="Load older" severity="secondary" [text]="true" [loading]="loading()" (onClick)="load(true)" />
         </div>
@@ -614,6 +630,8 @@ function nowForInput(): string {
       height: var(--avatar-size-med) !important;
     }
     .activity-more { text-align: center; margin-top: 0.5rem; }
+    .activity-load-sentinel { height: 1px; width: 100%; pointer-events: none; }
+    .activity-infinite-loading { margin-top: 0.25rem; }
     .log-form { display: flex; flex-direction: column; gap: 1rem; }
     .involved-chip {
       display: inline-flex;
@@ -664,7 +682,7 @@ function nowForInput(): string {
     }
   `,
 })
-export class ActivityTimelineComponent {
+export class ActivityTimelineComponent implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly comms = inject(CommunicationsApi);
   private readonly tasks = inject(TmApiService);
@@ -689,6 +707,13 @@ export class ActivityTimelineComponent {
   organizationName = input<string>();
   /** Quick log: "Set the next action" (organizations only; person pages pass false for parity). */
   showNextActionOnQuickLog = input(true);
+  /** Load the next page when the sentinel enters the viewport (Activity → All activity). */
+  infiniteScroll = input(false);
+  /** Server page size when {@link infiniteScroll} is on. */
+  pageSize = input(5);
+
+  private readonly loadSentinel = viewChild<ElementRef<HTMLElement>>('loadSentinel');
+  private sentinelObserver: IntersectionObserver | null = null;
 
   readonly target = computed<TimelineTarget | { global: true } | null>(() => {
     const c = this.clientId();
@@ -721,6 +746,7 @@ export class ActivityTimelineComponent {
   items = signal<Interaction[]>([]);
   nextBefore = signal<string | null>(null);
   loading = signal(false);
+  loadingMore = signal(false);
   error = signal<string | null>(null);
   filter = model<TypeFilter>('ALL');
   query = model('');
@@ -906,6 +932,38 @@ export class ActivityTimelineComponent {
       if (this.canLog()) untracked(() => void this.refreshEmailToLabel());
       else this.emailToLabel.set(null);
     });
+    effect(() => {
+      if (!this.infiniteScroll()) {
+        untracked(() => this.disconnectSentinelObserver());
+        return;
+      }
+      const el = this.loadSentinel()?.nativeElement;
+      const hasMore = !!this.nextBefore();
+      untracked(() => this.bindSentinelObserver(el, hasMore));
+    });
+  }
+
+  ngOnDestroy() {
+    this.disconnectSentinelObserver();
+  }
+
+  private disconnectSentinelObserver() {
+    this.sentinelObserver?.disconnect();
+    this.sentinelObserver = null;
+  }
+
+  private bindSentinelObserver(el: HTMLElement | undefined, hasMore: boolean) {
+    this.disconnectSentinelObserver();
+    if (!el || !hasMore) return;
+    this.sentinelObserver = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        if (!this.nextBefore() || this.loading() || this.loadingMore()) return;
+        void this.load(true);
+      },
+      { root: null, rootMargin: '320px 0px 0px' },
+    );
+    this.sentinelObserver.observe(el);
   }
 
   subjectPlaceholder(): string {
@@ -990,20 +1048,34 @@ export class ActivityTimelineComponent {
   async load(more: boolean) {
     const target = this.target();
     if (!target) return;
-    this.loading.set(true);
-    this.error.set(null);
+    if (more) {
+      if (this.loadingMore() || this.loading() || !this.nextBefore()) return;
+      this.loadingMore.set(true);
+    } else {
+      this.loading.set(true);
+      this.error.set(null);
+    }
     try {
       const before = more ? this.nextBefore() : null;
+      const pageSize = this.infiniteScroll() ? this.pageSize() : undefined;
       const page =
         'leadId' in target
           ? await this.comms.timeline(target, before)
-          : await this.comms.activity(this.mergeActivityParams(target), before);
+          : await this.comms.activity(this.mergeActivityParams(target), before, pageSize);
       this.items.set(more ? [...this.items(), ...page.items] : page.items);
       this.nextBefore.set(page.nextBefore);
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Failed to load activity');
+      if (!more) this.error.set(err instanceof Error ? err.message : 'Failed to load activity');
+      else {
+        this.toast.add({
+          severity: 'error',
+          summary: 'Could not load more',
+          detail: err instanceof Error ? err.message : 'Failed to load activity',
+        });
+      }
     } finally {
-      this.loading.set(false);
+      if (more) this.loadingMore.set(false);
+      else this.loading.set(false);
     }
   }
 

@@ -28,6 +28,8 @@ export interface Interaction {
   bodyText?: string | null;
   /** The email has quoted history that is not in bodyText. */
   quoted?: boolean;
+  /** Email attachments (stored as Artifacts). fileUrl is the storage key. */
+  artifacts?: { id: string; title: string; fileUrl: string | null; mimeType: string | null }[];
   /** Only on the single-item endpoint, when quoted history was removed: the whole message. */
   fullText?: string | null;
   hasRaw: boolean;
@@ -313,13 +315,14 @@ export class CommunicationsApi {
   }
 
   /** Timeline for one organization or person, or every organization (Activity page). */
-  activity(filter: ActivityFeedFilter, before?: string | null): Promise<TimelinePage> {
+  activity(filter: ActivityFeedFilter, before?: string | null, limit?: number): Promise<TimelinePage> {
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(filter)) {
       if (v === null || v === undefined || v === '') continue;
       params.set(k, String(v));
     }
     if (before) params.set('before', before);
+    if (limit != null && Number.isFinite(limit) && limit > 0) params.set('limit', String(Math.floor(limit)));
     const qs = params.toString();
     return this.api.get(`/activity${qs ? `?${qs}` : ''}`);
   }

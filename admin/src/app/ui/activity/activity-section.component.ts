@@ -71,6 +71,8 @@ function endOfDayIso(key: string): string | null {
           [showFullViewLink]="false"
           [hideInlineFilters]="true"
           [showNextActionOnQuickLog]="showNextActionOnQuickLog()"
+          [infiniteScroll]="infiniteScroll()"
+          [pageSize]="pageSize()"
           [(query)]="timelineQuery"
           [(filter)]="typeFilter"
           [(includePeople)]="includePeople"
@@ -99,6 +101,10 @@ export class ActivitySectionComponent implements OnInit, OnDestroy {
   organizationName = input<string | undefined>(undefined);
   /** Next-action row on quick log (organization timelines only; hide on person for parity). */
   showNextActionOnQuickLog = input(true);
+  /** Activity → All activity: load older items on scroll (not record-page timelines). */
+  infiniteScroll = input(false);
+  /** Page size when {@link infiniteScroll} is on (server `limit`). */
+  pageSize = input(5);
 
   readonly sectionClientId = computed(() => this.clientId());
   readonly sectionContactId = computed(() => {
