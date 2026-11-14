@@ -25,6 +25,19 @@
   height: 1.75rem;
 }
 
+// No focus ring circle on the month arrows (it shows when the calendar opens); keyboard focus gets the hover tint instead.
+.p-datepicker-prev-button:focus,
+.p-datepicker-next-button:focus,
+.p-datepicker-prev-button:focus-visible,
+.p-datepicker-next-button:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.p-datepicker-prev-button:focus-visible,
+.p-datepicker-next-button:focus-visible {
+  background: var(--p-content-hover-background);
+}
+
 .p-datepicker-day-view {
   font-size: 0.8125rem;
   margin: 0.25rem 0 0;

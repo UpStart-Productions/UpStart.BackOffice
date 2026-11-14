@@ -21,6 +21,10 @@ import { personPickSubtitle } from '../pick-row/pick-row.util';
       gap: 0.5rem;
       min-width: 0;
     }
+    /* The avatar is a bit taller than the text line: let it overlap the padding so the select keeps its height. */
+    .people-select-selected app-tm-avatar {
+      margin-block: -0.25rem;
+    }
     .people-select-selected-label {
       overflow: hidden;
       text-overflow: ellipsis;

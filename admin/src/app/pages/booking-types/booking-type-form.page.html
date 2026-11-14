@@ -119,10 +119,10 @@
               <input type="checkbox" [(ngModel)]="day.enabled" [name]="'day-' + day.dayOfWeek" />
             </td>
             <td>
-              <input pInputText type="time" class="w-full" [(ngModel)]="day.startTime" [disabled]="!day.enabled" [name]="'start-' + day.dayOfWeek" />
+              <app-time-input [(ngModel)]="day.startTime" [disabled]="!day.enabled" [name]="'start-' + day.dayOfWeek" />
             </td>
             <td>
-              <input pInputText type="time" class="w-full" [(ngModel)]="day.endTime" [disabled]="!day.enabled" [name]="'end-' + day.dayOfWeek" />
+              <app-time-input [after]="day.startTime" [(ngModel)]="day.endTime" [disabled]="!day.enabled" [name]="'end-' + day.dayOfWeek" />
             </td>
           </tr>
         </ng-template>

@@ -1,3 +1,4 @@
+import { TimeInputComponent } from '../../ui/time-input/time-input.component';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -26,6 +27,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
   selector: 'app-care-visit-page',
   standalone: true,
   imports: [
+    TimeInputComponent,
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -85,14 +87,14 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                 </div>
                 <div class="form-field cv-time">
                   <label for="cvStart">Start</label>
-                  <input pInputText id="cvStart" type="time" class="w-full" [(ngModel)]="start" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+                  <app-time-input inputId="cvStart" [(ngModel)]="start" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
                 </div>
                 <div class="form-field cv-time">
                   <label for="cvEnd">End</label>
                   @if (v.status === 'IN_PROGRESS') {
                     <input pInputText id="cvEnd" class="w-full" value="In progress" disabled />
                   } @else {
-                    <input pInputText id="cvEnd" type="time" class="w-full" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+                    <app-time-input inputId="cvEnd" [after]="start" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
                   }
                 </div>
               </div>

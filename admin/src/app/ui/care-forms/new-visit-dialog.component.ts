@@ -1,3 +1,4 @@
+import { TimeInputComponent } from '../time-input/time-input.component';
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -20,7 +21,7 @@ import { atLocal, timeKey } from './care.types';
 @Component({
   selector: 'app-new-visit-dialog',
   standalone: true,
-  imports: [FormsModule, ButtonModule, InputTextModule, AppDialogModule, DateInputComponent, PeopleSelectComponent],
+  imports: [TimeInputComponent, FormsModule, ButtonModule, InputTextModule, AppDialogModule, DateInputComponent, PeopleSelectComponent],
   template: `
     <p-dialog [header]="mode() === 'start' ? 'Start visit' : 'Log past visit'" [(visible)]="visible" [modal]="true" [style]="{ width: 'min(30rem, 96vw)' }">
       @if (mode() === 'start') {
@@ -39,11 +40,11 @@ import { atLocal, timeKey } from './care.types';
         <div class="flex gap-2 mt-3">
           <div class="form-field flex-1">
             <label for="nvStart">Start</label>
-            <input pInputText id="nvStart" type="time" class="w-full" [(ngModel)]="start" />
+            <app-time-input inputId="nvStart" [(ngModel)]="start" />
           </div>
           <div class="form-field flex-1">
             <label for="nvEnd">End</label>
-            <input pInputText id="nvEnd" type="time" class="w-full" [(ngModel)]="end" />
+            <app-time-input inputId="nvEnd" [(ngModel)]="end" [after]="start" [overnight]="true" />
           </div>
         </div>
       }

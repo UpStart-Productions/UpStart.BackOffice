@@ -13,6 +13,7 @@ import {
   viewChild,
   ViewChild,
 } from '@angular/core';
+import { DateNavComponent } from '../../ui/date-nav/date-nav.component';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
@@ -27,7 +28,6 @@ import { TagModule } from 'primeng/tag';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
 import { PageComponent } from '../../ui/layout/page.component';
-import { InlineCalendarPopoverComponent } from '../../ui/inline-calendar-popover/inline-calendar-popover.component';
 import { PeopleDirectoryOption, teamUsersToOptions } from '../projects/people-directory.util';
 import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
 import { RowActionsMenuComponent, RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -51,11 +51,11 @@ import {
   selector: 'app-time-entry-list-page',
   standalone: true,
   imports: [
+    DateNavComponent,
     ButtonModule,
     DatePickerModule,
     FormsModule,
     PageComponent,
-    InlineCalendarPopoverComponent,
     PeopleSelectComponent,
     TimeEntryModalComponent,
     RowActionsMenuComponent,
@@ -385,7 +385,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy, AfterViewInit {
     void this.loadWeekIfNeeded();
   }
 
-  jumpToDay(date: Date, popover: InlineCalendarPopoverComponent) {
+  jumpToDay(date: Date, popover: { hide(): void }) {
     this.selectedDay.set(new Date(date));
     this.persistTimeListPrefs();
     popover.hide();
@@ -421,8 +421,7 @@ export class TimeEntryListPage implements OnInit, OnDestroy, AfterViewInit {
     return this.daysWithTime().has(dateKey(new Date(date.year, date.month, date.day)));
   }
 
-  openJumpCalendar(event: Event, popover: InlineCalendarPopoverComponent) {
-    popover.toggle(event, event.currentTarget as HTMLElement);
+  onJumpCalendarOpen() {
     this.mergeEntriesIntoDayProjects(this.entries());
     void this.loadCalendarMonthProjects(this.selectedDay());
   }

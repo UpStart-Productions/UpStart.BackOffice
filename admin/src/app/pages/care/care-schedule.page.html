@@ -9,33 +9,51 @@
     <div class="sched-toolbar">
       <div class="sched-date-nav">
         <div class="date-nav">
-          <div class="date-picker-group">
-            <div class="date-picker">
-              <button type="button" class="nav-btn" (click)="moveWeek(-1)" aria-label="Previous week">‹</button>
-              <span class="date-label">{{ weekLabel() }}</span>
-              <button type="button" class="nav-btn" (click)="moveWeek(1)" aria-label="Next week">›</button>
-            </div>
+          <app-date-nav
+            #dateNav
+            [label]="periodLabel()"
+            [prevLabel]="view() === 'month' ? 'Previous month' : 'Previous week'"
+            [nextLabel]="view() === 'month' ? 'Next month' : 'Next week'"
+            (prev)="movePeriod(-1)"
+            (next)="movePeriod(1)"
+          >
+            <p-datepicker
+              [inline]="true"
+              [ngModel]="weekPickerDate()"
+              [defaultDate]="weekPickerDate()"
+              (onSelect)="jumpToWeek($event, dateNav)"
+            />
+          </app-date-nav>
+          <div class="calendar-btn-group" role="group" aria-label="View">
             <button
               type="button"
               class="calendar-btn"
-              (click)="weekPopover.toggle($event, $event.currentTarget)"
-              aria-label="Jump to week"
-              aria-haspopup="dialog"
+              [class.calendar-btn--active]="view() === 'week'"
+              [attr.aria-pressed]="view() === 'week'"
+              (click)="view.set('week')"
+              aria-label="Week view"
+              pTooltip="Week view: one client or worker, by the hour"
+              tooltipPosition="top"
+              tooltipStyleClass="ubo-dark-tooltip"
+              [showDelay]="tooltipDelayMs"
             >
-              <i class="pi pi-calendar" aria-hidden="true"></i>
+              <nmp-lucide-icon name="calendar-range" aria-hidden="true" />
             </button>
-            <app-inline-calendar-popover #weekPopover>
-              <p-datepicker
-                [inline]="true"
-                [ngModel]="weekPickerDate()"
-                [defaultDate]="weekPickerDate()"
-                (onSelect)="jumpToWeek($event, weekPopover)"
-              />
-            </app-inline-calendar-popover>
+            <button
+              type="button"
+              class="calendar-btn"
+              [class.calendar-btn--active]="view() === 'month'"
+              [attr.aria-pressed]="view() === 'month'"
+              (click)="view.set('month')"
+              aria-label="Month view"
+              pTooltip="Month view: everyone's shifts"
+              tooltipPosition="top"
+              tooltipStyleClass="ubo-dark-tooltip"
+              [showDelay]="tooltipDelayMs"
+            >
+              <nmp-lucide-icon name="calendar-days" aria-hidden="true" />
+            </button>
           </div>
-          @if (!isThisCalendarWeek()) {
-            <button type="button" pButton label="Return to this week" [text]="true" (click)="thisWeek()"></button>
-          }
         </div>
       </div>
       @if (seeAll()) {
@@ -57,72 +75,188 @@
       </div>
     </div>
 
-    <div class="sched-week-grid" role="region" aria-label="Week schedule">
-      @for (day of days(); track day.key) {
-        <section class="sched-day-col" [class.sched-day-col--today]="day.key === todayKey">
-          <header class="sched-day-head">
-            <span class="sched-day-weekday">{{ day.date | date: 'EEE' }}</span>
-            <span class="sched-day-num">{{ day.date | date: 'd' }}</span>
-            <span class="sched-day-month">{{ day.date | date: 'MMM' }}</span>
-          </header>
-          <div class="sched-day-shifts">
-            @for (s of day.shifts; track s.id) {
-              <div class="sched-shift-card" [class.sched-shift-card--cancelled]="s.status === 'CANCELLED'">
-                <div class="sched-shift-card__top">
-                  <app-row-actions-menu [items]="rowActions(s)" ariaLabel="Shift actions" />
-                </div>
-                <div class="sched-shift-card__body">
-                  <div class="sched-shift-time">
-                    {{ s.startAt | date: 'h:mm a' }} – {{ s.endAt | date: 'h:mm a' }}
-                  </div>
-                  <a [routerLink]="['/accounts', s.clientId]" [queryParams]="{ tab: 'care' }" class="sched-shift-client text-primary">{{ s.clientName }}</a>
-                  <div class="sched-shift-meta">{{ s.worker?.name ?? 'Open shift' }}</div>
-                  @if (s.repeatLabel || s.notes) {
-                    <div class="sched-shift-extra">
-                      @if (s.repeatLabel) {
-                        <span>{{ s.repeatLabel }}</span>
-                      }
-                      @if (s.notes) {
-                        <span class="sched-shift-notes">{{ s.notes }}</span>
-                      }
-                    </div>
-                  }
-                  <div class="sched-shift-tags">
-                    @if (!s.worker) {
-                      <p-tag value="Open" severity="warn" />
-                    }
-                    @if (s.status === 'CANCELLED') {
-                      <p-tag value="Cancelled" severity="secondary" />
-                    }
-                    @if (s.visitStatus === 'IN_PROGRESS') {
-                      <p-tag value="Visit in progress" severity="info" />
-                    }
-                    @if (s.visitStatus === 'COMPLETED') {
-                      <p-tag value="Visited" severity="success" />
-                    }
-                  </div>
-                </div>
-              </div>
-            } @empty {
-              @if (canCreate()) {
-                <button type="button" class="sched-empty-add" (click)="openNew(day.key)">Add shift</button>
-              } @else {
-                <div class="sched-day-empty">No shifts</div>
+    @if (view() === 'month') {
+    <!-- Month: everyone's shifts, one slim bar each (worker name), colored by account. -->
+    <div class="mv" #mvGrid [style.height.px]="mvHeight()" role="grid" aria-label="Month schedule">
+      <div class="mv-row mv-row--head" role="row">
+        @for (d of monthWeeks()[0]; track d.key) {
+          <div class="mv-weekday" role="columnheader">{{ d.date | date: 'EEE' }}</div>
+        }
+      </div>
+      @for (week of monthWeeks(); track week[0].key) {
+        <div class="mv-row" role="row">
+          @for (day of week; track day.key) {
+            <div
+              class="mv-day"
+              [class.mv-day--out]="!day.inMonth"
+              [class.mv-day--today]="day.key === todayKey"
+              role="gridcell"
+              [title]="'Open the week of ' + (day.date | date: 'MMM d')"
+              (click)="onMonthDayClick($event, day.date)"
+            >
+              <span class="mv-num">{{ day.date | date: 'd' }}</span>
+              @for (s of day.shifts.slice(0, monthMaxBars); track s.id) {
+                <button type="button" class="mv-bar" [attr.data-color]="barColor(s)" [class.mv-bar--cancelled]="s.status === 'CANCELLED'" [class.mv-bar--open]="!s.worker" [title]="barTitle(s)" (click)="openDay(day.date, s.id)">
+                  {{ s.worker?.name ?? 'Open' }}
+                </button>
               }
-            }
-            @if (canCreate() && day.shifts.length > 0) {
-              <button type="button" class="sched-col-footer-add" (click)="openNew(day.key)">Add shift</button>
-            }
-          </div>
-        </section>
+              @if (day.shifts.length > monthMaxBars) {
+                <button type="button" class="mv-more" [title]="moreTitle(day.shifts)" (click)="openDay(day.date, null)">+{{ day.shifts.length - monthMaxBars }} more</button>
+              }
+            </div>
+          }
+        </div>
       }
     </div>
+    } @else {
+    <!-- Week grid: days across, hours down; one block per shift, colored by account.
+         Faded and inactive until a client or worker is picked. -->
+    <div class="tg-wrap">
+    @if (!hasFocus()) {
+      <p class="sched-pick">Pick a client or a worker to see their week.</p>
+    }
+    <div class="tg" [class.tg--locked]="!hasFocus()" [attr.aria-disabled]="!hasFocus()" role="region" aria-label="Week schedule">
+      <div class="tg-body" #tgBody [class.tg-body--dragging]="shiftDragMode() === 'move'" [class.tg-body--resizing]="shiftDragMode() === 'start' || shiftDragMode() === 'end'" [style.height.px]="tgHeight()">
+        <div class="tg-head">
+          <div class="tg-gutter-head"></div>
+          @for (day of days(); track day.key) {
+            <div class="tg-day-head" [class.tg-day-head--today]="day.key === todayKey">{{ day.date | date: 'EEE M/d' }}</div>
+          }
+        </div>
+        <div class="tg-grid" [style.height.px]="24 * hourPx">
+          <div class="tg-gutter">
+            @for (h of hours; track h) {
+              <span class="tg-hour" [style.top.px]="h * hourPx">{{ hourLabel(h) }}</span>
+            }
+          </div>
+          @for (col of weekColumns(); track col.key) {
+            <div
+              class="tg-day"
+              [class.tg-day--today]="col.key === todayKey"
+              [style.background-size]="'100% ' + hourPx + 'px'"
+              (mousedown)="onSlotDown($event, col.key)"
+              (mousemove)="onSlotMove($event, col.key)"
+            >
+              @if (selection(); as sel) {
+                @if (sel.day === col.key) {
+                  <div class="tg-selection" [style.top.px]="sel.from * hourPx" [style.height.px]="(sel.to - sel.from + 1) * hourPx">
+                    {{ hourLabel(sel.from) }} – {{ hourLabel((sel.to + 1) % 24) }}
+                  </div>
+                }
+              }
+              @for (seg of col.segments; track seg.id) {
+                <div
+                  class="tg-block"
+                  [attr.data-color]="seg.color"
+                  [class.tg-block--cancelled]="seg.shift.status === 'CANCELLED'"
+                  [class.tg-block--open]="!seg.shift.worker"
+                  [class.tg-block--draggable]="seg.draggable"
+                  [style.top.px]="seg.top"
+                  [style.height.px]="seg.height"
+                  [style.left]="seg.left"
+                  [style.width]="seg.width"
+                  [title]="blockTitle(seg.shift)"
+                  (mousedown)="onShiftDown($event, seg.shift, 'move')"
+                >
+                  @if (seg.draggable) {
+                    @if (seg.isStart) {
+                      <div class="tg-handle tg-handle--top" (mousedown)="onShiftDown($event, seg.shift, 'start')"></div>
+                    }
+                    @if (seg.isEnd) {
+                      <div class="tg-handle tg-handle--bottom" (mousedown)="onShiftDown($event, seg.shift, 'end')"></div>
+                    }
+                  }
+                  <div class="tg-block-top">
+                    <span class="tg-block-time">{{ seg.shift.startAt | date: 'h:mm' }}–{{ seg.shift.endAt | date: 'h:mm a' }}</span>
+                    <app-row-actions-menu [items]="rowActions(seg.shift)" size="small" ariaLabel="Shift actions" />
+                  </div>
+                  <a class="tg-block-account" [routerLink]="['/accounts', seg.shift.clientId]" [queryParams]="{ tab: 'care' }">{{ seg.shift.clientName }}</a>
+                  @if (seg.shift.worker; as w) {
+                    <app-person [name]="w.name" [avatarUrl]="w.avatarUrl" [personId]="w.id" size="sm" />
+                  } @else {
+                    <span class="sched-chip-open">Open shift</span>
+                  }
+                  @if (seg.shift.status === 'CANCELLED') {
+                    <p-tag value="Cancelled" severity="secondary" />
+                  } @else if (seg.shift.visitStatus === 'IN_PROGRESS') {
+                    <p-tag value="In progress" severity="info" />
+                  } @else if (seg.shift.visitStatus === 'COMPLETED') {
+                    <p-tag value="Visited" severity="success" />
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+    </div>
+    }
   </div>
 
-  <p-dialog [header]="editing ? 'Edit shift' : 'Add shift'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(32rem, 96vw)' }">
+  <!-- Day schedule (Month view): every shift that day. -->
+  <p-dialog
+    [visible]="!!dayModal()"
+    (visibleChange)="$event ? null : closeDay()"
+    [modal]="true"
+    [dismissableMask]="true"
+    [style]="{ width: 'min(34rem, 96vw)' }"
+  >
+    <ng-template #header>
+      <div class="dm-header">
+        <span class="p-dialog-title">{{ dayMode() === 'add' ? 'Add shift' : 'Schedule' }} for {{ (dayModal()?.date ?? null) | date: 'EEE, MMM d' }}</span>
+        @if (canCreate() && dayMode() === 'list') {
+          <p-button label="Add shift" icon="pi pi-plus" size="small" severity="secondary" (onClick)="addShiftForDay()" />
+        }
+      </div>
+    </ng-template>
+    @if (dayMode() === 'add') {
+      <ng-container *ngTemplateOutlet="shiftFields" />
+    } @else {
+    @for (s of dayModalShifts(); track s.id) {
+      <div class="dm-row" [class.dm-row--focus]="s.id === dayModal()?.focusId" [class.dm-row--cancelled]="s.status === 'CANCELLED'">
+        <span class="dm-time">{{ s.startAt | date: 'h:mm a' }} – {{ s.endAt | date: 'h:mm a' }}</span>
+        <span class="mv-bar dm-account" [attr.data-color]="barColor(s)">{{ s.clientName }}</span>
+        <span class="dm-worker">
+          @if (s.worker; as w) {
+            <app-person [name]="w.name" [avatarUrl]="w.avatarUrl" [personId]="w.id" size="sm" />
+          } @else {
+            <span class="sched-chip-open">Open shift</span>
+          }
+        </span>
+        @if (s.status === 'CANCELLED') {
+          <p-tag value="Cancelled" severity="secondary" />
+        } @else if (s.visitStatus === 'IN_PROGRESS') {
+          <p-tag value="In progress" severity="info" />
+        } @else if (s.visitStatus === 'COMPLETED') {
+          <p-tag value="Visited" severity="success" />
+        }
+        <app-row-actions-menu [items]="rowActions(s)" size="small" ariaLabel="Shift actions" />
+      </div>
+    } @empty {
+      <p class="text-color-secondary m-0">No shifts this day.</p>
+    }
+    }
+    <ng-template pTemplate="footer">
+      @if (dayMode() === 'add') {
+        <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="closeDay()" />
+        <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!canSave()" (onClick)="saveDayShift()" />
+      }
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog (onHide)="selection.set(null)" [header]="editing ? 'Edit shift' : 'Add shift'" [(visible)]="dialogVisible" [modal]="true" [style]="{ width: 'min(32rem, 96vw)' }">
+    <ng-container *ngTemplateOutlet="shiftFields" />
+    <ng-template pTemplate="footer">
+      <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="dialogVisible = false" />
+      <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!canSave()" (onClick)="save()" />
+    </ng-template>
+  </p-dialog>
+  <!-- Shift form fields: shared by the Add/Edit shift dialog and the day window's Add shift. -->
+  <ng-template #shiftFields>
     <div class="form-field">
       <label for="shOrg">Client</label>
-      <app-organization-select inputId="shOrg" [(value)]="fClientId" [clientsOnly]="true" />
+      <app-organization-select inputId="shOrg" [(value)]="fClientId" (valueChange)="onFormClientChange()" [clientsOnly]="true" />
     </div>
     @if (seeAll()) {
       <div class="form-field mt-3">
@@ -140,15 +274,15 @@
     <div class="flex flex-wrap gap-2 mt-3">
       <div class="form-field flex-1">
         <label for="shDate">{{ fRepeat ? 'First day' : 'Date' }}</label>
-        <app-date-input inputId="shDate" [(ngModel)]="fDate" />
+        <app-date-input inputId="shDate" [(ngModel)]="fDate" [disabled]="fDateLocked" />
       </div>
       <div class="form-field sched-time">
         <label for="shStart">Start</label>
-        <input pInputText id="shStart" type="time" class="w-full" [(ngModel)]="fStart" />
+        <app-time-input inputId="shStart" [(ngModel)]="fStart" (ngModelChange)="fTimesTouched = true" />
       </div>
       <div class="form-field sched-time">
         <label for="shEnd">End</label>
-        <input pInputText id="shEnd" type="time" class="w-full" [(ngModel)]="fEnd" />
+        <app-time-input inputId="shEnd" [(ngModel)]="fEnd" (ngModelChange)="fTimesTouched = true" [after]="fStart" [overnight]="true" />
       </div>
     </div>
     @if (!editing) {
@@ -171,9 +305,5 @@
       <label for="shNotes">Notes</label>
       <textarea pTextarea id="shNotes" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="fNotes"></textarea>
     </div>
-    <ng-template pTemplate="footer">
-      <p-button label="Cancel" severity="secondary" [text]="true" [disabled]="saving()" (onClick)="dialogVisible = false" />
-      <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!canSave()" (onClick)="save()" />
-    </ng-template>
-  </p-dialog>
+  </ng-template>
 </app-page>

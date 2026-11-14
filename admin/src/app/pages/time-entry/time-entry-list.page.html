@@ -22,44 +22,32 @@
 
     <div class="timesheet-controls">
       <div class="date-nav">
-        <div class="date-picker-group">
-          <div class="date-picker">
-            <button type="button" class="nav-btn" (click)="prevDay()" aria-label="Previous day">
-              ‹
-            </button>
-            <span class="date-label">{{ dayHeading() }}</span>
-            <button type="button" class="nav-btn" (click)="nextDay()" aria-label="Next day">
-              ›
-            </button>
-          </div>
-          <button
-            type="button"
-            class="calendar-btn"
-            (click)="openJumpCalendar($event, datePopover)"
-            aria-label="Jump to date"
-            aria-haspopup="dialog"
+        <app-date-nav
+          #dateNav
+          [label]="dayHeading()"
+          prevLabel="Previous day"
+          nextLabel="Next day"
+          (prev)="prevDay()"
+          (next)="nextDay()"
+          (calendarOpen)="onJumpCalendarOpen()"
+        >
+          <p-datepicker
+            [inline]="true"
+            [ngModel]="selectedDay()"
+            [defaultDate]="selectedDay()"
+            (onSelect)="jumpToDay($event, dateNav)"
+            (onMonthChange)="onCalendarMonthChange($event)"
           >
-            <i class="pi pi-calendar" aria-hidden="true"></i>
-          </button>
-          <app-inline-calendar-popover #datePopover>
-            <p-datepicker
-              [inline]="true"
-              [ngModel]="selectedDay()"
-              [defaultDate]="selectedDay()"
-              (onSelect)="jumpToDay($event, datePopover)"
-              (onMonthChange)="onCalendarMonthChange($event)"
-            >
-              <ng-template #date let-date>
-                <span
-                  class="cal-day"
-                  [class.has-time]="hasTimeOnDate(date)"
-                  (mouseenter)="onCalDayPointerEnter($event, date)"
-                  (mouseleave)="onCalDayPointerLeave()"
-                >{{ date.day }}</span>
-              </ng-template>
-            </p-datepicker>
-          </app-inline-calendar-popover>
-        </div>
+            <ng-template #date let-date>
+              <span
+                class="cal-day"
+                [class.has-time]="hasTimeOnDate(date)"
+                (mouseenter)="onCalDayPointerEnter($event, date)"
+                (mouseleave)="onCalDayPointerLeave()"
+              >{{ date.day }}</span>
+            </ng-template>
+          </p-datepicker>
+        </app-date-nav>
         @if (!isSelectedToday()) {
           <button
             type="button"

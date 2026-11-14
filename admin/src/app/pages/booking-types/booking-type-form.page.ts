@@ -1,3 +1,4 @@
+import { TimeInputComponent } from '../../ui/time-input/time-input.component';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -82,7 +83,7 @@ const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 @Component({
   selector: 'app-booking-type-form-page',
   standalone: true,
-  imports: [HelpTextComponent, RowActionsMenuComponent, 
+  imports: [TimeInputComponent, HelpTextComponent, RowActionsMenuComponent, 
     FormsModule,
     ButtonModule,
     InputTextModule,

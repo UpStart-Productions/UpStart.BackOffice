@@ -15,14 +15,14 @@
   box-sizing: border-box;
   padding: 0.6rem 0.75rem;
   margin: 0;
-  border-radius: var(--border-radius);
+  border-radius: var(--content-border-radius);
   background: var(--surface-hover, var(--p-content-hover-background, #f3f4f6));
 }
 .record-card-host + .record-card-host .record-card--compact { border-top: 1px solid var(--surface-border); }
 .record-card--card {
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--surface-border);
-  border-radius: var(--border-radius);
+  border-radius: var(--content-border-radius);
   background: var(--surface-card);
 }
 .record-card-host + .record-card-host .record-card--card { margin-top: 0.5rem; }

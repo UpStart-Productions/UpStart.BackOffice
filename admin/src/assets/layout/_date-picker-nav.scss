@@ -19,7 +19,10 @@
   gap: 0.5rem;
   border: 1px solid var(--harvest-border, var(--surface-border));
   border-radius: 6px;
-  padding: 0.25rem 0.5rem;
+  // Same height as the calendar button beside it (button.calendar-btn).
+  box-sizing: border-box;
+  height: 2.375rem;
+  padding: 0 0.5rem;
   background: var(--surface-card, #fff);
 
   .date-label {
@@ -69,4 +72,76 @@ button.calendar-btn {
     background: var(--harvest-row-hover, var(--surface-hover));
     color: var(--harvest-text, var(--text-color));
   }
+}
+
+// Joined icon buttons beside the date (e.g. Schedule: pick a date | Week | Month).
+.calendar-btn-group {
+  display: inline-flex;
+
+  button.calendar-btn {
+    border-radius: 0;
+  }
+
+  button.calendar-btn + button.calendar-btn {
+    margin-left: -1px;
+  }
+
+  button.calendar-btn:first-child {
+    border-radius: 6px 0 0 6px;
+  }
+
+  button.calendar-btn:last-child {
+    border-radius: 0 6px 6px 0;
+  }
+}
+
+button.calendar-btn.calendar-btn--active {
+  background: var(--harvest-row-hover, var(--surface-hover));
+  color: var(--harvest-text, var(--text-color));
+}
+
+// app-date-nav: ‹ label › | calendar in one bordered control.
+app-date-nav { display: inline-flex; }
+
+.date-nav-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+  height: 2.375rem;
+  padding: 0 0.25rem 0 0.5rem;
+  border: 1px solid var(--harvest-border, var(--surface-border));
+  border-radius: 6px;
+  background: var(--surface-card, #fff);
+
+  .date-label {
+    font-weight: 600;
+    min-width: 11rem;
+    text-align: center;
+    font-size: var(--fs-md);
+    color: var(--harvest-text, var(--text-color));
+  }
+}
+
+.date-nav-divider {
+  align-self: stretch;
+  width: 1px;
+  margin-block: 0.4rem;
+  background: var(--harvest-border, var(--surface-border));
+}
+
+button.nav-btn.date-nav-calendar {
+  color: var(--harvest-muted, var(--text-color-secondary));
+}
+
+/*
+ * Icon standard for date and view buttons (date nav, calendar-btn groups): Lucide icons only, one size.
+ * Don't set icon sizes on individual buttons.
+ */
+button.nav-btn,
+button.calendar-btn {
+  --icon-btn-size: 1.25rem;
+}
+:is(button.nav-btn, button.calendar-btn) nmp-lucide-icon {
+  font-size: var(--icon-btn-size);
 }

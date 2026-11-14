@@ -230,3 +230,414 @@
     flex: 1 1 auto;
   }
 }
+
+// ── Board: rows = accounts, columns = days ────────────────────────────────
+.sched-board {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--content-border-radius, 6px);
+}
+
+.sched-board-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 12rem) repeat(7, minmax(7.5rem, 1fr));
+  min-width: 0;
+  border-top: 1px solid var(--surface-border);
+}
+
+.sched-board-row--head {
+  border-top: 0;
+  background: var(--surface-ground, var(--color-background));
+}
+
+.sched-board-corner,
+.sched-board-day {
+  padding: 0.5rem;
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+}
+
+.sched-board-day {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  border-left: 1px solid var(--surface-border);
+}
+
+.sched-board-day--today {
+  color: var(--p-primary-color, var(--primary-color));
+  font-weight: 600;
+}
+
+.sched-board-account {
+  padding: 0.6rem 0.5rem;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.sched-board-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.4rem;
+  border-left: 1px solid var(--surface-border);
+}
+
+.sched-board-cell--today {
+  background: color-mix(in srgb, var(--p-primary-color, var(--primary-color)) 4%, transparent);
+}
+
+.sched-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--content-border-radius);
+  background: var(--surface-card);
+  min-width: 0;
+}
+
+.sched-chip--open { border-style: dashed; }
+.sched-chip--cancelled { opacity: 0.6; }
+.sched-chip--cancelled .sched-chip-time { text-decoration: line-through; }
+
+.sched-chip-top {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.sched-chip-time {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sched-chip-repeat {
+  color: var(--text-color-secondary);
+  font-size: var(--fs-sm);
+}
+
+.sched-chip-open {
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+}
+
+.sched-chip :is(app-person) {
+  font-size: var(--fs-sm);
+  min-width: 0;
+}
+
+.sched-chip-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+// "+" to add a shift for this account and day: quiet until you hover the cell.
+.sched-cell-add {
+  align-self: stretch;
+  border: 1px dashed var(--surface-border);
+  border-radius: var(--content-border-radius);
+  background: none;
+  color: var(--text-color-secondary);
+  padding: 0.15rem;
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  opacity: 0;
+}
+
+.sched-board-cell:hover .sched-cell-add,
+.sched-cell-add:focus-visible {
+  opacity: 1;
+}
+
+.sched-board-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: var(--text-color-secondary);
+}
+
+// ── Week grid: days across, hours down ────────────────────────────────────
+.sched-view-toggle { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
+
+.tg {
+  min-width: 0;
+}
+
+.tg-head,
+.tg-grid {
+  display: grid;
+  grid-template-columns: 3rem repeat(7, minmax(0, 1fr));
+}
+
+.tg-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-card);
+}
+
+// Same type as the timesheet's day labels ("MON 10/26"); open header, no cell borders.
+.tg-day-head {
+  padding: 0.75rem 0.5rem 0.625rem;
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.tg-day-head--today { color: var(--brand-primary); }
+
+.tg-body { height: 36rem; overflow-y: auto; }
+
+.tg-grid { position: relative; }
+
+.tg-gutter { position: relative; }
+
+.tg-hour {
+  position: absolute;
+  right: 0.375rem;
+  transform: translateY(-50%);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.tg-hour:first-child { transform: none; }
+
+// Hour lines drawn as a background so empty time (gaps) reads at a glance.
+.tg-day {
+  position: relative;
+  border-left: 1px solid var(--surface-border);
+  // Hour lines at the bottom of each hour; the day cells (not the time column) get their own top line.
+  background-image: linear-gradient(to top, var(--surface-border) 1px, transparent 1px);
+  box-shadow: inset 0 1px 0 var(--surface-border);
+  cursor: pointer;
+}
+
+.tg-day--today { background-color: color-mix(in srgb, var(--p-primary-color, var(--primary-color)) 4%, transparent); }
+
+.tg-block {
+  --c-bg: var(--shift-gray-bg);
+  --c-fg: var(--shift-gray-fg);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  overflow: hidden;
+  padding: 0.25rem 0.35rem;
+  border-radius: var(--content-border-radius);
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font-size: var(--fs-sm);
+  cursor: default;
+}
+
+
+// Draggable shifts: grab to move; top/bottom edges change start/end.
+.tg-block--draggable { cursor: grab; }
+.tg-block--draggable :is(a, img) { -webkit-user-drag: none; }
+.tg-handle {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: ns-resize;
+  z-index: 1;
+}
+.tg-handle--top { top: 0; }
+.tg-handle--bottom { bottom: 0; }
+.tg-body--dragging,
+.tg-body--dragging * { cursor: grabbing !important; user-select: none; }
+.tg-body--resizing,
+.tg-body--resizing * { cursor: ns-resize !important; user-select: none; }
+
+.tg-block--open { outline: 1px dashed var(--c-fg); outline-offset: -1px; }
+.tg-block--cancelled { opacity: 0.6; }
+.tg-block--cancelled .tg-block-time { text-decoration: line-through; }
+
+.tg-block-top { display: flex; align-items: center; gap: 0.25rem; min-width: 0; }
+
+.tg-block-time {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tg-block-account {
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Drag-selected hours (released: Add shift opens with this range). Light blue = --color-surface-blue.
+.tg-selection {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  z-index: 1;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid var(--brand-blue-200);
+  border-radius: var(--content-border-radius);
+  background: var(--color-surface-blue);
+  color: var(--brand-blue-700);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+// No client or worker picked: the grid shows faded and can't be used; the prompt sits over it.
+.tg-wrap { position: relative; }
+.tg--locked { opacity: 0.4; pointer-events: none; user-select: none; }
+.sched-pick {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--content-border-radius);
+  background: var(--surface-card);
+  font-size: var(--fs-base);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+}
+
+// ── Month view ────────────────────────────────────────────────────────────
+
+.mv {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mv-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+// The six week rows share the height; the weekday header keeps its own.
+.mv-row--head { flex: 0 0 auto; }
+
+.mv-weekday {
+  padding: 0.75rem 0.5rem 0.625rem;
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.mv-day {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.3rem;
+  border-top: 1px solid var(--surface-border);
+  border-left: 1px solid var(--surface-border);
+}
+
+.mv-row .mv-day:first-child { border-left: 0; }
+.mv-day--out { background: var(--surface-ground, var(--color-background)); }
+.mv-day--out .mv-num { color: var(--color-text-muted); }
+.mv-day { cursor: pointer; }
+.mv-day:hover { background: var(--p-content-hover-background); }
+
+.mv-num {
+  align-self: flex-end;
+  padding: 0 0.2rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-color);
+}
+.mv-day--today .mv-num { color: var(--brand-primary); }
+
+.mv-bar {
+  --c-bg: var(--shift-gray-bg);
+  --c-fg: var(--shift-gray-fg);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--content-border-radius);
+  background: var(--c-bg);
+  color: var(--c-fg);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 0;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mv-bar--open { outline: 1px dashed var(--c-fg); outline-offset: -1px; }
+.mv-bar--cancelled { opacity: 0.6; text-decoration: line-through; }
+
+.mv-more {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  padding: 0 0.2rem;
+  font: inherit;
+  font-size: var(--fs-xs);
+  color: var(--color-text-link);
+  cursor: pointer;
+}
+
+// Account colors (schedule tints).
+:is(.tg-block, .mv-bar)[data-color='peach'] { --c-bg: var(--shift-peach-bg); --c-fg: var(--shift-peach-fg); }
+:is(.tg-block, .mv-bar)[data-color='green'] { --c-bg: var(--shift-green-bg); --c-fg: var(--shift-green-fg); }
+:is(.tg-block, .mv-bar)[data-color='lavender'] { --c-bg: var(--shift-lavender-bg); --c-fg: var(--shift-lavender-fg); }
+:is(.tg-block, .mv-bar)[data-color='rose'] { --c-bg: var(--shift-rose-bg); --c-fg: var(--shift-rose-fg); }
+:is(.tg-block, .mv-bar)[data-color='cyan'] { --c-bg: var(--shift-cyan-bg); --c-fg: var(--shift-cyan-fg); }
+
+// Day schedule window rows.
+.dm-row {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.4rem;
+  border-top: 1px solid var(--surface-border);
+  border-radius: var(--content-border-radius);
+}
+.dm-row:first-child { border-top: 0; }
+.dm-row--focus { background: var(--color-surface-blue); }
+.dm-row--cancelled .dm-time { text-decoration: line-through; color: var(--text-color-secondary); }
+.dm-time { font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.dm-account { justify-self: start; max-width: 100%; cursor: default; }
+.dm-worker { min-width: 0; }
+
+.dm-header { display: flex; align-items: center; gap: 0.75rem; flex: 1 1 auto; min-width: 0; }
+.dm-header .p-dialog-title { margin-right: auto; }

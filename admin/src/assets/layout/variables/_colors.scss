@@ -114,6 +114,23 @@
   --palette-brown-dark: #9d7660;
   --palette-brown-light: #d7b5a6;
 
+  /*
+   * Schedule tints (Care → Schedule shift blocks and month bars). Soft background + matching dark text.
+   * Taken from the reference schedule design Jeff picked (Nov 2026).
+   */
+  --shift-peach-bg: #fde9d3;
+  --shift-peach-fg: #8a4b0c;
+  --shift-green-bg: #e3f6d8;
+  --shift-green-fg: #2f6b1d;
+  --shift-lavender-bg: #e4e2fb;
+  --shift-lavender-fg: #3b34a0;
+  --shift-rose-bg: #fce2e4;
+  --shift-rose-fg: #b4232c;
+  --shift-cyan-bg: #ddf4fa;
+  --shift-cyan-fg: #0e6f84;
+  --shift-gray-bg: #f1f3f5;
+  --shift-gray-fg: #4b5563;
+
   /* ── Data / chart series (ordered for contrast on light UI) ── */
   --color-data-1: var(--palette-blue-dark);
   --color-data-2: var(--palette-orange-dark);
