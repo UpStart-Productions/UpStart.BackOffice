@@ -256,7 +256,7 @@
                   }
                 }
                 @if (firstRun()) {
-                  <app-empty-state shape="list" [rows]="3" hint="Overdue items and anything due today show up here." />
+                  <app-empty-state art="all-caught-up" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Overdue items and anything due today show up here." />
                 } @else if (!todayOverdue().length && !todayDue().length) {
                   <p class="dashboard-quiet">Nothing due today.</p>
                 }
@@ -305,7 +305,7 @@
                   }
                 }
                 @if (!tasks().data.length) {
-                  <app-empty-state shape="list" [rows]="4" hint="Tasks assigned to you show up here, with who assigned them." />
+                  <app-empty-state art="tasks" artSize="compact" [artStatic]="true" shape="list" [rows]="4" hint="Tasks assigned to you show up here, with who assigned them." />
                 } @else if (!workOverdue().length && !workNew().length && !workDue().length) {
                   <p class="dashboard-quiet">Nothing new and nothing due this week.</p>
                 }
@@ -358,7 +358,7 @@
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                   }
                 } @else if (firstRun()) {
-                  <app-empty-state shape="list" [rows]="3" hint="Accounts you haven't been in touch with lately show up here." />
+                  <app-empty-state art="pipeline" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Accounts you haven't been in touch with lately show up here." />
                 } @else {
                   <p class="dashboard-quiet">Everyone has heard from you recently.</p>
                 }
@@ -391,7 +391,7 @@
                   }
                 </div>
               } @else if (firstRun()) {
-                <app-empty-state shape="list" [rows]="3" [hint]="'As you add work, ' + agentName + ' suggests what to do next here.'" />
+                <app-empty-state art="conversations" artSize="compact" [artStatic]="true" shape="list" [rows]="3" [hint]="'As you add work, ' + agentName + ' suggests what to do next here.'" />
               } @else {
                 <p class="dashboard-quiet">Nothing to suggest right now. Nice work.</p>
               }
@@ -423,7 +423,7 @@
                   </app-record-card>
                 }
               } @else if (firstRun()) {
-                <app-empty-state shape="list" [rows]="4" hint="New activity since your last visit shows up here." />
+                <app-empty-state art="activity" artSize="compact" [artStatic]="true" shape="list" [rows]="4" hint="New activity since your last visit shows up here." />
               } @else {
                 <p class="dashboard-quiet">Nothing new in the last week.</p>
               }

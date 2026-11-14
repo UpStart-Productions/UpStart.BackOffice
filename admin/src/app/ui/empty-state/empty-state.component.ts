@@ -25,7 +25,7 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
  * - `shape="list"`: dashboard panels and side lists. Ghost record-card rows; use `hint` for one quiet line above them.
  *
  * Only show it when the area has never had data (not for "no search results").
- * Project an animation/illustration with `<ng-container ngProjectAs="[emptyArt]">`.
+ * Illustrations: set `art` (+ `artSize`, `artStatic`). For anything custom, project `<ng-container ngProjectAs="[emptyArt]">`.
  */
 @Component({
   selector: 'app-empty-state',
@@ -60,7 +60,7 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
       @if (title()) {
         <tr class="empty-ghost-overlay-row">
           <td [attr.colspan]="columns().length">
-            <div class="empty-ghost-overlay" [style.height]="rows() * 3.5 + 'rem'">
+            <div class="empty-ghost-overlay" [style.height]="rowCount() * 3.5 + 'rem'">
               <ng-container *ngTemplateOutlet="message" />
             </div>
           </td>
@@ -69,7 +69,7 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
     } @else if (shape() === 'cards') {
       <div class="empty-ghost-cards">
         @if (hint()) {
-          <p class="empty-ghost-hint">{{ hint() }}</p>
+          <ng-container *ngTemplateOutlet="hintRow" />
         }
         @for (r of rowList(); track r.i) {
           <div class="empty-ghost-tile" aria-hidden="true" [style.opacity]="r.fade">
@@ -96,7 +96,7 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
     } @else {
       <div class="empty-ghost-list">
         @if (hint()) {
-          <p class="empty-ghost-hint">{{ hint() }}</p>
+          <ng-container *ngTemplateOutlet="hintRow" />
         }
         <div class="empty-ghost-list-rows" aria-hidden="true">
           @for (r of rowList(); track r.i) {
@@ -120,6 +120,9 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
 
     <ng-template #message>
       <div class="empty-ghost-card">
+        @if (artSrc(); as src) {
+          <img class="empty-ghost-art" [src]="src" width="240" height="180" alt="" />
+        }
         <ng-content select="[emptyArt]" />
         <p class="empty-ghost-title">{{ title() }}</p>
         @if (body()) {
@@ -132,6 +135,21 @@ const FADE = [1, 1, 0.8, 0.5, 0.25, 0.15];
             <p-button [label]="actionLabel()!" size="small" (onClick)="action.emit()" />
           }
         }
+      </div>
+    </ng-template>
+
+    <ng-template #hintRow>
+      <div class="empty-ghost-hint-row" [class.empty-ghost-hint-row--large]="artSize() === 'large'">
+        @if (artSrc(); as src) {
+          <img
+            class="empty-ghost-art"
+            [src]="src"
+            [attr.width]="artSize() === 'large' ? 270 : 60"
+            [attr.height]="artSize() === 'large' ? 203 : 60"
+            alt=""
+          />
+        }
+        <p class="empty-ghost-hint">{{ hint() }}</p>
       </div>
     </ng-template>
   `,
@@ -154,7 +172,24 @@ export class EmptyStateComponent {
   readonly labels = input<string[]>([]);
   /** `bars` only: chart height, e.g. `4.5rem` or `100%`. */
   readonly height = input('100%');
+  /**
+   * Illustration from `public/illustrations/states/` by family name, e.g. `invoices`, `tasks`, `all-caught-up`.
+   * Shown above the title in the message card, or beside/above the `hint`. Leave empty for no art.
+   */
+  readonly art = input<string | null>(null);
+  /** `large` (320×240 scene) or `compact` (simplified icon-size drawing). Message cards default to large. */
+  readonly artSize = input<'large' | 'compact'>('large');
+  /** Use the still version (dense screens like the Dashboard, where many animations would play at once). */
+  readonly artStatic = input(false);
   readonly action = output<void>();
+
+  readonly artSrc = computed(() => {
+    const name = this.art();
+    if (!name) return null;
+    const dir = this.artStatic() ? 'static/' : '';
+    const size = this.artSize() === 'compact' ? '-compact' : '';
+    return `/illustrations/states/${dir}empty-${name}${size}.svg`;
+  });
 
   readonly barList = computed(() => {
     const labels = this.labels();
@@ -162,8 +197,11 @@ export class EmptyStateComponent {
     return Array.from({ length: n }, (_, i) => ({ i, h: BAR_HEIGHTS[i % BAR_HEIGHTS.length], label: labels[i] ?? null }));
   });
 
+  /** Table ghosts get two extra rows when the card has art, so the taller card fits over the rows. */
+  readonly rowCount = computed(() => this.rows() + (this.shape() === 'table-rows' && this.title() && this.art() ? 2 : 0));
+
   readonly rowList = computed(() =>
-    Array.from({ length: this.rows() }, (_, i) => ({ i, fade: FADE[Math.min(i, FADE.length - 1)] })),
+    Array.from({ length: this.rowCount() }, (_, i) => ({ i, fade: FADE[Math.min(i, FADE.length - 1)] })),
   );
 
   w(row: number, col: number, scale = 1): string {

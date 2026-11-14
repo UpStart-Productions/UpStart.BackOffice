@@ -40,6 +40,8 @@
         const length=path.getTotalLength();path.style.strokeDasharray=String(length);
         animate(path,[{strokeDashoffset:length,opacity:0},{strokeDashoffset:0,opacity:1}],duration,delay);
       }
+      large.querySelectorAll('[data-extra-star]').forEach((el,i)=>animate(el,[{opacity:0,transform:'scale(.25)'},{opacity:1,transform:'scale(1.08)',offset:.75},{opacity:1,transform:'scale(1)'}],450,1050+i*180));
+      large.querySelectorAll('[data-extra-dot]').forEach((el,i)=>animate(el,[{opacity:0},{opacity:1}],300,800+i*160));
       const kind=section.dataset.state;
       if(kind==='invoice'){
         move('backdrop',[{opacity:0},{opacity:1}],450);

@@ -1,0 +1,418 @@
+[
+  {
+    "id": "empty-tasks",
+    "title": "Tasks",
+    "category": "Work",
+    "status": "For review",
+    "motion": "Clipboard rises; boxes and lines draw individually; one check completes.",
+    "uses": [
+      "My Tasks: no assignments",
+      "Project task list / board: no tasks",
+      "Project default tasks",
+      "Project open-task preview",
+      "Dashboard: My work and Today"
+    ],
+    "large": "assets/empty-tasks.svg",
+    "compact": "assets/empty-tasks-compact.svg"
+  },
+  {
+    "id": "empty-projects",
+    "title": "Projects",
+    "category": "Work",
+    "status": "For review",
+    "motion": "Folder settles; a document rises behind the front; document details draw.",
+    "uses": [
+      "Projects: first use and no active projects",
+      "Tasks project browser",
+      "Related projects on account records",
+      "Task sidebar with no projects"
+    ],
+    "large": "assets/empty-projects.svg",
+    "compact": "assets/empty-projects-compact.svg"
+  },
+  {
+    "id": "empty-accounts",
+    "title": "Accounts",
+    "category": "Relationships",
+    "status": "For review",
+    "motion": "Buildings rise in staggered order; windows and doorway appear.",
+    "uses": [
+      "Accounts and Client-filtered accounts: first use",
+      "Linked accounts on a person"
+    ],
+    "large": "assets/empty-accounts.svg",
+    "compact": "assets/empty-accounts-compact.svg"
+  },
+  {
+    "id": "empty-people",
+    "title": "People",
+    "category": "Relationships",
+    "status": "For review",
+    "motion": "Profile cards enter; portrait resolves; contact details draw.",
+    "uses": [
+      "People: first use",
+      "People linked to an account",
+      "Project contacts",
+      "No people linked to a pipeline card"
+    ],
+    "large": "assets/empty-people.svg",
+    "compact": "assets/empty-people-compact.svg"
+  },
+  {
+    "id": "empty-team",
+    "title": "Team members",
+    "category": "Relationships",
+    "status": "For review",
+    "motion": "Team members arrive individually and a connection arc joins them.",
+    "uses": [
+      "Project members",
+      "Users list",
+      "Role with no members"
+    ],
+    "large": "assets/empty-team.svg",
+    "compact": "assets/empty-team-compact.svg"
+  },
+  {
+    "id": "empty-pipeline",
+    "title": "Pipeline",
+    "category": "Relationships",
+    "status": "For review",
+    "motion": "Board appears, lane headings draw, then example card silhouettes settle into place.",
+    "uses": [
+      "Entire pipeline with no cards; individual lanes retain text drop targets",
+      "Dashboard: relationship overview"
+    ],
+    "large": "assets/empty-pipeline.svg",
+    "compact": "assets/empty-pipeline-compact.svg"
+  },
+  {
+    "id": "empty-time",
+    "title": "Time tracking",
+    "category": "Money & time",
+    "status": "For review",
+    "motion": "Clock face settles; markers draw; hands sweep once into position.",
+    "uses": [
+      "Time tracking: no entries for day",
+      "Dashboard: My time",
+      "Time report: no entries"
+    ],
+    "large": "assets/empty-time.svg",
+    "compact": "assets/empty-time-compact.svg"
+  },
+  {
+    "id": "empty-expenses",
+    "title": "Expenses",
+    "category": "Money & time",
+    "status": "For review",
+    "motion": "Receipt rises, each expense row writes on, then the total and currency detail resolve.",
+    "uses": [
+      "Expenses: empty period",
+      "Expense reports when implemented",
+      "Receipt attachments"
+    ],
+    "large": "assets/empty-expenses.svg",
+    "compact": "assets/empty-expenses-compact.svg"
+  },
+  {
+    "id": "empty-bookings",
+    "title": "Bookings",
+    "category": "Scheduling",
+    "status": "For review",
+    "motion": "Calendar rises; day cells appear in sequence; selected day receives a small check.",
+    "uses": [
+      "Bookings: first use and selected type with no bookings",
+      "Booking calendar"
+    ],
+    "large": "assets/empty-bookings.svg",
+    "compact": "assets/empty-bookings-compact.svg"
+  },
+  {
+    "id": "empty-schedule",
+    "title": "Schedule",
+    "category": "Scheduling",
+    "status": "For review",
+    "motion": "Calendar rises; shift blocks build across the week.",
+    "uses": [
+      "Care schedule: no shifts",
+      "Care account: no upcoming shifts",
+      "Dashboard: My shifts",
+      "Scheduled vs visited hours report"
+    ],
+    "large": "assets/empty-schedule.svg",
+    "compact": "assets/empty-schedule-compact.svg"
+  },
+  {
+    "id": "empty-booking-types",
+    "title": "Booking types",
+    "category": "Scheduling",
+    "status": "For review",
+    "motion": "A calendar establishes the context; details draw and a configuration gear turns into place.",
+    "uses": [
+      "Booking types: no types configured"
+    ],
+    "large": "assets/empty-booking-types.svg",
+    "compact": "assets/empty-booking-types-compact.svg"
+  },
+  {
+    "id": "empty-forms",
+    "title": "Forms",
+    "category": "Forms",
+    "status": "For review",
+    "motion": "Form sheet rises; heading, input field, and choices draw individually.",
+    "uses": [
+      "Forms directory",
+      "Task intake forms",
+      "Account forms panel",
+      "Form with no fields"
+    ],
+    "large": "assets/empty-forms.svg",
+    "compact": "assets/empty-forms-compact.svg"
+  },
+  {
+    "id": "empty-form-submissions",
+    "title": "Form submissions",
+    "category": "Forms",
+    "status": "For review",
+    "motion": "Response paper rises; form detail writes in; a small paper plane arrives and rests.",
+    "uses": [
+      "Form submissions: none received",
+      "Activity: no forms waiting for review"
+    ],
+    "large": "assets/empty-form-submissions.svg",
+    "compact": "assets/empty-form-submissions-compact.svg"
+  },
+  {
+    "id": "empty-form-builder",
+    "title": "Form builder",
+    "category": "Forms",
+    "status": "For review",
+    "motion": "A form canvas settles, then sections and field blocks assemble from top to bottom.",
+    "uses": [
+      "Form builder: no sections or fields",
+      "Form-workspace section sidebar",
+      "Form score areas and profiles"
+    ],
+    "large": "assets/empty-form-builder.svg",
+    "compact": "assets/empty-form-builder-compact.svg"
+  },
+  {
+    "id": "empty-ledger",
+    "title": "Accounting ledger",
+    "category": "Money & time",
+    "status": "For review",
+    "motion": "Open ledger settles; matching entry lines write across both pages.",
+    "uses": [
+      "Accounting journal: first use",
+      "Chart of accounts: no accounts"
+    ],
+    "large": "assets/empty-ledger.svg",
+    "compact": "assets/empty-ledger-compact.svg"
+  },
+  {
+    "id": "empty-bank-transactions",
+    "title": "Bank transactions",
+    "category": "Money & time",
+    "status": "For review",
+    "motion": "Bank silhouette assembles; an import arrow draws once into its resting position.",
+    "uses": [
+      "Bank import: no transactions imported"
+    ],
+    "large": "assets/empty-bank-transactions.svg",
+    "compact": "assets/empty-bank-transactions-compact.svg"
+  },
+  {
+    "id": "empty-inbox",
+    "title": "Inbox",
+    "category": "Activity",
+    "status": "For review",
+    "motion": "Empty tray settles; the inner lip and a soft accent draw in.",
+    "uses": [
+      "Activity: no unfiled messages",
+      "Tasks inbox",
+      "General empty message queue"
+    ],
+    "large": "assets/empty-inbox.svg",
+    "compact": "assets/empty-inbox-compact.svg"
+  },
+  {
+    "id": "empty-all-caught-up",
+    "title": "All caught up",
+    "category": "Activity",
+    "status": "For review",
+    "motion": "Work cards settle; a completion badge appears and its check draws once.",
+    "uses": [
+      "Activity to-do queues clear",
+      "My Tasks: nothing due",
+      "People: nothing needs review",
+      "Dashboard: no overdue/unbilled work",
+      "Form submissions: nothing pending review"
+    ],
+    "large": "assets/empty-all-caught-up.svg",
+    "compact": "assets/empty-all-caught-up-compact.svg"
+  },
+  {
+    "id": "empty-activity",
+    "title": "Activity history",
+    "category": "Activity",
+    "status": "For review",
+    "motion": "Timeline draws downward; event nodes and their cards enter in order.",
+    "uses": [
+      "Account/person activity timelines",
+      "Dashboard: Since last time",
+      "Dashboard: relationship suggestions",
+      "Activity with no history"
+    ],
+    "large": "assets/empty-activity.svg",
+    "compact": "assets/empty-activity-compact.svg"
+  },
+  {
+    "id": "empty-reports",
+    "title": "Reports",
+    "category": "Reporting",
+    "status": "For review",
+    "motion": "Report panel settles; axes draw; bars build in staggered order.",
+    "uses": [
+      "Reports: not run yet",
+      "Time/invoice/task reports: empty date range",
+      "Care hours report: no shifts/visits",
+      "Dashboard: first-run financial/time charts"
+    ],
+    "large": "assets/empty-reports.svg",
+    "compact": "assets/empty-reports-compact.svg"
+  },
+  {
+    "id": "empty-files",
+    "title": "Files & attachments",
+    "category": "Record details",
+    "status": "For review",
+    "motion": "Document sheets settle; details write on and the paperclip draws around the attachment.",
+    "uses": [
+      "Shared file attachments",
+      "Record file panels"
+    ],
+    "large": "assets/empty-files.svg",
+    "compact": "assets/empty-files-compact.svg"
+  },
+  {
+    "id": "empty-links",
+    "title": "Saved links",
+    "category": "Record details",
+    "status": "For review",
+    "motion": "Two link halves slide gently into their connected resting position.",
+    "uses": [
+      "Shared saved links",
+      "Form share links"
+    ],
+    "large": "assets/empty-links.svg",
+    "compact": "assets/empty-links-compact.svg"
+  },
+  {
+    "id": "empty-notes",
+    "title": "Notes",
+    "category": "Record details",
+    "status": "For review",
+    "motion": "Notebook rises; note lines draw one by one; pencil settles beside it.",
+    "uses": [
+      "Shared notes",
+      "Task description if a larger prompt is appropriate"
+    ],
+    "large": "assets/empty-notes.svg",
+    "compact": "assets/empty-notes-compact.svg"
+  },
+  {
+    "id": "empty-comments",
+    "title": "Comments",
+    "category": "Record details",
+    "status": "For review",
+    "motion": "Comment bubble arrives; its three dots appear once in a short sequence and stay still.",
+    "uses": [
+      "Task comments",
+      "Other comment threads"
+    ],
+    "large": "assets/empty-comments.svg",
+    "compact": "assets/empty-comments-compact.svg"
+  },
+  {
+    "id": "empty-conversations",
+    "title": "Conversations",
+    "category": "Activity",
+    "status": "For review",
+    "motion": "Opening message bubble arrives; a reply follows; message lines reveal in reading order.",
+    "uses": [
+      "Help assistant: no saved conversations",
+      "Help report viewer: no messages"
+    ],
+    "large": "assets/empty-conversations.svg",
+    "compact": "assets/empty-conversations-compact.svg"
+  },
+  {
+    "id": "empty-search",
+    "title": "No matches",
+    "category": "Search",
+    "status": "For review",
+    "motion": "Magnifying glass makes one short search movement and settles; a neutral dash indicates no matches.",
+    "uses": [
+      "Global search",
+      "Filtered accounts, people, projects, invoices, forms and tasks",
+      "Filtered bookings, expenses and activity",
+      "Compact no-match pickers"
+    ],
+    "large": "assets/empty-search.svg",
+    "compact": "assets/empty-search-compact.svg"
+  },
+  {
+    "id": "empty-settings",
+    "title": "Configuration",
+    "category": "Settings",
+    "status": "For review",
+    "motion": "Configuration sliders draw; controls appear; the gear makes one short settling turn.",
+    "uses": [
+      "Expense categories",
+      "Expense payment methods",
+      "Custom organization-field options",
+      "Project custom fields",
+      "Form scoring roles/profiles",
+      "Other empty configuration lists"
+    ],
+    "large": "assets/empty-settings.svg",
+    "compact": "assets/empty-settings-compact.svg"
+  },
+  {
+    "id": "empty-api-keys",
+    "title": "API keys",
+    "category": "Settings",
+    "status": "For review",
+    "motion": "A credential card settles; a simple key turns into place without displaying secret data.",
+    "uses": [
+      "Settings: no API keys"
+    ],
+    "large": "assets/empty-api-keys.svg",
+    "compact": "assets/empty-api-keys-compact.svg"
+  },
+  {
+    "id": "empty-notifications",
+    "title": "Notifications",
+    "category": "Activity",
+    "status": "For review",
+    "motion": "Bell makes one gentle pivot and settles; a single light accent completes.",
+    "uses": [
+      "Notifications dropdown: no unread notifications"
+    ],
+    "large": "assets/empty-notifications.svg",
+    "compact": "assets/empty-notifications-compact.svg"
+  },
+  {
+    "id": "empty-line-items",
+    "title": "Line items",
+    "category": "Money & time",
+    "status": "For review",
+    "motion": "Register panel appears; line-item bullets, descriptions, and amounts draw in sequence.",
+    "uses": [
+      "Invoice editor: no line items",
+      "Invoice detail: no line items",
+      "No uninvoiced time or reimbursable expenses in a selected period"
+    ],
+    "large": "assets/empty-line-items.svg",
+    "compact": "assets/empty-line-items-compact.svg"
+  }
+]

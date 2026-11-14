@@ -1,0 +1,306 @@
+{
+  "svgCount": 60,
+  "selfContained": true,
+  "checks": [
+    {
+      "file": "empty-reports-compact.svg",
+      "bytes": 2538,
+      "durationMs": 1400
+    },
+    {
+      "file": "empty-form-submissions.svg",
+      "bytes": 3992,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-all-caught-up-compact.svg",
+      "bytes": 2329,
+      "durationMs": 1050
+    },
+    {
+      "file": "empty-activity.svg",
+      "bytes": 4494,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-all-caught-up.svg",
+      "bytes": 3654,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-line-items-compact.svg",
+      "bytes": 2576,
+      "durationMs": 1370
+    },
+    {
+      "file": "empty-bookings.svg",
+      "bytes": 3857,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-schedule.svg",
+      "bytes": 3882,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-pipeline.svg",
+      "bytes": 4145,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-forms-compact.svg",
+      "bytes": 2561,
+      "durationMs": 1520
+    },
+    {
+      "file": "empty-files-compact.svg",
+      "bytes": 2524,
+      "durationMs": 1300
+    },
+    {
+      "file": "empty-form-builder-compact.svg",
+      "bytes": 2426,
+      "durationMs": 1150
+    },
+    {
+      "file": "empty-search.svg",
+      "bytes": 3617,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-notifications-compact.svg",
+      "bytes": 2253,
+      "durationMs": 1000
+    },
+    {
+      "file": "empty-accounts.svg",
+      "bytes": 4139,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-form-builder.svg",
+      "bytes": 4131,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-pipeline-compact.svg",
+      "bytes": 2492,
+      "durationMs": 1100
+    },
+    {
+      "file": "empty-links.svg",
+      "bytes": 3278,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-booking-types.svg",
+      "bytes": 4025,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-bank-transactions-compact.svg",
+      "bytes": 2261,
+      "durationMs": 650
+    },
+    {
+      "file": "empty-api-keys.svg",
+      "bytes": 3212,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-conversations-compact.svg",
+      "bytes": 2452,
+      "durationMs": 1100
+    },
+    {
+      "file": "empty-expenses.svg",
+      "bytes": 4279,
+      "durationMs": 2850
+    },
+    {
+      "file": "empty-reports.svg",
+      "bytes": 3415,
+      "durationMs": 2620
+    },
+    {
+      "file": "empty-conversations.svg",
+      "bytes": 3459,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-forms.svg",
+      "bytes": 3742,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-bank-transactions.svg",
+      "bytes": 3927,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-notes-compact.svg",
+      "bytes": 2640,
+      "durationMs": 1420
+    },
+    {
+      "file": "empty-activity-compact.svg",
+      "bytes": 2992,
+      "durationMs": 1220
+    },
+    {
+      "file": "empty-notifications.svg",
+      "bytes": 3085,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-settings.svg",
+      "bytes": 4393,
+      "durationMs": 2600
+    },
+    {
+      "file": "empty-projects.svg",
+      "bytes": 3519,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-people-compact.svg",
+      "bytes": 2566,
+      "durationMs": 1170
+    },
+    {
+      "file": "empty-time-compact.svg",
+      "bytes": 2295,
+      "durationMs": 1100
+    },
+    {
+      "file": "empty-links-compact.svg",
+      "bytes": 2354,
+      "durationMs": 1000
+    },
+    {
+      "file": "empty-expenses-compact.svg",
+      "bytes": 2585,
+      "durationMs": 1420
+    },
+    {
+      "file": "empty-ledger.svg",
+      "bytes": 4171,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-people.svg",
+      "bytes": 3877,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-schedule-compact.svg",
+      "bytes": 2502,
+      "durationMs": 1300
+    },
+    {
+      "file": "empty-form-submissions-compact.svg",
+      "bytes": 2421,
+      "durationMs": 1000
+    },
+    {
+      "file": "empty-search-compact.svg",
+      "bytes": 2363,
+      "durationMs": 1070
+    },
+    {
+      "file": "empty-ledger-compact.svg",
+      "bytes": 2545,
+      "durationMs": 1220
+    },
+    {
+      "file": "empty-team.svg",
+      "bytes": 3573,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-tasks-compact.svg",
+      "bytes": 2592,
+      "durationMs": 1020
+    },
+    {
+      "file": "empty-team-compact.svg",
+      "bytes": 2836,
+      "durationMs": 930
+    },
+    {
+      "file": "empty-files.svg",
+      "bytes": 3974,
+      "durationMs": 2750
+    },
+    {
+      "file": "empty-settings-compact.svg",
+      "bytes": 2683,
+      "durationMs": 1000
+    },
+    {
+      "file": "empty-inbox.svg",
+      "bytes": 3292,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-tasks.svg",
+      "bytes": 3964,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-comments-compact.svg",
+      "bytes": 2541,
+      "durationMs": 1170
+    },
+    {
+      "file": "empty-api-keys-compact.svg",
+      "bytes": 2322,
+      "durationMs": 850
+    },
+    {
+      "file": "empty-line-items.svg",
+      "bytes": 4098,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-bookings-compact.svg",
+      "bytes": 2376,
+      "durationMs": 1100
+    },
+    {
+      "file": "empty-booking-types-compact.svg",
+      "bytes": 2949,
+      "durationMs": 1200
+    },
+    {
+      "file": "empty-time.svg",
+      "bytes": 3724,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-comments.svg",
+      "bytes": 3128,
+      "durationMs": 2580
+    },
+    {
+      "file": "empty-accounts-compact.svg",
+      "bytes": 2599,
+      "durationMs": 1070
+    },
+    {
+      "file": "empty-projects-compact.svg",
+      "bytes": 2306,
+      "durationMs": 720
+    },
+    {
+      "file": "empty-inbox-compact.svg",
+      "bytes": 2238,
+      "durationMs": 650
+    },
+    {
+      "file": "empty-notes.svg",
+      "bytes": 3656,
+      "durationMs": 2580
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Conversations"><title>Conversations</title><style>
+@keyframes appear{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slide{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes reveal{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes grow{0%{opacity:0;transform:scale(.65)}80%{opacity:1;transform:scale(1.025)}100%{opacity:1;transform:scale(1)}}
+@keyframes trace{from{stroke-dashoffset:1;opacity:0}to{stroke-dashoffset:0;opacity:1}}
+@keyframes turn{from{opacity:0;transform:rotate(-32deg)}to{opacity:1;transform:rotate(0)}}
+@keyframes swing{0%{transform:rotate(-8deg);opacity:0}55%{transform:rotate(4deg);opacity:1}80%{transform:rotate(-1deg)}100%{transform:rotate(0);opacity:1}}
+@keyframes scan{0%{transform:translate(-6px,4px);opacity:0}35%{transform:translate(2px,-2px);opacity:1}70%{transform:translate(-2px,0);opacity:1}100%{transform:translate(0,0);opacity:1}}
+.appear,.rise,.slide,.reveal,.grow,.turn,.swing,.scan,.trace{animation-duration:var(--duration,650ms);animation-delay:var(--delay,0ms);animation-fill-mode:both;animation-iteration-count:1;animation-timing-function:cubic-bezier(.22,1,.36,1);transform-box:fill-box;transform-origin:center}
+.appear{animation-name:appear}.rise{animation-name:rise}.slide{animation-name:slide}.reveal{animation-name:reveal;transform-origin:left center}.grow{animation-name:grow}.turn{animation-name:turn}.swing{animation-name:swing;transform-origin:center top}.scan{animation-name:scan}.trace{animation-name:trace;stroke-dasharray:1;stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){.appear,.rise,.slide,.reveal,.grow,.turn,.swing,.scan,.trace{animation:none!important;transform:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+</style><g stroke-linecap="round" stroke-linejoin="round"><g class="rise" style="--delay:0ms;--duration:550ms"><path d="M6.3 4H21.7Q25 4 25 7.3V16.7Q25 20 21.7 20H8.28L5.2 24.0V20Q3 20 3 16.7V7.3Q3 4 6.3 4Z" fill="#FFFFFF" stroke="#28334A" stroke-width="1.5"/></g><g class="slide" style="--delay:450ms;--duration:650ms"><path d="M14.5 16H26.5Q29 16 29 18.5V23.5Q29 26 26.5 26H16.08L13.7 28.5V26Q12 26 12 23.5V18.5Q12 16 14.5 16Z" fill="#BCE5D8" stroke="#28334A" stroke-width="1.5"/></g></g></svg>

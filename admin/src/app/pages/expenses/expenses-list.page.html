@@ -166,6 +166,7 @@
       <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2" aria-hidden="true"></i>Loading…</p>
     } @else if (!expenseGroups().length && !hasNarrowingFilters()) {
       <app-empty-state
+        art="expenses"
         shape="list"
         [rows]="4"
         title="No expenses in this period"

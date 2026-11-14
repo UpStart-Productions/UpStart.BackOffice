@@ -96,7 +96,7 @@ Do not add another people side panel, `people-card`, or inline pickers on featur
 - **Boards:** `shape="cards"` (Pipeline lanes). **Empty charts:** `shape="bars"` (Dashboard Financial health, Time).
 - **In use on:** Invoices, Accounts, People, Projects, Forms, Bookings, Journal, Expenses, Time, Pipeline, the Activity timeline, and the Dashboard panels.
 - Show it only when the area has never had data (`firstRunEmpty`), not for "no search results" — keep the plain message for those.
-- Animations/illustrations go in `<ng-container ngProjectAs="[emptyArt]">`. Do not build another empty-state or skeleton block.
+- **Illustrations:** set `art="<family>"` (files in `admin/public/illustrations/states/`, e.g. `invoices`, `accounts`, `tasks`, `all-caught-up`), `artSize="large|compact"`, and `[artStatic]="true"` on dense screens (Dashboard). Pick art from `illustrations/states/placement-map.md`. Never use first-use art for a failed load. `[emptyArt]` projection is only for something custom. Do not build another empty-state or skeleton block.
 
 ## Main card: tabs + `p-table`
 

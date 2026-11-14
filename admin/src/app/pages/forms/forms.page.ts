@@ -113,6 +113,7 @@ import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-
           <ng-template pTemplate="emptymessage">
             @if (!loading() && !error() && items().length === 0) {
               <app-empty-state
+                art="forms"
                 shape="table-rows"
                 [columns]="ghostColumns"
                 title="Build your first form"

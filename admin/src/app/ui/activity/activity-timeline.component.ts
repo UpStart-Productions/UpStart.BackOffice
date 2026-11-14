@@ -244,7 +244,7 @@ function nowForInput(): string {
           }
         </div>
       } @else if (items().length === 0) {
-        <app-empty-state shape="list" [rows]="4" [hint]="emptyMessage()" />
+        <app-empty-state art="activity" [artSize]="global() ? 'large' : 'compact'" shape="list" [rows]="4" [hint]="emptyMessage()" />
       } @else if (visible().length === 0) {
         <div class="empty-state">
           <i class="pi" [class.pi-search]="query().trim()" [class.pi-filter]="!query().trim()" aria-hidden="true"></i>

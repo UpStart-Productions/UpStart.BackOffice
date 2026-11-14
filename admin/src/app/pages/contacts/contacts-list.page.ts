@@ -166,6 +166,7 @@ type PeopleTableRow = ContactSummary & {
           <ng-template pTemplate="emptymessage">
             @if (!loading() && !error() && contacts().length === 0 && !query && !tag && !review()) {
               <app-empty-state
+                art="people"
                 shape="table-rows"
                 [columns]="ghostColumns"
                 title="Add your first person"

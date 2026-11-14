@@ -44,6 +44,7 @@
       <ng-template pTemplate="emptymessage">
         @if (!loading() && !error()) {
           <app-empty-state
+            art="ledger"
             shape="table-rows"
             [columns]="ghostColumns"
             title="Your journal starts here"

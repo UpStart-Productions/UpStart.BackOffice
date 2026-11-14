@@ -1,0 +1,422 @@
+[
+  {
+    "file": "empty-tasks.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31320,
+    "bytes": 3964
+  },
+  {
+    "file": "empty-tasks-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 537,
+    "bytes": 2592
+  },
+  {
+    "file": "empty-projects.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31530,
+    "bytes": 3519
+  },
+  {
+    "file": "empty-projects-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 514,
+    "bytes": 2306
+  },
+  {
+    "file": "empty-accounts.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31429,
+    "bytes": 4139
+  },
+  {
+    "file": "empty-accounts-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 547,
+    "bytes": 2599
+  },
+  {
+    "file": "empty-people.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31508,
+    "bytes": 3877
+  },
+  {
+    "file": "empty-people-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 638,
+    "bytes": 2566
+  },
+  {
+    "file": "empty-team.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3573
+  },
+  {
+    "file": "empty-team-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 436,
+    "bytes": 2836
+  },
+  {
+    "file": "empty-pipeline.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31718,
+    "bytes": 4145
+  },
+  {
+    "file": "empty-pipeline-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 696,
+    "bytes": 2492
+  },
+  {
+    "file": "empty-time.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3724
+  },
+  {
+    "file": "empty-time-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 556,
+    "bytes": 2295
+  },
+  {
+    "file": "empty-expenses.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 4279
+  },
+  {
+    "file": "empty-expenses-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 554,
+    "bytes": 2585
+  },
+  {
+    "file": "empty-bookings.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3857
+  },
+  {
+    "file": "empty-bookings-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 624,
+    "bytes": 2376
+  },
+  {
+    "file": "empty-schedule.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3882
+  },
+  {
+    "file": "empty-schedule-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 624,
+    "bytes": 2502
+  },
+  {
+    "file": "empty-booking-types.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 4025
+  },
+  {
+    "file": "empty-booking-types-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 586,
+    "bytes": 2949
+  },
+  {
+    "file": "empty-forms.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3742
+  },
+  {
+    "file": "empty-forms-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 584,
+    "bytes": 2561
+  },
+  {
+    "file": "empty-form-submissions.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31637,
+    "bytes": 3992
+  },
+  {
+    "file": "empty-form-submissions-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 547,
+    "bytes": 2421
+  },
+  {
+    "file": "empty-form-builder.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31304,
+    "bytes": 4131
+  },
+  {
+    "file": "empty-form-builder-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 724,
+    "bytes": 2426
+  },
+  {
+    "file": "empty-ledger.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31350,
+    "bytes": 4171
+  },
+  {
+    "file": "empty-ledger-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 620,
+    "bytes": 2545
+  },
+  {
+    "file": "empty-bank-transactions.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31614,
+    "bytes": 3927
+  },
+  {
+    "file": "empty-bank-transactions-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 302,
+    "bytes": 2261
+  },
+  {
+    "file": "empty-inbox.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31627,
+    "bytes": 3292
+  },
+  {
+    "file": "empty-inbox-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 496,
+    "bytes": 2238
+  },
+  {
+    "file": "empty-all-caught-up.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3654
+  },
+  {
+    "file": "empty-all-caught-up-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 648,
+    "bytes": 2329
+  },
+  {
+    "file": "empty-activity.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 4494
+  },
+  {
+    "file": "empty-activity-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 234,
+    "bytes": 2992
+  },
+  {
+    "file": "empty-reports.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31332,
+    "bytes": 3415
+  },
+  {
+    "file": "empty-reports-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 724,
+    "bytes": 2538
+  },
+  {
+    "file": "empty-files.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31271,
+    "bytes": 3974
+  },
+  {
+    "file": "empty-files-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 538,
+    "bytes": 2524
+  },
+  {
+    "file": "empty-links.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3278
+  },
+  {
+    "file": "empty-links-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 348,
+    "bytes": 2354
+  },
+  {
+    "file": "empty-notes.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31305,
+    "bytes": 3656
+  },
+  {
+    "file": "empty-notes-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 612,
+    "bytes": 2640
+  },
+  {
+    "file": "empty-comments.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31268,
+    "bytes": 3128
+  },
+  {
+    "file": "empty-comments-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 570,
+    "bytes": 2541
+  },
+  {
+    "file": "empty-conversations.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31276,
+    "bytes": 3459
+  },
+  {
+    "file": "empty-conversations-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 590,
+    "bytes": 2452
+  },
+  {
+    "file": "empty-search.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3617
+  },
+  {
+    "file": "empty-search-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 387,
+    "bytes": 2363
+  },
+  {
+    "file": "empty-settings.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31292,
+    "bytes": 4393
+  },
+  {
+    "file": "empty-settings-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 524,
+    "bytes": 2683
+  },
+  {
+    "file": "empty-api-keys.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3212
+  },
+  {
+    "file": "empty-api-keys-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 308,
+    "bytes": 2322
+  },
+  {
+    "file": "empty-notifications.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31258,
+    "bytes": 3085
+  },
+  {
+    "file": "empty-notifications-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 415,
+    "bytes": 2253
+  },
+  {
+    "file": "empty-line-items.svg",
+    "width": 320,
+    "height": 240,
+    "nontransparentPixels": 31314,
+    "bytes": 4098
+  },
+  {
+    "file": "empty-line-items-compact.svg",
+    "width": 32,
+    "height": 32,
+    "nontransparentPixels": 646,
+    "bytes": 2576
+  }
+]

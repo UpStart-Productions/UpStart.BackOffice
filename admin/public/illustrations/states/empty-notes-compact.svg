@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="Notes"><title>Notes</title><style>
+@keyframes drift{0%,100%{transform:translate(0,0)}30%{transform:translate(2px,-3px)}70%{transform:translate(-2px,2px)}}
+@keyframes drift-small{0%,100%{transform:translate(0,0)}30%{transform:translate(.5px,-.7px)}70%{transform:translate(-.5px,.5px)}}
+@keyframes drop{0%{opacity:0;transform:translateY(-52px)}75%{opacity:1;transform:translateY(2px)}100%{opacity:1;transform:translateY(0)}}
+.drift{animation:drift 4200ms 1700ms ease-in-out 2 both;transform-box:fill-box;transform-origin:center}
+.drift-small{animation:drift-small 4200ms 1300ms ease-in-out 2 both;transform-box:fill-box;transform-origin:center}
+.drop{animation:drop var(--duration,800ms) var(--delay,900ms) cubic-bezier(.22,1,.36,1) both;transform-box:fill-box;transform-origin:center}
+@keyframes appear{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slide{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes reveal{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes grow{0%{opacity:0;transform:scale(.65)}80%{opacity:1;transform:scale(1.025)}100%{opacity:1;transform:scale(1)}}
+@keyframes trace{from{stroke-dashoffset:1;opacity:0}to{stroke-dashoffset:0;opacity:1}}
+@keyframes turn{from{opacity:0;transform:rotate(-32deg)}to{opacity:1;transform:rotate(0)}}
+@keyframes swing{0%{transform:rotate(-8deg);opacity:0}55%{transform:rotate(4deg);opacity:1}80%{transform:rotate(-1deg)}100%{transform:rotate(0);opacity:1}}
+@keyframes scan{0%{transform:translate(-6px,4px);opacity:0}35%{transform:translate(2px,-2px);opacity:1}70%{transform:translate(-2px,0);opacity:1}100%{transform:translate(0,0);opacity:1}}
+.appear,.rise,.slide,.reveal,.grow,.turn,.swing,.scan,.trace{animation-duration:var(--duration,650ms);animation-delay:var(--delay,0ms);animation-fill-mode:both;animation-iteration-count:1;animation-timing-function:cubic-bezier(.22,1,.36,1);transform-box:fill-box;transform-origin:center}
+.appear{animation-name:appear}.rise{animation-name:rise}.slide{animation-name:slide}.reveal{animation-name:reveal;transform-origin:left center}.grow{animation-name:grow}.turn{animation-name:turn}.swing{animation-name:swing;transform-origin:center top}.scan{animation-name:scan}.trace{animation-name:trace;stroke-dasharray:1;stroke-dashoffset:0}
+@media(prefers-reduced-motion:reduce){.drift,.drift-small,.drop,.appear,.rise,.slide,.reveal,.grow,.turn,.swing,.scan,.trace{animation:none!important;transform:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+</style><g stroke-linecap="round" stroke-linejoin="round"><g class="rise" style="--delay:0ms;--duration:550ms"><rect x="6" y="3" width="20" height="26" rx="3" fill="#FFFFFF" stroke="#4C1D95" stroke-width="1.5"/></g><path d="M11 3V29" fill="none" stroke="#7C5CE7" stroke-width="2"/><path d="M15 11h7" fill="none" stroke="#C9D4E6" stroke-width="1.5" class="trace" style="--delay:600ms;--duration:420ms" pathLength="1"/><path d="M15 17h7" fill="none" stroke="#C9D4E6" stroke-width="1.5" class="trace" style="--delay:800ms;--duration:420ms" pathLength="1"/><path d="M15 23h5" fill="none" stroke="#C9D4E6" stroke-width="1.5" class="trace" style="--delay:1000ms;--duration:420ms" pathLength="1"/></g></svg>

@@ -67,6 +67,10 @@ tr.empty-ghost-overlay-row > td {
 .empty-ghost-overlay--list {
   top: 0;
 }
+/* Room for the message card (with art) over a short ghost list. */
+.empty-ghost-list-rows:has(> .empty-ghost-overlay) {
+  min-height: 24rem;
+}
 .empty-ghost-hint {
   margin: 0.25rem 0 0.35rem;
   font-size: var(--fs-base);
@@ -140,7 +144,33 @@ tr.empty-ghost-overlay-row > td {
   color: var(--text-color-secondary);
   line-height: 1.5;
 }
+.empty-ghost-card > .empty-ghost-art,
 .empty-ghost-card > :first-child:not(.empty-ghost-title) {
   display: block;
-  margin: 0 auto 0.75rem;
+  margin: 0 auto 0.5rem;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Hint with art: compact art sits beside the line; large art is centered above it. */
+.empty-ghost-hint-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.empty-ghost-hint-row .empty-ghost-hint {
+  margin: 0.25rem 0 0.35rem;
+}
+.empty-ghost-hint-row .empty-ghost-art {
+  flex: none;
+}
+.empty-ghost-hint-row--large {
+  flex-direction: column;
+  text-align: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+.empty-ghost-hint-row--large .empty-ghost-art {
+  max-width: 100%;
+  height: auto;
 }

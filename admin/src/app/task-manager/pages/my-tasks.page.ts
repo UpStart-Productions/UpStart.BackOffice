@@ -57,6 +57,7 @@ type Bucket = { key: string; label: string; tasks: MyTask[] };
         <div class="card"><p class="text-color-secondary">{{ error() }}</p></div>
       } @else if (!tasks().length && !tagFilter().length) {
         <app-empty-state
+          art="tasks"
           shape="list"
           [rows]="5"
           title="No tasks assigned to you yet"

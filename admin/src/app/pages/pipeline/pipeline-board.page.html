@@ -201,6 +201,7 @@
 
               @if (boardEmpty()) {
                 <app-empty-state
+                  [art]="$first ? 'pipeline' : null"
                   shape="cards"
                   [rows]="$first ? 3 : $index === 1 ? 2 : 1"
                   [hint]="$first ? 'Cards for deals and prospects show up here. Drag them across lanes as they move.' : null"

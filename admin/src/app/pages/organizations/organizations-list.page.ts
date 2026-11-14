@@ -145,6 +145,7 @@ type StatusFilter = 'all' | AccountJourney;
           <ng-template pTemplate="emptymessage">
             @if (firstRunEmpty()) {
               <app-empty-state
+                art="accounts"
                 shape="table-rows"
                 [columns]="ghostColumns"
                 title="Add your first account"
