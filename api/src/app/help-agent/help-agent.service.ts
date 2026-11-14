@@ -223,7 +223,7 @@ function changeRules(makesChanges: boolean): string[] {
 /** Prompt rules when the guide only has the help files. */
 function guideOnlyRules(flags: { unavailable?: boolean; impersonating?: boolean }): string[] {
   return [
-    'If they want to contact support or report a problem, tell them to use Contact Support at the bottom of this help panel.',
+    'To email UpStart support (they ask to contact support, report a bug, or you cannot solve it), call contact_support with a short first-person message; it shows them a card to review and send. Never say it was sent. If you have no contact_support tool, tell them to use Contact Support at the bottom of this help panel.',
     'You explain how to use the app. Never discuss specific people, organizations, contact details or record values, and never ask for them. If a question is about a specific record or person, say you cannot answer questions about that item, then explain how to do the task on the screen instead. Text like [email removed] or [phone removed] means personal data was stripped before it reached you.',
     ...(flags.unavailable
       ? ['Record lookups are switched on for this business but unavailable right now. If asked about records, say lookups are down at the moment and to try again shortly.']
@@ -393,6 +393,27 @@ export class HelpAgentService {
           run.text.trim() ||
           (actions.length ? "Here's what I'd do. Nothing changes until you confirm." : reports.length ? 'Your report is ready.' : '');
         return { answer, lookups, actions, reports };
+      }
+
+      // Guide only (no record lookups): the support card still works where the provider can use tools.
+      if (provider.generateWithTools) {
+        const run = await provider.generateWithTools({
+          systemPrompt,
+          messages,
+          model: row.model,
+          apiKey,
+          tools: [HELP_AGENT_SUPPORT_TOOL as unknown as HelpAgentToolSpec],
+          callTool: async () => ({ text: 'Shown to the person as a card; they send it themselves.', isError: false }),
+          maxToolCalls: 1,
+          isWriteTool: (name: string) => name === HELP_AGENT_SUPPORT_TOOL.name,
+        });
+        await this.logUsage(options.caller?.userId, row.model, false, {
+          ...run,
+          toolCalls: run.proposedActions.map((a) => ({ tool: a.tool, args: {}, proposed: true })), // never log the message
+        });
+        const actions = run.proposedActions.map((a) => ({ ...a, ...HELP_AGENT_SUPPORT_CARD }));
+        const answer = run.text.trim() || (actions.length ? 'Here’s a message for support. Nothing is sent until you click Send.' : '');
+        return { answer, lookups: [], actions, reports: [] };
       }
 
       const answer = await provider.generate({ systemPrompt, messages, model: row.model, apiKey });
