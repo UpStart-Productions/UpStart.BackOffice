@@ -1,3 +1,5 @@
+import { HELP_AGENT_SUPPORT_TOOL, supportTopicIdFromLabel } from '@upstart/back-office/shared';
+import { buildClientEnvironment } from '../support-feedback-modal/support-feedback-modal.component';
 import { Component, computed, DestroyRef, effect, ElementRef, inject, OnInit, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -370,6 +372,23 @@ export class HelpAgentChatPaneComponent implements OnInit {
     const action = this.chatMessages()[messageIndex]?.actions?.[actionIndex];
     if (!action || action.status === 'running' || action.status === 'done') return;
     this.patchAction(messageIndex, actionIndex, { args, status: 'running', error: undefined });
+    if (action.tool === HELP_AGENT_SUPPORT_TOOL.name) {
+      try {
+        await this.api.post('/support/feedback', {
+          topicIds: [supportTopicIdFromLabel(args['topic'])],
+          message: String(args['message'] ?? '').trim(),
+          clientEnvironment: buildClientEnvironment(),
+        });
+        const text = 'Sent to UpStart support. You’ll get a reply by email.';
+        this.patchAction(messageIndex, actionIndex, { status: 'done', resultText: text });
+        this.chatMessages.update((msgs) => [...msgs, { role: 'assistant', text }]);
+        this.persistChat();
+        this.scrollLastMessageIntoView();
+      } catch (err) {
+        this.patchAction(messageIndex, actionIndex, { status: 'failed', error: err instanceof Error ? err.message : 'Your message did not send.' });
+      }
+      return;
+    }
     try {
       const res = await this.api.post<{ result: string; isError: boolean }>('/help-agent/actions/run', {
         tool: action.tool,

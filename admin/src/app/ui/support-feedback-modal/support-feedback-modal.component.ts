@@ -14,7 +14,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 
-function buildClientEnvironment(): SupportClientEnvironment {
+export function buildClientEnvironment(): SupportClientEnvironment {
   const languages = Array.from(navigator.languages?.length ? navigator.languages : [navigator.language]);
   return {
     href: window.location?.href ?? '',

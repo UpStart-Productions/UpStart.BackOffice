@@ -1,3 +1,4 @@
+import { HELP_AGENT_SUPPORT_CARD, HELP_AGENT_SUPPORT_TOOL } from '@upstart/back-office/shared';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
@@ -193,6 +194,7 @@ function recordRules(): string[] {
     'Tool results link record names like [Fix login bug](https://…). Whenever you mention one of those records, keep its markdown link exactly as given so the person can click straight to it. Never write, change or guess a link yourself.',
     'If a name matches several records, ask which one. Never guess or pick one yourself.',
     'Reports: when they ask for a report, a PDF or something to print or export, look the records up, then call make_report once with the content. Use only values from your tool results, list every matching record (never a sample), leave totals to the report, and reply with one short line. A report is only for reading: it never changes anything.',
+    'To email UpStart support (they ask to contact support, report a bug, or you cannot solve it), call contact_support with a short first-person message; it shows them a card to review and send. Never say it was sent.',
     'For communication history (emails, calls, meetings, notes with a person or account), use list_activity; for a report of it, put each item in a conversation block, oldest first.',
     'For forms, use get_form to see a form\'s sections, questions, options, points and scoring, list_form_submissions for responses with scores, and get_form_submission for one response\'s answers and score by area.',
     'For unbilled time, use preview_invoice_from_time. A project name alone is enough (its client is used); only ask for a client when they named neither. Default to the current month unless they say otherwise.',
@@ -221,6 +223,7 @@ function changeRules(makesChanges: boolean): string[] {
 /** Prompt rules when the guide only has the help files. */
 function guideOnlyRules(flags: { unavailable?: boolean; impersonating?: boolean }): string[] {
   return [
+    'If they want to contact support or report a problem, tell them to use Contact Support at the bottom of this help panel.',
     'You explain how to use the app. Never discuss specific people, organizations, contact details or record values, and never ask for them. If a question is about a specific record or person, say you cannot answer questions about that item, then explain how to do the task on the screen instead. Text like [email removed] or [phone removed] means personal data was stripped before it reached you.',
     ...(flags.unavailable
       ? ['Record lookups are switched on for this business but unavailable right now. If asked about records, say lookups are down at the moment and to try again shortly.']
@@ -343,6 +346,9 @@ export class HelpAgentService {
         const reports: HelpAgentReport[] = [];
         const looked: string[] = [];
         const callTool = async (name: string, args: Record<string, unknown>) => {
+          if (name === HELP_AGENT_SUPPORT_TOOL.name) {
+            return { text: 'Shown to the person as a card; they send it themselves.', isError: false }; // proposals stop before this
+          }
           if (name !== HELP_AGENT_REPORT_TOOL.name) {
             const out = await mode.session.call(name, args);
             if (!out.isError) looked.push(HELP_AGENT_TOOL_LABELS[name] ?? name);
@@ -361,10 +367,15 @@ export class HelpAgentService {
           messages,
           model: row.model,
           apiKey,
-          tools: [...mode.session.tools, HELP_AGENT_REPORT_TOOL as unknown as HelpAgentToolSpec],
+          tools: [
+            ...mode.session.tools,
+            HELP_AGENT_REPORT_TOOL as unknown as HelpAgentToolSpec,
+            HELP_AGENT_SUPPORT_TOOL as unknown as HelpAgentToolSpec,
+          ],
           callTool,
           maxToolCalls: MAX_TOOL_CALLS,
-          ...(mode.makesChanges ? { isWriteTool: isHelpAgentWriteTool } : {}),
+          // Support messages are always a card to send, even when changes are off.
+          isWriteTool: (name: string) => name === HELP_AGENT_SUPPORT_TOOL.name || (mode.makesChanges && isHelpAgentWriteTool(name)),
         });
         const proposed = run.proposedActions.map((a) => ({ ...a, proposed: true }));
         // A report's contents are record data: the usage log keeps only its title.
@@ -374,7 +385,10 @@ export class HelpAgentService {
           toolCalls: [...logged, ...proposed],
         });
         const lookups = [...new Set(run.toolCalls.filter((c) => c.tool !== HELP_AGENT_REPORT_TOOL.name).map((c) => HELP_AGENT_TOOL_LABELS[c.tool] ?? c.tool))];
-        const actions = run.proposedActions.map((a) => ({ ...a, ...HELP_AGENT_WRITE_TOOLS[a.tool] }));
+        const actions = run.proposedActions.map((a) => ({
+          ...a,
+          ...(a.tool === HELP_AGENT_SUPPORT_TOOL.name ? HELP_AGENT_SUPPORT_CARD : HELP_AGENT_WRITE_TOOLS[a.tool]),
+        }));
         const answer =
           run.text.trim() ||
           (actions.length ? "Here's what I'd do. Nothing changes until you confirm." : reports.length ? 'Your report is ready.' : '');
