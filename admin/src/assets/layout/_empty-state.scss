@@ -190,6 +190,10 @@ tr.empty-ghost-overlay-row > td {
 .empty-ghost-hint-row .empty-ghost-art {
   flex: none;
 }
+/* Compact art sits a little left so it lines up with the panel's edge rather than the ghost avatars. */
+.empty-ghost-hint-row:not(.empty-ghost-hint-row--large) .empty-ghost-art {
+  margin-left: -5px;
+}
 .empty-ghost-hint-row--large {
   flex-direction: column;
   text-align: center;
