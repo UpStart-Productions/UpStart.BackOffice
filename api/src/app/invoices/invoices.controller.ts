@@ -86,6 +86,17 @@ function isoDate(d: Date | null | undefined): string {
   return d ? d.toISOString().slice(0, 10) : '';
 }
 
+
+/** Dashboard date range (?from=&to= ISO). Bad or missing values are ignored. */
+function optionalRange(from?: string, to?: string): { from?: Date; to?: Date } {
+  const f = from ? new Date(from) : undefined;
+  const t = to ? new Date(to) : undefined;
+  return {
+    ...(f && !Number.isNaN(f.getTime()) ? { from: f } : {}),
+    ...(t && !Number.isNaN(t.getTime()) ? { to: t } : {}),
+  };
+}
+
 @ApiTags('invoices')
 @ApiBearerAuth()
 @UseGuards(AccessGuard)
@@ -230,11 +241,30 @@ export class InvoicesController {
 
   /** Dashboard: billable time and expenses not yet invoiced, per client. Own-only roles see their own entries. */
   @Get('unbilled-summary')
-  async unbilledSummary(@Req() req: Request, @Query('mine') mine?: string) {
+  async unbilledSummary(@Req() req: Request, @Query('mine') mine?: string, @Query('from') from?: string, @Query('to') to?: string) {
     const user = req.user as UserContext;
     const clientIds = await this.access.clientIdFilter(user);
     const userId = this.ownOnly(user) || mine === 'true' ? user.id : undefined;
-    return this.invoiceFromTime.unbilledSummary({ clientIds: clientIds ?? undefined, userId });
+    return this.invoiceFromTime.unbilledSummary({ clientIds: clientIds ?? undefined, userId, ...optionalRange(from, to) });
+  }
+
+  /** Dashboard: the lines behind one client's unbilled work (projects, entries, rates, flags). */
+  @Get('unbilled-detail')
+  async unbilledDetail(
+    @Req() req: Request,
+    @Query('clientId') clientId: string,
+    @Query('mine') mine?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const user = req.user as UserContext;
+    if (!clientId) throw new BadRequestException('Choose a client');
+    await this.requireClient(user, clientId);
+    const userId = this.ownOnly(user) || mine === 'true' ? user.id : undefined;
+    const range = optionalRange(from, to);
+    const detail = await this.invoiceFromTime.unbilledDetail(clientId, userId, range.from, range.to);
+    if (!detail) throw new NotFoundException('Client not found');
+    return detail;
   }
 
   /** Unbilled time to invoice. Billing the tenant always uses only the user's own time; so does a role limited to its own invoices. */

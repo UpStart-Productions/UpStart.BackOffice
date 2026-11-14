@@ -9,6 +9,8 @@ import { MessageModule } from 'primeng/message';
  */
 @Component({
   selector: 'app-pdf-frame',
+  // `title` is also a global HTML attribute; clear it so the host doesn't show a browser tooltip.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [MessageModule],
   template: `

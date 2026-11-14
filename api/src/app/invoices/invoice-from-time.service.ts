@@ -215,8 +215,9 @@ export class InvoiceFromTimeService {
    * totalled per client. clientIds limits to clients the role can reach; userId to one person's entries.
    * Time with no rate is counted in hours but not in the amount (missingRateHours).
    */
-  async unbilledSummary(params: { clientIds?: { in: string[] }; userId?: string }) {
+  async unbilledSummary(params: { clientIds?: { in: string[] }; userId?: string; from?: Date; to?: Date }) {
     const clientWhere: Prisma.StringNullableFilter = params.clientIds ?? { not: null };
+    const when = params.from || params.to ? { ...(params.from ? { gte: params.from } : {}), ...(params.to ? { lte: params.to } : {}) } : undefined;
     const [entries, expenses] = await Promise.all([
       this.prisma.timeEntry.findMany({
         where: {
@@ -224,6 +225,7 @@ export class InvoiceFromTimeService {
           isBillable: true,
           stoppedAt: { not: null },
           clientId: clientWhere,
+          ...(when ? { startedAt: when } : {}),
           ...(params.userId ? { userId: params.userId } : {}),
         },
         include: {
@@ -239,6 +241,7 @@ export class InvoiceFromTimeService {
           isBillable: true,
           invoiceLineItemId: null,
           project: { clientId: clientWhere },
+          ...(when ? { incurredAt: when } : {}),
           ...(params.userId ? { userId: params.userId } : {}),
         },
         include: { project: { select: { client: { select: { id: true, name: true } } } } },
@@ -286,6 +289,140 @@ export class InvoiceFromTimeService {
       hours: round(clients.reduce((s, c) => s + c.hours, 0)),
       expenseAmount: round(clients.reduce((s, c) => s + c.expenseAmount, 0)),
       clients,
+    };
+  }
+
+  /**
+   * Dashboard: what makes up one client's "Unbilled work", line by line, so the number can be checked.
+   * Same rules as unbilledSummary. Each project group and line says where its rate came from and flags
+   * things that are probably already billed or shouldn't be: no project, a project that isn't billable,
+   * and work dated on or before the client's last sent or paid invoice.
+   */
+  async unbilledDetail(clientId: string, userId?: string, from?: Date, to?: Date) {
+    const when = from || to ? { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } : undefined;
+    const [client, lastInvoice, entries, expenses] = await Promise.all([
+      this.prisma.client.findUnique({ where: { id: clientId }, select: { id: true, name: true } }),
+      this.prisma.invoice.findFirst({
+        where: { clientId, status: { in: ['SENT', 'PAID'] } },
+        orderBy: { issueDate: 'desc' },
+        select: { id: true, displayNumber: true, issueDate: true, status: true },
+      }),
+      this.prisma.timeEntry.findMany({
+        where: {
+          clientId,
+          invoiceLineItemId: null,
+          isBillable: true,
+          stoppedAt: { not: null },
+          ...(when ? { startedAt: when } : {}),
+          ...(userId ? { userId } : {}),
+        },
+        include: {
+          project: { select: { id: true, name: true, hourlyRate: true, isBillable: true } },
+          projectTask: { select: { id: true, name: true } },
+          user: { select: { hourlyRate: true, isSuper: true, firstName: true, lastName: true, email: true } },
+          workTasks: timeEntryWorkTasksInclude,
+        },
+        orderBy: { startedAt: 'desc' },
+      }),
+      this.prisma.expense.findMany({
+        where: { isBillable: true, invoiceLineItemId: null, project: { clientId }, ...(when ? { incurredAt: when } : {}), ...(userId ? { userId } : {}) },
+        include: { project: { select: { id: true, name: true, isBillable: true } } },
+        orderBy: { incurredAt: 'desc' },
+      }),
+    ]);
+    if (!client) return null;
+
+    const cutoff = lastInvoice?.issueDate ?? null;
+    const round = (n: number) => Math.round(n * 100) / 100;
+    type Line = {
+      id: string;
+      date: string;
+      person: string;
+      description: string;
+      hours: number;
+      rate: number | null;
+      rateSource: 'entry' | 'project' | 'person' | null;
+      amount: number;
+      beforeLastInvoice: boolean;
+    };
+    type Group = {
+      projectId: string | null;
+      name: string;
+      projectBillable: boolean | null;
+      hours: number;
+      amount: number;
+      missingRateHours: number;
+      beforeLastInvoiceHours: number;
+      lines: Line[];
+    };
+    const groups = new Map<string, Group>();
+    for (const e of entries) {
+      const key = e.project?.id ?? 'none';
+      let g = groups.get(key);
+      if (!g) {
+        g = {
+          projectId: e.project?.id ?? null,
+          name: e.project?.name ?? 'No project',
+          projectBillable: e.project ? e.project.isBillable : null,
+          hours: 0,
+          amount: 0,
+          missingRateHours: 0,
+          beforeLastInvoiceHours: 0,
+          lines: [],
+        };
+        groups.set(key, g);
+      }
+      const hours = (e.durationMin ?? 0) / 60;
+      const rate = resolveHourlyRate(e as unknown as TimeEntryForInvoice);
+      const rateSource: Line['rateSource'] =
+        e.hourlyRate != null ? 'entry' : e.project?.hourlyRate != null ? 'project' : e.user.hourlyRate != null ? 'person' : null;
+      const before = !!cutoff && e.startedAt <= cutoff;
+      const person = [e.user.firstName, e.user.lastName].filter(Boolean).join(' ') || e.user.email;
+      g.hours += hours;
+      if (rate == null) g.missingRateHours += hours;
+      else g.amount += hours * rate;
+      if (before) g.beforeLastInvoiceHours += hours;
+      g.lines.push({
+        id: e.id,
+        date: e.startedAt.toISOString(),
+        person,
+        description: e.description?.trim() || e.projectTask?.name || '',
+        hours: round(hours),
+        rate,
+        rateSource,
+        amount: round(rate == null ? 0 : hours * rate),
+        beforeLastInvoice: before,
+      });
+    }
+    const projects = [...groups.values()]
+      .map((g) => ({ ...g, hours: round(g.hours), amount: round(g.amount), missingRateHours: round(g.missingRateHours), beforeLastInvoiceHours: round(g.beforeLastInvoiceHours) }))
+      .sort((a, b) => b.amount - a.amount || b.hours - a.hours);
+    const expenseLines = expenses.map((x) => {
+      const isMileage = x.miles != null && x.mileageRate != null;
+      return {
+        id: x.id,
+        date: x.incurredAt.toISOString(),
+        project: x.project?.name ?? '',
+        projectBillable: x.project?.isBillable ?? null,
+        description: x.description,
+        amount: round(isMileage ? Number(x.miles) * Number(x.mileageRate) : Number(x.amount)),
+        beforeLastInvoice: !!cutoff && x.incurredAt <= cutoff,
+      };
+    });
+    const timeAmount = projects.reduce((s, g) => s + g.amount, 0);
+    const expenseAmount = expenseLines.reduce((s, x) => s + x.amount, 0);
+    return {
+      clientId: client.id,
+      clientName: client.name,
+      lastInvoice: lastInvoice
+        ? { id: lastInvoice.id, displayNumber: lastInvoice.displayNumber, issueDate: lastInvoice.issueDate.toISOString(), status: lastInvoice.status }
+        : null,
+      hours: round(projects.reduce((s, g) => s + g.hours, 0)),
+      timeAmount: round(timeAmount),
+      expenseAmount: round(expenseAmount),
+      total: round(timeAmount + expenseAmount),
+      projects,
+      expenses: expenseLines,
     };
   }
 

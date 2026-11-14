@@ -1,5 +1,6 @@
 import { CdkDragHandle } from '@angular/cdk/drag-drop';
 import { NgTemplateOutlet } from '@angular/common';
+import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { AfterViewInit, Component, ElementRef, input, model, NgZone, OnDestroy, inject, signal, viewChild } from '@angular/core';
 import { Params, RouterLink } from '@angular/router';
 import { TooltipModule } from 'primeng/tooltip';
@@ -24,8 +25,10 @@ export type DashboardPanelTab = {
  */
 @Component({
   selector: 'app-dashboard-panel',
+  // `title` is also a global HTML attribute; clear it so the host doesn't show a browser tooltip.
+  host: { '[attr.title]': 'null' },
   standalone: true,
-  imports: [CdkDragHandle, NgTemplateOutlet, RouterLink, TooltipModule],
+  imports: [CdkDragHandle, NgTemplateOutlet, RouterLink, TooltipModule, LucideIconComponent],
   template: `
     <section class="card dashboard-panel" [attr.aria-label]="title()">
       <header class="dashboard-panel-header" [class.dashboard-panel-header--sky]="!!sky()">
@@ -74,28 +77,28 @@ export type DashboardPanelTab = {
           </span>
         }
         <div class="dashboard-panel-heading" [class.dashboard-panel-heading--alt]="altShown()">
-          <h3 class="dashboard-panel-title" [attr.aria-hidden]="altShown()">
-            {{ title() }}
-            @if (subtitle()) {
-              <span class="dashboard-panel-subtitle">{{ subtitle() }}</span>
-            }
-          </h3>
+          <div class="dashboard-panel-title-row" [attr.aria-hidden]="altShown()">
+            <h3 class="dashboard-panel-title">
+              {{ title() }}
+              @if (subtitle()) {
+                <span class="dashboard-panel-subtitle">{{ subtitle() }}</span>
+              }
+            </h3>
+            <!-- Control right after the title (e.g. Financial health's date range). -->
+            <ng-content select="[panelTitleTrail]" />
+          </div>
           <div class="dashboard-panel-alt" [attr.aria-hidden]="!altShown()">
             <ng-content select="[panelHeaderAlt]" />
           </div>
         </div>
+        <ng-content select="[panelActions]" />
         <button
           type="button"
           class="dashboard-panel-handle"
           cdkDragHandle
-          aria-label="Drag to reorder"
-          pTooltip="Drag to move this card"
-          tooltipPosition="top"
-          tooltipStyleClass="ubo-dark-tooltip"
-          [showDelay]="darkTooltipShowDelayMs"
-          appendTo="body"
+          aria-label="Drag to move this card"
         >
-          <i class="pi pi-ellipsis-h" aria-hidden="true"></i>
+          <nmp-lucide-icon name="grip-horizontal" aria-hidden="true" />
         </button>
         @if (link(); as l) {
           <a
@@ -238,8 +241,16 @@ export type DashboardPanelTab = {
         min-width: 0;
       }
 
-      .dashboard-panel-title {
+      .dashboard-panel-title-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
         transition: opacity 0.2s ease;
+      }
+
+      .dashboard-panel-title-row > .dashboard-panel-title {
+        flex: 0 1 auto;
       }
 
       .dashboard-panel-alt {
@@ -251,7 +262,7 @@ export type DashboardPanelTab = {
           transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
       }
 
-      .dashboard-panel-heading--alt .dashboard-panel-title {
+      .dashboard-panel-heading--alt .dashboard-panel-title-row {
         opacity: 0;
         pointer-events: none;
       }
@@ -263,7 +274,7 @@ export type DashboardPanelTab = {
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .dashboard-panel-title,
+        .dashboard-panel-title-row,
         .dashboard-panel-alt {
           transition: none;
         }
@@ -323,6 +334,10 @@ export type DashboardPanelTab = {
         color: var(--drag-handle-color);
         border-radius: var(--content-border-radius);
         cursor: grab;
+      }
+
+      .dashboard-panel-handle nmp-lucide-icon {
+        font-size: 1.1rem;
       }
 
       .dashboard-panel-handle:hover {

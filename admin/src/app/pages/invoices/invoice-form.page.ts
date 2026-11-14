@@ -292,6 +292,17 @@ export class InvoiceFormPage implements OnInit {
         if (fromProject) this.generate.projectId = fromProject.id;
       }
       this.savedSnapshot = this.snapshot();
+      // From the Dashboard's unbilled work: ?unbilled=1 (&from=YYYY-MM-DD) loads every unbilled line for the client
+      // from that date through today. Nothing is saved; the person reviews, edits and saves.
+      if (this.form.clientId && qp.get('unbilled') === '1') {
+        const t = new Date();
+        const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        const from = /^\d{4}-\d{2}-\d{2}$/.test(qp.get('from') ?? '') ? qp.get('from')! : '2000-01-01';
+        this.period.update((p) => ({ ...p, periodType: 'custom', from, to: today }));
+        this.loading.set(false);
+        await this.generateFromTime();
+        return;
+      }
     }
     this.loading.set(false);
   }

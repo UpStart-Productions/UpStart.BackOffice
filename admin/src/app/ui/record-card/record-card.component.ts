@@ -21,7 +21,7 @@ export type RecordCardDetail = { icon: string; text: string; href?: string | nul
 @Component({
   selector: 'app-record-card',
   standalone: true,
-  host: { class: 'record-card-host' },
+  host: { class: 'record-card-host', '[attr.title]': 'null' },
   imports: [RouterLink, TagModule, LucideIconComponent, TmAvatarComponent, RowActionsMenuComponent],
   template: `
     <div

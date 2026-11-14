@@ -55,7 +55,7 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
       } @else {
         <ul class="list-rows notifications-list">
           @for (n of notifications(); track n.id) {
-            <li class="list-row list-row--bordered notifications-list-item">
+            <li class="list-row list-row--bordered notifications-list-item" [class.notifications-list-item--leaving]="leaving().has(n.id)">
               <div class="notifications-item-content">
                 @if (linkFor(n); as link) {
                   <a
@@ -87,17 +87,9 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
                         {{ action.label }}
                       </button>
                     }
-                    <button type="button" class="p-button p-button-text p-button-sm" (click)="markRead(n.id)">
+                    <button type="button" class="p-button p-button-text p-button-sm notifications-markread-btn" (click)="markRead(n.id)">
                       Mark read
                     </button>
-                    <p-button
-                      icon="pi pi-trash"
-                      [text]="true"
-                      severity="danger"
-                      size="small"
-                      aria-label="Dismiss notification"
-                      (click)="dismiss(n.id)"
-                    />
                   </div>
                 </div>
               </div>
@@ -150,8 +142,36 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
       .notifications-list::-webkit-scrollbar {
         display: none;
       }
+      /* Fades out and folds up when marked read or handled, so the list below slides up smoothly. */
       .notifications-list-item {
+        display: grid;
+        grid-template-rows: 1fr;
         padding: 0.75rem 1rem;
+        opacity: 1;
+        transition:
+          opacity 0.2s ease,
+          grid-template-rows 0.25s ease 0.15s,
+          padding 0.25s ease 0.15s,
+          border-color 0.25s ease 0.15s;
+      }
+      .notifications-list-item > .notifications-item-content {
+        min-height: 0;
+        overflow: hidden;
+      }
+      .notifications-list-item--leaving {
+        grid-template-rows: 0fr;
+        padding-block: 0;
+        opacity: 0;
+        border-color: transparent;
+        pointer-events: none;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .notifications-list-item {
+          transition: none;
+        }
+      }
+      .notifications-markread-btn {
+        font-weight: 400;
       }
       .notifications-item-content {
         flex: 1;
@@ -208,6 +228,8 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
   readonly unreadCount = signal(0);
   readonly notifications = signal<UserNotificationDto[]>([]);
   readonly loading = signal(false);
+  /** Notifications on their way out (fading and folding up) before they leave the list. */
+  readonly leaving = signal<Set<string>>(new Set());
   readonly actionLoading = signal<string | null>(null);
 
   ngOnInit(): void {
@@ -276,19 +298,47 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
   }
 
   markRead(id: string): void {
-    this.api.markRead(id).then(() => {
+    this.fadeOut(id);
+    this.api.markRead(id).then(
+      () => this.removeAfterFade(id),
+      () => this.cancelFade(id),
+    );
+  }
+
+  /** Start the fade and fold right away; the row leaves the list once the animation is done. */
+  private fadeOut(id: string): void {
+    this.leaving.update((s) => new Set(s).add(id));
+    this.cdr.detectChanges();
+  }
+
+  private removeAfterFade(id: string): void {
+    setTimeout(() => {
       this.notifications.update((list) => list.filter((n) => n.id !== id));
+      this.leaving.update((s) => {
+        const next = new Set(s);
+        next.delete(id);
+        return next;
+      });
       this.unreadCount.update((c) => Math.max(0, c - 1));
       this.cdr.detectChanges();
+    }, 420);
+  }
+
+  private cancelFade(id: string): void {
+    this.leaving.update((s) => {
+      const next = new Set(s);
+      next.delete(id);
+      return next;
     });
+    this.cdr.detectChanges();
   }
 
   dismiss(id: string): void {
-    this.api.dismiss(id).then(() => {
-      this.notifications.update((list) => list.filter((n) => n.id !== id));
-      this.unreadCount.update((c) => Math.max(0, c - 1));
-      this.cdr.detectChanges();
-    });
+    this.fadeOut(id);
+    this.api.dismiss(id).then(
+      () => this.removeAfterFade(id),
+      () => this.cancelFade(id),
+    );
   }
 
   runAction(n: UserNotificationDto, action: ReturnType<typeof notificationUiActions>[number]): void {
@@ -297,8 +347,8 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
     action
       .run(n, this.api)
       .then(() => {
-        this.notifications.update((list) => list.filter((row) => row.id !== n.id));
-        this.unreadCount.update((c) => Math.max(0, c - 1));
+        this.fadeOut(n.id);
+        this.removeAfterFade(n.id);
       })
       .finally(() => {
         this.actionLoading.set(null);

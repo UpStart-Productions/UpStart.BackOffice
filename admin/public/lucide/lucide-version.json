@@ -1,5 +1,8 @@
 {
   "version": "1.33.0",
-  "iconCount": 1776,
-  "generatedAt": "2026-08-19T19:06:13.168Z"
+  "iconCount": 1777,
+  "generatedAt": "2026-08-19T19:06:13.168Z",
+  "extras": [
+    "monitor-activity (from lucide 1.73.0, added by hand)"
+  ]
 }

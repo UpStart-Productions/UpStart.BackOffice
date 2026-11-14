@@ -7,7 +7,10 @@ import type { ChartData, ChartOptions } from 'chart.js';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectButtonModule } from 'primeng/selectbutton';
+import { SelectModule } from 'primeng/select';
 import { TagModule } from 'primeng/tag';
+import { TableModule } from 'primeng/table';
+import { AppDialogModule } from '../../core/app-dialog.module';
 import { TooltipModule } from 'primeng/tooltip';
 import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
@@ -40,6 +43,8 @@ import { addDays, dateKey, endOfWeek, formatDurationMin, formatElapsed, startOfW
 const LOOKAHEAD_DAYS = 7;
 /** Next steps overdue longer than this collapse into one "clean up" line instead of shouting in red. */
 const STALE_DAYS = 30;
+/** Today and My work show at most this many overdue rows, then an "and N more" line. */
+const OVERDUE_SHOWN = 3;
 /** "Since you were last here" looks back this far. */
 const FEED_DAYS = 7;
 
@@ -98,6 +103,39 @@ type Weather = {
   summary: string;
 };
 
+type UnbilledLine = {
+  id: string;
+  date: string;
+  person: string;
+  description: string;
+  hours: number;
+  rate: number | null;
+  rateSource: 'entry' | 'project' | 'person' | null;
+  amount: number;
+  beforeLastInvoice: boolean;
+};
+
+type UnbilledDetail = {
+  clientId: string;
+  clientName: string;
+  lastInvoice: { id: string; displayNumber: string; issueDate: string; status: string } | null;
+  hours: number;
+  timeAmount: number;
+  expenseAmount: number;
+  total: number;
+  projects: {
+    projectId: string | null;
+    name: string;
+    projectBillable: boolean | null;
+    hours: number;
+    amount: number;
+    missingRateHours: number;
+    beforeLastInvoiceHours: number;
+    lines: UnbilledLine[];
+  }[];
+  expenses: { id: string; date: string; project: string; projectBillable: boolean | null; description: string; amount: number; beforeLastInvoice: boolean }[];
+};
+
 type ProfitLoss = { totalRevenue: number; totalExpenses: number; netIncome: number };
 
 /** One row on the dashboard: a record card plus an optional badge and action. */
@@ -113,18 +151,20 @@ export type DashRow = {
   badge?: { label: string; severity: 'success' | 'info' | 'warn' | 'danger' | 'secondary'; hint?: string };
   action?: { label: string; link: unknown[] | string; query?: Record<string, string> | null; primary?: boolean };
   done?: () => Promise<void>;
+  /** Title opens something on this page (a breakdown popup) instead of navigating. */
+  open?: () => void;
   isNew?: boolean;
   at?: string;
 };
 
 type PanelId = 'money' | 'today' | 'work' | 'pipeline' | 'feed' | 'time' | 'shifts';
 /** Card width: full row, half a row, or a third of a row. */
-export type PanelSize = 'full' | 'half' | 'third';
+export type PanelSize = 'full' | 'twoThirds' | 'half' | 'third';
 type Panel = { id: PanelId; size: PanelSize; visible: (d: DashboardPage) => boolean };
 
 /** Default order and widths. The grid back-fills gaps so rows stay full after a drag. */
 const PANELS: Panel[] = [
-  { id: 'money', size: 'full', visible: (d) => d.can('invoices') },
+  { id: 'money', size: 'twoThirds', visible: (d) => d.can('invoices') },
   { id: 'today', size: 'half', visible: (d) => d.can('tasks') || d.can('inbox') || d.can('bookings') || d.can('forms') || d.can('schedule') },
   { id: 'work', size: 'half', visible: (d) => d.can('tasks') },
   { id: 'pipeline', size: 'third', visible: (d) => d.can('pipeline') || d.can('inbox') },
@@ -149,6 +189,13 @@ const WX_PREVIEW: Record<string, { code: number; isDay: boolean; summary: string
   storm: { code: 95, isDay: true, summary: 'Thunderstorms', temp: 66, high: 71, low: 58, precipChance: 85 },
 };
 
+/** Financial health date range. Figures, chart and unbilled work all use it. */
+export type FinRange = 'month' | '3m' | '6m' | 'ytd' | '12m';
+const FIN_RANGE_KEY = 'ubo-dashboard-fin-range:v1';
+/** Mine / Everyone's and the Today weather toggle, per person, per browser. */
+const SCOPE_KEY = 'ubo-dashboard-mine:v1';
+const WEATHER_OPEN_KEY = 'ubo-dashboard-weather-open:v1';
+
 /** Each person's card order, per browser. v2: the redesigned cards. */
 const ORDER_KEY = 'ubo-dashboard-panel-order:v2';
 /** When this person last opened the Dashboard (for "New" in the feed and My work). */
@@ -166,6 +213,15 @@ function errorText(err: unknown, fallback: string): string {
 
 function daysBetween(fromIso: string, to = Date.now()): number {
   return Math.floor((to - new Date(fromIso).getTime()) / 86_400_000);
+}
+
+/** A theme color for Chart.js (canvas can't read CSS variables itself). */
+function cssVar(name: string, fallback: string): string {
+  try {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function monthStart(offset = 0): Date {
@@ -190,7 +246,10 @@ function monthStart(offset = 0): Date {
     CdkDropList,
     ButtonModule,
     SelectButtonModule,
+    SelectModule,
     TagModule,
+    TableModule,
+    AppDialogModule,
     TooltipModule,
     LucideIconComponent,
     DashboardPanelComponent,
@@ -317,6 +376,35 @@ export class DashboardPage implements OnInit, OnDestroy {
       .map(({ p }) => p);
   });
 
+  /**
+   * Smart widths on a six-column grid. Each card has a natural width (full 6, two-thirds 4, half 3, third 2).
+   * Cards go into rows in the person's order; when the next one doesn't fit, the row closes and its
+   * last card stretches to fill what's left. So two thirds side by side make a third and a two-thirds,
+   * and a third beside a half makes a third and a two-thirds. No gaps, wherever a card is dragged.
+   */
+  readonly layout = computed(() => {
+    const cols: Record<PanelSize, number> = { full: 6, twoThirds: 4, half: 3, third: 2 };
+    const out: { panel: Panel; span: number; row: number; tall: boolean }[] = [];
+    let used = 0;
+    let row = 0;
+    const closeRow = () => {
+      if (out.length && used > 0 && used < 6) out[out.length - 1].span += 6 - used;
+      if (used > 0) row++;
+      used = 0;
+    };
+    for (const panel of this.panels()) {
+      const need = cols[panel.size];
+      if (used + need > 6) closeRow();
+      out.push({ panel, span: need, row, tall: false });
+      used += need;
+      if (used === 6) closeRow();
+    }
+    closeRow();
+    // Financial health sizes to its content; cards sharing its row stretch to match instead of the fixed height.
+    const tallRows = new Set(out.filter((l) => l.panel.id === 'money').map((l) => l.row));
+    return out.map((l) => ({ ...l, tall: tallRows.has(l.row) }));
+  });
+
   onPanelDrop(event: CdkDragDrop<Panel[]>) {
     if (event.previousIndex === event.currentIndex) return;
     const ids = this.panels().map((p) => p.id);
@@ -364,55 +452,107 @@ export class DashboardPage implements OnInit, OnDestroy {
     const me = this.session.me()?.id;
     return this.mine() && me ? all.filter((i) => i.createdBy?.id === me) : all;
   });
-  private readonly openInvoices = computed(() => this.scopedInvoices().filter((i) => i.status === 'SENT' && isUnpaidInvoiceStatus(i.status)));
+  // Date range (saved per person, per browser).
+  readonly finRangeOptions: { label: string; value: FinRange }[] = [
+    { label: 'This month', value: 'month' },
+    { label: 'Last 3 months', value: '3m' },
+    { label: 'Last 6 months', value: '6m' },
+    { label: 'Year to date', value: 'ytd' },
+    { label: 'Last 12 months', value: '12m' },
+  ];
+  readonly finRange = signal<FinRange>('6m');
+
+  setFinRange(r: FinRange) {
+    this.finRange.set(r);
+  }
+
+  /** Start of the range through now, and the same length just before it (for comparisons). */
+  readonly finBounds = computed(() => {
+    const now = new Date();
+    const r = this.finRange();
+    const from =
+      r === 'month' ? monthStart(0) : r === '3m' ? monthStart(-2) : r === '6m' ? monthStart(-5) : r === '12m' ? monthStart(-11) : new Date(now.getFullYear(), 0, 1);
+    const prevFrom = new Date(from.getTime() - (now.getTime() - from.getTime()));
+    const label = this.finRangeOptions.find((o) => o.value === r)?.label ?? '';
+    return { from, to: now, prevFrom, label };
+  });
+
+  private inRange(iso: string | null | undefined): boolean {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    const { from, to } = this.finBounds();
+    return t >= from.getTime() && t <= to.getTime();
+  }
+
+  /** Sent and unpaid, issued in the range. */
+  private readonly openInvoices = computed(() =>
+    this.scopedInvoices().filter((i) => i.status === 'SENT' && isUnpaidInvoiceStatus(i.status) && this.inRange(i.issueDate)),
+  );
   readonly outstandingTotal = computed(() => this.openInvoices().reduce((sum, i) => sum + this.balance(i), 0));
   readonly overdueInvoices = computed(() => this.openInvoices().filter((i) => invoiceDueFlag(i.dueDate, i.status) === 'overdue'));
   readonly overdueTotal = computed(() => this.overdueInvoices().reduce((sum, i) => sum + this.balance(i), 0));
-  readonly draftInvoices = computed(() => this.scopedInvoices().filter((i) => i.status === 'DRAFT'));
+  readonly draftInvoices = computed(() => this.scopedInvoices().filter((i) => i.status === 'DRAFT' && this.inRange(i.issueDate)));
 
   /** Money in from invoices paid in a date range. */
-  private collected(from: Date, to: Date): number {
-    return this.scopedInvoices()
-      .filter((i) => i.paidAt && new Date(i.paidAt) >= from && new Date(i.paidAt) < to)
-      .reduce((s, i) => s + Number(i.amountPaid ?? i.total ?? 0), 0);
+  private paidIn(from: Date, to: Date) {
+    return this.scopedInvoices().filter((i) => i.paidAt && new Date(i.paidAt) >= from && new Date(i.paidAt) < to);
   }
 
-  readonly collectedThisMonth = computed(() => this.collected(monthStart(0), monthStart(1)));
-  /** Last month up to the same day, so the comparison is fair early in the month. */
-  readonly collectedLastMonthToDate = computed(() => {
-    const start = monthStart(-1);
-    const sameDay = new Date(start.getFullYear(), start.getMonth(), new Date().getDate() + 1);
-    return this.collected(start, sameDay < monthStart(0) ? sameDay : monthStart(0));
+  private collected(from: Date, to: Date): number {
+    return this.paidIn(from, to).reduce((s, i) => s + Number(i.amountPaid ?? i.total ?? 0), 0);
+  }
+
+  readonly collectedInRange = computed(() => {
+    const { from, to } = this.finBounds();
+    return this.collected(from, new Date(to.getTime() + 1));
   });
+  readonly paidCount = computed(() => {
+    const { from, to } = this.finBounds();
+    return this.paidIn(from, new Date(to.getTime() + 1)).length;
+  });
+  /** Compared with the same length of time just before the range. */
   readonly collectedDelta = computed(() => {
-    const prev = this.collectedLastMonthToDate();
+    const { from, prevFrom } = this.finBounds();
+    const prev = this.collected(prevFrom, from);
     if (!prev) return null;
-    return Math.round(((this.collectedThisMonth() - prev) / prev) * 100);
+    return Math.round(((this.collectedInRange() - prev) / prev) * 100);
   });
 
-  readonly monthName = new Date().toLocaleDateString('en-US', { month: 'long' });
-
-  /** Six months of invoiced (issued, not drafts or void) vs collected (paid). */
+  /** Invoiced (issued, not drafts or void) vs collected (paid): by week for a month or less, else by month. */
   readonly chartData = computed<ChartData>(() => {
-    const labels: string[] = [];
-    const invoiced: number[] = [];
-    const collected: number[] = [];
-    for (let k = -5; k <= 0; k++) {
-      const from = monthStart(k);
-      const to = monthStart(k + 1);
-      labels.push(from.toLocaleDateString('en-US', { month: 'short' }));
-      invoiced.push(
-        this.scopedInvoices()
-          .filter((i) => (i.status === 'SENT' || i.status === 'PAID') && new Date(i.issueDate) >= from && new Date(i.issueDate) < to)
-          .reduce((s, i) => s + Number(i.total ?? 0), 0),
-      );
-      collected.push(this.collected(from, to));
+    const { from, to } = this.finBounds();
+    const buckets: { label: string; from: Date; to: Date }[] = [];
+    if (this.finRange() === 'month') {
+      let start = new Date(from);
+      while (start <= to) {
+        const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+        buckets.push({ label: start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), from: start, to: end });
+        start = end;
+      }
+    } else {
+      let start = new Date(from.getFullYear(), from.getMonth(), 1);
+      while (start <= to) {
+        const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        const multiYear = from.getFullYear() !== to.getFullYear();
+        buckets.push({
+          label: start.toLocaleDateString('en-US', { month: 'short', year: multiYear ? '2-digit' : undefined }),
+          from: start,
+          to: end,
+        });
+        start = end;
+      }
     }
+    const invoiced = buckets.map((b) =>
+      this.scopedInvoices()
+        .filter((i) => (i.status === 'SENT' || i.status === 'PAID') && new Date(i.issueDate) >= b.from && new Date(i.issueDate) < b.to)
+        .reduce((s, i) => s + Number(i.total ?? 0), 0),
+    );
+    const collected = buckets.map((b) => this.collected(b.from, b.to));
     return {
-      labels,
+      labels: buckets.map((b) => b.label),
       datasets: [
-        { label: 'Invoiced', data: invoiced, backgroundColor: '#c4b5fd', borderRadius: 3, maxBarThickness: 16 },
-        { label: 'Collected', data: collected, backgroundColor: '#6d28d9', borderRadius: 3, maxBarThickness: 16 },
+        { label: 'Invoiced', data: invoiced, backgroundColor: cssVar('--p-primary-300', '#c4b5fd'), borderRadius: 3, maxBarThickness: 22 },
+        { label: 'Collected', data: collected, backgroundColor: cssVar('--color-severity-success-text', '#16a34a'), borderRadius: 3, maxBarThickness: 22 },
       ],
     };
   });
@@ -421,12 +561,21 @@ export class DashboardPage implements OnInit, OnDestroy {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top', align: 'start', labels: { boxWidth: 10, boxHeight: 10, font: { size: 12 } } },
+      legend: { display: false },
       tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${this.money(Number(c.raw), 0)}` } },
     },
     scales: {
       x: { grid: { display: false } },
-      y: { beginAtZero: true, ticks: { callback: (v) => this.compactMoney(Number(v)) }, grid: { color: '#f1f1f3' } },
+      // Two labels only: the middle and the top (no $0).
+      y: {
+        beginAtZero: true,
+        ticks: { callback: (v) => this.compactMoney(Number(v)) },
+        afterBuildTicks: (axis) => {
+          const max = axis.max;
+          axis.ticks = max > 0 ? [{ value: max / 2 }, { value: max }] : [];
+        },
+        grid: { color: '#f1f1f3' },
+      },
     },
   };
 
@@ -462,14 +611,72 @@ export class DashboardPage implements OnInit, OnDestroy {
         key: `unbilled:${c.clientId}`,
         title: `Unbilled · ${c.clientName}`,
         subtitle: `${this.money(c.total)} · ${this.hours(c.hours)}${since}${c.missingRateHours ? ' · some time has no rate' : ''}`,
-        link: ['/accounts', c.clientId],
+        open: () => void this.openUnbilled(c.clientId, c.clientName),
         icon: 'clock',
         tone: 'warning',
-        action: { label: 'Invoice', link: '/invoices/new', query: { clientId: c.clientId } },
+        action: { label: 'Invoice', link: '/invoices/new', query: this.unbilledInvoiceQuery(c.clientId, c.since) },
       });
     }
     return rows;
   });
+
+  // ── Unbilled breakdown popup ─────────────────────────────────────────────
+
+  readonly unbilledOpen = signal(false);
+  readonly unbilledTitle = signal('');
+  readonly unbilledDetail = signal<Section<UnbilledDetail | null>>({ loading: false, error: null, data: null });
+
+  async openUnbilled(clientId: string, name: string) {
+    this.unbilledTitle.set(name);
+    this.unbilledDetail.set({ loading: true, error: null, data: null });
+    this.unbilledOpen.set(true);
+    try {
+      const { from, to } = this.finBounds();
+      const data = await this.api.get<UnbilledDetail>(
+        `/invoices/unbilled-detail?clientId=${encodeURIComponent(clientId)}&mine=${this.mine()}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`,
+      );
+      this.unbilledDetail.set({ loading: false, error: null, data });
+    } catch (err) {
+      this.unbilledDetail.set({ loading: false, error: errorText(err, 'Could not load the breakdown'), data: null });
+    }
+  }
+
+  /** New invoice for a client with all its unbilled lines already on it (from the earliest one through today). */
+  unbilledInvoiceQuery(clientId: string, since: string | null | undefined): Record<string, string> {
+    const q: Record<string, string> = { clientId, unbilled: '1' };
+    if (since) q['from'] = dateKey(new Date(since));
+    return q;
+  }
+
+  /** Earliest line in the breakdown popup (time or expense). */
+  unbilledSince(d: UnbilledDetail): string | null {
+    const dates = [...d.projects.flatMap((g) => g.lines.map((l) => l.date)), ...d.expenses.map((x) => x.date)].sort();
+    return dates[0] ?? null;
+  }
+
+  rateLabel(l: UnbilledLine): string {
+    if (l.rate == null) return 'No rate';
+    const src = l.rateSource === 'entry' ? 'entry' : l.rateSource === 'project' ? 'project' : l.rateSource === 'person' ? 'person' : '';
+    return `${this.money(l.rate, 0)}${src ? ` (${src})` : ''}`;
+  }
+
+  rateHint(l: UnbilledLine): string {
+    switch (l.rateSource) {
+      case 'entry':
+        return 'Rate set on this time entry';
+      case 'project':
+        return "The project's hourly rate";
+      case 'person':
+        return "No entry or project rate, so this uses the person's own hourly rate";
+      default:
+        return 'No rate on the entry, project or person: not counted in the amount';
+    }
+  }
+
+  shortDate(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  }
 
   // ── Today ────────────────────────────────────────────────────────────────
 
@@ -507,7 +714,10 @@ export class DashboardPage implements OnInit, OnDestroy {
     };
   }
 
-  private readonly openTasks = computed(() => this.tasks().data.filter((t) => !t.isCompleted));
+  private readonly openTasks = computed(() => {
+    const done = this.doneKeys();
+    return this.tasks().data.filter((t) => !t.isCompleted && !done.has(`task:${t.id}`));
+  });
   private readonly nextStepRows = computed(() => this.queues().data?.nextStep ?? []);
 
   /** Next steps overdue more than STALE_DAYS: one cleanup line, not a wall of red. */
@@ -584,6 +794,13 @@ export class DashboardPage implements OnInit, OnDestroy {
     return rows.filter((r) => !done.has(r.key));
   });
 
+  readonly todayOverdueShown = computed(() => this.todayOverdue().slice(0, OVERDUE_SHOWN));
+  /** Overdue rows past the first three, split so the "more" line can link to each list. */
+  readonly todayOverdueMore = computed(() => {
+    const rest = this.todayOverdue().slice(OVERDUE_SHOWN);
+    return { total: rest.length, tasks: rest.filter((r) => r.key.startsWith('task:')).length, nextSteps: rest.filter((r) => r.key.startsWith('next:')).length };
+  });
+
   readonly todayLoading = computed(() => this.tasks().loading || this.queues().loading);
 
   async markDone(row: DashRow) {
@@ -591,7 +808,13 @@ export class DashboardPage implements OnInit, OnDestroy {
     this.busyRow.set(row.key);
     try {
       await row.done();
-      this.doneKeys.update((s) => new Set(s).add(row.key));
+      // A task shows in Today and My work: hide it in both.
+      const id = row.key.replace(/^(task|work):/, '');
+      this.doneKeys.update((s) => {
+        const next = new Set(s).add(row.key);
+        if (id !== row.key) next.add(`task:${id}`).add(`work:${id}`);
+        return next;
+      });
       this.toast.add({ severity: 'success', summary: 'Done', detail: row.title, life: 2500 });
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not mark done', detail: errorText(err, 'Failed') });
@@ -618,6 +841,9 @@ export class DashboardPage implements OnInit, OnDestroy {
     }
     const commentIsNew = !!t.lastComment && t.lastComment.author?.id !== me && this.isNew(t.lastComment.at);
     return {
+      done: async () => {
+        await this.tm.updateTask(t.id, { isCompleted: true });
+      },
       key: `work:${t.id}`,
       title: t.name,
       subtitle: parts.join(' · '),
@@ -629,12 +855,25 @@ export class DashboardPage implements OnInit, OnDestroy {
     };
   }
 
-  readonly workNew = computed(() => this.openTasks().map((t) => this.workRow(t)).filter((r) => r.isNew));
+  /** Overdue first, oldest first; only the first three show. */
+  private readonly workOverdueAll = computed(() =>
+    this.openTasks()
+      .filter((t) => t.dueOn && t.dueOn < this.today)
+      .sort((a, b) => (a.dueOn ?? '').localeCompare(b.dueOn ?? ''))
+      .map((t) => this.workRow(t)),
+  );
+  readonly workOverdue = computed(() => this.workOverdueAll().slice(0, OVERDUE_SHOWN));
+  readonly workOverdueMore = computed(() => Math.max(0, this.workOverdueAll().length - OVERDUE_SHOWN));
+  readonly workNew = computed(() => {
+    const overdue = new Set(this.workOverdueAll().map((r) => r.key));
+    return this.openTasks().map((t) => this.workRow(t)).filter((r) => r.isNew && !overdue.has(r.key));
+  });
+  /** Due today through the next week (overdue has its own group above). */
   readonly workDue = computed(() => {
     const horizon = addDaysKey(this.today, LOOKAHEAD_DAYS);
     const newKeys = new Set(this.workNew().map((r) => r.key));
     return this.openTasks()
-      .filter((t) => t.dueOn && t.dueOn <= horizon)
+      .filter((t) => t.dueOn && t.dueOn >= this.today && t.dueOn <= horizon)
       .sort((a, b) => (a.dueOn ?? '').localeCompare(b.dueOn ?? ''))
       .map((t) => this.workRow(t))
       .filter((r) => !newKeys.has(r.key));
@@ -833,6 +1072,29 @@ export class DashboardPage implements OnInit, OnDestroy {
     const billable = this.weekEntries().filter((e) => e.isBillable !== false).reduce((s, e) => s + this.minutesOf(e), 0);
     return Math.round((billable / total) * 100);
   });
+  /** This week's hours by project (client, or "No project"), biggest first, top four. */
+  readonly weekByProject = computed(() => {
+    const groups = new Map<string, { key: string; name: string; min: number; billable: boolean; link: unknown[] | null }>();
+    for (const e of this.weekEntries()) {
+      const key = e.project?.id ?? (e.client ? `client:${e.client.id}` : 'none');
+      const g = groups.get(key) ?? {
+        key,
+        name: e.project?.name ?? e.client?.name ?? 'No project',
+        min: 0,
+        billable: e.isBillable !== false,
+        link: e.project ? ['/projects', e.project.id] : e.client ? ['/accounts', e.client.id] : null,
+      };
+      g.min += this.minutesOf(e);
+      groups.set(key, g);
+    }
+    const list = [...groups.values()].sort((a, b) => b.min - a.min);
+    const max = Math.max(1, ...list.map((g) => g.min));
+    return {
+      top: list.slice(0, 4).map((g) => ({ ...g, label: `${formatDurationMin(g.min)} hrs`, pct: Math.max(4, Math.round((g.min / max) * 100)) })),
+      more: Math.max(0, list.length - 4),
+    };
+  });
+
   /** Hours per day, Monday through Sunday, as bar heights. */
   readonly weekDays = computed(() => {
     const start = startOfWeek(new Date());
@@ -968,27 +1230,75 @@ export class DashboardPage implements OnInit, OnDestroy {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
+  /** Saving starts after the saved view is read, so defaults never overwrite it. */
+  private prefsLoaded = false;
+
+  /** Read the saved view (keys are per person, so wait until we know who is signed in). */
+  private loadPrefs() {
+    try {
+      const saved = localStorage.getItem(this.key(FIN_RANGE_KEY)) as FinRange | null;
+      if (saved && this.finRangeOptions.some((o) => o.value === saved)) this.finRange.set(saved);
+      const scope = localStorage.getItem(this.key(SCOPE_KEY));
+      if (scope === 'mine' || scope === 'everyone') this.mine.set(scope === 'mine');
+      if (localStorage.getItem(this.key(WEATHER_OPEN_KEY)) === '1') this.weatherShown.set(true);
+      // Card order and last visit are per person too.
+      this.loadOrder();
+      this.loadLastVisit();
+    } catch {
+      // Defaults.
+    }
+    this.prefsLoaded = true;
+  }
+
   constructor() {
+    effect(() => {
+      const id = this.session.me()?.id;
+      untracked(() => {
+        if (id && !this.prefsLoaded) this.loadPrefs();
+      });
+    });
+    // Remember the view: Mine / Everyone's, the Financial health range and the weather toggle.
+    effect(() => {
+      const mine = this.mine();
+      const range = this.finRange();
+      const weatherOpen = this.weatherShown();
+      untracked(() => {
+        if (!this.prefsLoaded || this.wxPreview()) return;
+        try {
+          localStorage.setItem(this.key(SCOPE_KEY), mine ? 'mine' : 'everyone');
+          localStorage.setItem(this.key(FIN_RANGE_KEY), range);
+          localStorage.setItem(this.key(WEATHER_OPEN_KEY), weatherOpen ? '1' : '0');
+        } catch {
+          // Not remembered.
+        }
+      });
+    });
     effect(() => {
       const mine = this.mine();
       untracked(() => {
         if (this.can('inbox')) void this.loadQueues(mine);
-        if (this.can('invoices')) void this.loadUnbilled(mine);
+      });
+    });
+    // Unbilled work and Net follow both Mine / Everyone's and the Financial health range.
+    effect(() => {
+      const mine = this.mine();
+      const bounds = this.finBounds();
+      untracked(() => {
+        if (this.can('invoices')) void this.loadUnbilled(mine, bounds.from, bounds.to);
+        if (this.can('invoices') && this.isAdmin()) void this.loadPnl(bounds.from, bounds.to);
       });
     });
   }
 
   ngOnInit() {
-    this.loadOrder();
-    this.loadLastVisit();
+
     this.timer = setInterval(() => this.tick.update((n) => n + 1), 30_000);
     if (!this.can('inbox')) this.queues.set({ loading: false, error: null, data: null });
     if (this.can('tasks')) void this.loadTasks();
     else this.tasks.set({ loading: false, error: null, data: [] });
     if (this.can('time')) void this.loadTime();
     if (this.can('invoices')) void this.loadInvoices();
-    if (this.can('invoices') && this.isAdmin()) void this.loadPnl();
-    else this.pnl.set({ loading: false, error: null, data: null });
+    if (!(this.can('invoices') && this.isAdmin())) this.pnl.set({ loading: false, error: null, data: null });
     if (this.can('bookings')) void this.loadBookings();
     if (this.can('forms')) void this.loadSubmissions();
     if (this.can('schedule')) void this.loadShifts();
@@ -1104,19 +1414,20 @@ export class DashboardPage implements OnInit, OnDestroy {
     }
   }
 
-  private async loadUnbilled(mine: boolean) {
+  private async loadUnbilled(mine: boolean, from: Date, to: Date) {
     try {
-      this.unbilled.set({ loading: false, error: null, data: await this.api.get<Unbilled>(`/invoices/unbilled-summary?mine=${mine}`) });
+      const q = `mine=${mine}&from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`;
+      this.unbilled.set({ loading: false, error: null, data: await this.api.get<Unbilled>(`/invoices/unbilled-summary?${q}`) });
     } catch (err) {
       this.unbilled.set({ loading: false, error: errorText(err, 'Could not load unbilled work'), data: null });
     }
   }
 
-  /** Net this month from the books (admins only; the accounting reports are admin-only). */
-  private async loadPnl() {
+  /** Net for the range from the books (admins only; the accounting reports are admin-only). */
+  private async loadPnl(fromDate: Date, toDate: Date) {
     try {
-      const from = monthStart(0).toISOString();
-      const to = new Date().toISOString();
+      const from = fromDate.toISOString();
+      const to = toDate.toISOString();
       const data = await this.api.get<ProfitLoss>(`/accounting/reports/profit-loss?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
       this.pnl.set({ loading: false, error: null, data });
     } catch {

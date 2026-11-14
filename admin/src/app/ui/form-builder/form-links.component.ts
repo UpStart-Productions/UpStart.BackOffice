@@ -26,6 +26,8 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
  */
 @Component({
   selector: 'app-form-links',
+  // `title` is also a global HTML attribute; clear it so the host doesn't show a browser tooltip.
+  host: { '[attr.title]': 'null' },
   standalone: true,
   imports: [
     DatePipe,

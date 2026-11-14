@@ -1,7 +1,6 @@
 /*
  * Dashboard panel grid with drag-to-reorder (CDK, mixed orientation). Panels: app-dashboard-panel.
- * Three columns. A slot with .span-2 (the Activity card) is two columns wide.
- * Below 1200px the grid and .span-2 both collapse to one column.
+ * Six columns; each card's span is set by the page's layout (see .dashboard-grid below).
  * Panels in the same row stretch to the same height; the list inside scrolls.
  */
 .dashboard-grid {
@@ -40,37 +39,19 @@
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-@media (max-width: 1200px) {
-  .dashboard-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 
 /*
- * Card widths on a six-column grid: full (6), half (3), third (2).
- * Medium screens: full is one row, half and third share two columns. Small screens: one column.
+ * Six-column grid. Each card's span comes from the page's layout (natural width, and the last card in
+ * a row stretches to fill it). Narrow screens: one column.
  */
 .dashboard-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 1.5rem;
 }
 
-.dashboard-grid-slot--full { grid-column: span 6; }
-.dashboard-grid-slot--half { grid-column: span 3; }
-.dashboard-grid-slot--third { grid-column: span 2; }
-
-@media (max-width: 1200px) {
-  .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dashboard-grid-slot--full { grid-column: span 2; }
-  .dashboard-grid-slot--half,
-  .dashboard-grid-slot--third { grid-column: span 1; }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
-  .dashboard-grid-slot--full,
-  .dashboard-grid-slot--half,
-  .dashboard-grid-slot--third { grid-column: span 1; }
+  .dashboard-grid-slot { grid-column: span 1 !important; }
 }
 
 /* ── Panel contents ─────────────────────────────────────────────────────── */
@@ -246,7 +227,7 @@
 
 /* Wide cards are two columns; dense packing back-fills gaps so rows stay full after a drag. */
 .dashboard-grid {
-  grid-auto-flow: row dense;
+  grid-auto-flow: row;
 }
 
 .dashboard-summary {
@@ -438,13 +419,12 @@
   padding-inline-end: 0;
 }
 
-/* Half and third cards have one fixed height; longer content scrolls inside the card. Full-width cards size to fit. */
+/* Cards have one fixed height; longer content scrolls inside. Financial health sizes to fit. */
 .dashboard-grid {
   --dashboard-card-height: 400px;
 }
 
-.dashboard-grid-slot--half,
-.dashboard-grid-slot--third {
+.dashboard-grid-slot:not(.dashboard-grid-slot--auto) {
   height: var(--dashboard-card-height);
 }
 
@@ -847,4 +827,130 @@
   .dashboard-panel-sky { transition: none; }
   .sky-bit,
   .dashboard-panel-sky--open[data-sky='storm']::after { animation: none !important; }
+}
+
+/* Unbilled work breakdown (popup from Financial health → Needs action). */
+.unbilled-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.unbilled-last {
+  text-decoration: none;
+}
+
+.unbilled-how {
+  margin: 0.75rem 0 0.25rem;
+  font-size: var(--fs-sm);
+  color: var(--text-color-secondary);
+}
+
+.unbilled-group {
+  margin-top: 1.25rem;
+}
+
+.unbilled-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.unbilled-group-name {
+  font-weight: 600;
+}
+
+.unbilled-group-total {
+  margin-left: auto;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.unbilled-nowrap {
+  white-space: nowrap;
+}
+
+.unbilled-line--old td {
+  color: var(--text-color-secondary);
+}
+
+.unbilled-old-icon {
+  margin-left: 0.35rem;
+  font-size: 0.8rem;
+}
+
+/* My time: total and Log time at the top, hours by project, daily bars pinned to the bottom of the card. */
+.dashboard-time-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+
+  .dashboard-week {
+    margin-top: auto;
+    padding-top: 1rem;
+    height: 5.5rem;
+    flex-shrink: 0;
+  }
+}
+
+.dashboard-time-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.dashboard-lane-fill--time {
+  background: var(--color-severity-success-text);
+}
+
+.dashboard-lane-count--wide {
+  white-space: nowrap;
+}
+
+.dashboard-time-layout .dashboard-lane {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 5rem) auto;
+}
+
+.dashboard-quiet--tight {
+  margin: 0.25rem 0 0;
+  font-size: var(--fs-sm);
+}
+
+/* "and N more overdue" right under the overdue rows. */
+.dashboard-footnote--inline {
+  margin: 0.35rem 0 0.5rem;
+}
+
+/* Financial health: a taller chart. */
+
+.dashboard-chart-canvas {
+  height: 18rem;
+}
+
+
+/*
+ * Financial health figures: a 10px color stripe down the left edge, clipped by the tile's rounded
+ * corners (a band inside the tile, not a border). Requested for these four tiles only; the general
+ * no-left-border rule still applies elsewhere.
+ */
+.dashboard-stat--stripe {
+  position: relative;
+  overflow: hidden;
+  padding-left: calc(1rem + 10px);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 10px;
+    background: var(--stripe-color, var(--surface-border));
+  }
+
+  &[data-stripe='success'] { --stripe-color: var(--color-severity-success-text); }
+  &[data-stripe='gold'] { --stripe-color: var(--palette-gold-light); }
+  &[data-stripe='red'] { --stripe-color: var(--palette-red-light); }
 }

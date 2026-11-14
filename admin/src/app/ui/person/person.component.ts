@@ -14,6 +14,8 @@ import { avatarPalette, initials } from '../../task-manager/core/tm-format.util'
   imports: [RouterLink],
   host: {
     '[class]': 'hostSizeClass()',
+    // `title` is also a global HTML attribute; clear it so the host doesn't show a browser tooltip.
+    '[attr.title]': 'null',
   },
   template: `
     <span class="person" [class.person--two-line]="!!subtitle()">

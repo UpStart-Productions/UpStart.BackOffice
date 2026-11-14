@@ -129,7 +129,7 @@ export class ShellComponent implements OnInit {
       return visible.length ? [{ sectionLabel: label, ...(badge ? { badge } : {}) }, ...visible] : [];
     };
     const items: NavItem[] = [
-      { label: 'Dashboard', icon: 'pi-home', route: '/dashboard' },
+      { label: 'Dashboard', icon: 'monitor-activity', lucide: true, route: '/dashboard' },
       // CRM is relationships: opportunities (Pipeline), every account and person, bookings and the
       // unfiled-email queue. Office is the work: projects, time and billing. (Clients = Accounts filtered to Client.)
       ...section('CRM', [

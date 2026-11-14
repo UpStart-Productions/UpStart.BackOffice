@@ -24,7 +24,9 @@
       [singleLine]="true"
       [title]="r.title"
       [subtitle]="r.subtitle ?? null"
-      [link]="r.link ?? null"
+      [link]="r.open ? null : (r.link ?? null)"
+      [clickable]="!!r.open"
+      (titleClick)="r.open?.()"
       [linkQuery]="r.query ?? null"
       [icon]="r.person ? null : (r.icon ?? 'circle')"
       [tone]="r.tone ?? null"
@@ -68,30 +70,47 @@
   </ng-template>
 
   <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="panels()" (cdkDropListDropped)="onPanelDrop($event)">
-    @for (p of panels(); track p.id) {
-      <div class="dashboard-grid-slot" [class]="'dashboard-grid-slot dashboard-grid-slot--' + p.size" cdkDrag [cdkDragData]="p">
+    @for (l of layout(); track l.panel.id) {
+      @let p = l.panel;
+      <div
+        class="dashboard-grid-slot"
+        [class.dashboard-grid-slot--auto]="l.tall"
+        [style.grid-column]="'span ' + l.span"
+        cdkDrag
+        [cdkDragData]="p"
+      >
         @switch (p.id) {
           <!-- ── Financial health ───────────────────────────────────────── -->
           @case ('money') {
-            <app-dashboard-panel title="Financial health" [subtitle]="monthName + ' so far'" icon="pi-wallet" [color]="panelColor('money')" link="/reports" [fill]="true">
+            <app-dashboard-panel title="Financial health" icon="pi-wallet" [color]="panelColor('money')" link="/reports" [fill]="true">
+                  <p-select
+                    panelTitleTrail
+                    [options]="finRangeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    [ngModel]="finRange()"
+                    (ngModelChange)="setFinRange($event)"
+                    size="small"
+                    ariaLabel="Date range"
+                    appendTo="body"
+                  />
               @if (invoices().loading) {
                 <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
               } @else if (invoices().error) {
                 <p class="side-list-empty">{{ invoices().error }}</p>
               } @else {
                 <div class="dashboard-stats dashboard-stats--4">
-                  <div class="dashboard-stat" pTooltip="Money received from invoices paid this month, compared with last month up to the same day" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="success" pTooltip="Money received from invoices paid in this period, compared with the same length of time just before it" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
                     <span class="dashboard-stat-label">Collected</span>
-                    <span class="dashboard-stat-value">{{ money(collectedThisMonth(), 0) }}</span>
+                    <span class="dashboard-stat-value">{{ money(collectedInRange(), 0) }}</span>
                     <span class="dashboard-stat-note">
+                      {{ paidCount() }} paid {{ paidCount() === 1 ? 'invoice' : 'invoices' }}
                       @if (collectedDelta(); as d) {
-                        <span [class]="d >= 0 ? 'dashboard-up' : 'dashboard-down'">{{ d >= 0 ? '↑' : '↓' }} {{ d >= 0 ? d : -d }}%</span> vs last month
-                      } @else {
-                        Paid invoices this month
+                        · <span [class]="d >= 0 ? 'dashboard-up' : 'dashboard-down'">{{ d >= 0 ? '↑' : '↓' }} {{ d >= 0 ? d : -d }}%</span> vs prior period
                       }
                     </span>
                   </div>
-                  <div class="dashboard-stat" pTooltip="Sent invoices not paid yet. Overdue ones are past their due date" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices sent in this period and not paid yet. Overdue ones are past their due date" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
                     <span class="dashboard-stat-label">Outstanding</span>
                     <span class="dashboard-stat-value">{{ money(outstandingTotal(), 0) }}</span>
                     <span class="dashboard-stat-note">
@@ -102,7 +121,7 @@
                       }
                     </span>
                   </div>
-                  <div class="dashboard-stat" pTooltip="Finished billable time and billable expenses not on an invoice yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="red" pTooltip="Billable time and expenses from this period that aren't on an invoice yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
                     <span class="dashboard-stat-label">Unbilled work</span>
                     <span class="dashboard-stat-value">{{ money(unbilled().data?.total ?? 0, 0) }}</span>
                     <span class="dashboard-stat-note">
@@ -113,13 +132,13 @@
                     </span>
                   </div>
                   @if (pnl().data; as p) {
-                    <div class="dashboard-stat" pTooltip="Income minus expenses this month, from Accounting" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                      <span class="dashboard-stat-label">Net this month</span>
+                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="success" pTooltip="Income minus expenses in this period, from Accounting" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                      <span class="dashboard-stat-label">Net</span>
                       <span class="dashboard-stat-value">{{ money(p.netIncome, 0) }}</span>
                       <span class="dashboard-stat-note">Income minus expenses</span>
                     </div>
                   } @else {
-                    <div class="dashboard-stat" pTooltip="Invoices saved as drafts and not sent yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices dated in this period, saved as drafts and not sent yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
                       <span class="dashboard-stat-label">Drafts to send</span>
                       <span class="dashboard-stat-value">{{ draftInvoices().length }}</span>
                       <span class="dashboard-stat-note">Invoices not sent yet</span>
@@ -128,8 +147,7 @@
                 </div>
 
                 <div class="dashboard-money-body">
-                  <figure class="dashboard-chart" aria-label="Invoiced and collected, last six months">
-                    <figcaption class="dashboard-section-label">Invoiced vs collected</figcaption>
+                  <figure class="dashboard-chart" [attr.aria-label]="'Invoiced and collected, ' + finBounds().label">
                     <div class="dashboard-chart-canvas">
                       <app-report-chart type="bar" [data]="chartData()" [options]="chartOptions" />
                     </div>
@@ -206,8 +224,20 @@
               } @else {
                 @if (todayOverdue().length) {
                   <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
-                  @for (r of todayOverdue(); track r.key) {
+                  @for (r of todayOverdueShown(); track r.key) {
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                  @if (todayOverdueMore().total; as more) {
+                    <div class="dashboard-footnote dashboard-footnote--inline">
+                      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                      <span>and {{ more }} more overdue</span>
+                      @if (todayOverdueMore().tasks) {
+                        <a routerLink="/tasks">Tasks</a>
+                      }
+                      @if (todayOverdueMore().nextSteps) {
+                        <a routerLink="/activity" [queryParams]="{ tab: 'todo', queue: 'nextStep' }">Next steps</a>
+                      }
+                    </div>
                   }
                 }
                 @if (todayDue().length) {
@@ -238,6 +268,19 @@
               } @else if (tasks().error) {
                 <p class="side-list-empty">{{ tasks().error }}</p>
               } @else {
+                @if (workOverdue().length) {
+                  <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
+                  @for (r of workOverdue(); track r.key) {
+                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                  }
+                  @if (workOverdueMore(); as more) {
+                    <div class="dashboard-footnote dashboard-footnote--inline">
+                      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                      <span>and {{ more }} more overdue</span>
+                      <a routerLink="/tasks">All tasks</a>
+                    </div>
+                  }
+                }
                 @if (workNew().length) {
                   <p class="dashboard-section-label">New for you</p>
                   @for (r of workNew(); track r.key) {
@@ -250,7 +293,7 @@
                     <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                   }
                 }
-                @if (!workNew().length && !workDue().length) {
+                @if (!workOverdue().length && !workNew().length && !workDue().length) {
                   <p class="dashboard-quiet">Nothing new and nothing due this week.</p>
                 }
                 @if (workLater()) {
@@ -364,15 +407,46 @@
                     <p-button icon="pi pi-stop" size="small" severity="secondary" [outlined]="true" ariaLabel="Stop timer" pTooltip="Stop timer" tooltipPosition="left" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" [loading]="stopping()" (onClick)="stopTimer()" />
                   </div>
                 }
-                <div class="dashboard-time">
-                  <div class="dashboard-time-total">
-                    <span class="dashboard-stat-value">{{ weekLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
-                    @if (billablePct() !== null) {
-                      <span class="dashboard-stat-note" pTooltip="Share of this week's hours marked billable" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ billablePct() }}% billable</span>
-                    } @else {
-                      <span class="dashboard-stat-note">Nothing logged yet</span>
+                <div class="dashboard-time-layout">
+                  <div class="dashboard-time-head">
+                    <div class="dashboard-time-total">
+                      <span class="dashboard-stat-value">{{ weekLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
+                      @if (billablePct() !== null) {
+                        <span class="dashboard-stat-note" pTooltip="Share of this week's hours marked billable" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ billablePct() }}% billable</span>
+                      } @else {
+                        <span class="dashboard-stat-note">Nothing logged yet</span>
+                      }
+                    </div>
+                    @if (!runningEntry()) {
+                      <a pButton label="Log time" icon="pi pi-play" size="small" severity="secondary" [outlined]="true" routerLink="/time-entry"></a>
                     }
                   </div>
+
+                  @if (weekByProject().top.length) {
+                    <p class="dashboard-section-label">By project</p>
+                    <div class="dashboard-lanes">
+                      @for (g of weekByProject().top; track g.key) {
+                        @if (g.link) {
+                          <a class="dashboard-lane" [routerLink]="g.link">
+                            <span class="dashboard-lane-name">{{ g.name }}</span>
+                            <span class="dashboard-lane-track" aria-hidden="true"><span class="dashboard-lane-fill dashboard-lane-fill--time" [style.width.%]="g.pct"></span></span>
+                            <span class="dashboard-lane-count dashboard-lane-count--wide">{{ g.label }}</span>
+                          </a>
+                        } @else {
+                          <div class="dashboard-lane">
+                            <span class="dashboard-lane-name">{{ g.name }}</span>
+                            <span class="dashboard-lane-track" aria-hidden="true"><span class="dashboard-lane-fill dashboard-lane-fill--time" [style.width.%]="g.pct"></span></span>
+                            <span class="dashboard-lane-count dashboard-lane-count--wide">{{ g.label }}</span>
+                          </div>
+                        }
+                      }
+                    </div>
+                    @if (weekByProject().more) {
+                      <p class="dashboard-quiet dashboard-quiet--tight">and {{ weekByProject().more }} more · <a routerLink="/time-entry">Timesheet</a></p>
+                    }
+                  }
+
+                  <!-- Daily bars sit at the bottom of the card. -->
                   <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
                     @for (d of weekDays(); track d.key) {
                       <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
@@ -382,9 +456,6 @@
                     }
                   </div>
                 </div>
-                @if (!runningEntry()) {
-                  <a pButton label="Log time" icon="pi pi-play" size="small" severity="secondary" [outlined]="true" routerLink="/time-entry" class="dashboard-time-cta"></a>
-                }
               }
             </app-dashboard-panel>
           }
@@ -426,4 +497,131 @@
       </div>
     }
   </div>
+  <!-- What makes up one client's Unbilled work, line by line. -->
+  <p-dialog
+    [header]="'Unbilled work · ' + unbilledTitle()"
+    [visible]="unbilledOpen()"
+    (visibleChange)="unbilledOpen.set($event)"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{ width: 'min(60rem, 96vw)' }"
+    styleClass="unbilled-dialog"
+  >
+    @if (unbilledDetail().loading) {
+      <p class="dashboard-quiet"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+    } @else if (unbilledDetail().error) {
+      <p class="dashboard-quiet">{{ unbilledDetail().error }}</p>
+    } @else if (unbilledDetail().data; as d) {
+      <div class="unbilled-summary">
+        <div class="dashboard-stat">
+          <span class="dashboard-stat-label">Unbilled</span>
+          <span class="dashboard-stat-value">{{ money(d.total) }}</span>
+          <span class="dashboard-stat-note">{{ hours(d.hours) }}@if (d.expenseAmount > 0) { + {{ money(d.expenseAmount) }} expenses }</span>
+        </div>
+        <div class="dashboard-stat">
+          <span class="dashboard-stat-label">Last invoice</span>
+          @if (d.lastInvoice; as li) {
+            <a class="dashboard-stat-value unbilled-last" [routerLink]="['/invoices', li.id]">{{ li.displayNumber }}</a>
+            <span class="dashboard-stat-note">{{ li.status === 'PAID' ? 'Paid' : 'Sent' }} · issued {{ shortDate(li.issueDate) }}</span>
+          } @else {
+            <span class="dashboard-stat-value">None</span>
+            <span class="dashboard-stat-note">No sent or paid invoice yet</span>
+          }
+        </div>
+      </div>
+      <p class="unbilled-how">
+        Counted: finished time marked billable on this account that isn't on any invoice, at the entry's rate, else the project's, else the person's.
+        Lines tagged below are worth a second look.
+      </p>
+
+      @for (g of d.projects; track g.projectId ?? 'none') {
+        <section class="unbilled-group">
+          <header class="unbilled-group-head">
+            @if (g.projectId) {
+              <a class="unbilled-group-name" [routerLink]="['/projects', g.projectId]">{{ g.name }}</a>
+            } @else {
+              <span class="unbilled-group-name">{{ g.name }}</span>
+            }
+            @if (g.projectId === null) {
+              <p-tag value="No project" severity="warn" pTooltip="Time logged to the account without a project. It defaults to billable." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+            } @else if (g.projectBillable === false) {
+              <p-tag value="Project not billable" severity="warn" pTooltip="The project is set to non-billable now, but these entries are still marked billable." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+            }
+            @if (g.beforeLastInvoiceHours > 0) {
+              <p-tag [value]="hours(g.beforeLastInvoiceHours) + ' before last invoice'" severity="secondary" pTooltip="Dated on or before the last invoice, so probably billed already but never linked to it." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+            }
+            @if (g.missingRateHours > 0) {
+              <p-tag [value]="hours(g.missingRateHours) + ' no rate'" severity="danger" />
+            }
+            <span class="unbilled-group-total">{{ hours(g.hours) }} · {{ money(g.amount) }}</span>
+          </header>
+          <p-table [value]="g.lines" styleClass="table-bordered report-table" size="small">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Date</th>
+                <th>Who</th>
+                <th>Notes</th>
+                <th class="col-numeric">Hours</th>
+                <th class="col-numeric">Rate</th>
+                <th class="col-numeric">Amount</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-l>
+              <tr [class.unbilled-line--old]="l.beforeLastInvoice">
+                <td class="unbilled-nowrap">
+                  {{ shortDate(l.date) }}
+                  @if (l.beforeLastInvoice) {
+                    <i class="pi pi-history unbilled-old-icon" pTooltip="Before the last invoice" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"></i>
+                  }
+                </td>
+                <td class="unbilled-nowrap">{{ l.person }}</td>
+                <td>{{ l.description }}</td>
+                <td class="col-numeric">{{ l.hours }}</td>
+                <td class="col-numeric unbilled-nowrap" [pTooltip]="rateHint(l)" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ rateLabel(l) }}</td>
+                <td class="col-numeric">{{ money(l.amount) }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </section>
+      }
+
+      @if (d.expenses.length) {
+        <section class="unbilled-group">
+          <header class="unbilled-group-head">
+            <span class="unbilled-group-name">Expenses</span>
+            <span class="unbilled-group-total">{{ money(d.expenseAmount) }}</span>
+          </header>
+          <p-table [value]="d.expenses" styleClass="table-bordered report-table" size="small">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Date</th>
+                <th>Project</th>
+                <th>Description</th>
+                <th class="col-numeric">Amount</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-x>
+              <tr [class.unbilled-line--old]="x.beforeLastInvoice">
+                <td class="unbilled-nowrap">{{ shortDate(x.date) }}</td>
+                <td>{{ x.project }}</td>
+                <td>{{ x.description }}</td>
+                <td class="col-numeric">{{ money(x.amount) }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </section>
+      }
+
+      @if (!d.projects.length && !d.expenses.length) {
+        <p class="dashboard-quiet">Nothing unbilled for this account.</p>
+      }
+    }
+    <ng-template pTemplate="footer">
+      @if (unbilledDetail().data; as d) {
+        <a pButton label="Open account" severity="secondary" [outlined]="true" [routerLink]="['/accounts', d.clientId]" (click)="unbilledOpen.set(false)"></a>
+        <a pButton label="Create invoice" [routerLink]="'/invoices/new'" [queryParams]="unbilledInvoiceQuery(d.clientId, unbilledSince(d))" (click)="unbilledOpen.set(false)"></a>
+      }
+    </ng-template>
+  </p-dialog>
 </app-page>

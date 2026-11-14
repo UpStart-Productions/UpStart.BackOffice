@@ -13,7 +13,7 @@ import { Person } from '../../task-manager/core/tm.types';
   selector: 'app-pick-row',
   standalone: true,
   imports: [TagModule, TmAvatarComponent],
-  host: { style: 'display: block; min-width: 0; flex: 1 1 auto;' },
+  host: { style: 'display: block; min-width: 0; flex: 1 1 auto;', '[attr.title]': 'null' },
   template: `
     <span class="pick-row">
       <span class="pick-row__lead">
