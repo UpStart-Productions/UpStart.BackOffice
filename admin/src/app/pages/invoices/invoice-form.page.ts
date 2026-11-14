@@ -282,6 +282,15 @@ export class InvoiceFormPage implements OnInit {
       // Roles limited to their own invoices (e.g. caregivers) usually bill the business; so does anyone with no clients.
       const ownOnly = areaLevel(this.session.me(), 'invoices') === 'own';
       if (ownOnly || clients.length === 0) await this.onBillToChange('TENANT');
+      // New invoice from an account or project page: ?clientId= / ?projectId= start it filled in.
+      const qp = this.route.snapshot.queryParamMap;
+      const fromProject = qp.get('projectId') ? projects.find((p) => p.id === qp.get('projectId')) : undefined;
+      const clientId = fromProject?.clientId ?? qp.get('clientId');
+      if (!this.billingTenant && clientId && clients.some((c) => c.id === clientId)) {
+        this.form.clientId = clientId;
+        this.onClientChange();
+        if (fromProject) this.generate.projectId = fromProject.id;
+      }
       this.savedSnapshot = this.snapshot();
     }
     this.loading.set(false);

@@ -1,12 +1,15 @@
 import {
+  AfterViewInit,
   Component,
   computed,
+  effect,
   ElementRef,
   HostListener,
   inject,
   OnDestroy,
   OnInit,
   signal,
+  untracked,
   viewChild,
   ViewChild,
 } from '@angular/core';
@@ -63,15 +66,18 @@ import {
   templateUrl: './time-entry-list.page.html',
   styleUrl: './time-entry-list.page.scss',
 })
-export class TimeEntryListPage implements OnInit, OnDestroy {
+export class TimeEntryListPage implements OnInit, OnDestroy, AfterViewInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(MessageService);
   private readonly session = inject(SessionService);
   private readonly modal = viewChild.required(TimeEntryModalComponent);
+  private readonly weekDaysTrack = viewChild<ElementRef<HTMLElement>>('weekDaysTrack');
 
   @ViewChild('csvFileInput') csvFileInput?: ElementRef<HTMLInputElement>;
 
   private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private weekDaysResize: ResizeObserver | null = null;
+  readonly dayIndicator = signal({ left: 0, width: 0, ready: false });
   private readonly tick = signal(0);
 
   entries = signal<TimeEntry[]>([]);
@@ -171,15 +177,57 @@ export class TimeEntryListPage implements OnInit, OnDestroy {
     return total;
   });
 
+  constructor() {
+    effect(() => {
+      this.selectedDay();
+      this.weekStart();
+      this.loading();
+      untracked(() => queueMicrotask(() => this.layoutWeekDayIndicator()));
+    });
+  }
+
   ngOnInit() {
     this.timerInterval = setInterval(() => this.tick.update((n) => n + 1), 1000);
     void this.init();
   }
 
+  ngAfterViewInit() {
+    const el = this.weekDaysTrack()?.nativeElement;
+    if (el && typeof ResizeObserver !== 'undefined') {
+      this.weekDaysResize = new ResizeObserver(() => this.layoutWeekDayIndicator());
+      this.weekDaysResize.observe(el);
+    }
+    this.layoutWeekDayIndicator();
+  }
+
   ngOnDestroy() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    this.weekDaysResize?.disconnect();
     this.cancelDayProjectsShow();
     this.cancelDayProjectsHide();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.layoutWeekDayIndicator();
+  }
+
+  /** Slides the week underline like PrimeNG tab ink bar. */
+  private layoutWeekDayIndicator() {
+    const track = this.weekDaysTrack()?.nativeElement;
+    if (!track) return;
+    const selected = track.querySelector<HTMLElement>('.week-day.selected');
+    if (!selected) {
+      this.dayIndicator.set({ left: 0, width: 0, ready: false });
+      return;
+    }
+    const trackRect = track.getBoundingClientRect();
+    const btnRect = selected.getBoundingClientRect();
+    this.dayIndicator.set({
+      left: btnRect.left - trackRect.left,
+      width: btnRect.width,
+      ready: true,
+    });
   }
 
   private async init() {

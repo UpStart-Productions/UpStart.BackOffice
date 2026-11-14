@@ -19,8 +19,6 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { PipelinesApi } from '../../core/pipelines.api';
-import { personCardInnerHtml } from '../../core/quill-person-card-render';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SessionService } from '../../core/session.service';
 import { LIST_VIEW_KEYS, listViewFilterBool, listViewFilterString, patchListViewPrefs, readListViewPrefs } from '../../core/list-view-prefs.storage';
 import { saveListFilter } from '../../core/list-view-prefs.util';
@@ -43,36 +41,26 @@ import { ActivitySectionComponent } from '../../ui/activity/activity-section.com
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { MessageBodyComponent } from '../../ui/message-body/message-body.component';
-import { NextStepComponent } from '../../ui/next-step/next-step.component';
-import { PeopleSelectComponent } from '../../ui/people-select/people-select.component';
-import { PeopleComponent } from '../../ui/people/people.component';
+import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolbar-search-field.component';
+import {
+  AccountCardComponent,
+  type AccountCardData,
+  PersonCardComponent,
+  type PersonCardData,
+  PipelineCardCardComponent,
+  type PipelineCardData,
+  RecordCardComponent,
+} from '../../ui/record-card';
 import { PersonComponent } from '../../ui/person/person.component';
 import { QueueCardComponent } from '../../ui/queue-card/queue-card.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
-import { TagChipListComponent } from '../../ui/tag-input/tag-chip-list.component';
 type Tab = 'todo' | 'all';
 type QueueKey = 'unfiled' | 'forms' | 'nextStep' | 'quiet';
 type Org = { id: string; name: string; journey?: 'PROSPECT' | 'CLIENT' | 'NONE'; isActive?: boolean };
 type Option = { id: string; label: string };
-type OrgDetail = {
-  id: string;
-  name: string;
-  code: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  website: string | null;
-  notes: string | null;
-  journey: 'PROSPECT' | 'CLIENT' | 'NONE';
-  isActive: boolean;
-  lastContactAt: string | null;
-  tags?: string[];
-};
-
 const DAY = 24 * 60 * 60 * 1000;
+
+type ContextPanelTab = 'accounts' | 'people';
 
 /** CRM contacts from `/contacts` → options for `app-people-select` (same shape as directory search). */
 function contactSummariesToPeopleOptions(contacts: ContactSummary[]): PeopleDirectoryOption[] {
@@ -113,6 +101,11 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
   standalone: true,
   imports: [
     InputTextModule,
+    ToolbarSearchFieldComponent,
+    RecordCardComponent,
+    AccountCardComponent,
+    PersonCardComponent,
+    PipelineCardCardComponent,
     DatePipe,
     FormsModule,
     RouterLink,
@@ -129,52 +122,14 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
     PageComponent,
     ActivitySectionComponent,
     MessageBodyComponent,
-    NextStepComponent,
-    PeopleSelectComponent,
-    PeopleComponent,
     PersonComponent,
     QueueCardComponent,
-    TagChipListComponent,
     RowActionsMenuComponent,
   ],
   template: `
     <app-page title="Activity" helpKey="activity.page">
-      <ng-container ngProjectAs="[pageActions]">
-        <div class="activity-header-filters">
-          <div class="form-field activity-header-filter">
-            <label for="activityOrg">Account</label>
-            <p-select
-              inputId="activityOrg"
-              [options]="orgFilterOptions()"
-              optionLabel="name"
-              optionValue="id"
-              [ngModel]="orgFilterValue()"
-              (ngModelChange)="setOrg($event)"
-              [filter]="true"
-              filterBy="name"
-              filterPlaceholder="Search…"
-              [showClear]="true"
-              placeholder="All accounts"
-              appendTo="body"
-              [fluid]="true"
-              styleClass="w-full"
-            />
-          </div>
-          <div class="form-field activity-header-filter">
-            <label for="activityPerson">Person</label>
-            <app-people-select
-              inputId="activityPerson"
-              [options]="personFilterOptions()"
-              [loading]="personFilterLoading()"
-              [pickId]="personPickId()"
-              (pickIdChange)="setPerson($event)"
-              placeholder="All people"
-            />
-          </div>
-        </div>
-      </ng-container>
-      <div class="grid" [class.grid-3]="hasContext()" [class.grid-1]="!hasContext()">
-      <div class="stack" [class.span-2]="hasContext()">
+      <div class="grid" [class.grid-3]="tab() === 'all'" [class.grid-1]="tab() !== 'all'">
+      <div class="stack" [class.span-2]="tab() === 'all'">
       <div class="card">
         <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="activity-tabs">
           <p-tablist>
@@ -345,94 +300,95 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
       </div>
       </div>
 
-      @if (hasContext()) {
-        <aside class="side-panel-stack" aria-label="Details">
-          @if (org(); as o) {
-            <div class="card card--side">
-              <div class="card-header">
-                <h3 class="card-title">Next action</h3>
-                @if (orgNextActionTag(); as tag) {
-                  <p-tag [value]="tag.label" [severity]="tag.severity" />
-                }
-              </div>
-              <div class="side-panel-scroll">
-                <app-next-step
-                  [clientId]="o.id"
-                  variant="panel"
-                  [showInlineStatus]="false"
-                  (headerStatus)="onOrgNextStepHeaderStatus($event)"
-                />
-              </div>
-            </div>
-
-            <div class="card card--side">
-              <div class="card-header">
-                <h3 class="card-title">Details</h3>
-              </div>
-              <div class="side-panel-scroll">
-              <div class="side-name">
-                <a [routerLink]="['/accounts', o.id]">{{ orgDetail()?.name ?? o.name }}</a>
-                @if (orgDetail(); as d) {
-                  @if (d.journey === 'CLIENT') {
-                    <p-tag [value]="d.isActive === false ? 'Client · Inactive' : 'Client · Active'" [severity]="d.isActive === false ? 'secondary' : 'success'" />
-                  } @else if (d.journey === 'PROSPECT') {
-                    <p-tag value="Prospect" severity="info" />
+      @if (tab() === 'all') {
+        <aside class="side-panel-stack span-1" aria-label="Filter activity">
+          <div class="card card--side card--side-tabs activity-context-panel">
+            <p-tabs [value]="contextPanelTab()" (valueChange)="onContextPanelTab($event)" class="activity-context-tabs">
+              <p-tablist>
+                <p-tab value="accounts">Accounts</p-tab>
+                <p-tab value="people">People</p-tab>
+              </p-tablist>
+              <p-tabpanels>
+                <p-tabpanel value="accounts">
+                  <div class="side-panel-controls">
+                    <app-toolbar-search-field
+                      class="w-full"
+                      placeholder="Search accounts…"
+                      ariaLabel="Search accounts"
+                      [ngModel]="accountSearch()"
+                      (ngModelChange)="accountSearch.set($event)"
+                    />
+                  </div>
+                  <div class="side-panel-scroll activity-context-scroll" role="listbox" aria-label="Accounts">
+                    <app-record-card
+                      icon="globe"
+                      title="All accounts"
+                      subtitle="Every account"
+                      [clickable]="true"
+                      [selected]="!orgFilterValue() && !personId()"
+                      (titleClick)="clearAccountFilter()"
+                    />
+                    @for (o of filteredAccountOptions(); track o.id) {
+                      @if (o.id.startsWith('card:')) {
+                        <app-pipeline-card-card
+                          [card]="pipelineCardForFilter(o)"
+                          [subtitleOverride]="'Pipeline card'"
+                          [pickerMode]="true"
+                          [selected]="orgFilterValue() === o.id"
+                          (picked)="pickPipelineCard($event)"
+                        />
+                      } @else {
+                        <app-account-card
+                          [account]="accountCardFor(o.id)"
+                          [pickerMode]="true"
+                          [selected]="orgFilterValue() === o.id"
+                          (picked)="pickAccount($event)"
+                        />
+                      }
+                    } @empty {
+                      <p class="activity-context-empty text-color-secondary">No accounts match.</p>
+                    }
+                  </div>
+                </p-tabpanel>
+                <p-tabpanel value="people">
+                  <div class="side-panel-controls">
+                    <app-toolbar-search-field
+                      class="w-full"
+                      placeholder="Search people…"
+                      ariaLabel="Search people"
+                      [ngModel]="peopleSearch()"
+                      (ngModelChange)="peopleSearch.set($event)"
+                    />
+                  </div>
+                  @if (personFilterLoading()) {
+                    <p class="activity-context-empty text-color-secondary" aria-busy="true">Loading…</p>
+                  } @else {
+                    <div class="side-panel-scroll activity-context-scroll" role="listbox" aria-label="People">
+                      <app-record-card
+                        icon="users"
+                        title="All people"
+                        subtitle="Everyone in CRM"
+                        [clickable]="true"
+                        [selected]="!personId()"
+                        (titleClick)="clearPersonFilter()"
+                      />
+                      @for (p of filteredPeopleOptions(); track p.id) {
+                        <app-person-card
+                          [person]="personCardFor(p)"
+                          [pickerMode]="true"
+                          [subtitleOverride]="personSubtitle(p)"
+                          [selected]="personPickId() === p.id"
+                          (picked)="filterByPerson($event)"
+                        />
+                      } @empty {
+                        <p class="activity-context-empty text-color-secondary">No people match.</p>
+                      }
+                    </div>
                   }
-                }
-              </div>
-              @if (orgDetail(); as d) {
-                <dl class="side-details">
-                  @if (d.tags?.length) {
-                    <div><dt>Tags</dt><dd><app-tag-chip-list [tags]="d.tags!" /></dd></div>
-                  }
-                  @if (d.phone) { <div><dt>Phone</dt><dd><a [href]="'tel:' + d.phone">{{ d.phone }}</a></dd></div> }
-                  @if (d.email) { <div><dt>Email</dt><dd><a [href]="'mailto:' + d.email">{{ d.email }}</a></dd></div> }
-                  @if (d.website) { <div><dd><a [href]="websiteHref(d.website)" target="_blank" rel="noopener">{{ d.website }}</a></dd></div> }
-                  @if (addressOf(d); as addr) { <div><dt>Address</dt><dd class="pre-line">{{ addr }}</dd></div> }
-                  <div class="side-inline"><dt>Last contact:</dt><dd>{{ d.lastContactAt ? rel(d.lastContactAt) : 'None logged' }}</dd></div>
-                </dl>
-                @if (d.notes) {
-                  <div class="side-notes">{{ plain(d.notes) }}</div>
-                }
-              }
-              </div>
-            </div>
-
-            <app-people mode="organization" [clientId]="o.id" [compact]="true" [readOnly]="true" />
-          } @else if (person(); as p) {
-            <div class="card card--side">
-              <div class="card-header">
-                <h3 class="card-title">Details</h3>
-              </div>
-              <div class="side-panel-scroll">
-              <div class="bo-person-card side-person-card" role="link" tabindex="0" [attr.aria-label]="'Open ' + personLabel(p)" (click)="openPersonPage($event, p.id)" (keydown.enter)="openPersonPage($event, p.id)" [innerHTML]="personCard(p)"></div>
-              @if (p.tags.length) {
-                <app-tag-chip-list [tags]="p.tags" class="side-person-tags" />
-              }
-              <p class="side-person-last text-color-secondary">Last contact {{ p.lastContactAt ? rel(p.lastContactAt) : 'none logged' }}</p>
-              @if (p.notes) {
-                <div class="side-notes">{{ plain(p.notes) }}</div>
-              }
-              </div>
-            </div>
-
-            <div class="card card--side">
-              <div class="card-header">
-                <h3 class="card-title">Accounts</h3>
-              </div>
-              <div class="side-panel-scroll">
-              @for (l of p.accountLinks; track l.clientId) {
-                <div class="side-row">
-                  <a [routerLink]="['/accounts', l.clientId]">{{ l.client.name }}</a>
-                  @if (l.role) { <div class="text-color-secondary">{{ l.role }}</div> }
-                </div>
-                <app-next-step [clientId]="l.clientId" variant="panel" class="side-next-step" />
-              } @empty {
-                <p class="text-color-secondary mb-0">Not linked to an account.</p>
-              }
-              </div>
-            </div>
-          }
+                </p-tabpanel>
+              </p-tabpanels>
+            </p-tabs>
+          </div>
         </aside>
       }
       </div>
@@ -554,22 +510,30 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
     </app-page>
   `,
   styles: `
-    /* Tab content flush left with the page title (PrimeNG pads tab panels on every side). */
-    :host ::ng-deep .activity-tabs .p-tabpanels { padding: 1rem 0 0; }
-    .side-name { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600; }
-    .side-name a { text-decoration: none; }
-    .side-details { margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
-    .side-details dt { color: var(--text-color-secondary, #6b7280); }
-    .side-details dd { margin: 0; overflow-wrap: anywhere; }
-    .side-inline { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-    .side-person-card { display: block; cursor: pointer; margin: -0.5rem -0.65rem 0.5rem; }
-    .side-person-card:hover .bo-person-card__name { text-decoration: underline; }
-    .side-person-tags { display: block; margin-bottom: 0.5rem; }
-    .side-person-last { margin: 0; font-size: var(--fs-sm); }
-    .side-notes { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--surface-border, #e5e7eb); white-space: pre-line; }
-    .side-row { padding: 0.4rem 0; }
-    .side-next-step { display: block; margin: 0.25rem 0 0.6rem; }
-    .pre-line { white-space: pre-line; }
+    /* Main + side tab strips: same card inset and panel top gap (main card uses global .card 2rem padding). */
+    .activity-context-panel.card.card--side {
+      padding: 2rem;
+    }
+    :host ::ng-deep .activity-tabs .p-tabpanels,
+    :host ::ng-deep .activity-context-tabs .p-tabpanels {
+      padding: 1rem 0 0;
+    }
+    :host ::ng-deep .activity-context-tabs .p-tablist {
+      flex-shrink: 0;
+    }
+    /* Same cap as other side panels; list scrolls here (not flex through PrimeNG tab panels). */
+    .activity-context-scroll {
+      max-height: calc(500px - 12rem);
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 0;
+    }
+    .activity-context-empty {
+      padding: 0.5rem 0;
+      margin: 0;
+      font-size: var(--fs-sm);
+    }
     .activity-count { display: inline-block; min-width: 1.25rem; margin-left: 0.4rem; padding: 0 0.4rem; border-radius: 0.75rem; background: #fee2e2; color: #991b1b; font-weight: 600; text-align: center; }
     .todo-toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
     /* To do queue list: same register pattern as Expenses (grid rows + side-list tokens). */
@@ -683,7 +647,6 @@ export class ActivityPage implements OnInit {
   private readonly router = inject(Router);
   private readonly formsApi = inject(FormsApi);
   private readonly pipelinesApi = inject(PipelinesApi);
-  private readonly sanitizer = inject(DomSanitizer);
   private readonly session = inject(SessionService);
   /** Forms submissions waiting for review (a To do card that opens Forms). */
   readonly canForms = computed(() => !!areaLevel(this.session.me(), 'forms'));
@@ -761,11 +724,9 @@ export class ActivityPage implements OnInit {
     return id ? this.orgs().find((o) => o.id === id) ?? { id, name: 'Account' } : null;
   });
   orgPeople = signal<ContactSummary[]>([]);
-  orgDetail = signal<OrgDetail | null>(null);
-  /** Overdue / Due today in the Next action panel header (organization context). */
-  orgNextActionTag = signal<{ label: string; severity: 'danger' | 'warn' } | null>(null);
-  readonly hasContext = computed(() => !!this.orgId() || !!this.personId());
-  person = signal<ContactSummary | null>(null);
+  contextPanelTab = signal<ContextPanelTab>('accounts');
+  readonly accountSearch = signal('');
+  readonly peopleSearch = signal('');
 
   /** Person filter: all CRM people, or only people linked to the selected account. */
   readonly personFilterOptions = computed(() =>
@@ -773,6 +734,24 @@ export class ActivityPage implements OnInit {
   );
 
   readonly personFilterLoading = computed(() => this.peopleLoading() || this.orgContactsLoading());
+
+  readonly filteredAccountOptions = computed(() => {
+    const q = this.accountSearch().trim().toLowerCase();
+    const list = this.orgFilterOptions();
+    if (!q) return list;
+    return list.filter((o) => o.name.toLowerCase().includes(q));
+  });
+
+  readonly filteredPeopleOptions = computed(() => {
+    const q = this.peopleSearch().trim().toLowerCase();
+    const list = this.personFilterOptions();
+    if (!q) return list;
+    return list.filter((p) =>
+      [p.label, p.firstName, p.lastName, p.email, p.displayName].some((bit) => bit?.toLowerCase().includes(q)),
+    );
+  });
+
+  readonly personSubtitle = (p: PeopleDirectoryOption) => (p.email?.trim() ? p.email.trim() : 'No email on file');
 
   mine = signal(true);
   queues = signal<ActivityQueues | null>(null);
@@ -821,14 +800,11 @@ export class ActivityPage implements OnInit {
     });
     effect(() => {
       const clientId = this.orgId();
-      untracked(() => {
-        this.orgNextActionTag.set(null);
-        void this.loadOrgPeople(clientId);
-      });
+      untracked(() => void this.loadOrgPeople(clientId));
     });
     effect(() => {
-      const contactId = this.personId();
-      untracked(() => void this.loadPerson(contactId));
+      if (this.personId()) this.contextPanelTab.set('people');
+      else if (this.orgId() || this.cardId()) this.contextPanelTab.set('accounts');
     });
     // Save the page's view (tab, To do list, organization/person, Mine) whenever it changes.
     effect(() => {
@@ -929,17 +905,60 @@ export class ActivityPage implements OnInit {
     this.navigate({ tab: 'todo', queue: q === 'unfiled' ? null : q });
   }
 
+  onContextPanelTab(value: string | number | undefined) {
+    const next: ContextPanelTab = value === 'people' ? 'people' : 'accounts';
+    this.contextPanelTab.set(next);
+  }
+
+  clearAccountFilter() {
+    this.navigate({ organization: null, card: null, person: null });
+  }
+
+  clearPersonFilter() {
+    this.navigate({ person: null });
+  }
+
+  pickAccount(id: string) {
+    this.setOrg(id);
+  }
+
+  pickPipelineCard(leadId: string) {
+    this.setOrg(`card:${leadId}`);
+  }
+
+  filterByPerson(contactId: string) {
+    this.setPerson(`contact:${contactId}`);
+  }
+
+  accountCardFor(id: string): AccountCardData {
+    const o = this.orgs().find((x) => x.id === id);
+    return { id, name: o?.name ?? 'Account', journey: o?.journey ?? null };
+  }
+
+  pipelineCardForFilter(o: { id: string; name: string }): PipelineCardData {
+    const leadId = o.id.startsWith('card:') ? o.id.slice(5) : o.id;
+    return { id: leadId, organization: o.name, client: { name: o.name } };
+  }
+
+  personCardFor(p: PeopleDirectoryOption): PersonCardData {
+    const id = contactIdFromDirectoryId(p.id) ?? p.id;
+    return {
+      id,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      email: p.email,
+      avatarUrl: p.avatarUrl ?? null,
+    };
+  }
+
   setOrg(id: string | null) {
-    this.orgNextActionTag.set(null);
+    this.contextPanelTab.set('accounts');
     if (id?.startsWith('card:')) this.navigate({ organization: null, card: id.slice(5), person: null });
     else this.navigate({ organization: id || null, card: null, person: null });
   }
 
-  onOrgNextStepHeaderStatus(tag: { label: string; severity: 'danger' | 'warn' } | null) {
-    this.orgNextActionTag.set(tag);
-  }
-
   setPerson(pickId: string | null) {
+    this.contextPanelTab.set('people');
     this.navigate({ person: contactIdFromDirectoryId(pickId), organization: null, card: null });
   }
 
@@ -952,28 +971,6 @@ export class ActivityPage implements OnInit {
     const c = this.queues()?.counts;
     if (!c) return 0;
     return c[q];
-  }
-
-  /** The standard person card (same markup as person cards in notes), for the person Details panel. */
-  personCard(p: ContactSummary): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(
-      personCardInnerHtml({
-        contactId: p.id,
-        name: contactName(p),
-        firstName: p.firstName ?? '',
-        lastName: p.lastName ?? null,
-        role: p.title ?? null,
-        email: p.emails[0]?.email ?? '',
-        phone: p.phone ?? '',
-        avatarUrl: p.avatarUrl ?? null,
-      }),
-    );
-  }
-
-  /** Card click opens the person; its own email and phone links still work. */
-  openPersonPage(event: Event, id: string) {
-    if ((event.target as HTMLElement | null)?.closest('a')) return;
-    void this.router.navigate(['/people', id]);
   }
 
   personLabel(p: ContactSummary): string {
@@ -1007,51 +1004,18 @@ export class ActivityPage implements OnInit {
     if (!clientId) {
       this.orgContactsLoading.set(false);
       this.orgPeople.set([]);
-      this.orgDetail.set(null);
       return;
     }
     this.orgContactsLoading.set(true);
     this.orgPeople.set([]);
     try {
-      const [people, detail] = await Promise.all([
-        this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]),
-        this.api.get<OrgDetail>(`/clients/${clientId}`).catch(() => null),
-      ]);
-      this.orgPeople.set(people);
-      this.orgDetail.set(detail);
+      this.orgPeople.set(await this.comms.contacts({ clientId }).catch(() => [] as ContactSummary[]));
     } finally {
       this.orgContactsLoading.set(false);
     }
   }
 
-  addressOf(d: OrgDetail): string | null {
-    const cityLine = [[d.city, d.state].filter(Boolean).join(', '), d.zip].filter(Boolean).join(' ');
-    return [d.address, cityLine].filter(Boolean).join('\n') || null;
-  }
-
-  websiteHref(url: string): string {
-    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
-  }
-
-  /** Notes may be formatted (Quill); show them as plain text here. */
-  plain(value: string): string {
-    return value
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
-
-  private async loadPerson(contactId: string | null) {
-    this.person.set(contactId ? await this.comms.contact(contactId).catch(() => null) : null);
-  }
-
-  /** Narrow the page to this row's organization: the next step and quick log are right there. */
+  /** Narrow the page to this row's account: the next step and quick log are right there. */
   private workOn(row: QueueRow) {
     if (row.clientId) this.navigate({ organization: row.clientId, person: null });
   }

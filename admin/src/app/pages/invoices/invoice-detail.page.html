@@ -1,7 +1,8 @@
 <app-page
   [title]="invoice()?.displayNumber || 'Invoice'"
-  backLink="/invoices"
-  backLabel="Back to Invoices"
+  [backLink]="back.link"
+  [backQueryParams]="back.query"
+  [backLabel]="back.label"
 >
   <ng-container ngProjectAs="[pageTitleTrail]">
     @if (!error() && !loading() && invoice()) {

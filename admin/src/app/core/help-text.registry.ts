@@ -222,9 +222,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'dashboard.page':
     "What needs you today. Activity (replies, next steps, and quiet clients) is one card with tabs. Tasks, time, invoices, and bookings are the others. Lists scroll; the arrow in the card header opens the full page. Mine / Everyone's switches Activity and invoices.",
   'activity.page':
-    "All activity is every email, call, meeting and note (first tab). To do lists what needs someone: emails waiting for a reply, next steps (overdue ones tagged), quiet clients and unfiled email. Pick an account or person to narrow both.",
+    "All activity is every email, call, meeting and note (first tab). Use the Accounts or People panel on the right to narrow the feed. To do lists what needs someone: unfiled email, form submissions, next steps, and quiet clients.",
   'activity.loggedBy':
-    'Only items a teammate saved in Back Office (notes, calls, meetings) or filed as their action. Not “who sent the email”—use Person for a CRM contact on the thread.',
+    'Only items a teammate saved in Back Office (notes, calls, meetings) or filed as their action. Not “who sent the email”—use the People panel on All activity for a CRM contact on the thread.',
   'settings.activity.needsReplyDays':
     'An email shows under Needs reply when the latest message on its thread came from outside and has waited this many days.',
   'settings.activity.goneQuietDays':

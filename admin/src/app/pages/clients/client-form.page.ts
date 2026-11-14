@@ -1,3 +1,5 @@
+import { ProjectCardComponent, type RecordCardBadge } from '../../ui/record-card';
+import { InvoicesPanelComponent } from '../../ui/invoices-panel/invoices-panel.component';
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, OnInit, signal, viewChild, viewChildren } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -79,6 +81,8 @@ type ClientForm = {
   selector: 'app-client-form-page',
   standalone: true,
   imports: [
+    InvoicesPanelComponent,
+    ProjectCardComponent,
     NgTemplateOutlet,
     FormsModule,
     RouterLink,
@@ -120,6 +124,7 @@ export class ClientFormPage implements OnInit {
   private readonly dimensionsApi = inject(DimensionsApi);
   private readonly crmTags = inject(CrmTagsApi);
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
+  readonly canInvoices = computed(() => !!areaLevel(this.session.me(), 'invoices'));
   private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
   private readonly tagFields = viewChildren(TagInputComponent);
 
@@ -171,6 +176,7 @@ export class ClientFormPage implements OnInit {
   ];
   /** Where Back and Cancel go: Clients when opened from there, else Accounts. */
   backLink = '/accounts';
+  readonly activeBadge: RecordCardBadge[] = [{ label: 'Active', severity: 'success' }];
 
   id = signal<string | null>(null);
   readonly publicSettingsVisible = signal(false);

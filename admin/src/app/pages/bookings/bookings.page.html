@@ -2,17 +2,33 @@
   @if (isAdmin() && activeTab() === 'types') {
     <a pageActions pButton routerLink="/bookings/types/new" label="New booking type" icon="pi pi-plus"></a>
   }
-  <div class="card">
-    <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)">
+  <div class="card card--tabs-list">
+    <p-tabs class="bookings-tabs" [value]="activeTab()" (valueChange)="onTabChange($event)">
       <p-tablist>
         <p-tab value="bookings">Bookings</p-tab>
         @if (isAdmin()) {
           <p-tab value="types">Booking types</p-tab>
         }
+        @if (activeTab() === 'bookings' && types().length) {
+          <div class="bookings-tablist-filter">
+            <p-select
+              inputId="bookingsFilterType"
+              ariaLabel="Filter by type"
+              [options]="types()"
+              optionLabel="name"
+              optionValue="id"
+              [ngModel]="filterTypeId()"
+              (ngModelChange)="onFilterTypeChange($event)"
+              [showClear]="true"
+              placeholder="All types"
+              appendTo="body"
+            />
+          </div>
+        }
       </p-tablist>
       <p-tabpanels>
         <p-tabpanel value="bookings">
-          <app-bookings-list-panel />
+          <app-bookings-list-panel [bookingTypeId]="filterTypeId()" />
         </p-tabpanel>
         @if (isAdmin()) {
           <p-tabpanel value="types">

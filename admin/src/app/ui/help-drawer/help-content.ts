@@ -239,7 +239,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'All activity',
-        body: "Every email, call, meeting and note, newest first. On All activity, the search bar and the filters button (sliders icon) are at the top; open filters for Logged by (see the ? tooltip), dates, and type. With an account picked, filters also include Include people's activity, and the quick log sits below. Person at the top of the page is a CRM contact on the thread, not the same as Logged by. Email threads show their newest message; expand to see earlier ones.",
+        body: "Every email, call, meeting and note, newest first. On All activity, the search bar and the filters button (sliders icon) are at the top; open filters for Logged by (see the ? tooltip), dates, and type. With an account picked, filters also include Include people's activity, and the quick log sits below. Use the Accounts | People panel on the right to narrow the feed (not the same as Logged by in filters). Email threads show their newest message; expand to see earlier ones.",
       },
       {
         heading: 'To do',
@@ -250,8 +250,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Under Unfiled, use File… and choose an Account or a Pipeline card. Leave "Link the people on this email to the account" on so their next email files itself.',
       },
       {
-        heading: 'One account or person',
-        body: 'Pick an account or person to the right of the page title. With an account picked, the Person list only includes people linked to that account. Panels on the right show the next step, details and people (for a person: details and their accounts), next to the same search, filters and quick log as All activity. Click the name in Details to open their page.',
+        heading: 'Accounts | People panel',
+        body: 'On All activity, the Accounts and People tabs on the right filter the feed. Search each list, then pick All accounts or All people to clear the filter, or choose one row. With an account picked, the People tab only lists people linked to that account. Picking a person clears the account filter (and vice versa). Open an account or person from CRM for full details and next steps.',
       },
     ],
   },

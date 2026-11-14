@@ -1,0 +1,13 @@
+/* PrimeNG Tabs — active tab underline (ink bar). */
+.p-tabs .p-tablist-active-bar {
+  height: 4px;
+}
+
+/* Main card with tabs + list table (Bookings, Users, …): no extra horizontal inset on tab body. */
+.card.card--tabs-list .p-tabpanels {
+  padding: 1rem 0 0;
+}
+
+.card.card--tabs-list .p-tabpanel {
+  padding: 0;
+}

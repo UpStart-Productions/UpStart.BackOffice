@@ -92,6 +92,19 @@ type OrganizationLetterhead = {
 export class InvoiceDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
+
+  /** Opened from an account or project panel (?from=/accounts/…): Back returns there; otherwise to Invoices. */
+  readonly back = (() => {
+    const from = this.route.snapshot.queryParamMap.get('from');
+    if (!from || !from.startsWith('/') || from.startsWith('//')) {
+      return { link: '/invoices', query: null as Record<string, string> | null, label: 'Back to Invoices' };
+    }
+    const [path, search] = from.split('#')[0].split('?');
+    const query: Record<string, string> = {};
+    new URLSearchParams(search ?? '').forEach((v, k) => (query[k] = v));
+    const label = path.startsWith('/projects') ? 'Back to project' : path.startsWith('/accounts') ? 'Back to account' : 'Back';
+    return { link: path, query: Object.keys(query).length ? query : null, label };
+  })();
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly sanitizer = inject(DomSanitizer);

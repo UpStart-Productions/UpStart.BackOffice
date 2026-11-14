@@ -56,11 +56,15 @@ export function isRowActionSeparator(item: RowActionItem): item is RowActionSepa
         type="button"
         class="row-actions-trigger p-button p-button-text p-button-rounded p-button-plain"
         [class.row-actions-trigger--attached]="attached()"
+        [class.row-actions-trigger--small]="size() === 'small'"
+        [class.p-button-sm]="size() === 'small'"
+        [class.p-button-icon-only]="size() === 'small'"
+        [class.icon-action-btn]="size() === 'small'"
         (click)="popover.toggle($event, $event.currentTarget)"
         [attr.aria-label]="ariaLabel()"
         aria-haspopup="true"
       >
-        <i class="pi pi-ellipsis-v"></i>
+        <i class="pi pi-ellipsis-v" [class.p-button-icon]="size() === 'small'"></i>
       </button>
       <p-popover
         #popover
@@ -121,6 +125,11 @@ export function isRowActionSeparator(item: RowActionItem): item is RowActionSepa
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
+      }
+      /* Small: sized and colored like the other small icon buttons (p-button-sm, icon-action-btn). */
+      .row-actions-trigger--small {
+        padding: 0 !important;
+        color: var(--icon-action-color) !important;
       }
       .row-actions-trigger:hover {
         background: var(--p-button-text-hover-background, rgba(0, 0, 0, 0.04)) !important;
@@ -213,6 +222,8 @@ export class RowActionsMenuComponent {
   ariaLabel = input<string>('Row actions');
   /** Right half of a split control next to a primary button (wrap both in .split-action; see split-action.mdc). */
   attached = input(false);
+  /** small: quiet gray trigger for cards and dense rows (default keeps today's look). */
+  size = input<'default' | 'small'>('default');
 
   private popoverRef = viewChild<Popover>('popover');
 

@@ -17,6 +17,8 @@ import { MessageService } from 'primeng/api';
 import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
+import { areaLevel } from '@upstart/back-office/shared';
+import { InvoicesPanelComponent } from '../../ui/invoices-panel/invoices-panel.component';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PeopleComponent } from '../../ui/people/people.component';
@@ -77,6 +79,7 @@ type ProjectResponse = {
   selector: 'app-project-form-page',
   standalone: true,
   imports: [
+    InvoicesPanelComponent,
     NgTemplateOutlet,
     HelpTextComponent,
     FormsModule,
@@ -111,6 +114,7 @@ export class ProjectFormPage implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly session = inject(SessionService);
+  readonly canInvoices = computed(() => !!areaLevel(this.session.me(), 'invoices'));
   private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
 
   readonly canAddToPipeline = computed(

@@ -1,6 +1,5 @@
 import { Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -9,6 +8,8 @@ import { ApiService } from '../../core/api.service';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { HelpTextComponent } from '../help-text/help-text.component';
+import { AccountCardComponent } from '../record-card';
+import type { RowActionItem } from '../row-actions-menu/row-actions-menu.component';
 
 /**
  * Accounts side panel for a person: linked accounts, role, and link/unlink.
@@ -17,42 +18,14 @@ import { HelpTextComponent } from '../help-text/help-text.component';
 @Component({
   selector: 'app-organization-links',
   standalone: true,
-  imports: [FormsModule, RouterLink, ButtonModule, InputTextModule, SelectModule, HelpTextComponent],
+  imports: [FormsModule, ButtonModule, InputTextModule, SelectModule, HelpTextComponent, AccountCardComponent],
   template: `
     <div class="card card--side">
       <div class="card-header">
         <h3 class="card-title">Accounts</h3>
       </div>
-      <div class="side-panel-scroll">
-        @for (l of contact().accountLinks; track l.clientId) {
-          <div class="org-link-row">
-            <div class="org-link-main">
-              <a [routerLink]="orgLink(l.client)" class="text-primary">{{ l.client.name }}</a>
-              @if (l.role) {
-                <span class="org-link-role">{{ l.role }}</span>
-              }
-            </div>
-            <p-button
-              icon="pi pi-trash"
-              severity="danger"
-              [text]="true"
-              size="small"
-              (onClick)="confirmUnlink(l.client)"
-              aria-label="Remove account link"
-            />
-          </div>
-        } @empty {
-          <p-button
-            label="Make client from this person"
-            icon="pi pi-user-plus"
-            size="small"
-            severity="success"
-            (onClick)="createClientFromContact()"
-          />
-        }
-      </div>
       <div class="side-panel-controls">
-      <div class="form-field mt-3 mb-2">
+      <div class="form-field mb-2">
         <label for="linkOrg">Link to an account <app-help-text key="person.organizationLinks" /></label>
         <p-select
           inputId="linkOrg"
@@ -83,6 +56,19 @@ import { HelpTextComponent } from '../help-text/help-text.component';
           />
         </div>
       </div>
+      </div>
+      <div class="side-panel-scroll">
+        @for (l of contact().accountLinks; track l.clientId) {
+          <app-account-card [account]="l.client" [subtitleOverride]="l.role ?? null" [actions]="linkActions(l.client)" />
+        } @empty {
+          <p-button
+            label="Make client from this person"
+            icon="pi pi-user-plus"
+            size="small"
+            severity="success"
+            (onClick)="createClientFromContact()"
+          />
+        }
       </div>
     </div>
   `,
@@ -162,6 +148,11 @@ export class OrganizationLinksComponent implements OnInit {
     } catch (err) {
       this.fail(err, 'Could not link account');
     }
+  }
+
+  /** The account row's ⋮ menu. */
+  linkActions(client: Parameters<this['confirmUnlink']>[0]): RowActionItem[] {
+    return [{ id: 'unlink', label: 'Remove account link', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmUnlink(client) }];
   }
 
   confirmUnlink(client: { id: string; name: string }) {

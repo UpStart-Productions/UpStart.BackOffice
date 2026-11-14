@@ -1,22 +1,17 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { MessageModule } from 'primeng/message';
-import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
+import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { SessionService } from '../../core/session.service';
 import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
-import { listViewFilterString, readListViewPrefs } from '../../core/list-view-prefs.storage';
-import { saveListFilter } from '../../core/list-view-prefs.util';
-import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { loadTableSort, onTableSortSave } from '../../core/list-view-prefs.util';
 import {
   RowActionItem,
   RowActionsMenuComponent,
 } from '../../ui/row-actions-menu/row-actions-menu.component';
-
-type BookingTypeOption = { id: string; name: string; slug: string };
 
 type BookingRow = {
   id: string;
@@ -33,55 +28,66 @@ type BookingRow = {
 @Component({
   selector: 'app-bookings-list-panel',
   standalone: true,
-  imports: [
-    FormsModule,
-    RouterLink,
-    TableModule,
-    MessageModule,
-    TagModule,
-    SelectModule,
-    RowActionsMenuComponent,
-  ],
+  imports: [RouterLink, TableModule, MessageModule, TagModule, RowActionsMenuComponent],
   templateUrl: './bookings-list-panel.component.html',
+  styles: `
+    :host {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
+  `,
 })
-export class BookingsListPanelComponent implements OnInit {
+export class BookingsListPanelComponent {
   private readonly api = inject(ApiService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly session = inject(SessionService);
 
+  /** Type filter lives in the page tab strip; list reloads when this changes. */
+  readonly bookingTypeId = input('');
+
   bookings = signal<BookingRow[]>([]);
-  types = signal<BookingTypeOption[]>([]);
-  filterTypeId = '';
   loading = signal(true);
   error = signal<string | null>(null);
+  tableSortField = signal('startAt');
+  tableSortOrder = signal<1 | -1>(-1);
 
-  async ngOnInit() {
-    const prefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.bookings);
-    const typeId = listViewFilterString(prefs, 'bookingTypeId');
-    if (typeId) this.filterTypeId = typeId;
-    await Promise.all([this.loadTypes(), this.load()]);
+  readonly tableRows = computed(() =>
+    this.bookings().map((row) => ({
+      ...row,
+      typeSort: row.bookingType?.name ?? '',
+      guestOrgSort: row.guestOrg ?? '',
+      leadSort: row.lead?.organization ?? '',
+    })),
+  );
+
+  readonly emptyMessage = computed(() =>
+    this.bookingTypeId() ? 'No bookings match this type.' : 'No bookings yet.',
+  );
+
+  constructor() {
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.bookings, { field: 'startAt', order: -1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
+    effect(() => {
+      const typeId = this.bookingTypeId();
+      untracked(() => void this.load(typeId));
+    });
   }
 
-  onFilterTypeChange(typeId: string | null) {
-    this.filterTypeId = typeId ?? '';
-    saveListFilter(this.session, LIST_VIEW_KEYS.bookings, 'bookingTypeId', typeId);
-    void this.load();
-  }
-
-  async loadTypes() {
-    try {
-      const data = await this.api.get<BookingTypeOption[]>('/booking/admin/types');
-      this.types.set(data.map((t) => ({ id: t.id, name: t.name, slug: t.slug })));
-    } catch {
-      this.types.set([]);
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.bookings, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
     }
   }
 
-  async load() {
+  async load(typeId = this.bookingTypeId()) {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const params = this.filterTypeId ? `?bookingTypeId=${encodeURIComponent(this.filterTypeId)}` : '';
+      const params = typeId ? `?bookingTypeId=${encodeURIComponent(typeId)}` : '';
       const data = await this.api.get<BookingRow[]>(`/booking/admin/bookings${params}`);
       this.bookings.set(data);
     } catch (err) {

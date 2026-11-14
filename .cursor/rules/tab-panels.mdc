@@ -1,0 +1,9 @@
+# Tab panels (show one view)
+
+When the UI must switch between **Accounts | People** (or similar) in a side card:
+
+1. **Tabs control:** PrimeNG **`p-tabs`** / **`p-tablist`** / **`p-tab`** / **`p-tabpanels`** / **`p-tabpanel`** — same as Activity, Reports, Artifacts, Bookings. Do not hand-roll a custom tab strip unless the product explicitly asks.
+2. **Layout CSS:** never set `display: flex` (or other `display`) on **all** `.p-tabpanel` hosts in `::ng-deep` — inactive panels use `[hidden]`; flex on every panel stacks them. Scope flex layout to **`.p-tabpanel.p-tabpanel-active`** only. In a flex side card, set **`.p-tablist { flex-shrink: 0 }`** so the strip does not collapse after layout.
+3. **Side card:** use **`.card.card--side.card--side-tabs`** (`_side-panels.scss`) so headerless “scroll whole card” rules do not swallow the tab strip.
+4. **Main card + list table (Bookings, Users, …):** **`card card--tabs-list`** on the card so tab body has no extra horizontal inset beyond the card’s own padding. Do **not** negative-margin tables past the card padding.
+5. **Rows in the list:** compact **`app-account-card` / `app-person-card` / `app-pipeline-card-card`** (or `app-record-card` for “All …”) inside `.side-panel-scroll`, with `[pickerMode]="true"` and `[selected]` — not custom pick-row buttons. 

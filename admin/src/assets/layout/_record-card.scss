@@ -1,0 +1,51 @@
+// Standard record card (app-record-card and its type wrappers). Uses existing tokens only.
+
+// Hosts are block-level so a card always fills its panel's width.
+.record-card-host { display: block; width: 100%; min-width: 0; }
+.record-card { width: 100%; box-sizing: border-box; }
+
+.record-card-head { display: flex; align-items: flex-start; gap: 0.65rem; min-width: 0; }
+.record-card--compact { padding: 0.6rem 0; }
+.record-card-host:has(.record-card--compact.record-card--selected) {
+  width: 100%;
+  max-width: 100%;
+}
+.record-card--compact.record-card--selected {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  margin: 0;
+  border-radius: var(--border-radius);
+  background: var(--surface-hover, var(--p-content-hover-background, #f3f4f6));
+}
+.record-card-host + .record-card-host .record-card--compact { border-top: 1px solid var(--surface-border); }
+.record-card--card {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--border-radius);
+  background: var(--surface-card);
+}
+.record-card-host + .record-card-host .record-card--card { margin-top: 0.5rem; }
+
+.record-card-icon {
+  color: var(--brand-blue-600);
+  background: var(--color-surface-blue);
+  font-size: var(--fs-lg);
+}
+
+.record-card-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.record-card-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; min-width: 0; }
+.record-card-title { font-size: var(--fs-base); font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+a.record-card-title,
+.record-card-title--button { color: var(--color-text-link); text-decoration: none; }
+.record-card-title--button { border: 0; background: none; padding: 0; font-family: inherit; text-align: left; cursor: pointer; }
+a.record-card-title:hover,
+.record-card-title--button:hover { color: var(--color-text-link-hover); text-decoration: underline; }
+.record-card-subtitle { font-size: var(--fs-sm); color: var(--text-color-secondary); overflow-wrap: anywhere; }
+.record-card-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 0.1rem; color: var(--text-color-secondary); }
+
+.record-card-details { display: flex; flex-direction: column; gap: 0.15rem; }
+.record-card-detail { display: flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); color: var(--text-color-secondary); min-width: 0; overflow-wrap: anywhere; }
+
+// Right-hand icons are standard small icon buttons (same box as every other small icon button), so they line up
+// with icons in panels above and below. Don't resize them here.

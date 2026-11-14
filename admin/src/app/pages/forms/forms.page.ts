@@ -16,7 +16,7 @@ import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { FormsApi } from '../../core/forms.api';
 import { SessionService } from '../../core/session.service';
 import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
-import { loadListSearch, saveListSearch } from '../../core/list-view-prefs.util';
+import { loadListSearch, loadTableSort, onTableSortSave, saveListSearch } from '../../core/list-view-prefs.util';
 import { SingleFileDropzoneComponent } from '../../ui/single-file-dropzone/single-file-dropzone.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -63,16 +63,25 @@ import { ToolbarSearchFieldComponent } from '../../ui/toolbar-search-field/toolb
             />
           </div>
         </div>
-        <p-table [value]="filtered()" [loading]="loading()" styleClass="table-bordered" [paginator]="filtered().length > 50" [rows]="50">
+        <p-table
+          [value]="tableRows()"
+          [loading]="loading()"
+          [sortField]="tableSortField()"
+          [sortOrder]="tableSortOrder()"
+          (onSort)="onTableSort($event)"
+          styleClass="table-bordered"
+          [paginator]="tableRows().length > 50"
+          [rows]="50"
+        >
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 3rem"></th>
-              <th>Form</th>
-              <th>Used for</th>
-              <th>Status</th>
-              <th>Submissions</th>
-              <th>Updated</th>
-              <th>Created by</th>
+              <th pSortableColumn="name">Form <p-sortIcon field="name" /></th>
+              <th pSortableColumn="usedForSort">Used for <p-sortIcon field="usedForSort" /></th>
+              <th pSortableColumn="statusSort">Status <p-sortIcon field="statusSort" /></th>
+              <th pSortableColumn="responseCount">Submissions <p-sortIcon field="responseCount" /></th>
+              <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt" /></th>
+              <th pSortableColumn="createdBySort">Created by <p-sortIcon field="createdBySort" /></th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-f>
@@ -149,6 +158,8 @@ export class FormsPage implements OnInit {
   error = signal<string | null>(null);
   creating = signal(false);
   query = '';
+  tableSortField = signal('name');
+  tableSortOrder = signal<1 | -1>(1);
   newVisible = false;
   newName = '';
   /** A form file picked in New form (creates the form from it). */
@@ -164,13 +175,34 @@ export class FormsPage implements OnInit {
     return q ? this.items().filter((f) => f.name.toLowerCase().includes(q)) : this.items();
   }
 
+  /** Sortable row fields (status / empty strings as explicit sort keys). */
+  tableRows() {
+    return this.filtered().map((f) => ({
+      ...f,
+      usedForSort: f.usedFor ?? '',
+      statusSort: f.publishedNumber === null ? 0 : f.hasUnpublishedChanges ? 1 : 2,
+      createdBySort: f.createdByName ?? '',
+    }));
+  }
+
   onSearchChange(value: string) {
     this.query = value;
     saveListSearch(this.session, LIST_VIEW_KEYS.forms, value);
   }
 
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.forms, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
+  }
+
   async ngOnInit() {
     this.query = loadListSearch(this.session, LIST_VIEW_KEYS.forms);
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.forms, { field: 'name', order: 1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
     await this.load();
   }
 

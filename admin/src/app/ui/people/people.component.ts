@@ -19,6 +19,7 @@ import { PeopleDirectoryOption, toDirectoryOptions } from '../../pages/projects/
 import { Person } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
+import { PersonCardComponent, RecordCardComponent, type RecordCardBadge } from '../record-card';
 import { CreatePersonModalComponent } from '../create-person-modal/create-person-modal.component';
 import { PeopleSelectComponent } from '../people-select/people-select.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
@@ -45,6 +46,8 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
     CreatePersonModalComponent,
     HelpTextComponent,
     PersonDetailModalComponent,
+    PersonCardComponent,
+    RecordCardComponent,
   ],
   template: `
     <div
@@ -62,7 +65,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
           @if (!controlsAfterList() && !readOnly()) {
             <p-button
               type="button"
-              label="Add new person"
+              label="New"
               icon="pi pi-plus"
               size="small"
               severity="secondary"
@@ -109,101 +112,79 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
           </div>
         }
         @for (c of orgPeople(); track c.id) {
-          <div class="people-panel-org-row">
-            <app-tm-avatar [person]="orgRowPerson(c)" size="lg" [showTitle]="false" />
-            <div class="people-panel-org-main">
-              <div class="people-panel-org-name-line">
-                <button type="button" class="people-panel-name-link" (click)="openPersonDetail(c.id)">
-                  {{ contactName(c) }}
-                </button>
-                @if (primaryContactPickerEnabled() && primaryContactId() === c.id) {
-                  <p-tag value="Primary contact" severity="info" />
+          <app-person-card
+            [person]="c"
+            [openInPopup]="true"
+            (open)="openPersonDetail($event)"
+            [subtitleOverride]="orgRole(c) || c.title || null"
+            [extraBadges]="personBadges(c)"
+          >
+            @if ((clientId() || leadId()) && !readOnly()) {
+              <div recordActions class="people-panel-row-actions">
+                @if (primaryContactPickerEnabled() && primaryContactId() !== c.id) {
+                  <p-button
+                    type="button"
+                    icon="pi pi-star"
+                    [text]="true"
+                    severity="secondary"
+                    size="small"
+                    styleClass="icon-action-btn"
+                    aria-label="Set as primary contact"
+                    pTooltip="Set as primary contact"
+                    tooltipPosition="left"
+                    [showDelay]="actionTooltipDelayMs"
+                    tooltipStyleClass="ubo-dark-tooltip"
+                    appendTo="body"
+                    (onClick)="setPrimaryContact.emit(c.id)"
+                  />
                 }
-                @if (c.autoCreated) {
-                  <p-tag value="New" severity="info" />
-                }
-                @if (!c.isActive) {
-                  <p-tag value="Inactive" severity="secondary" />
-                }
-                @if ((clientId() || leadId()) && !readOnly()) {
-                  <div class="people-panel-row-actions">
-                    @if (primaryContactPickerEnabled() && primaryContactId() !== c.id) {
-                      <p-button
-                        type="button"
-                        icon="pi pi-star"
-                        [text]="true"
-                        severity="secondary"
-                        size="small"
-                        styleClass="icon-action-btn"
-                        aria-label="Set as primary contact"
-                        pTooltip="Set as primary contact"
-                        tooltipPosition="left"
-                        [showDelay]="actionTooltipDelayMs"
-                        tooltipStyleClass="ubo-dark-tooltip"
-                        appendTo="body"
-                        (onClick)="setPrimaryContact.emit(c.id)"
-                      />
-                    }
-                    <p-button
-                      type="button"
-                      icon="pi pi-user-minus"
-                      [text]="true"
-                      severity="secondary"
-                      size="small"
-                      styleClass="icon-action-btn"
-                      [attr.aria-label]="'Remove ' + contactName(c)"
-                      pTooltip="Remove from list"
-                      tooltipPosition="left"
-                      [showDelay]="actionTooltipDelayMs"
-                      tooltipStyleClass="ubo-dark-tooltip"
-                      appendTo="body"
-                      (onClick)="leadContactSlot() ? clearLeadSlot() : unlinkFromOrg(c)"
-                    />
-                  </div>
-                }
+                <p-button
+                  type="button"
+                  icon="pi pi-user-minus"
+                  [text]="true"
+                  severity="secondary"
+                  size="small"
+                  styleClass="icon-action-btn"
+                  [attr.aria-label]="'Remove ' + contactName(c)"
+                  pTooltip="Remove from account"
+                  tooltipPosition="left"
+                  [showDelay]="actionTooltipDelayMs"
+                  tooltipStyleClass="ubo-dark-tooltip"
+                  appendTo="body"
+                  (onClick)="leadContactSlot() ? clearLeadSlot() : unlinkFromOrg(c)"
+                />
               </div>
-              @if (orgRole(c); as role) {
-                <span class="people-panel-meta">{{ role }}</span>
-              } @else if (c.title) {
-                <span class="people-panel-meta">{{ c.title }}</span>
-              }
+            }
+            <div recordBody class="record-card-details">
               <app-copy-email [email]="c.emails[0]?.email" [muted]="true" [block]="true" />
             </div>
-          </div>
+          </app-person-card>
         }
         @for (m of teamRows(); track m.id) {
-          <div class="people-panel-org-row">
-            <app-tm-avatar [person]="m" size="lg" [showTitle]="false" />
-            <div class="people-panel-org-main">
-              <div class="people-panel-org-name-line">
-                <span class="people-panel-name-static">{{ m.name }}</span>
-                <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
-                @if (m.direct && !readOnly()) {
-                  <div class="people-panel-row-actions">
-                    <p-button
-                      type="button"
-                      icon="pi pi-user-minus"
-                      [text]="true"
-                      severity="secondary"
-                      size="small"
-                      styleClass="icon-action-btn"
-                      [attr.aria-label]="'Remove ' + m.name"
-                      pTooltip="Remove from account"
-                      tooltipPosition="left"
-                      [showDelay]="actionTooltipDelayMs"
-                      tooltipStyleClass="ubo-dark-tooltip"
-                      appendTo="body"
-                      (onClick)="removeTeamMember(m)"
-                    />
-                  </div>
-                }
+          <app-record-card [person]="m" [title]="m.name" [subtitle]="teamProjectsLine(m) || null" [badges]="m.isGuest ? guestBadge : teamBadge">
+            @if (m.direct && !readOnly()) {
+              <div recordActions class="people-panel-row-actions">
+                <p-button
+                  type="button"
+                  icon="pi pi-user-minus"
+                  [text]="true"
+                  severity="secondary"
+                  size="small"
+                  styleClass="icon-action-btn"
+                  [attr.aria-label]="'Remove ' + m.name"
+                  pTooltip="Remove from account"
+                  tooltipPosition="left"
+                  [showDelay]="actionTooltipDelayMs"
+                  tooltipStyleClass="ubo-dark-tooltip"
+                  appendTo="body"
+                  (onClick)="removeTeamMember(m)"
+                />
               </div>
-              @if (teamProjectsLine(m); as line) {
-                <span class="people-panel-meta">{{ line }}</span>
-              }
+            }
+            <div recordBody class="record-card-details">
               <app-copy-email [email]="m.email" [muted]="true" [block]="true" />
             </div>
-          </div>
+          </app-record-card>
         }
       } @else {
         @for (contact of projectPeople(); track $index; let rowIndex = $index) {
@@ -345,7 +326,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
           </div>
           <p-button
             type="button"
-            label="Add new person"
+            label="New"
             icon="pi pi-plus"
             size="small"
             severity="secondary"
@@ -588,6 +569,18 @@ export class PeopleComponent {
 
   openPersonDetail(contactId: string) {
     void this.personDetailModal()?.open(contactId);
+  }
+
+  readonly teamBadge: RecordCardBadge[] = [{ label: 'Team', severity: 'secondary' }];
+  readonly guestBadge: RecordCardBadge[] = [{ label: 'Guest', severity: 'secondary' }];
+
+  /** Badges on a person row: Primary contact, New (auto-created), Inactive. */
+  personBadges(c: ContactSummary): RecordCardBadge[] {
+    const out: RecordCardBadge[] = [];
+    if (this.primaryContactPickerEnabled() && this.primaryContactId() === c.id) out.push({ label: 'Primary contact', severity: 'info' });
+    if (c.autoCreated) out.push({ label: 'New', severity: 'info' });
+    if (!c.isActive) out.push({ label: 'Inactive', severity: 'secondary' });
+    return out;
   }
 
   orgRowPerson(c: ContactSummary): Person {

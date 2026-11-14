@@ -1,18 +1,26 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'app-copy-email',
   standalone: true,
-  imports: [ButtonModule],
   styles: `
     .copy-email {
       display: inline-flex;
       align-items: center;
-      gap: 0.125rem;
       max-width: 100%;
       min-width: 0;
+      border: 0;
+      background: none;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      cursor: copy;
+    }
+
+    .copy-email:hover .copy-email__text {
+      text-decoration: underline;
     }
 
     .copy-email--block {
@@ -37,18 +45,17 @@ import { ButtonModule } from 'primeng/button';
   `,
   template: `
     @if (value(); as email) {
-      <span class="copy-email" [class.copy-email--block]="block()">
-        <span class="copy-email__text" [class.copy-email__text--muted]="muted()">{{ email }}</span>
-        <button
-          type="button"
-          pButton
-          icon="pi pi-copy"
-          [text]="true"
-          size="small"
-          [attr.aria-label]="'Copy ' + email"
-          (click)="copy($event, email)"
-        ></button>
-      </span>
+      <button
+        type="button"
+        class="copy-email"
+        [class.copy-email--block]="block()"
+        [class.copy-email__text--muted]="muted()"
+        [title]="'Click to copy ' + email"
+        [attr.aria-label]="'Copy ' + email"
+        (click)="copy($event, email)"
+      >
+        <span class="copy-email__text">{{ email }}</span>
+      </button>
     } @else if (showEmpty() && emptyLabel().trim()) {
       <span class="copy-email-empty">{{ emptyLabel() }}</span>
     }

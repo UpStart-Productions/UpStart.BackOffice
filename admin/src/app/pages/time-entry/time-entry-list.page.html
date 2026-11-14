@@ -94,25 +94,34 @@
     </div>
 
     <div class="week-bar">
-      @for (d of days(); track dayKey(d)) {
-        <button
-          type="button"
-          class="week-day"
-          [class.selected]="isDaySelected(d)"
-          [class.today]="isDayToday(d)"
-          (click)="selectDay(d)"
-        >
-          <span class="weekday">{{ dayShortLabel(d) }}</span>
-          <span class="day-hours">
-            @if (isDayRunning(d)) {
-              <i class="pi pi-clock day-clock day-clock-active" aria-hidden="true"></i>
-            } @else if (dayTotalFor(d) > 0) {
-              <i class="pi pi-clock day-clock" aria-hidden="true"></i>
-            }
-            {{ formatMin(dayTotalFor(d)) }}
-          </span>
-        </button>
-      }
+      <div class="week-days" #weekDaysTrack>
+        <span
+          class="week-day-indicator"
+          aria-hidden="true"
+          [class.week-day-indicator--ready]="dayIndicator().ready"
+          [style.left.px]="dayIndicator().left"
+          [style.width.px]="dayIndicator().width"
+        ></span>
+        @for (d of days(); track dayKey(d)) {
+          <button
+            type="button"
+            class="week-day"
+            [class.selected]="isDaySelected(d)"
+            [class.today]="isDayToday(d)"
+            (click)="selectDay(d)"
+          >
+            <span class="weekday">{{ dayShortLabel(d) }}</span>
+            <span class="day-hours">
+              @if (isDayRunning(d)) {
+                <i class="pi pi-clock day-clock day-clock-active" aria-hidden="true"></i>
+              } @else if (dayTotalFor(d) > 0) {
+                <i class="pi pi-clock day-clock" aria-hidden="true"></i>
+              }
+              {{ formatMin(dayTotalFor(d)) }}
+            </span>
+          </button>
+        }
+      </div>
       <div class="week-total" [attr.aria-label]="'Week total ' + formatMin(weekTotalMin()) + ' hours'">
         <span class="week-total-value" aria-hidden="true">
           {{ formatMin(weekTotalMin()) }}<span class="week-total-suffix">hrs</span>

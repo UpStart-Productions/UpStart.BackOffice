@@ -249,10 +249,17 @@ export class InvoicesController {
     return this.invoiceFromTime.buildPreview({ ...query, billTo, userId });
   }
 
+  /** ?clientId= an account's invoices; ?projectId= invoices with at least one line from that project. */
   @Get()
-  async list(@Req() req: Request) {
+  async list(@Req() req: Request, @Query('clientId') clientId?: string, @Query('projectId') projectId?: string) {
     return this.prisma.invoice.findMany({
-      where: await this.scope(req.user as UserContext),
+      where: {
+        AND: [
+          await this.scope(req.user as UserContext),
+          clientId ? { clientId } : {},
+          projectId ? { lineItems: { some: { projectId } } } : {},
+        ],
+      },
       include: {
         client: { select: { id: true, name: true, code: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
@@ -8,6 +8,9 @@ import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { PipelinesApi } from '../../core/pipelines.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
+import { LIST_VIEW_KEYS } from '../../core/list-view-prefs.storage';
+import { loadTableSort, onTableSortSave } from '../../core/list-view-prefs.util';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 type BookingTypeRow = {
@@ -76,6 +79,12 @@ const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
   templateUrl: './booking-types-list-panel.component.html',
   styles: [
     `
+      :host {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+
       .booking-type-name-btn {
         padding: 0;
         border: none;
@@ -137,10 +146,20 @@ export class BookingTypesListPanelComponent implements OnInit {
   laneNames = signal<Map<string, string>>(new Map());
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly router = inject(Router);
+  private readonly session = inject(SessionService);
 
   types = signal<BookingTypeRow[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+  tableSortField = signal('name');
+  tableSortOrder = signal<1 | -1>(1);
+
+  readonly tableRows = computed(() =>
+    this.types().map((row) => ({
+      ...row,
+      statusSort: row.isActive ? 1 : 0,
+    })),
+  );
 
   viewBookingsType = signal<BookingTypeRow | null>(null);
   showViewBookingsDialog = signal(false);
@@ -154,11 +173,22 @@ export class BookingTypesListPanelComponent implements OnInit {
   typeDetailsError = signal<string | null>(null);
 
   async ngOnInit() {
+    const sort = loadTableSort(this.session, LIST_VIEW_KEYS.bookingTypes, { field: 'name', order: 1 });
+    this.tableSortField.set(sort.field);
+    this.tableSortOrder.set(sort.order);
     void this.pipelinesApi
       .list()
       .then((ps) => this.laneNames.set(new Map(ps.flatMap((p) => p.stages.map((s) => [s.id, s.name] as const)))))
       .catch(() => undefined);
     await this.load();
+  }
+
+  onTableSort(event: { field?: string | string[] | null; order?: number | null }) {
+    const saved = onTableSortSave(this.session, LIST_VIEW_KEYS.bookingTypes, event);
+    if (saved) {
+      this.tableSortField.set(saved.field);
+      this.tableSortOrder.set(saved.order);
+    }
   }
 
   async load() {

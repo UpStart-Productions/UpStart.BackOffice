@@ -4,21 +4,25 @@
   </div>
 }
 
-@if (loading()) {
-  <p class="text-color-secondary">Loading…</p>
-} @else if (types().length === 0) {
-  <p class="text-color-secondary mb-0">No booking types yet.</p>
-} @else {
-  <p-table [value]="types()" [rowHover]="true" styleClass="p-datatable-sm">
+<p-table
+    [value]="tableRows()"
+    [loading]="loading()"
+    [sortField]="tableSortField()"
+    [sortOrder]="tableSortOrder()"
+    (onSort)="onTableSort($event)"
+    styleClass="table-bordered"
+    [paginator]="tableRows().length > 50"
+    [rows]="50"
+  >
     <ng-template pTemplate="header">
       <tr>
         <th style="width: 3rem"></th>
-        <th>Name</th>
-        <th>Slug</th>
-        <th class="col-numeric">Duration</th>
-        <th>Public page</th>
-        <th class="col-numeric">Bookings</th>
-        <th>Status</th>
+        <th pSortableColumn="name">Name <p-sortIcon field="name" /></th>
+        <th pSortableColumn="slug">Slug <p-sortIcon field="slug" /></th>
+        <th pSortableColumn="durationMin" class="col-numeric">Duration <p-sortIcon field="durationMin" /></th>
+        <th pSortableColumn="publicPageUrl">Public page <p-sortIcon field="publicPageUrl" /></th>
+        <th pSortableColumn="bookingCount" class="col-numeric">Bookings <p-sortIcon field="bookingCount" /></th>
+        <th pSortableColumn="statusSort">Status <p-sortIcon field="statusSort" /></th>
       </tr>
     </ng-template>
     <ng-template pTemplate="body" let-row>
@@ -45,8 +49,12 @@
         </td>
       </tr>
     </ng-template>
-  </p-table>
-}
+    <ng-template pTemplate="emptymessage">
+      <tr>
+        <td colspan="7" class="text-center p-4 text-color-secondary">No booking types yet.</td>
+      </tr>
+    </ng-template>
+</p-table>
 
 <p-dialog
   [header]="viewBookingsType() ? 'Bookings — ' + viewBookingsType()!.name : 'Bookings'"

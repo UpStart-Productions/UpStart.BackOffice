@@ -54,6 +54,9 @@
         @if (!isNew) {
           <div class="side-panel-stack span-1">
             <ng-container *ngTemplateOutlet="projectPeoplePanel" />
+            @if (canInvoices()) {
+              <app-invoices-panel [projectId]="id()!" />
+            }
             @if (inTaskManager()) {
               <app-project-work-tasks-preview [projectId]="id()!" [inTaskManager]="inTaskManager()" />
             }

@@ -50,7 +50,7 @@
         <div class="showcase-flex-col">
           <div class="form-field showcase-full">
             <label for="name">Name <span class="required-dot" aria-hidden="true"></span></label>
-            <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" placeholder="Acme Agency" />
+            <input pInputText id="name" name="name" [(ngModel)]="form.name" class="w-full" />
           </div>
           <div class="form-field showcase-full">
             <label for="address">Address</label>
@@ -224,7 +224,7 @@
                 <h3 class="card-title">Projects</h3>
                 <a
                   pButton
-                  label="New Project"
+                  label="New"
                   icon="pi pi-plus"
                   size="small"
                   severity="secondary"
@@ -237,18 +237,11 @@
                 <p class="text-color-secondary m-0">Loading projects…</p>
               }
               @for (project of projects(); track project.id) {
-                <div class="side-row">
-                  <div class="side-row-main">
-                    <a [routerLink]="['/projects', project.id]" class="text-primary">{{ project.name }}</a>
-                    <span class="text-color-secondary">
-                      {{ project.hourlyRate ? ('$' + project.hourlyRate + '/hr') : 'User rate' }} · {{ project.isBillable ? 'Billable' : 'Non-billable' }}
-                    </span>
-                  </div>
-                  <p-tag
-                    [value]="project.isActive ? 'Active' : 'Inactive'"
-                    [severity]="project.isActive ? 'success' : 'secondary'"
-                  />
-                </div>
+                <app-project-card
+                  [project]="project"
+                  [subtitleOverride]="(project.hourlyRate ? '$' + project.hourlyRate + '/hr' : 'User rate') + ' · ' + (project.isBillable ? 'Billable' : 'Non-billable')"
+                  [extraBadges]="project.isActive ? activeBadge : []"
+                />
               } @empty {
                 @if (!projectsLoading()) {
                   <p class="text-color-secondary m-0">No projects yet.</p>
@@ -256,6 +249,10 @@
               }
               </div>
             </div>
+          }
+
+          @if (isClient && canInvoices()) {
+            <app-invoices-panel [clientId]="id()!" />
           }
 
           <app-client-forms-panel [clientId]="id()!" />

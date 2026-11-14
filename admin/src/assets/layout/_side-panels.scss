@@ -19,6 +19,7 @@ $side-panel-hosts: (
   'app-people',
   'app-client-forms-panel',
   'app-organization-links',
+  'app-invoices-panel',
 );
 
 .side-panel-stack {
@@ -57,24 +58,53 @@ $side-panel-hosts: (
 }
 
 .side-panel-stack .card.card--side > .side-panel-scroll,
-.side-panel-stack .card.card--side > .side-list {
+.side-panel-stack .card.card--side > .side-list,
+.side-panel-stack .card.card--side .side-panel-scroll,
+.side-panel-stack .card.card--side .side-list {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
 }
 
-/* Gutter before the scrollbar on every right-hand / dashboard scroll body. */
+/* Scroll bodies: scrollable, no visible scrollbar (including lists inside tab panels). */
 .side-panel-scroll,
-.side-panel-stack .card.card--side > .side-list {
+.side-panel-stack .card.card--side .side-panel-scroll,
+.side-panel-stack .card.card--side > .side-list,
+.side-panel-stack .card.card--side .side-list {
   box-sizing: border-box;
-  padding-inline-end: var(--panel-scroll-gutter, 0.65rem);
-  scrollbar-gutter: stable;
+  padding-inline-end: 0;
+  scrollbar-gutter: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior: contain;
+}
+.side-panel-scroll::-webkit-scrollbar,
+.side-panel-stack .card.card--side .side-panel-scroll::-webkit-scrollbar,
+.side-panel-stack .card.card--side > .side-list::-webkit-scrollbar,
+.side-panel-stack .card.card--side .side-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
-/* Headerless side card (e.g. photo): scroll the whole card. */
-.side-panel-stack .card.card--side:not(:has(> .card-header)) {
+/* Headerless side card (e.g. photo): scroll the whole card (no visible scrollbar). */
+.side-panel-stack .card.card--side:not(:has(> .card-header)):not(.card--side-tabs) {
   overflow-y: auto;
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
+}
+.side-panel-stack .card.card--side:not(:has(> .card-header)):not(.card--side-tabs)::-webkit-scrollbar {
+  display: none;
+}
+
+/* Side card with PrimeNG tabs (Activity filter). 500px cap; put overflow on .side-panel-scroll. */
+.side-panel-stack .card.card--side.card--side-tabs {
+  box-sizing: border-box;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.side-panel-stack .card.card--side.card--side-tabs .p-tablist {
+  flex-shrink: 0;
 }
 
 /* Flatten hosts that render a side card; hide hosts with no card (avoids a phantom flex row + extra gap). */

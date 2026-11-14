@@ -135,8 +135,8 @@ export class ShellComponent implements OnInit {
       ...section('CRM', [
         { area: 'inbox', label: 'Activity', icon: 'pi-comments', route: '/activity', badge: this.comms.activityCount() },
         { area: 'pipeline', label: 'Pipeline', icon: 'square-kanban', lucide: true, route: '/pipeline' },
-        { area: 'clients', label: 'Accounts', icon: 'pi-building', route: '/accounts' },
-        { area: 'contacts', label: 'People', icon: 'pi-address-book', route: '/people', badge: this.comms.reviewCount() },
+        { area: 'clients', label: 'Accounts', icon: 'notebook-tabs', lucide: true, route: '/accounts' },
+        { area: 'contacts', label: 'People', icon: 'users', lucide: true, route: '/people', badge: this.comms.reviewCount() },
         { area: 'bookings', label: 'Bookings', icon: 'pi-calendar', route: '/bookings' },
       ]),
       ...section('Office', [
