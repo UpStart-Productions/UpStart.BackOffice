@@ -74,7 +74,6 @@
   padding: 0.75rem 0 0;
   padding-inline-end: var(--panel-scroll-gutter, 0.65rem);
   overflow-y: auto;
-  overscroll-behavior: contain;
   scrollbar-gutter: stable;
 
   .side-list-row:first-child {
@@ -356,10 +355,14 @@
   margin: 0.25rem 0 1rem;
 }
 
+/* Week total with the billable % (or "Nothing logged yet") to its right, on the same baseline. */
 .dashboard-time-total {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 0.6rem;
+  row-gap: 0.15rem;
   flex-shrink: 0;
 }
 
@@ -888,9 +891,9 @@
   min-height: 100%;
 
   .dashboard-week {
-    margin-top: auto;
     padding-top: 1rem;
-    height: 5.5rem;
+    margin-bottom: 1rem;
+    height: 4.4rem;
     flex-shrink: 0;
   }
 }
@@ -925,10 +928,80 @@
   margin: 0.35rem 0 0.5rem;
 }
 
-/* Financial health: a taller chart. */
+/*
+ * Financial health fits the fixed card height: stat tiles at natural size, then the chart and Needs action
+ * share what's left. The chart shrinks to fit; Needs action scrolls with no visible scrollbar.
+ */
+.dashboard-panel-scroll--fill:has(> .dashboard-money) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
-.dashboard-chart-canvas {
-  height: 18rem;
+.dashboard-money {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  .dashboard-stats--4 {
+    flex: none;
+  }
+
+  .dashboard-money-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .dashboard-chart {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .dashboard-chart-canvas {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 8rem;
+  }
+
+  .dashboard-money-actions {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+/* Financial health tiles: small label and note so the tiles are shorter. */
+.dashboard-money .dashboard-stat {
+  gap: 0.1rem;
+  padding: 0.55rem 0.9rem;
+
+  /* Keep clear of the 10px color stripe on the left. */
+  &.dashboard-stat--stripe {
+    padding-left: calc(1.15rem + 10px);
+  }
+
+  .dashboard-stat-label,
+  .dashboard-stat-note {
+    font-size: var(--fs-xs);
+    line-height: 1.3;
+  }
+}
+
+/* Narrow screens: chart and Needs action stack, so let the whole card body scroll instead. */
+@media (max-width: 900px) {
+  .dashboard-panel-scroll--fill:has(> .dashboard-money) {
+    overflow-y: auto;
+  }
+  .dashboard-money .dashboard-money-body {
+    flex-wrap: wrap;
+  }
 }
 
 
@@ -951,6 +1024,7 @@
   }
 
   &[data-stripe='success'] { --stripe-color: var(--color-severity-success-text); }
+  &[data-stripe='info'] { --stripe-color: var(--color-severity-info-text); }
   &[data-stripe='gold'] { --stripe-color: var(--palette-gold-light); }
   &[data-stripe='red'] { --stripe-color: var(--palette-red-light); }
 }

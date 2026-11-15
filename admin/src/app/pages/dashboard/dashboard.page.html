@@ -100,8 +100,10 @@
               } @else if (invoices().error) {
                 <p class="side-list-empty">{{ invoices().error }}</p>
               } @else {
+                <!-- Fixed card height: stat tiles, then chart + Needs action share the rest; Needs action scrolls. -->
+                <div class="dashboard-money">
                 <div class="dashboard-stats dashboard-stats--4">
-                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="success" pTooltip="Money received from invoices paid in this period, compared with the same length of time just before it" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="info" pTooltip="Money received from invoices paid in this period, compared with the same length of time just before it" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
                     <span class="dashboard-stat-label">Collected</span>
                     <span class="dashboard-stat-value">{{ money(collectedInRange(), 0) }}</span>
                     <span class="dashboard-stat-note">
@@ -111,6 +113,19 @@
                       }
                     </span>
                   </div>
+                  @if (pnl().data; as p) {
+                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="success" pTooltip="Income minus expenses in this period, from Accounting" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                      <span class="dashboard-stat-label">Net</span>
+                      <span class="dashboard-stat-value">{{ money(p.netIncome, 0) }}</span>
+                      <span class="dashboard-stat-note">Income minus expenses</span>
+                    </div>
+                  } @else {
+                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices dated in this period, saved as drafts and not sent yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                      <span class="dashboard-stat-label">Drafts to send</span>
+                      <span class="dashboard-stat-value">{{ draftInvoices().length }}</span>
+                      <span class="dashboard-stat-note">Invoices not sent yet</span>
+                    </div>
+                  }
                   <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices sent in this period and not paid yet. Overdue ones are past their due date" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
                     <span class="dashboard-stat-label">Outstanding</span>
                     <span class="dashboard-stat-value">{{ money(outstandingTotal(), 0) }}</span>
@@ -132,19 +147,6 @@
                       }
                     </span>
                   </div>
-                  @if (pnl().data; as p) {
-                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="success" pTooltip="Income minus expenses in this period, from Accounting" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                      <span class="dashboard-stat-label">Net</span>
-                      <span class="dashboard-stat-value">{{ money(p.netIncome, 0) }}</span>
-                      <span class="dashboard-stat-note">Income minus expenses</span>
-                    </div>
-                  } @else {
-                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices dated in this period, saved as drafts and not sent yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                      <span class="dashboard-stat-label">Drafts to send</span>
-                      <span class="dashboard-stat-value">{{ draftInvoices().length }}</span>
-                      <span class="dashboard-stat-note">Invoices not sent yet</span>
-                    </div>
-                  }
                 </div>
 
                 <div class="dashboard-money-body">
@@ -167,6 +169,7 @@
                       <p class="dashboard-quiet">All caught up: no drafts, nothing overdue, nothing unbilled.</p>
                     }
                   </div>
+                </div>
                 </div>
               }
             </app-dashboard-panel>
@@ -463,6 +466,19 @@
                     }
                   </div>
 
+                  <!-- Daily bars right under the week total; By project follows. -->
+                  @if (weekMinutes() === 0 && firstRun()) {
+                    <app-empty-state shape="bars" height="3.6rem" [labels]="weekDayLabels()" />
+                  } @else {
+                    <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
+                      @for (d of weekDays(); track d.key) {
+                        <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
+                          <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
+                          <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
                   @if (weekByProject().top.length) {
                     <p class="dashboard-section-label">By project</p>
                     <div class="dashboard-lanes">
@@ -487,19 +503,6 @@
                     }
                   }
 
-                  <!-- Daily bars sit at the bottom of the card. -->
-                  @if (weekMinutes() === 0 && firstRun()) {
-                    <app-empty-state shape="bars" height="4.5rem" [labels]="weekDayLabels()" />
-                  } @else {
-                    <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
-                      @for (d of weekDays(); track d.key) {
-                        <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                          <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
-                          <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
-                        </div>
-                      }
-                    </div>
-                  }
                 </div>
               }
             </app-dashboard-panel>

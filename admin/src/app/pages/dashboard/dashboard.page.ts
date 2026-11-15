@@ -521,9 +521,8 @@ export class DashboardPage implements OnInit, OnDestroy {
       if (used === 6) closeRow();
     }
     closeRow();
-    // Financial health sizes to its content; cards sharing its row stretch to match instead of the fixed height.
-    const tallRows = new Set(out.filter((l) => l.panel.id === 'money').map((l) => l.row));
-    return out.map((l) => ({ ...l, tall: tallRows.has(l.row) }));
+    // Every card, Financial health included, uses the fixed card height (Needs action scrolls inside it).
+    return out;
   });
 
   onPanelDrop(event: CdkDragDrop<Panel[]>) {
@@ -1242,7 +1241,7 @@ export class DashboardPage implements OnInit, OnDestroy {
       const d = addDays(start, i);
       const key = dateKey(d);
       const min = this.weekEntries().filter((e) => dateKey(new Date(e.startedAt)) === key).reduce((s, e) => s + this.minutesOf(e), 0);
-      return { key, label: d.toLocaleDateString('en-US', { weekday: 'narrow' }), min, isToday: key === this.today };
+      return { key, label: d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2), min, isToday: key === this.today };
     });
     const max = Math.max(60, ...days.map((d) => d.min));
     return days.map((d) => ({
