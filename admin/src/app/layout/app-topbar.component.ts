@@ -115,7 +115,7 @@ import { LayoutService } from './layout.service';
               height="49"
             />
           }
-          @if (tenantBrandName()) {
+          @if (tenantBrandName() && (!showTenantLogo || tenantLogoError)) {
             <span class="topbar-tenant-name">{{ tenantBrandName() }}</span>
           }
         </a>
