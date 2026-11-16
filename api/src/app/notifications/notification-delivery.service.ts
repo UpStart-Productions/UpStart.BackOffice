@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
+import { loadTenantEmailBranding } from '../mail/tenant-email-branding.util';
 import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { runUnscoped } from '../tenancy/tenant-context';
@@ -58,6 +59,16 @@ export class NotificationDeliveryService {
       const route = (input.meta?.route ?? []).filter(Boolean).join('/').replace(/^\/+/, '');
       const href = route ? `${adminAppBaseUrl()}/${route}` : adminAppBaseUrl();
       const bodyText = input.body?.trim();
+      let tenantId = input.tenantId?.trim();
+      if (!tenantId) {
+        const home = await runUnscoped(() =>
+          this.prisma.user.findUnique({ where: { id: input.userId }, select: { tenantId: true } }),
+        );
+        tenantId = home?.tenantId ?? undefined;
+      }
+      const tenantBranding = tenantId
+        ? await runUnscoped(() => loadTenantEmailBranding(this.prisma, tenantId!))
+        : undefined;
       const html = wrapClientEmail({
         title: input.title,
         subtitle: input.meta?.projectName ? String(input.meta.projectName) : undefined,
@@ -67,6 +78,7 @@ export class NotificationDeliveryService {
           : undefined,
         action: { href, label: typeof input.meta?.actionLabel === 'string' ? input.meta.actionLabel : 'Open task' },
         actionNote: 'Change which emails you get under My Account.',
+        tenantBranding,
       });
       await this.mail.sendRaw({ to: user.email, subject: input.title, html });
     } catch (err) {

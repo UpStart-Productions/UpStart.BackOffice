@@ -5,6 +5,7 @@ import {
   buildInvoiceEmailHtml,
   buildPaymentReceiptHtml,
   publicFromName,
+  wrapClientEmail,
 } from './email-layout';
 
 describe('email-layout', () => {
@@ -32,7 +33,9 @@ describe('email-layout', () => {
     expect(html.indexOf('Receipt from UpStart Productions')).toBeLessThan(
       html.indexOf('Technology that serves your mission.'),
     );
-    expect(html.indexOf('You’re receiving this email from')).toBeLessThan(html.indexOf('cid:upstart-logo'));
+    expect(html).toContain('vertical-align:middle');
+    expect(html.indexOf('Questions? Contact us at')).toBeLessThan(html.indexOf('Technology that serves your mission.'));
+    expect(html.indexOf('cid:upstart-logo')).toBeLessThan(html.indexOf('You’re receiving this email from'));
     expect(html).not.toMatch(/back office/i);
     expect(html).not.toContain('784-7046');
     expect(html).not.toMatch(/or call/i);
@@ -50,6 +53,18 @@ describe('email-layout', () => {
     expect(html).toContain('Securely Pay Invoice');
     expect(html).toContain('cid:upstart-logo');
     expect(html).not.toMatch(/back office/i);
+  });
+
+  it('places tenant logo and name below extra content when branding is provided', () => {
+    const html = wrapClientEmail({
+      title: 'Invite',
+      extraHtml:
+        '<p style="margin:16px 0 0;font-size:12px;color:#8a8a8a;">Or paste this link into your browser: https://example.com</p>',
+      tenantBranding: { name: 'Acme Org', logoUrl: 'https://example.com/logo.png' },
+    });
+    expect(html.indexOf('Or paste this link into your browser')).toBeLessThan(html.indexOf('https://example.com/logo.png'));
+    expect(html).toContain('Acme Org');
+    expect(html.indexOf('Acme Org')).toBeLessThan(html.indexOf('Questions? Contact us at'));
   });
 
   it('builds a booking confirmation', () => {

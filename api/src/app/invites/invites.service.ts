@@ -3,6 +3,7 @@ import { ProjectMemberRole } from '@prisma/client';
 import { CognitoService } from '../cognito/cognito.service';
 import { UserContext } from '../common/app.types';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
+import { loadTenantEmailBranding } from '../mail/tenant-email-branding.util';
 import { MailService } from '../mail/mail.service';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -85,6 +86,10 @@ export class InvitesService {
     return tenant?.name?.trim() || 'UpStart Back Office';
   }
 
+  private tenantBrandingForEmail() {
+    return loadTenantEmailBranding(this.prisma, currentTenantId());
+  }
+
   /** Record the new row as already accepted (so it never shows as a pending invite) and send the notice. */
   private async sendAddedNotice(params: {
     user: { id: string; email: string; firstName: string | null };
@@ -100,12 +105,14 @@ export class InvitesService {
     const org = await this.orgName();
     const inviter = personName(invitedBy);
     const link = adminAppBaseUrl();
+    const tenantBranding = await this.tenantBrandingForEmail();
     const html = wrapClientEmail({
       title: params.title(inviter, org),
       greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
       intro: params.intro(inviter, org),
       action: { href: link, label: 'Sign in' },
       actionNote: 'Sign in with the same email and password you already use. Use the tenant switcher at the top of the page to move between organizations.',
+      tenantBranding,
     });
     const result = await this.mail.sendRaw({ to: user.email, subject: params.title(inviter, org), html });
     if (!result.sent) this.logger.warn(`Added-to-tenant email to ${user.email} failed: ${result.error}`);
@@ -142,6 +149,7 @@ export class InvitesService {
     });
     const link = `${adminAppBaseUrl()}/accept-invite?token=${encodeURIComponent(token)}`;
     const inviter = personName(invitedBy);
+    const tenantBranding = await this.tenantBrandingForEmail();
     const html = wrapClientEmail({
       title: `${inviter} shared “${project.name}” with you`,
       greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
@@ -149,6 +157,7 @@ export class InvitesService {
       action: { href: link, label: 'Accept invitation' },
       actionNote: `This link expires in ${INVITE_TTL_DAYS} days. If you weren't expecting this, you can ignore this email.`,
       extraHtml: `<p style="margin:16px 0 0;font-size:12px;color:#8a8a8a;word-break:break-all;">Or paste this link into your browser: ${escapeHtml(link)}</p>`,
+      tenantBranding,
     });
     if (process.env.INVITE_EMAILS === 'log') {
       this.logger.log(`Invite link for ${user.email}: ${link}`);
@@ -190,6 +199,7 @@ export class InvitesService {
     });
     const link = `${adminAppBaseUrl()}/accept-invite?token=${encodeURIComponent(token)}`;
     const inviter = personName(invitedBy);
+    const tenantBranding = await this.tenantBrandingForEmail();
     const html = wrapClientEmail({
       title: `${inviter} invited you to ${org}`,
       greeting: user.firstName ? `Hi ${user.firstName},` : 'Hi,',
@@ -197,6 +207,7 @@ export class InvitesService {
       action: { href: link, label: 'Accept invitation' },
       actionNote: `This link expires in ${INVITE_TTL_DAYS} days. If you weren't expecting this, you can ignore this email.`,
       extraHtml: `<p style="margin:16px 0 0;font-size:12px;color:#8a8a8a;word-break:break-all;">Or paste this link into your browser: ${escapeHtml(link)}</p>`,
+      tenantBranding,
     });
     const result = await this.mail.sendRaw({
       to: user.email,

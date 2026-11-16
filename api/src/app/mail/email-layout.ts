@@ -15,6 +15,51 @@ export function publicFromName(configured?: string | null): string {
 export type EmailFact = { label: string; value: string };
 export type EmailSummaryRow = { label: string; value: string; strong?: boolean };
 
+export type EmailTenantBranding = { name: string; logoUrl: string };
+
+function buildTenantBrandingHtml(branding: EmailTenantBranding): string {
+  const logoUrl = branding.logoUrl.trim();
+  if (!logoUrl) return '';
+  const name = branding.name.trim();
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 0;">
+      <tr>
+        <td style="vertical-align:middle;padding-right:16px;">
+          <img src="${escapeHtml(logoUrl)}" alt="" width="120" style="display:block;height:40px;width:auto;max-width:160px;border:0;" />
+        </td>
+        <td style="vertical-align:middle;text-align:right;font-size:18px;line-height:1.3;color:#2d2d2d;font-weight:600;">
+          ${escapeHtml(name || ' ')}
+        </td>
+      </tr>
+    </table>`;
+}
+
+function buildEmailFooterHtml(): string {
+  return `
+    <div style="padding:0 32px 24px;">
+      <hr style="border:none;border-top:1px solid #e5e5e5;margin:0 0 16px;" />
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:middle;width:180px;">
+            <img src="cid:${LOGO_CID}" alt="${escapeHtml(EMAIL_BRAND.name)}" width="180" style="display:block;height:48px;width:auto;border:0;" />
+          </td>
+          <td style="vertical-align:middle;padding-left:16px;">
+            <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#6b6b6b;">
+              Questions? Contact us at
+              <a href="mailto:${EMAIL_BRAND.email}" style="color:#5469d4;text-decoration:none;font-weight:600;">${EMAIL_BRAND.email}</a>.
+            </p>
+            <p style="margin:0;font-size:12px;line-height:1.5;color:#8a8a8a;">
+              You’re receiving this email from ${escapeHtml(EMAIL_BRAND.legalName)}.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div style="background:#7c3aed;padding:8px 32px;">
+      <p style="margin:0;font-size:12px;line-height:1.3;color:#ffffff;font-weight:500;letter-spacing:0.01em;">Technology that serves your mission.</p>
+    </div>`;
+}
+
 export function wrapClientEmail(params: {
   title: string;
   subtitle?: string;
@@ -25,6 +70,7 @@ export function wrapClientEmail(params: {
   action?: { href: string; label: string };
   actionNote?: string;
   extraHtml?: string;
+  tenantBranding?: EmailTenantBranding;
   closing?: string;
 }): string {
   const facts = (params.facts ?? []).filter((f) => f.value.trim());
@@ -80,24 +126,10 @@ export function wrapClientEmail(params: {
       ${summaryHtml}
       ${actionHtml}
       ${params.extraHtml ?? ''}
+      ${params.tenantBranding ? buildTenantBrandingHtml(params.tenantBranding) : ''}
       ${params.closing ? `<p style="margin:28px 0 0;font-size:15px;color:#2d2d2d;">${escapeHtml(params.closing)}</p>` : ''}
     </div>
-    <div style="padding:0 32px 20px;">
-      <hr style="border:none;border-top:1px solid #e5e5e5;margin:0 0 16px;" />
-      <p style="margin:0 0 8px;font-size:14px;line-height:1.5;color:#6b6b6b;">
-        Questions? Contact us at
-        <a href="mailto:${EMAIL_BRAND.email}" style="color:#5469d4;text-decoration:none;font-weight:600;">${EMAIL_BRAND.email}</a>.
-      </p>
-      <p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#8a8a8a;">
-        You’re receiving this email from ${escapeHtml(EMAIL_BRAND.legalName)}.
-      </p>
-    </div>
-    <div style="padding:8px 32px 24px;">
-      <img src="cid:${LOGO_CID}" alt="${escapeHtml(EMAIL_BRAND.name)}" width="180" style="display:block;height:48px;width:auto;border:0;" />
-    </div>
-    <div style="background:#7c3aed;padding:8px 32px;">
-      <p style="margin:0;font-size:12px;line-height:1.3;color:#ffffff;font-weight:500;letter-spacing:0.01em;">Technology that serves your mission.</p>
-    </div>
+    ${buildEmailFooterHtml()}
   </div>
 </body>
 </html>`;
