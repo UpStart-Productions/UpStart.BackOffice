@@ -209,20 +209,20 @@
         }
         @if (canEdit()) {
           @if (addingSection()) {
-            <div class="pipeline-col pipeline-col-add">
+            <div class="pipeline-col pipeline-col-add tm-section-new-col">
               <input
-                class="tm-section-rename"
+                #newSectionInput
+                class="tm-section-rename tm-section-rename--field"
                 [(ngModel)]="newSectionName"
                 (keydown.enter)="addSection()"
-                (keydown.escape)="addingSection.set(false)"
-                (blur)="newSectionName.trim() ? addSection() : addingSection.set(false)"
+                (keydown.escape)="cancelAddSection()"
+                (blur)="newSectionName.trim() ? addSection() : cancelAddSection()"
                 placeholder="Section name"
                 aria-label="New section name"
-                autofocus
               />
             </div>
           } @else {
-            <button type="button" class="pipeline-col pipeline-col-add tm-board-add-section" (click)="addingSection.set(true)">
+            <button type="button" class="pipeline-col pipeline-col-add tm-board-add-section" (click)="startAddingSection()">
               <i class="pi pi-plus"></i> Add section
             </button>
           }
@@ -254,7 +254,7 @@
               </button>
               @if (editingSectionId() === s.id) {
                 <input
-                  class="tm-section-rename"
+                  class="tm-section-rename tm-section-rename--field"
                   [(ngModel)]="sectionDraft"
                   (blur)="saveSectionName(s)"
                   (keydown.enter)="saveSectionName(s)"
@@ -415,19 +415,20 @@
       @if (canEdit()) {
         @if (addingSection()) {
           <div class="tm-section-header tm-section-new">
+            <span class="tm-icon-spacer" aria-hidden="true"></span>
             <input
-              class="tm-section-rename"
+              #newSectionInput
+              class="tm-section-rename tm-section-rename--field"
               [(ngModel)]="newSectionName"
               (keydown.enter)="addSection()"
-              (keydown.escape)="addingSection.set(false)"
-              (blur)="newSectionName.trim() ? addSection() : addingSection.set(false)"
+              (keydown.escape)="cancelAddSection()"
+              (blur)="newSectionName.trim() ? addSection() : cancelAddSection()"
               placeholder="Section name"
               aria-label="New section name"
-              autofocus
             />
           </div>
         } @else {
-          <button type="button" class="tm-add-section" (click)="addingSection.set(true)"><i class="pi pi-plus"></i> Add section</button>
+          <button type="button" class="tm-add-section" (click)="startAddingSection()"><i class="pi pi-plus"></i> Add section</button>
         }
       }
     </div>

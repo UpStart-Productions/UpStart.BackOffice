@@ -132,6 +132,23 @@
     outline: none;
     border: none;
   }
+
+  &--field {
+    flex: 1;
+    min-width: 8rem;
+    max-width: 24rem;
+    width: auto;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--content-border-radius, 6px);
+    padding: 0.3rem 0.5rem;
+    background: var(--surface-card);
+
+    &:focus {
+      outline: 2px solid var(--brand-primary);
+      outline-offset: 1px;
+      border-color: var(--brand-primary);
+    }
+  }
 }
 
 .tm-section-new {

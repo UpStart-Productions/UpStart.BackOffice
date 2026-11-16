@@ -57,6 +57,15 @@
   }
 }
 
+.tm-section-new-col {
+  padding: 0.5rem 0.65rem;
+
+  .tm-section-rename--field {
+    width: 100%;
+    max-width: none;
+  }
+}
+
 .tm-board-add-section {
   display: flex;
   align-items: center;

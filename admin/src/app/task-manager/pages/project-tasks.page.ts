@@ -1,5 +1,16 @@
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
-import { Component, computed, effect, HostListener, inject, OnDestroy, signal, untracked, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  HostListener,
+  inject,
+  OnDestroy,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
@@ -166,6 +177,7 @@ export class ProjectTasksPage implements OnDestroy {
   private readonly colorMenu = viewChild.required<Popover>('colorMenu');
   private readonly bulkSectionPop = viewChild.required<Popover>('bulkSectionPop');
   private readonly rowSectionPop = viewChild.required<Popover>('rowSectionPop');
+  private readonly newSectionInput = viewChild<ElementRef<HTMLInputElement>>('newSectionInput');
   rowMoveTask = signal<TaskSummary | null>(null);
   private pickerTask: TaskSummary | null = null;
   private bulkPickerIds: string[] | null = null;
@@ -888,7 +900,18 @@ export class ProjectTasksPage implements OnDestroy {
     this.sectionMenu().hide();
     this.editingSectionId.set(section.id);
     this.sectionDraft = section.name;
-    setTimeout(() => (document.querySelector('.tm-section-rename') as HTMLInputElement | null)?.select(), 0);
+    setTimeout(() => this.focusSectionRenameInput(), 0);
+  }
+
+  /** Rename field in the section header: focus with caret at end (not select-all). */
+  private focusSectionRenameInput() {
+    const el = document.querySelector(
+      '.tm-section-header input.tm-section-rename--field[aria-label="Section name"]',
+    ) as HTMLInputElement | null;
+    if (!el) return;
+    el.focus();
+    const end = el.value.length;
+    el.setSelectionRange(end, end);
   }
 
   async saveSectionName(section: TmSection) {
@@ -921,6 +944,17 @@ export class ProjectTasksPage implements OnDestroy {
     } catch (err) {
       this.fail(err);
     }
+  }
+
+  startAddingSection() {
+    this.newSectionName = '';
+    this.addingSection.set(true);
+    setTimeout(() => this.newSectionInput()?.nativeElement?.focus(), 0);
+  }
+
+  cancelAddSection() {
+    this.newSectionName = '';
+    this.addingSection.set(false);
   }
 
   async addSection(afterSectionId?: string | null) {
