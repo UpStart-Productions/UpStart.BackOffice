@@ -18,7 +18,7 @@ Super users can impersonate a user from row actions (viewing as that user).
 
 ## Settings (Admin only)
 
-**Settings** accordion sections include business profile, **MCP server** (connect desktop AI apps to UpStart Back Office), **Back Office guide** (whether the help chat can look up records), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area. **Google Calendar** only shows when the Bookings module is on.
+**Settings** accordion sections include business profile, **MCP server** (connect desktop AI apps to UpStart Back Office), **Back Office guide** (whether the help chat can look up records), **Stripe payments** (per-organization API keys and webhook for invoice pay links), integrations (Asana, Google Calendar, email capture), API keys, and related tenant configuration. Expand a section to edit; save within each area. **Google Calendar** only shows when the Bookings module is on.
 
 ### MCP server
 

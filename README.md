@@ -89,7 +89,7 @@ Configure in `.env` when you need them:
 | Invoice email | `AWS_*`, `MAIL_FROM_*` |
 | Cloud file storage | `STORAGE_PROVIDER=s3`, `S3_BUCKET` |
 | Client portal links | `PORTAL_BASE_URL`, `PORTAL_SESSION_SECRET` |
-| Stripe invoice payments | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAY_BASE_URL` |
+| Stripe invoice payments | Per tenant in Settings → Stripe payments; server `PAY_BASE_URL` for the public pay page |
 
 Without AWS credentials, invoice send shows "Email not configured" and files stay on local disk under `uploads/`.
 

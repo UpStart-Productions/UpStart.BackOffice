@@ -253,6 +253,10 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Optional. Choose a project to attach this board to — you can add many boards on the same project. Clear the field for a standalone board.',
   'tm.newBoardName':
     'Name shown in Tasks for this board only (e.g. Yard work). Can differ from the project name.',
+  'settings.stripe.publishable':
+    'From Stripe → Developers → API keys. Use test keys until you go live.',
+  'settings.stripe.webhook':
+    'From the webhook endpoint in Stripe after you paste the URL shown here. Required for invoice payments to mark paid automatically.',
   'tm.notificationsEmailPrefs':
     'Moved to My Account → Notifications. Choose in-app, email, and (later) push per type.',
   'account.email':

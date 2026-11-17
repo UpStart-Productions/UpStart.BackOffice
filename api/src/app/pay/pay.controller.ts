@@ -13,6 +13,21 @@ export class PayController {
     private readonly tenants: PublicTenantService,
   ) {}
 
+  @Post('webhook/:tenantSlug')
+  @HttpCode(200)
+  async webhook(
+    @Param('tenantSlug') tenantSlug: string,
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string | undefined,
+  ) {
+    const raw = req.body;
+    const buffer = Buffer.isBuffer(raw) ? raw : Buffer.from(typeof raw === 'string' ? raw : JSON.stringify(raw));
+    return this.tenants.byTenantSlug(tenantSlug, async () => {
+      await this.pay.handleWebhook(buffer, signature);
+      return { received: true };
+    });
+  }
+
   @Get(':token')
   get(@Param('token') token: string) {
     return this.tenants.byPayableToken(token, () => this.pay.getPublicView(token));
@@ -37,23 +52,5 @@ export class PayController {
   @Post(':token/confirm')
   confirm(@Param('token') token: string) {
     return this.tenants.byPayableToken(token, () => this.pay.confirmCheckout(token));
-  }
-}
-
-@ApiTags('pay')
-@Controller('pay/webhook')
-export class PayWebhookController {
-  constructor(private readonly pay: PayService) {}
-
-  @Post()
-  @HttpCode(200)
-  async webhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('stripe-signature') signature: string | undefined,
-  ) {
-    const raw = req.body;
-    const buffer = Buffer.isBuffer(raw) ? raw : Buffer.from(typeof raw === 'string' ? raw : JSON.stringify(raw));
-    await this.pay.handleWebhook(buffer, signature);
-    return { received: true };
   }
 }

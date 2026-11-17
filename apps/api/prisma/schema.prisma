@@ -724,6 +724,17 @@ model AsanaIntegration {
   updatedAt                  DateTime  @updatedAt
 }
 
+model StripeIntegration {
+  id                String    @id @default(cuid())
+  tenantId          String    @unique @default("")
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  publishableKey    String?
+  secretKeyEnc      String?
+  webhookSecretEnc  String?
+  connectedAt       DateTime?
+  updatedAt         DateTime  @updatedAt
+}
+
 model GoogleCalendarIntegration {
   id                         String    @id @default(cuid())
   tenantId                   String    @unique @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
@@ -1681,6 +1692,7 @@ model Tenant {
   projectTasks                ProjectTask[]
   asanaIntegrations           AsanaIntegration[]
   googleCalendarIntegrations  GoogleCalendarIntegration[]
+  stripeIntegration           StripeIntegration?
   organizationProfiles        OrganizationProfile[]
   timeEntrys                  TimeEntry[]
   expenses                    Expense[]

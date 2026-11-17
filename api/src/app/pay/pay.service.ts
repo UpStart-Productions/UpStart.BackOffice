@@ -21,7 +21,6 @@ import {
   dollarsToCents,
   generatePayToken,
   integrationIdentifier,
-  isStripeConfigured,
   uniqueProjectsFromLineItems,
 } from './pay.util';
 import { formatReceiptDate, resolveReceiptPayer } from './pay-receipt.util';
@@ -55,18 +54,18 @@ export class PayService {
     @Inject(STORAGE_SERVICE) private readonly storage: StorageService,
   ) {}
 
-  isConfigured(): boolean {
-    return isStripeConfigured();
+  isConfigured(): Promise<boolean> {
+    return this.stripe.isConfigured();
   }
 
   async getPublicView(token: string) {
     const payable = await this.reconcileByToken(token);
-    return this.toPublicView(payable);
+    return await this.toPublicView(payable);
   }
 
   async confirmCheckout(token: string) {
     const payable = await this.reconcileByToken(token);
-    return this.toPublicView(payable);
+    return await this.toPublicView(payable);
   }
 
   async getInvoicePdf(token: string): Promise<{ buffer: Buffer; filename: string }> {
@@ -95,7 +94,7 @@ export class PayService {
   }
 
   async createCheckout(token: string): Promise<{ clientSecret: string }> {
-    if (!this.stripe.isConfigured()) {
+    if (!(await this.stripe.isConfigured())) {
       throw new ServiceUnavailableException('Card payments are not configured');
     }
 
@@ -158,7 +157,7 @@ export class PayService {
     }
     let event: Stripe.Event;
     try {
-      event = this.stripe.constructWebhookEvent(rawBody, signature);
+      event = await this.stripe.constructWebhookEvent(rawBody, signature);
     } catch (err) {
       this.logger.warn(`Stripe webhook signature failed: ${String(err)}`);
       throw new BadRequestException('Invalid Stripe signature');
@@ -184,7 +183,7 @@ export class PayService {
   }
 
   async getOrCreateForInvoice(invoice: InvoiceForPay): Promise<Payable | null> {
-    if (!this.isConfigured()) return null;
+    if (!(await this.isConfigured())) return null;
     // Invoices billed to the tenant are paid by the tenant, not through a pay link.
     if (invoice.billTo === 'TENANT') return null;
     if (invoice.status === 'VOID' || invoice.status === 'PAID') {
@@ -260,7 +259,7 @@ export class PayService {
     if (payable.status === 'PAID' || payable.invoice?.status === 'PAID') {
       return payable;
     }
-    if (!payable.stripeCheckoutSessionId || !this.stripe.isConfigured()) {
+    if (!payable.stripeCheckoutSessionId || !(await this.stripe.isConfigured())) {
       return payable;
     }
 
@@ -276,7 +275,7 @@ export class PayService {
     return payable;
   }
 
-  private toPublicView(payable: PayableForView) {
+  private async toPublicView(payable: PayableForView) {
     const invoicePaid = payable.invoice?.status === 'PAID';
     const alreadyPaid = payable.status === 'PAID' || invoicePaid;
     const unavailable = payable.status === 'CANCELED' || payable.invoice?.status === 'VOID';
@@ -287,8 +286,8 @@ export class PayService {
       amount: Number(payable.amount),
       currency: payable.currency,
       status: alreadyPaid ? 'PAID' : unavailable ? 'UNAVAILABLE' : 'OPEN',
-      publishableKey: this.stripe.publishableKey(),
-      paymentsEnabled: this.stripe.isConfigured(),
+      publishableKey: await this.stripe.publishableKey(),
+      paymentsEnabled: await this.stripe.isConfigured(),
       projects: uniqueProjectsFromLineItems(payable.invoice?.lineItems ?? []) || [],
       invoiceNumber: payable.invoice?.displayNumber ?? null,
       dueDate: payable.invoice?.dueDate?.toISOString() ?? null,

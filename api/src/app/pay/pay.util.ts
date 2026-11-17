@@ -25,12 +25,6 @@ export function integrationIdentifier(kind: string): string {
   return `ubo-${kind.toLowerCase()}-${suffix}`;
 }
 
-export function isStripeConfigured(): boolean {
-  return Boolean(
-    process.env.STRIPE_SECRET_KEY?.trim() && process.env.STRIPE_PUBLISHABLE_KEY?.trim(),
-  );
-}
-
 export function canAcceptPayment(params: {
   payableStatus: string;
   invoiceStatus?: string | null;

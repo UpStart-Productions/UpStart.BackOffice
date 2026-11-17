@@ -1,36 +1,41 @@
 import { Injectable, Logger } from '@nestjs/common';
 import Stripe from 'stripe';
-import { isStripeConfigured } from './pay.util';
+import { currentTenantId } from '../tenancy/tenant-context';
+import { StripeIntegrationService } from './stripe-integration.service';
 
 @Injectable()
 export class StripeService {
   private readonly logger = new Logger(StripeService.name);
-  private client: Stripe | null = null;
+  private readonly clients = new Map<string, Stripe>();
 
-  isConfigured(): boolean {
-    return isStripeConfigured();
+  constructor(private readonly integration: StripeIntegrationService) {}
+
+  isConfigured(): Promise<boolean> {
+    return this.integration.isConfigured();
   }
 
-  publishableKey(): string | null {
-    return process.env.STRIPE_PUBLISHABLE_KEY?.trim() || null;
+  publishableKey(): Promise<string | null> {
+    return this.integration.publishableKey();
   }
 
-  getClient(): Stripe {
-    if (this.client) return this.client;
-    const key = process.env.STRIPE_SECRET_KEY?.trim();
-    if (!key) {
-      throw new Error('STRIPE_SECRET_KEY is not set');
-    }
-    this.client = new Stripe(key);
-    return this.client;
+  clearClientCache(tenantId?: string): void {
+    this.clients.delete(tenantId ?? currentTenantId());
   }
 
-  constructWebhookEvent(rawBody: Buffer, signature: string): Stripe.Event {
-    const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
-    if (!secret) {
-      throw new Error('STRIPE_WEBHOOK_SECRET is not set');
-    }
-    return this.getClient().webhooks.constructEvent(rawBody, signature, secret);
+  private async getClient(): Promise<Stripe> {
+    const tenantId = currentTenantId();
+    const cached = this.clients.get(tenantId);
+    if (cached) return cached;
+    const key = await this.integration.getSecretKey(tenantId);
+    const client = new Stripe(key);
+    this.clients.set(tenantId, client);
+    return client;
+  }
+
+  async constructWebhookEvent(rawBody: Buffer, signature: string): Promise<Stripe.Event> {
+    const secret = await this.integration.getWebhookSecret();
+    const stripe = await this.getClient();
+    return stripe.webhooks.constructEvent(rawBody, signature, secret);
   }
 
   async createEmbeddedCheckout(params: {
@@ -41,9 +46,9 @@ export class StripeService {
     metadata: Record<string, string>;
     integrationIdentifier: string;
   }): Promise<Stripe.Checkout.Session> {
-    const stripe = this.getClient();
+    const stripe = await this.getClient();
     return stripe.checkout.sessions.create({
-      ui_mode: 'embedded_page',
+      ui_mode: 'embedded' as Stripe.Checkout.SessionCreateParams.UiMode,
       mode: 'payment',
       redirect_on_completion: 'never',
       customer_email: params.customerEmail || undefined,
@@ -60,11 +65,11 @@ export class StripeService {
       metadata: params.metadata,
       client_reference_id: params.metadata.payableId,
       integration_identifier: params.integrationIdentifier,
-    });
+    } as Stripe.Checkout.SessionCreateParams);
   }
 
   async retrieveCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
-    return this.getClient().checkout.sessions.retrieve(sessionId);
+    return (await this.getClient()).checkout.sessions.retrieve(sessionId);
   }
 
   async getReceiptDetails(sessionId: string): Promise<{
@@ -73,7 +78,7 @@ export class StripeService {
     receiptNumber: string | null;
     receiptUrl: string | null;
   }> {
-    const stripe = this.getClient();
+    const stripe = await this.getClient();
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['payment_intent.latest_charge'],
     });
@@ -105,7 +110,7 @@ export class StripeService {
 
   async refundPaymentIntent(paymentIntentId: string): Promise<void> {
     try {
-      await this.getClient().refunds.create({ payment_intent: paymentIntentId });
+      await (await this.getClient()).refunds.create({ payment_intent: paymentIntentId });
     } catch (err) {
       this.logger.error(`Failed to refund PaymentIntent ${paymentIntentId}: ${String(err)}`);
       throw err;

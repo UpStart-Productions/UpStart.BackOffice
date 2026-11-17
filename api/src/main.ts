@@ -60,7 +60,7 @@ async function bootstrap() {
     bodyParser: false,
   });
   app.use((req, res, next) => {
-    if (req.originalUrl === '/api/pay/webhook') {
+    if (/^\/api\/pay\/webhook(\/|$)/.test(req.originalUrl.split('?')[0])) {
       return express.raw({ type: 'application/json' })(req, res, next);
     }
     return express.json({ limit: JSON_BODY_LIMIT })(req, res, next);

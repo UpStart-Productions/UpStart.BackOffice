@@ -29,6 +29,15 @@ export class PublicTenantService {
     );
   }
 
+  /** Stripe webhooks: route by tenant slug in the URL. */
+  byTenantSlug<T>(slug: string, fn: () => Promise<T>) {
+    return this.inTenantOf(
+      () => this.prisma.tenant.findUnique({ where: { slug }, select: { id: true } }).then((t) => (t ? { tenantId: t.id } : null)),
+      fn,
+      'Not found',
+    );
+  }
+
   byPayableId<T>(id: string, fn: () => Promise<T>) {
     return this.inTenantOf(
       () => this.prisma.payable.findFirst({ where: { id }, select: { tenantId: true } }),
