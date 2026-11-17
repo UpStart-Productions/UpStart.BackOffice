@@ -30,7 +30,9 @@
       <button type="button" class="tm-icon-btn tm-star" [class.starred]="p.isStarred" (click)="toggleStar()" [attr.aria-label]="p.isStarred ? 'Unstar project' : 'Star project'" [pTooltip]="p.isStarred ? 'Remove from starred' : 'Add to starred'" tooltipPosition="bottom">
         <i class="pi" [class.pi-star-fill]="p.isStarred" [class.pi-star]="!p.isStarred"></i>
       </button>
-      @if (p.client) {
+      @if (p.hostProject) {
+        <a class="tm-client-chip tm-client-chip--header" [routerLink]="['/projects', p.officeProjectId]"><i class="pi pi-folder"></i> {{ p.hostProject.name }}</a>
+      } @else if (p.client) {
         <a class="tm-client-chip tm-client-chip--header" [routerLink]="['/accounts', p.client.id]"><i class="pi pi-building"></i> {{ p.client.name }}</a>
       } @else {
         <span class="tm-client-chip tm-client-chip--header tm-client-chip--personal">Personal</span>
@@ -461,6 +463,11 @@
     <app-tm-contacts-dialog [(visible)]="contactsOpen" [project]="p" (updated)="onProjectUpdated($event)" />
     <app-tm-fields-dialog [(visible)]="fieldsOpen" [project]="p" (changed)="onFieldsChanged()" />
     <app-tm-edit-project-dialog [(visible)]="editProjectOpen" [project]="p" (updated)="onProjectUpdated($event)" />
+    <app-tm-add-project-dialog
+      [(visible)]="addBoardOpen"
+      [presetHostProjectId]="p.officeProjectId"
+      (added)="onBoardCreated($event)"
+    />
   }
   </app-page>
   <!-- Activates child route tasks/:taskId (detail pane); no nested component. -->

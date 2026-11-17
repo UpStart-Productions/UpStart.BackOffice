@@ -21,6 +21,8 @@ export type TmProjectListItem = {
   isActive: boolean;
   isBillable: boolean;
   client: { id: string; name: string } | null;
+  hostProject: { id: string; name: string } | null;
+  officeProjectId: string;
   isStarred: boolean;
   starOrder: number | null;
   myRole: MemberRole | null;
@@ -55,6 +57,8 @@ export type TmProject = {
   isActive: boolean;
   isBillable: boolean;
   client: { id: string; name: string } | null;
+  hostProject: { id: string; name: string } | null;
+  officeProjectId: string;
   isStarred: boolean;
   sections: TmSection[];
   customFields: TmField[];

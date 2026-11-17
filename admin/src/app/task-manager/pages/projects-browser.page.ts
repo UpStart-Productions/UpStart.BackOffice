@@ -24,7 +24,7 @@ import { PageComponent } from '../../ui/layout/page.component';
       <app-page title="Projects">
 
       @if (seesAllProjects()) {
-        <p-button pageActions label="Add project" icon="pi pi-plus" (onClick)="newOpen.set(true)" />
+        <p-button pageActions label="New task board" icon="pi pi-plus" (onClick)="newOpen.set(true)" />
       }
       <div class="toolbar">
         <label class="tm-toggle-label">
@@ -62,7 +62,13 @@ import { PageComponent } from '../../ui/layout/page.component';
               </td>
               <td>
                 <a [routerLink]="['/tasks/projects', p.id]" class="tm-browser-name" (click)="$event.stopPropagation()">
-                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" [large]="true" />{{ p.name }}
+                  <app-tm-project-icon [color]="p.color" [icon]="p.icon" [large]="true" />
+                  <span>
+                    {{ p.name }}
+                    @if (p.hostProject) {
+                      <span class="tm-muted text-sm"> · {{ p.hostProject.name }}</span>
+                    }
+                  </span>
                 </a>
                 @if (!p.isActive) { <span class="tm-client-chip tm-client-chip--archived">Inactive</span> }
               </td>

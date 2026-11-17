@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   AddMemberDto,
   CreateFieldDto,
+  CreateTaskBoardDto,
   InviteMemberDto,
   CreateSectionDto,
   UpdateFieldDto,
@@ -57,7 +58,9 @@ export class TaskProjectsService {
         icon: true,
         isActive: true,
         isBillable: true,
+        taskBoardHostId: true,
         client: { select: { id: true, name: true } },
+        taskBoardHost: { select: { id: true, name: true } },
         stars: { where: { userId: user.id }, select: { sortOrder: true } },
         members: { where: { userId: user.id }, select: { role: true } },
         _count: { select: { members: true, workTasks: { where: { isCompleted: false, parentTaskId: null } } } },
@@ -72,6 +75,8 @@ export class TaskProjectsService {
       isActive: p.isActive,
       isBillable: p.isBillable,
       client: p.client,
+      hostProject: p.taskBoardHost,
+      officeProjectId: p.taskBoardHostId ?? p.id,
       isStarred: p.stars.length > 0,
       starOrder: p.stars[0]?.sortOrder ?? null,
       myRole: p.members[0]?.role ?? null,
@@ -86,6 +91,7 @@ export class TaskProjectsService {
       where: { id: projectId },
       include: {
         client: { select: { id: true, name: true } },
+        taskBoardHost: { select: { id: true, name: true } },
         sections: { orderBy: { sortOrder: 'asc' } },
         customFields: { orderBy: { sortOrder: 'asc' } },
         members: { include: { user: { select: personSelect } }, orderBy: { createdAt: 'asc' } },
@@ -108,6 +114,8 @@ export class TaskProjectsService {
       isActive: project.isActive,
       isBillable: project.isBillable,
       client: project.client,
+      hostProject: project.taskBoardHost,
+      officeProjectId: project.taskBoardHostId ?? project.id,
       isStarred: project.stars.length > 0,
       sections: project.sections.map((s) => ({
         id: s.id,
@@ -141,10 +149,90 @@ export class TaskProjectsService {
   async available(user: UserContext) {
     if (!this.access.seesAllProjects(user)) return [];
     return this.prisma.project.findMany({
-      where: { inTaskManager: false, isActive: true },
+      where: { inTaskManager: false, isActive: true, taskBoardHostId: null },
       select: { id: true, name: true, client: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
     });
+  }
+
+  /** Office projects you can attach a new task board to (main project rows only). */
+  async boardHostOptions(user: UserContext) {
+    if (!this.access.seesAllProjects(user)) return [];
+    return this.prisma.project.findMany({
+      where: { isActive: true, taskBoardHostId: null },
+      select: { id: true, name: true, client: { select: { id: true, name: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /** New task board with no Office project required; optional host for multiple boards on one project. */
+  async createBoard(user: UserContext, dto: CreateTaskBoardDto) {
+    if (!this.access.seesAllProjects(user)) {
+      throw new BadRequestException('You do not have permission to create task boards');
+    }
+    const name = dto.name.trim();
+    const hostId = dto.hostProjectId?.trim() || null;
+    let clientId: string | null = null;
+    let hostMembers: { userId: string; role: ProjectMemberRole }[] = [];
+
+    if (hostId) {
+      const host = await this.prisma.project.findUnique({
+        where: { id: hostId },
+        select: {
+          id: true,
+          clientId: true,
+          isActive: true,
+          taskBoardHostId: true,
+          members: { select: { userId: true, role: true } },
+        },
+      });
+      if (!host?.isActive) throw new NotFoundException('Project not found');
+      if (host.taskBoardHostId) {
+        throw new BadRequestException('Pick the main project, not another task board.');
+      }
+      clientId = host.clientId;
+      hostMembers = host.members;
+    }
+
+    const enabledCount = await this.prisma.project.count({ where: { inTaskManager: true } });
+    const color = dto.color?.trim() || PROJECT_COLORS[enabledCount % PROJECT_COLORS.length];
+
+    const projectId = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.project.create({
+        data: {
+          name,
+          clientId,
+          inTaskManager: true,
+          taskBoardHostId: hostId,
+          color,
+          icon: dto.icon?.trim() || null,
+          isBillable: clientId ? true : false,
+          defaultExpenseBillable: !!clientId,
+          createdByUserId: user.id,
+        },
+        select: { id: true },
+      });
+      await tx.taskSection.createMany({
+        data: DEFAULT_SECTIONS.map((sectionName, i) => ({
+          projectId: row.id,
+          name: sectionName,
+          sortOrder: (i + 1) * ORDER_STEP,
+        })),
+      });
+      if (hostMembers.length) {
+        await tx.projectMember.createMany({
+          data: hostMembers.map((m) => ({ projectId: row.id, userId: m.userId, role: m.role })),
+          skipDuplicates: true,
+        });
+      } else {
+        await tx.projectMember.create({
+          data: { projectId: row.id, userId: user.id, role: ProjectMemberRole.OWNER },
+        });
+      }
+      return row.id;
+    });
+
+    return this.get(user, projectId);
   }
 
   /**

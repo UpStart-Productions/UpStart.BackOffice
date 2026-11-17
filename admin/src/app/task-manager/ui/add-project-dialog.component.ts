@@ -1,4 +1,4 @@
-import { Component, inject, model, output, signal } from '@angular/core';
+import { Component, inject, input, model, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { AppDialogModule } from '../../core/app-dialog.module';
@@ -11,54 +11,76 @@ import { TmProject } from '../core/tm.types';
 import { LucideIconPickerComponent } from '@upstart/back-office/lucide-icons';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 
-type Available = { id: string; name: string; client: { id: string; name: string } | null; label: string };
+type HostOption = { id: string; name: string; client: { id: string; name: string } | null; label: string };
 
-/** Add an existing project (created on the Projects page) to Tasks. */
+/** New task board: optional Office project, then a board name. */
 @Component({
   selector: 'app-tm-add-project-dialog',
   standalone: true,
-  imports: [LucideIconPickerComponent, FormsModule, AppDialogModule, ButtonModule, SelectModule, InputTextModule, MessageModule, HelpTextComponent],
+  imports: [
+    LucideIconPickerComponent,
+    FormsModule,
+    AppDialogModule,
+    ButtonModule,
+    SelectModule,
+    InputTextModule,
+    MessageModule,
+    HelpTextComponent,
+  ],
   template: `
-    <p-dialog header="Add project to Tasks" [(visible)]="visible" [modal]="true" [style]="{ width: '30rem' }" (onShow)="onShow()" [draggable]="false">
-      <form (ngSubmit)="add()">
+    <p-dialog
+      header="New task board"
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '30rem' }"
+      (onShow)="onShow()"
+      [draggable]="false"
+    >
+      <form (ngSubmit)="submit()">
         <div class="form-field mb-3">
-          <label for="tm-add-project">Project <app-help-text key="tm.addProjectToTasks" /></label>
+          <label for="tm-board-host">Project <app-help-text key="tm.newBoardProject" /></label>
           <p-select
-            inputId="tm-add-project"
-            name="projectId"
-            [options]="available()"
+            inputId="tm-board-host"
+            name="hostProjectId"
+            [options]="hosts()"
             optionLabel="label"
             optionValue="id"
-            [(ngModel)]="projectId"
-            (ngModelChange)="onProjectPicked($event)"
+            [(ngModel)]="hostProjectId"
             [filter]="true"
             filterBy="label"
-            [loading]="loading()"
-            placeholder="Choose a project"
-            emptyMessage="Every active project is already in Tasks"
+            [showClear]="true"
+            [loading]="loadingHosts()"
+            placeholder="None — standalone board"
             styleClass="w-full"
             appendTo="body"
           />
         </div>
         <div class="form-field mb-3">
-          <label for="tm-add-project-name">Name</label>
+          <label for="tm-board-name">Board name <app-help-text key="tm.newBoardName" /></label>
           <input
             pInputText
-            id="tm-add-project-name"
-            name="displayName"
+            id="tm-board-name"
+            name="boardName"
             class="w-full"
             [(ngModel)]="name"
             required
             maxlength="200"
-            [disabled]="!projectId"
-            placeholder="Name in Tasks"
+            placeholder="e.g. Yard work"
           />
         </div>
         <div class="form-field mb-3">
           <label>Color</label>
           <div class="tm-color-swatches tm-color-swatches--row">
             @for (c of colors; track c) {
-              <button type="button" class="tm-color-swatch" [class.selected]="color === c" [style.background]="c" (click)="color = c" [attr.aria-label]="'Color ' + c" [attr.aria-pressed]="color === c"></button>
+              <button
+                type="button"
+                class="tm-color-swatch"
+                [class.selected]="color === c"
+                [style.background]="c"
+                (click)="color = c"
+                [attr.aria-label]="'Color ' + c"
+                [attr.aria-pressed]="color === c"
+              ></button>
             }
           </div>
         </div>
@@ -71,7 +93,7 @@ type Available = { id: string; name: string; client: { id: string; name: string 
         }
         <div class="form-actions">
           <button type="button" pButton label="Cancel" severity="secondary" (click)="visible.set(false)"></button>
-          <button type="submit" pButton label="Add to Tasks" [loading]="saving()" [disabled]="!projectId || !name.trim() || saving()"></button>
+          <button type="submit" pButton label="Create board" [loading]="saving()" [disabled]="!canSubmit() || saving()"></button>
         </div>
       </form>
     </p-dialog>
@@ -81,60 +103,57 @@ export class TmAddProjectDialogComponent {
   private readonly tm = inject(TmApiService);
 
   visible = model(false);
+  /** Pre-select the Office project (e.g. Add another board). */
+  presetHostProjectId = input<string | null>(null);
   added = output<TmProject>();
 
   readonly colors = PROJECT_COLORS;
-  available = signal<Available[]>([]);
-  loading = signal(false);
-  projectId: string | null = null;
+  hosts = signal<HostOption[]>([]);
+  loadingHosts = signal(false);
+  hostProjectId: string | null = null;
   name = '';
   color = PROJECT_COLORS[0];
   icon: string | null = null;
   saving = signal(false);
   error = signal<string | null>(null);
 
+  canSubmit(): boolean {
+    return !!this.name.trim();
+  }
+
   async onShow() {
-    this.projectId = null;
+    this.hostProjectId = this.presetHostProjectId();
     this.name = '';
     this.icon = null;
     this.color = PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)];
     this.error.set(null);
-    this.loading.set(true);
+    this.loadingHosts.set(true);
     try {
-      const list = await this.tm.availableProjects();
-      this.available.set(list.map((p) => ({ ...p, label: p.client ? `${p.name} — ${p.client.name}` : p.name })));
+      const hostList = await this.tm.boardHosts();
+      this.hosts.set(hostList.map((p) => ({ ...p, label: p.client ? `${p.name} — ${p.client.name}` : p.name })));
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not load projects');
     } finally {
-      this.loading.set(false);
+      this.loadingHosts.set(false);
     }
   }
 
-  onProjectPicked(id: string | null) {
-    if (!id) {
-      this.name = '';
-      return;
-    }
-    const row = this.available().find((p) => p.id === id);
-    if (row) this.name = row.name;
-  }
-
-  async add() {
-    if (!this.projectId) return;
+  async submit() {
     const trimmed = this.name.trim();
     if (!trimmed) return;
     this.saving.set(true);
     this.error.set(null);
     try {
-      const project = await this.tm.addProject(this.projectId, {
+      const project = await this.tm.createBoard({
         name: trimmed,
         color: this.color,
         icon: this.icon,
+        hostProjectId: this.hostProjectId,
       });
       this.visible.set(false);
       this.added.emit(project);
     } catch (err) {
-      this.error.set(err instanceof Error ? err.message : 'Could not add project');
+      this.error.set(err instanceof Error ? err.message : 'Could not create board');
     } finally {
       this.saving.set(false);
     }

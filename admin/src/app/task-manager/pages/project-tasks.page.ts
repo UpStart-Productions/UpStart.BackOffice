@@ -35,6 +35,7 @@ import { TmApiService } from '../core/tm-api.service';
 import { chipColors, dueLabel, dueTone, personDisplayName, PROJECT_COLORS } from '../core/tm-format.util';
 import { TmStoreService } from '../core/tm-store.service';
 import { Person, TaskSummary, TmProject, TmSection } from '../core/tm.types';
+import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component';
 import { TmBulkActionsComponent } from '../ui/bulk-actions.component';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmFieldCellComponent } from '../ui/field-cell.component';
@@ -94,6 +95,7 @@ function taskIdFromProjectTasksUrl(url: string): string | null {
     TmContactsDialogComponent,
     TmFieldsDialogComponent,
     TmBulkActionsComponent,
+    TmAddProjectDialogComponent,
   ],
   templateUrl: './project-tasks.page.html',
   styleUrl: '../../pages/pipeline/pipeline-board.page.scss',
@@ -148,6 +150,7 @@ export class ProjectTasksPage implements OnDestroy {
   editingProjectName = signal(false);
   projectNameDraft = '';
   contactsOpen = signal(false);
+  addBoardOpen = signal(false);
   fieldsOpen = signal(false);
   addingIn = signal<string | null>(null);
   newTaskName = '';
@@ -1091,7 +1094,13 @@ export class ProjectTasksPage implements OnDestroy {
       items.push({ id: 'fields', label: 'Custom fields', icon: 'pi pi-sliders-h', command: () => this.fieldsOpen.set(true) });
     }
     if (p?.permissions?.seesAllProjects) {
-      items.push({ id: 'open', label: 'Open in projects', icon: 'pi pi-external-link', command: () => void this.router.navigate(['/projects', this.projectId()]) });
+      items.push({
+        id: 'add-board',
+        label: 'Add another board',
+        icon: 'pi pi-plus',
+        command: () => this.addBoardOpen.set(true),
+      });
+      items.push({ id: 'open', label: 'Open in projects', icon: 'pi pi-external-link', command: () => void this.router.navigate(['/projects', p.officeProjectId]) });
     }
     items.push(
       { id: 'contacts', label: 'Project contacts', icon: 'pi pi-id-card', command: () => this.contactsOpen.set(true) },
@@ -1101,6 +1110,12 @@ export class ProjectTasksPage implements OnDestroy {
       items.push({ id: 'sep', kind: 'separator' }, { id: 'remove', label: 'Remove from Tasks', icon: 'pi pi-minus-circle', severity: 'danger', command: () => this.removeFromTasks() });
     }
     return items;
+  }
+
+  async onBoardCreated(project: TmProject): Promise<void> {
+    await this.store.loadProjects();
+    const path = this.boardView() ? 'board' : '';
+    await this.router.navigate(path ? ['/tasks/projects', project.id, 'board'] : ['/tasks/projects', project.id]);
   }
 
   viewAsBoard(): void {

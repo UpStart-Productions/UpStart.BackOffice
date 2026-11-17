@@ -29,6 +29,15 @@ export class AddToTasksDto {
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) icon?: string | null;
 }
 
+/** Create a task board without adding an existing Office project (optional link to one for multiple boards). */
+export class CreateTaskBoardDto {
+  @ApiProperty() @Transform(trim) @IsString() @MinLength(1) @MaxLength(200) name!: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(20) color?: string | null;
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(80) icon?: string | null;
+  /** Office project this board belongs to (e.g. Beach house → Repairs board). Omit for a standalone board. */
+  @ApiPropertyOptional() @IsOptional() @IsString() hostProjectId?: string | null;
+}
+
 /** Task Manager project settings from the project board (name, color, icon). Billing and client link stay on the Projects page. */
 export class UpdateTmProjectDto {
   @ApiPropertyOptional() @Transform(trim) @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;

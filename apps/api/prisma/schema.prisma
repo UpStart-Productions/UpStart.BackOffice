@@ -624,6 +624,8 @@ model Project {
   icon             String?
   /// Added to the Task Manager (Tasks). Projects are created/edited on the Projects page.
   inTaskManager    Boolean  @default(false)
+  /// When set, this row is an extra task board for that Office project (not the primary project record).
+  taskBoardHostId  String?
   importedAsanaGid String?  @unique
   createdByUserId  String?
   updatedByUserId  String?
@@ -634,6 +636,8 @@ model Project {
   updatedBy User? @relation("ProjectUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 
   client           Client?           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  taskBoardHost    Project?          @relation("ProjectTaskBoards", fields: [taskBoardHostId], references: [id], onDelete: Cascade)
+  taskBoards       Project[]         @relation("ProjectTaskBoards")
   contacts         ProjectContact[]
   tasks            ProjectTask[]
   timeEntries      TimeEntry[]
@@ -652,6 +656,7 @@ model Project {
 
   @@index([clientId])
   @@index([tenantId])
+  @@index([taskBoardHostId])
 }
 
 model ProjectContact {

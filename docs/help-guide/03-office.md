@@ -20,7 +20,7 @@ When the project is in **Task Manager**, a **Tasks** card appears above **Defaul
 
 ## Tasks
 
-**Tasks** opens Task Manager: my tasks, inbox, and projects. On a project, **Add task** is at the top right with a **⋮** menu attached to it (people who can't add tasks see just the **⋮**). The menu has **View as board** or **View as list**, **Members**, **Custom fields**, **Open in projects**, **Project contacts** (the same client-side contact list as on the Projects page), **Forms** and **Remove from Tasks**.
+**Tasks** opens Task Manager: my tasks, inbox, and projects. Use **+** (sidebar or **Projects** list) for **New task board**: optionally pick an **Office project** (e.g. Beach house), enter a **board name** below it (e.g. Yard work), and **Create board** — leave **Project** empty for a standalone board. On a board, **Add task** is at the top right with a **⋮** menu (people who can't add tasks see just the **⋮**). The menu has **View as board** or **View as list**, **Members**, **Custom fields**, **Add another board** (when you can manage Tasks), **Open in projects**, **Project contacts**, **Forms**, and **Remove from Tasks**.
 
 In a task’s detail panel, you can **edit** or **delete your own comment** for **1 hour** after you post it. **Admins** can **delete** anyone’s comment at any time (not edit others’ comments).
 

@@ -12,6 +12,25 @@ import { TmProjectIconComponent } from './tm-project-icon.component';
   selector: 'app-tm-sidebar',
   standalone: true,
   imports: [TmProjectIconComponent, RouterLink, RouterLinkActive, TmAddProjectDialogComponent],
+  styles: [
+    `
+      .tm-nav-label {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+      }
+      .tm-nav-board-host {
+        font-size: var(--fs-xs);
+        font-weight: 400;
+        color: var(--text-color-secondary);
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    `,
+  ],
   template: `
     <nav class="tm-sidebar" aria-label="Task Manager">
       <ul class="tm-nav">
@@ -63,7 +82,7 @@ import { TmProjectIconComponent } from './tm-project-icon.component';
             <span>Projects</span>
           </button>
           @if (canCreate()) {
-            <button type="button" class="tm-icon-btn" (click)="addOpen.set(true)" title="Add a project to Tasks" aria-label="Add a project to Tasks">
+            <button type="button" class="tm-icon-btn" (click)="addOpen.set(true)" title="New task board" aria-label="New task board">
               <i class="pi pi-plus"></i>
             </button>
           }
@@ -74,12 +93,17 @@ import { TmProjectIconComponent } from './tm-project-icon.component';
               <li>
                 <a [routerLink]="['/tasks/projects', p.id]" routerLinkActive="active" class="tm-nav-link tm-nav-project">
                   <app-tm-project-icon [color]="p.color" [icon]="p.icon" [large]="true" />
-                  <span class="tm-nav-label">{{ p.name }}</span>
+                  <span class="tm-nav-label">
+                    {{ p.name }}
+                    @if (p.hostProject) {
+                      <span class="tm-nav-board-host">{{ p.hostProject.name }}</span>
+                    }
+                  </span>
                 </a>
               </li>
             } @empty {
               @if (store.projectsLoaded()) {
-                <li class="tm-nav-empty">No projects yet{{ canCreate() ? ' — use + to add one' : '' }}</li>
+                <li class="tm-nav-empty">No boards yet{{ canCreate() ? ' — use + to create one' : '' }}</li>
               }
             }
           </ul>

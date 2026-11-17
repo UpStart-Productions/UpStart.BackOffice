@@ -248,7 +248,11 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'tmForm.apiSubmit':
     'POST with X-Form-Key or Authorization Bearer. answers uses question keys; submitter and context are optional. Files: multipart/form-data with answers as JSON and up to 5 files. GET the URL without /submit to read questions.',
   'tm.addProjectToTasks':
-    'Only existing projects can be added to Tasks. Create new projects on the Projects page first.',
+    'Pick an Office project to group this board under (e.g. Beach house), or leave empty for a board with no project.',
+  'tm.newBoardProject':
+    'Optional. Choose a project to attach this board to — you can add many boards on the same project. Clear the field for a standalone board.',
+  'tm.newBoardName':
+    'Name shown in Tasks for this board only (e.g. Yard work). Can differ from the project name.',
   'tm.notificationsEmailPrefs':
     'Moved to My Account → Notifications. Choose in-app, email, and (later) push per type.',
   'account.email':

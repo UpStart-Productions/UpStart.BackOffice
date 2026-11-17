@@ -33,6 +33,7 @@ import {
   CreateSectionDto,
   CreateTaskDto,
   AddToTasksDto,
+  CreateTaskBoardDto,
   InviteMemberDto,
   MoveSectionDto,
   MoveTaskDto,
@@ -82,6 +83,19 @@ export class TaskManagerController {
   @Get('available-projects')
   availableProjects(@Req() req: Request) {
     return this.projects.available(me(req));
+  }
+
+  /** Office projects you can link when creating another task board on the same project. */
+  @Get('board-hosts')
+  boardHosts(@Req() req: Request) {
+    return this.projects.boardHostOptions(me(req));
+  }
+
+  /** Create a task board (standalone or linked to an Office project). */
+  @Action('edit')
+  @Post('projects')
+  createBoard(@Req() req: Request, @Body() dto: CreateTaskBoardDto) {
+    return this.projects.createBoard(me(req), dto);
   }
 
   /** Add an existing project to Tasks. */

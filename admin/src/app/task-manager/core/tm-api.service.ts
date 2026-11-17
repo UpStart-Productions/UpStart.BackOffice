@@ -49,6 +49,12 @@ export class TmApiService {
   availableProjects() {
     return this.api.get<{ id: string; name: string; client: { id: string; name: string } | null }[]>('/tm/available-projects');
   }
+  boardHosts() {
+    return this.api.get<{ id: string; name: string; client: { id: string; name: string } | null }[]>('/tm/board-hosts');
+  }
+  createBoard(body: { name: string; color?: string | null; icon?: string | null; hostProjectId?: string | null }) {
+    return this.api.post<TmProject>('/tm/projects', body);
+  }
   addProject(id: string, body: { name?: string; color?: string | null; icon?: string | null }) {
     return this.api.put<TmProject>(`/tm/projects/${id}/tasks-enabled`, {
       name: body.name,
