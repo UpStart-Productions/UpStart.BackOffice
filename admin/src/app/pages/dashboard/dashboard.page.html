@@ -332,33 +332,36 @@
                   <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
                 }
               }
-              @if (can('pipeline') && mainPipeline()) {
-                <p class="dashboard-section-label">{{ mainPipeline()!.name }}</p>
-                <div class="dashboard-pipeline-head">
-                  <span class="dashboard-stat-value">{{ openCount() }} open</span>
-                  @if (pipelineValue() > 0) {
-                    <span class="dashboard-stat-note" pTooltip="Total of Estimated value on open cards in this pipeline" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ money(pipelineValue(), 0) }} estimated · {{ pipelineValued() }} of {{ openCount() }} cards have a value</span>
-                  }
-                </div>
-                @if (openCount()) {
-                  <div class="dashboard-lanes">
-                    @for (s of stageBars(); track s.id) {
-                      <a
-                        class="dashboard-lane"
-                        [class.dashboard-lane--empty]="!s.count"
-                        routerLink="/pipeline"
-                        [pTooltip]="s.count + (s.count === 1 ? ' card in ' : ' cards in ') + s.name + (s.value ? ', ' + money(s.value, 0) + ' estimated' : '')"
-                        tooltipPosition="top"
-                        tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"
-                      >
-                        <span class="dashboard-lane-name">{{ s.name }}</span>
-                        <span class="dashboard-lane-track" aria-hidden="true">
-                          <span class="dashboard-lane-fill" [style.width.%]="s.pct"></span>
-                        </span>
-                        <span class="dashboard-lane-count">{{ s.count }}</span>
-                      </a>
+              @if (can('pipeline')) {
+                @for (ps of pipelineSummaries(); track ps.id) {
+                  <p class="dashboard-section-label">{{ ps.name }}</p>
+                  <div class="dashboard-pipeline-head">
+                    <span class="dashboard-stat-value">{{ ps.count }} {{ ps.count === 1 ? 'card' : 'cards' }}</span>
+                    @if (ps.value > 0) {
+                      <span class="dashboard-stat-note" pTooltip="Total of Estimated value on the cards in this pipeline" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ money(ps.value, 0) }} estimated · {{ ps.valued }} of {{ ps.count }} cards have a value</span>
                     }
                   </div>
+                  @if (ps.count) {
+                    <div class="dashboard-lanes">
+                      @for (s of ps.bars; track s.id) {
+                        <a
+                          class="dashboard-lane"
+                          [class.dashboard-lane--empty]="!s.count"
+                          routerLink="/pipeline"
+                          [queryParams]="{ pipeline: ps.id }"
+                          [pTooltip]="s.count + (s.count === 1 ? ' card in ' : ' cards in ') + s.name + (s.value ? ', ' + money(s.value, 0) + ' estimated' : '')"
+                          tooltipPosition="top"
+                          tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"
+                        >
+                          <span class="dashboard-lane-name">{{ s.name }}</span>
+                          <span class="dashboard-lane-track" aria-hidden="true">
+                            <span class="dashboard-lane-fill" [style.width.%]="s.pct"></span>
+                          </span>
+                          <span class="dashboard-lane-count">{{ s.count }}</span>
+                        </a>
+                      }
+                    </div>
+                  }
                 }
               }
               @if (can('inbox')) {

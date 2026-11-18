@@ -1024,33 +1024,42 @@ export class DashboardPage implements OnInit, OnDestroy {
   // ── Pipeline & relationships ─────────────────────────────────────────────
 
   /** The first pipeline (sales). Cards that track an invoice, project or client aren't opportunities. */
-  readonly mainPipeline = computed(() => this.pipelines().data[0] ?? null);
   private readonly opportunities = computed(() =>
     this.leads().data.filter((l) => !l.invoiceId && !l.projectId && !l.trackedClientId),
   );
-  readonly pipelineValue = computed(() => this.opportunities().reduce((s, l) => s + Number(l.estimatedValue ?? 0), 0));
-  readonly pipelineValued = computed(() => this.opportunities().filter((l) => l.estimatedValue != null && Number(l.estimatedValue) > 0).length);
-  readonly stageBars = computed(() => {
-    const p = this.mainPipeline();
-    if (!p) return [];
-    const counts = new Map<string, { n: number; value: number }>();
+  /**
+   * One summary per pipeline, in board order: its card count, estimated value and a bar per lane.
+   * Cards that only track an invoice, project or client are left out (they aren't deals).
+   */
+  readonly pipelineSummaries = computed(() => {
+    const counts = new Map<string, { n: number; value: number; valued: number }>();
     for (const l of this.opportunities()) {
       if (!l.stageId) continue;
-      const c = counts.get(l.stageId) ?? { n: 0, value: 0 };
+      const c = counts.get(l.stageId) ?? { n: 0, value: 0, valued: 0 };
       c.n++;
       c.value += Number(l.estimatedValue ?? 0);
+      if (l.estimatedValue != null && Number(l.estimatedValue) > 0) c.valued++;
       counts.set(l.stageId, c);
     }
     const shades = ['#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af'];
-    return [...p.stages]
+    return [...this.pipelines().data]
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((s, i) => ({ id: s.id, name: s.name, count: counts.get(s.id)?.n ?? 0, value: counts.get(s.id)?.value ?? 0, color: s.color && /^(#|rgb|hsl)/.test(s.color) ? s.color : shades[i % shades.length] }))
-      .map((s, _i, all) => {
-        const max = Math.max(1, ...all.map((x) => x.count));
-        return { ...s, pct: s.count ? Math.max(4, Math.round((s.count / max) * 100)) : 0 };
+      .map((p) => {
+        const lanes = [...p.stages]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((s, i) => ({ id: s.id, name: s.name, count: counts.get(s.id)?.n ?? 0, value: counts.get(s.id)?.value ?? 0, valued: counts.get(s.id)?.valued ?? 0, color: s.color && /^(#|rgb|hsl)/.test(s.color) ? s.color : shades[i % shades.length] }));
+        const max = Math.max(1, ...lanes.map((x) => x.count));
+        const bars = lanes.map((s) => ({ ...s, pct: s.count ? Math.max(4, Math.round((s.count / max) * 100)) : 0 }));
+        return {
+          id: p.id,
+          name: p.name,
+          bars,
+          count: bars.reduce((n, b) => n + b.count, 0),
+          value: bars.reduce((n, b) => n + b.value, 0),
+          valued: bars.reduce((n, b) => n + b.valued, 0),
+        };
       });
   });
-  readonly openCount = computed(() => this.stageBars().reduce((s, b) => s + b.count, 0));
 
   readonly quietRows = computed<DashRow[]>(() =>
     (this.queues().data?.quiet ?? []).slice(0, 5).map((r) => {
@@ -1759,9 +1768,9 @@ export class DashboardPage implements OnInit, OnDestroy {
     try {
       const list = await this.pipelinesApi.list();
       this.pipelines.set({ loading: false, error: null, data: list });
-      const first = list[0];
-      const leads = first ? await this.api.get<Lead[]>(`/leads?pipelineId=${first.id}`) : [];
-      this.leads.set({ loading: false, error: null, data: leads });
+      // Every pipeline's cards, so the panel can summarize each pipeline.
+      const perPipeline = await Promise.all(list.map((p) => this.api.get<Lead[]>(`/leads?pipelineId=${p.id}`)));
+      this.leads.set({ loading: false, error: null, data: perPipeline.flat() });
     } catch (err) {
       this.pipelines.set({ loading: false, error: errorText(err, 'Could not load pipeline'), data: [] });
       this.leads.set({ loading: false, error: null, data: [] });
