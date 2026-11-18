@@ -8,21 +8,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
 import { firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
 import { plainTextToQuillHtml } from './lead-note.util';
+import { findByLaneName } from '../pipelines/lane-name.util';
 import { createLeadActivityNote } from './lead-activity.util';
 
 /** The lane named in the payload, or the default lead lane when no pipeline is named. */
 async function ingestLane(db: PipelineDb, dto: IngestLeadDto): Promise<Lane> {
   if (!dto.pipelineName) return laneForLegacy(db, LeadStage.DISCOVERY);
-  const pipeline = await db.pipeline.findFirst({
-    where: { name: { equals: dto.pipelineName.trim(), mode: 'insensitive' } },
-    select: { id: true },
-  });
+  const pipelines = await db.pipeline.findMany({ select: { id: true, name: true } });
+  const pipeline = findByLaneName(pipelines, dto.pipelineName);
   if (!pipeline) throw new BadRequestException(`No pipeline named "${dto.pipelineName}".`);
   if (!dto.stageName) return firstLane(db, pipeline.id);
-  const stage = await db.pipelineStage.findFirst({
-    where: { pipelineId: pipeline.id, name: { equals: dto.stageName.trim(), mode: 'insensitive' } },
-    select: { id: true, pipelineId: true, legacyKey: true },
+  const stages = await db.pipelineStage.findMany({
+    where: { pipelineId: pipeline.id },
+    select: { id: true, name: true, pipelineId: true, legacyKey: true },
   });
+  const stage = findByLaneName(stages, dto.stageName);
   if (!stage) throw new BadRequestException(`No lane named "${dto.stageName}" on pipeline "${dto.pipelineName}".`);
   return { pipelineId: stage.pipelineId, stageId: stage.id, legacyKey: stage.legacyKey };
 }

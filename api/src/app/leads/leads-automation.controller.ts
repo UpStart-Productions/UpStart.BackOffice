@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AutomationNoteDto } from './dto/automation-note.dto';
 import { AutomationMoveDto } from './dto/automation-move.dto';
 import { plainTextToQuillHtml } from './lead-note.util';
+import { findByLaneName } from '../pipelines/lane-name.util';
 import { createLeadActivityNote } from './lead-activity.util';
 import { laneFields } from '../pipelines/pipeline-lanes.util';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
@@ -117,10 +118,11 @@ export class LeadsAutomationController {
     if (!lead) throw new NotFoundException('Lead not found');
     if (!lead.pipelineId) throw new BadRequestException('This card is not on a pipeline.');
 
-    const stage = await this.prisma.pipelineStage.findFirst({
-      where: { pipelineId: lead.pipelineId, name: { equals: dto.stageName.trim(), mode: 'insensitive' } },
+    const stages = await this.prisma.pipelineStage.findMany({
+      where: { pipelineId: lead.pipelineId },
       select: { id: true, pipelineId: true, legacyKey: true, name: true },
     });
+    const stage = findByLaneName(stages, dto.stageName);
     if (!stage) throw new BadRequestException(`No lane named "${dto.stageName}" on this card's pipeline.`);
 
     const updated = await this.prisma.$transaction(async (tx) => {
