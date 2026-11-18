@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -12,7 +13,16 @@ import { PersonComponent } from '../person/person.component';
 @Component({
   selector: 'app-person-detail-modal',
   standalone: true,
-  imports: [RouterLink, AppDialogModule, PersonComponent, CopyEmailComponent, TagModule, MessageModule, SkeletonModule],
+  imports: [
+    RouterLink,
+    ButtonModule,
+    AppDialogModule,
+    PersonComponent,
+    CopyEmailComponent,
+    TagModule,
+    MessageModule,
+    SkeletonModule,
+  ],
   template: `
     <p-dialog
       [visible]="visible()"
@@ -95,6 +105,20 @@ import { PersonComponent } from '../person/person.component';
           }
         </div>
       }
+
+      <ng-template pTemplate="footer">
+        @if (contact(); as c) {
+          <div class="person-detail-modal-footer">
+            <p-button
+              label="Open in People"
+              icon="pi pi-arrow-right"
+              iconPos="right"
+              severity="secondary"
+              (onClick)="openInPeople(c.id)"
+            />
+          </div>
+        }
+      </ng-template>
     </p-dialog>
   `,
   styles: `
@@ -119,9 +143,26 @@ import { PersonComponent } from '../person/person.component';
       color: var(--text-color-secondary);
       line-height: 1.4;
     }
-    .person-detail-modal-account-link {
-      color: var(--text-color);
+    .person-detail-modal-body a.person-detail-modal-account-link {
+      color: var(--color-text-link);
       font-weight: 500;
+      text-decoration: none;
+    }
+    .person-detail-modal-body a.person-detail-modal-account-link:hover {
+      color: var(--color-text-link-hover);
+      text-decoration: underline;
+    }
+    .person-detail-modal-body .copy-email {
+      color: var(--color-text-link);
+      font-weight: 500;
+    }
+    .person-detail-modal-body .copy-email:hover .copy-email__text {
+      text-decoration: underline;
+    }
+    .person-detail-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
     }
     .person-detail-modal-body {
       display: flex;
@@ -168,6 +209,7 @@ import { PersonComponent } from '../person/person.component';
 })
 export class PersonDetailModalComponent {
   private readonly comms = inject(CommunicationsApi);
+  private readonly router = inject(Router);
 
   readonly contactName = contactName;
   readonly visible = signal(false);
@@ -195,6 +237,12 @@ export class PersonDetailModalComponent {
       this.contact.set(null);
       this.error.set(null);
     }
+  }
+
+  openInPeople(contactId: string) {
+    this.visible.set(false);
+    this.contact.set(null);
+    void this.router.navigate(['/people', contactId]);
   }
 
   notesPlain(html: string): string {
