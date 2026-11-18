@@ -1,33 +1,17 @@
 import {
-  Body, Controller, Get, NotFoundException, Param, Post, UseGuards,
+  BadRequestException, Body, Controller, Get, NotFoundException, Param, Patch, Post, UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ArtifactType } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutomationNoteDto } from './dto/automation-note.dto';
+import { AutomationMoveDto } from './dto/automation-move.dto';
+import { plainTextToQuillHtml } from './lead-note.util';
+import { laneFields } from '../pipelines/pipeline-lanes.util';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 
 const adminBaseUrl = adminAppBaseUrl;
-
-/**
- * The admin NOTE editor (ngx-quill) renders artifact.content as raw HTML
- * via [innerHTML] with the ql-editor class — it does NOT parse Quill Delta
- * JSON. Convert plain-text research notes into Quill-compatible HTML:
- * blank-line-separated blocks become <p> paragraphs, single newlines
- * within a block become <br>.
- */
-function plainTextToQuillHtml(text: string): string {
-  const escapeHtml = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  return text
-    .split(/\n\s*\n/)
-    .map((block) => block.trim())
-    .filter((block) => block.length > 0)
-    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, '<br>')}</p>`)
-    .join('');
-}
 
 /**
  * Narrow, read/append-only endpoints for the weekly pipeline-outreach
@@ -119,6 +103,47 @@ export class LeadsAutomationController {
       officeUrl: `${adminBaseUrl()}/pipeline/${updatedLead.id}`,
       lastContactDate: updatedLead.lastContactDate,
       artifactId: artifact.id,
+    };
+  }
+
+  /**
+   * Move a card to another lane of its own pipeline, by lane name.
+   * Optionally attaches a plain-text note with the move.
+   */
+  @Patch(':id/stage')
+  async moveToStage(@Param('id') id: string, @Body() dto: AutomationMoveDto) {
+    const lead = await this.prisma.lead.findUnique({ where: { id } });
+    if (!lead) throw new NotFoundException('Lead not found');
+    if (!lead.pipelineId) throw new BadRequestException('This card is not on a pipeline.');
+
+    const stage = await this.prisma.pipelineStage.findFirst({
+      where: { pipelineId: lead.pipelineId, name: { equals: dto.stageName.trim(), mode: 'insensitive' } },
+      select: { id: true, pipelineId: true, legacyKey: true, name: true },
+    });
+    if (!stage) throw new BadRequestException(`No lane named "${dto.stageName}" on this card's pipeline.`);
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (dto.note) {
+        await tx.artifact.create({
+          data: {
+            leadId: id,
+            type: ArtifactType.NOTE,
+            title: dto.noteTitle ?? `Moved to ${stage.name}`,
+            content: plainTextToQuillHtml(dto.note),
+          },
+        });
+      }
+      return tx.lead.update({
+        where: { id },
+        data: laneFields({ pipelineId: stage.pipelineId, stageId: stage.id, legacyKey: stage.legacyKey }),
+      });
+    });
+
+    return {
+      leadId: updated.id,
+      stageId: stage.id,
+      stageName: stage.name,
+      officeUrl: `${adminBaseUrl()}/pipeline/${updated.id}`,
     };
   }
 }
