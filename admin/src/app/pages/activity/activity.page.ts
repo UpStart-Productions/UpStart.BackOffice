@@ -181,6 +181,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                 <p-table [value]="submissions()" styleClass="table-bordered" dataKey="id">
                   <ng-template pTemplate="header">
                     <tr>
+                      <th style="width: 3rem"></th>
                       <th style="width: 10rem">Submitted</th>
                       <th style="width: 20rem">From</th>
                       <th>Form</th>
@@ -188,6 +189,9 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                   </ng-template>
                   <ng-template pTemplate="body" let-p>
                     <tr>
+                      <td>
+                        <app-row-actions-menu [items]="submissionActions(p)" ariaLabel="Form submission actions" />
+                      </td>
                       <td><span [title]="(p.createdAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(p.createdAt) }}</span></td>
                       <td>
                         <a [routerLink]="['/forms/submissions', p.id]" [queryParams]="{ from: 'activity' }">{{ p.submitterName ?? p.submitterEmail ?? 'Anonymous' }}</a>
@@ -199,7 +203,7 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                     </tr>
                   </ng-template>
                   <ng-template pTemplate="emptymessage">
-                    <tr><td colspan="3" class="text-color-secondary">Nothing waiting for review.</td></tr>
+                    <tr><td colspan="4" class="text-color-secondary">Nothing waiting for review.</td></tr>
                   </ng-template>
                 </p-table>
               } @else if (queue() === 'unfiled') {
@@ -823,7 +827,7 @@ export class ActivityPage implements OnInit {
   async ngOnInit() {
     await this.restoreActivityPagePrefs();
     void this.loadCardsAndPipelines();
-    if (this.canForms()) this.formsApi.pending().then((r) => this.submissions.set(r), () => this.submissions.set([]));
+    if (this.canForms()) void this.loadPendingSubmissions();
     this.peopleLoading.set(true);
     const [orgs, people] = await Promise.all([
       // Every journey (the endpoint's default leaves out prospects, which have next steps too).
@@ -988,6 +992,14 @@ export class ActivityPage implements OnInit {
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
   }
 
+  private async loadPendingSubmissions() {
+    try {
+      this.submissions.set(await this.formsApi.pending());
+    } catch {
+      this.submissions.set([]);
+    }
+  }
+
   private async loadQueues(mine: boolean, clientId: string | null, contactId: string | null) {
     this.queuesLoading.set(true);
     this.queuesError.set(null);
@@ -1031,6 +1043,26 @@ export class ActivityPage implements OnInit {
     }
   }
 
+  private async clearNextStep(row: QueueRow) {
+    try {
+      if (row.leadId) {
+        await this.api.put(`/leads/${row.leadId}`, { nextAction: null, nextActionDate: null });
+      } else if (row.clientId) {
+        await this.comms.setNextStep(row.clientId, { text: null, date: null, ownerId: null });
+      } else {
+        return;
+      }
+      this.toast.add({ severity: 'success', summary: 'Cleared', detail: 'Next step removed.' });
+      this.comms.notifyActivityChanged();
+    } catch (err) {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Could not clear',
+        detail: err instanceof Error ? err.message : 'Failed',
+      });
+    }
+  }
+
   unfiledActions(item: Interaction): RowActionItem[] {
     return [
       { id: 'file', label: 'File message', icon: 'pi pi-folder', command: () => void this.openFile(item) },
@@ -1065,6 +1097,38 @@ export class ActivityPage implements OnInit {
     });
   }
 
+  submissionActions(p: PendingSubmissionDto): RowActionItem[] {
+    return [
+      {
+        id: 'delete',
+        label: 'Delete submission',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeleteSubmission(p),
+      },
+    ];
+  }
+
+  private confirmDeleteSubmission(p: PendingSubmissionDto) {
+    const who = p.submitterName ?? p.submitterEmail ?? 'someone';
+    this.confirmDelete.confirm({
+      message: `Delete this submission from ${who}? Their results link stops working. This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.formsApi.deleteSubmission(p.id);
+          await this.loadPendingSubmissions();
+          this.toast.add({ severity: 'success', summary: 'Deleted', detail: 'Submission removed.' });
+        } catch (err) {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Could not delete',
+            detail: err instanceof Error ? err.message : 'Delete failed',
+          });
+        }
+      },
+    });
+  }
+
   rowActions(row: QueueRow): RowActionItem[] {
     const actions: RowActionItem[] = [];
     if (row.queue === 'NEXT_STEP') {
@@ -1073,9 +1137,21 @@ export class ActivityPage implements OnInit {
       } else if (row.clientId) {
         actions.push({ id: 'work', label: 'Work on it', icon: 'pi pi-flag', command: () => this.workOn(row) });
       }
+      actions.push({
+        id: 'clear',
+        label: 'Clear next step',
+        icon: 'pi pi-times',
+        command: () => void this.clearNextStep(row),
+      });
       actions.push({ id: 'snooze', label: 'Snooze 1 week', icon: 'pi pi-clock', command: () => void this.snooze(row, 7, 'Snoozed') });
     } else {
       actions.push({ id: 'work', label: 'Work on it', icon: 'pi pi-flag', command: () => this.workOn(row) });
+      actions.push({
+        id: 'clear',
+        label: 'Clear from list',
+        icon: 'pi pi-times',
+        command: () => void this.snooze(row, null, 'Cleared'),
+      });
       actions.push({ id: 'snooze', label: 'Snooze 30 days', icon: 'pi pi-clock', command: () => void this.snooze(row, 30, 'Snoozed') });
     }
     return actions;

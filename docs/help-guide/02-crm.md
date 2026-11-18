@@ -77,9 +77,9 @@ On a card's page, the main form is the **organization** (name, email, phone, web
 - **Next steps**: every next step that is set, on organizations and pipeline cards, soonest first. Overdue ones have a red **Overdue** tag; due today has a **Due today** tag. Organizations without a next step are not listed (they don't need one).
 - **Gone quiet**: active clients nobody has contacted in 30 or more days.
 - **Unfiled**: captured email that could not be matched. **File…** one to an **Organization** or a **Pipeline card**; leave "Link the people on this email to the organization" on so their next email files itself.
-- **Form submissions** (roles with Forms): how many submissions are waiting for review across your forms. Click it to open Forms.
+- **Form submissions** (roles with Forms): submissions waiting for review. Open one to review it, or use the row **⋮** menu to **Delete submission** (asks first).
 
-**Mine** shows rows on threads you are on and next steps you own (or that have no owner); **Everyone's** shows all. Unfiled is the same for everyone. The ⋮ menu on a row: **Open timeline**, **Work on it** (shows that organization on this page with its next step), **Open pipeline card**, **No reply needed**, or **Snooze** (3 days, 1 week or 30 days). Admins change the 2 and 30 days in **Settings → Activity**.
+**Mine** shows next steps you own (or that have no owner) and gone-quiet accounts; **Everyone's** shows all. Unfiled is the same for everyone. The **⋮** menu on a **Next steps** row: **Open pipeline card** (pipeline cards), **Work on it** (accounts), **Clear next step**, or **Snooze 1 week**. On **Gone quiet**, **Work on it**, **Clear from list** (hides that account from Gone quiet without changing the client), or **Snooze 30 days**. Admins change the gone-quiet day count in **Settings → Activity**.
 
 **All activity** is every email, call, meeting and note, newest first, with the organization each belongs to. The search bar and **filters** control (sliders icon) are at the top of **All activity**; open filters for **Logged by** (which teammate saved the item—hover the **?**), **From** and **To** dates, and **type**. With an account selected, filters also include **Include people's activity**.
 

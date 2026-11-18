@@ -239,7 +239,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'To do',
-        body: 'Unfiled: captured email that could not be matched. Form submissions (roles with Forms) opens Forms, where submissions wait for review. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Mine shows your items; Everyone\'s shows the whole team\'s. The ⋮ menu on a row can open it, Work on it (shows that account here with its next step), or snooze it. How many days count as gone quiet is in Settings → Activity.',
+        body: 'Unfiled: captured email that could not be matched. Form submissions lists responses waiting for review—open a row or delete it from the ⋮ menu. Next steps: every next step that is set, soonest first, with an Overdue tag on late ones. Gone quiet: active clients nobody has contacted in a while. Mine shows your items; Everyone\'s shows the whole team\'s. On Next steps, the ⋮ menu can open the pipeline card, Work on it, Clear next step, or Snooze 1 week. Gone quiet rows can Work on it, Clear from list (stops reminding you—the client stays active), or Snooze 30 days. How many days count as gone quiet is in Settings → Activity.',
       },
       {
         heading: 'Filing unfiled email',
