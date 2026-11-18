@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsIn,
   IsEmail,
   IsOptional,
   IsString,
@@ -58,4 +59,10 @@ export class IngestLeadDto {
 
   /** Next action text. Defaults to the audit follow-up. */
   @ApiPropertyOptional() @IsString() @IsOptional() nextAction?: string;
+
+  /** Where the note goes: "artifact" (Notes, the default) or "activity" (the card's Activity timeline). */
+  @ApiPropertyOptional({ enum: ['artifact', 'activity'] })
+  @IsIn(['artifact', 'activity'])
+  @IsOptional()
+  noteAs?: 'artifact' | 'activity';
 }

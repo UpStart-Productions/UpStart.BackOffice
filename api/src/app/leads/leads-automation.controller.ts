@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AutomationNoteDto } from './dto/automation-note.dto';
 import { AutomationMoveDto } from './dto/automation-move.dto';
 import { plainTextToQuillHtml } from './lead-note.util';
+import { createLeadActivityNote } from './lead-activity.util';
 import { laneFields } from '../pipelines/pipeline-lanes.util';
 import { adminAppBaseUrl } from '../notifications/notification-delivery.service';
 
@@ -123,7 +124,9 @@ export class LeadsAutomationController {
     if (!stage) throw new BadRequestException(`No lane named "${dto.stageName}" on this card's pipeline.`);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      if (dto.note) {
+      if (dto.note && dto.noteAs === 'activity') {
+        await createLeadActivityNote(tx, lead, dto.noteTitle ?? `Moved to ${stage.name}`, dto.note);
+      } else if (dto.note) {
         await tx.artifact.create({
           data: {
             leadId: id,

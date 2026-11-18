@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
 import { firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipelines/pipeline-lanes.util';
 import { plainTextToQuillHtml } from './lead-note.util';
+import { createLeadActivityNote } from './lead-activity.util';
 
 /** The lane named in the payload, or the default lead lane when no pipeline is named. */
 async function ingestLane(db: PipelineDb, dto: IngestLeadDto): Promise<Lane> {
@@ -63,17 +64,19 @@ export class LeadsIngestController {
           lastContactDate: auditDate,
           artifacts: {
             create: [
-              dto.note
-                ? {
-                    type:    ArtifactType.NOTE,
-                    title:   dto.noteTitle ?? 'Details',
-                    content: plainTextToQuillHtml(dto.note),
-                  }
-                : {
+              ...(dto.note
+                ? dto.noteAs === 'activity'
+                  ? []
+                  : [{
+                      type:    ArtifactType.NOTE,
+                      title:   dto.noteTitle ?? 'Details',
+                      content: plainTextToQuillHtml(dto.note),
+                    }]
+                : [{
                     type:    ArtifactType.NOTE,
                     title:   'Lead Source',
                     content: `Created automatically from Donor Readiness Audit submission.\nAudit date: ${auditDate.toISOString().slice(0, 10)}\nWebsite audited: ${dto.website ?? ''}`,
-                  },
+                  }]),
               ...(dto.auditReportUrl ? [{
                 type:  ArtifactType.LINK,
                 title: 'Donor Readiness Audit Report',
@@ -83,6 +86,9 @@ export class LeadsIngestController {
           },
         },
       });
+      if (dto.note && dto.noteAs === 'activity') {
+        await createLeadActivityNote(tx, created, dto.noteTitle ?? 'Details', dto.note);
+      }
       return created;
     });
 

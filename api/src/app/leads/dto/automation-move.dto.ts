@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString } from 'class-validator';
 
 /**
  * Payload for PATCH /leads/automation/:id/stage
@@ -15,4 +15,10 @@ export class AutomationMoveDto {
 
   /** Optional title for that note. Defaults to "Moved to <lane>". */
   @ApiPropertyOptional() @IsString() @IsOptional() noteTitle?: string;
+
+  /** Where the note goes: "artifact" (Notes, the default) or "activity" (the card's Activity timeline). */
+  @ApiPropertyOptional({ enum: ['artifact', 'activity'] })
+  @IsIn(['artifact', 'activity'])
+  @IsOptional()
+  noteAs?: 'artifact' | 'activity';
 }
