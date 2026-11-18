@@ -1,5 +1,5 @@
 /*
- * Dashboard panel grid with drag-to-reorder (CDK, mixed orientation). Panels: app-dashboard-panel.
+ * Dashboard panel grid with drag-to-reorder (CDK, mixed orientation). Slots: app-dashboard-*-panel → app-dashboard-panel.
  * Six columns; each card's span is set by the page's layout (see .dashboard-grid below).
  * Panels in the same row stretch to the same height; the list inside scrolls.
  */
@@ -15,6 +15,23 @@
   flex-direction: column;
   min-width: 0;
   border-radius: var(--content-border-radius);
+
+  /* Split widget hosts must fill the slot so app-dashboard-panel gets a bounded height and scrolls. */
+  > app-dashboard-money-panel,
+  > app-dashboard-today-panel,
+  > app-dashboard-work-panel,
+  > app-dashboard-pipeline-panel,
+  > app-dashboard-jd-panel,
+  > app-dashboard-feed-panel,
+  > app-dashboard-time-panel,
+  > app-dashboard-shifts-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    height: 100%;
+  }
 }
 
 /* The panel while it follows the pointer. */
@@ -333,14 +350,6 @@
 }
 
 /* Pipeline: count, value, stage bar and legend. */
-.dashboard-pipeline-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.75rem;
-  margin-bottom: 0.65rem;
-}
-
 .dashboard-when {
   font-size: var(--fs-sm);
   color: var(--text-color-secondary);

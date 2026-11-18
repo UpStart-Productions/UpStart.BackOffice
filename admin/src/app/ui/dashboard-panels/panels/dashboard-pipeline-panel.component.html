@@ -1,0 +1,44 @@
+<app-dashboard-panel title="Pipeline & relationships" icon="pi-users" [color]="panelColor('pipeline')" link="/pipeline" [fill]="true">
+  @if (store.can('inbox') && store.upcomingNextSteps().length) {
+    <p class="dashboard-section-label">Next steps this week</p>
+    @for (r of store.upcomingNextSteps(); track r.key) {
+      <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+    }
+  }
+  @if (store.can('pipeline')) {
+    @for (ps of store.pipelineSummaries(); track ps.id) {
+      <p class="dashboard-section-label">{{ ps.name }}</p>
+      <div class="dashboard-lanes">
+        @for (s of ps.bars; track s.id) {
+          <a
+            class="dashboard-lane"
+            [class.dashboard-lane--empty]="!s.count"
+            routerLink="/pipeline"
+            [queryParams]="{ pipeline: ps.id }"
+            [pTooltip]="s.count + (s.count === 1 ? ' card in ' : ' cards in ') + s.name + (s.value ? ', ' + store.money(s.value, 0) + ' estimated' : '')"
+            tooltipPosition="top"
+            tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body"
+          >
+            <span class="dashboard-lane-name">{{ s.name }}</span>
+            <span class="dashboard-lane-track" aria-hidden="true">
+              <span class="dashboard-lane-fill" [style.width.%]="s.pct"></span>
+            </span>
+            <span class="dashboard-lane-count">{{ s.count }}</span>
+          </a>
+        }
+      </div>
+    }
+  }
+  @if (store.can('inbox')) {
+    <p class="dashboard-section-label">Gone quiet</p>
+    @if (store.quietRows().length) {
+      @for (r of store.quietRows(); track r.key) {
+        <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+      }
+    } @else if (store.firstRun()) {
+      <app-empty-state art="pipeline" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Accounts you haven't been in touch with lately show up here." />
+    } @else {
+      <p class="dashboard-quiet">Everyone has heard from you recently.</p>
+    }
+  }
+</app-dashboard-panel>

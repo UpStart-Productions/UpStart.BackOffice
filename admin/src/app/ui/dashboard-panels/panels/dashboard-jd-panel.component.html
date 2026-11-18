@@ -1,0 +1,22 @@
+<app-dashboard-panel [title]="store.agentName + ' suggests'" icon="pi-sparkles" [color]="panelColor('jd')" [fill]="true">
+  @if (store.suggestions().length) {
+    <div class="jd-suggestions">
+      @for (s of store.suggestions(); track s.key) {
+        <div class="jd-suggestion">
+          <span class="jd-suggestion-icon" aria-hidden="true"><i class="pi" [class]="'pi ' + store.suggestionIcon[s.kind]"></i></span>
+          <div class="jd-suggestion-body">
+            <p class="jd-suggestion-text">{{ s.text }}</p>
+            <div class="jd-suggestion-actions">
+              <p-button [label]="s.action.label" size="small" (onClick)="store.runSuggestion(s)" />
+              <p-button label="Not now" size="small" severity="secondary" [text]="true" pTooltip="Hide this for 3 days" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body" (onClick)="store.notNow(s)" />
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (store.firstRun()) {
+    <app-empty-state art="conversations" artSize="compact" [artStatic]="true" shape="list" [rows]="3" [hint]="'As you add work, ' + store.agentName + ' suggests what to do next here.'" />
+  } @else {
+    <p class="dashboard-quiet">Nothing to suggest right now. Nice work.</p>
+  }
+</app-dashboard-panel>

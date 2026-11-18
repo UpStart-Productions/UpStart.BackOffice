@@ -1,0 +1,28 @@
+<app-dashboard-panel title="Since last time" [subtitle]="store.feedSubtitle()" icon="pi-bolt" [color]="panelColor('feed')" link="/activity" [fill]="true">
+  @if (store.feed().length) {
+    @for (r of store.feed(); track r.key) {
+      <app-record-card
+        variant="compact"
+        [singleLine]="true"
+        [title]="r.title"
+        [subtitle]="r.subtitle ?? null"
+        [link]="r.link ?? null"
+        [linkQuery]="r.query ?? null"
+        [icon]="r.person ? null : (r.icon ?? 'circle')"
+        [tone]="r.tone ?? null"
+        [person]="r.person ?? null"
+      >
+        <ng-container ngProjectAs="[recordActions]">
+          @if (r.isNew) {
+            <p-tag value="New" severity="info" pTooltip="New since your last visit" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body" />
+          }
+          <span class="dashboard-when" [pTooltip]="store.feedWhenFull(r)" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body">{{ store.feedWhen(r) }}</span>
+        </ng-container>
+      </app-record-card>
+    }
+  } @else if (store.firstRun()) {
+    <app-empty-state art="activity" artSize="compact" [artStatic]="true" shape="list" [rows]="4" hint="New activity since your last visit shows up here." />
+  } @else {
+    <p class="dashboard-quiet">Nothing new in the last week.</p>
+  }
+</app-dashboard-panel>

@@ -1,0 +1,45 @@
+<app-dashboard-panel title="My work" icon="pi-check-square" [color]="panelColor('work')" link="/tasks" [fill]="true">
+  @if (store.tasks().loading) {
+    <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+  } @else if (store.tasks().error) {
+    <p class="side-list-empty">{{ store.tasks().error }}</p>
+  } @else {
+    @if (store.workOverdue().length) {
+      <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
+      @for (r of store.workOverdue(); track r.key) {
+        <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+      }
+      @if (store.workOverdueMore(); as more) {
+        <div class="dashboard-footnote dashboard-footnote--inline">
+          <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+          <span>and {{ more }} more overdue</span>
+          <a routerLink="/tasks">All tasks</a>
+        </div>
+      }
+    }
+    @if (store.workNew().length) {
+      <p class="dashboard-section-label">New for you</p>
+      @for (r of store.workNew(); track r.key) {
+        <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+      }
+    }
+    @if (store.workDue().length) {
+      <p class="dashboard-section-label">Due this week</p>
+      @for (r of store.workDue(); track r.key) {
+        <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+      }
+    }
+    @if (!store.tasks().data.length) {
+      <app-empty-state art="tasks" artSize="compact" [artStatic]="true" shape="list" [rows]="4" hint="Tasks assigned to you show up here, with who assigned them." />
+    } @else if (!store.workOverdue().length && !store.workNew().length && !store.workDue().length) {
+      <p class="dashboard-quiet">Nothing new and nothing due this week.</p>
+    }
+    @if (store.workLater()) {
+      <div class="dashboard-footnote">
+        <i class="pi pi-calendar" aria-hidden="true"></i>
+        <span>{{ store.workLater() }} more {{ store.workLater() === 1 ? 'task' : 'tasks' }} due later or with no date</span>
+        <a routerLink="/tasks">All tasks</a>
+      </div>
+    }
+  }
+</app-dashboard-panel>

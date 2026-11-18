@@ -1,0 +1,71 @@
+<app-dashboard-panel title="My time" subtitle="This week" icon="pi-clock" [color]="panelColor('time')" link="/time-entry" [fill]="true">
+  @if (store.time().loading) {
+    <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+  } @else if (store.time().error) {
+    <p class="side-list-empty">{{ store.time().error }}</p>
+  } @else {
+    @if (store.runningEntry(); as running) {
+      <div class="dashboard-timer">
+        <span class="dashboard-timer-dot" aria-hidden="true"></span>
+        <div class="dashboard-timer-main">
+          <span class="dashboard-timer-label">{{ running.project?.name || running.client?.name || 'Timer running' }}</span>
+        </div>
+        <span class="dashboard-timer-elapsed">{{ store.elapsedLabel() }}</span>
+        <p-button icon="pi pi-stop" size="small" severity="secondary" [outlined]="true" ariaLabel="Stop timer" pTooltip="Stop timer" tooltipPosition="left" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body" [loading]="store.stopping()" (onClick)="store.stopTimer()" />
+      </div>
+    }
+    <div class="dashboard-time-layout">
+      <div class="dashboard-time-head">
+        <div class="dashboard-time-total">
+          <span class="dashboard-stat-value">{{ store.weekLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
+          @if (store.billablePct() !== null) {
+            <span class="dashboard-stat-note" pTooltip="Share of this week's hours marked billable" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body">{{ store.billablePct() }}% billable</span>
+          } @else {
+            <span class="dashboard-stat-note">Nothing logged yet</span>
+          }
+        </div>
+        @if (!store.runningEntry()) {
+          <a pButton label="Log time" icon="pi pi-play" size="small" severity="secondary" [outlined]="true" routerLink="/time-entry"></a>
+        }
+      </div>
+
+      <!-- Daily bars right under the week total; By project follows. -->
+      @if (store.weekMinutes() === 0 && store.firstRun()) {
+        <app-empty-state shape="bars" height="3.6rem" [labels]="store.weekDayLabels()" />
+      } @else {
+        <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
+          @for (d of store.weekDays(); track d.key) {
+            <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body">
+              <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
+              <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
+            </div>
+          }
+        </div>
+      }
+      @if (store.weekByProject().top.length) {
+        <p class="dashboard-section-label">By project</p>
+        <div class="dashboard-lanes">
+          @for (g of store.weekByProject().top; track g.key) {
+            @if (g.link) {
+              <a class="dashboard-lane" [routerLink]="g.link">
+                <span class="dashboard-lane-name">{{ g.name }}</span>
+                <span class="dashboard-lane-track" aria-hidden="true"><span class="dashboard-lane-fill dashboard-lane-fill--time" [style.width.%]="g.pct"></span></span>
+                <span class="dashboard-lane-count dashboard-lane-count--wide">{{ g.label }}</span>
+              </a>
+            } @else {
+              <div class="dashboard-lane">
+                <span class="dashboard-lane-name">{{ g.name }}</span>
+                <span class="dashboard-lane-track" aria-hidden="true"><span class="dashboard-lane-fill dashboard-lane-fill--time" [style.width.%]="g.pct"></span></span>
+                <span class="dashboard-lane-count dashboard-lane-count--wide">{{ g.label }}</span>
+              </div>
+            }
+          }
+        </div>
+        @if (store.weekByProject().more) {
+          <p class="dashboard-quiet dashboard-quiet--tight">and {{ store.weekByProject().more }} more · <a routerLink="/time-entry">Timesheet</a></p>
+        }
+      }
+
+    </div>
+  }
+</app-dashboard-panel>

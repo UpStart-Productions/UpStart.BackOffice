@@ -1,0 +1,96 @@
+<app-dashboard-panel
+  title="Today"
+  [subtitle]="(store.todayOverdue().length + store.todayDue().length) + ' things'"
+  icon="pi-sun"
+  [color]="store.weather() ? store.weatherTone() : panelColor('today')"
+  [iconToggles]="!!store.weather()"
+  [sky]="store.weatherSky()"
+  [iconTooltip]="store.weather() ? (store.weatherShown() ? 'Back to Today' : 'Show the weather') : 'Today'"
+  [altShown]="store.weatherShown()"
+  (altShownChange)="store.weatherShown.set($event)"
+  [fill]="true"
+>
+  @if (store.weather()) {
+    <span panelIcon class="wx-icon" [attr.data-sky]="store.weatherSky()">
+      @if (store.weatherPeek(); as peek) {
+        <nmp-lucide-icon class="wx-peek" [name]="peek" />
+        <nmp-lucide-icon class="wx-front" name="cloud" />
+      } @else {
+        <nmp-lucide-icon class="wx-main" [name]="store.weatherIcon()" />
+      }
+    </span>
+  } @else {
+    <!-- No weather (no business address, or still loading): plain sun. The @if above counts as projected
+         content even when false, so the panel's own fallback icon never shows. -->
+    <i panelIcon class="pi pi-sun"></i>
+  }
+  @if (store.weather(); as w) {
+    <div panelHeaderAlt class="dashboard-weather-head">
+      <span class="dashboard-weather-temp">{{ w.temp }}°</span>
+      <span class="dashboard-weather-text">
+        {{ w.summary }} · H {{ w.high }}° L {{ w.low }}°
+        @if (w.precipChance != null && w.precipChance >= 20) {
+          · {{ w.precipChance }}% {{ store.precipWord() }}
+        }
+      </span>
+      @if (!store.weatherHere()) {
+        <p-button
+          icon="pi pi-map-marker"
+          size="small"
+          severity="secondary"
+          [text]="true"
+          styleClass="icon-action-btn"
+          ariaLabel="Use where I am"
+          [pTooltip]="store.weatherHint()"
+          tooltipPosition="top"
+          tooltipStyleClass="ubo-dark-tooltip"
+          [showDelay]="store.tipDelay"
+          appendTo="body"
+          (onClick)="store.useMyLocation()"
+        />
+      } @else if (w.place) {
+        <span class="dashboard-weather-place">{{ w.place }}</span>
+      }
+    </div>
+  }
+  @if (store.todayLoading()) {
+    <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+  } @else {
+    @if (store.todayOverdue().length) {
+      <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
+      @for (r of store.todayOverdueShown(); track r.key) {
+        <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+      }
+      @if (store.todayOverdueMore().total; as more) {
+        <div class="dashboard-footnote dashboard-footnote--inline">
+          <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+          <span>and {{ more }} more overdue</span>
+          @if (store.todayOverdueMore().tasks) {
+            <a routerLink="/tasks">Tasks</a>
+          }
+          @if (store.todayOverdueMore().nextSteps) {
+            <a routerLink="/activity" [queryParams]="{ tab: 'todo', queue: 'nextStep' }">Next steps</a>
+          }
+        </div>
+      }
+    }
+    @if (store.todayDue().length) {
+      <p class="dashboard-section-label">Today</p>
+      @for (r of store.todayDue(); track r.key) {
+        <app-dashboard-row [row]="r" [busyRow]="store.busyRow()" [tipDelay]="store.tipDelay" (done)="store.markDone($event)" />
+      }
+    }
+    @if (store.firstRun()) {
+      <app-empty-state art="all-caught-up" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Overdue items and anything due today show up here." />
+    } @else if (!store.todayOverdue().length && !store.todayDue().length) {
+      <p class="dashboard-quiet">Nothing due today.</p>
+    }
+    @if (store.staleNextSteps().length) {
+      <div class="dashboard-footnote">
+        <i class="pi pi-history" aria-hidden="true"></i>
+        <span>{{ store.staleNextSteps().length }} next {{ store.staleNextSteps().length === 1 ? 'step is' : 'steps are' }} over 30 days old</span>
+        <a routerLink="/activity" [queryParams]="{ tab: 'todo', queue: 'nextStep' }">Clean up</a>
+      </div>
+    }
+  }
+</app-dashboard-panel>

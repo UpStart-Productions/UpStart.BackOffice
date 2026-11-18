@@ -1,0 +1,30 @@
+<app-dashboard-panel title="My shifts" icon="pi-calendar-clock" [color]="panelColor('shifts')" link="/schedule" [fill]="true">
+  @if (store.shifts().loading) {
+    <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
+  } @else if (store.shifts().error) {
+    <p class="side-list-empty">{{ store.shifts().error }}</p>
+  } @else if (store.myShifts().length) {
+    @for (s of store.myShifts(); track s.id) {
+      <app-record-card
+        variant="compact"
+        [singleLine]="true"
+        [title]="s.clientName"
+        [subtitle]="store.shiftWhen(s)"
+        [link]="['/accounts', s.clientId]"
+        [linkQuery]="{ tab: 'care' }"
+        icon="house"
+        tone="success"
+      >
+        <ng-container ngProjectAs="[recordActions]">
+          @if (s.visitId) {
+            <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/care/visits', s.visitId]"></a>
+          } @else if (store.canStartShift(s)) {
+            <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="store.startingShift() === s.id" (onClick)="store.startShift(s)" />
+          }
+        </ng-container>
+      </app-record-card>
+    }
+  } @else {
+    <p class="dashboard-quiet">No shifts in the next week.</p>
+  }
+</app-dashboard-panel>

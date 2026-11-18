@@ -1,77 +1,25 @@
-<app-page [title]="greeting()" helpKey="dashboard.page">
+<app-page [title]="store.greeting()" helpKey="dashboard.page">
   <ng-container ngProjectAs="[pageActions]">
-    <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" size="small" (onClick)="customizeOpen.set(true)" />
-    @if (showScope()) {
+    <p-button label="Customize" icon="pi pi-sliders-h" severity="secondary" [outlined]="true" size="small" (onClick)="store.customizeOpen.set(true)" />
+    @if (store.showScope()) {
       <p-selectbutton
-        [options]="scopeOptions"
+        [options]="store.scopeOptions"
         optionLabel="label"
         optionValue="value"
-        [ngModel]="mine()"
-        (ngModelChange)="mine.set($event)"
+        [ngModel]="store.mine()"
+        (ngModelChange)="store.mine.set($event)"
         [allowEmpty]="false"
         ariaLabel="Whose items"
       />
     }
   </ng-container>
   <p pageSubtitle class="page-header-subtitle dashboard-summary">
-    <span class="dashboard-summary-date">{{ todayText }}</span>
-    <span>{{ summary() }}</span>
+    <span class="dashboard-summary-date">{{ store.todayText }}</span>
+    <span>{{ store.summary() }}</span>
   </p>
 
-  <!-- One row: record card, then badge, then done check or action button on the right. -->
-  <ng-template #row let-r>
-    <app-record-card
-      variant="compact"
-      [singleLine]="true"
-      [title]="r.title"
-      [subtitle]="r.subtitle ?? null"
-      [link]="r.open ? null : (r.link ?? null)"
-      [clickable]="!!r.open"
-      (titleClick)="r.open?.()"
-      [linkQuery]="r.query ?? null"
-      [icon]="r.person ? null : (r.icon ?? 'circle')"
-      [tone]="r.tone ?? null"
-      [person]="r.person ?? null"
-    >
-      <ng-container ngProjectAs="[recordActions]">
-        @if (r.isNew) {
-          <p-tag value="New" severity="info" pTooltip="New since your last visit" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
-        }
-        @if (r.badge) {
-          <p-tag [value]="r.badge.label" [severity]="r.badge.severity" [pTooltip]="r.badge.hint ?? ''" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
-        }
-        @if (r.action) {
-          <a
-            pButton
-            [label]="r.action.label"
-            size="small"
-            [severity]="r.action.primary ? 'primary' : 'secondary'"
-            [outlined]="!r.action.primary"
-            [routerLink]="r.action.link"
-            [queryParams]="r.action.query ?? null"
-          ></a>
-        }
-        @if (r.done) {
-          <p-button
-            icon="pi pi-check-circle"
-            size="small"
-            severity="secondary"
-            [text]="true"
-            styleClass="icon-action-btn"
-            [ariaLabel]="'Mark done: ' + r.title"
-            pTooltip="Mark done"
-            tooltipPosition="left"
-            tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"
-            [loading]="busyRow() === r.key"
-            (onClick)="markDone(r)"
-          />
-        }
-      </ng-container>
-    </app-record-card>
-  </ng-template>
-
-  <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="panels()" (cdkDropListDropped)="onPanelDrop($event)">
-    @for (l of layout(); track l.panel.id) {
+  <div class="dashboard-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="store.panels()" (cdkDropListDropped)="onPanelDrop($event)">
+    @for (l of store.layout(); track l.panel.id) {
       @let p = l.panel;
       <div
         class="dashboard-grid-slot"
@@ -81,501 +29,61 @@
         [cdkDragData]="p"
       >
         @switch (p.id) {
-          <!-- ── Financial health ───────────────────────────────────────── -->
           @case ('money') {
-            <app-dashboard-panel title="Financial health" icon="pi-wallet" [color]="panelColor('money')" link="/reports" [fill]="true">
-                  <p-select
-                    panelTitleTrail
-                    [options]="finRangeOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    [ngModel]="finRange()"
-                    (ngModelChange)="setFinRange($event)"
-                    size="small"
-                    ariaLabel="Date range"
-                    appendTo="body"
-                  />
-              @if (invoices().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (invoices().error) {
-                <p class="side-list-empty">{{ invoices().error }}</p>
-              } @else {
-                <!-- Fixed card height: stat tiles, then chart + Needs action share the rest; Needs action scrolls. -->
-                <div class="dashboard-money">
-                <div class="dashboard-stats dashboard-stats--4">
-                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="info" pTooltip="Money received from invoices paid in this period, compared with the same length of time just before it" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                    <span class="dashboard-stat-label">Collected</span>
-                    <span class="dashboard-stat-value">{{ money(collectedInRange(), 0) }}</span>
-                    <span class="dashboard-stat-note">
-                      {{ paidCount() }} paid {{ paidCount() === 1 ? 'invoice' : 'invoices' }}
-                      @if (collectedDelta(); as d) {
-                        · <span [class]="d >= 0 ? 'dashboard-up' : 'dashboard-down'">{{ d >= 0 ? '↑' : '↓' }} {{ d >= 0 ? d : -d }}%</span> vs prior period
-                      }
-                    </span>
-                  </div>
-                  @if (pnl().data; as p) {
-                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="success" pTooltip="Income minus expenses in this period, from Accounting" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                      <span class="dashboard-stat-label">Net</span>
-                      <span class="dashboard-stat-value">{{ money(p.netIncome, 0) }}</span>
-                      <span class="dashboard-stat-note">Income minus expenses</span>
-                    </div>
-                  } @else {
-                    <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices dated in this period, saved as drafts and not sent yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                      <span class="dashboard-stat-label">Drafts to send</span>
-                      <span class="dashboard-stat-value">{{ draftInvoices().length }}</span>
-                      <span class="dashboard-stat-note">Invoices not sent yet</span>
-                    </div>
-                  }
-                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="gold" pTooltip="Invoices sent in this period and not paid yet. Overdue ones are past their due date" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                    <span class="dashboard-stat-label">Outstanding</span>
-                    <span class="dashboard-stat-value">{{ money(outstandingTotal(), 0) }}</span>
-                    <span class="dashboard-stat-note">
-                      @if (overdueTotal() > 0) {
-                        <span class="dashboard-down">{{ money(overdueTotal(), 0) }} overdue</span> · {{ overdueInvoices().length }} {{ overdueInvoices().length === 1 ? 'invoice' : 'invoices' }}
-                      } @else {
-                        Nothing overdue
-                      }
-                    </span>
-                  </div>
-                  <div class="dashboard-stat dashboard-stat--stripe" data-stripe="red" pTooltip="Billable time and expenses from this period that aren't on an invoice yet" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                    <span class="dashboard-stat-label">Unbilled work</span>
-                    <span class="dashboard-stat-value">{{ money(unbilled().data?.total ?? 0, 0) }}</span>
-                    <span class="dashboard-stat-note">
-                      {{ hours(unbilled().data?.hours ?? 0) }}
-                      @if ((unbilled().data?.expenseAmount ?? 0) > 0) {
-                        + {{ money(unbilled().data!.expenseAmount, 0) }} expenses
-                      }
-                    </span>
-                  </div>
-                </div>
-
-                <div class="dashboard-money-body">
-                  <figure class="dashboard-chart" [attr.aria-label]="'Invoiced and collected, ' + finBounds().label">
-                    <div class="dashboard-chart-canvas">
-                      @if (firstRun()) {
-                        <app-empty-state shape="bars" [bars]="6" />
-                      } @else {
-                        <app-report-chart type="bar" [data]="chartData()" [options]="chartOptions" />
-                      }
-                    </div>
-                  </figure>
-                  <div class="dashboard-money-actions">
-                    <p class="dashboard-section-label">Needs action</p>
-                    @if (moneyActions().length) {
-                      @for (r of moneyActions(); track r.key) {
-                        <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                      }
-                    } @else {
-                      <p class="dashboard-quiet">All caught up: no drafts, nothing overdue, nothing unbilled.</p>
-                    }
-                  </div>
-                </div>
-                </div>
-              }
-            </app-dashboard-panel>
+            <app-dashboard-money-panel />
           }
-
-          <!-- ── Today ──────────────────────────────────────────────────── -->
           @case ('today') {
-            <app-dashboard-panel
-              title="Today"
-              [subtitle]="(todayOverdue().length + todayDue().length) + ' things'"
-              icon="pi-sun"
-              [color]="weather() ? weatherTone() : panelColor('today')"
-              [iconToggles]="!!weather()"
-              [sky]="weatherSky()"
-              [iconTooltip]="weather() ? (weatherShown() ? 'Back to Today' : 'Show the weather') : 'Today'"
-              [(altShown)]="weatherShown"
-              [fill]="true"
-            >
-              @if (weather()) {
-                <span panelIcon class="wx-icon" [attr.data-sky]="weatherSky()">
-                  @if (weatherPeek(); as peek) {
-                    <nmp-lucide-icon class="wx-peek" [name]="peek" />
-                    <nmp-lucide-icon class="wx-front" name="cloud" />
-                  } @else {
-                    <nmp-lucide-icon class="wx-main" [name]="weatherIcon()" />
-                  }
-                </span>
-              } @else {
-                <!-- No weather (no business address, or still loading): plain sun. The @if above counts as projected
-                     content even when false, so the panel's own fallback icon never shows. -->
-                <i panelIcon class="pi pi-sun"></i>
-              }
-              @if (weather(); as w) {
-                <div panelHeaderAlt class="dashboard-weather-head">
-                  <span class="dashboard-weather-temp">{{ w.temp }}°</span>
-                  <span class="dashboard-weather-text">
-                    {{ w.summary }} · H {{ w.high }}° L {{ w.low }}°
-                    @if (w.precipChance != null && w.precipChance >= 20) {
-                      · {{ w.precipChance }}% {{ precipWord() }}
-                    }
-                  </span>
-                  @if (!weatherHere()) {
-                    <p-button
-                      icon="pi pi-map-marker"
-                      size="small"
-                      severity="secondary"
-                      [text]="true"
-                      styleClass="icon-action-btn"
-                      ariaLabel="Use where I am"
-                      [pTooltip]="weatherHint()"
-                      tooltipPosition="top"
-                      tooltipStyleClass="ubo-dark-tooltip"
-                      [showDelay]="tipDelay"
-                      appendTo="body"
-                      (onClick)="useMyLocation()"
-                    />
-                  } @else if (w.place) {
-                    <span class="dashboard-weather-place">{{ w.place }}</span>
-                  }
-                </div>
-              }
-              @if (todayLoading()) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else {
-                @if (todayOverdue().length) {
-                  <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
-                  @for (r of todayOverdueShown(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
-                  @if (todayOverdueMore().total; as more) {
-                    <div class="dashboard-footnote dashboard-footnote--inline">
-                      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                      <span>and {{ more }} more overdue</span>
-                      @if (todayOverdueMore().tasks) {
-                        <a routerLink="/tasks">Tasks</a>
-                      }
-                      @if (todayOverdueMore().nextSteps) {
-                        <a routerLink="/activity" [queryParams]="{ tab: 'todo', queue: 'nextStep' }">Next steps</a>
-                      }
-                    </div>
-                  }
-                }
-                @if (todayDue().length) {
-                  <p class="dashboard-section-label">Today</p>
-                  @for (r of todayDue(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
-                }
-                @if (firstRun()) {
-                  <app-empty-state art="all-caught-up" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Overdue items and anything due today show up here." />
-                } @else if (!todayOverdue().length && !todayDue().length) {
-                  <p class="dashboard-quiet">Nothing due today.</p>
-                }
-                @if (staleNextSteps().length) {
-                  <div class="dashboard-footnote">
-                    <i class="pi pi-history" aria-hidden="true"></i>
-                    <span>{{ staleNextSteps().length }} next {{ staleNextSteps().length === 1 ? 'step is' : 'steps are' }} over 30 days old</span>
-                    <a routerLink="/activity" [queryParams]="{ tab: 'todo', queue: 'nextStep' }">Clean up</a>
-                  </div>
-                }
-              }
-            </app-dashboard-panel>
+            <app-dashboard-today-panel />
           }
-
-          <!-- ── My work ────────────────────────────────────────────────── -->
           @case ('work') {
-            <app-dashboard-panel title="My work" icon="pi-check-square" [color]="panelColor('work')" link="/tasks" [fill]="true">
-              @if (tasks().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (tasks().error) {
-                <p class="side-list-empty">{{ tasks().error }}</p>
-              } @else {
-                @if (workOverdue().length) {
-                  <p class="dashboard-section-label dashboard-section-label--danger">Overdue</p>
-                  @for (r of workOverdue(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
-                  @if (workOverdueMore(); as more) {
-                    <div class="dashboard-footnote dashboard-footnote--inline">
-                      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
-                      <span>and {{ more }} more overdue</span>
-                      <a routerLink="/tasks">All tasks</a>
-                    </div>
-                  }
-                }
-                @if (workNew().length) {
-                  <p class="dashboard-section-label">New for you</p>
-                  @for (r of workNew(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
-                }
-                @if (workDue().length) {
-                  <p class="dashboard-section-label">Due this week</p>
-                  @for (r of workDue(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
-                }
-                @if (!tasks().data.length) {
-                  <app-empty-state art="tasks" artSize="compact" [artStatic]="true" shape="list" [rows]="4" hint="Tasks assigned to you show up here, with who assigned them." />
-                } @else if (!workOverdue().length && !workNew().length && !workDue().length) {
-                  <p class="dashboard-quiet">Nothing new and nothing due this week.</p>
-                }
-                @if (workLater()) {
-                  <div class="dashboard-footnote">
-                    <i class="pi pi-calendar" aria-hidden="true"></i>
-                    <span>{{ workLater() }} more {{ workLater() === 1 ? 'task' : 'tasks' }} due later or with no date</span>
-                    <a routerLink="/tasks">All tasks</a>
-                  </div>
-                }
-              }
-            </app-dashboard-panel>
+            <app-dashboard-work-panel />
           }
-
-          <!-- ── Pipeline & relationships ───────────────────────────────── -->
           @case ('pipeline') {
-            <app-dashboard-panel title="Pipeline & relationships" icon="pi-users" [color]="panelColor('pipeline')" link="/pipeline" [fill]="true">
-              @if (can('inbox') && upcomingNextSteps().length) {
-                <p class="dashboard-section-label">Next steps this week</p>
-                @for (r of upcomingNextSteps(); track r.key) {
-                  <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                }
-              }
-              @if (can('pipeline')) {
-                @for (ps of pipelineSummaries(); track ps.id) {
-                  <p class="dashboard-section-label">{{ ps.name }}</p>
-                  <div class="dashboard-pipeline-head">
-                    <span class="dashboard-stat-value">{{ ps.count }} {{ ps.count === 1 ? 'card' : 'cards' }}</span>
-                    @if (ps.value > 0) {
-                      <span class="dashboard-stat-note" pTooltip="Total of Estimated value on the cards in this pipeline" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ money(ps.value, 0) }} estimated · {{ ps.valued }} of {{ ps.count }} cards have a value</span>
-                    }
-                  </div>
-                  @if (ps.count) {
-                    <div class="dashboard-lanes">
-                      @for (s of ps.bars; track s.id) {
-                        <a
-                          class="dashboard-lane"
-                          [class.dashboard-lane--empty]="!s.count"
-                          routerLink="/pipeline"
-                          [queryParams]="{ pipeline: ps.id }"
-                          [pTooltip]="s.count + (s.count === 1 ? ' card in ' : ' cards in ') + s.name + (s.value ? ', ' + money(s.value, 0) + ' estimated' : '')"
-                          tooltipPosition="top"
-                          tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"
-                        >
-                          <span class="dashboard-lane-name">{{ s.name }}</span>
-                          <span class="dashboard-lane-track" aria-hidden="true">
-                            <span class="dashboard-lane-fill" [style.width.%]="s.pct"></span>
-                          </span>
-                          <span class="dashboard-lane-count">{{ s.count }}</span>
-                        </a>
-                      }
-                    </div>
-                  }
-                }
-              }
-              @if (can('inbox')) {
-                <p class="dashboard-section-label">Gone quiet</p>
-                @if (quietRows().length) {
-                  @for (r of quietRows(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
-                } @else if (firstRun()) {
-                  <app-empty-state art="pipeline" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Accounts you haven't been in touch with lately show up here." />
-                } @else {
-                  <p class="dashboard-quiet">Everyone has heard from you recently.</p>
-                }
-              }
-            </app-dashboard-panel>
+            <app-dashboard-pipeline-panel />
           }
-
-          <!-- ── JD suggests ─────────────────────────────────────────────── -->
           @case ('jd') {
-            <app-dashboard-panel [title]="agentName + ' suggests'" icon="pi-sparkles" [color]="panelColor('jd')" [fill]="true">
-              @if (suggestions().length) {
-                <div class="jd-suggestions">
-                  @for (s of suggestions(); track s.key) {
-                    <div class="jd-suggestion">
-                      <span class="jd-suggestion-icon" aria-hidden="true"><i class="pi" [class]="'pi ' + suggestionIcon[s.kind]"></i></span>
-                      <div class="jd-suggestion-body">
-                        <p class="jd-suggestion-text">{{ s.text }}</p>
-                        <div class="jd-suggestion-actions">
-                          <p-button [label]="s.action.label" size="small" (onClick)="runSuggestion(s)" />
-                          <p-button label="Not now" size="small" severity="secondary" [text]="true" pTooltip="Hide this for 3 days" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" (onClick)="notNow(s)" />
-                        </div>
-                      </div>
-                    </div>
-                  }
-                </div>
-              } @else if (firstRun()) {
-                <app-empty-state art="conversations" artSize="compact" [artStatic]="true" shape="list" [rows]="3" [hint]="'As you add work, ' + agentName + ' suggests what to do next here.'" />
-              } @else {
-                <p class="dashboard-quiet">Nothing to suggest right now. Nice work.</p>
-              }
-            </app-dashboard-panel>
+            <app-dashboard-jd-panel />
           }
-
-          <!-- ── Since you were last here ───────────────────────────────── -->
           @case ('feed') {
-            <app-dashboard-panel title="Since last time" [subtitle]="feedSubtitle()" icon="pi-bolt" [color]="panelColor('feed')" link="/activity" [fill]="true">
-              @if (feed().length) {
-                @for (r of feed(); track r.key) {
-                  <app-record-card
-                    variant="compact"
-                    [singleLine]="true"
-                    [title]="r.title"
-                    [subtitle]="r.subtitle ?? null"
-                    [link]="r.link ?? null"
-                    [linkQuery]="r.query ?? null"
-                    [icon]="r.person ? null : (r.icon ?? 'circle')"
-                    [tone]="r.tone ?? null"
-                    [person]="r.person ?? null"
-                  >
-                    <ng-container ngProjectAs="[recordActions]">
-                      @if (r.isNew) {
-                        <p-tag value="New" severity="info" pTooltip="New since your last visit" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
-                      }
-                      <span class="dashboard-when" [pTooltip]="feedWhenFull(r)" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ feedWhen(r) }}</span>
-                    </ng-container>
-                  </app-record-card>
-                }
-              } @else if (firstRun()) {
-                <app-empty-state art="activity" artSize="compact" [artStatic]="true" shape="list" [rows]="4" hint="New activity since your last visit shows up here." />
-              } @else {
-                <p class="dashboard-quiet">Nothing new in the last week.</p>
-              }
-            </app-dashboard-panel>
+            <app-dashboard-feed-panel />
           }
-
-          <!-- ── My time ────────────────────────────────────────────────── -->
           @case ('time') {
-            <app-dashboard-panel title="My time" subtitle="This week" icon="pi-clock" [color]="panelColor('time')" link="/time-entry" [fill]="true">
-              @if (time().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (time().error) {
-                <p class="side-list-empty">{{ time().error }}</p>
-              } @else {
-                @if (runningEntry(); as running) {
-                  <div class="dashboard-timer">
-                    <span class="dashboard-timer-dot" aria-hidden="true"></span>
-                    <div class="dashboard-timer-main">
-                      <span class="dashboard-timer-label">{{ running.project?.name || running.client?.name || 'Timer running' }}</span>
-                    </div>
-                    <span class="dashboard-timer-elapsed">{{ elapsedLabel() }}</span>
-                    <p-button icon="pi pi-stop" size="small" severity="secondary" [outlined]="true" ariaLabel="Stop timer" pTooltip="Stop timer" tooltipPosition="left" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" [loading]="stopping()" (onClick)="stopTimer()" />
-                  </div>
-                }
-                <div class="dashboard-time-layout">
-                  <div class="dashboard-time-head">
-                    <div class="dashboard-time-total">
-                      <span class="dashboard-stat-value">{{ weekLabel() }}<span class="dashboard-stat-unit">hrs</span></span>
-                      @if (billablePct() !== null) {
-                        <span class="dashboard-stat-note" pTooltip="Share of this week's hours marked billable" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ billablePct() }}% billable</span>
-                      } @else {
-                        <span class="dashboard-stat-note">Nothing logged yet</span>
-                      }
-                    </div>
-                    @if (!runningEntry()) {
-                      <a pButton label="Log time" icon="pi pi-play" size="small" severity="secondary" [outlined]="true" routerLink="/time-entry"></a>
-                    }
-                  </div>
-
-                  <!-- Daily bars right under the week total; By project follows. -->
-                  @if (weekMinutes() === 0 && firstRun()) {
-                    <app-empty-state shape="bars" height="3.6rem" [labels]="weekDayLabels()" />
-                  } @else {
-                    <div class="dashboard-week" role="img" aria-label="Hours logged each day this week">
-                      @for (d of weekDays(); track d.key) {
-                        <div class="dashboard-week-day" [pTooltip]="d.title" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">
-                          <span class="dashboard-week-bar" [class.dashboard-week-bar--empty]="!d.min" [style.height.%]="d.pct"></span>
-                          <span class="dashboard-week-label" [class.dashboard-week-label--today]="d.isToday">{{ d.label }}</span>
-                        </div>
-                      }
-                    </div>
-                  }
-                  @if (weekByProject().top.length) {
-                    <p class="dashboard-section-label">By project</p>
-                    <div class="dashboard-lanes">
-                      @for (g of weekByProject().top; track g.key) {
-                        @if (g.link) {
-                          <a class="dashboard-lane" [routerLink]="g.link">
-                            <span class="dashboard-lane-name">{{ g.name }}</span>
-                            <span class="dashboard-lane-track" aria-hidden="true"><span class="dashboard-lane-fill dashboard-lane-fill--time" [style.width.%]="g.pct"></span></span>
-                            <span class="dashboard-lane-count dashboard-lane-count--wide">{{ g.label }}</span>
-                          </a>
-                        } @else {
-                          <div class="dashboard-lane">
-                            <span class="dashboard-lane-name">{{ g.name }}</span>
-                            <span class="dashboard-lane-track" aria-hidden="true"><span class="dashboard-lane-fill dashboard-lane-fill--time" [style.width.%]="g.pct"></span></span>
-                            <span class="dashboard-lane-count dashboard-lane-count--wide">{{ g.label }}</span>
-                          </div>
-                        }
-                      }
-                    </div>
-                    @if (weekByProject().more) {
-                      <p class="dashboard-quiet dashboard-quiet--tight">and {{ weekByProject().more }} more · <a routerLink="/time-entry">Timesheet</a></p>
-                    }
-                  }
-
-                </div>
-              }
-            </app-dashboard-panel>
+            <app-dashboard-time-panel />
           }
-
-          <!-- ── My shifts (Care) ───────────────────────────────────────── -->
           @case ('shifts') {
-            <app-dashboard-panel title="My shifts" icon="pi-calendar-clock" [color]="panelColor('shifts')" link="/schedule" [fill]="true">
-              @if (shifts().loading) {
-                <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-              } @else if (shifts().error) {
-                <p class="side-list-empty">{{ shifts().error }}</p>
-              } @else if (myShifts().length) {
-                @for (s of myShifts(); track s.id) {
-                  <app-record-card
-                    variant="compact"
-                    [singleLine]="true"
-                    [title]="s.clientName"
-                    [subtitle]="shiftWhen(s)"
-                    [link]="['/accounts', s.clientId]"
-                    [linkQuery]="{ tab: 'care' }"
-                    icon="house"
-                    tone="success"
-                  >
-                    <ng-container ngProjectAs="[recordActions]">
-                      @if (s.visitId) {
-                        <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/care/visits', s.visitId]"></a>
-                      } @else if (canStartShift(s)) {
-                        <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="startingShift() === s.id" (onClick)="startShift(s)" />
-                      }
-                    </ng-container>
-                  </app-record-card>
-                }
-              } @else {
-                <p class="dashboard-quiet">No shifts in the next week.</p>
-              }
-            </app-dashboard-panel>
+            <app-dashboard-shifts-panel />
           }
         }
       </div>
     }
   </div>
-  <!-- What makes up one client's Unbilled work, line by line. -->
+
   <p-dialog
-    [header]="'Unbilled work · ' + unbilledTitle()"
-    [visible]="unbilledOpen()"
-    (visibleChange)="unbilledOpen.set($event)"
+    [header]="'Unbilled work · ' + store.unbilledTitle()"
+    [visible]="store.unbilledOpen()"
+    (visibleChange)="store.unbilledOpen.set($event)"
     [modal]="true"
     [draggable]="false"
     [resizable]="false"
     [style]="{ width: 'min(60rem, 96vw)' }"
     styleClass="unbilled-dialog"
   >
-    @if (unbilledDetail().loading) {
+    @if (store.unbilledDetail().loading) {
       <p class="dashboard-quiet"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-    } @else if (unbilledDetail().error) {
-      <p class="dashboard-quiet">{{ unbilledDetail().error }}</p>
-    } @else if (unbilledDetail().data; as d) {
+    } @else if (store.unbilledDetail().error) {
+      <p class="dashboard-quiet">{{ store.unbilledDetail().error }}</p>
+    } @else if (store.unbilledDetail().data; as d) {
       <div class="unbilled-summary">
         <div class="dashboard-stat">
           <span class="dashboard-stat-label">Unbilled</span>
-          <span class="dashboard-stat-value">{{ money(d.total) }}</span>
-          <span class="dashboard-stat-note">{{ hours(d.hours) }}@if (d.expenseAmount > 0) { + {{ money(d.expenseAmount) }} expenses }</span>
+          <span class="dashboard-stat-value">{{ store.money(d.total) }}</span>
+          <span class="dashboard-stat-note">{{ store.hours(d.hours) }}@if (d.expenseAmount > 0) { + {{ store.money(d.expenseAmount) }} expenses }</span>
         </div>
         <div class="dashboard-stat">
           <span class="dashboard-stat-label">Last invoice</span>
           @if (d.lastInvoice; as li) {
             <a class="dashboard-stat-value unbilled-last" [routerLink]="['/invoices', li.id]">{{ li.displayNumber }}</a>
-            <span class="dashboard-stat-note">{{ li.status === 'PAID' ? 'Paid' : 'Sent' }} · issued {{ shortDate(li.issueDate) }}</span>
+            <span class="dashboard-stat-note">{{ li.status === 'PAID' ? 'Paid' : 'Sent' }} · issued {{ store.shortDate(li.issueDate) }}</span>
           } @else {
             <span class="dashboard-stat-value">None</span>
             <span class="dashboard-stat-note">No sent or paid invoice yet</span>
@@ -585,7 +93,7 @@
       <p class="unbilled-how">
         Counted: finished billable time on this account's billable projects, after its last sent or paid invoice and not on any invoice yet, at the entry's rate, else the project's, else the person's.
       </p>
-      @if (excludedNote(d); as note) {
+      @if (store.excludedNote(d); as note) {
         <p class="unbilled-how">{{ note }}</p>
       }
 
@@ -598,17 +106,17 @@
               <span class="unbilled-group-name">{{ g.name }}</span>
             }
             @if (g.projectId === null) {
-              <p-tag value="No project" severity="warn" pTooltip="Time logged to the account without a project. It defaults to billable." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+              <p-tag value="No project" severity="warn" pTooltip="Time logged to the account without a project. It defaults to billable." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body" />
             } @else if (g.projectBillable === false) {
-              <p-tag value="Project not billable" severity="warn" pTooltip="The project is set to non-billable now, but these entries are still marked billable." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+              <p-tag value="Project not billable" severity="warn" pTooltip="The project is set to non-billable now, but these entries are still marked billable." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body" />
             }
             @if (g.beforeLastInvoiceHours > 0) {
-              <p-tag [value]="hours(g.beforeLastInvoiceHours) + ' before last invoice'" severity="secondary" pTooltip="Dated on or before the last invoice, so probably billed already but never linked to it." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body" />
+              <p-tag [value]="store.hours(g.beforeLastInvoiceHours) + ' before last invoice'" severity="secondary" pTooltip="Dated on or before the last invoice, so probably billed already but never linked to it." tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body" />
             }
             @if (g.missingRateHours > 0) {
-              <p-tag [value]="hours(g.missingRateHours) + ' no rate'" severity="danger" />
+              <p-tag [value]="store.hours(g.missingRateHours) + ' no rate'" severity="danger" />
             }
-            <span class="unbilled-group-total">{{ hours(g.hours) }} · {{ money(g.amount) }}</span>
+            <span class="unbilled-group-total">{{ store.hours(g.hours) }} · {{ store.money(g.amount) }}</span>
           </header>
           <p-table [value]="g.lines" styleClass="table-bordered report-table" size="small">
             <ng-template pTemplate="header">
@@ -624,16 +132,16 @@
             <ng-template pTemplate="body" let-l>
               <tr [class.unbilled-line--old]="l.beforeLastInvoice">
                 <td class="unbilled-nowrap">
-                  {{ shortDate(l.date) }}
+                  {{ store.shortDate(l.date) }}
                   @if (l.beforeLastInvoice) {
-                    <i class="pi pi-history unbilled-old-icon" pTooltip="Before the last invoice" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body"></i>
+                    <i class="pi pi-history unbilled-old-icon" pTooltip="Before the last invoice" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body"></i>
                   }
                 </td>
                 <td class="unbilled-nowrap">{{ l.person }}</td>
                 <td>{{ l.description }}</td>
                 <td class="col-numeric">{{ l.hours }}</td>
-                <td class="col-numeric unbilled-nowrap" [pTooltip]="rateHint(l)" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="tipDelay" appendTo="body">{{ rateLabel(l) }}</td>
-                <td class="col-numeric">{{ money(l.amount) }}</td>
+                <td class="col-numeric unbilled-nowrap" [pTooltip]="store.rateHint(l)" tooltipPosition="top" tooltipStyleClass="ubo-dark-tooltip" [showDelay]="store.tipDelay" appendTo="body">{{ store.rateLabel(l) }}</td>
+                <td class="col-numeric">{{ store.money(l.amount) }}</td>
               </tr>
             </ng-template>
           </p-table>
@@ -644,7 +152,7 @@
         <section class="unbilled-group">
           <header class="unbilled-group-head">
             <span class="unbilled-group-name">Expenses</span>
-            <span class="unbilled-group-total">{{ money(d.expenseAmount) }}</span>
+            <span class="unbilled-group-total">{{ store.money(d.expenseAmount) }}</span>
           </header>
           <p-table [value]="d.expenses" styleClass="table-bordered report-table" size="small">
             <ng-template pTemplate="header">
@@ -657,10 +165,10 @@
             </ng-template>
             <ng-template pTemplate="body" let-x>
               <tr [class.unbilled-line--old]="x.beforeLastInvoice">
-                <td class="unbilled-nowrap">{{ shortDate(x.date) }}</td>
+                <td class="unbilled-nowrap">{{ store.shortDate(x.date) }}</td>
                 <td>{{ x.project }}</td>
                 <td>{{ x.description }}</td>
-                <td class="col-numeric">{{ money(x.amount) }}</td>
+                <td class="col-numeric">{{ store.money(x.amount) }}</td>
               </tr>
             </ng-template>
           </p-table>
@@ -672,17 +180,17 @@
       }
     }
     <ng-template pTemplate="footer">
-      @if (unbilledDetail().data; as d) {
-        <a pButton label="Open account" severity="secondary" [outlined]="true" [routerLink]="['/accounts', d.clientId]" (click)="unbilledOpen.set(false)"></a>
-        <a pButton label="Create invoice" [routerLink]="'/invoices/new'" [queryParams]="unbilledInvoiceQuery(d.clientId, unbilledSince(d))" (click)="unbilledOpen.set(false)"></a>
+      @if (store.unbilledDetail().data; as d) {
+        <a pButton label="Open account" severity="secondary" [outlined]="true" [routerLink]="['/accounts', d.clientId]" (click)="store.unbilledOpen.set(false)"></a>
+        <a pButton label="Create invoice" [routerLink]="'/invoices/new'" [queryParams]="store.unbilledInvoiceQuery(d.clientId, store.unbilledSince(d))" (click)="store.unbilledOpen.set(false)"></a>
       }
     </ng-template>
   </p-dialog>
-  <!-- Customize: which cards show, and a way back to the default layout. Widths take care of themselves. -->
+
   <p-dialog
     header="Customize dashboard"
-    [visible]="customizeOpen()"
-    (visibleChange)="customizeOpen.set($event)"
+    [visible]="store.customizeOpen()"
+    (visibleChange)="store.customizeOpen.set($event)"
     [modal]="true"
     [draggable]="false"
     [resizable]="false"
@@ -690,16 +198,16 @@
   >
     <p class="unbilled-how" style="margin-top: 0">Turn cards on or off. Drag cards on the page to reorder them; widths adjust on their own.</p>
     <ul class="dashboard-customize-list">
-      @for (r of customizeRows(); track r.id) {
+      @for (r of store.customizeRows(); track r.id) {
         <li class="dashboard-customize-row">
           <label [for]="'cust-' + r.id">{{ r.label }}</label>
-          <p-toggleswitch [inputId]="'cust-' + r.id" [ngModel]="r.shown" (ngModelChange)="setPanelShown(r.id, $event)" />
+          <p-toggleswitch [inputId]="'cust-' + r.id" [ngModel]="r.shown" (ngModelChange)="store.setPanelShown(r.id, $event)" />
         </li>
       }
     </ul>
     <ng-template pTemplate="footer">
-      <p-button label="Reset to default" severity="secondary" [text]="true" (onClick)="resetLayout()" />
-      <p-button label="Done" (onClick)="customizeOpen.set(false)" />
+      <p-button label="Reset to default" severity="secondary" [text]="true" (onClick)="store.resetLayout()" />
+      <p-button label="Done" (onClick)="store.customizeOpen.set(false)" />
     </ng-template>
   </p-dialog>
 </app-page>
