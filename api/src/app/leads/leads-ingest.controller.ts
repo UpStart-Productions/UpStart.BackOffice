@@ -44,8 +44,8 @@ export class LeadsIngestController {
   async ingest(@Body() dto: IngestLeadDto) {
     const primaryContact = [dto.firstName, dto.lastName].filter(Boolean).join(' ') || undefined;
     const auditDate      = dto.auditDate ? new Date(dto.auditDate) : new Date();
-    const nextActionDate = new Date(auditDate);
-    nextActionDate.setDate(nextActionDate.getDate() + 3);
+    const nextActionDate = dto.nextActionDate ? new Date(dto.nextActionDate) : new Date(auditDate);
+    if (!dto.nextActionDate) nextActionDate.setDate(nextActionDate.getDate() + 3);
 
     const lead = await this.prisma.$transaction(async (tx) => {
       const lane = await ingestLane(tx, dto);

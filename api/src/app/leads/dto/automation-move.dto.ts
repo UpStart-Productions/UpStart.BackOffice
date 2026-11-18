@@ -21,4 +21,10 @@ export class AutomationMoveDto {
   @IsIn(['artifact', 'activity'])
   @IsOptional()
   noteAs?: 'artifact' | 'activity';
+
+  /** Optional new Next action text for the card (e.g. "Build map and send proof"). */
+  @ApiPropertyOptional() @IsString() @IsOptional() nextAction?: string;
+
+  /** Optional ISO date for that next action. Defaults to today when nextAction is given. */
+  @ApiPropertyOptional() @IsString() @IsOptional() nextActionDate?: string;
 }

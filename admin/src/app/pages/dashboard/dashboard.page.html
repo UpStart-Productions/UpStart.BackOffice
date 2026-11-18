@@ -326,7 +326,14 @@
           <!-- ── Pipeline & relationships ───────────────────────────────── -->
           @case ('pipeline') {
             <app-dashboard-panel title="Pipeline & relationships" icon="pi-users" [color]="panelColor('pipeline')" link="/pipeline" [fill]="true">
+              @if (can('inbox') && upcomingNextSteps().length) {
+                <p class="dashboard-section-label">Next steps this week</p>
+                @for (r of upcomingNextSteps(); track r.key) {
+                  <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
+                }
+              }
               @if (can('pipeline') && mainPipeline()) {
+                <p class="dashboard-section-label">{{ mainPipeline()!.name }}</p>
                 <div class="dashboard-pipeline-head">
                   <span class="dashboard-stat-value">{{ openCount() }} open</span>
                   @if (pipelineValue() > 0) {
@@ -364,12 +371,6 @@
                   <app-empty-state art="pipeline" artSize="compact" [artStatic]="true" shape="list" [rows]="3" hint="Accounts you haven't been in touch with lately show up here." />
                 } @else {
                   <p class="dashboard-quiet">Everyone has heard from you recently.</p>
-                }
-                @if (upcomingNextSteps().length) {
-                  <p class="dashboard-section-label">Next steps this week</p>
-                  @for (r of upcomingNextSteps(); track r.key) {
-                    <ng-container *ngTemplateOutlet="row; context: { $implicit: r }" />
-                  }
                 }
               }
             </app-dashboard-panel>

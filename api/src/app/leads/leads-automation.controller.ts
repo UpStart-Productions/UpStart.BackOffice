@@ -140,7 +140,13 @@ export class LeadsAutomationController {
       }
       return tx.lead.update({
         where: { id },
-        data: laneFields({ pipelineId: stage.pipelineId, stageId: stage.id, legacyKey: stage.legacyKey }),
+        data: {
+          ...laneFields({ pipelineId: stage.pipelineId, stageId: stage.id, legacyKey: stage.legacyKey }),
+          ...(dto.nextAction !== undefined && {
+            nextAction: dto.nextAction.trim() || null,
+            nextActionDate: dto.nextActionDate ? new Date(dto.nextActionDate) : new Date(),
+          }),
+        },
       });
     });
 

@@ -65,4 +65,7 @@ export class IngestLeadDto {
   @IsIn(['artifact', 'activity'])
   @IsOptional()
   noteAs?: 'artifact' | 'activity';
+
+  /** ISO date for the next action. Defaults to 3 days after auditDate (or today). */
+  @ApiPropertyOptional() @IsString() @IsOptional() nextActionDate?: string;
 }
