@@ -26,6 +26,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { SyncProjectContactsDto } from './dto/project-contact.dto';
 import { SyncProjectTasksDto } from './dto/project-task.dto';
 import { UpdateAsanaTaskBillablesDto, UpdateProjectDto } from './dto/update-project.dto';
+import { serializeProjectContacts, type ProjectContactWithLink } from './project-contacts.serialize';
 import { syncProjectContacts } from './project-contacts.util';
 import { activeTasksInclude, projectInclude, syncProjectTasks } from './project-tasks.util';
 import { AccessGuard, Area, Action } from '../access/access.guard';
@@ -81,6 +82,11 @@ export class ProjectsController {
   /** Creating and deleting projects needs Projects at 'all'. */
   private requireAll(req: Request) {
     if (this.access.level(req.user as UserContext, 'projects') !== 'all') throw new ForbiddenException('You can only work on your own projects');
+  }
+
+  private async formatProject<T extends { contacts: ProjectContactWithLink[] }>(project: T) {
+    const contacts = await serializeProjectContacts(this.prisma, project.contacts);
+    return withAttribution(project, { ...project, contacts });
   }
 
   /** Also the project picker for time, expenses and invoices, so those areas can list (their reachable) projects. */
@@ -193,7 +199,7 @@ export class ProjectsController {
       include: projectInclude,
     });
     await this.storageFolders.ensureProjectFolder(project.clientId, project.id);
-    return withAttribution(project, project);
+    return this.formatProject(project);
   }
 
   @Get(':id')
@@ -204,7 +210,7 @@ export class ProjectsController {
       include: projectInclude,
     });
     if (!project) throw new NotFoundException('Project not found');
-    return withAttribution(project, project);
+    return this.formatProject(project);
   }
 
   @Put(':id')
@@ -290,7 +296,7 @@ export class ProjectsController {
       });
     }
 
-    return withAttribution(project, project);
+    return this.formatProject(project);
   }
 
   @Action('edit')
@@ -315,10 +321,12 @@ export class ProjectsController {
       });
     }
 
-    return this.prisma.project.findUnique({
+    const project = await this.prisma.project.findUnique({
       where: { id },
       include: projectInclude,
     });
+    if (!project) throw new NotFoundException('Project not found');
+    return this.formatProject(project);
   }
 
   @Action('edit')
@@ -327,10 +335,12 @@ export class ProjectsController {
     const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
     await syncProjectTasks(this.prisma, id, dto.tasks);
-    return this.prisma.project.findUnique({
+    const project = await this.prisma.project.findUnique({
       where: { id },
       include: projectInclude,
     });
+    if (!project) throw new NotFoundException('Project not found');
+    return this.formatProject(project);
   }
 
   @Put(':id/contacts')
@@ -338,10 +348,12 @@ export class ProjectsController {
     const existing = await this.reachable(req, id);
     if (!existing) throw new NotFoundException('Project not found');
     await syncProjectContacts(this.prisma, id, dto.contacts);
-    return this.prisma.project.findUnique({
+    const project = await this.prisma.project.findUnique({
       where: { id },
       include: projectInclude,
     });
+    if (!project) throw new NotFoundException('Project not found');
+    return this.formatProject(project);
   }
 
   @Action('edit')

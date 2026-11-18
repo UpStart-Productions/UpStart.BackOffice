@@ -25,6 +25,7 @@ import { runUnscoped } from '../tenancy/tenant-context';
 import { usersWithArea, teamUsersWhere, AccessService } from '../access/access.service';
 import { GUEST_ROLE } from '@upstart/back-office/shared';
 import { ProjectContactInputDto } from '../projects/dto/project-contact.dto';
+import { serializeProjectContacts } from '../projects/project-contacts.serialize';
 import { syncProjectContacts } from '../projects/project-contacts.util';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
@@ -95,7 +96,10 @@ export class TaskProjectsService {
         sections: { orderBy: { sortOrder: 'asc' } },
         customFields: { orderBy: { sortOrder: 'asc' } },
         members: { include: { user: { select: personSelect } }, orderBy: { createdAt: 'asc' } },
-        contacts: { orderBy: { sortOrder: 'asc' } },
+        contacts: {
+          orderBy: { sortOrder: 'asc' },
+          include: { contact: { select: { id: true, avatarUrl: true } } },
+        },
         stars: { where: { userId: user.id }, select: { id: true } },
       },
     });
@@ -125,16 +129,7 @@ export class TaskProjectsService {
       })),
       customFields: project.customFields.map(toField),
       members: project.members.map((m) => ({ ...person(m.user), memberRole: m.role, invitePending: pending.has(m.userId) })),
-      contacts: project.contacts.map((c) => ({
-        id: c.id,
-        contactId: c.contactId,
-        firstName: c.firstName ?? '',
-        lastName: c.lastName ?? '',
-        phone: c.phone ?? '',
-        email: c.email ?? '',
-        avatarUrl: toPublicAssetUrl(c.avatarUrl),
-        sortOrder: c.sortOrder,
-      })),
+      contacts: await serializeProjectContacts(this.prisma, project.contacts),
       permissions: { canEdit, canComment, canManage, seesAllProjects: this.access.seesAllProjects(user) },
     };
   }

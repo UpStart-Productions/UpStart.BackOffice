@@ -6,14 +6,20 @@ import { ProjectTaskInputDto } from '../projects/dto/project-task.dto';
 
 const projectInclude = {
   client: { select: { id: true, name: true, code: true } },
-  contacts: { orderBy: { sortOrder: 'asc' as const } },
+  contacts: {
+    orderBy: { sortOrder: 'asc' as const },
+    include: { contact: { select: { id: true, avatarUrl: true } } },
+  },
   tasks: { orderBy: { sortOrder: 'asc' as const } },
   ...ATTRIBUTION_INCLUDE,
 };
 
 const activeTasksInclude = {
   client: { select: { id: true, name: true, code: true } },
-  contacts: { orderBy: { sortOrder: 'asc' as const } },
+  contacts: {
+    orderBy: { sortOrder: 'asc' as const },
+    include: { contact: { select: { id: true, avatarUrl: true } } },
+  },
   tasks: {
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' as const },

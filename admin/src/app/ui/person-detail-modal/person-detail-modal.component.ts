@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
@@ -11,10 +12,9 @@ import { PersonComponent } from '../person/person.component';
 @Component({
   selector: 'app-person-detail-modal',
   standalone: true,
-  imports: [AppDialogModule, PersonComponent, CopyEmailComponent, TagModule, MessageModule, SkeletonModule],
+  imports: [RouterLink, AppDialogModule, PersonComponent, CopyEmailComponent, TagModule, MessageModule, SkeletonModule],
   template: `
     <p-dialog
-      [header]="contact() ? contactName(contact()!) : 'Person'"
       [visible]="visible()"
       (visibleChange)="onVisibleChange($event)"
       [modal]="true"
@@ -23,6 +23,25 @@ import { PersonComponent } from '../person/person.component';
       [style]="{ width: 'min(28rem, 96vw)' }"
       appendTo="body"
     >
+      <ng-template pTemplate="header">
+        <div class="person-detail-modal-header">
+          @if (contact(); as c) {
+            <app-person
+              [name]="contactName(c)"
+              [firstName]="c.firstName"
+              [lastName]="c.lastName"
+              [email]="c.emails[0]?.email"
+              [avatarUrl]="c.avatarUrl"
+              [personId]="c.id"
+              size="med"
+              [avatarOnly]="true"
+            />
+            <span class="person-detail-modal-header-name">{{ contactName(c) }}</span>
+          } @else {
+            <span class="person-detail-modal-header-name">Person</span>
+          }
+        </div>
+      </ng-template>
       @if (error()) {
         <p-message severity="error" [text]="error()!" />
       } @else if (loading()) {
@@ -31,25 +50,16 @@ import { PersonComponent } from '../person/person.component';
         <p-skeleton width="80%" height="0.875rem" />
       } @else if (contact(); as c) {
         <div class="person-detail-modal-body">
-          <app-person
-            [name]="contactName(c)"
-            [firstName]="c.firstName"
-            [lastName]="c.lastName"
-            [email]="c.emails[0]?.email"
-            [avatarUrl]="c.avatarUrl"
-            [personId]="c.id"
-            size="lg"
-            [subtitle]="c.title"
-          />
+          @if (c.title?.trim()) {
+            <p class="person-detail-modal-role">{{ c.title }}</p>
+          }
           @if (c.phone) {
             <div class="person-detail-modal-row">
-              <span class="person-detail-modal-label">Phone</span>
               <span>{{ c.phone }}</span>
             </div>
           }
           @if (c.emails[0]?.email) {
             <div class="person-detail-modal-row">
-              <span class="person-detail-modal-label">Email</span>
               <app-copy-email [email]="c.emails[0].email" />
             </div>
           }
@@ -66,7 +76,13 @@ import { PersonComponent } from '../person/person.component';
               <span class="person-detail-modal-label">Accounts</span>
               <ul class="person-detail-modal-orgs">
                 @for (link of c.accountLinks; track link.clientId) {
-                  <li>{{ link.client.name }}@if (link.role) { <span class="person-detail-modal-muted"> · {{ link.role }}</span> }</li>
+                  <li>
+                    <a
+                      [routerLink]="['/accounts', link.clientId]"
+                      class="person-detail-modal-account-link"
+                      (click)="visible.set(false)"
+                    >{{ link.client.name }}</a>@if (link.role) { <span class="person-detail-modal-muted"> · {{ link.role }}</span> }
+                  </li>
                 }
               </ul>
             </div>
@@ -82,6 +98,31 @@ import { PersonComponent } from '../person/person.component';
     </p-dialog>
   `,
   styles: `
+    .person-detail-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .person-detail-modal-header-name {
+      font-size: 1.125rem;
+      font-weight: 600;
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .person-detail-modal-role {
+      margin: 0;
+      font-size: var(--fs-sm);
+      color: var(--text-color-secondary);
+      line-height: 1.4;
+    }
+    .person-detail-modal-account-link {
+      color: var(--text-color);
+      font-weight: 500;
+    }
     .person-detail-modal-body {
       display: flex;
       flex-direction: column;

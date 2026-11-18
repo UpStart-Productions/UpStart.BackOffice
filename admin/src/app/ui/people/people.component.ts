@@ -19,7 +19,7 @@ import { PeopleDirectoryOption, toDirectoryOptions } from '../../pages/projects/
 import { Person } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
-import { PersonCardComponent, RecordCardComponent, type RecordCardBadge } from '../record-card';
+import { PersonCardComponent, RecordCardComponent, type RecordCardBadge, type PersonCardData } from '../record-card';
 import { CreatePersonModalComponent } from '../create-person-modal/create-person-modal.component';
 import { PeopleSelectComponent } from '../people-select/people-select.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
@@ -187,51 +187,71 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
           </app-record-card>
         }
       } @else {
-        @for (contact of projectPeople(); track $index; let rowIndex = $index) {
-          <div class="people-panel-project-row">
-            <app-tm-avatar [person]="projectRowPerson(contact)" size="lg" [showTitle]="false" />
-            <div class="people-panel-project-main">
-              <div class="people-panel-org-name-line">
-                @if (contact.contactId) {
-                  <button type="button" class="people-panel-name-link" (click)="openPersonDetail(contact.contactId)">
-                    {{ projectDisplayName(contact) || 'Unnamed' }}
-                  </button>
-                } @else {
-                  <span class="people-panel-name-static">{{ projectDisplayName(contact) || 'Unnamed' }}</span>
-                }
-                @if (!readOnly()) {
-                  <div class="people-panel-row-actions">
-                    <p-button
-                      type="button"
-                      icon="pi pi-user-minus"
-                      [text]="true"
-                      severity="secondary"
-                      size="small"
-                      styleClass="icon-action-btn"
-                      [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
-                      pTooltip="Remove from project"
-                      tooltipPosition="left"
-                      [showDelay]="actionTooltipDelayMs"
-                      tooltipStyleClass="ubo-dark-tooltip"
-                      appendTo="body"
-                      (onClick)="removeProjectContact(rowIndex)"
-                    />
-                  </div>
-                }
-              </div>
-              @if (!contact.contactId) {
-                <span class="people-panel-meta">Legacy contact — remove and add from People</span>
+        @for (contact of projectPeople(); track contact.id ?? $index; let rowIndex = $index) {
+          @if (contact.contactId) {
+            <app-person-card
+              [person]="projectContactCard(contact)"
+              [openInPopup]="true"
+              (open)="openPersonDetail($event)"
+            >
+              @if (!readOnly()) {
+                <div recordActions class="people-panel-row-actions">
+                  <p-button
+                    type="button"
+                    icon="pi pi-user-minus"
+                    [text]="true"
+                    severity="secondary"
+                    size="small"
+                    styleClass="icon-action-btn"
+                    [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
+                    pTooltip="Remove from project"
+                    tooltipPosition="left"
+                    [showDelay]="actionTooltipDelayMs"
+                    tooltipStyleClass="ubo-dark-tooltip"
+                    appendTo="body"
+                    (onClick)="removeProjectContact(rowIndex)"
+                  />
+                </div>
               }
-              <div class="people-panel-project-details">
-                @if (contact.phone) {
-                  <span class="people-panel-meta">{{ contact.phone }}</span>
-                }
-                @if (contact.email) {
-                  <app-copy-email [email]="contact.email" [muted]="true" />
-                }
+            </app-person-card>
+          } @else {
+            <div class="people-panel-project-row">
+              <app-tm-avatar [person]="projectRowPerson(contact)" size="lg" [showTitle]="false" />
+              <div class="people-panel-project-main">
+                <div class="people-panel-org-name-line">
+                  <span class="people-panel-name-static">{{ projectDisplayName(contact) || 'Unnamed' }}</span>
+                  @if (!readOnly()) {
+                    <div class="people-panel-row-actions">
+                      <p-button
+                        type="button"
+                        icon="pi pi-user-minus"
+                        [text]="true"
+                        severity="secondary"
+                        size="small"
+                        styleClass="icon-action-btn"
+                        [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
+                        pTooltip="Remove from project"
+                        tooltipPosition="left"
+                        [showDelay]="actionTooltipDelayMs"
+                        tooltipStyleClass="ubo-dark-tooltip"
+                        appendTo="body"
+                        (onClick)="removeProjectContact(rowIndex)"
+                      />
+                    </div>
+                  }
+                </div>
+                <span class="people-panel-meta">Not linked to People — remove and add from People</span>
+                <div class="people-panel-project-details">
+                  @if (contact.phone) {
+                    <span class="people-panel-meta">{{ contact.phone }}</span>
+                  }
+                  @if (contact.email) {
+                    <app-copy-email [email]="contact.email" [muted]="true" />
+                  }
+                </div>
               </div>
             </div>
-          </div>
+          }
         }
         @for (m of teamRows(); track m.id) {
           <div class="people-panel-project-row">
@@ -845,6 +865,17 @@ export class PeopleComponent {
       .map((p) => p.trim())
       .filter(Boolean)
       .join(' ');
+  }
+
+  projectContactCard(contact: PeopleProjectContact): PersonCardData {
+    return {
+      id: contact.contactId!,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      phone: contact.phone || null,
+      email: contact.email || null,
+      avatarUrl: contact.avatarUrl ?? null,
+    };
   }
 
   projectRowPerson(contact: PeopleProjectContact): Person {
