@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageFoldersService } from '../storage/storage-folders.service';
 import { clientIdsMatchingServiceOrProduct, insensitiveContains } from '../search/text-search.util';
 import { DEFAULT_TENANT_ID } from './communications.constants';
+import { currentTenantId } from '../tenancy/tenant-context';
 import {
   AddContactEmailDto, CreateContactDto, LinkContactAccountDto, UpdateContactDto,
 } from './dto/communications.dto';
@@ -138,22 +139,29 @@ export class ContactsService {
 
   async update(id: string, dto: UpdateContactDto) {
     await this.get(id);
-    await this.prisma.contact.update({
-      where: { id },
-      data: {
-        ...(dto.firstName !== undefined ? { firstName: dto.firstName.trim() } : {}),
-        ...(dto.lastName !== undefined ? { lastName: dto.lastName.trim() || null } : {}),
-        ...(dto.title !== undefined ? { title: dto.title } : {}),
-        ...(dto.phone !== undefined ? { phone: optionalText(dto.phone) } : {}),
-        ...(dto.linkedInUrl !== undefined ? { linkedInUrl: optionalText(dto.linkedInUrl) } : {}),
-        ...(dto.personalUrl !== undefined ? { personalUrl: optionalText(dto.personalUrl) } : {}),
-        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl } : {}),
-        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-        ...(dto.autoCreated !== undefined ? { autoCreated: dto.autoCreated } : {}),
-      },
-    });
-    if (dto.tags !== undefined) await setContactTags(this.prisma, id, dto.tags, TENANT);
+    const data: Record<string, unknown> = {};
+    if (dto.firstName !== undefined) {
+      const firstName = dto.firstName?.trim() ?? '';
+      if (!firstName) throw new BadRequestException('First name is required.');
+      data.firstName = firstName;
+    }
+    if (dto.lastName !== undefined) {
+      data.lastName = dto.lastName?.trim() || null;
+    }
+    if (dto.title !== undefined) data.title = optionalText(dto.title);
+    if (dto.phone !== undefined) data.phone = optionalText(dto.phone);
+    if (dto.linkedInUrl !== undefined) data.linkedInUrl = optionalText(dto.linkedInUrl);
+    if (dto.personalUrl !== undefined) data.personalUrl = optionalText(dto.personalUrl);
+    if (dto.notes !== undefined) data.notes = dto.notes;
+    if (dto.avatarUrl !== undefined) data.avatarUrl = dto.avatarUrl;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.autoCreated !== undefined) data.autoCreated = dto.autoCreated;
+
+    await this.prisma.contact.update({ where: { id }, data });
+    if (dto.tags !== undefined) {
+      const tags = Array.isArray(dto.tags) ? dto.tags : [];
+      await setContactTags(this.prisma, id, tags, currentTenantId());
+    }
     return this.get(id);
   }
 

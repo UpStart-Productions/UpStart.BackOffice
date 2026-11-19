@@ -46,10 +46,12 @@ export async function setClientTags(
 export async function setContactTags(
   db: CrmTagsDb,
   contactId: string,
-  names: string[],
+  names: string[] | null | undefined,
   tenantId: string,
 ): Promise<void> {
-  await setRecordDimensions(db, tenantId, 'CONTACT', contactId, { [DIMENSION_TAG_KEY]: names });
+  await setRecordDimensions(db, tenantId, 'CONTACT', contactId, {
+    [DIMENSION_TAG_KEY]: Array.isArray(names) ? names : [],
+  });
 }
 
 /** @deprecated Use `contactIdsWithTagName` with `{ id: { in: ids } }`. */

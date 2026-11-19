@@ -65,6 +65,10 @@ describe('ContactsService', () => {
     });
   });
 
+  it('rejects blank first name on update', async () => {
+    await expect(h.svc.update('k1', { firstName: '   ' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('addEmail normalizes, can take over primary, and maps duplicates to conflict', async () => {
     await h.svc.addEmail('k1', { email: 'New@X.test', isPrimary: true });
     expect(h.prisma.contactEmail.updateMany).toHaveBeenCalledWith({ where: { contactId: 'k1' }, data: { isPrimary: false } });

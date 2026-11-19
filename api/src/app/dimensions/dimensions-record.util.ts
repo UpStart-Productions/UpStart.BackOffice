@@ -35,11 +35,11 @@ export async function ensureClientDimensionDefinitions(db: DimensionsDb, tenantI
   await ensureEntityDimensionDefinitions(db, tenantId, 'CLIENT');
 }
 
-function normalizeDimensionValues(entity: DimensionEntity, key: string, names: string[]): string[] {
+function normalizeDimensionValues(entity: DimensionEntity, key: string, names: string[] | null | undefined): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const isTag = key === DIMENSION_TAG_KEY;
-  for (const raw of names) {
+  for (const raw of names ?? []) {
     const name = isTag ? tagName(raw) : raw.trim().replace(/\s+/g, ' ');
     const dedupe = name.toLowerCase();
     if (!name || seen.has(dedupe)) continue;
