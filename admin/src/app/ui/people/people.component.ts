@@ -156,12 +156,16 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
               </div>
             }
             <div recordBody class="record-card-details">
-              <app-copy-email [email]="c.emails[0]?.email" [muted]="true" [block]="true" />
+              @if (c.emails[0]?.email?.trim()) {
+                <app-copy-email [email]="c.emails[0]!.email" [muted]="true" [block]="true" />
+              } @else if (c.phone?.trim()) {
+                <a class="people-panel-meta people-panel-phone-link" [href]="telHref(c.phone)">{{ c.phone }}</a>
+              }
             </div>
           </app-person-card>
         }
         @for (m of teamRows(); track m.id) {
-          <app-record-card [person]="m" [title]="m.name" [subtitle]="teamProjectsLine(m) || null" [badges]="m.isGuest ? guestBadge : teamBadge">
+          <app-record-card [person]="m" [title]="m.name" [subtitle]="teamProjectsLine(m) || null">
             @if (m.direct && !readOnly()) {
               <div recordActions class="people-panel-row-actions">
                 <p-button
@@ -182,7 +186,16 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
               </div>
             }
             <div recordBody class="record-card-details">
-              <app-copy-email [email]="m.email" [muted]="true" [block]="true" />
+              <div class="people-panel-project-footer">
+                <div class="people-panel-project-details">
+                  @if (m.email?.trim()) {
+                    <app-copy-email [email]="m.email" [muted]="true" [block]="true" />
+                  }
+                </div>
+                <div class="people-panel-project-badges">
+                  <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
+                </div>
+              </div>
             </div>
           </app-record-card>
         }
@@ -213,6 +226,13 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                   />
                 </div>
               }
+              <div recordBody class="record-card-details">
+                @if (contact.email?.trim()) {
+                  <app-copy-email [email]="contact.email" [muted]="true" [block]="true" />
+                } @else if (contact.phone?.trim()) {
+                  <a class="people-panel-meta people-panel-phone-link" [href]="telHref(contact.phone)">{{ contact.phone }}</a>
+                }
+              </div>
             </app-person-card>
           } @else {
             <div class="people-panel-project-row">
@@ -242,11 +262,10 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 </div>
                 <span class="people-panel-meta">Not linked to People — remove and add from People</span>
                 <div class="people-panel-project-details">
-                  @if (contact.phone) {
-                    <span class="people-panel-meta">{{ contact.phone }}</span>
-                  }
-                  @if (contact.email) {
+                  @if (contact.email?.trim()) {
                     <app-copy-email [email]="contact.email" [muted]="true" />
+                  } @else if (contact.phone?.trim()) {
+                    <a class="people-panel-meta people-panel-phone-link" [href]="telHref(contact.phone)">{{ contact.phone }}</a>
                   }
                 </div>
               </div>
@@ -259,10 +278,6 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
             <div class="people-panel-project-main">
               <div class="people-panel-org-name-line">
                 <span class="people-panel-name-static">{{ m.name }}</span>
-                <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
-                @if (m.isLead) {
-                  <p-tag value="Lead" severity="info" />
-                }
                 @if (!readOnly() && managesProjectPeople()) {
                   <div class="people-panel-row-actions">
                     @if (mode() === 'project') {
@@ -318,8 +333,18 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                   </div>
                 }
               </div>
-              <div class="people-panel-project-details">
-                <app-copy-email [email]="m.email" [muted]="true" />
+              <div class="people-panel-project-footer">
+                <div class="people-panel-project-details">
+                  @if (m.email?.trim()) {
+                    <app-copy-email [email]="m.email" [muted]="true" />
+                  }
+                </div>
+                <div class="people-panel-project-badges">
+                  <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
+                  @if (m.isLead) {
+                    <p-tag value="Lead" severity="info" />
+                  }
+                </div>
               </div>
             </div>
           </div>
@@ -444,6 +469,31 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
       display: flex;
       flex-direction: column;
       gap: 0.1rem;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .people-panel-project-footer {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.5rem;
+      min-width: 0;
+      width: 100%;
+    }
+    .people-panel-project-badges {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.35rem;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .people-panel-phone-link {
+      text-decoration: none;
+    }
+    .people-panel-phone-link:hover {
+      text-decoration: underline;
     }
     .people-panel-add-block {
       display: flex;
@@ -590,9 +640,6 @@ export class PeopleComponent {
   openPersonDetail(contactId: string) {
     void this.personDetailModal()?.open(contactId);
   }
-
-  readonly teamBadge: RecordCardBadge[] = [{ label: 'Team', severity: 'secondary' }];
-  readonly guestBadge: RecordCardBadge[] = [{ label: 'Guest', severity: 'secondary' }];
 
   /** Badges on a person row: Primary contact, New (auto-created), Inactive. */
   personBadges(c: ContactSummary): RecordCardBadge[] {
@@ -865,6 +912,11 @@ export class PeopleComponent {
       .map((p) => p.trim())
       .filter(Boolean)
       .join(' ');
+  }
+
+  telHref(phone: string): string {
+    const digits = phone.replace(/[^\d+]/g, '');
+    return digits ? `tel:${digits}` : '#';
   }
 
   projectContactCard(contact: PeopleProjectContact): PersonCardData {

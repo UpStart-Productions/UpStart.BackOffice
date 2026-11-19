@@ -33,6 +33,36 @@ export async function serializeProjectContacts(
   const emails = [...new Set(needEmail.map((c) => c.email!.trim().toLowerCase()))];
   const byEmail = new Map<string, { contactId: string; avatarUrl: string | null }>();
 
+  const linkedContactIds = [
+    ...new Set(contacts.map((c) => c.contactId).filter((id): id is string => !!id)),
+  ];
+  const linkedById = new Map<
+    string,
+    { phone: string | null; email: string | null; avatarUrl: string | null }
+  >();
+  if (linkedContactIds.length) {
+    const linkedRows = await prisma.contact.findMany({
+      where: { id: { in: linkedContactIds } },
+      select: {
+        id: true,
+        phone: true,
+        avatarUrl: true,
+        emails: {
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          take: 1,
+          select: { email: true },
+        },
+      },
+    });
+    for (const row of linkedRows) {
+      linkedById.set(row.id, {
+        phone: row.phone,
+        email: row.emails[0]?.email ?? null,
+        avatarUrl: row.avatarUrl,
+      });
+    }
+  }
+
   if (emails.length) {
     const rows = await prisma.contactEmail.findMany({
       where: {
@@ -72,14 +102,19 @@ export async function serializeProjectContacts(
       }
     }
 
-    const avatarRaw = contactId ? (linkedAvatar ?? c.avatarUrl) : c.avatarUrl;
+    const linked = contactId ? linkedById.get(contactId) : undefined;
+    const phone = (c.phone?.trim() || linked?.phone?.trim() || '').trim();
+    const email = (c.email?.trim() || linked?.email?.trim() || '').trim();
+    const avatarRaw = contactId
+      ? (linkedAvatar ?? linked?.avatarUrl ?? c.avatarUrl)
+      : c.avatarUrl;
     return {
       id: c.id,
       contactId,
       firstName: c.firstName ?? '',
       lastName: c.lastName ?? '',
-      phone: c.phone ?? '',
-      email: c.email ?? '',
+      phone,
+      email,
       avatarUrl: toPublicAssetUrl(avatarRaw),
       sortOrder: c.sortOrder,
     };
