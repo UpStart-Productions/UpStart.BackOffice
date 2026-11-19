@@ -144,8 +144,39 @@ export class ProjectFormPage implements OnInit {
         command: () => void this.pipelineDialog()?.open(),
       });
     }
+    if (!this.isNew) {
+      items.push({ id: 'delete-sep', kind: 'separator' });
+      items.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeleteProject(),
+      });
+    }
     return items;
   });
+
+  confirmDeleteProject() {
+    const id = this.id();
+    if (!id) return;
+    const label = this.form.name.trim() || 'this project';
+    this.deleteConfirm.confirm({
+      message: `Delete "${label}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.api.delete(`/projects/${id}`);
+          await this.router.navigate(['/projects']);
+        } catch (err) {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Delete failed',
+            detail: err instanceof Error ? err.message : 'Could not delete project',
+          });
+        }
+      },
+    });
+  }
 
   id = signal<string | null>(null);
   inTaskManager = signal(false);

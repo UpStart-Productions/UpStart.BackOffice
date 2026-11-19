@@ -1,6 +1,6 @@
 import { Component, computed, inject, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -13,6 +13,8 @@ import { bindQuillPersonCardScope } from '../../core/quill-person-card-scope';
 import type Quill from 'quill';
 import { CommunicationsApi, contactName, ContactSummary } from '../../core/communications.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
+import { SessionService } from '../../core/session.service';
+import { RowActionsMenuComponent, type RowActionItem } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { ActivitySectionComponent } from '../../ui/activity/activity-section.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonComponent } from '../../ui/person/person.component';
@@ -42,6 +44,7 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
     OrganizationLinksComponent,
     HelpTextComponent,
     RecordAttributionComponent,
+    RowActionsMenuComponent,
   ],
   template: `
     <app-page
@@ -54,7 +57,17 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
       }
       <ng-container ngProjectAs="[pageActions]">
         @if (contact()) {
-          <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
+          <span class="split-action">
+            <p-button label="Save" icon="pi pi-check" [loading]="saving()" [disabled]="!dirty()" (onClick)="save()" />
+            @if (headerMenu().length) {
+              <app-row-actions-menu
+                class="split-action-more"
+                [attached]="true"
+                [items]="headerMenu()"
+                ariaLabel="More person actions"
+              />
+            }
+          </span>
         }
       </ng-container>
       <ng-container ngProjectAs="[pageTitleTrail]">
@@ -236,7 +249,11 @@ export class ContactDetailPage implements OnInit {
   private readonly comms = inject(CommunicationsApi);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
+  private readonly router = inject(Router);
+  private readonly session = inject(SessionService);
   private readonly avatarDropzone = viewChild<AvatarDropzoneComponent>('avatarDropzone');
+
+  readonly canDelete = computed(() => this.session.can('contacts', 'delete'));
 
   contact = signal<ContactSummary | null>(null);
   readonly mentionClientId = computed(() => {
@@ -263,6 +280,35 @@ export class ContactDetailPage implements OnInit {
   newEmail = '';
 
   name = contactName;
+
+  headerMenu(): RowActionItem[] {
+    if (!this.contact() || !this.canDelete()) return [];
+    const c = this.contact()!;
+    return [
+      {
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeletePerson(c),
+      },
+    ];
+  }
+
+  confirmDeletePerson(c: ContactSummary) {
+    this.confirm.confirm({
+      message: `Delete "${this.name(c)}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.comms.deleteContact(c.id);
+          void this.comms.refreshReviewCount();
+          await this.router.navigate(['/people']);
+        } catch (err) {
+          this.fail(err, 'Delete failed');
+        }
+      },
+    });
+  }
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');

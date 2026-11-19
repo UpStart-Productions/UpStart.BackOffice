@@ -124,6 +124,7 @@ export class ClientFormPage implements OnInit {
   private readonly dimensionsApi = inject(DimensionsApi);
   private readonly crmTags = inject(CrmTagsApi);
   readonly canEdit = computed(() => this.session.can('clients', 'edit'));
+  readonly canDelete = computed(() => this.session.can('clients', 'delete'));
   readonly canInvoices = computed(() => !!areaLevel(this.session.me(), 'invoices'));
   private readonly pipelineDialog = viewChild(AddToPipelineDialogComponent);
   private readonly tagFields = viewChildren(TagInputComponent);
@@ -159,7 +160,38 @@ export class ClientFormPage implements OnInit {
       if (items.length) items.push({ id: 'sep', kind: 'separator' });
       items.push({ id: 'pipeline', label: 'Add to pipeline', icon: 'pi pi-share-alt', command: () => void this.pipelineDialog()?.open() });
     }
+    if (!this.isNew && this.canDelete()) {
+      if (items.length) items.push({ id: 'sep-delete', kind: 'separator' });
+      items.push({
+        id: 'delete',
+        label: 'Delete',
+        icon: 'pi pi-trash',
+        severity: 'danger',
+        command: () => this.confirmDeleteAccount(),
+      });
+    }
     return items;
+  }
+
+  confirmDeleteAccount() {
+    const id = this.id();
+    if (!id) return;
+    const label = this.form.name.trim() || 'this account';
+    this.confirm.confirm({
+      message: `Delete "${label}"? This cannot be undone.`,
+      accept: async () => {
+        try {
+          await this.api.delete(`/clients/${id}`);
+          await this.router.navigate(['/accounts']);
+        } catch (err) {
+          this.toast.add({
+            severity: 'error',
+            summary: 'Delete failed',
+            detail: err instanceof Error ? err.message : 'Could not delete account',
+          });
+        }
+      },
+    });
   }
 
   readonly usStates = US_STATES;
