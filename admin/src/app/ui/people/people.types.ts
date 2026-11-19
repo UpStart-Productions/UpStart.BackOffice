@@ -4,6 +4,7 @@ export type PeopleProjectContact = {
   contactId?: string | null;
   firstName: string;
   lastName: string;
+  title?: string;
   phone: string;
   email: string;
   sortOrder: number;

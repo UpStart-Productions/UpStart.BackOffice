@@ -43,7 +43,7 @@ import { PersonComponent } from '../person/person.component';
               [email]="c.emails[0]?.email"
               [avatarUrl]="c.avatarUrl"
               [personId]="c.id"
-              size="med"
+              size="lg"
               [avatarOnly]="true"
             />
             <span class="person-detail-modal-header-name">{{ contactName(c) }}</span>
@@ -60,19 +60,17 @@ import { PersonComponent } from '../person/person.component';
         <p-skeleton width="80%" height="0.875rem" />
       } @else if (contact(); as c) {
         <div class="person-detail-modal-body">
-          @if (c.title?.trim()) {
-            <p class="person-detail-modal-role">{{ c.title }}</p>
-          }
-          @if (c.phone) {
-            <div class="person-detail-modal-row">
-              <span>{{ c.phone }}</span>
-            </div>
-          }
-          @if (c.emails[0]?.email) {
-            <div class="person-detail-modal-row">
+          <div class="person-detail-modal-contact-lines">
+            @if (c.title?.trim()) {
+              <p class="person-detail-modal-role">{{ c.title }}</p>
+            }
+            @if (c.phone) {
+              <span class="person-detail-modal-line">{{ c.phone }}</span>
+            }
+            @if (c.emails[0]?.email) {
               <app-copy-email [email]="c.emails[0].email" />
-            </div>
-          }
+            }
+          </div>
           @if (c.tags.length) {
             <div class="person-detail-modal-row person-detail-modal-row--tags">
               <span class="person-detail-modal-label">Tags</span>
@@ -84,17 +82,17 @@ import { PersonComponent } from '../person/person.component';
           @if (c.accountLinks.length) {
             <div class="person-detail-modal-row person-detail-modal-row--orgs">
               <span class="person-detail-modal-label">Accounts</span>
-              <ul class="person-detail-modal-orgs">
+              <div class="person-detail-modal-orgs">
                 @for (link of c.accountLinks; track link.clientId) {
-                  <li>
+                  <div class="person-detail-modal-org-row">
                     <a
                       [routerLink]="['/accounts', link.clientId]"
                       class="person-detail-modal-account-link"
                       (click)="visible.set(false)"
                     >{{ link.client.name }}</a>@if (link.role) { <span class="person-detail-modal-muted"> · {{ link.role }}</span> }
-                  </li>
+                  </div>
                 }
-              </ul>
+              </div>
             </div>
           }
           @if (c.notes?.trim()) {
@@ -137,11 +135,23 @@ import { PersonComponent } from '../person/person.component';
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .person-detail-modal-contact-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
     .person-detail-modal-role {
       margin: 0;
-      font-size: var(--fs-sm);
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
       color: var(--text-color-secondary);
-      line-height: 1.4;
+      line-height: 1.35;
+    }
+    .person-detail-modal-line {
+      font-size: var(--fs-sm);
+      line-height: 1.35;
     }
     .person-detail-modal-body a.person-detail-modal-account-link {
       color: var(--color-text-link);
@@ -193,8 +203,14 @@ import { PersonComponent } from '../person/person.component';
       color: var(--text-color-secondary);
     }
     .person-detail-modal-orgs {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
       margin: 0;
-      padding-left: 1.1rem;
+    }
+    .person-detail-modal-org-row {
+      font-size: var(--fs-sm);
+      line-height: 1.35;
     }
     .person-detail-modal-muted {
       color: var(--text-color-secondary);

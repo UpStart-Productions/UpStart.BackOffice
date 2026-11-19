@@ -4,7 +4,6 @@ import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
-import { TagModule } from 'primeng/tag';
 import {
   CommunicationsApi,
   ContactSummary,
@@ -18,12 +17,18 @@ import { PeopleDirectoryEntry } from '../../pages/projects/people-directory.type
 import { PeopleDirectoryOption, toDirectoryOptions } from '../../pages/projects/people-directory.util';
 import { Person } from '../../task-manager/core/tm.types';
 import { TmAvatarComponent } from '../../task-manager/ui/tm-avatar.component';
-import { CopyEmailComponent } from '../copy-email/copy-email.component';
-import { PersonCardComponent, RecordCardComponent, type RecordCardBadge, type PersonCardData } from '../record-card';
+import { type RecordCardBadge } from '../record-card';
 import { CreatePersonModalComponent } from '../create-person-modal/create-person-modal.component';
 import { PeopleSelectComponent } from '../people-select/people-select.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
 import { PersonDetailModalComponent } from '../person-detail-modal/person-detail-modal.component';
+import { PeoplePanelRowComponent } from './people-panel-row.component';
+import {
+  peoplePanelContactEmail,
+  peoplePanelProjectContactEmail,
+  peoplePanelProjectContactPhone,
+  peoplePanelTeamFooterTags,
+} from './people-panel.util';
 import { PeoplePanelMode, PeopleProjectContact } from './people.types';
 import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 
@@ -38,16 +43,12 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
     ButtonModule,
     MessageModule,
     SkeletonModule,
-    TagModule,
-    CopyEmailComponent,
-    TmAvatarComponent,
     TooltipModule,
     PeopleSelectComponent,
     CreatePersonModalComponent,
     HelpTextComponent,
     PersonDetailModalComponent,
-    PersonCardComponent,
-    RecordCardComponent,
+    PeoplePanelRowComponent,
   ],
   template: `
     <div
@@ -112,12 +113,16 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
           </div>
         }
         @for (c of orgPeople(); track c.id) {
-          <app-person-card
-            [person]="c"
-            [openInPopup]="true"
-            (open)="openPersonDetail($event)"
-            [subtitleOverride]="orgRole(c) || c.title || null"
-            [extraBadges]="personBadges(c)"
+          <app-people-panel-row
+            [person]="orgRowPerson(c)"
+            [title]="contactName(c)"
+            [subtitle]="orgRole(c)"
+            [jobTitle]="c.title"
+            [email]="peoplePanelContactEmail(c)"
+            [phone]="c.phone"
+            [badges]="personBadges(c)"
+            [clickable]="true"
+            (titleClick)="openPersonDetail(c.id)"
           >
             @if ((clientId() || leadId()) && !readOnly()) {
               <div recordActions class="people-panel-row-actions">
@@ -155,17 +160,16 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 />
               </div>
             }
-            <div recordBody class="record-card-details">
-              @if (c.emails[0]?.email?.trim()) {
-                <app-copy-email [email]="c.emails[0]!.email" [muted]="true" [block]="true" />
-              } @else if (c.phone?.trim()) {
-                <a class="people-panel-meta people-panel-phone-link" [href]="telHref(c.phone)">{{ c.phone }}</a>
-              }
-            </div>
-          </app-person-card>
+          </app-people-panel-row>
         }
         @for (m of teamRows(); track m.id) {
-          <app-record-card [person]="m" [title]="m.name" [subtitle]="teamProjectsLine(m) || null">
+          <app-people-panel-row
+            [person]="m"
+            [title]="m.name"
+            [subtitle]="teamProjectsLine(m)"
+            [email]="m.email"
+            [footerTags]="peoplePanelTeamFooterTags(m)"
+          >
             @if (m.direct && !readOnly()) {
               <div recordActions class="people-panel-row-actions">
                 <p-button
@@ -185,169 +189,101 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 />
               </div>
             }
-            <div recordBody class="record-card-details">
-              <div class="people-panel-project-footer">
-                <div class="people-panel-project-details">
-                  @if (m.email?.trim()) {
-                    <app-copy-email [email]="m.email" [muted]="true" [block]="true" />
-                  }
-                </div>
-                <div class="people-panel-project-badges">
-                  <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
-                </div>
-              </div>
-            </div>
-          </app-record-card>
+          </app-people-panel-row>
         }
       } @else {
         @for (contact of projectPeople(); track contact.id ?? $index; let rowIndex = $index) {
-          @if (contact.contactId) {
-            <app-person-card
-              [person]="projectContactCard(contact)"
-              [openInPopup]="true"
-              (open)="openPersonDetail($event)"
-            >
-              @if (!readOnly()) {
-                <div recordActions class="people-panel-row-actions">
+          <app-people-panel-row
+            [person]="projectRowPerson(contact)"
+            [title]="projectDisplayName(contact) || 'Unnamed'"
+            [jobTitle]="contact.title ?? null"
+            [email]="peoplePanelProjectContactEmail(contact)"
+            [phone]="peoplePanelProjectContactPhone(contact)"
+            [hint]="contact.contactId ? null : 'Not linked to People — remove and add from People'"
+            [clickable]="!!contact.contactId"
+            (titleClick)="openPersonDetail(contact.contactId!)"
+          >
+            @if (!readOnly()) {
+              <div recordActions class="people-panel-row-actions">
+                <p-button
+                  type="button"
+                  icon="pi pi-user-minus"
+                  [text]="true"
+                  severity="secondary"
+                  size="small"
+                  styleClass="icon-action-btn"
+                  [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
+                  pTooltip="Remove from project"
+                  tooltipPosition="left"
+                  [showDelay]="actionTooltipDelayMs"
+                  tooltipStyleClass="ubo-dark-tooltip"
+                  appendTo="body"
+                  (onClick)="removeProjectContact(rowIndex)"
+                />
+              </div>
+            }
+          </app-people-panel-row>
+        }
+        @for (m of teamRows(); track m.id) {
+          <app-people-panel-row
+            [person]="m"
+            [title]="m.name"
+            [email]="m.email"
+            [footerTags]="peoplePanelTeamFooterTags(m)"
+          >
+            @if (!readOnly() && managesProjectPeople()) {
+              <div recordActions class="people-panel-row-actions">
+                @if (m.isLead) {
                   <p-button
                     type="button"
-                    icon="pi pi-user-minus"
+                    icon="pi pi-user"
                     [text]="true"
                     severity="secondary"
                     size="small"
                     styleClass="icon-action-btn"
-                    [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
-                    pTooltip="Remove from project"
+                    aria-label="Make member"
+                    pTooltip="Make member"
                     tooltipPosition="left"
                     [showDelay]="actionTooltipDelayMs"
                     tooltipStyleClass="ubo-dark-tooltip"
                     appendTo="body"
-                    (onClick)="removeProjectContact(rowIndex)"
+                    (onClick)="setLead(m, false)"
                   />
-                </div>
-              }
-              <div recordBody class="record-card-details">
-                @if (contact.email?.trim()) {
-                  <app-copy-email [email]="contact.email" [muted]="true" [block]="true" />
-                } @else if (contact.phone?.trim()) {
-                  <a class="people-panel-meta people-panel-phone-link" [href]="telHref(contact.phone)">{{ contact.phone }}</a>
+                } @else {
+                  <p-button
+                    type="button"
+                    icon="pi pi-star"
+                    [text]="true"
+                    severity="secondary"
+                    size="small"
+                    styleClass="icon-action-btn"
+                    aria-label="Make lead"
+                    pTooltip="Make lead"
+                    tooltipPosition="left"
+                    [showDelay]="actionTooltipDelayMs"
+                    tooltipStyleClass="ubo-dark-tooltip"
+                    appendTo="body"
+                    (onClick)="setLead(m, true)"
+                  />
                 }
+                <p-button
+                  type="button"
+                  icon="pi pi-user-minus"
+                  [text]="true"
+                  severity="secondary"
+                  size="small"
+                  styleClass="icon-action-btn"
+                  [attr.aria-label]="'Remove ' + m.name"
+                  pTooltip="Remove from project"
+                  tooltipPosition="left"
+                  [showDelay]="actionTooltipDelayMs"
+                  tooltipStyleClass="ubo-dark-tooltip"
+                  appendTo="body"
+                  (onClick)="removeTeamMember(m)"
+                />
               </div>
-            </app-person-card>
-          } @else {
-            <div class="people-panel-project-row">
-              <app-tm-avatar [person]="projectRowPerson(contact)" size="lg" [showTitle]="false" />
-              <div class="people-panel-project-main">
-                <div class="people-panel-org-name-line">
-                  <span class="people-panel-name-static">{{ projectDisplayName(contact) || 'Unnamed' }}</span>
-                  @if (!readOnly()) {
-                    <div class="people-panel-row-actions">
-                      <p-button
-                        type="button"
-                        icon="pi pi-user-minus"
-                        [text]="true"
-                        severity="secondary"
-                        size="small"
-                        styleClass="icon-action-btn"
-                        [attr.aria-label]="'Remove ' + (projectDisplayName(contact) || 'person')"
-                        pTooltip="Remove from project"
-                        tooltipPosition="left"
-                        [showDelay]="actionTooltipDelayMs"
-                        tooltipStyleClass="ubo-dark-tooltip"
-                        appendTo="body"
-                        (onClick)="removeProjectContact(rowIndex)"
-                      />
-                    </div>
-                  }
-                </div>
-                <span class="people-panel-meta">Not linked to People — remove and add from People</span>
-                <div class="people-panel-project-details">
-                  @if (contact.email?.trim()) {
-                    <app-copy-email [email]="contact.email" [muted]="true" />
-                  } @else if (contact.phone?.trim()) {
-                    <a class="people-panel-meta people-panel-phone-link" [href]="telHref(contact.phone)">{{ contact.phone }}</a>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        }
-        @for (m of teamRows(); track m.id) {
-          <div class="people-panel-project-row">
-            <app-tm-avatar [person]="m" size="lg" [showTitle]="false" />
-            <div class="people-panel-project-main">
-              <div class="people-panel-org-name-line">
-                <span class="people-panel-name-static">{{ m.name }}</span>
-                @if (!readOnly() && managesProjectPeople()) {
-                  <div class="people-panel-row-actions">
-                    @if (mode() === 'project') {
-                      @if (m.isLead) {
-                        <p-button
-                          type="button"
-                          icon="pi pi-user"
-                          [text]="true"
-                          severity="secondary"
-                          size="small"
-                          styleClass="icon-action-btn"
-                          aria-label="Make member"
-                          pTooltip="Make member"
-                          tooltipPosition="left"
-                          [showDelay]="actionTooltipDelayMs"
-                          tooltipStyleClass="ubo-dark-tooltip"
-                          appendTo="body"
-                          (onClick)="setLead(m, false)"
-                        />
-                      } @else {
-                        <p-button
-                          type="button"
-                          icon="pi pi-star"
-                          [text]="true"
-                          severity="secondary"
-                          size="small"
-                          styleClass="icon-action-btn"
-                          aria-label="Make lead"
-                          pTooltip="Make lead"
-                          tooltipPosition="left"
-                          [showDelay]="actionTooltipDelayMs"
-                          tooltipStyleClass="ubo-dark-tooltip"
-                          appendTo="body"
-                          (onClick)="setLead(m, true)"
-                        />
-                      }
-                    }
-                    <p-button
-                      type="button"
-                      icon="pi pi-user-minus"
-                      [text]="true"
-                      severity="secondary"
-                      size="small"
-                      styleClass="icon-action-btn"
-                      [attr.aria-label]="'Remove ' + m.name"
-                      pTooltip="Remove from project"
-                      tooltipPosition="left"
-                      [showDelay]="actionTooltipDelayMs"
-                      tooltipStyleClass="ubo-dark-tooltip"
-                      appendTo="body"
-                      (onClick)="removeTeamMember(m)"
-                    />
-                  </div>
-                }
-              </div>
-              <div class="people-panel-project-footer">
-                <div class="people-panel-project-details">
-                  @if (m.email?.trim()) {
-                    <app-copy-email [email]="m.email" [muted]="true" />
-                  }
-                </div>
-                <div class="people-panel-project-badges">
-                  <p-tag [value]="m.isGuest ? 'Guest' : 'Team'" severity="secondary" />
-                  @if (m.isLead) {
-                    <p-tag value="Lead" severity="info" />
-                  }
-                </div>
-              </div>
-            </div>
-          </div>
+            }
+          </app-people-panel-row>
         }
         @if (projectPeople().length === 0 && teamRows().length === 0) {
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
@@ -393,24 +329,6 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
     .people-panel-picker {
       margin-bottom: 1rem;
     }
-    .people-panel-name-link {
-      border: 0;
-      background: none;
-      padding: 0;
-      font: inherit;
-      font-weight: 600;
-      line-height: 1.25;
-      color: var(--primary-color);
-      cursor: pointer;
-      text-align: left;
-    }
-    .people-panel-name-link:hover {
-      text-decoration: underline;
-    }
-    .people-panel-name-static {
-      font-weight: 600;
-      line-height: 1.25;
-    }
     .people-panel-row-actions {
       display: inline-flex;
       align-items: center;
@@ -428,72 +346,6 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
     }
     .people-panel-org-row:first-of-type {
       border-top: 0;
-    }
-    .people-panel-org-main {
-      flex: 1 1 auto;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-    .people-panel-org-name-line {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.35rem 0.5rem;
-      min-width: 0;
-      width: 100%;
-    }
-    .people-panel-meta {
-      font-size: var(--fs-sm);
-      color: var(--text-color-secondary, #6b7280);
-    }
-    .people-panel-project-row {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      padding: 0.5rem 0;
-      border-top: 1px solid var(--surface-border);
-    }
-    .people-panel-project-row:first-of-type {
-      border-top: 0;
-    }
-    .people-panel-project-main {
-      flex: 1 1 auto;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-    }
-    .people-panel-project-details {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1rem;
-      min-width: 0;
-      flex: 1 1 auto;
-    }
-    .people-panel-project-footer {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 0.5rem;
-      min-width: 0;
-      width: 100%;
-    }
-    .people-panel-project-badges {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 0.35rem;
-      flex-shrink: 0;
-      margin-left: auto;
-    }
-    .people-panel-phone-link {
-      text-decoration: none;
-    }
-    .people-panel-phone-link:hover {
-      text-decoration: underline;
     }
     .people-panel-add-block {
       display: flex;
@@ -525,6 +377,10 @@ export class PeopleComponent {
   private readonly personDetailModal = viewChild(PersonDetailModalComponent);
 
   readonly contactName = contactName;
+  readonly peoplePanelContactEmail = peoplePanelContactEmail;
+  readonly peoplePanelProjectContactEmail = peoplePanelProjectContactEmail;
+  readonly peoplePanelProjectContactPhone = peoplePanelProjectContactPhone;
+  readonly peoplePanelTeamFooterTags = peoplePanelTeamFooterTags;
   protected readonly actionTooltipDelayMs = UBO_DARK_TOOLTIP_SHOW_DELAY_MS;
 
   /** `organization` = linked People on a client/org; `project` = project contact list (draft). */
@@ -881,6 +737,7 @@ export class PeopleComponent {
       contactId: contact.contactId ?? null,
       firstName: contact.firstName ?? '',
       lastName: contact.lastName ?? '',
+      title: contact.title ?? '',
       phone: contact.phone ?? '',
       email: contact.email ?? '',
       avatarUrl: contact.avatarUrl ?? null,
@@ -912,22 +769,6 @@ export class PeopleComponent {
       .map((p) => p.trim())
       .filter(Boolean)
       .join(' ');
-  }
-
-  telHref(phone: string): string {
-    const digits = phone.replace(/[^\d+]/g, '');
-    return digits ? `tel:${digits}` : '#';
-  }
-
-  projectContactCard(contact: PeopleProjectContact): PersonCardData {
-    return {
-      id: contact.contactId!,
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      phone: contact.phone || null,
-      email: contact.email || null,
-      avatarUrl: contact.avatarUrl ?? null,
-    };
   }
 
   projectRowPerson(contact: PeopleProjectContact): Person {

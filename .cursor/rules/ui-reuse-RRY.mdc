@@ -44,6 +44,7 @@ Use what already exists before writing CSS: the shared app classes and PrimeNG c
   - `mode="organization"` + `clientId` on client/org pages
   - `mode="project"` + `projectContacts` / `projectContactsChange` on projects
   - Includes: **People** title, **Add person** button (new-only modal), **Add existing person** picker, list
+- **Panel list row:** `app-people-panel-row` — one row for CRM contacts, team members, and unlinked project snapshots (`people-panel.util.ts` for email/tag helpers). Do not hand-roll another people side-panel row layout.
 - **Picker control:** `app-people-select` — the **only** searchable person dropdown field (Add existing person, Care worker, timesheet person, form-builder assignee, Task Share). Popover pickers anchored to a cell use `app-people-pick-list` instead.
 - **Data:** `PeoplePickerLoader` (`admin/src/app/core/people-picker.loader.ts`)
 - **New person modal:** `app-create-person-modal` (create only — no “existing person” tab)

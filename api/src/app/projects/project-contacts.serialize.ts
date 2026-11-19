@@ -18,6 +18,7 @@ export type ProjectContactDto = {
   contactId: string | null;
   firstName: string;
   lastName: string;
+  title: string;
   phone: string;
   email: string;
   avatarUrl: string | null;
@@ -38,13 +39,14 @@ export async function serializeProjectContacts(
   ];
   const linkedById = new Map<
     string,
-    { phone: string | null; email: string | null; avatarUrl: string | null }
+    { phone: string | null; email: string | null; avatarUrl: string | null; title: string | null }
   >();
   if (linkedContactIds.length) {
     const linkedRows = await prisma.contact.findMany({
       where: { id: { in: linkedContactIds } },
       select: {
         id: true,
+        title: true,
         phone: true,
         avatarUrl: true,
         emails: {
@@ -59,6 +61,7 @@ export async function serializeProjectContacts(
         phone: row.phone,
         email: row.emails[0]?.email ?? null,
         avatarUrl: row.avatarUrl,
+        title: row.title,
       });
     }
   }
@@ -105,6 +108,7 @@ export async function serializeProjectContacts(
     const linked = contactId ? linkedById.get(contactId) : undefined;
     const phone = (c.phone?.trim() || linked?.phone?.trim() || '').trim();
     const email = (c.email?.trim() || linked?.email?.trim() || '').trim();
+    const title = (linked?.title?.trim() || '').trim();
     const avatarRaw = contactId
       ? (linkedAvatar ?? linked?.avatarUrl ?? c.avatarUrl)
       : c.avatarUrl;
@@ -113,6 +117,7 @@ export async function serializeProjectContacts(
       contactId,
       firstName: c.firstName ?? '',
       lastName: c.lastName ?? '',
+      title,
       phone,
       email,
       avatarUrl: toPublicAssetUrl(avatarRaw),
