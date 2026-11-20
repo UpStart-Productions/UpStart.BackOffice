@@ -1,6 +1,5 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, input } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import type { VisitDto, VisitFormDto } from '@upstart/back-office/shared';
 import { VisitDetailService } from '../../core/visit-detail.service';
@@ -17,7 +16,7 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
   selector: 'app-visit-card',
   standalone: true,
   host: { class: 'record-card-host' },
-  imports: [RouterLink, TagModule, RecordCardComponent, PersonComponent],
+  imports: [TagModule, RecordCardComponent, PersonComponent],
   providers: [DatePipe],
   styles: `
     .visit-card-line {
@@ -66,11 +65,10 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
             <div class="visit-card-forms">
               @for (f of fs; track f.formId) {
                 <span class="visit-card-form">
+                  <button type="button" class="link-btn" (click)="visitDetail.open(visit().id, f.formId)">{{ f.formName }}</button>
                   @if (f.recordId) {
-                    <a class="text-primary" [routerLink]="['/forms/results', f.recordId]">{{ f.formName }}</a>
                     <p-tag [value]="f.submittedAt ? 'Submitted' : 'In progress'" [severity]="f.submittedAt ? 'success' : 'info'" />
                   } @else {
-                    <span>{{ f.formName }}</span>
                     <p-tag value="Not filled in" severity="warn" />
                   }
                 </span>

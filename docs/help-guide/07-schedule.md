@@ -37,8 +37,8 @@ Use **‹** and **›** and the calendar to move around. Filter by **Team member
 
 **Open visit** (from the Schedule, the Dashboard, a client's Visits or Records tab, or search) opens the visit log: what actually happened on the visit. Its title reads like "Caregiver visit log for Alliance Services on Mon, Nov 16, 7:00 AM". The log never changes the schedule.
 
-- **Forms**: the forms of its visit type, filled in right in the log. Check **Mark submitted** when one is done; **Save** saves the answers (and submits the checked forms). A submitted form is read-only until you **Reopen** it.
-- **Actual time**: starts out as the planned times. Change them to what really happened; with a start and end the visit is done and the hours go to the team member's timesheet (no project, billable), so they invoice like any other time. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked.
+- **Form tabs**: each form of its visit type has its own tab next to **Log**, filled in right there. **Save** saves the answers, even with required questions left empty: the form stays In progress (each empty one is marked **Required**) until they're answered, then Save submits it. An answer in the wrong format (phone, number, date…) is marked in red and has to be fixed before Save. A submitted form is read-only until you **Reopen** it.
+- **Actual time**: starts out as the planned times. For a visit that's already over, **Save** logs those times (or yours) and the visit is done, so it's no longer Missed. Change them to what really happened; with a start and end the visit is done and the hours go to the team member's timesheet (no project, billable), so they invoice like any other time. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked.
 - **Notes** take formatting (bold, lists, links).
 - **Save** keeps your changes; **Cancel** throws them away.
 - The team member on the visit and admins fill in the log. Cancelling or deleting a visit is done on the Schedule.

@@ -977,7 +977,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Forms',
-        body: "The forms attached to the visit's type, filled in right in the log. Check Mark submitted and Save to submit one. Submissions show on the client's Records tab.",
+        body: "Each form attached to the visit's type has its own tab, filled in without leaving the log. Save submits a form once its required questions are answered. Submissions show on the client's Records tab.",
       },
       {
         heading: 'Actual time',

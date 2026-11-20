@@ -233,7 +233,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'visit.time':
     "Starts out as the planned times; change them to what really happened. A start and end finish the visit. An end earlier than the start counts as the next day (overnight visits).",
   'visit.forms':
-    "The forms attached to this visit's type (in Forms), filled in right here. Mark submitted, then Save. Submissions go to the client's Records tab.",
+    "The forms attached to this visit's type (in Forms), filled in right here. Save submits a form once its required questions are answered. Submissions go to the client's Records tab.",
   'schedule.page':
     'Visits for the week in seven columns (Mon–Sun), or everyone\'s visits by month. Add visit plans a one-off or repeating visit. The ⋮ menu on a visit opens, edits, cancels or deletes it.',
   'schedule.teamMember': 'Leave empty for an unassigned visit nobody has yet. The team member gets a notification when a visit is assigned to them.',

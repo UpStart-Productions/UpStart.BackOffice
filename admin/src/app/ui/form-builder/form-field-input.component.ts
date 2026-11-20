@@ -241,6 +241,9 @@ export type FormFileOpener = (ref: FormFileRef) => void;
         }
       }
     }
+    @if (error(); as e) {
+      <p class="ff-error" role="alert">{{ e }}</p>
+    }
   `,
   styles: `
     :host {
@@ -392,6 +395,11 @@ export type FormFileOpener = (ref: FormFileRef) => void;
       color: var(--text-color-secondary);
       flex-shrink: 0;
     }
+    .ff-error {
+      margin: 0.25rem 0 0;
+      color: var(--p-red-500, #dc2626);
+      font-size: 0.875rem;
+    }
     .ff-file-error {
       margin: 0;
       color: var(--p-red-500, #dc2626);
@@ -408,6 +416,8 @@ export class FormFieldInputComponent {
   choices = input(false);
   /** Keeps input ids unique when the same field shows more than once (rows of a repeating group). */
   idPrefix = input('');
+  /** A problem with the answer (format, or Required), shown in red under the question. */
+  error = input<string | null>(null);
 
   /** File uploads: how files are uploaded and opened on this page (no opener on public pages). */
   fileUpload = input<FormFileUploader | null>(null);

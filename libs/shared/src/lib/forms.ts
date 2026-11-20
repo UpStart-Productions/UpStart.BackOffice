@@ -130,6 +130,39 @@ export type FormGroupRow = Record<string, unknown>;
 export const FORM_CONTENT_MAX = 20000;
 
 /** A text block: shown to people, never answered, counted, scored or exported. */
+/** An answer counts as empty (for required questions): nothing, blank text, no picks, an unchecked box. */
+export function isEmptyFormAnswer(value: unknown): boolean {
+  if (value === null || value === undefined || value === false) return true;
+  if (typeof value === 'string') return !value.trim();
+  return Array.isArray(value) && !value.length;
+}
+
+/** What's wrong with an answer's format (same rules the server applies), or null. Empty answers are fine here. */
+export function formAnswerProblem(type: FormFieldType, value: unknown): string | null {
+  if (isEmptyFormAnswer(value)) return null;
+  switch (type) {
+    case 'NUMBER':
+      return Number.isFinite(typeof value === 'number' ? value : Number(value)) ? null : 'Enter a number';
+    case 'CURRENCY': {
+      const n = typeof value === 'number' ? value : Number(String(value).replace(/[$,\s]/g, ''));
+      return Number.isFinite(n) && Math.abs(n) <= 1e12 ? null : 'Enter an amount';
+    }
+    case 'PHONE': {
+      let d = String(value).replace(/\D/g, '');
+      if (d.length === 11 && d.startsWith('1')) d = d.slice(1);
+      return !d || d.length === 10 ? null : 'Enter a 10-digit phone number';
+    }
+    case 'SSN': {
+      const d = String(value).replace(/\D/g, '');
+      return !d || d.length === 9 ? null : 'Enter all 9 digits';
+    }
+    case 'DATE':
+      return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value) && !Number.isNaN(Date.parse(value)) ? null : 'Enter a date';
+    default:
+      return null;
+  }
+}
+
 export function isContentField(f: { type: FormFieldType }): boolean {
   return f.type === 'CONTENT';
 }

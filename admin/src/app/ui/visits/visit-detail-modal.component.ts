@@ -86,7 +86,7 @@ import { VisitPage } from '../../pages/visits/visit.page';
           }
         </ng-template>
         @for (key of [id]; track key) {
-          <app-visit-page [embedded]="true" [visitId]="key" (leave)="detail.close()" />
+          <app-visit-page [embedded]="true" [visitId]="key" [initialTab]="detail.tab()" (leave)="detail.close()" />
         }
       </p-dialog>
     }

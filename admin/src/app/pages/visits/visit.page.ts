@@ -6,8 +6,10 @@ import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
-import type { VisitDetailDto, VisitFormDto, VisitLogFormDto } from '@upstart/back-office/shared';
+import { formAnswerProblem, isContentField, isEmptyFormAnswer, type FormFieldDto, type VisitDetailDto, type VisitFormDto, type VisitLogFormDto } from '@upstart/back-office/shared';
+import { ApiError } from '../../core/api.service';
 import { AutoSaver } from '../../core/auto-saver';
 import { ClientFormsApi } from '../../core/client-forms.api';
 import { dateKey } from '../../core/date.util';
@@ -40,6 +42,7 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
     TagModule,
     AppQuillEditorComponent,
     CheckboxModule,
+    TabsModule,
     FormFieldInputComponent,
     DateInputComponent,
     HelpTextComponent,
@@ -99,80 +102,88 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
             }
           </div>
 
-          <div class="visit-log-time">
-            <div class="form-field v-date">
-              <label for="vDate">Date</label>
-              <app-date-input inputId="vDate" [(ngModel)]="date" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
-            </div>
-            <div class="form-field v-time">
-              <label for="vStart">Start</label>
-              <app-time-input inputId="vStart" [(ngModel)]="startTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
-            </div>
-            <div class="form-field v-time">
-              <label for="vEnd">End</label>
-              <app-time-input inputId="vEnd" [after]="startTime" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
-            </div>
-            @if (v.durationMin !== null) {
-              <span class="v-duration">{{ duration(v.durationMin) }}</span>
-            }
-          </div>
+          @if (embedded() && v.forms.length) {
+            <p-tabs class="v-tabs" [value]="tab()" (valueChange)="setTab($event)">
+              <p-tablist>
+                <p-tab value="log">Log</p-tab>
+                @for (f of v.forms; track f.formId) {
+                  <p-tab [value]="f.formId">{{ f.formName }}</p-tab>
+                }
+              </p-tablist>
+            </p-tabs>
+          }
 
-          <app-quill-editor
-            [(ngModel)]="notes"
-            (ngModelChange)="notesChanged($event)"
-            [readOnly]="!v.canWork"
-            mentionToolbar="minimal"
-            placeholder="Notes"
-            aria-label="Notes"
-            [styles]="{ 'min-height': '120px' }"
-          />
+          @if (!embedded() || !openForm()) {
+            <div class="visit-log-time">
+              <div class="form-field v-date">
+                <label for="vDate">Date</label>
+                <app-date-input inputId="vDate" [(ngModel)]="date" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+              </div>
+              <div class="form-field v-time">
+                <label for="vStart">Start</label>
+                <app-time-input inputId="vStart" [(ngModel)]="startTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+              </div>
+              <div class="form-field v-time">
+                <label for="vEnd">End</label>
+                <app-time-input inputId="vEnd" [after]="startTime" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+              </div>
+              @if (v.durationMin !== null) {
+                <span class="v-duration">{{ duration(v.durationMin) }}</span>
+              }
+            </div>
+
+            <app-quill-editor
+              [(ngModel)]="notes"
+              (ngModelChange)="notesChanged($event)"
+              [readOnly]="!v.canWork"
+              mentionToolbar="minimal"
+              placeholder="Notes"
+              aria-label="Notes"
+              [styles]="{ 'min-height': '120px' }"
+            />
+          }
 
           @if (v.forms.length) {
             @if (embedded()) {
-              @for (f of v.forms; track f.formId) {
-                <div class="v-form">
-                  <div class="v-form-head">
-                    <span class="v-form-name">{{ f.formName }}</span>
-                    @if (f.submittedAt) {
-                      <p-tag value="Submitted" severity="success" />
-                      @if (v.canWork) {
-                        <button type="button" class="link-btn" [disabled]="reopening() === f.formId" (click)="reopenForm(f)">Reopen</button>
-                      }
-                    } @else {
-                      @if (f.recordId) {
-                        <p-tag value="In progress" severity="info" />
-                      }
-                      @if (v.canWork && v.status !== 'CANCELLED') {
-                        <span class="v-form-submit">
-                          <p-checkbox [inputId]="'vSubmit-' + f.formId" [binary]="true" [(ngModel)]="markSubmit[f.formId]" />
-                          <label [for]="'vSubmit-' + f.formId">Mark submitted</label>
-                        </span>
-                      }
-                    }
-                  </div>
-                  @for (s of f.sections; track s.id) {
-                    @if (f.sections.length > 1) {
-                      <div class="v-form-section">{{ s.name }}</div>
-                    }
-                    <div class="showcase-row">
-                      @for (q of s.fields; track q.id) {
-                        <app-form-field-input
-                          class="showcase-half"
-                          [class.v-wide]="q.type === 'LONG_TEXT' || q.type === 'CONTENT' || q.type === 'GROUP'"
-                          [field]="q"
-                          [idPrefix]="f.formId + '-'"
-                          [value]="answers[f.formId][q.id] ?? null"
-                          (valueChange)="answerChanged(f.formId, q.id, $event)"
-                          [disabled]="!v.canWork || !!f.submittedAt || v.status === 'CANCELLED'"
-                          [fileUpload]="uploaders[f.formId] ?? null"
-                          [fileOpen]="openers[f.formId] ?? null"
-                        />
+              @if (openForm(); as f) {
+                    <div class="v-form">
+                      <div class="v-form-head">
+                        <span class="v-form-name">{{ f.formName }}</span>
+                        @if (f.submittedAt) {
+                          <p-tag value="Submitted" severity="success" />
+                          @if (v.canWork) {
+                            <button type="button" class="link-btn" [disabled]="reopening() === f.formId" (click)="reopenForm(f)">Reopen</button>
+                          }
+                        } @else {
+                          @if (f.recordId) {
+                            <p-tag value="In progress" severity="info" />
+                          }
+                        }
+                                              </div>
+                      @for (s of f.sections; track s.id) {
+                        @if (f.sections.length > 1) {
+                          <div class="v-form-section">{{ s.name }}</div>
+                        }
+                        <div class="showcase-row">
+                          @for (q of s.fields; track q.id) {
+                            <app-form-field-input
+                              class="showcase-half"
+                              [class.v-wide]="q.type === 'LONG_TEXT' || q.type === 'CONTENT' || q.type === 'GROUP'"
+                              [field]="q"
+                              [idPrefix]="f.formId + '-'"
+                              [value]="answers[f.formId][q.id] ?? null"
+                              (valueChange)="answerChanged(f.formId, q.id, $event)"
+                              [disabled]="!v.canWork || !!f.submittedAt || v.status === 'CANCELLED'"
+                              [error]="answerError(f, q)"
+                              [fileUpload]="uploaders[f.formId] ?? null"
+                              [fileOpen]="openers[f.formId] ?? null"
+                            />
+                          }
+                        </div>
+                      } @empty {
+                        <p class="m-0 text-color-secondary">This form has no questions yet.</p>
                       }
                     </div>
-                  } @empty {
-                    <p class="m-0 text-color-secondary">This form has no questions yet.</p>
-                  }
-                </div>
               }
             } @else {
             <div>
@@ -213,6 +224,10 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
     .visit-log > .side-list:first-child .side-list-row:first-child,
     .visit-log > .side-list:first-child ::ng-deep .side-list-row:first-child {
       padding-top: 0;
+      padding-bottom: 0;
+    }
+    .v-tabs {
+      margin-top: -0.5rem;
     }
     .visit-log-time {
       display: flex;
@@ -237,8 +252,6 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--p-content-border-color);
     }
     .v-form-head {
       display: flex;
@@ -249,12 +262,6 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
     .v-form-name {
       font-weight: 600;
       font-size: 1.05rem;
-    }
-    .v-form-submit {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-left: auto;
     }
     .v-form-section {
       font-weight: 600;
@@ -283,6 +290,8 @@ export class VisitPage implements OnInit, OnDestroy {
   /** In the visit modal: no page header; leaving (deleted, opened a form or the client) emits leave. */
   embedded = input(false);
   leave = output<void>();
+  /** In the visit modal: the tab to open on ('log' or a form's id). */
+  initialTab = input('log');
   /** The status tags and the action buttons, for the visit modal's header. */
   readonly metaTemplate = viewChild<TemplateRef<unknown>>('visitMeta');
   readonly actionsTemplate = viewChild<TemplateRef<unknown>>('visitActions');
@@ -315,16 +324,36 @@ export class VisitPage implements OnInit, OnDestroy {
   saving = signal(false);
   /** In the modal: the times were changed (only then does Save send them, so saving notes doesn't finish a visit). */
   private timesDirty = false;
-  /** Modal forms: answers on screen, the ones changed since loading, Mark submitted, and file upload/open per form. */
+  /** Modal forms: answers on screen, the ones changed since loading and file upload/open per form. */
   answers: Record<string, Record<string, unknown>> = {};
   private changedAnswers: Record<string, Record<string, unknown>> = {};
-  markSubmit: Record<string, boolean> = {};
   uploaders: Record<string, ReturnType<FormFilesClient['uploader']>> = {};
   openers: Record<string, ReturnType<FormFilesClient['opener']> | null> = {};
   reopening = signal<string | null>(null);
+  /** Modal tabs: 'log' (times, notes) or a form's id (one tab per form of the visit type). */
+  tab = signal<string>('log');
+  readonly openForm = computed(() => this.visit()?.forms.find((f) => f.formId === this.tab()) ?? null);
+
+  setTab(value: string | number | undefined) {
+    this.tab.set(typeof value === 'string' ? value : 'log');
+  }
+
+  /** Format problems found on Save, by form then question (cleared when the answer changes). */
+  formatErrors: Record<string, Record<string, string>> = {};
+  /** Forms Save tried to submit with required questions empty: show Required under them. */
+  private checkedRequired = new Set<string>();
+
+  /** Shown under a question: its format problem, or Required on a form that's in progress or failed to submit. */
+  answerError(f: VisitLogFormDto, q: FormFieldDto): string | null {
+    const format = this.formatErrors[f.formId]?.[q.id];
+    if (format) return format;
+    const flag = (!!f.recordId && !f.submittedAt) || this.checkedRequired.has(f.formId);
+    return flag && q.required && !isContentField(q) && isEmptyFormAnswer(this.answers[f.formId]?.[q.id]) ? 'Required' : null;
+  }
 
   answerChanged(formId: string, fieldId: string, value: unknown) {
     this.answers[formId][fieldId] = value;
+    if (this.formatErrors[formId]) delete this.formatErrors[formId][fieldId];
     (this.changedAnswers[formId] ??= {})[fieldId] = value ?? null;
   }
 
@@ -406,6 +435,8 @@ export class VisitPage implements OnInit, OnDestroy {
 
   private apply(v: VisitDetailDto) {
     this.visit.set(v);
+    const start = this.initialTab();
+    if (this.tab() === 'log' && v.forms.some((f) => f.formId === start)) this.tab.set(start);
     const startedAt = v.startedAt ? new Date(v.startedAt) : null;
     // Not worked yet: start from the planned times (saved only when changed).
     this.date = dateKey(startedAt ?? new Date(v.startAt));
@@ -434,13 +465,17 @@ export class VisitPage implements OnInit, OnDestroy {
     const v = this.visit();
     if (!v?.canWork) return true;
     const body: { notes: string | null; startedAt?: string; endedAt?: string } = { notes: this.isBlank(this.notes) ? null : this.notes };
-    if (this.timesDirty && this.timesEditable()) {
+    // A visit whose planned end has passed and isn't done: Save logs the times on screen (the planned ones unless
+    // changed), so it stops showing as Missed. Otherwise only changed times are sent.
+    const pastDue = v.status !== 'COMPLETED' && new Date(v.endAt) <= new Date();
+    if ((this.timesDirty || pastDue) && this.timesEditable()) {
       if (!this.date || !this.startTime || (v.status === 'SCHEDULED' && !this.endTime)) {
         this.toast.add({ severity: 'warn', summary: 'Add the date, start and end' });
         return false;
       }
       Object.assign(body, this.times());
     }
+    if (!this.checkFormats()) return false;
     this.saving.set(true);
     try {
       await this.visitsApi.updateVisit(this.id, body);
@@ -456,19 +491,61 @@ export class VisitPage implements OnInit, OnDestroy {
     }
   }
 
-  /** Each form with changed answers or Mark submitted: made on first save, answers saved, then submitted. */
+  /** Format problems in changed forms block Save: shown under the questions, on the first such form's tab. */
+  private checkFormats(): boolean {
+    this.formatErrors = {};
+    let first: VisitLogFormDto | null = null;
+    for (const f of this.visit()?.forms ?? []) {
+      if (!this.changedAnswers[f.formId]) continue;
+      for (const q of f.sections.flatMap((s) => s.fields)) {
+        const problem = formAnswerProblem(q.type, this.answers[f.formId]?.[q.id]);
+        if (!problem) continue;
+        (this.formatErrors[f.formId] ??= {})[q.id] = problem;
+        first ??= f;
+      }
+    }
+    if (!first) return true;
+    this.tab.set(first.formId);
+    this.toast.add({ severity: 'warn', summary: 'Check the highlighted answers', detail: `${first.formName} has answers in the wrong format.` });
+    return false;
+  }
+
+  /** Required questions of a form still empty. */
+  private missingRequired(f: VisitLogFormDto): number {
+    return f.sections.flatMap((s) => s.fields).filter((q) => q.required && !isContentField(q) && isEmptyFormAnswer(this.answers[f.formId]?.[q.id])).length;
+  }
+
+  /**
+   * Each form with changed answers: made on first save, answers saved, then submitted if every required question is
+   * answered (the server checks; otherwise it stays In progress).
+   */
   private async saveForms(clientId: string): Promise<boolean> {
     for (const f of this.visit()?.forms ?? []) {
       const changed = this.changedAnswers[f.formId];
-      const submit = !!this.markSubmit[f.formId] && !f.submittedAt;
-      if (!changed && !submit) continue;
+      if (!changed) continue;
       try {
         const id = f.recordId ?? (await this.clientForms.create(f.formId, clientId, this.id)).id;
-        if (changed) await this.clientForms.save(id, changed);
+        await this.clientForms.save(id, changed);
         delete this.changedAnswers[f.formId];
-        if (submit) {
-          await this.clientForms.submit(id);
-          delete this.markSubmit[f.formId];
+        if (!f.submittedAt) {
+          const missing = this.missingRequired(f);
+          if (missing) {
+            // Saved, not submitted: it stays In progress until the required questions are answered.
+            this.checkedRequired.add(f.formId);
+            this.toast.add({
+              severity: 'info',
+              summary: `${f.formName} is in progress`,
+              detail: `Saved. ${missing} required question${missing === 1 ? '' : 's'} to answer before it's submitted.`,
+            });
+          } else {
+            try {
+              await this.clientForms.submit(id);
+            } catch (err) {
+              // The server found something still missing: it stays In progress.
+              if (!(err instanceof ApiError && err.status === 400)) throw err;
+              this.toast.add({ severity: 'info', summary: `${f.formName} is in progress`, detail: this.message(err) });
+            }
+          }
         }
       } catch (err) {
         this.toast.add({ severity: 'error', summary: `Could not save ${f.formName}`, detail: this.message(err) });

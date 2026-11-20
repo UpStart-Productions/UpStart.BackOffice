@@ -30,7 +30,9 @@ a {
   min-height: 100vh;
 }
 
-.layout-main {
+// Dialogs are appended to <body>, outside .layout-main: same link look (underline on hover).
+.layout-main,
+.p-dialog {
   a[href]:where(
     :not(.p-button):not(.p-menuitem-link):not(.layout-topbar-logo):not(.text-primary):not(.side-list-title):not(.side-list-detail):not(.queue-card):not(.dashboard-panel-open):not(.dashboard-panel-title-link):not(
         .search-clear-inside
