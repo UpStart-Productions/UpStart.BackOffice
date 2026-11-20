@@ -16,7 +16,7 @@ import { VisitsApi } from '../../core/visits.api';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
-import { PersonComponent } from '../../ui/person/person.component';
+import { PersonCardComponent } from '../../ui/record-card/person-card.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
 import { TimeInputComponent } from '../../ui/time-input/time-input.component';
@@ -40,7 +40,7 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
     DateInputComponent,
     HelpTextComponent,
     PageComponent,
-    PersonComponent,
+    PersonCardComponent,
     RowActionsMenuComponent,
     SaveStatusComponent,
     TimeInputComponent,
@@ -155,14 +155,14 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
                   <div class="side-list-body"><span class="side-list-title">Visit type</span></div>
                   <span class="side-list-value">{{ v.visitType.name }}</span>
                 </div>
-                <div class="side-list-row">
-                  <div class="side-list-body"><span class="side-list-title">Team member</span></div>
-                  @if (v.teamMember; as m) {
-                    <app-person [name]="m.name" [avatarUrl]="m.avatarUrl" [personId]="m.id" size="sm" />
-                  } @else {
+                @if (v.teamMember; as m) {
+                  <app-person-card kind="user" [person]="m" subtitle="Team member" />
+                } @else {
+                  <div class="side-list-row">
+                    <div class="side-list-body"><span class="side-list-title">Team member</span></div>
                     <span class="side-list-value">Unassigned</span>
-                  }
-                </div>
+                  </div>
+                }
                 <div class="side-list-row">
                   <div class="side-list-body">
                     <span class="side-list-title">Planned</span>

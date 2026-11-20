@@ -265,7 +265,7 @@ function nowForInput(): string {
             <div class="activity-head">
               <span class="activity-when">
                 @if (logger(item); as who) {
-                  <app-person [name]="who.name" [firstName]="who.firstName" [lastName]="who.lastName" [avatarUrl]="who.avatarUrl" [personId]="who.id" size="med" />
+                  <app-person [name]="who.name" [firstName]="who.firstName" [lastName]="who.lastName" [avatarUrl]="who.avatarUrl" [personId]="who.id" [userId]="who.id" size="med" />
                 }
                 <span class="activity-date" [title]="(item.occurredAt | date: 'MMM d, y, h:mm a') ?? ''">{{ rel(item.occurredAt) }}</span>
               </span>
@@ -279,11 +279,11 @@ function nowForInput(): string {
               }
               @let ppl = people(item);
               @for (p of ppl.from; track p.userId ?? p.contactId ?? p.email) {
-                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [contactId]="p.contactId" [userId]="p.contactId ? null : p.userId" size="sm" />
               }
               @if (ppl.from.length && ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
               @for (p of ppl.to; track p.userId ?? p.contactId ?? p.email) {
-                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+                <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [contactId]="p.contactId" [userId]="p.contactId ? null : p.userId" size="sm" />
               }
               @if (!logger(item) && item.captures.length) {
                 <span>· captured by {{ item.captures[0].capturedByEmail }}</span>

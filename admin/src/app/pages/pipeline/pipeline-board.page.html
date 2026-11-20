@@ -173,6 +173,7 @@
                         [email]="lead.primaryContactEmail ?? lead.email"
                         [avatarUrl]="lead.contactAvatarUrl"
                         [personId]="lead.primaryContactId ?? lead.id"
+                        [contactId]="lead.primaryContactId"
                         [subtitle]="lead.contactRole"
                         size="med"
                       />
@@ -463,7 +464,7 @@
               [personId]="c.id"
               [subtitle]="c.role"
               size="lg"
-              [link]="canOpenContacts() ? ['/people', c.id] : null"
+              [contactId]="c.id"
             />
             @if (c.isLeadContact) { <span class="card-contacts-tag">Primary</span> }
           </div>

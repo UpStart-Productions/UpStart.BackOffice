@@ -1,54 +1,27 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { DatePickerModule } from 'primeng/datepicker';
 import type { VisitDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { dateKey } from '../../core/date.util';
 import { VisitsApi } from '../../core/visits.api';
 import { SchedulePage } from '../../pages/schedule/schedule.page';
-import { VisitCardComponent } from '../record-card/visit-card.component';
+import { MonthCalendarComponent, type CalendarEvent } from '../calendar/month-calendar.component';
+import { PersonCardComponent } from '../record-card/person-card.component';
 
 /**
- * A client's schedule in the side panel: a month calendar with a dot on days that have visits; the picked day's visits
- * below as visit cards. Expand opens the full Week/Month schedule over the page, locked to this client, so visits can
- * be added and changed without leaving the client. Cancelled visits aren't shown here.
+ * A client's schedule in the side panel: a month calendar where days with visits are tinted; click one to see that
+ * day's visits and open one. Expand opens the full Week/Month schedule over the page, locked to this client, so
+ * visits can be added and changed without leaving the client. Cancelled visits aren't shown here.
  */
 @Component({
   selector: 'app-client-schedule-widget',
   standalone: true,
-  imports: [DatePipe, FormsModule, ButtonModule, DatePickerModule, AppDialogModule, SchedulePage, VisitCardComponent],
+  imports: [ButtonModule, AppDialogModule, SchedulePage, MonthCalendarComponent, PersonCardComponent],
+  providers: [DatePipe],
   styles: `
-    :host {
-      display: block;
-    }
-    .csw-calendar :is(.p-datepicker) {
-      width: 100%;
-    }
-    .cal-day {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-    }
-    .cal-day--visits::after {
-      content: '';
-      position: absolute;
-      bottom: 2px;
-      left: 50%;
-      width: 5px;
-      height: 5px;
-      margin-left: -2.5px;
-      border-radius: 50%;
-      background: var(--p-primary-color);
-    }
-    .csw-day-title {
-      margin: 1rem 0 0.5rem;
+    .csw-visit-label {
       font-size: var(--fs-sm);
-      font-weight: 600;
       color: var(--text-color-secondary);
     }
   `,
@@ -58,22 +31,24 @@ import { VisitCardComponent } from '../record-card/visit-card.component';
         <h2 class="card-title">Schedule</h2>
         <p-button label="Expand" icon="pi pi-window-maximize" severity="secondary" [text]="true" size="small" (onClick)="expanded.set(true)" />
       </div>
-      <div class="csw-calendar">
-        <p-datepicker [inline]="true" [ngModel]="selectedDay()" (ngModelChange)="selectedDay.set($event)" (onMonthChange)="onMonthChange($event)">
-          <ng-template #date let-date>
-            <span class="cal-day" [class.cal-day--visits]="hasVisits(date)">{{ date.day }}</span>
-          </ng-template>
-        </p-datepicker>
-      </div>
-      <p class="csw-day-title">{{ selectedDay() | date: 'EEEE, MMM d' }}</p>
-      <div class="side-list">
-        @for (v of dayVisits(); track v.id) {
-          <app-visit-card [visit]="v" />
-        } @empty {
-          <p class="side-list-empty m-0">No visits this day.</p>
-        }
-      </div>
+      <app-month-calendar
+        [viewDate]="viewDate()"
+        [events]="events()"
+        [eventTemplate]="visitRow"
+        (viewDateChange)="viewDate.set($event)"
+        (eventClicked)="openVisit($event.event)"
+      />
     </div>
+
+    <!-- A visit in the day popover: its type and times above the team member's person card. -->
+    <ng-template #visitRow let-ev>
+      <span class="csw-visit-label">{{ ev.typeLabel }} · {{ ev.subtitle }}</span>
+      @if (ev.meta?.teamMember; as m) {
+        <app-person-card kind="user" [person]="m" />
+      } @else {
+        <span class="csw-visit-label">Unassigned</span>
+      }
+    </ng-template>
 
     @if (expanded()) {
       <p-dialog
@@ -94,47 +69,45 @@ import { VisitCardComponent } from '../record-card/visit-card.component';
 })
 export class ClientScheduleWidgetComponent {
   private readonly visitsApi = inject(VisitsApi);
+  private readonly router = inject(Router);
+  private readonly datePipe = inject(DatePipe);
 
   clientId = input.required<string>();
   clientName = input('');
   /** The full schedule was closed (visits may have changed). */
   changed = output<void>();
 
-  selectedDay = signal(new Date());
-  /** First day of the month the calendar shows. */
-  private readonly month = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  /** Any day in the month the calendar shows. */
+  viewDate = signal(new Date());
   private readonly visits = signal<VisitDto[]>([]);
   expanded = signal(false);
 
-  private readonly byDay = computed(() => {
-    const map = new Map<string, VisitDto[]>();
-    for (const v of this.visits()) {
-      const k = dateKey(new Date(v.startAt));
-      map.set(k, [...(map.get(k) ?? []), v]);
-    }
-    return map;
-  });
-  readonly dayVisits = computed(() => this.byDay().get(dateKey(this.selectedDay())) ?? []);
+  /** Each visit as a calendar event: the visit type, then who and when. */
+  readonly events = computed<CalendarEvent<VisitDto>[]>(() =>
+    this.visits().map((v) => ({
+      start: new Date(v.startAt),
+      title: v.teamMember?.name ?? 'Unassigned',
+      typeLabel: v.visitType.name,
+      subtitle: `${this.datePipe.transform(v.startAt, 'h:mm a')} – ${this.datePipe.transform(v.endAt, 'h:mm a')}`,
+      meta: v,
+    })),
+  );
 
   constructor() {
     effect(() => {
-      void this.load(this.clientId(), this.month());
+      const d = this.viewDate();
+      void this.load(this.clientId(), new Date(d.getFullYear(), d.getMonth(), 1));
     });
   }
 
-  hasVisits(date: { day: number; month: number; year: number }): boolean {
-    return this.byDay().has(dateKey(new Date(date.year, date.month, date.day)));
-  }
-
-  /** PrimeNG gives a 1-based month. */
-  onMonthChange(event: { month?: number; year?: number }) {
-    if (!event.month || !event.year) return;
-    this.month.set(new Date(event.year, event.month - 1, 1));
+  openVisit(event: CalendarEvent<VisitDto>) {
+    if (event.meta) void this.router.navigate(['/visits', event.meta.id]);
   }
 
   close() {
     this.expanded.set(false);
-    void this.load(this.clientId(), this.month());
+    const d = this.viewDate();
+    void this.load(this.clientId(), new Date(d.getFullYear(), d.getMonth(), 1));
     this.changed.emit();
   }
 

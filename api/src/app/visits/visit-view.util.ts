@@ -19,7 +19,7 @@ export function personName(u: Omit<PersonRow, 'id' | 'avatarUrl'>): string {
 }
 
 export function personRef(u: PersonRow) {
-  return { id: u.id, name: personName(u), avatarUrl: toPublicAssetUrl(u.avatarUrl) ?? null };
+  return { id: u.id, name: personName(u), email: u.email, avatarUrl: toPublicAssetUrl(u.avatarUrl) ?? null };
 }
 
 export const minutesBetween = (a: Date, b: Date) => Math.max(0, Math.round((b.getTime() - a.getTime()) / 60000));

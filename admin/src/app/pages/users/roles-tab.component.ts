@@ -83,6 +83,7 @@ const ADMIN_DESCRIPTION =
                         [email]="u.email"
                         [avatarUrl]="u.avatarUrl"
                         [personId]="u.id"
+                  [userId]="u.id"
                         size="med"
                       />
                     </span>
@@ -129,6 +130,7 @@ const ADMIN_DESCRIPTION =
                   [email]="u.email"
                   [avatarUrl]="u.avatarUrl"
                   [personId]="u.id"
+                  [userId]="u.id"
                   [subtitle]="userRowSubtitle(u)"
                   size="lg"
                 />

@@ -87,7 +87,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Visits tab',
-      body: "A card for each past visit, newest first: the team member's picture, date, visit type, times, status (Done, In progress or Missed) and each form of the visit type as Submitted, In progress or Not filled in. Schedule on the side is a month calendar (a dot marks days with visits; pick a day to see them). Expand opens the full Week/Month schedule over the page for this account only, to add and change visits without leaving it. Cancelled visits aren't listed.",
+      body: "A card for each past visit, newest first: the team member's picture, date, visit type, times, status (Done, In progress or Missed) and each form of the visit type as Submitted, In progress or Not filled in. Schedule on the side is a month calendar (days with visits are tinted; click one to see them and open a visit). Expand opens the full Week/Month schedule over the page for this account only, to add and change visits without leaving it. Cancelled visits aren't listed.",
     },
     {
       heading: 'Records tab',

@@ -21,8 +21,8 @@ import { type RecordCardBadge } from '../record-card';
 import { CreatePersonModalComponent } from '../create-person-modal/create-person-modal.component';
 import { PeopleSelectComponent } from '../people-select/people-select.component';
 import { HelpTextComponent } from '../help-text/help-text.component';
-import { PersonDetailModalComponent } from '../person-detail-modal/person-detail-modal.component';
-import { PeoplePanelRowComponent } from './people-panel-row.component';
+import { PersonDetailService } from '../../core/person-detail.service';
+import { PersonCardComponent } from '../record-card/person-card.component';
 import {
   peoplePanelContactEmail,
   peoplePanelProjectContactEmail,
@@ -47,8 +47,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
     PeopleSelectComponent,
     CreatePersonModalComponent,
     HelpTextComponent,
-    PersonDetailModalComponent,
-    PeoplePanelRowComponent,
+    PersonCardComponent,
   ],
   template: `
     <div
@@ -113,16 +112,14 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
           </div>
         }
         @for (c of orgPeople(); track c.id) {
-          <app-people-panel-row
+          <app-person-card
             [person]="orgRowPerson(c)"
-            [title]="contactName(c)"
+            [name]="contactName(c)"
             [subtitle]="orgRole(c)"
             [jobTitle]="c.title"
             [email]="peoplePanelContactEmail(c)"
             [phone]="c.phone"
             [badges]="personBadges(c)"
-            [clickable]="true"
-            (titleClick)="openPersonDetail(c.id)"
           >
             @if ((clientId() || leadId()) && !readOnly()) {
               <div recordActions class="people-panel-row-actions">
@@ -160,12 +157,13 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 />
               </div>
             }
-          </app-people-panel-row>
+          </app-person-card>
         }
         @for (m of teamRows(); track m.id) {
-          <app-people-panel-row
+          <app-person-card
+            kind="user"
             [person]="m"
-            [title]="m.name"
+            [name]="m.name"
             [subtitle]="teamProjectsLine(m)"
             [email]="m.email"
             [footerTags]="peoplePanelTeamFooterTags(m)"
@@ -189,19 +187,19 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 />
               </div>
             }
-          </app-people-panel-row>
+          </app-person-card>
         }
       } @else {
         @for (contact of projectPeople(); track contact.id ?? $index; let rowIndex = $index) {
-          <app-people-panel-row
+          <app-person-card
             [person]="projectRowPerson(contact)"
-            [title]="projectDisplayName(contact) || 'Unnamed'"
+            [name]="projectDisplayName(contact) || 'Unnamed'"
             [jobTitle]="contact.title ?? null"
             [email]="peoplePanelProjectContactEmail(contact)"
             [phone]="peoplePanelProjectContactPhone(contact)"
             [hint]="contact.contactId ? null : 'Not linked to People — remove and add from People'"
-            [clickable]="!!contact.contactId"
-            (titleClick)="openPersonDetail(contact.contactId!)"
+            [clickable]="true"
+            (titleClick)="contact.contactId && openPersonDetail(contact.contactId)"
           >
             @if (!readOnly()) {
               <div recordActions class="people-panel-row-actions">
@@ -222,12 +220,13 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 />
               </div>
             }
-          </app-people-panel-row>
+          </app-person-card>
         }
         @for (m of teamRows(); track m.id) {
-          <app-people-panel-row
+          <app-person-card
+            kind="user"
             [person]="m"
-            [title]="m.name"
+            [name]="m.name"
             [email]="m.email"
             [footerTags]="peoplePanelTeamFooterTags(m)"
           >
@@ -283,7 +282,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
                 />
               </div>
             }
-          </app-people-panel-row>
+          </app-person-card>
         }
         @if (projectPeople().length === 0 && teamRows().length === 0) {
           <p class="text-color-secondary mt-0 mb-0">No people on this project yet.</p>
@@ -322,7 +321,6 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
         <app-create-person-modal />
       }
 
-      <app-person-detail-modal />
     </div>
   `,
   styles: `
@@ -374,7 +372,7 @@ export class PeopleComponent {
   private readonly team = inject(TeamApi);
   private readonly session = inject(SessionService);
   private readonly createPersonModal = viewChild(CreatePersonModalComponent);
-  private readonly personDetailModal = viewChild(PersonDetailModalComponent);
+  private readonly personDetail = inject(PersonDetailService);
 
   readonly contactName = contactName;
   readonly peoplePanelContactEmail = peoplePanelContactEmail;
@@ -494,7 +492,7 @@ export class PeopleComponent {
   }
 
   openPersonDetail(contactId: string) {
-    void this.personDetailModal()?.open(contactId);
+    this.personDetail.open({ kind: 'contact', id: contactId });
   }
 
   /** Badges on a person row: Primary contact, New (auto-created), Inactive. */

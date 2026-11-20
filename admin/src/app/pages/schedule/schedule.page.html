@@ -189,7 +189,7 @@
                   <a class="tg-block-account" [routerLink]="['/accounts', seg.visit.clientId]">{{ seg.visit.clientName }}</a>
                   <span class="tg-block-type">{{ seg.visit.visitType.name }}</span>
                   @if (seg.visit.teamMember; as w) {
-                    <app-person [name]="w.name" [avatarUrl]="w.avatarUrl" [personId]="w.id" size="sm" />
+                    <app-person [name]="w.name" [avatarUrl]="w.avatarUrl" [personId]="w.id" [userId]="w.id" size="sm" />
                   } @else {
                     <span class="sched-chip-open">Unassigned</span>
                   }
@@ -236,7 +236,7 @@
         <span class="mv-bar dm-account" [attr.data-color]="barColor(s)">{{ s.clientName }}</span>
         <span class="dm-team-member">
           @if (s.teamMember; as w) {
-            <app-person [name]="w.name" [avatarUrl]="w.avatarUrl" [personId]="w.id" size="sm" />
+            <app-person [name]="w.name" [avatarUrl]="w.avatarUrl" [personId]="w.id" [userId]="w.id" size="sm" />
           } @else {
             <span class="sched-chip-open">Unassigned</span>
           }

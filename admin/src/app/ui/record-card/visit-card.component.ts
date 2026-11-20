@@ -3,21 +3,29 @@ import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import type { VisitDto, VisitFormDto } from '@upstart/back-office/shared';
-import { Person } from '../../task-manager/core/tm.types';
+import { PersonComponent } from '../person/person.component';
 import { RecordCardBadge, RecordCardComponent } from './record-card.component';
 import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
 
 /**
- * A visit as the standard record card: the team member's avatar, date and visit type, who and when, its status, and
- * (when given) the forms of its visit type with whether they were filled in.
+ * A visit as the standard record card: date and visit type with its status; the times and the team member (inline
+ * name, opens the person detail modal) on one line; and (when given) the forms of its visit type.
  */
 @Component({
   selector: 'app-visit-card',
   standalone: true,
   host: { class: 'record-card-host' },
-  imports: [RouterLink, TagModule, RecordCardComponent],
+  imports: [RouterLink, TagModule, RecordCardComponent, PersonComponent],
   providers: [DatePipe],
   styles: `
+    .visit-card-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.25rem 0.75rem;
+      font-size: var(--fs-sm);
+      color: var(--text-color-secondary);
+    }
     .visit-card-forms {
       display: flex;
       flex-wrap: wrap;
@@ -33,32 +41,40 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
   template: `
     <app-record-card
       [variant]="variant()"
-      [person]="avatar()"
       icon="calendar-clock"
       [title]="title()"
       [link]="['/visits', visit().id]"
-      [subtitle]="subtitleOverride() ?? subtitle()"
       [badges]="[...statusBadges(), ...extraBadges()]"
       [actions]="actions()"
     >
       ${RECORD_CARD_SLOTS}
-      @if (forms(); as fs) {
-        @if (fs.length && visit().status !== 'SCHEDULED') {
-          <div recordBody class="visit-card-forms">
-            @for (f of fs; track f.formId) {
-              <span class="visit-card-form">
-                @if (f.recordId) {
-                  <a class="text-primary" [routerLink]="['/forms/results', f.recordId]">{{ f.formName }}</a>
-                  <p-tag [value]="f.submittedAt ? 'Submitted' : 'In progress'" [severity]="f.submittedAt ? 'success' : 'info'" />
-                } @else {
-                  <span>{{ f.formName }}</span>
-                  <p-tag value="Not filled in" severity="warn" />
-                }
-              </span>
-            }
-          </div>
+      <div recordBody>
+        <div class="visit-card-line">
+          <span>{{ subtitleOverride() ?? subtitle() }}</span>
+          @if (visit().teamMember; as m) {
+            <app-person [name]="m.name" [email]="m.email" [avatarUrl]="m.avatarUrl" [personId]="m.id" [userId]="m.id" size="sm" />
+          } @else {
+            <span>Unassigned</span>
+          }
+        </div>
+        @if (forms(); as fs) {
+          @if (fs.length && visit().status !== 'SCHEDULED') {
+            <div class="visit-card-forms">
+              @for (f of fs; track f.formId) {
+                <span class="visit-card-form">
+                  @if (f.recordId) {
+                    <a class="text-primary" [routerLink]="['/forms/results', f.recordId]">{{ f.formName }}</a>
+                    <p-tag [value]="f.submittedAt ? 'Submitted' : 'In progress'" [severity]="f.submittedAt ? 'success' : 'info'" />
+                  } @else {
+                    <span>{{ f.formName }}</span>
+                    <p-tag value="Not filled in" severity="warn" />
+                  }
+                </span>
+              }
+            </div>
+          }
         }
-      }
+      </div>
     </app-record-card>
   `,
 })
@@ -78,13 +94,7 @@ export class VisitCardComponent extends RecordCardWrapper {
     const v = this.visit();
     const start = this.datePipe.transform(this.when(), 'h:mm a');
     const end = this.datePipe.transform(v.endedAt ?? v.endAt, 'h:mm a');
-    return `${v.teamMember?.name ?? 'Unassigned'} · ${start} – ${end}`;
-  });
-
-  readonly avatar = computed<Person | null>(() => {
-    const m = this.visit().teamMember;
-    if (!m) return null;
-    return { id: m.id, name: m.name, email: m.name, firstName: null, lastName: null, avatarUrl: m.avatarUrl, role: 'USER', isGuest: false };
+    return `${start} – ${end}`;
   });
 
   readonly statusBadges = computed<RecordCardBadge[]>(() => {

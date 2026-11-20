@@ -2,6 +2,8 @@
 <p-toast position="bottom-right" />
 <app-invoice-send-dialog />
 <app-invoice-mark-paid-dialog />
+<!-- The one person detail modal: every person name opens it (PersonDetailService). -->
+<app-person-detail-modal />
 @if (auth.impersonatedUserId) {
   <div class="impersonation-banner" role="status">Viewing as {{ auth.impersonatedName }}. Changes you make are saved as this user.</div>
 }

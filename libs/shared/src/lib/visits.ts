@@ -5,7 +5,7 @@
 
 export type VisitStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
-export type VisitPersonRef = { id: string; name: string; avatarUrl: string | null };
+export type VisitPersonRef = { id: string; name: string; email: string; avatarUrl: string | null };
 
 export const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

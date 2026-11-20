@@ -233,11 +233,11 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                       </div>
                       <div class="activity-meta">
                         @if (ppl.from) {
-                          <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" size="sm" />
+                          <app-person [name]="ppl.from.name" [email]="ppl.from.email" [avatarUrl]="ppl.from.avatarUrl" [personId]="ppl.from.contactId ?? ppl.from.userId ?? ppl.from.email" [contactId]="ppl.from.contactId" [userId]="ppl.from.contactId ? null : ppl.from.userId" size="sm" />
                         }
                         @if (ppl.from && ppl.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
                         @for (p of ppl.to; track p.email) {
-                          <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+                          <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [contactId]="p.contactId" [userId]="p.contactId ? null : p.userId" size="sm" />
                         }
                         @if (item.captures.length) {
                           <span>· captured by {{ item.captures[0].capturedByEmail }}</span>
@@ -379,10 +379,9 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
                       @for (p of filteredPeopleOptions(); track p.id) {
                         <app-person-card
                           [person]="personCardFor(p)"
-                          [pickerMode]="true"
-                          [subtitleOverride]="personSubtitle(p)"
+                          [clickable]="true"
                           [selected]="personPickId() === p.id"
-                          (picked)="filterByPerson($event)"
+                          (titleClick)="filterByPerson(personCardFor(p).id)"
                         />
                       } @empty {
                         <p class="activity-context-empty text-color-secondary">No people match.</p>
@@ -415,11 +414,11 @@ const QUEUE_INFO: Record<QueueKey, { label: string; help: (t: ActivityQueues['th
           @let fp = sendersOf(item);
           <div class="activity-meta file-people">
             @if (fp.from) {
-              <app-person [name]="fp.from.name" [email]="fp.from.email" [avatarUrl]="fp.from.avatarUrl" [personId]="fp.from.contactId ?? fp.from.userId ?? fp.from.email" size="sm" />
+              <app-person [name]="fp.from.name" [email]="fp.from.email" [avatarUrl]="fp.from.avatarUrl" [personId]="fp.from.contactId ?? fp.from.userId ?? fp.from.email" [contactId]="fp.from.contactId" [userId]="fp.from.contactId ? null : fp.from.userId" size="sm" />
             }
             @if (fp.from && fp.to.length) { <i class="pi pi-arrow-right activity-arrow" aria-label="to"></i> }
             @for (p of fp.to; track p.email) {
-              <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" size="sm" />
+              <app-person [name]="p.name" [email]="p.email" [avatarUrl]="p.avatarUrl" [personId]="p.contactId ?? p.userId ?? p.email" [contactId]="p.contactId" [userId]="p.contactId ? null : p.userId" size="sm" />
             }
           </div>
           <div class="file-form">
@@ -755,7 +754,6 @@ export class ActivityPage implements OnInit {
     );
   });
 
-  readonly personSubtitle = (p: PeopleDirectoryOption) => (p.email?.trim() ? p.email.trim() : 'No email on file');
 
   mine = signal(true);
   queues = signal<ActivityQueues | null>(null);

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
@@ -6,10 +6,15 @@ import { MessageModule } from 'primeng/message';
 import { SkeletonModule } from 'primeng/skeleton';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { CommunicationsApi, ContactSummary, contactName } from '../../core/communications.api';
+import { PersonDetailService, type PersonDetailTarget } from '../../core/person-detail.service';
+import { SessionService } from '../../core/session.service';
 import { CopyEmailComponent } from '../copy-email/copy-email.component';
 import { PersonComponent } from '../person/person.component';
 
-/** Read-only person summary — opened from People panels, not a full page navigation. */
+/**
+ * Read-only person summary, opened by clicking any person's name (PersonDetailService). Mounted once, in the shell.
+ * A contact is loaded from People (Open in People); a user shows what's known about them (Open in Users, admins).
+ */
 @Component({
   selector: 'app-person-detail-modal',
   standalone: true,
@@ -47,6 +52,9 @@ import { PersonComponent } from '../person/person.component';
               [avatarOnly]="true"
             />
             <span class="person-detail-modal-header-name">{{ contactName(c) }}</span>
+          } @else if (user(); as u) {
+            <app-person [name]="u.name" [email]="u.email" [avatarUrl]="u.avatarUrl" [personId]="u.id" size="lg" [avatarOnly]="true" />
+            <span class="person-detail-modal-header-name">{{ u.name }}</span>
           } @else {
             <span class="person-detail-modal-header-name">Person</span>
           }
@@ -58,6 +66,20 @@ import { PersonComponent } from '../person/person.component';
         <p-skeleton width="60%" height="1.25rem" styleClass="mb-3" />
         <p-skeleton width="100%" height="0.875rem" styleClass="mb-2" />
         <p-skeleton width="80%" height="0.875rem" />
+      } @else if (user(); as u) {
+        <div class="person-detail-modal-body">
+          <div class="person-detail-modal-contact-lines">
+            @if (u.title?.trim()) {
+              <p class="person-detail-modal-role">{{ u.title }}</p>
+            }
+            @if (u.phone) {
+              <span class="person-detail-modal-line">{{ u.phone }}</span>
+            }
+            @if (u.email) {
+              <app-copy-email [email]="u.email" />
+            }
+          </div>
+        </div>
       } @else if (contact(); as c) {
         <div class="person-detail-modal-body">
           <div class="person-detail-modal-contact-lines">
@@ -114,6 +136,10 @@ import { PersonComponent } from '../person/person.component';
               severity="secondary"
               (onClick)="openInPeople(c.id)"
             />
+          </div>
+        } @else if (user() && isAdmin()) {
+          <div class="person-detail-modal-footer">
+            <p-button label="Open in Users" icon="pi pi-arrow-right" iconPos="right" severity="secondary" (onClick)="openInUsers()" />
           </div>
         }
       </ng-template>
@@ -226,20 +252,34 @@ import { PersonComponent } from '../person/person.component';
 export class PersonDetailModalComponent {
   private readonly comms = inject(CommunicationsApi);
   private readonly router = inject(Router);
+  private readonly detail = inject(PersonDetailService);
+  private readonly session = inject(SessionService);
 
   readonly contactName = contactName;
   readonly visible = signal(false);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly contact = signal<ContactSummary | null>(null);
+  readonly user = signal<Extract<PersonDetailTarget, { kind: 'user' }> | null>(null);
+  readonly isAdmin = computed(() => this.session.me()?.role === 'ADMIN');
 
-  async open(contactId: string): Promise<void> {
-    this.error.set(null);
-    this.contact.set(null);
+  constructor() {
+    effect(() => {
+      const t = this.detail.target();
+      untracked(() => (t ? void this.show(t) : this.reset()));
+    });
+  }
+
+  private async show(t: PersonDetailTarget): Promise<void> {
+    this.reset();
     this.visible.set(true);
+    if (t.kind === 'user') {
+      this.user.set(t);
+      return;
+    }
     this.loading.set(true);
     try {
-      this.contact.set(await this.comms.contact(contactId));
+      this.contact.set(await this.comms.contact(t.id));
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not load person');
     } finally {
@@ -247,18 +287,25 @@ export class PersonDetailModalComponent {
     }
   }
 
+  private reset() {
+    this.visible.set(false);
+    this.contact.set(null);
+    this.user.set(null);
+    this.error.set(null);
+  }
+
   onVisibleChange(visible: boolean) {
-    if (!visible) {
-      this.visible.set(false);
-      this.contact.set(null);
-      this.error.set(null);
-    }
+    if (!visible) this.detail.close();
   }
 
   openInPeople(contactId: string) {
-    this.visible.set(false);
-    this.contact.set(null);
+    this.detail.close();
     void this.router.navigate(['/people', contactId]);
+  }
+
+  openInUsers() {
+    this.detail.close();
+    void this.router.navigate(['/users']);
   }
 
   notesPlain(html: string): string {

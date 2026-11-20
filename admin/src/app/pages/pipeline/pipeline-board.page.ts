@@ -173,7 +173,6 @@ export class PipelineBoardPage implements OnInit {
   contactsAccount = signal<string | null>(null);
   contactsLoading = signal(false);
   contactsError = signal<string | null>(null);
-  readonly canOpenContacts = computed(() => this.session.can('contacts', 'view'));
   /** New / rename pipeline dialog. */
   nameDialog = signal<NameDialog>(null);
   /** Move or copy card to another pipeline / lane. */

@@ -1,0 +1,26 @@
+---
+description: People (contacts, users, team members) are shown with one set of components; never build a new person widget
+alwaysApply: true
+---
+
+# People display (one way)
+
+A person is a person: a **contact** (People), a **user**, a **team member** on a visit or task, a sender in Activity. They all look the same. Do not write a new component, template block or CSS for showing a person, ever.
+
+| What you're showing | Use | Notes |
+|---|---|---|
+| A person as a **row** (People panels, side panels, popovers, a visit's team member, filter lists) | **`app-person-card`** (`ui/record-card/person-card.component.ts`) | Avatar, name, optional `subtitle` (their role here), job title in caps, email (copyable) or phone. Pass any person fields (`id`, `firstName`/`lastName` or `name`, `email`/`emails`, `phone`, `avatarUrl`, `title`). Clicking the name opens the person detail modal: `kind="contact"` (default) loads them from People; `kind="user"` (users, team members) shows what's passed in. `[clickable]` + `(titleClick)` only for filter lists; `[selected]` in filter lists; `[recordActions]` slot for icon buttons; `footerTags`, `hint`. The name looks the same linked or not. |
+| An **inline name** inside a table cell, timeline or sentence (Activity From/To, Schedule blocks) | **`app-person`** | Avatar + name, `size="sm" | "med" | "lg"` (see `avatar-sizes.mdc`). Pass `[contactId]` or `[userId]` so the name opens the person detail modal (not in pickers/dropdown options). |
+| An **avatar alone** (avatar stacks, pickers, the top bar user menu) | **`app-tm-avatar`** | Never hand-build `ubo-avatar` markup with initials. |
+
+## Rules
+
+- Before writing anything that shows a person, pick from the table above. If none fits, **say so in chat and extend `app-person-card`** with an input; don't add a parallel component.
+- Never hand-roll avatars (initials + palette), name/email/phone blocks, or person rows in a feature's own template.
+- A record that *involves* a person (a visit, a task, an invoice) uses its own record card; the person inside it is an `app-person-card` (row) or `app-person` (inline), not the record card's avatar standing in for the person.
+- There is no other person row: the old `app-people-panel-row` became `app-person-card`.
+- Inside another record's card (a visit, a task), the person is an inline `app-person` with `[userId]`/`[contactId]` on the card's detail line, not a nested person row.
+
+## Clicking a person's name
+
+Always opens **the** person detail modal (`app-person-detail-modal`, mounted once in the shell) through `PersonDetailService.open()`. Never link a name to a page or build another popup. Contacts show **Open in People**; users show **Open in Users** (admins).

@@ -1,15 +1,15 @@
 import { ContactSummary } from '../../core/communications.api';
 import { TeamMember } from '../../core/team.api';
 import { PeopleProjectContact } from './people.types';
-import { PeoplePanelRowTag } from './people-panel-row.component';
+import { PersonCardTag } from '../record-card/person-card.component';
 
 export function peoplePanelContactEmail(c: ContactSummary): string | null {
   const email = c.emails?.find((e) => e.isPrimary)?.email?.trim() || c.emails?.[0]?.email?.trim() || '';
   return email || null;
 }
 
-export function peoplePanelTeamFooterTags(m: TeamMember): PeoplePanelRowTag[] {
-  const tags: PeoplePanelRowTag[] = [{ label: m.isGuest ? 'Guest' : 'Team', severity: 'secondary' }];
+export function peoplePanelTeamFooterTags(m: TeamMember): PersonCardTag[] {
+  const tags: PersonCardTag[] = [{ label: m.isGuest ? 'Guest' : 'Team', severity: 'secondary' }];
   if (m.isLead) tags.push({ label: 'Lead', severity: 'info' });
   return tags;
 }
