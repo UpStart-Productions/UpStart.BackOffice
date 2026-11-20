@@ -229,9 +229,9 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     "A link to this result, for example, for family to fill it in. Changes save straight to the form and notify your team.",
   // Schedule
   'visit.page':
-    "One visit: its forms, the actual time and notes. Start visit when you arrive and Finish visit when you leave; finishing adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.",
+    "The visit log: what actually happened (its forms, the actual time and notes). It never changes the schedule. A start and end finish the visit and add the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.",
   'visit.time':
-    "Filled in by Start visit and Finish visit, or type them for a visit that already happened (a start and end finishes it). An end earlier than the start counts as the next day (overnight visits).",
+    "Starts out as the planned times; change them to what really happened. A start and end finish the visit. An end earlier than the start counts as the next day (overnight visits).",
   'visit.forms':
     "The forms attached to this visit's type (in Forms). Fill in opens the form for this visit; its submission goes to the client's Records tab.",
   'schedule.page':

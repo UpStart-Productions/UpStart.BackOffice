@@ -43,6 +43,12 @@ $side-panel-hosts: (
   min-height: 0;
 }
 
+/* A side panel that grows with its content instead of scrolling inside 400px (settings with accordions, e.g. Notifications). */
+.side-panel-stack .card.card--side.card--side-full {
+  max-height: none;
+  overflow: visible;
+}
+
 .side-panel-stack .card.card--side > .card-header,
 .side-panel-stack .card.card--side > .side-panel-controls {
   flex-shrink: 0;

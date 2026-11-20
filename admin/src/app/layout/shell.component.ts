@@ -22,6 +22,7 @@ import { CommunicationsApi } from '../core/communications.api';
 import { HelpAgentWidgetComponent } from '../ui/help-agent-widget/help-agent-widget.component';
 import { HelpSidePanelComponent } from '../ui/help-side-panel/help-side-panel.component';
 import { PersonDetailModalComponent } from '../ui/person-detail-modal/person-detail-modal.component';
+import { VisitDetailModalComponent } from '../ui/visits/visit-detail-modal.component';
 import { HelpSidePanelService } from '../core/help-side-panel.service';
 import { AppUpdateService } from '../core/app-update.service';
 
@@ -55,6 +56,7 @@ export function isTaskManagerUrl(url: string): boolean {
     HelpAgentWidgetComponent,
     HelpSidePanelComponent,
     PersonDetailModalComponent,
+    VisitDetailModalComponent,
   ],
   templateUrl: './shell.component.html',
 })

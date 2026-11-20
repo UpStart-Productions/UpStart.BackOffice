@@ -111,7 +111,7 @@ import { PageComponent } from '../../ui/layout/page.component';
         </div>
 
         <div class="side-panel-stack">
-          <div class="card card--side">
+          <div class="card card--side card--side-full">
             <div class="card-header">
               <h2 class="card-title">
                 Notifications

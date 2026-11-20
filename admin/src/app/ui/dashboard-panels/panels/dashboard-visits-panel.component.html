@@ -10,16 +10,13 @@
         [singleLine]="true"
         [title]="v.clientName"
         [subtitle]="v.visitType.name + ' · ' + store.visitWhen(v)"
-        [link]="['/visits', v.id]"
+        [clickable]="true"
+        (titleClick)="store.openVisit(v.id)"
         icon="house"
         tone="success"
       >
         <ng-container ngProjectAs="[recordActions]">
-          @if (v.status === 'IN_PROGRESS') {
-            <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/visits', v.id]"></a>
-          } @else if (store.canStartVisit(v)) {
-            <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="store.startingVisit() === v.id" (onClick)="store.startVisit(v)" />
-          }
+          <p-button label="Open visit" size="small" severity="secondary" [outlined]="true" (onClick)="store.openVisit(v.id)" />
         </ng-container>
       </app-record-card>
     }

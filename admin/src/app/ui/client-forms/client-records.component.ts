@@ -11,6 +11,7 @@ import { TagModule } from 'primeng/tag';
 import type { ClientFormOptionDto, ClientFormResultListItemDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ClientFormsApi } from '../../core/client-forms.api';
+import { VisitDetailService } from '../../core/visit-detail.service';
 
 /**
  * Client page's Records tab: every form submitted for the client (client forms, forms filled in on visits, and
@@ -56,7 +57,7 @@ import { ClientFormsApi } from '../../core/client-forms.api';
             </td>
             <td>
               @if (r.visit; as v) {
-                <a class="text-primary" [routerLink]="['/visits', v.id]">{{ v.visitTypeName }}, {{ v.startAt | date: 'MMM d' }}</a>
+                <button type="button" class="link-btn" (click)="visitDetail.open(v.id)">{{ v.visitTypeName }}, {{ v.startAt | date: 'MMM d' }}</button>
               }
             </td>
             <td>{{ r.visit?.teamMemberName ?? r.createdByName ?? r.submitterName ?? r.updatedByName ?? '' }}</td>
@@ -111,6 +112,7 @@ export class ClientRecordsComponent {
   private readonly api = inject(ClientFormsApi);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
+  readonly visitDetail = inject(VisitDetailService);
 
   clientId = input.required<string>();
 

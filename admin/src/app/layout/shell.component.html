@@ -4,6 +4,8 @@
 <app-invoice-mark-paid-dialog />
 <!-- The one person detail modal: every person name opens it (PersonDetailService). -->
 <app-person-detail-modal />
+<!-- The one visit modal: opening a visit anywhere shows it here (VisitDetailService). -->
+<app-visit-detail-modal />
 @if (auth.impersonatedUserId) {
   <div class="impersonation-banner" role="status">Viewing as {{ auth.impersonatedName }}. Changes you make are saved as this user.</div>
 }

@@ -9,7 +9,7 @@ import { PersonComponent } from '../../ui/person/person.component';
 import { DatePipe } from '@angular/common';
 import { afterNextRender, Component, computed, effect, ElementRef, HostListener, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -22,6 +22,7 @@ import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { WEEKDAY_SHORT, type VisitDto, type VisitTypeDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { VisitDetailService } from '../../core/visit-detail.service';
 import { VisitsApi } from '../../core/visits.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { dateKey } from '../../core/date.util';
@@ -78,9 +79,9 @@ function weekStartOf(d: Date): Date {
 })
 export class SchedulePage implements OnInit {
   private readonly visitsApi = inject(VisitsApi);
+  private readonly visitDetail = inject(VisitDetailService);
   private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionService);
-  private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
 
@@ -135,6 +136,12 @@ export class SchedulePage implements OnInit {
   readonly canCreate = computed(() => this.session.can('schedule', 'create'));
   readonly canEdit = computed(() => this.session.can('schedule', 'edit'));
   readonly canDelete = computed(() => this.session.can('schedule', 'delete'));
+
+  /** The plan (edit, move, cancel, delete) changes only for admins and whoever put the visit on the schedule. */
+  canChangePlan(v: VisitDto): boolean {
+    const me = this.session.me();
+    return me?.role === 'ADMIN' || (!!v.createdByUserId && v.createdByUserId === me?.id);
+  }
 
   readonly monthLabel = computed(() => this.monthStart().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
   readonly isThisMonth = computed(() => {
@@ -368,7 +375,7 @@ export class SchedulePage implements OnInit {
   } | null = null;
 
   canDragVisit(s: VisitDto): boolean {
-    return this.canEdit() && s.status === 'SCHEDULED';
+    return this.canEdit() && this.canChangePlan(s) && s.status === 'SCHEDULED';
   }
 
   /** Minutes from the start of the shown week (local time, DST-safe). */
@@ -551,6 +558,7 @@ export class SchedulePage implements OnInit {
       if (body) body.scrollTop = 7 * this.hourPx;
     });
     effect(() => {
+      this.visitDetail.changed();
       this.weekStart();
       this.view();
       this.monthStart();
@@ -632,9 +640,9 @@ export class SchedulePage implements OnInit {
 
   rowActions(s: VisitDto): RowActionItem[] {
     const items: RowActionItem[] = [
-      { id: 'open', label: 'Open visit', icon: 'pi pi-arrow-right', command: () => void this.router.navigate(['/visits', s.id]) },
+      { id: 'open', label: 'Open visit', icon: 'pi pi-arrow-right', command: () => this.visitDetail.open(s.id) },
     ];
-    if (this.canEdit()) {
+    if (this.canEdit() && this.canChangePlan(s)) {
       if (s.status === 'SCHEDULED') items.push({ id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEdit(s) });
       if (s.status === 'SCHEDULED') {
         items.push({ id: 'cancel', label: 'Cancel visit', icon: 'pi pi-ban', severity: 'warn', command: () => void this.setCancelled(s, true) });
@@ -642,7 +650,7 @@ export class SchedulePage implements OnInit {
         items.push({ id: 'restore', label: 'Restore visit', icon: 'pi pi-replay', command: () => void this.setCancelled(s, false) });
       }
     }
-    if (this.canDelete()) {
+    if (this.canDelete() && this.canChangePlan(s)) {
       if (s.status === 'SCHEDULED' || s.status === 'CANCELLED') items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(s, false) });
       if (s.seriesId) items.push({ id: 'delete-following', label: 'Delete this and following', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(s, true) });
     }

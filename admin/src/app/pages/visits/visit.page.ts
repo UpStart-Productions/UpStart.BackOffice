@@ -1,5 +1,5 @@
-import { DatePipe } from '@angular/common';
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { Component, computed, inject, input, OnDestroy, OnInit, output, signal, viewChild, type TemplateRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -10,14 +10,12 @@ import { TextareaModule } from 'primeng/textarea';
 import type { VisitDetailDto, VisitFormDto } from '@upstart/back-office/shared';
 import { AutoSaver } from '../../core/auto-saver';
 import { ClientFormsApi } from '../../core/client-forms.api';
-import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { dateKey } from '../../core/date.util';
 import { VisitsApi } from '../../core/visits.api';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonCardComponent } from '../../ui/record-card/person-card.component';
-import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
 import { TimeInputComponent } from '../../ui/time-input/time-input.component';
 import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.util';
@@ -31,6 +29,7 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
   standalone: true,
   imports: [
     DatePipe,
+    NgTemplateOutlet,
     FormsModule,
     RouterLink,
     ButtonModule,
@@ -41,13 +40,23 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
     HelpTextComponent,
     PageComponent,
     PersonCardComponent,
-    RowActionsMenuComponent,
     SaveStatusComponent,
     TimeInputComponent,
   ],
   template: `
-    <app-page [title]="title()" backLink="/schedule" backLabel="Back to Schedule" helpKey="visit.page">
-      <ng-container ngProjectAs="[pageMeta]">
+    <!-- Embedded: in the visit modal, whose header shows the title, status (visitMeta) and actions (visitActions).
+         Otherwise the /visits/:id page. -->
+    @if (embedded()) {
+      <ng-container *ngTemplateOutlet="visitBody" />
+    } @else {
+      <app-page [title]="title()" backLink="/schedule" backLabel="Back to Schedule" helpKey="visit.page">
+        <ng-container ngProjectAs="[pageMeta]"><ng-container *ngTemplateOutlet="visitMeta" /></ng-container>
+        <ng-container ngProjectAs="[pageActions]"><ng-container *ngTemplateOutlet="visitActions" /></ng-container>
+        <ng-container *ngTemplateOutlet="visitBody" />
+      </app-page>
+    }
+
+    <ng-template #visitMeta>
         @if (visit(); as v) {
           @switch (v.status) {
             @case ('IN_PROGRESS') { <p-tag value="In progress" severity="info" /> }
@@ -57,33 +66,17 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
           @if (v.invoiced) {
             <p-tag value="Invoiced" severity="secondary" />
           }
-          <a [routerLink]="['/accounts', v.clientId]" class="text-primary">Open client</a>
-        }
-      </ng-container>
-      <ng-container ngProjectAs="[pageActions]">
-        @if (visit(); as v) {
-          @if (v.canEdit) {
-            <app-save-status [state]="saver.state()" />
-          }
-          @if (v.canWork && v.status === 'SCHEDULED') {
-            <span class="split-action">
-              <p-button label="Start visit" icon="pi pi-play" [loading]="busy()" (onClick)="start()" />
-              @if (headerActions().length) {
-                <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More visit actions" />
-              }
-            </span>
-          } @else if (v.canWork && v.status === 'IN_PROGRESS') {
-            <span class="split-action">
-              <p-button label="Finish visit" icon="pi pi-stop-circle" [loading]="busy()" (onClick)="finish()" />
-              @if (headerActions().length) {
-                <app-row-actions-menu class="split-action-more" [attached]="true" [items]="headerActions()" ariaLabel="More visit actions" />
-              }
-            </span>
-          } @else if (headerActions().length) {
-            <app-row-actions-menu [items]="headerActions()" ariaLabel="Visit actions" />
+          @if (!embedded()) {
+            <a [routerLink]="['/accounts', v.clientId]" class="text-primary">Open client</a>
           }
         }
-      </ng-container>
+    </ng-template>
+    <ng-template #visitActions>
+        @if (visit()?.canWork) {
+          <app-save-status [state]="saver.state()" />
+        }
+    </ng-template>
+    <ng-template #visitBody>
 
       @if (error()) {
         <div class="card"><p-message severity="error" [text]="error()!" /></div>
@@ -131,7 +124,7 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
                 </div>
                 <div class="form-field v-time">
                   <label for="vEnd">End</label>
-                  <app-time-input inputId="vEnd" [after]="startTime" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable() || v.status === 'IN_PROGRESS'" />
+                  <app-time-input inputId="vEnd" [after]="startTime" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
                 </div>
               </div>
               @if (v.durationMin !== null) {
@@ -142,19 +135,14 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
             <div class="card">
               <div class="form-field">
                 <label for="vNotes">Notes</label>
-                <textarea pTextarea id="vNotes" class="w-full" rows="4" [autoResize]="true" [(ngModel)]="notes" (ngModelChange)="saver.change('notes', $event)" [disabled]="!v.canEdit"></textarea>
+                <textarea pTextarea id="vNotes" class="w-full" rows="4" [autoResize]="true" [(ngModel)]="notes" (ngModelChange)="saver.change('notes', $event)" [disabled]="!v.canWork"></textarea>
               </div>
             </div>
           </div>
 
           <div class="side-panel-stack span-1">
             <div class="card card--side">
-              <div class="card-header"><h2 class="card-title">Visit</h2></div>
               <div class="side-list">
-                <div class="side-list-row">
-                  <div class="side-list-body"><span class="side-list-title">Visit type</span></div>
-                  <span class="side-list-value">{{ v.visitType.name }}</span>
-                </div>
                 @if (v.teamMember; as m) {
                   <app-person-card kind="user" [person]="m" subtitle="Team member" />
                 } @else {
@@ -177,12 +165,13 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
           </div>
         </div>
       }
-    </app-page>
+    </ng-template>
   `,
   styles: `
     .v-time {
       width: 9rem;
     }
+
   `,
 })
 export class VisitPage implements OnInit, OnDestroy {
@@ -191,13 +180,21 @@ export class VisitPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
-  private readonly confirm = inject(ConfirmDeleteService);
 
-  private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
+  /** In the visit modal: the visit to show (the page reads it from the address). */
+  visitId = input<string | null>(null);
+  /** In the visit modal: no page header; leaving (deleted, opened a form or the client) emits leave. */
+  embedded = input(false);
+  leave = output<void>();
+  /** The status tags and the action buttons, for the visit modal's header. */
+  readonly metaTemplate = viewChild<TemplateRef<unknown>>('visitMeta');
+  readonly actionsTemplate = viewChild<TemplateRef<unknown>>('visitActions');
+  private get id(): string {
+    return this.visitId() ?? this.route.snapshot.paramMap.get('id') ?? '';
+  }
 
   visit = signal<VisitDetailDto | null>(null);
   error = signal<string | null>(null);
-  busy = signal(false);
   openingForm = signal<string | null>(null);
 
   /** Auto-save: notes, and the actual times once they make a full time. */
@@ -217,8 +214,16 @@ export class VisitPage implements OnInit, OnDestroy {
   notes = '';
 
   readonly duration = formatDuration;
-  readonly title = computed(() => (this.visit() ? `${this.visit()!.visitType.name}: ${this.visit()!.clientName}` : 'Visit'));
-  readonly timesEditable = computed(() => !!this.visit()?.canEdit && !this.visit()?.invoiced && this.visit()?.status !== 'CANCELLED');
+  /** "Caregiver visit log for Alliance Services on Mon, Nov 16, 7:00 AM" (the planned start). */
+  readonly title = computed(() => {
+    const v = this.visit();
+    return v ? `${v.visitType.name} visit log for ${v.clientName} on ${this.whenLabel()}` : 'Visit log';
+  });
+  readonly whenLabel = computed(() => {
+    const v = this.visit();
+    return v ? new Date(v.startAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+  });
+  readonly timesEditable = computed(() => !!this.visit()?.canWork && !this.visit()?.invoiced && this.visit()?.status !== 'CANCELLED');
 
   async ngOnInit() {
     try {
@@ -236,9 +241,10 @@ export class VisitPage implements OnInit, OnDestroy {
   private apply(v: VisitDetailDto) {
     this.visit.set(v);
     const startedAt = v.startedAt ? new Date(v.startedAt) : null;
+    // Not worked yet: start from the planned times (saved only when changed).
     this.date = dateKey(startedAt ?? new Date(v.startAt));
-    this.startTime = startedAt ? timeKey(startedAt) : '';
-    this.endTime = v.endedAt ? timeKey(new Date(v.endedAt)) : '';
+    this.startTime = timeKey(startedAt ?? new Date(v.startAt));
+    this.endTime = timeKey(new Date(v.endedAt ?? v.endAt));
     this.notes = v.notes ?? '';
   }
 
@@ -253,41 +259,10 @@ export class VisitPage implements OnInit, OnDestroy {
 
   private times(): { startedAt: string; endedAt?: string } {
     const startedAt = atLocal(this.date, this.startTime);
-    if (!this.endTime || this.visit()?.status === 'IN_PROGRESS') return { startedAt: startedAt.toISOString() };
+    if (!this.endTime) return { startedAt: startedAt.toISOString() };
     let endedAt = atLocal(this.date, this.endTime);
     if (endedAt <= startedAt) endedAt = new Date(endedAt.getTime() + 86_400_000); // past midnight
     return { startedAt: startedAt.toISOString(), endedAt: endedAt.toISOString() };
-  }
-
-  headerActions(): RowActionItem[] {
-    const v = this.visit();
-    if (!v?.canEdit) return [];
-    const items: RowActionItem[] = [];
-    if (v.status === 'SCHEDULED') items.push({ id: 'cancel', label: 'Cancel visit', icon: 'pi pi-ban', severity: 'warn', command: () => void this.setCancelled(true) });
-    if (v.status === 'CANCELLED') items.push({ id: 'restore', label: 'Restore visit', icon: 'pi pi-replay', command: () => void this.setCancelled(false) });
-    items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', disabled: v.invoiced, command: () => this.confirmDelete() });
-    return items;
-  }
-
-  async start() {
-    await this.run(async () => {
-      this.apply(await this.visitsApi.startVisit(this.id));
-      this.toast.add({ severity: 'success', summary: 'Visit started' });
-    }, 'Could not start the visit');
-  }
-
-  async finish() {
-    await this.run(async () => {
-      await this.saver.flush();
-      const v = await this.visitsApi.finishVisit(this.id);
-      this.apply(v);
-      const open = v.forms.filter((f) => !f.submittedAt).length;
-      this.toast.add({
-        severity: open ? 'warn' : 'success',
-        summary: 'Visit finished',
-        detail: open ? `Its time was added to the timesheet. ${open} form${open === 1 ? ' isn’t' : 's aren’t'} submitted yet.` : 'Its time was added to the timesheet.',
-      });
-    }, 'Could not finish the visit');
   }
 
   /** Open the visit's copy of a form (made the first time), to fill in and submit. */
@@ -297,47 +272,12 @@ export class VisitPage implements OnInit, OnDestroy {
     this.openingForm.set(f.formId);
     try {
       const { id } = await this.clientForms.create(f.formId, v.clientId, v.id);
+      this.leave.emit();
       await this.router.navigate(['/forms/results', id]);
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not open the form', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
     } finally {
       this.openingForm.set(null);
-    }
-  }
-
-  private async setCancelled(cancelled: boolean) {
-    await this.run(async () => {
-      if (cancelled) await this.visitsApi.cancelVisit(this.id);
-      else await this.visitsApi.restoreVisit(this.id);
-      this.apply(await this.visitsApi.visit(this.id));
-    }, 'Could not update the visit');
-  }
-
-  private confirmDelete() {
-    const v = this.visit();
-    if (!v) return;
-    this.confirm.confirm({
-      message: `Delete this visit to ${v.clientName}? Its time entry is deleted too; forms filled in on it stay on the client. This cannot be undone.`,
-      accept: async () => {
-        try {
-          await this.visitsApi.deleteVisit(v.id);
-          await this.router.navigate(['/schedule']);
-        } catch (err) {
-          this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
-        }
-      },
-    });
-  }
-
-  private async run(fn: () => Promise<void>, failure: string) {
-    this.busy.set(true);
-    this.error.set(null);
-    try {
-      await fn();
-    } catch (err) {
-      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : failure);
-    } finally {
-      this.busy.set(false);
     }
   }
 }

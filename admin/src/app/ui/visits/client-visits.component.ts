@@ -1,5 +1,6 @@
 import { Component, effect, inject, input, signal } from '@angular/core';
 import type { ClientVisitDto } from '@upstart/back-office/shared';
+import { VisitDetailService } from '../../core/visit-detail.service';
 import { VisitsApi } from '../../core/visits.api';
 import { VisitCardComponent } from '../record-card/visit-card.component';
 import { ClientScheduleWidgetComponent } from './client-schedule-widget.component';
@@ -37,6 +38,7 @@ import { ClientScheduleWidgetComponent } from './client-schedule-widget.componen
 })
 export class ClientVisitsComponent {
   private readonly visitsApi = inject(VisitsApi);
+  private readonly visitDetail = inject(VisitDetailService);
 
   clientId = input.required<string>();
   clientName = input('');
@@ -46,6 +48,7 @@ export class ClientVisitsComponent {
 
   constructor() {
     effect(() => {
+      this.visitDetail.changed();
       const id = this.clientId();
       void this.loadPast(id);
     });

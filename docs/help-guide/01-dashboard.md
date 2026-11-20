@@ -19,7 +19,7 @@ Each card has an icon and title in its header, a grip handle for moving it, and 
 - **Pipeline & relationships**: **Next steps this week** at the top lists next steps coming up. Below it, each pipeline in board order, under its name: its card count, the total of their **Estimated value**, and each lane with its card count and a bar showing its share of that pipeline's cards. Click a lane to open that pipeline. Cards that only track an invoice, project or client aren't counted. **Gone quiet** lists active accounts nobody has contacted in a while, with days since last contact. **→** opens Pipeline.
 - **Since last time**: what happened in the last week, newest first: payments received, comments on your tasks, tasks given to you, bookings made, form submissions and email that came in unfiled. Anything after your last visit is tagged **New**. **→** opens Activity.
 - **My time** (roles with Time): hours this week and the share that is billable, with **Log time** (or the running timer and its stop button). **By project** shows your four biggest projects this week with their hours; click one to open it. A bar for each day Monday to Sunday sits at the bottom of the card.
-- **My visits** (roles with Schedule): your visits for the next week. **Start visit** on today's visits starts it; **Open visit** once it's in progress. **→** opens the Schedule.
+- **My visits** (roles with Schedule): your visits for the next week. Each has **Open visit**, which opens its log. **→** opens the Schedule.
 
 ## Rearranging
 

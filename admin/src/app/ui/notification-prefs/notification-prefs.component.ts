@@ -37,6 +37,7 @@ import { SessionService } from '../../core/session.service';
         padding: 0 0.35rem 0.5rem;
         color: var(--text-color-secondary);
         font-size: var(--fs-xs);
+        white-space: nowrap;
       }
       .notification-pref-table th:first-child {
         text-align: left;

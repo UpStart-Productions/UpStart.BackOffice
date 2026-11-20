@@ -1,5 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { DashboardPanelComponent } from '../../dashboard-panel/dashboard-panel.component';
 import { RecordCardComponent } from '../../record-card/record-card.component';
@@ -9,7 +8,7 @@ import { DashboardStore } from '../dashboard-store.service';
 @Component({
   selector: 'app-dashboard-visits-panel',
   standalone: true,
-  imports: [RouterLink, ButtonModule, DashboardPanelComponent, RecordCardComponent],
+  imports: [ButtonModule, DashboardPanelComponent, RecordCardComponent],
   templateUrl: './dashboard-visits-panel.component.html',
 })
 export class DashboardVisitsPanelComponent {

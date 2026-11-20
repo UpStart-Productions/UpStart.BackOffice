@@ -47,6 +47,7 @@ export function visitView(r: VisitRow): VisitDto {
     startedAt: r.startedAt?.toISOString() ?? null,
     endedAt: r.endedAt?.toISOString() ?? null,
     durationMin: r.startedAt && r.endedAt ? minutesBetween(r.startedAt, r.endedAt) : null,
+    createdByUserId: r.createdByUserId,
   };
 }
 

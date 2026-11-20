@@ -14,7 +14,7 @@ import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { canEditVisit, canWorkVisit, visitScope } from './visit-access.util';
+import { canChangePlan, canWorkVisit, visitScope } from './visit-access.util';
 import { minutesBetween, PERSON, personRef, repeatLabel, VISIT_FORMS_INCLUDE, VISIT_INCLUDE, visitForms, visitView, type VisitRow } from './visit-view.util';
 import { addDaysToDate, formatVisitStart, isValidTimeZone, localDate, visitInstants, weekdayOf } from './zoned-time.util';
 
@@ -65,9 +65,10 @@ export class FinishVisitDto {
 }
 
 /**
- * Schedule (core): visits per client and team member (or open), one-off or repeating weekly. A team member starts
- * and finishes their visit; finishing creates a time entry so the hours flow into invoicing. Forms attached to the
- * visit's type are filled in on it (client forms API) and land on the client's Records tab.
+ * Schedule (core): visits per client and team member (or open), one-off or repeating weekly. The plan (when, who,
+ * what) changes only by an admin or whoever scheduled it (canChangePlan). The visit log (actual times, notes, forms)
+ * is filled in by the team member on it or an admin (canWorkVisit); a start and end finish it and create a time entry
+ * so the hours flow into invoicing. Forms attached to the visit's type land on the client's Records tab.
  * Schedule: Own = the user's own visits (they can only plan their own); All = everyone's, at the clients they reach.
  */
 @ApiTags('visits')
@@ -193,6 +194,11 @@ export class VisitsController {
   async update(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateVisitDto) {
     const user = req.user as UserContext;
     const visit = await this.find(user, id);
+    const changesPlan =
+      dto.userId !== undefined || !!dto.clientId || !!dto.visitTypeId || !!(dto.date || dto.startTime || dto.endTime || dto.timezone);
+    const changesLog = dto.notes !== undefined || !!dto.startedAt || !!dto.endedAt;
+    if (changesPlan && !canChangePlan(user, visit)) throw new ForbiddenException('Only an admin or whoever scheduled this visit can change it');
+    if (changesLog && !canWorkVisit(user, visit)) throw new ForbiddenException('Only the team member on this visit can fill in its log');
     const data: Prisma.VisitUncheckedUpdateInput = {};
     let teamMemberId = visit.userId;
     if (dto.userId !== undefined) {
@@ -230,13 +236,13 @@ export class VisitsController {
     return { visit: visitView(updated), conflicts: teamMemberId ? await this.conflicts(teamMemberId, id) : 0 };
   }
 
-  /** Start the visit now. An open visit becomes the starter's. */
+  /** Start the visit now (kept for a future mobile app; the web log just takes the times). An open visit becomes the starter's. */
   @Post(':id/start')
   @Action('edit')
   async start(@Req() req: Request, @Param('id') id: string): Promise<VisitDetailDto> {
     const user = req.user as UserContext;
     const visit = await this.find(user, id);
-    if (!canWorkVisit(this.access, user, visit)) throw new ForbiddenException('Only the team member on this visit can start it');
+    if (visit.userId ? !canWorkVisit(user, visit) : !canChangePlan(user, visit)) throw new ForbiddenException('Only the team member on this visit can start it');
     if (visit.status !== 'SCHEDULED') throw new BadRequestException(visit.status === 'CANCELLED' ? 'This visit is cancelled' : 'This visit has already started');
     const teamMemberId = visit.userId ?? user.id;
     const running = await this.prisma.visit.findFirst({ where: { userId: teamMemberId, status: 'IN_PROGRESS' }, select: { id: true } });
@@ -245,13 +251,13 @@ export class VisitsController {
     return this.detail(user, id);
   }
 
-  /** Finish a visit in progress (now, or at endedAt) and create its time entry. */
+  /** Finish a visit in progress (now, or at endedAt) and create its time entry (kept for a future mobile app). */
   @Post(':id/finish')
   @Action('edit')
   async finish(@Req() req: Request, @Param('id') id: string, @Body() dto: FinishVisitDto): Promise<VisitDetailDto> {
     const user = req.user as UserContext;
     const visit = await this.find(user, id);
-    if (!canWorkVisit(this.access, user, visit)) throw new ForbiddenException('Only the team member on this visit can finish it');
+    if (!canWorkVisit(user, visit)) throw new ForbiddenException('Only the team member on this visit can finish it');
     if (visit.status !== 'IN_PROGRESS' || !visit.startedAt) throw new BadRequestException('This visit is not in progress');
     const endedAt = dto.endedAt ? new Date(dto.endedAt) : new Date();
     if (endedAt <= visit.startedAt) throw new BadRequestException('The end must be after the start');
@@ -263,7 +269,9 @@ export class VisitsController {
   @Post(':id/cancel')
   @Action('edit')
   async cancel(@Req() req: Request, @Param('id') id: string) {
-    const visit = await this.find(req.user as UserContext, id);
+    const user = req.user as UserContext;
+    const visit = await this.find(user, id);
+    if (!canChangePlan(user, visit)) throw new ForbiddenException('Only an admin or whoever scheduled this visit can cancel it');
     if (visit.status !== 'SCHEDULED') throw new BadRequestException('Only a visit that hasn\'t started can be cancelled');
     await this.prisma.visit.update({ where: { id }, data: { status: 'CANCELLED' } });
     return visitView(await this.prisma.visit.findUniqueOrThrow({ where: { id }, include: VISIT_INCLUDE }));
@@ -272,7 +280,9 @@ export class VisitsController {
   @Post(':id/restore')
   @Action('edit')
   async restore(@Req() req: Request, @Param('id') id: string) {
-    const visit = await this.find(req.user as UserContext, id);
+    const user = req.user as UserContext;
+    const visit = await this.find(user, id);
+    if (!canChangePlan(user, visit)) throw new ForbiddenException('Only an admin or whoever scheduled this visit can restore it');
     if (visit.status !== 'CANCELLED') throw new BadRequestException('This visit is not cancelled');
     await this.prisma.visit.update({ where: { id }, data: { status: 'SCHEDULED' } });
     return visitView(await this.prisma.visit.findUniqueOrThrow({ where: { id }, include: VISIT_INCLUDE }));
@@ -284,7 +294,9 @@ export class VisitsController {
    */
   @Delete(':id')
   async remove(@Req() req: Request, @Param('id') id: string, @Query('following') following?: string) {
-    const visit = await this.find(req.user as UserContext, id);
+    const user = req.user as UserContext;
+    const visit = await this.find(user, id);
+    if (!canChangePlan(user, visit)) throw new ForbiddenException('Only an admin or whoever scheduled this visit can delete it');
     if (following === 'true' && visit.seriesId) {
       const series = await this.prisma.visitSeries.findUniqueOrThrow({ where: { id: visit.seriesId } });
       const day = localDate(visit.startAt, series.timezone);
@@ -348,6 +360,11 @@ export class VisitsController {
   /** Create the series' visits from the day after generatedUntil through `until` (local dates). Returns new ids. */
   private async generate(seriesId: string, until: string, createdByUserId: string | null): Promise<string[]> {
     const s = await this.prisma.visitSeries.findUniqueOrThrow({ where: { id: seriesId } });
+    // Visits added later (looking ahead) keep whoever planned the series.
+    if (!createdByUserId) {
+      const first = await this.prisma.visit.findFirst({ where: { seriesId, createdByUserId: { not: null } }, select: { createdByUserId: true } });
+      createdByUserId = first?.createdByUserId ?? null;
+    }
     const last = s.endDate && s.endDate < until ? s.endDate : until;
     const ids: string[] = [];
     for (let day = addDaysToDate(s.generatedUntil, 1); day <= last; day = addDaysToDate(day, 1)) {
@@ -413,8 +430,7 @@ export class VisitsController {
       forms: visitForms(v),
       timeEntryId: v.timeEntryId,
       invoiced: invoiced(v),
-      canEdit: canEditVisit(user),
-      canWork: canWorkVisit(this.access, user, v),
+      canWork: canWorkVisit(user, v),
     };
   }
 
@@ -422,11 +438,13 @@ export class VisitsController {
     if (!visit.userId) return;
     try {
       const when = formatVisitStart(visit.startAt, visit.timezone);
+      const who = actor.firstName ?? actor.email;
+      const repeat = repeating && visit.series ? `, repeating ${repeatLabel(visit.series.weekdays).toLowerCase()}` : '';
       await this.delivery.deliver({
         userId: visit.userId,
         type: 'visit_assigned',
-        title: `${repeating ? 'New repeating visit' : 'New visit'}: ${visit.client.name}`,
-        body: `${visit.visitType.name}, ${when}${repeating && visit.series ? ` (${repeatLabel(visit.series.weekdays).toLowerCase()})` : ''}. Assigned by ${actor.firstName ?? actor.email}.`,
+        title: `You have a ${repeating ? 'repeating ' : ''}visit with ${visit.client.name}`,
+        body: `${who} put you on the schedule for a ${visit.visitType.name} visit at ${visit.client.name}, ${repeating ? 'starting ' : ''}${when}${repeat}. It's on your Schedule.`,
         meta: { entityType: 'visit', entityId: visit.id, route: ['visits', visit.id], actionLabel: 'Open visit' },
       });
     } catch (err) {

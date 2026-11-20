@@ -56,12 +56,6 @@ export class VisitsApi {
   updateVisit(id: string, body: Partial<VisitInput> & { startedAt?: string; endedAt?: string }) {
     return this.api.put<{ visit: VisitDto; conflicts: number }>(`/visits/${id}`, body);
   }
-  startVisit(id: string) {
-    return this.api.post<VisitDetailDto>(`/visits/${id}/start`, {});
-  }
-  finishVisit(id: string) {
-    return this.api.post<VisitDetailDto>(`/visits/${id}/finish`, {});
-  }
   cancelVisit(id: string) {
     return this.api.post<VisitDto>(`/visits/${id}/cancel`, {});
   }

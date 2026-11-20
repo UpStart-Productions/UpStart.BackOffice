@@ -324,7 +324,7 @@ export class ClientFormsController {
       where: { AND: [{ id: visitId }, await visitScope(this.access, user)] },
       select: { id: true, clientId: true, userId: true, visitTypeId: true },
     });
-    return visit && canWorkVisit(this.access, user, visit) ? visit : null;
+    return visit && canWorkVisit(user, visit) ? visit : null;
   }
 
   private async clientForms(): Promise<FormRow[]> {

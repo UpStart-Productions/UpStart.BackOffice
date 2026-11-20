@@ -1,9 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import type { VisitDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
+import { VisitDetailService } from '../../core/visit-detail.service';
 import { VisitsApi } from '../../core/visits.api';
 import { SchedulePage } from '../../pages/schedule/schedule.page';
 import { MonthCalendarComponent, type CalendarEvent } from '../calendar/month-calendar.component';
@@ -101,7 +101,7 @@ import { VisitCardComponent } from '../record-card/visit-card.component';
 })
 export class ClientScheduleWidgetComponent {
   private readonly visitsApi = inject(VisitsApi);
-  private readonly router = inject(Router);
+  private readonly visitDetail = inject(VisitDetailService);
   private readonly datePipe = inject(DatePipe);
 
   clientId = input.required<string>();
@@ -129,13 +129,14 @@ export class ClientScheduleWidgetComponent {
 
   constructor() {
     effect(() => {
+      this.visitDetail.changed();
       const d = this.viewDate();
       void this.load(this.clientId(), new Date(d.getFullYear(), d.getMonth(), 1));
     });
   }
 
   openVisit(event: CalendarEvent<VisitDto>) {
-    if (event.meta) void this.router.navigate(['/visits', event.meta.id]);
+    if (event.meta) this.visitDetail.open(event.meta.id);
   }
 
   close() {

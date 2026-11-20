@@ -3,6 +3,7 @@ import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import type { VisitDto, VisitFormDto } from '@upstart/back-office/shared';
+import { VisitDetailService } from '../../core/visit-detail.service';
 import { Person } from '../../task-manager/core/tm.types';
 import { PersonComponent } from '../person/person.component';
 import { RecordCardBadge, RecordCardComponent } from './record-card.component';
@@ -45,7 +46,8 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
       [person]="avatar()"
       icon="calendar-clock"
       [title]="title()"
-      [link]="['/visits', visit().id]"
+      [clickable]="true"
+      (titleClick)="visitDetail.open(visit().id)"
       [badges]="[...statusBadges(), ...extraBadges()]"
       [actions]="actions()"
     >
@@ -82,6 +84,7 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
 })
 export class VisitCardComponent extends RecordCardWrapper {
   private readonly datePipe = inject(DatePipe);
+  readonly visitDetail = inject(VisitDetailService);
 
   visit = input.required<VisitDto>();
   /** The forms of its visit type (past visits); omitted for upcoming ones. */

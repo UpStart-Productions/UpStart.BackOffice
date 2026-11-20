@@ -215,7 +215,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Cards',
-        body: 'Financial health has a date range picker; Collected, Outstanding, Unbilled work and Net (Drafts to send for non-admins) and the Invoiced vs collected chart all follow it, plus Needs action: drafts to send, overdue invoices and clients with unbilled work. The guide suggestions card lists up to three things worth doing (an account gone quiet, an overdue or waiting invoice, unbilled work); its button opens the guide with the request ready, and Not now hides one for 3 days. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them): the three oldest overdue, New for you and Due this week, each with a check button to mark it done. Pipeline & relationships shows next steps this week at the top, then each pipeline by name with its card count, estimated value and lanes, then Gone quiet accounts. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My visits lists your visits for the next week with Start visit (today) and Open visit (in progress).',
+        body: 'Financial health has a date range picker; Collected, Outstanding, Unbilled work and Net (Drafts to send for non-admins) and the Invoiced vs collected chart all follow it, plus Needs action: drafts to send, overdue invoices and clients with unbilled work. The guide suggestions card lists up to three things worth doing (an account gone quiet, an overdue or waiting invoice, unbilled work); its button opens the guide with the request ready, and Not now hides one for 3 days. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them): the three oldest overdue, New for you and Due this week, each with a check button to mark it done. Pipeline & relationships shows next steps this week at the top, then each pipeline by name with its card count, estimated value and lanes, then Gone quiet accounts. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My visits lists your visits for the next week, each with Open visit (its log).',
       },
       {
         heading: "Mine / Everyone's",
@@ -972,20 +972,16 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
 
   // ── Schedule ──────────────────────────────────────────
   'visits/:id': {
-    title: 'Visit',
-    intro: "One visit: its forms, the actual time and notes. Visits open from the Schedule (⋮ → Open visit), Dashboard → My visits, a client's Visits or Records tab, or search.",
+    title: 'Visit log',
+    intro: "What actually happened on one visit: its forms, the actual time and notes. It never changes the schedule (cancel or delete a visit on the Schedule). Opens from the Schedule (⋮ → Open visit), Dashboard → My visits, a client's Visits or Records tab, or search.",
     sections: [
-      {
-        heading: 'Start visit and Finish visit',
-        body: "The team member on the visit starts it when they arrive and finishes it when they leave. Finishing adds the hours to the timesheet. Cancel visit and Delete are in the ⋮ menu.",
-      },
       {
         heading: 'Forms',
         body: "The forms attached to the visit's type. Fill in opens the form for this visit; Submit it when done. Submissions show on the client's Records tab.",
       },
       {
         heading: 'Actual time',
-        body: "Change the date, start or end; it saves on its own and the time entry follows. Typing a start and end for a visit that already happened finishes it. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked and the visit can't be deleted.",
+        body: "Starts out as the planned times. Change the date, start or end to what really happened; it saves on its own. A start and end finish the visit and add the hours to the timesheet. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked.",
       },
     ],
   },
@@ -1000,7 +996,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Visit menu',
-        body: 'Open visit goes to the visit (to start it, fill in its forms and finish it). Edit changes that one visit. Cancel visit keeps it on the schedule crossed out (Restore visit brings it back). Delete removes it; Delete this and following ends a repeating series from that visit on.',
+        body: 'Open visit opens its log (forms, actual time, notes). Edit changes that one visit. Cancel visit keeps it on the schedule crossed out (Restore visit brings it back). Delete removes it; Delete this and following ends a repeating series from that visit on.',
       },
       {
         heading: 'Visit types',

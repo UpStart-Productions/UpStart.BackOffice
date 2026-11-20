@@ -33,15 +33,14 @@ Use **‹** and **›** and the calendar to move around. Filter by **Team member
 - A visit's ⋮ menu: **Open visit**, **Edit** (that visit only), **Cancel visit** / **Restore visit**, **Delete**, **Delete this and following** (repeating visits; visits already started stay).
 - Tags show **Cancelled**, **In progress** and **Done**.
 
-## A visit
+## A visit log
 
-**Open visit** (from the Schedule, the Dashboard, a client's Visits or Records tab, or search) shows the visit type, team member, planned time, its forms, the actual time and notes.
+**Open visit** (from the Schedule, the Dashboard, a client's Visits or Records tab, or search) opens the visit log: what actually happened on the visit. Its title reads like "Caregiver visit log for Alliance Services on Mon, Nov 16, 7:00 AM". The log never changes the schedule.
 
-- **Start visit**: the team member on the visit starts it when they arrive.
 - **Forms**: the forms of its visit type. **Fill in** opens the form for this visit; **Submit** it when done. It shows **In progress** or **Submitted**.
-- **Finish visit**: sets the end to now and adds the hours to the team member's timesheet (no project, billable), so they invoice like any other time.
-- **Actual time** and **Notes** save as you change them; the time entry follows. For a visit that already happened, type its start and end to finish it. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted.
-- The ⋮ menu has **Cancel visit** and **Delete** (also deletes its time entry; forms filled in on it stay on the client).
+- **Actual time**: starts out as the planned times. Change them to what really happened; with a start and end the visit is done and the hours go to the team member's timesheet (no project, billable), so they invoice like any other time. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked.
+- **Notes** save as you type.
+- The team member on the visit and admins fill in the log. Cancelling or deleting a visit is done on the Schedule.
 
 ## A client's Visits and Records tabs
 
@@ -54,12 +53,13 @@ Emails, notes and conversations stay in **Activity** on the Details tab.
 
 ## Who sees what
 
-- **Schedule** (Users → Roles): **Own** sees only your own visits (you can only plan your own) and **All** sees everyone's at the clients you reach. **Edit** lets someone start, finish and change visits.
+- **Schedule** (Users → Roles): **Own** sees only your own visits (you can only plan your own) and **All** sees everyone's at the clients you reach.
+- **Changing the plan** (Edit, dragging, Cancel visit, Delete) is for admins and whoever put the visit on the schedule. A visit someone else scheduled for you is read-only on the Schedule; you fill in its log.
 - The team member on a visit can fill in its forms and see them on the client's Records tab, whatever the form's role settings.
 
 ## Dashboard: My visits
 
-Roles with Schedule see **My visits**: their visits for the next week. **Start visit** shows on today's visits; **Open visit** once one is in progress.
+Roles with Schedule see **My visits**: their visits for the next week, each with **Open visit** (its log).
 
 ## Reports
 

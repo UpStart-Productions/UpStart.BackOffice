@@ -13,13 +13,18 @@ export async function visitScope(access: AccessService, user: UserContext): Prom
   return reach ? { clientId: reach } : {};
 }
 
-/** Can change a visit the user sees (plan, notes, actual times). */
-export function canEditVisit(user: UserContext): boolean {
-  return isAdminRole(user.role) || allows(user, 'schedule', 'edit');
+/**
+ * Can change the plan (date, times, client, type, team member) or cancel / delete it: admins, and whoever put the
+ * visit on the schedule. A visit someone else planned for you is a record of what was asked: you log it, you don't
+ * rewrite it.
+ */
+export function canChangePlan(user: UserContext, visit: { createdByUserId: string | null }): boolean {
+  if (isAdminRole(user.role)) return true;
+  return allows(user, 'schedule', 'edit') && !!visit.createdByUserId && visit.createdByUserId === user.id;
 }
 
-/** Can start and finish a visit and fill in its forms: the team member on it, or someone who sees everyone's visits. */
-export function canWorkVisit(access: AccessService, user: UserContext, visit: { userId: string | null }): boolean {
-  if (!canEditVisit(user)) return false;
-  return visit.userId === user.id || isAdminRole(user.role) || access.level(user, 'schedule') === 'all';
+/** Can fill in the visit log (actual times, notes, forms): the team member on the visit, or an admin. */
+export function canWorkVisit(user: UserContext, visit: { userId: string | null }): boolean {
+  if (isAdminRole(user.role)) return true;
+  return allows(user, 'schedule', 'edit') && visit.userId === user.id;
 }

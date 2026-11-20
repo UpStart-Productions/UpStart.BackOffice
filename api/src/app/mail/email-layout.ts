@@ -124,10 +124,11 @@ export function wrapClientEmail(params: {
       ${params.greeting ? `<p style="margin:28px 0 12px;font-size:15px;color:#2d2d2d;">${escapeHtml(params.greeting)}</p>` : ''}
       ${params.intro ? `<p style="margin:0 0 12px;font-size:15px;line-height:1.55;color:#2d2d2d;">${escapeHtml(params.intro)}</p>` : ''}
       ${summaryHtml}
-      ${actionHtml}
       ${params.extraHtml ?? ''}
-      ${params.tenantBranding ? buildTenantBrandingHtml(params.tenantBranding) : ''}
       ${params.closing ? `<p style="margin:28px 0 0;font-size:15px;color:#2d2d2d;">${escapeHtml(params.closing)}</p>` : ''}
+      ${/* The button and its note come after the message, just above the sender and footer (every email). */ ''}
+      ${actionHtml}
+      ${params.tenantBranding ? buildTenantBrandingHtml(params.tenantBranding) : ''}
     </div>
     ${buildEmailFooterHtml()}
   </div>

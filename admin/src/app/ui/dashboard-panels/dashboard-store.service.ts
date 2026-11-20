@@ -13,6 +13,7 @@ import {
   type PermissionArea,
 } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
+import { VisitDetailService } from '../../core/visit-detail.service';
 import { VisitsApi } from '../../core/visits.api';
 import { FormsApi } from '../../core/forms.api';
 import { ActivityQueues, CommunicationsApi, QueueRow, relativeTime } from '../../core/communications.api';
@@ -219,6 +220,7 @@ export class DashboardStore implements OnInit, OnDestroy {
   private readonly toast = inject(MessageService);
   private readonly formsApi = inject(FormsApi);
   private readonly visitsApi = inject(VisitsApi);
+  private readonly visitDetail = inject(VisitDetailService);
   private readonly pipelinesApi = inject(PipelinesApi);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -303,7 +305,6 @@ export class DashboardStore implements OnInit, OnDestroy {
   readonly visits = signal<Section<VisitDto[]>>(section([]));
   readonly pipelines = signal<Section<PipelineSummary[]>>(section([]));
   readonly leads = signal<Section<Lead[]>>(section([]));
-  readonly startingVisit = signal<string | null>(null);
   readonly weather = signal<Weather | null>(null);
   /** Weather is for this browser's location (not the business address). */
   readonly weatherHere = signal(false);
@@ -1165,25 +1166,14 @@ export class DashboardStore implements OnInit, OnDestroy {
     this.visits().data.filter((v) => v.status === 'IN_PROGRESS' || (v.status === 'SCHEDULED' && new Date(v.endAt).getTime() >= Date.now())),
   );
 
-  canStartVisit(v: VisitDto): boolean {
-    return v.status === 'SCHEDULED' && dateKey(new Date(v.startAt)) === dateKey(new Date());
-  }
-
   visitWhen(v: VisitDto): string {
     const d = new Date(v.startAt);
     return `${dueLabel(dateKey(d))} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   }
 
-  async startVisit(v: VisitDto) {
-    this.startingVisit.set(v.id);
-    try {
-      await this.visitsApi.startVisit(v.id);
-      await this.router.navigate(['/visits', v.id]);
-    } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not start visit', detail: errorText(err, 'Failed') });
-    } finally {
-      this.startingVisit.set(null);
-    }
+  /** Open a visit's log in the visit modal. */
+  openVisit(id: string) {
+    this.visitDetail.open(id);
   }
 
   // ── Weather ──────────────────────────────────────────────────────────────
