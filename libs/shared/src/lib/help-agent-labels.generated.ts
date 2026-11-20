@@ -1326,6 +1326,7 @@ export const HELP_AGENT_UI_LABELS: readonly string[] = [
   "select sections",
   "select state",
   "select tasks",
+  "select team member",
   "selected",
   "send",
   "send (preview)",

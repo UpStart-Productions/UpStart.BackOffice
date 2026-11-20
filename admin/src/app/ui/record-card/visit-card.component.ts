@@ -3,13 +3,14 @@ import { Component, computed, inject, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import type { VisitDto, VisitFormDto } from '@upstart/back-office/shared';
+import { Person } from '../../task-manager/core/tm.types';
 import { PersonComponent } from '../person/person.component';
 import { RecordCardBadge, RecordCardComponent } from './record-card.component';
 import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
 
 /**
- * A visit as the standard record card: date and visit type with its status; the times and the team member (inline
- * name, opens the person detail modal) on one line; and (when given) the forms of its visit type.
+ * A visit as the standard record card: the team member's avatar, date and visit type with its status; the times and
+ * the team member's name (opens the person detail modal) on one line; and (when given) the forms of its visit type.
  */
 @Component({
   selector: 'app-visit-card',
@@ -41,6 +42,7 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
   template: `
     <app-record-card
       [variant]="variant()"
+      [person]="avatar()"
       icon="calendar-clock"
       [title]="title()"
       [link]="['/visits', visit().id]"
@@ -52,7 +54,7 @@ import { RECORD_CARD_SLOTS, RecordCardWrapper } from './record-card-wrapper';
         <div class="visit-card-line">
           <span>{{ subtitleOverride() ?? subtitle() }}</span>
           @if (visit().teamMember; as m) {
-            <app-person [name]="m.name" [email]="m.email" [avatarUrl]="m.avatarUrl" [personId]="m.id" [userId]="m.id" size="sm" />
+            <app-person [name]="m.name" [email]="m.email" [avatarUrl]="m.avatarUrl" [personId]="m.id" [userId]="m.id" [nameOnly]="true" />
           } @else {
             <span>Unassigned</span>
           }
@@ -95,6 +97,12 @@ export class VisitCardComponent extends RecordCardWrapper {
     const start = this.datePipe.transform(this.when(), 'h:mm a');
     const end = this.datePipe.transform(v.endedAt ?? v.endAt, 'h:mm a');
     return `${start} – ${end}`;
+  });
+
+  /** The team member's avatar leads the card (the calendar icon when nobody is assigned). */
+  readonly avatar = computed<Person | null>(() => {
+    const m = this.visit().teamMember;
+    return m ? { id: m.id, name: m.name, email: m.email, firstName: null, lastName: null, avatarUrl: m.avatarUrl, role: 'USER', isGuest: false } : null;
   });
 
   readonly statusBadges = computed<RecordCardBadge[]>(() => {

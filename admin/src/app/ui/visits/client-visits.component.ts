@@ -13,24 +13,17 @@ import { ClientScheduleWidgetComponent } from './client-schedule-widget.componen
   selector: 'app-client-visits',
   standalone: true,
   imports: [VisitCardComponent, ClientScheduleWidgetComponent],
-  styles: `
-    .client-visits-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-  `,
   template: `
     <div class="grid grid-3">
       <div class="stack span-2">
         @if (pastLoading()) {
           <div class="card"><p class="side-list-empty m-0"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p></div>
         } @else {
-          <div class="client-visits-list">
+          <div class="card">
             @for (v of past(); track v.id) {
-              <app-visit-card variant="card" [visit]="v" [forms]="v.forms" />
+              <app-visit-card [visit]="v" [forms]="v.forms" />
             } @empty {
-              <div class="card"><p class="side-list-empty m-0">No visits yet.</p></div>
+              <p class="side-list-empty m-0">No visits yet.</p>
             }
           </div>
         }

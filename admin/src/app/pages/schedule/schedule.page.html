@@ -1,10 +1,6 @@
-<!-- Embedded (a client's schedule in an overlay): no page chrome, locked to that client. Otherwise the Schedule page. -->
+<!-- Embedded (a client's schedule in an overlay): no page chrome, locked to that client; the overlay's header holds
+     Add visit and the Team member filter. Otherwise the Schedule page. -->
 @if (embedded()) {
-  @if (canCreate()) {
-    <div class="sched-embedded-actions">
-      <p-button label="Add visit" icon="pi pi-plus" (onClick)="openNew()" />
-    </div>
-  }
   <ng-container *ngTemplateOutlet="scheduleBody" />
 } @else {
   <app-page title="Schedule" helpKey="schedule.page">
@@ -70,7 +66,7 @@
           </div>
         </div>
       </div>
-      @if (seeAll()) {
+      @if (seeAll() && !embedded()) {
         <div class="form-field sched-filter">
           <label for="schedWorker">Team member</label>
           <app-people-select

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import type { VisitDto } from '@upstart/back-office/shared';
@@ -7,7 +7,8 @@ import { AppDialogModule } from '../../core/app-dialog.module';
 import { VisitsApi } from '../../core/visits.api';
 import { SchedulePage } from '../../pages/schedule/schedule.page';
 import { MonthCalendarComponent, type CalendarEvent } from '../calendar/month-calendar.component';
-import { PersonCardComponent } from '../record-card/person-card.component';
+import { PeopleSelectComponent } from '../people-select/people-select.component';
+import { VisitCardComponent } from '../record-card/visit-card.component';
 
 /**
  * A client's schedule in the side panel: a month calendar where days with visits are tinted; click one to see that
@@ -17,12 +18,25 @@ import { PersonCardComponent } from '../record-card/person-card.component';
 @Component({
   selector: 'app-client-schedule-widget',
   standalone: true,
-  imports: [ButtonModule, AppDialogModule, SchedulePage, MonthCalendarComponent, PersonCardComponent],
+  imports: [ButtonModule, AppDialogModule, SchedulePage, MonthCalendarComponent, VisitCardComponent, PeopleSelectComponent],
   providers: [DatePipe],
   styles: `
-    .csw-visit-label {
-      font-size: var(--fs-sm);
-      color: var(--text-color-secondary);
+    .csw-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex: 1 1 auto;
+      min-width: 0;
+      margin-right: 1rem;
+    }
+    .csw-team-member {
+      width: 18rem;
+    }
+    .csw-dialog-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
   `,
   template: `
@@ -40,19 +54,13 @@ import { PersonCardComponent } from '../record-card/person-card.component';
       />
     </div>
 
-    <!-- A visit in the day popover: its type and times above the team member's person card. -->
+    <!-- A visit in the day popover: the same visit card as the Visits list (status, times, team member). -->
     <ng-template #visitRow let-ev>
-      <span class="csw-visit-label">{{ ev.typeLabel }} · {{ ev.subtitle }}</span>
-      @if (ev.meta?.teamMember; as m) {
-        <app-person-card kind="user" [person]="m" />
-      } @else {
-        <span class="csw-visit-label">Unassigned</span>
-      }
+      <app-visit-card [visit]="ev.meta" />
     </ng-template>
 
     @if (expanded()) {
       <p-dialog
-        [header]="clientName() ? 'Schedule: ' + clientName() : 'Schedule'"
         [visible]="true"
         (visibleChange)="$event ? null : close()"
         [modal]="true"
@@ -62,6 +70,30 @@ import { PersonCardComponent } from '../record-card/person-card.component';
         [style]="{ width: '96vw', height: '94vh' }"
         [contentStyle]="{ overflow: 'auto' }"
       >
+        <ng-template #header>
+          <div class="csw-dialog-header">
+            <span class="p-dialog-title">{{ clientName() ? 'Schedule: ' + clientName() : 'Schedule' }}</span>
+            @if (schedule(); as s) {
+              <div class="csw-dialog-actions">
+                @if (s.seeAll()) {
+                  <app-people-select
+                    inputId="cswTeamMember"
+                    [options]="s.teamMembers()"
+                    [pickId]="s.teamMemberId()"
+                    (pickIdChange)="s.teamMemberId.set($event)"
+                    class="csw-team-member"
+                    placeholder="Select team member"
+                    filterPlaceholder="Search team…"
+                    ariaLabel="Team member"
+                  />
+                }
+                @if (s.canCreate()) {
+                  <p-button label="Add visit" icon="pi pi-plus" (onClick)="s.openNew()" />
+                }
+              </div>
+            }
+          </div>
+        </ng-template>
         <app-schedule-page [embedded]="true" [clientLock]="clientId()" />
       </p-dialog>
     }
@@ -81,6 +113,8 @@ export class ClientScheduleWidgetComponent {
   viewDate = signal(new Date());
   private readonly visits = signal<VisitDto[]>([]);
   expanded = signal(false);
+  /** The schedule in the overlay: its header controls (Team member, Add visit) drive it. */
+  readonly schedule = viewChild(SchedulePage);
 
   /** Each visit as a calendar event: the visit type, then who and when. */
   readonly events = computed<CalendarEvent<VisitDto>[]>(() =>

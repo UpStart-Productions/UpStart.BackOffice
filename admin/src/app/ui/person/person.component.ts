@@ -19,9 +19,9 @@ import { avatarPalette, initials } from '../../task-manager/core/tm-format.util'
   },
   template: `
     <span class="person" [class.person--two-line]="!!subtitle()">
-      @if (photo()) {
+      @if (photo() && !nameOnly()) {
         <img [class]="personAvatarClass()" [src]="photo()!" alt="" />
-      } @else {
+      } @else if (!nameOnly()) {
         <span
           [class]="personAvatarClass()"
           aria-hidden="true"
@@ -75,6 +75,8 @@ export class PersonComponent {
   /** A user (team member): the name opens the person detail modal with what's shown here. */
   userId = input<string | null | undefined>(null);
   avatarOnly = input(false);
+  /** Just the name (its avatar is shown elsewhere, e.g. a record card's leading avatar). */
+  nameOnly = input(false);
 
   readonly label = computed(
     () => this.name()?.trim() || [this.firstName(), this.lastName()].filter(Boolean).join(' ').trim() || this.email() || 'Unknown',
