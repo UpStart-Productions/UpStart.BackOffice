@@ -37,7 +37,7 @@ export class OrganizationSelectComponent implements OnInit {
   inputId = input<string | undefined>(undefined);
   /** Accounts to leave out (e.g. ones that already have this form). */
   exclude = input<string[]>([]);
-  /** Only organizations with status Client (e.g. Add to care). */
+  /** Only organizations with status Client (e.g. the Schedule). */
   clientsOnly = input(false);
 
   private all = signal<{ id: string; name: string; journey?: string }[]>([]);

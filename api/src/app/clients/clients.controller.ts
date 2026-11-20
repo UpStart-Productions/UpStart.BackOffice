@@ -360,13 +360,10 @@ export class ClientsController {
     const existing = await this.prisma.client.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Client not found');
     await this.storageFolders.removeClientTree(id);
-    // Files uploaded on this client's form answers and visit checklists go with it.
-    const [responses, visits] = await Promise.all([
-      this.prisma.formResponse.findMany({ where: { clientId: id }, select: { values: true } }),
-      this.prisma.careVisit.findMany({ where: { clientId: id }, select: { values: true } }),
-    ]);
+    // Files uploaded on this client's form answers (visit forms included) go with it.
+    const responses = await this.prisma.formResponse.findMany({ where: { clientId: id }, select: { values: true } });
     await this.prisma.client.delete({ where: { id } });
-    for (const f of [...responses, ...visits].flatMap((r) => fileRefsIn(r.values))) {
+    for (const f of responses.flatMap((r) => fileRefsIn(r.values))) {
       await this.storage.delete(f.key).catch(() => undefined);
     }
     return { deleted: true };

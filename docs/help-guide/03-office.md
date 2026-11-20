@@ -6,7 +6,7 @@
 
 A client's page has a **Forms** panel: the client's filled-in forms. **Add form** lists the client forms your role can edit that this client doesn't have yet. See the Forms guide.
 
-With the Care module on, clients in care also get a **Care** tab (see the Care guide).
+Every account also has a **Records** tab: the forms submitted for it, including forms filled in on visits (see the Schedule guide).
 
 ## Projects
 
@@ -32,7 +32,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Schedule
 
-**Schedule** appears after Time when the Care module is on: every caregiver's shifts for the week, across clients. See the Care guide.
+**Schedule** comes after Time: visits by team members to clients, by week or month. See the Schedule guide.
 
 ## Expenses
 
@@ -59,7 +59,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 ### Bill to: a client or your organization
 
 - **A client** — your organization bills a client. **Generate from time** pulls the client's uninvoiced *billable* time and its uninvoiced **billable** expenses (on that client's projects, at cost, one line each; mileage shows miles × rate).
-- **Our organization** — you bill your own organization for your work (for example, a contractor or caregiver submitting hours). **Generate from time** pulls *your own* uninvoiced time (billable or not) plus your uninvoiced **reimbursable** expenses, including mileage. Hours use your own hourly rate first, then the entry's or project's rate.
+- **Our organization** — you bill your own organization for your work (for example, a contractor or team member submitting hours). **Generate from time** pulls *your own* uninvoiced time (billable or not) plus your uninvoiced **reimbursable** expenses, including mileage. Hours use your own hourly rate first, then the entry's or project's rate.
 
 The two are tracked separately: the same hour, or the same expense, can go on the client's invoice and on your invoice to your organization, but never on two invoices of the same kind. Saving a draft keeps its time and expenses attached; deleting a draft frees them up again. Voiding an invoice frees its expenses.
 

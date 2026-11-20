@@ -9,6 +9,7 @@ import { ApiService } from '../../core/api.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
 import { DimensionsApi } from '../../core/dimensions.api';
+import { VisitsApi } from '../../core/visits.api';
 import {
   FindOrCreatePickerComponent,
   type FindOrCreateOption,
@@ -17,11 +18,14 @@ import {
 import { chipColors } from '../../task-manager/core/tm-format.util';
 import { TmStoreService } from '../../task-manager/core/tm-store.service';
 
+/** A pick list group; visitTypes: the Visits section's Visit types (their own records, not dimension values). */
+type PickListGroup = DimensionCatalogGroupDto & { visitTypes?: true };
+
 type PickListSection = {
   id: string;
   heading: string;
   entity: DimensionEntity;
-  groups: DimensionCatalogGroupDto[];
+  groups: PickListGroup[];
 };
 
 const PICK_LIST_SECTIONS: { id: string; heading: string; entity: DimensionEntity }[] = [
@@ -189,13 +193,16 @@ export class OrganizationFieldsSettingsComponent implements OnInit {
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
   private readonly dimensionsApi = inject(DimensionsApi);
+  private readonly visitsApi = inject(VisitsApi);
+  /** Visit type ids by lowercased name (the pills work by name). */
+  private visitTypeIds = new Map<string, string>();
   private readonly tmStore = inject(TmStoreService);
   private readonly addPicker = viewChild.required(FindOrCreatePickerComponent);
 
   readonly sections = signal<PickListSection[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly addTarget = signal<DimensionCatalogGroupDto | null>(null);
+  readonly addTarget = signal<PickListGroup | null>(null);
 
   readonly pickerOptions = computed((): FindOrCreateOption[] => {
     const g = this.addTarget();
@@ -248,7 +255,23 @@ export class OrganizationFieldsSettingsComponent implements OnInit {
           return { ...spec, groups };
         }),
       );
-      this.sections.set(loaded.filter((s): s is PickListSection => !!s?.id && Array.isArray(s.groups)));
+      const types = await this.visitsApi.manageVisitTypes();
+      this.visitTypeIds = new Map(types.map((t) => [t.name.toLowerCase(), t.id]));
+      const visits: PickListSection = {
+        id: 'visits',
+        heading: 'Visits',
+        entity: 'CLIENT',
+        groups: [
+          {
+            entity: 'CLIENT',
+            key: 'visitTypes',
+            label: 'Visit types',
+            visitTypes: true,
+            items: types.map((t) => ({ name: t.name, recordCount: t.visitCount, hiddenFromSuggestions: !t.isActive })),
+          },
+        ],
+      };
+      this.sections.set([...loaded.filter((s): s is PickListSection => !!s?.id && Array.isArray(s.groups)), visits]);
       this.error.set(null);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load pick lists');
@@ -257,7 +280,7 @@ export class OrganizationFieldsSettingsComponent implements OnInit {
     }
   }
 
-  async openAdd(event: Event, group: DimensionCatalogGroupDto) {
+  async openAdd(event: Event, group: PickListGroup) {
     this.addTarget.set(group);
     if (group.entity === 'TASK' && group.key === DIMENSION_TAG_KEY) {
       await this.tmStore.loadTags();
@@ -277,26 +300,54 @@ export class OrganizationFieldsSettingsComponent implements OnInit {
 
     const existing = group.items.find((i) => i.name.toLowerCase() === name.toLowerCase());
     if (existing?.hiddenFromSuggestions) {
-      void this.restoreValue(entity, group.key, existing.name);
+      if (group.visitTypes) this.restore(group, existing);
+      else void this.restoreValue(entity, group.key, existing.name);
       return;
     }
     if (existing) {
       this.toast.add({ severity: 'info', summary: 'Already in list', detail: `"${existing.name}" is already in this pick list.` });
       return;
     }
+    if (group.visitTypes) {
+      void this.visitTypeAction(() => this.visitsApi.createVisitType(name.trim()), 'Added', `"${name.trim()}" is a visit type.`, 'Could not add');
+      return;
+    }
 
     void this.addValue(entity, group.key, name);
   }
 
-  hide(group: DimensionCatalogGroupDto, row: DimensionCatalogItemDto) {
+  hide(group: PickListGroup, row: DimensionCatalogItemDto) {
+    if (group.visitTypes) {
+      const id = this.visitTypeIds.get(row.name.toLowerCase());
+      if (id) void this.visitTypeAction(() => this.visitsApi.hideVisitType(id), 'Hidden', `"${row.name}" can't be picked for new visits.`, 'Could not hide');
+      return;
+    }
     void this.hideValue(this.sectionEntity(group), group.key, row.name);
   }
 
-  restore(group: DimensionCatalogGroupDto, row: DimensionCatalogItemDto) {
+  restore(group: PickListGroup, row: DimensionCatalogItemDto) {
+    if (group.visitTypes) {
+      const id = this.visitTypeIds.get(row.name.toLowerCase());
+      if (id) void this.visitTypeAction(() => this.visitsApi.restoreVisitType(id), 'Restored', `"${row.name}" can be picked again.`, 'Could not restore');
+      return;
+    }
     void this.restoreValue(this.sectionEntity(group), group.key, row.name);
   }
 
-  confirmPurge(group: DimensionCatalogGroupDto, row: DimensionCatalogItemDto) {
+  confirmPurge(group: PickListGroup, row: DimensionCatalogItemDto) {
+    if (group.visitTypes) {
+      const id = this.visitTypeIds.get(row.name.toLowerCase());
+      if (!id) return;
+      if (row.recordCount > 0) {
+        this.toast.add({ severity: 'info', summary: 'In use', detail: `"${row.name}" has ${row.recordCount} visit(s). Hide it instead.` });
+        return;
+      }
+      this.confirm.confirm({
+        message: `Delete the visit type "${row.name}"? Forms attached to it are detached. This cannot be undone.`,
+        accept: () => void this.visitTypeAction(() => this.visitsApi.deleteVisitType(id), 'Deleted', `"${row.name}" was deleted.`, 'Could not delete'),
+      });
+      return;
+    }
     const detail =
       row.recordCount > 0
         ? `Delete "${row.name}" from all ${row.recordCount} record(s) and from suggestion lists?`
@@ -360,6 +411,16 @@ export class OrganizationFieldsSettingsComponent implements OnInit {
         summary: 'Could not delete',
         detail: err instanceof Error ? err.message : 'Failed',
       });
+    }
+  }
+
+  private async visitTypeAction(fn: () => Promise<unknown>, summary: string, detail: string, failure: string) {
+    try {
+      await fn();
+      await this.load();
+      this.toast.add({ severity: 'success', summary, detail });
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: failure, detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
     }
   }
 

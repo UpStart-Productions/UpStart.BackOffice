@@ -16,16 +16,17 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
+import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
-import { WEEKDAY_SHORT, type CareShiftDto } from '@upstart/back-office/shared';
+import { WEEKDAY_SHORT, type VisitDto, type VisitTypeDto } from '@upstart/back-office/shared';
 import { AppDialogModule } from '../../core/app-dialog.module';
-import { CareApi } from '../../core/care.api';
+import { VisitsApi } from '../../core/visits.api';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { dateKey } from '../../core/date.util';
 import { SessionService } from '../../core/session.service';
-import { browserTimeZone, timeKey } from '../../ui/care-forms/care.types';
+import { browserTimeZone, timeKey } from '../../ui/visits/visit-time.util';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -41,9 +42,9 @@ function weekStartOf(d: Date): Date {
   return x;
 }
 
-/** Care → Schedule: a week of shifts per account and worker, one-off or repeating weekly. */
+/** Schedule: visits per client and team member, by week or month, one-off or repeating weekly. */
 @Component({
-  selector: 'app-care-schedule-page',
+  selector: 'app-schedule-page',
   standalone: true,
   imports: [
     NgTemplateOutlet,
@@ -59,6 +60,7 @@ function weekStartOf(d: Date): Date {
     DatePickerModule,
     InputTextModule,
     MessageModule,
+    SelectModule,
     SelectButtonModule,
     TagModule,
     TextareaModule,
@@ -71,11 +73,11 @@ function weekStartOf(d: Date): Date {
     RowActionsMenuComponent,
     PersonComponent,
   ],
-  templateUrl: './care-schedule.page.html',
-  styleUrl: './care-schedule.page.scss',
+  templateUrl: './schedule.page.html',
+  styleUrl: './schedule.page.scss',
 })
-export class CareSchedulePage implements OnInit {
-  private readonly care = inject(CareApi);
+export class SchedulePage implements OnInit {
+  private readonly visitsApi = inject(VisitsApi);
   private readonly route = inject(ActivatedRoute);
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
@@ -85,7 +87,7 @@ export class CareSchedulePage implements OnInit {
   readonly todayKey = dateKey(new Date());
   readonly weekdayOptions = [1, 2, 3, 4, 5, 6, 0].map((value) => ({ value, label: WEEKDAY_SHORT[value] }));
 
-  private readonly savedPrefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.careSchedule);
+  private readonly savedPrefs = readListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.schedule);
   /** A saved "YYYY-MM-DD" filter as a local date (or null). */
   private savedDate(key: string): Date | null {
     const v = listViewFilterString(this.savedPrefs, key);
@@ -94,13 +96,15 @@ export class CareSchedulePage implements OnInit {
   }
   /** Restored from the last visit (the week and month you were looking at), else this week / month. */
   weekStart = signal(weekStartOf(this.savedDate('week') ?? new Date()));
-  shifts = signal<CareShiftDto[]>([]);
-  workers = signal<PeopleDirectoryOption[]>([]);
-  /** Saved Worker and Client filters (this browser, this user), like the other list screens. */
-  workerId = signal<string | null>(listViewFilterString(this.savedPrefs, 'worker'));
-  /** ?clientId= presets the filter (from a client's Care tab). */
+  visits = signal<VisitDto[]>([]);
+  teamMembers = signal<PeopleDirectoryOption[]>([]);
+  /** Visit types that can be picked (Settings → Pick lists). */
+  visitTypes = signal<VisitTypeDto[]>([]);
+  /** Saved Team member and Client filters (this browser, this user), like the other list screens. */
+  teamMemberId = signal<string | null>(listViewFilterString(this.savedPrefs, 'teamMember'));
+  /** ?clientId= presets the filter. */
   clientId = signal<string | null>(this.route.snapshot.queryParamMap.get('clientId') ?? listViewFilterString(this.savedPrefs, 'client'));
-  /** Week (one client or worker, by hour) or Month (everyone, a bar per shift). */
+  /** Week (one client or team member, by hour) or Month (everyone, a bar per visit). */
   view = signal<'week' | 'month'>(listViewFilterString(this.savedPrefs, 'view') === 'month' ? 'month' : 'week');
   readonly tooltipDelayMs = UBO_DARK_TOOLTIP_SHOW_DELAY_MS;
   /** First day of the visible month. */
@@ -109,14 +113,14 @@ export class CareSchedulePage implements OnInit {
   );
   private readonly saveFilters = effect(() => {
     const filters: Record<string, string> = {};
-    const worker = this.workerId();
+    const teamMember = this.teamMemberId();
     const client = this.clientId();
-    if (worker) filters['worker'] = worker;
+    if (teamMember) filters['teamMember'] = teamMember;
     if (client) filters['client'] = client;
     filters['view'] = this.view();
     filters['week'] = dateKey(this.weekStart());
     filters['month'] = dateKey(this.monthStart());
-    patchListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.careSchedule, { filters });
+    patchListViewPrefs(this.session.me()?.id, LIST_VIEW_KEYS.schedule, { filters });
   });
   error = signal<string | null>(null);
   saving = signal(false);
@@ -135,12 +139,12 @@ export class CareSchedulePage implements OnInit {
   readonly periodLabel = computed(() => (this.view() === 'month' ? this.monthLabel() : this.weekLabel()));
   readonly isCurrentPeriod = computed(() => (this.view() === 'month' ? this.isThisMonth() : this.isThisCalendarWeek()));
 
-  /** Month grid: 6 weeks from the Monday on or before the 1st; each day's shifts by start time (on the day they start). */
+  /** Month grid: 6 weeks from the Monday on or before the 1st; each day's visits by start time (on the day they start). */
   readonly monthWeeks = computed(() => {
     const start = weekStartOf(this.monthStart());
     const month = this.monthStart().getMonth();
-    const byDay = new Map<string, CareShiftDto[]>();
-    for (const s of this.shifts()) {
+    const byDay = new Map<string, VisitDto[]>();
+    for (const s of this.visits()) {
       const k = dateKey(new Date(s.startAt));
       byDay.set(k, [...(byDay.get(k) ?? []), s]);
     }
@@ -149,26 +153,26 @@ export class CareSchedulePage implements OnInit {
         const date = new Date(start);
         date.setDate(date.getDate() + w * 7 + d);
         const key = dateKey(date);
-        const shifts = (byDay.get(key) ?? []).slice().sort((a, b) => a.startAt.localeCompare(b.startAt));
-        return { key, date, inMonth: date.getMonth() === month, shifts };
+        const visits = (byDay.get(key) ?? []).slice().sort((a, b) => a.startAt.localeCompare(b.startAt));
+        return { key, date, inMonth: date.getMonth() === month, visits };
       }),
     );
   });
   readonly monthMaxBars = 4;
 
-  barColor(s: CareShiftDto): string {
+  barColor(s: VisitDto): string {
     return this.colorFor(s);
   }
 
-  barTitle(s: CareShiftDto): string {
+  barTitle(s: VisitDto): string {
     const t = (iso: string) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-    return [`${t(s.startAt)}–${t(s.endAt)}`, s.clientName, s.worker?.name ?? 'Open shift', s.status === 'CANCELLED' ? 'Cancelled' : null]
+    return [`${t(s.startAt)}–${t(s.endAt)}`, s.visitType.name, s.clientName, s.teamMember?.name ?? 'Unassigned', s.status === 'CANCELLED' ? 'Cancelled' : null]
       .filter(Boolean)
       .join(' · ');
   }
 
-  moreTitle(shifts: CareShiftDto[]): string {
-    return shifts.slice(this.monthMaxBars).map((s) => this.barTitle(s)).join('\n');
+  moreTitle(visits: VisitDto[]): string {
+    return visits.slice(this.monthMaxBars).map((s) => this.barTitle(s)).join('\n');
   }
 
   /** Day number in Month view: open that week in Week view. */
@@ -177,18 +181,18 @@ export class CareSchedulePage implements OnInit {
     this.view.set('week');
   }
 
-  /** Anywhere in a Month day except a shift bar: go to that week in Week view (to add or change shifts). */
+  /** Anywhere in a Month day except a visit bar: go to that week in Week view (to add or change visits). */
   onMonthDayClick(event: MouseEvent, date: Date) {
     if ((event.target as HTMLElement).closest('.mv-bar, .mv-more')) return;
     this.openWeekOf(date);
   }
 
-  /** Day schedule window (from a Month bar or "+N more"): every shift that day, the clicked one highlighted. */
+  /** Day schedule window (from a Month bar or "+N more"): every visit that day, the clicked one highlighted. */
   dayModal = signal<{ key: string; date: Date; focusId: string | null } | null>(null);
-  readonly dayModalShifts = computed(() => {
+  readonly dayModalVisits = computed(() => {
     const m = this.dayModal();
     if (!m) return [];
-    return this.shifts()
+    return this.visits()
       .filter((s) => dateKey(new Date(s.startAt)) === m.key)
       .sort((a, b) => a.startAt.localeCompare(b.startAt));
   });
@@ -211,8 +215,8 @@ export class CareSchedulePage implements OnInit {
   readonly isThisCalendarWeek = computed(() => dateKey(this.weekStart()) === dateKey(weekStartOf(new Date())));
 
   readonly days = computed(() => {
-    const byDay = new Map<string, CareShiftDto[]>();
-    for (const s of this.shifts()) {
+    const byDay = new Map<string, VisitDto[]>();
+    for (const s of this.visits()) {
       const k = dateKey(new Date(s.startAt));
       byDay.set(k, [...(byDay.get(k) ?? []), s]);
     }
@@ -220,8 +224,8 @@ export class CareSchedulePage implements OnInit {
       const date = new Date(this.weekStart());
       date.setDate(date.getDate() + i);
       const key = dateKey(date);
-      const shifts = (byDay.get(key) ?? []).slice().sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
-      return { key, date, shifts };
+      const visits = (byDay.get(key) ?? []).slice().sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+      return { key, date, visits };
     });
   });
 
@@ -229,9 +233,9 @@ export class CareSchedulePage implements OnInit {
   readonly hourPx = 48;
   readonly hours = Array.from({ length: 24 }, (_, h) => h);
   private readonly tgBody = viewChild<ElementRef<HTMLElement>>('tgBody');
-  /** The week grid needs one client or one worker in focus (people limited to their own shifts always are). */
-  readonly hasFocus = computed(() => !this.seeAll() || !!this.clientId() || !!this.workerId());
-  /** When the grid appears (a client or worker was picked), size it and scroll to 7 AM. */
+  /** The week grid needs one client or one team member in focus (people limited to their own visits always are). */
+  readonly hasFocus = computed(() => !this.seeAll() || !!this.clientId() || !!this.teamMemberId());
+  /** When the grid appears (a client or team member was picked), size it and scroll to 7 AM. */
   private readonly fitWhenShown = effect(() => {
     const body = this.tgBody()?.nativeElement;
     if (!body) return;
@@ -259,31 +263,31 @@ export class CareSchedulePage implements OnInit {
     if (month) this.mvHeight.set(fit(month));
   }
 
-  /** Schedule tints (--shift-* in _colors.scss); an account always gets the same one. */
+  /** Schedule tints (--visit-* in _colors.scss); an account always gets the same one. */
   private static readonly COLORS = ['peach', 'green', 'lavender', 'rose', 'cyan'];
-  private colorFor(s: CareShiftDto): string {
+  private colorFor(s: VisitDto): string {
     const id = s.clientId;
     let h = 0;
     for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-    return CareSchedulePage.COLORS[h % CareSchedulePage.COLORS.length];
+    return SchedulePage.COLORS[h % SchedulePage.COLORS.length];
   }
 
-  /** Each day's shift pieces (overnight shifts split at midnight), placed by time; overlaps sit side by side. */
+  /** Each day's visit pieces (overnight visits split at midnight), placed by time; overlaps sit side by side. */
   readonly weekColumns = computed(() => {
-    const shifts = this.gridShifts();
+    const visits = this.gridVisits();
     return Array.from({ length: 7 }, (_, i) => {
       const dayStart = new Date(this.weekStart());
       dayStart.setDate(dayStart.getDate() + i);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(dayStart);
       dayEnd.setDate(dayEnd.getDate() + 1);
-      const pieces = shifts
+      const pieces = visits
         .map((s) => {
           const a = Math.max(new Date(s.startAt).getTime(), dayStart.getTime());
           const b = Math.min(new Date(s.endAt).getTime(), dayEnd.getTime());
           return b > a
             ? {
-                shift: s,
+                visit: s,
                 start: (a - dayStart.getTime()) / 60000,
                 end: (b - dayStart.getTime()) / 60000,
                 isStart: new Date(s.startAt).getTime() >= dayStart.getTime(),
@@ -291,10 +295,10 @@ export class CareSchedulePage implements OnInit {
               }
             : null;
         })
-        .filter((p): p is { shift: CareShiftDto; start: number; end: number; isStart: boolean; isEnd: boolean } => !!p)
+        .filter((p): p is { visit: VisitDto; start: number; end: number; isStart: boolean; isEnd: boolean } => !!p)
         .sort((x, y) => x.start - y.start || y.end - x.end);
       // Lanes within each group of overlapping pieces.
-      const placed: { shift: CareShiftDto; start: number; end: number; isStart: boolean; isEnd: boolean; lane: number; group: number }[] = [];
+      const placed: { visit: VisitDto; start: number; end: number; isStart: boolean; isEnd: boolean; lane: number; group: number }[] = [];
       const groupLanes: number[] = [];
       let group = -1;
       let groupEnd = -1;
@@ -318,12 +322,12 @@ export class CareSchedulePage implements OnInit {
         segments: placed.map((p) => {
           const lanes = groupLanes[p.group];
           return {
-            id: `${p.shift.id}:${key}`,
-            shift: p.shift,
-            color: this.colorFor(p.shift),
+            id: `${p.visit.id}:${key}`,
+            visit: p.visit,
+            color: this.colorFor(p.visit),
             isStart: p.isStart,
             isEnd: p.isEnd,
-            draggable: this.canDragShift(p.shift),
+            draggable: this.canDragVisit(p.visit),
             top: (p.start / 60) * this.hourPx,
             height: Math.max(((p.end - p.start) / 60) * this.hourPx - 2, 20),
             left: `calc(${(p.lane / lanes) * 100}% + 2px)`,
@@ -334,18 +338,18 @@ export class CareSchedulePage implements OnInit {
     });
   });
 
-  // ── Drag shifts: move (body), change start (top edge), change end (bottom edge) ──────────
-  /** Live position of the shift being dragged; the grid draws it there until the drop saves. */
+  // ── Drag visits: move (body), change start (top edge), change end (bottom edge) ──────────
+  /** Live position of the visit being dragged; the grid draws it there until the drop saves. */
   private readonly dragPreview = signal<{ id: string; startAt: string; endAt: string } | null>(null);
-  readonly gridShifts = computed(() => {
+  readonly gridVisits = computed(() => {
     const p = this.dragPreview();
-    const all = this.shifts();
+    const all = this.visits();
     return p ? all.map((s) => (s.id === p.id ? { ...s, startAt: p.startAt, endAt: p.endAt } : s)) : all;
   });
-  /** 'move' | 'start' | 'end' while a shift is being dragged (sets the grid's cursor). */
-  readonly shiftDragMode = signal<'move' | 'start' | 'end' | null>(null);
-  private shiftDrag: {
-    shift: CareShiftDto;
+  /** 'move' | 'start' | 'end' while a visit is being dragged (sets the grid's cursor). */
+  readonly visitDragMode = signal<'move' | 'start' | 'end' | null>(null);
+  private visitDrag: {
+    visit: VisitDto;
     mode: 'move' | 'start' | 'end';
     y0: number;
     day0: number;
@@ -357,8 +361,8 @@ export class CareSchedulePage implements OnInit {
     others: [number, number][];
   } | null = null;
 
-  canDragShift(s: CareShiftDto): boolean {
-    return this.canEdit() && s.status !== 'CANCELLED' && !s.visitId;
+  canDragVisit(s: VisitDto): boolean {
+    return this.canEdit() && s.status === 'SCHEDULED';
   }
 
   /** Minutes from the start of the shown week (local time, DST-safe). */
@@ -384,32 +388,32 @@ export class CareSchedulePage implements OnInit {
     return clientX < cols[0].getBoundingClientRect().left ? 0 : cols.length - 1;
   }
 
-  onShiftDown(event: MouseEvent, s: CareShiftDto, mode: 'move' | 'start' | 'end') {
-    event.stopPropagation(); // never starts an Add shift selection
-    if (event.button !== 0 || !this.canDragShift(s)) return;
+  onVisitDown(event: MouseEvent, s: VisitDto, mode: 'move' | 'start' | 'end') {
+    event.stopPropagation(); // never starts an Add visit selection
+    if (event.button !== 0 || !this.canDragVisit(s)) return;
     if ((event.target as HTMLElement).closest('button, app-row-actions-menu')) return; // the ⋯ menu still clicks
     event.preventDefault(); // no native link/image drag or text selection; a plain click on a link still works
     const start = this.weekMin(new Date(s.startAt));
     const end = this.weekMin(new Date(s.endAt));
-    // Can't land on another shift for the same account or the same worker.
-    const others = this.shifts()
-      .filter((o) => o.id !== s.id && o.status !== 'CANCELLED' && (o.clientId === s.clientId || (!!s.worker && o.worker?.id === s.worker.id)))
+    // Can't land on another visit for the same account or the same team member.
+    const others = this.visits()
+      .filter((o) => o.id !== s.id && o.status !== 'CANCELLED' && (o.clientId === s.clientId || (!!s.teamMember && o.teamMember?.id === s.teamMember.id)))
       .map((o) => [this.weekMin(new Date(o.startAt)), this.weekMin(new Date(o.endAt))] as [number, number]);
-    this.shiftDragMode.set(mode);
-    this.shiftDrag = { shift: s, mode, y0: event.clientY, day0: this.dayIndexAt(event.clientX), origStart: start, origEnd: end, start, end, moved: false, others };
+    this.visitDragMode.set(mode);
+    this.visitDrag = { visit: s, mode, y0: event.clientY, day0: this.dayIndexAt(event.clientX), origStart: start, origEnd: end, start, end, moved: false, others };
   }
 
   @HostListener('window:mousemove', ['$event'])
-  onShiftMove(event: MouseEvent) {
-    const d = this.shiftDrag;
+  onVisitMove(event: MouseEvent) {
+    const d = this.visitDrag;
     if (!d) return;
     const dy = Math.round(((event.clientY - d.y0) / this.hourPx) * 4) * 15; // 15-minute steps
     let start = d.origStart;
     let end = d.origEnd;
     if (d.mode === 'move') {
-      const shift = (this.dayIndexAt(event.clientX) - d.day0) * 1440 + dy;
-      start += shift;
-      end += shift;
+      const offset = (this.dayIndexAt(event.clientX) - d.day0) * 1440 + dy;
+      start += offset;
+      end += offset;
       if (d.others.some(([a, b]) => start < b && end > a)) return; // would overlap: stay at the last free spot
     } else if (d.mode === 'start') {
       const floor = Math.max(-Infinity, ...d.others.filter(([, b]) => b <= d.origStart).map(([, b]) => b));
@@ -422,15 +426,15 @@ export class CareSchedulePage implements OnInit {
     d.start = start;
     d.end = end;
     d.moved = start !== d.origStart || end !== d.origEnd;
-    this.dragPreview.set({ id: d.shift.id, startAt: this.fromWeekMin(start).toISOString(), endAt: this.fromWeekMin(end).toISOString() });
+    this.dragPreview.set({ id: d.visit.id, startAt: this.fromWeekMin(start).toISOString(), endAt: this.fromWeekMin(end).toISOString() });
   }
 
   /** Called from the one window mouseup listener (onSlotUp): Angular keeps only one per event per component. */
-  async onShiftUp() {
-    const d = this.shiftDrag;
+  async onVisitUp() {
+    const d = this.visitDrag;
     if (!d) return;
-    this.shiftDrag = null;
-    this.shiftDragMode.set(null);
+    this.visitDrag = null;
+    this.visitDragMode.set(null);
     if (!d.moved) {
       this.dragPreview.set(null);
       return;
@@ -445,23 +449,23 @@ export class CareSchedulePage implements OnInit {
     const startAt = this.fromWeekMin(d.start);
     const endAt = this.fromWeekMin(d.end);
     try {
-      const res = await this.care.updateShift(d.shift.id, {
+      const res = await this.visitsApi.updateVisit(d.visit.id, {
         date: dateKey(startAt),
         startTime: timeKey(startAt),
         endTime: timeKey(endAt),
         timezone: browserTimeZone(),
       });
-      this.shifts.update((all) => all.map((s) => (s.id === res.shift.id ? res.shift : s)));
+      this.visits.update((all) => all.map((s) => (s.id === res.visit.id ? res.visit : s)));
       if (res.conflicts) {
         this.toast.add({
           severity: 'warn',
-          summary: 'Overlapping shifts',
-          detail: `${res.shift.worker?.name ?? 'This worker'} has ${res.conflicts} other ${res.conflicts === 1 ? 'shift' : 'shifts'} at the same time.`,
+          summary: 'Overlapping visits',
+          detail: `${res.visit.teamMember?.name ?? 'This team member'} has ${res.conflicts} other ${res.conflicts === 1 ? 'visit' : 'visits'} at the same time.`,
           life: 8000,
         });
       }
     } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not move shift', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+      this.toast.add({ severity: 'error', summary: 'Could not move visit', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
     } finally {
       this.dragPreview.set(null); // on error the block snaps back
     }
@@ -473,11 +477,11 @@ export class CareSchedulePage implements OnInit {
     return h < 12 ? `${h} AM` : `${h - 12} PM`;
   }
 
-  blockTitle(s: CareShiftDto): string {
-    return [s.clientName, s.worker?.name ?? 'Open shift', s.repeatLabel, s.notes].filter(Boolean).join(' · ');
+  blockTitle(s: VisitDto): string {
+    return [s.visitType.name, s.clientName, s.teamMember?.name ?? 'Unassigned', s.repeatLabel, s.notes].filter(Boolean).join(' · ');
   }
 
-  /** Drag over empty hours in one day to pick a time range (inclusive hour indexes); release to add a shift. */
+  /** Drag over empty hours in one day to pick a time range (inclusive hour indexes); release to add a visit. */
   selection = signal<{ day: string; anchor: number; from: number; to: number } | null>(null);
   private dragging = false;
 
@@ -506,7 +510,7 @@ export class CareSchedulePage implements OnInit {
 
   @HostListener('window:mouseup')
   onSlotUp() {
-    void this.onShiftUp(); // a dragged shift drops here too
+    void this.onVisitUp(); // a dragged visit drops here too
     if (!this.dragging) return;
     this.dragging = false;
     const sel = this.selection();
@@ -519,9 +523,10 @@ export class CareSchedulePage implements OnInit {
   }
 
   dialogVisible = false;
-  editing: CareShiftDto | null = null;
+  editing: VisitDto | null = null;
   fClientId: string | null = null;
-  fWorkerId: string | null = null;
+  fVisitTypeId: string | null = null;
+  fTeamMemberId: string | null = null;
   fDate = '';
   fStart = '09:00';
   fEnd = '13:00';
@@ -529,7 +534,7 @@ export class CareSchedulePage implements OnInit {
   fWeekdays: number[] = [];
   fUntil = '';
   fNotes = '';
-  /** Add shift from a day's schedule window: the date can't be changed. */
+  /** Add visit from a day's schedule window: the date can't be changed. */
   fDateLocked = false;
 
   constructor() {
@@ -543,20 +548,23 @@ export class CareSchedulePage implements OnInit {
       this.weekStart();
       this.view();
       this.monthStart();
-      this.workerId();
+      this.teamMemberId();
       this.clientId();
       void this.load();
     });
   }
 
   async ngOnInit() {
-    // ?new=1 opens Add shift (from a client's Care tab).
-    if (this.route.snapshot.queryParamMap.get('new') && this.canCreate()) this.openNew();
+    try {
+      this.visitTypes.set(await this.visitsApi.visitTypes());
+    } catch {
+      this.visitTypes.set([]);
+    }
     if (this.seeAll()) {
       try {
-        this.workers.set(teamUsersToOptions(await this.care.workers()));
+        this.teamMembers.set(teamUsersToOptions(await this.visitsApi.teamMembers()));
       } catch {
-        this.workers.set([]);
+        this.teamMembers.set([]);
       }
     }
   }
@@ -564,15 +572,15 @@ export class CareSchedulePage implements OnInit {
   async load() {
     const month = this.view() === 'month';
     if (!month && !this.hasFocus()) {
-      this.shifts.set([]);
+      this.visits.set([]);
       return;
     }
     const from = month ? weekStartOf(this.monthStart()) : this.weekStart();
     const to = new Date(from);
     to.setDate(to.getDate() + (month ? 42 : 7));
     try {
-      this.shifts.set(
-        await this.care.shifts({ from: from.toISOString(), to: to.toISOString(), userId: this.workerId(), clientId: this.clientId() }),
+      this.visits.set(
+        await this.visitsApi.visits({ from: from.toISOString(), to: to.toISOString(), userId: this.teamMemberId(), clientId: this.clientId() }),
       );
       this.error.set(null);
     } catch (err) {
@@ -611,35 +619,31 @@ export class CareSchedulePage implements OnInit {
     popover.hide();
   }
 
-  rowActions(s: CareShiftDto): RowActionItem[] {
-    const me = this.session.me()?.id;
-    const items: RowActionItem[] = [];
-    if (s.visitId) {
-      items.push({ id: 'visit', label: 'Open visit', icon: 'pi pi-arrow-right', command: () => void this.router.navigate(['/care/visits', s.visitId]) });
-    } else if (s.status === 'SCHEDULED' && s.worker?.id === me && this.session.can('visits', 'create')) {
-      items.push({ id: 'start', label: 'Start visit', icon: 'pi pi-play', command: () => void this.startVisit(s) });
-    }
+  rowActions(s: VisitDto): RowActionItem[] {
+    const items: RowActionItem[] = [
+      { id: 'open', label: 'Open visit', icon: 'pi pi-arrow-right', command: () => void this.router.navigate(['/visits', s.id]) },
+    ];
     if (this.canEdit()) {
-      items.push({ id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEdit(s) });
-      items.push(
-        s.status === 'SCHEDULED'
-          ? { id: 'cancel', label: 'Cancel shift', icon: 'pi pi-ban', severity: 'warn', command: () => void this.setCancelled(s, true) }
-          : { id: 'restore', label: 'Restore shift', icon: 'pi pi-replay', command: () => void this.setCancelled(s, false) },
-      );
+      if (s.status === 'SCHEDULED') items.push({ id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.openEdit(s) });
+      if (s.status === 'SCHEDULED') {
+        items.push({ id: 'cancel', label: 'Cancel visit', icon: 'pi pi-ban', severity: 'warn', command: () => void this.setCancelled(s, true) });
+      } else if (s.status === 'CANCELLED') {
+        items.push({ id: 'restore', label: 'Restore visit', icon: 'pi pi-replay', command: () => void this.setCancelled(s, false) });
+      }
     }
     if (this.canDelete()) {
-      if (!s.visitId) items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(s, false) });
+      if (s.status === 'SCHEDULED' || s.status === 'CANCELLED') items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(s, false) });
       if (s.seriesId) items.push({ id: 'delete-following', label: 'Delete this and following', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDelete(s, true) });
     }
     return items;
   }
 
   /** @param dayKey YYYY-MM-DD for that column; defaults to today-or-first day in view. */
-  /** The day window shows its shift list, or the Add shift form in place of it. */
+  /** The day window shows its visit list, or the Add visit form in place of it. */
   dayMode = signal<'list' | 'add'>('list');
 
-  /** Add shift inside the day window: that day, date locked (repeat still allowed, starting that day). */
-  addShiftForDay() {
+  /** Add visit inside the day window: that day, date locked (repeat still allowed, starting that day). */
+  addVisitForDay() {
     const m = this.dayModal();
     if (!m) return;
     this.openNew(m.key);
@@ -648,12 +652,12 @@ export class CareSchedulePage implements OnInit {
     this.dayMode.set('add');
   }
 
-  /** Save from the day window: back to the day's list (now with the new shift). */
-  async saveDayShift() {
+  /** Save from the day window: back to the day's list (now with the new visit). */
+  async saveDayVisit() {
     if (await this.save()) this.dayMode.set('list');
   }
 
-  /** Close the day window (Cancel on its Add shift form closes it too). */
+  /** Close the day window (Cancel on its Add visit form closes it too). */
   closeDay() {
     this.dayModal.set(null);
     this.dayMode.set('list');
@@ -662,15 +666,15 @@ export class CareSchedulePage implements OnInit {
   /** True once Start/End were set by hand (or by drag): client changes then leave them alone. */
   fTimesTouched = false;
 
-  /** Client changed in the shift form: re-default Start/End to that client's open slot. */
+  /** Client changed in the visit form: re-default Start/End to that client's open slot. */
   onFormClientChange() {
     if (!this.editing && !this.fTimesTouched) this.applyOpenSlot();
   }
 
   /**
    * Default Start/End to a slot the client isn't already covered that day (4 hours, like the base default):
-   * start where the day's last shift ends; if that runs to midnight, the first earlier gap. No client or no
-   * shifts that day → 9:00 AM–1:00 PM.
+   * start where the day's last visit ends; if that runs to midnight, the first earlier gap. No client or no
+   * visits that day → 9:00 AM–1:00 PM.
    */
   private applyOpenSlot() {
     const LEN = 240;
@@ -683,7 +687,7 @@ export class CareSchedulePage implements OnInit {
     if (this.fClientId && this.fDate) {
       const [y, mo, d] = this.fDate.split('-').map(Number);
       const day0 = new Date(y, mo - 1, d).getTime();
-      const busy = this.shifts()
+      const busy = this.visits()
         .filter((sh) => sh.clientId === this.fClientId)
         .map((sh) => [(new Date(sh.startAt).getTime() - day0) / 60000, (new Date(sh.endAt).getTime() - day0) / 60000])
         .filter(([a, b]) => b > 0 && a < 1440) // touches this day (incl. overnight spill-in)
@@ -694,7 +698,7 @@ export class CareSchedulePage implements OnInit {
         const lastEnd = up15(Math.max(...busy.map((b) => b[1])));
         if (lastEnd < 1440) {
           start = lastEnd;
-          end = start + LEN; // may run past midnight (overnight shift)
+          end = start + LEN; // may run past midnight (overnight visit)
         } else {
           // Covered to midnight: first gap from the start of the day.
           let cursor = 0;
@@ -723,7 +727,10 @@ export class CareSchedulePage implements OnInit {
     this.editing = null;
     this.fDateLocked = false;
     this.fClientId = clientId ?? this.clientId();
-    this.fWorkerId = this.seeAll() ? this.workerId() : (this.session.me()?.id ?? null);
+    // The last type picked, else the only one there is.
+    const types = this.visitTypes();
+    if (!types.some((t) => t.id === this.fVisitTypeId)) this.fVisitTypeId = types.length === 1 ? types[0].id : null;
+    this.fTeamMemberId = this.seeAll() ? this.teamMemberId() : (this.session.me()?.id ?? null);
     const fallback = this.days().find((d) => d.key >= this.todayKey)?.key ?? this.days()[0].key;
     this.fDate = dayKey ?? fallback;
     this.fTimesTouched = false;
@@ -735,11 +742,12 @@ export class CareSchedulePage implements OnInit {
     this.dialogVisible = true;
   }
 
-  openEdit(s: CareShiftDto) {
+  openEdit(s: VisitDto) {
     this.fDateLocked = false;
     this.editing = s;
     this.fClientId = s.clientId;
-    this.fWorkerId = s.worker?.id ?? null;
+    this.fVisitTypeId = s.visitType.id;
+    this.fTeamMemberId = s.teamMember?.id ?? null;
     const start = new Date(s.startAt);
     this.fDate = dateKey(start);
     this.fStart = timeKey(start);
@@ -750,7 +758,7 @@ export class CareSchedulePage implements OnInit {
   }
 
   canSave() {
-    if (!this.fClientId || !this.fDate || !this.fStart || !this.fEnd) return false;
+    if (!this.fClientId || !this.fVisitTypeId || !this.fDate || !this.fStart || !this.fEnd) return false;
     if (!this.editing && this.fRepeat && !this.fWeekdays.length) return false;
     return true;
   }
@@ -760,7 +768,8 @@ export class CareSchedulePage implements OnInit {
     try {
       const base = {
         clientId: this.fClientId!,
-        userId: this.seeAll() ? this.fWorkerId : (this.session.me()?.id ?? null),
+        visitTypeId: this.fVisitTypeId!,
+        userId: this.seeAll() ? this.fTeamMemberId : (this.session.me()?.id ?? null),
         date: this.fDate,
         startTime: this.fStart,
         endTime: this.fEnd,
@@ -768,14 +777,14 @@ export class CareSchedulePage implements OnInit {
         notes: this.fNotes.trim() || null,
       };
       const res = this.editing
-        ? await this.care.updateShift(this.editing.id, base)
-        : await this.care.createShift({ ...base, ...(this.fRepeat ? { repeat: { weekdays: this.fWeekdays, ...(this.fUntil ? { until: this.fUntil } : {}) } } : {}) });
+        ? await this.visitsApi.updateVisit(this.editing.id, base)
+        : await this.visitsApi.createVisit({ ...base, ...(this.fRepeat ? { repeat: { weekdays: this.fWeekdays, ...(this.fUntil ? { until: this.fUntil } : {}) } } : {}) });
       this.dialogVisible = false;
       if (res.conflicts) {
         this.toast.add({
           severity: 'warn',
-          summary: 'Overlapping shifts',
-          detail: `${res.shift.worker?.name ?? 'This worker'} has ${res.conflicts} other ${res.conflicts === 1 ? 'shift' : 'shifts'} at the same time.`,
+          summary: 'Overlapping visits',
+          detail: `${res.visit.teamMember?.name ?? 'This team member'} has ${res.conflicts} other ${res.conflicts === 1 ? 'visit' : 'visits'} at the same time.`,
           life: 8000,
         });
       }
@@ -789,38 +798,29 @@ export class CareSchedulePage implements OnInit {
     }
   }
 
-  async setCancelled(s: CareShiftDto, cancelled: boolean) {
+  async setCancelled(s: VisitDto, cancelled: boolean) {
     try {
-      if (cancelled) await this.care.cancelShift(s.id);
-      else await this.care.restoreShift(s.id);
+      if (cancelled) await this.visitsApi.cancelVisit(s.id);
+      else await this.visitsApi.restoreVisit(s.id);
       await this.load();
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not update', detail: err instanceof Error ? err.message : 'Failed' });
     }
   }
 
-  confirmDelete(s: CareShiftDto, following: boolean) {
+  confirmDelete(s: VisitDto, following: boolean) {
     this.confirm.confirm({
       message: following
-        ? `Delete this shift and every later shift in the series (${s.repeatLabel})? Shifts that already have a visit stay. This cannot be undone.`
-        : `Delete this shift at ${s.clientName}? This cannot be undone.`,
+        ? `Delete this visit and every later visit in the series (${s.repeatLabel})? Visits that were already started stay. This cannot be undone.`
+        : `Delete this visit at ${s.clientName}? This cannot be undone.`,
       accept: async () => {
         try {
-          await this.care.deleteShift(s.id, following);
+          await this.visitsApi.deleteVisit(s.id, following);
           await this.load();
         } catch (err) {
           this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
         }
       },
     });
-  }
-
-  async startVisit(s: CareShiftDto) {
-    try {
-      const visit = await this.care.createVisit({ clientId: s.clientId, shiftId: s.id });
-      await this.router.navigate(['/care/visits', visit.id]);
-    } catch (err) {
-      this.toast.add({ severity: 'error', summary: 'Could not start the visit', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
-    }
   }
 }

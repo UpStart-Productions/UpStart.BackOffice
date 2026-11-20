@@ -9,7 +9,7 @@ import {
 
 export type NotificationChannel = keyof NotificationChannelSettings;
 
-export type NotificationPrefGroupId = 'tasks' | 'projects' | 'activity' | 'forms' | 'care' | 'pipeline';
+export type NotificationPrefGroupId = 'tasks' | 'projects' | 'activity' | 'forms' | 'schedule' | 'pipeline';
 
 export type NotificationTypeDefinition = {
   label: string;
@@ -22,7 +22,6 @@ const TASK: NotificationTypeDefinition['areas'] = ['tasks'];
 const PROJECT: NotificationTypeDefinition['areas'] = ['tasks'];
 const ACTIVITY: NotificationTypeDefinition['areas'] = ['inbox', 'clients', 'pipeline', 'contacts'];
 const FORMS_CRM: NotificationTypeDefinition['areas'] = ['clients', 'forms'];
-const CARE: NotificationTypeDefinition['areas'] = ['care', 'schedule'];
 
 /** Canonical labels and My Account grouping for each notification type. */
 export const NOTIFICATION_TYPE_REGISTRY: Record<NotificationType, NotificationTypeDefinition> = {
@@ -43,8 +42,7 @@ export const NOTIFICATION_TYPE_REGISTRY: Record<NotificationType, NotificationTy
   form_submission: { label: 'A form in Forms gets a submission', group: 'forms', areas: ['forms'] },
   client_form_submitted: { label: 'A client form I can edit is submitted', group: 'forms', areas: FORMS_CRM },
   form_attached: { label: 'A form is added to a client assigned to me', group: 'forms', areas: FORMS_CRM },
-  care_form_submission: { label: 'A care form gets a submission', group: 'care', areas: CARE },
-  care_shift_assigned: { label: 'A shift is assigned to me', group: 'care', areas: CARE },
+  visit_assigned: { label: 'A visit is assigned to me', group: 'schedule', areas: ['schedule'] },
   pipeline_invoice_added: {
     label: 'An invoice is added to a pipeline',
     group: 'pipeline',
@@ -82,7 +80,7 @@ export const NOTIFICATION_PREF_GROUP_LABELS: Record<NotificationPrefGroupId, str
   projects: 'Projects',
   activity: 'Activity',
   forms: 'Forms',
-  care: 'Care',
+  schedule: 'Schedule',
   pipeline: 'Pipeline',
 };
 
@@ -118,7 +116,7 @@ export function notificationPrefGroups(
     rows.push({ key: type, label: def.label });
     byGroup.set(def.group, rows);
   }
-  const order: NotificationPrefGroupId[] = ['tasks', 'projects', 'activity', 'forms', 'care', 'pipeline'];
+  const order: NotificationPrefGroupId[] = ['tasks', 'projects', 'activity', 'forms', 'schedule', 'pipeline'];
   return order
     .filter((id) => (byGroup.get(id)?.length ?? 0) > 0)
     .map((id) => ({ id, label: NOTIFICATION_PREF_GROUP_LABELS[id], rows: byGroup.get(id)! }));

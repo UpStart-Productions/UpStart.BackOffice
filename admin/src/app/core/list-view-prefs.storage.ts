@@ -18,7 +18,7 @@ export const LIST_VIEW_KEYS = {
   bookingTypes: 'booking-types',
   forms: 'forms',
   pipeline: 'pipeline',
-  careSchedule: 'care-schedule',
+  schedule: 'schedule',
 } as const;
 
 export type ListViewKey = (typeof LIST_VIEW_KEYS)[keyof typeof LIST_VIEW_KEYS] | `form-submissions:${string}` | `activity-feed:${string}`;

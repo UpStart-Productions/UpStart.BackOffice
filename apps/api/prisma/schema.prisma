@@ -281,9 +281,8 @@ model User {
   formResponsesCreated      FormResponse[]              @relation("FormResponseCreatedBy")
   formsCreated              Form[]                      @relation("FormCreatedBy")
   formResponsesUpdated      FormResponse[]              @relation("FormResponseUpdatedBy")
-  careVisits                CareVisit[]                 @relation("CareVisitWorker")
-  careShifts                CareShift[]                 @relation("CareShiftWorker")
-  careShiftSeries           CareShiftSeries[]           @relation("CareShiftSeriesWorker")
+  visits                    Visit[]                     @relation("VisitTeamMember")
+  visitSeries               VisitSeries[]               @relation("VisitSeriesTeamMember")
   leadsUpdated              Lead[]                      @relation("LeadUpdatedBy")
   projectsCreated           Project[]                   @relation("ProjectCreatedBy")
   projectsUpdated           Project[]                   @relation("ProjectUpdatedBy")
@@ -341,8 +340,6 @@ model Client {
   portalEnabled        Boolean        @default(false)
   portalToken          String?        @unique
   portalTokenCreatedAt DateTime?
-  /// Care module: null = not in care. Set from the client's Care tab or Care → Clients.
-  careStatus           CareStatus?
   createdByUserId      String?
   updatedByUserId      String?
   createdAt            DateTime       @default(now())
@@ -364,9 +361,8 @@ model Client {
   assignments       ClientAssignment[]
   formResponses     FormResponse[]
   formLinks         FormLink[]
-  careVisits        CareVisit[]
-  careShifts        CareShift[]
-  careShiftSeries   CareShiftSeries[]
+  visits            Visit[]
+  visitSeries       VisitSeries[]
 
   @@unique([tenantId, code])
 }
@@ -858,7 +854,7 @@ model TimeEntry {
   workTasks             TimeEntryWorkTask[]
   invoiceLineItem       InvoiceLineItem? @relation("ClientInvoiceTime", fields: [invoiceLineItemId], references: [id], onDelete: SetNull)
   tenantInvoiceLineItem InvoiceLineItem? @relation("TenantInvoiceTime", fields: [tenantInvoiceLineItemId], references: [id], onDelete: SetNull)
-  careVisit             CareVisit?
+  visit                 Visit?
 
   @@index([userId])
   @@index([projectId])
@@ -1777,9 +1773,10 @@ model Tenant {
   formLinks                   FormLink[]
   formLinkAccesses            FormLinkAccess[]
   formVersions                FormVersion[]
-  careVisits                  CareVisit[]
-  careShifts                  CareShift[]
-  careShiftSeries             CareShiftSeries[]
+  visitTypes                  VisitType[]
+  visitTypeForms              VisitTypeForm[]
+  visits                      Visit[]
+  visitSeries                 VisitSeries[]
   superUserRates              SuperUserRate[]
   helpAgentUsages             HelpAgentUsage[]
   helpAgentThreads            HelpAgentThread[]
@@ -2065,7 +2062,7 @@ model ActivitySnooze {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Form engine (core): forms owned by a module (Care's Intake form, Care profile, Visit log) or free-standing
+// Form engine (core): forms owned by a module or free-standing
 // (the Forms area), their sections and fields, responses, and public links with an optional passcode or
 // emailed code. Engine code never knows what a response is about; the owning module decides (see forms/).
 // ---------------------------------------------------------------------------------------------------------------
@@ -2096,14 +2093,14 @@ enum FormResponseStatus {
   /// Submitted through a public new-response link; waiting for someone to accept or dismiss it.
   PENDING
   ACTIVE
-  /// Reviewed and set aside (free-standing forms keep dismissed submissions; Care deletes them).
+  /// Reviewed and set aside.
   DISMISSED
 }
 
 enum FormLinkKind {
   /// Anyone with the link can send a new response.
   NEW
-  /// One organization's response, e.g. for family to update a Care profile.
+  /// One organization's response, e.g. for family to keep a profile up to date.
   CLIENT
 }
 
@@ -2117,7 +2114,7 @@ model Form {
   id                 String   @id @default(cuid())
   tenantId           String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant             Tenant   @relation(fields: [tenantId], references: [id])
-  /// The part of UBO that owns the form: "care", or "forms" for free-standing forms (Forms area).
+  /// The part of UBO that owns the form: "forms" for free-standing forms (Forms area).
   module             String
   /// The owning module's name for the form, e.g. "INTAKE". Null for free-standing forms.
   key                String?
@@ -2127,7 +2124,7 @@ model Form {
   access             Json     @default("{}")
   /// FormSettings (libs/shared forms.ts): scoring areas and bands, review, results email, organization question.
   settings           Json     @default("{}")
-  /// What public links serve. Null: links serve the live fields (module forms such as Care's).
+  /// What public links serve. Null: links serve the live fields.
   publishedVersionId String?  @unique
   createdById        String?
   createdAt          DateTime @default(now())
@@ -2138,6 +2135,7 @@ model Form {
   links            FormLink[]
   versions         FormVersion[]  @relation("FormVersions")
   capturePoint     CapturePoint?
+  visitTypes       VisitTypeForm[]
   publishedVersion FormVersion?   @relation("FormPublished", fields: [publishedVersionId], references: [id], onDelete: SetNull)
   createdBy        User?          @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
@@ -2207,7 +2205,7 @@ model FormVersion {
   @@index([tenantId])
 }
 
-/// Answers to a form. For Care: one living copy per organization (or a pending public intake with no organization yet).
+/// A submission of a form. Client forms: one living copy per client, or a new one each time.
 model FormResponse {
   id                    String             @id @default(cuid())
   tenantId              String             @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
@@ -2215,6 +2213,8 @@ model FormResponse {
   formId                String
   /// The organization the response is about, when there is one.
   clientId              String?
+  /// The visit it was filled in on (a form attached to the visit's type). The client is the visit's client.
+  visitId               String?
   status                FormResponseStatus @default(ACTIVE)
   /// fieldId -> value. Values of deleted fields are dropped when read.
   values                Json               @default("{}")
@@ -2228,7 +2228,7 @@ model FormResponse {
   scores                Json?
   /// Opens the respondent's results page (/form-results/:token); no sign-in, so it is long and random.
   resultToken           String?            @unique
-  /// One living copy per organization (Care records); enforced by a partial unique index in SQL.
+  /// One living copy per client; enforced by a partial unique index in SQL.
   living                Boolean            @default(false)
   /// Last change made through a public link (no staff user): when and by whom (name or verified email).
   publicUpdatedAt       DateTime?
@@ -2245,6 +2245,7 @@ model FormResponse {
   form      Form         @relation(fields: [formId], references: [id], onDelete: Cascade)
   version   FormVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
   client    Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  visit     Visit?       @relation(fields: [visitId], references: [id], onDelete: SetNull)
   createdBy User?        @relation("FormResponseCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   updatedBy User?        @relation("FormResponseUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   links     FormLink[]
@@ -2252,6 +2253,7 @@ model FormResponse {
   // Living copies: unique (formId, clientId) WHERE living (partial index, see migration 20261030120000_forms_area).
   @@index([formId, clientId])
   @@index([clientId])
+  @@index([visitId])
   @@index([tenantId, status])
 }
 
@@ -2314,92 +2316,100 @@ model FormLinkAccess {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Care: visits (what happened, tied to time) and the schedule (shifts, optionally repeating weekly).
+// Schedule (core): visits to clients by team members, one-off or repeating weekly. Each visit has a visit type
+// (the tenant's own list in Settings); forms attached to a visit type are filled in on its visits.
 // ---------------------------------------------------------------------------------------------------------------
 
-/// Where a client is in care. Not in care is null (most clients and every other organization).
-enum CareStatus {
-  ACTIVE
-  PAUSED
-  ENDED
+/// What the organization calls a visit, e.g. "Care shift", "Service call". Hidden types (isActive false) keep their visits.
+model VisitType {
+  id        String   @id @default(cuid())
+  tenantId  String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  /// Lowercased name, for uniqueness.
+  nameKey   String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visits Visit[]
+  series VisitSeries[]
+  forms  VisitTypeForm[]
+
+  @@unique([tenantId, nameKey])
+  @@index([tenantId])
 }
 
-enum CareVisitStatus {
+/// A form filled in on every visit of a visit type (set from the form in Forms).
+model VisitTypeForm {
+  tenantId    String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  visitTypeId String
+  formId      String
+  createdAt   DateTime @default(now())
+
+  visitType VisitType @relation(fields: [visitTypeId], references: [id], onDelete: Cascade)
+  form      Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@id([visitTypeId, formId])
+  @@index([formId])
+  @@index([tenantId])
+}
+
+enum VisitStatus {
+  SCHEDULED
   IN_PROGRESS
   COMPLETED
-}
-
-model CareVisit {
-  id              String          @id @default(cuid())
-  tenantId        String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant          Tenant          @relation(fields: [tenantId], references: [id])
-  clientId        String
-  /// The worker (caregiver, care manager) who made the visit.
-  userId          String
-  shiftId         String?         @unique
-  startedAt       DateTime
-  endedAt         DateTime?
-  status          CareVisitStatus @default(IN_PROGRESS)
-  notes           String?         @db.Text
-  /// Visit log checklist answers: fieldId -> value (fields of the tenant's VISIT form).
-  values          Json            @default("{}")
-  /// Created when the visit ends, so the worker's hours flow into invoicing like any time entry.
-  timeEntryId     String?         @unique
-  createdByUserId String?
-  updatedByUserId String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  client    Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  user      User       @relation("CareVisitWorker", fields: [userId], references: [id], onDelete: Cascade)
-  shift     CareShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
-  timeEntry TimeEntry? @relation(fields: [timeEntryId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId, startedAt])
-  @@index([userId, startedAt])
-  @@index([clientId, startedAt])
-}
-
-enum CareShiftStatus {
-  SCHEDULED
   CANCELLED
 }
 
-model CareShift {
-  id        String          @id @default(cuid())
-  tenantId  String          @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
-  tenant    Tenant          @relation(fields: [tenantId], references: [id])
-  clientId  String
-  /// Null = open shift (nobody assigned yet).
-  userId    String?
-  seriesId  String?
-  startAt   DateTime
-  endAt     DateTime
-  /// The time zone the shift was planned in (for notifications).
-  timezone  String
-  status    CareShiftStatus @default(SCHEDULED)
-  notes     String?         @db.Text
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+/// One visit: planned (startAt-endAt) and, once worked, actual (startedAt-endedAt). Finishing it creates a time entry.
+model Visit {
+  id              String      @id @default(cuid())
+  tenantId        String      @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant          Tenant      @relation(fields: [tenantId], references: [id])
+  clientId        String
+  /// The team member. Null = open visit (nobody assigned yet).
+  userId          String?
+  visitTypeId     String
+  seriesId        String?
+  startAt         DateTime
+  endAt           DateTime
+  /// The time zone the visit was planned in (for notifications).
+  timezone        String
+  status          VisitStatus @default(SCHEDULED)
+  startedAt       DateTime?
+  endedAt         DateTime?
+  notes           String?     @db.Text
+  /// Created when the visit is finished, so the hours flow into invoicing like any time entry.
+  timeEntryId     String?     @unique
+  createdByUserId String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  client Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  user   User?            @relation("CareShiftWorker", fields: [userId], references: [id], onDelete: SetNull)
-  series CareShiftSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  visit  CareVisit?
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user      User?          @relation("VisitTeamMember", fields: [userId], references: [id], onDelete: SetNull)
+  visitType VisitType      @relation(fields: [visitTypeId], references: [id], onDelete: Restrict)
+  series    VisitSeries?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  timeEntry TimeEntry?     @relation(fields: [timeEntryId], references: [id], onDelete: SetNull)
+  records   FormResponse[]
 
   @@index([tenantId, startAt])
   @@index([userId, startAt])
   @@index([clientId, startAt])
   @@index([seriesId])
+  @@index([visitTypeId])
 }
 
-/// A weekly repeating shift. Shifts are generated ahead (and further as people look ahead); each can be edited on its own.
-model CareShiftSeries {
+/// A weekly repeating visit. Visits are generated ahead (and further as people look ahead); each can be edited on its own.
+model VisitSeries {
   id             String   @id @default(cuid())
   tenantId       String   @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
   tenant         Tenant   @relation(fields: [tenantId], references: [id])
   clientId       String
   userId         String?
+  visitTypeId    String
   /// 0 = Sunday … 6 = Saturday.
   weekdays       Int[]
   /// Local "HH:mm" in `timezone`. An end time at or before the start runs past midnight.
@@ -2409,15 +2419,16 @@ model CareShiftSeries {
   /// Local dates "YYYY-MM-DD". endDate null = keeps going.
   startDate      String
   endDate        String?
-  /// Shifts exist up to and including this local date.
+  /// Visits exist up to and including this local date.
   generatedUntil String
   notes          String?  @db.Text
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  client Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  user   User?       @relation("CareShiftSeriesWorker", fields: [userId], references: [id], onDelete: SetNull)
-  shifts CareShift[]
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user      User?     @relation("VisitSeriesTeamMember", fields: [userId], references: [id], onDelete: SetNull)
+  visitType VisitType @relation(fields: [visitTypeId], references: [id], onDelete: Restrict)
+  visits    Visit[]
 
   @@index([tenantId])
 }

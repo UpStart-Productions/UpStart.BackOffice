@@ -19,8 +19,7 @@ const TYPE_ICON: Record<string, string> = {
   form_submission: 'pi-file-edit',
   client_form_submitted: 'pi-file-check',
   form_attached: 'pi-link',
-  care_form_submission: 'pi-file-edit',
-  care_shift_assigned: 'pi-calendar-plus',
+  visit_assigned: 'pi-calendar-plus',
 };
 
 /** Notification inbox: mark read / dismiss. Email prefs live on My Account. */

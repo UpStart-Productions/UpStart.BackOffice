@@ -1,6 +1,6 @@
 import { parseFormDefinition, type FormDefinition } from '@upstart/back-office/shared';
 
-/** Save a form file (name.ubo-form.json) that another UBO can import. Used by Forms and Care setup. */
+/** Save a form file (name.ubo-form.json) that another UBO can import. Used by Forms. */
 export function downloadFormFile(def: FormDefinition): void {
   const blob = new Blob([JSON.stringify(def, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);

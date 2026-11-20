@@ -85,7 +85,6 @@ async function bootstrap() {
     'x-user-role',
     'x-impersonate-user-id',
     'x-tenant-slug',
-    'x-care-access',
     'x-form-access',
     'content-type',
     'accept',

@@ -42,8 +42,7 @@ export class EmailPreferencesDto {
   @ApiPropertyOptional() @IsOptional() @IsBoolean() form_submission?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() client_form_submitted?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() form_attached?: boolean;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() care_form_submission?: boolean;
-  @ApiPropertyOptional() @IsOptional() @IsBoolean() care_shift_assigned?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() visit_assigned?: boolean;
 }
 
 export class NotificationPreferencesDto {
@@ -64,8 +63,7 @@ export class NotificationPreferencesDto {
   @ApiPropertyOptional() @IsOptional() @ValidateNested() @Type(() => NotificationChannelDto) form_submission?: NotificationChannelDto;
   @ApiPropertyOptional() @IsOptional() @ValidateNested() @Type(() => NotificationChannelDto) client_form_submitted?: NotificationChannelDto;
   @ApiPropertyOptional() @IsOptional() @ValidateNested() @Type(() => NotificationChannelDto) form_attached?: NotificationChannelDto;
-  @ApiPropertyOptional() @IsOptional() @ValidateNested() @Type(() => NotificationChannelDto) care_form_submission?: NotificationChannelDto;
-  @ApiPropertyOptional() @IsOptional() @ValidateNested() @Type(() => NotificationChannelDto) care_shift_assigned?: NotificationChannelDto;
+  @ApiPropertyOptional() @IsOptional() @ValidateNested() @Type(() => NotificationChannelDto) visit_assigned?: NotificationChannelDto;
 }
 
 export class SetNotificationPreferencesBodyDto {

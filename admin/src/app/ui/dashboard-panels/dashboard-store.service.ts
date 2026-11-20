@@ -8,12 +8,12 @@ import {
   areaLevel,
   HELP_AGENT_NAME,
   isAdminRole,
-  type CareShiftDto,
+  type VisitDto,
   type PendingSubmissionDto,
   type PermissionArea,
 } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
-import { CareApi } from '../../core/care.api';
+import { VisitsApi } from '../../core/visits.api';
 import { FormsApi } from '../../core/forms.api';
 import { ActivityQueues, CommunicationsApi, QueueRow, relativeTime } from '../../core/communications.api';
 import { PipelinesApi, PipelineSummary } from '../../core/pipelines.api';
@@ -218,7 +218,7 @@ export class DashboardStore implements OnInit, OnDestroy {
   private readonly session = inject(SessionService);
   private readonly toast = inject(MessageService);
   private readonly formsApi = inject(FormsApi);
-  private readonly care = inject(CareApi);
+  private readonly visitsApi = inject(VisitsApi);
   private readonly pipelinesApi = inject(PipelinesApi);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -300,10 +300,10 @@ export class DashboardStore implements OnInit, OnDestroy {
   readonly pnl = signal<Section<ProfitLoss | null>>(section(null));
   readonly bookings = signal<Section<Booking[]>>(section([]));
   readonly submissions = signal<Section<PendingSubmissionDto[]>>(section([]));
-  readonly shifts = signal<Section<CareShiftDto[]>>(section([]));
+  readonly visits = signal<Section<VisitDto[]>>(section([]));
   readonly pipelines = signal<Section<PipelineSummary[]>>(section([]));
   readonly leads = signal<Section<Lead[]>>(section([]));
-  readonly startingShift = signal<string | null>(null);
+  readonly startingVisit = signal<string | null>(null);
   readonly weather = signal<Weather | null>(null);
   /** Weather is for this browser's location (not the business address). */
   readonly weatherHere = signal(false);
@@ -782,13 +782,12 @@ export class DashboardStore implements OnInit, OnDestroy {
         tone: 'success',
       });
     }
-    for (const s of this.myShifts().filter((s) => dateKey(new Date(s.startAt)) === this.today)) {
+    for (const v of this.myVisits().filter((v) => dateKey(new Date(v.startAt)) === this.today)) {
       rows.push({
-        key: `shift:${s.id}`,
-        title: s.clientName,
-        subtitle: `Shift · ${this.shiftWhen(s)}`,
-        link: ['/accounts', s.clientId],
-        query: { tab: 'care' },
+        key: `visit:${v.id}`,
+        title: v.clientName,
+        subtitle: `${v.visitType.name} · ${this.visitWhen(v)}`,
+        link: ['/visits', v.id],
         icon: 'house',
         tone: 'success',
       });
@@ -1159,28 +1158,31 @@ export class DashboardStore implements OnInit, OnDestroy {
     }));
   });
 
-  // ── My shifts (Care) ─────────────────────────────────────────────────────
+  // ── My visits ────────────────────────────────────────────────────────────
 
-  readonly myShifts = computed(() => this.shifts().data.filter((s) => s.status === 'SCHEDULED' && new Date(s.endAt).getTime() >= Date.now()));
+  /** Visits in progress, and planned ones that haven't ended yet. */
+  readonly myVisits = computed(() =>
+    this.visits().data.filter((v) => v.status === 'IN_PROGRESS' || (v.status === 'SCHEDULED' && new Date(v.endAt).getTime() >= Date.now())),
+  );
 
-  canStartShift(s: CareShiftDto): boolean {
-    return !s.visitId && dateKey(new Date(s.startAt)) === dateKey(new Date());
+  canStartVisit(v: VisitDto): boolean {
+    return v.status === 'SCHEDULED' && dateKey(new Date(v.startAt)) === dateKey(new Date());
   }
 
-  shiftWhen(s: CareShiftDto): string {
-    const d = new Date(s.startAt);
+  visitWhen(v: VisitDto): string {
+    const d = new Date(v.startAt);
     return `${dueLabel(dateKey(d))} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
   }
 
-  async startShift(s: CareShiftDto) {
-    this.startingShift.set(s.id);
+  async startVisit(v: VisitDto) {
+    this.startingVisit.set(v.id);
     try {
-      const visit = await this.care.createVisit({ clientId: s.clientId, shiftId: s.id });
-      await this.router.navigate(['/care/visits', visit.id]);
+      await this.visitsApi.startVisit(v.id);
+      await this.router.navigate(['/visits', v.id]);
     } catch (err) {
       this.toast.add({ severity: 'error', summary: 'Could not start visit', detail: errorText(err, 'Failed') });
     } finally {
-      this.startingShift.set(null);
+      this.startingVisit.set(null);
     }
   }
 
@@ -1529,7 +1531,7 @@ export class DashboardStore implements OnInit, OnDestroy {
     if (!(this.can('invoices') && this.isAdmin())) this.pnl.set({ loading: false, error: null, data: null });
     if (this.can('bookings')) void this.loadBookings();
     if (this.can('forms')) void this.loadSubmissions();
-    if (this.can('schedule')) void this.loadShifts();
+    if (this.can('schedule')) void this.loadVisits();
     if (this.can('pipeline')) void this.loadPipeline();
     void this.loadWeather();
   }
@@ -1680,15 +1682,15 @@ export class DashboardStore implements OnInit, OnDestroy {
     }
   }
 
-  private async loadShifts() {
+  private async loadVisits() {
     try {
       const from = new Date();
       from.setHours(0, 0, 0, 0);
       const to = addDays(from, LOOKAHEAD_DAYS);
-      const data = await this.care.shifts({ from: from.toISOString(), to: to.toISOString(), userId: this.session.me()?.id ?? null });
-      this.shifts.set({ loading: false, error: null, data });
+      const data = await this.visitsApi.visits({ from: from.toISOString(), to: to.toISOString(), userId: this.session.me()?.id ?? null });
+      this.visits.set({ loading: false, error: null, data });
     } catch (err) {
-      this.shifts.set({ loading: false, error: errorText(err, 'Could not load shifts'), data: [] });
+      this.visits.set({ loading: false, error: errorText(err, 'Could not load visits'), data: [] });
     }
   }
 

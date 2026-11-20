@@ -222,15 +222,11 @@ export class FormStructureService {
   }
 
   /**
-   * Whether anyone has answered the form yet: any submission or client result, and for the visit checklist any
-   * visit with checklist answers. Field types can change only before that (answers are stored in the type's shape).
+   * Whether anyone has answered the form yet: any submission or client result (visit forms included).
+   * Field types can change only before that (answers are stored in the type's shape).
    */
   async hasAnswers(formId: string): Promise<boolean> {
-    if (await this.prisma.formResponse.count({ where: { formId }, take: 1 })) return true;
-    const form = await this.prisma.form.findUnique({ where: { id: formId }, select: { settings: true } });
-    const settings = (form?.settings ?? {}) as { visitChecklist?: unknown };
-    if (!settings.visitChecklist) return false;
-    return (await this.prisma.careVisit.count({ where: { NOT: { values: { equals: {} } } }, take: 1 })) > 0;
+    return (await this.prisma.formResponse.count({ where: { formId }, take: 1 })) > 0;
   }
 
   /**

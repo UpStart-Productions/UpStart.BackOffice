@@ -21,8 +21,8 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
 
 /**
  * The one public-links panel for any form: new-response links (form mode) or links to one account's
- * response (record mode, Care). Each link can need a passcode or an emailed code. `apiBase` is the owning
- * module's API (e.g. "/care", "/form-admin"), which serves {apiBase}/forms/:id/links, {apiBase}/records/:id/links
+ * response (record mode, client forms). Each link can need a passcode or an emailed code. `apiBase` is the owning
+ * module's API (e.g. "/form-admin", "/client-forms"), which serves {apiBase}/forms/:id/links, {apiBase}/records/:id/links
  * and {apiBase}/links/:id/revoke.
  */
 @Component({
@@ -228,7 +228,7 @@ export class FormLinksComponent {
   private readonly toast = inject(MessageService);
   private readonly confirm = inject(ConfirmDeleteService);
 
-  /** The owning module's API, e.g. "/care". */
+  /** The owning module's API, e.g. "/form-admin". */
   apiBase = input.required<string>();
   title = input<string | null>(null);
   helpKey = input<string | null>(null);

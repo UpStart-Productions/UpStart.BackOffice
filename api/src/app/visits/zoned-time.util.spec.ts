@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDaysToDate, localDate, shiftInstants, weekdayOf, zonedToUtc } from './zoned-time.util';
+import { addDaysToDate, localDate, visitInstants, weekdayOf, zonedToUtc } from './zoned-time.util';
 
 describe('zoned time', () => {
   it('converts local wall time to UTC across daylight saving', () => {
@@ -7,8 +7,8 @@ describe('zoned time', () => {
     expect(zonedToUtc('2026-12-01', '09:00', 'America/Los_Angeles').toISOString()).toBe('2026-12-01T17:00:00.000Z');
   });
 
-  it('runs an overnight shift into the next day', () => {
-    const { startAt, endAt } = shiftInstants('2026-12-01', '22:00', '06:00', 'America/Los_Angeles');
+  it('runs an overnight visit into the next day', () => {
+    const { startAt, endAt } = visitInstants('2026-12-01', '22:00', '06:00', 'America/Los_Angeles');
     expect((endAt.getTime() - startAt.getTime()) / 3600000).toBe(8);
   });
 

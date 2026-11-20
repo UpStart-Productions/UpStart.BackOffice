@@ -1,63 +1,62 @@
-# Care (module)
+# Schedule
 
-The Care module is switched on per organization by the platform operator. It doesn't have its own menu section. When it's on, care features appear where they belong:
+The Schedule is part of every organization. It plans **visits**: a team member going to a client at a time, for one kind of work. Visits can be anything your organization does: care shifts, service calls, check-ins, inspections.
 
-- A **Care** tab on the page of each client in care (status, visits and schedule).
-- **Schedule** in the Office menu, for planning everyone's shifts across clients.
-- **My shifts** on the Dashboard, for caregivers.
-- The **Scheduled vs actual** tab and a **Time** filter (visit time) in Reports.
-- **Use as the caregiver visit checklist** in a form's Settings → **Where submissions go** (Forms).
+The words used here:
 
-Forms about clients are ordinary **client forms** in **Forms** (see the Forms guide), so you can have as many as you need and name them anything.
+- **Client**: who the visit is for.
+- **Team member**: who does the visit.
+- **Visit**: one scheduled time at a client.
+- **Visit type**: what kind of visit it is (your own list).
+- **Form**: a checklist or assessment filled in on the visit.
 
-## Who sees what
+## Visit types
 
-- **Care** area (Users → Roles): see a client's care status. **Setup** adds clients to care and changes their status.
-- **Visits**: Own (only your own visits) or All (everyone's at the clients you reach).
-- **Schedule**: Own (only your own shifts; you can only plan your own) or All.
-- Admins and Members see every client. Guests see only the clients assigned to them, including the Care tab for those clients.
+Admins keep the list in **Settings → Pick lists → Visits → Visit types**: **Add** a type (for example **Care shift**, **Care manager visit**, **Service call**). The eye button hides a type so it can't be picked for new visits; its visits stay. A type nobody has used yet can be deleted.
 
-## Adding a client to care
+## Forms on visits
 
-Care is opt in per client. A client you only do other work for (training, consulting) is never in care and has no Care tab.
+A form is filled in on visits by attaching it to visit types, in **Forms**: open a form, **Settings → Where submissions go**, turn on **Save submissions to a client's record**, then turn on the visit types under **Fill it in on every visit of these types**. A visit type can have several forms, and a form can be on several visit types.
 
-- **Add to care** is a button on the page of an organization with status Client, for roles with Care **Setup**. The page then gets **Details** and **Care** tabs.
-- **Care status** on the Care tab: **Active**, **Paused** or **Ended**. **Not in care** takes the client out: the Care tab goes away, and their visits and shifts are kept.
-
-## A client's Care tab
-
-- **Care** card: status, next shift, last visit and hours this month.
-- **Visits**: the most recent visits (**Show all** for every one), with **Start visit** (starts now and opens the visit) and **Log past visit** (date, start and end; and the worker, if your role sees everyone).
-- **Schedule**: the client's shifts in the next two weeks. **Add shift** and **View all** open **Office → Schedule** filtered to this client.
-
-The client's forms (intake, profile and so on) are in the **Forms** panel on the **Details** tab.
-
-Each part shows only what the role allows: visits need **Visits**, shifts need **Schedule**. Someone with Own sees only their own visits or shifts.
-
-## Visits
-
-A visit's page has the time, the **visit checklist** and notes.
-
-- **End visit**: sets the end to now and adds the hours to the worker's timesheet (no project, billable), so they invoice like any other time.
-- Times, the checklist and notes save as you change them; the time entry follows. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted. The ⋮ menu has **Delete** (also deletes its time entry).
-- **Open client** goes to the client's Care tab.
-
-**Visit checklist**: a form in Forms with **Use as the caregiver visit checklist** turned on (Settings → **Where submissions go**) is filled in on every visit, for example meals, medication reminder, mood and activities. One form at a time. With none set, visits have just the times and notes.
+Each submission belongs to the visit's client and shows on the client's **Records** tab.
 
 ## Schedule
 
-**Office → Schedule** shows a week of shifts in **seven columns** (Monday through Sunday). Use **‹** and **›**, the **calendar** button, and **Return to this week** to move around. Filter by worker and client.
+**Office → Schedule** has two views:
 
-- **Add shift** (header or under a day): client, worker (empty = **open shift**), date, start and end, notes. Choosing **Add shift** under a day sets that date in the form. **Repeat weekly** repeats on the days you pick at the same local time, until a date or with no end. A warning shows when the worker already has a shift at that time. The worker gets a notification (bell, and email unless turned off).
-- A shift's ⋮ menu: **Edit** (that shift only), **Cancel shift** / **Restore shift**, **Delete**, **Delete this and following** (repeating shifts; shifts with a visit stay), **Start visit** (your own scheduled shift) and **Open visit**.
-- Tags show **Open**, **Cancelled**, **Visit in progress** and **Visited**.
-- A client's name opens their Care tab.
+- **Week**: one client or one team member by the hour, Monday through Sunday. Pick a client or team member first. Drag across empty hours to add a visit at that time; drag a planned visit to move it, or its top or bottom edge to change its times.
+- **Month**: everyone's visits, one bar each. Click a bar or **+N more** to see the day; click elsewhere in a day to open that week.
 
-## Dashboard: My shifts
+Use **‹** and **›** and the calendar to move around. Filter by **Team member** and **Client**.
 
-Caregivers (roles with Schedule) see **My shifts**: their shifts for the next week. **Start visit** shows on today's shifts and starts the visit for that shift; **Open visit** once it's started. The client's name opens their Care tab.
+- **Add visit**: client, **visit type**, team member (empty = **Unassigned**), date, start and end, notes. **Repeat weekly** repeats on the days you pick at the same local time, until a date or with no end. A warning shows when the team member already has a visit at that time. The team member gets a notification (bell, and email unless turned off).
+- A visit's ⋮ menu: **Open visit**, **Edit** (that visit only), **Cancel visit** / **Restore visit**, **Delete**, **Delete this and following** (repeating visits; visits already started stay).
+- Tags show **Cancelled**, **In progress** and **Done**.
+
+## A visit
+
+**Open visit** (from the Schedule, the Dashboard, a client's Records tab or search) shows the visit type, team member, planned time, its forms, the actual time and notes.
+
+- **Start visit**: the team member on the visit starts it when they arrive.
+- **Forms**: the forms of its visit type. **Fill in** opens the form for this visit; **Submit** it when done. It shows **In progress** or **Submitted**.
+- **Finish visit**: sets the end to now and adds the hours to the team member's timesheet (no project, billable), so they invoice like any other time.
+- **Actual time** and **Notes** save as you change them; the time entry follows. For a visit that already happened, type its start and end to finish it. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted.
+- The ⋮ menu has **Cancel visit** and **Delete** (also deletes its time entry; forms filled in on it stay on the client).
+
+## A client's Records tab
+
+Every account page has **Details** and **Records** tabs. **Records** lists every form submitted for the account: client forms, forms filled in on visits (with the visit, its type and team member) and attached public submissions, each **In progress** or **Submitted**. **Add form** adds a client form. Emails, notes and conversations stay in **Activity** on the Details tab.
+
+## Who sees what
+
+- **Schedule** (Users → Roles): **Own** sees only your own visits (you can only plan your own) and **All** sees everyone's at the clients you reach. **Edit** lets someone start, finish and change visits.
+- The team member on a visit can fill in its forms and see them on the client's Records tab, whatever the form's role settings.
+
+## Dashboard: My visits
+
+Roles with Schedule see **My visits**: their visits for the next week. **Start visit** shows on today's visits; **Open visit** once one is in progress.
 
 ## Reports
 
-- **Time** filter (Reports, when Care is on): **All time**, **Visit time** (only time from visits) or **Other time**.
-- **Scheduled vs actual** tab: per worker and client, hours on scheduled shifts against hours on finished visits, the difference, **missed shifts** (ended with no visit) and **visits with no shift** behind them, with totals.
+- **Time** filter: **All time**, **Visit time** (only time from finished visits) or **Other time**.
+- **Scheduled vs actual** tab: per team member and client, planned visit hours against hours worked, the difference and **missed visits** (planned visits that ended without being started), with totals.

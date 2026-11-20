@@ -86,12 +86,8 @@ const ORG_DETAIL: HelpArticle = {
       body: 'Public listing marks the account for a public partner or network site that reads it from Back Office (save Details to apply). For clients, Client portal enabled gives a bookmarkable link with no login or password; copy it to share. Regenerate link makes the old one stop working.',
     },
     {
-      heading: 'Forms',
-      body: "The client's filled-in forms (from Forms). Add form lists the published client forms your role can edit that this client doesn't have yet. Attached public submissions show here too, with In progress or Submitted.",
-    },
-    {
-      heading: 'Care (Care module)',
-      body: 'Add to care (clients only, roles with Care setup) puts a client in care and adds a Care tab next to Details. The Care tab shows the care status, next shift, last visit and hours this month, the visits (Start visit, Log past visit, Show all) and the next two weeks of shifts (Add shift, View all opens Office → Schedule for this client). Change the status (Active, Paused, Ended) on the tab; Not in care removes the tab and keeps everything recorded.',
+      heading: 'Records tab',
+      body: "Every form submitted for this account: client forms, forms filled in on visits (with the visit, its type and team member) and attached public submissions, each In progress or Submitted. Add form lists the published client forms your role can edit that this account doesn't have yet. Activity (emails, notes, conversations) stays on Details.",
     },
   ],
 };
@@ -215,7 +211,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Cards',
-        body: 'Financial health has a date range picker; Collected, Outstanding, Unbilled work and Net (Drafts to send for non-admins) and the Invoiced vs collected chart all follow it, plus Needs action: drafts to send, overdue invoices and clients with unbilled work. The guide suggestions card lists up to three things worth doing (an account gone quiet, an overdue or waiting invoice, unbilled work); its button opens the guide with the request ready, and Not now hides one for 3 days. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them): the three oldest overdue, New for you and Due this week, each with a check button to mark it done. Pipeline & relationships shows next steps this week at the top, then each pipeline by name with its card count, estimated value and lanes, then Gone quiet accounts. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My shifts (Care) lists your shifts with Start visit and Open visit.',
+        body: 'Financial health has a date range picker; Collected, Outstanding, Unbilled work and Net (Drafts to send for non-admins) and the Invoiced vs collected chart all follow it, plus Needs action: drafts to send, overdue invoices and clients with unbilled work. The guide suggestions card lists up to three things worth doing (an account gone quiet, an overdue or waiting invoice, unbilled work); its button opens the guide with the request ready, and Not now hides one for 3 days. The Today header icon shows the weather (click it for the details, again to go back) and the card puts everything due in one list, overdue first; the check button marks a task or next step done, and next steps over 30 days late collapse into a Clean up line. My work lists tasks given to you (with who gave them): the three oldest overdue, New for you and Due this week, each with a check button to mark it done. Pipeline & relationships shows next steps this week at the top, then each pipeline by name with its card count, estimated value and lanes, then Gone quiet accounts. Since last time lists payments, comments, new tasks, bookings, submissions and unfiled email from the last week, tagged New after your last visit. My time shows hours this week, the billable share and a bar per day. My visits lists your visits for the next week with Start visit (today) and Open visit (in progress).',
       },
       {
         heading: "Mine / Everyone's",
@@ -695,7 +691,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Choosing a period',
-        body: 'Pick Year, Month, Quarter or Date range, then Run report. Narrow to one client, and then one project, if you like. With Care on, Time narrows the time to Visit time (from visits) or Other time.',
+        body: 'Pick Year, Month, Quarter or Date range, then Run report. Narrow to one client, and then one project, if you like. Time narrows the time to Visit time (from finished visits) or Other time.',
       },
       {
         heading: 'Time',
@@ -714,8 +710,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Tasks created, completed and overdue in the period, by project.',
       },
       {
-        heading: 'Scheduled vs actual (Care)',
-        body: 'Per worker and client: hours on scheduled shifts against hours on finished visits, the difference, missed shifts (ended with no visit) and visits with no shift behind them.',
+        heading: 'Scheduled vs actual',
+        body: 'Per team member and client: planned visit hours against hours actually worked, the difference, and missed visits (planned visits that ended without being started).',
       },
     ],
   },
@@ -890,7 +886,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Settings',
-        body: 'Four cards. About this form: Form name, Intro text (shown at the top of the form) and Internal note (only your team sees it). Layout: Show questions. After someone submits: Thank-you message (formatted, with links, for example, to book a call) and Email them a confirmation. Where submissions go: Review each submission before accepting it; Save submissions to a client\'s record (with Each client has: One submission, kept up to date or A new submission each time); or Add submissions to a pipeline with its Pipeline and Lane, so each person who submits gets a pipeline card and their submission is accepted, skipping review. Client and pipeline are either/or. With Care on: Use as the caregiver visit checklist. Click Save.',
+        body: 'Four cards. About this form: Form name, Intro text (shown at the top of the form) and Internal note (only your team sees it). Layout: Show questions. After someone submits: Thank-you message (formatted, with links, for example, to book a call) and Email them a confirmation. Where submissions go: Review each submission before accepting it; Save submissions to a client\'s record (with Each client has: One submission, kept up to date or A new submission each time); or Add submissions to a pipeline with its Pipeline and Lane, so each person who submits gets a pipeline card and their submission is accepted, skipping review. Client and pipeline are either/or. For a client form, Fill it in on every visit of these types turns it on per visit type (Schedule). Click Save.',
       },
       {
         heading: 'Who can see them on client pages',
@@ -970,37 +966,45 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     ],
   },
 
-  // ── Care (module) ─────────────────────────────────────
-  'care/visits/:id': {
+  // ── Schedule ──────────────────────────────────────────
+  'visits/:id': {
     title: 'Visit',
-    intro: 'One visit: when, the visit checklist (a form set in Forms) and notes. Everything saves as you go. Visits open from the Care tab on the client page, the Schedule or Dashboard → My shifts.',
+    intro: "One visit: its forms, the actual time and notes. Visits open from the Schedule (⋮ → Open visit), Dashboard → My visits, a client's Records tab or search.",
     sections: [
       {
-        heading: 'Time',
-        body: "Change the date, start or end; it saves on its own and the time entry on the timesheet follows. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked and the visit can't be deleted.",
+        heading: 'Start visit and Finish visit',
+        body: "The team member on the visit starts it when they arrive and finishes it when they leave. Finishing adds the hours to the timesheet. Cancel visit and Delete are in the ⋮ menu.",
       },
       {
-        heading: 'End visit',
-        body: 'Shown while the visit is in progress. Sets the end to now and adds the hours to the timesheet.',
+        heading: 'Forms',
+        body: "The forms attached to the visit's type. Fill in opens the form for this visit; Submit it when done. Submissions show on the client's Records tab.",
+      },
+      {
+        heading: 'Actual time',
+        body: "Change the date, start or end; it saves on its own and the time entry follows. Typing a start and end for a visit that already happened finishes it. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked and the visit can't be deleted.",
       },
     ],
   },
   schedule: {
     title: 'Schedule',
     intro:
-      "Office → Schedule (Care module): the week is shown in seven columns (Mon–Sun). Use ‹ › and the calendar to change weeks, or Return to this week when you've moved. Filter by worker and client. A client's own shifts are also on their Care tab.",
+      "Office → Schedule: Week shows one client or team member by the hour (Mon–Sun); Month shows everyone's visits. Use ‹ › and the calendar to change weeks or months. Filter by team member and client.",
     sections: [
       {
-        heading: 'Add shift',
-        body: 'Use Add shift at the top, or Add shift under a day to default the date to that column. Client, worker (empty = open shift), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the worker already has a shift at that time, you get a warning. The worker gets a notification.',
+        heading: 'Add visit',
+        body: 'Use Add visit at the top, drag across hours in Week view, or Add visit in a day window (Month view). Client, visit type, team member (empty = unassigned), date, start and end. Tick Repeat weekly to repeat on the days you pick until a date (or keep going). If the team member already has a visit at that time, you get a warning. The team member gets a notification.',
       },
       {
-        heading: 'Shift menu',
-        body: 'Edit changes that one shift. Cancel shift keeps it on the schedule crossed out (Restore brings it back). Delete removes it; Delete this and following ends a repeating series from that shift on. Start visit (your own shift) starts the visit; Open visit goes to it.',
+        heading: 'Visit menu',
+        body: 'Open visit goes to the visit (to start it, fill in its forms and finish it). Edit changes that one visit. Cancel visit keeps it on the schedule crossed out (Restore visit brings it back). Delete removes it; Delete this and following ends a repeating series from that visit on.',
+      },
+      {
+        heading: 'Visit types',
+        body: 'Every visit has a type (Care shift, Service call…). Admins manage the list in Settings → Pick lists → Visits. Forms are attached to visit types in Forms (a client form, under Where submissions go).',
       },
       {
         heading: 'Who sees what',
-        body: "Schedule Own: only your own shifts, and you can only plan your own. All: everyone's shifts at the clients you reach.",
+        body: "Schedule Own: only your own visits, and you can only plan your own. All: everyone's visits at the clients you reach.",
       },
     ],
   },
@@ -1020,7 +1024,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Modules',
-        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar) and Care (Intake, Care profiles, Visits, Schedule and public Care links).',
+        body: 'Optional parts of the app, switched on per tenant in Add tenant or Edit. When a module is off, its menu items, role options, Settings sections and pages are hidden for that tenant, admins included. Turning it off keeps its data, so turning it back on brings everything back. Modules: Bookings (Bookings, booking types, public booking pages and Google Calendar). The Schedule is on for every tenant.',
       },
       {
         heading: 'Switch to',

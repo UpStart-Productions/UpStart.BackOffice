@@ -11,7 +11,7 @@ import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
-import { areaEnabled, type CareScheduledVsActualRowDto } from '@upstart/back-office/shared';
+import { areaLevel, type VisitScheduledVsActualRowDto } from '@upstart/back-office/shared';
 import { buildReportProjectDoughnut, type ReportProjectDoughnut } from '../../core/report-project-doughnut.util';
 import { ReportChartComponent } from '../../ui/charts/report-chart.component';
 import { PageComponent } from '../../ui/layout/page.component';
@@ -49,8 +49,8 @@ type TimeEntry = {
   } | null;
   client?: { id: string; name: string } | null;
   projectTask?: { id: string; name: string; isBillable: boolean } | null;
-  /** Care: the visit this time came from, if any. */
-  careVisit?: { id: string } | null;
+  /** The visit this time came from, if any. */
+  visit?: { id: string } | null;
 };
 
 type Invoice = {
@@ -139,24 +139,23 @@ export class ReportsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
 
-  /** Care module on: the Time filter for visit time and the Scheduled vs actual tab. */
-  readonly careOn = computed(() => areaEnabled(this.session.me()?.modules, 'visits'));
+  /** Can see the Schedule: the Time filter for visit time and the Scheduled vs actual tab. */
+  readonly scheduleOn = computed(() => !!areaLevel(this.session.me(), 'schedule'));
   readonly timeKindOptions = [
     { label: 'All time', value: '' },
     { label: 'Visit time', value: 'visits' },
     { label: 'Other time', value: 'other' },
   ];
   /** Scheduled vs actual rows from the last run. */
-  readonly scheduleRows = signal<CareScheduledVsActualRowDto[]>([]);
+  readonly scheduleRows = signal<VisitScheduledVsActualRowDto[]>([]);
   readonly scheduleTotals = computed(() =>
     this.scheduleRows().reduce(
       (t, r) => ({
         scheduledMin: t.scheduledMin + r.scheduledMin,
         visitedMin: t.visitedMin + r.visitedMin,
-        missedShifts: t.missedShifts + r.missedShifts,
-        unscheduledVisits: t.unscheduledVisits + r.unscheduledVisits,
+        missedVisits: t.missedVisits + r.missedVisits,
       }),
-      { scheduledMin: 0, visitedMin: 0, missedShifts: 0, unscheduledVisits: 0 },
+      { scheduledMin: 0, visitedMin: 0, missedVisits: 0 },
     ),
   );
 
@@ -192,7 +191,7 @@ export class ReportsPage implements OnInit {
   filters = {
     clientId: '' as string,
     projectId: '' as string,
-    /** Care: '' all time, 'visits' time from visits only, 'other' everything else. */
+    /** '' all time, 'visits' time from visits only, 'other' everything else. */
     timeKind: '' as '' | 'visits' | 'other',
   };
   /** Bumps when report client/project filters change so invoice tab recomputes without a new run. */
@@ -520,18 +519,18 @@ export class ReportsPage implements OnInit {
       if (this.filters.projectId) taskParams.set('projectId', this.filters.projectId);
       if (this.filters.clientId) taskParams.set('clientId', this.filters.clientId);
 
-      const careParams = new URLSearchParams({ from: bounds.from.toISOString(), to: bounds.to.toISOString() });
-      if (this.filters.clientId) careParams.set('clientId', this.filters.clientId);
+      const visitParams = new URLSearchParams({ from: bounds.from.toISOString(), to: bounds.to.toISOString() });
+      if (this.filters.clientId) visitParams.set('clientId', this.filters.clientId);
       const [entries, invoices, tasks, schedule] = await Promise.all([
         this.api.get<TimeEntry[]>(`/time-entries?${params}`),
         this.api.get<Invoice[]>('/invoices'),
         this.api.get<TaskReport>(`/tm/reports/tasks?${taskParams}`).catch(() => null),
-        this.careOn()
-          ? this.api.get<CareScheduledVsActualRowDto[]>(`/care/reports/scheduled-vs-actual?${careParams}`).catch(() => [] as CareScheduledVsActualRowDto[])
-          : Promise.resolve([] as CareScheduledVsActualRowDto[]),
+        this.scheduleOn()
+          ? this.api.get<VisitScheduledVsActualRowDto[]>(`/visit-reports/scheduled-vs-actual?${visitParams}`).catch(() => [] as VisitScheduledVsActualRowDto[])
+          : Promise.resolve([] as VisitScheduledVsActualRowDto[]),
       ]);
       this.scheduleRows.set(schedule);
-      const timeKind = this.careOn() ? this.filters.timeKind : '';
+      const timeKind = this.scheduleOn() ? this.filters.timeKind : '';
 
       const clientId = this.filters.clientId;
       const projectId = this.filters.projectId;
@@ -539,8 +538,8 @@ export class ReportsPage implements OnInit {
         entries.filter((e) => {
           if (clientId && (e.project?.client?.id ?? e.client?.id) !== clientId) return false;
           if (projectId && e.project?.id !== projectId) return false;
-          if (timeKind === 'visits' && !e.careVisit) return false;
-          if (timeKind === 'other' && e.careVisit) return false;
+          if (timeKind === 'visits' && !e.visit) return false;
+          if (timeKind === 'other' && e.visit) return false;
           return true;
         }),
       );

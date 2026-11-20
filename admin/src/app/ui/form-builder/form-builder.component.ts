@@ -38,7 +38,7 @@ export type BuilderForm = { id: string; sections: Section[]; hasAnswers?: boolea
 /**
  * The one form builder: sections and fields of any form. Changes save right away.
  * `profile` is a hard rule: the builder only offers what the form's profile allows (the API checks it too).
- * `apiBase` is the owning module's API (e.g. "/care"), which checks who may change the form.
+ * `apiBase` is the owning module's API (e.g. "/form-admin"), which checks who may change the form.
  */
 @Component({
   selector: 'app-form-builder',
@@ -502,7 +502,7 @@ export class FormBuilderComponent {
 
   form = input.required<BuilderForm>();
   profile = input.required<FormProfile>();
-  /** The owning module's API, e.g. "/care". */
+  /** The owning module's API, e.g. "/form-admin". */
   apiBase = input.required<string>();
   /** Scored forms: the score areas fields can count toward (saved scoring settings). */
   scoreGroups = input<FormScoreGroup[]>([]);

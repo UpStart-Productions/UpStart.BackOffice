@@ -3,7 +3,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
-import { IsObject, IsString } from 'class-validator';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 import { Request, Response } from 'express';
 import {
   allows,
@@ -32,10 +32,13 @@ import { liveValues, mergeFormValues } from './form-fields.util';
 import { FormLinksService } from './form-links.service';
 import { FormStructureService } from './form-structure.service';
 import { M, personName } from './free-forms.util';
+import { canWorkVisit, visitScope } from '../visits/visit-access.util';
 
 class CreateResultDto {
   @IsString() formId!: string;
   @IsString() clientId!: string;
+  /** Filled in on this visit (a form attached to the visit's type). */
+  @IsOptional() @IsString() visitId?: string;
 }
 
 class ChangeResultClientDto {
@@ -51,6 +54,15 @@ const LIST_INCLUDE = {
   form: { select: { name: true, settings: true } },
   client: { select: { name: true } },
   updatedBy: { select: { firstName: true, lastName: true, name: true, email: true } },
+  createdBy: { select: { firstName: true, lastName: true, name: true, email: true } },
+  visit: {
+    select: {
+      id: true,
+      startAt: true,
+      visitType: { select: { name: true } },
+      user: { select: { firstName: true, lastName: true, name: true, email: true } },
+    },
+  },
 } as const;
 type ListRow = Prisma.FormResponseGetPayload<{ include: typeof LIST_INCLUDE }>;
 
@@ -75,13 +87,19 @@ function listItem(r: ListRow): ClientFormResultListItemDto {
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     updatedByName: publicNewer ? r.publicUpdatedBy : personName(r.updatedBy),
+    createdByName: personName(r.createdBy),
+    visit: r.visit
+      ? { id: r.visit.id, visitTypeName: r.visit.visitType.name, startAt: r.visit.startAt.toISOString(), teamMemberName: personName(r.visit.user) }
+      : null,
   };
 }
 
 /**
  * Client forms on client and account pages: a record's results, adding one, viewing and editing it (auto-saved),
  * Submit / Reopen, moving it, and share links. Each form sets Read or Edit per role (admins always edit); Clients reach
- * applies. The page's Forms panel also lists other forms' responses attached to the record, for people with Forms.
+ * applies. The client's Records tab also lists other forms' responses attached to the record, for people with Forms.
+ * Forms attached to a visit type are filled in on its visits: whoever works the visit can fill in and see those,
+ * whatever the form's role access.
  * Responses waiting for review (public submissions not yet attached) are handled in Forms, not here.
  */
 @ApiTags('client-forms')
@@ -99,7 +117,7 @@ export class ClientFormsController {
     private readonly delivery: NotificationDeliveryService,
   ) {}
 
-  /** The client page's Forms panel: the client's results the user can read, and the forms they can add. */
+  /** The client page's Records tab: the client's results the user can read, and the forms they can add. */
   @Get('clients/:clientId')
   async panel(@Req() req: Request, @Param('clientId') clientId: string): Promise<ClientFormsPanelDto> {
     const user = req.user as UserContext;
@@ -118,11 +136,17 @@ export class ClientFormsController {
     }
     // Other forms' responses attached here (e.g. an assessment accepted into an account): people with Forms.
     const otherForms = allows(user, 'forms', 'view') ? { form: { module: M, NOT: { settings: { path: ['client', 'enabled'], equals: true } } } } : null;
+    // Forms filled in on visits the user sees (their own visits, or everyone's with Schedule All).
+    const visitRecords = this.access.can(user, 'schedule') ? { visitId: { not: null }, visit: await visitScope(this.access, user) } : null;
     const rows = await this.prisma.formResponse.findMany({
       where: {
         clientId,
         status: 'ACTIVE',
-        OR: [...(readable.size ? [{ formId: { in: [...readable] } }] : []), ...(otherForms ? [otherForms] : [])],
+        OR: [
+          ...(readable.size ? [{ formId: { in: [...readable] } }] : []),
+          ...(otherForms ? [otherForms] : []),
+          ...(visitRecords ? [visitRecords] : []),
+        ],
       },
       orderBy: { createdAt: 'desc' },
       include: LIST_INCLUDE,
@@ -138,6 +162,7 @@ export class ClientFormsController {
     const form = await this.prisma.form.findFirst({ where: { id: dto.formId, module: M } });
     if (!form || !normalizeFormSettings(form.settings).client.enabled) throw new NotFoundException('Form not found');
     if (!form.publishedVersionId) throw new BadRequestException('Publish this form before adding it to a client');
+    if (dto.visitId) return this.createForVisit(user, form.id, dto.clientId, dto.visitId);
     if ((await this.formAccess(user, form)) !== 'edit') throw new NotFoundException('Form not found');
     await this.assertClient(user, dto.clientId);
     const client = await this.prisma.client.findUnique({ where: { id: dto.clientId }, select: { id: true } });
@@ -280,6 +305,28 @@ export class ClientFormsController {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  /** A visit's form: one submission per form per visit, for whoever works the visit. */
+  private async createForVisit(user: UserContext, formId: string, clientId: string, visitId: string) {
+    const visit = await this.workableVisit(user, visitId);
+    if (!visit || visit.clientId !== clientId) throw new NotFoundException('Visit not found');
+    const attached = await this.prisma.visitTypeForm.count({ where: { visitTypeId: visit.visitTypeId, formId } });
+    if (!attached) throw new BadRequestException("This form isn't filled in on this visit's type");
+    const existing = await this.prisma.formResponse.findFirst({ where: { formId, visitId }, select: { id: true } });
+    if (existing) return { id: existing.id };
+    const r = await this.prisma.formResponse.create({ data: { formId, clientId, visitId, living: false }, select: { id: true } });
+    return { id: r.id };
+  }
+
+  /** A visit the user sees and may work (start, finish, fill in its forms), or null. */
+  private async workableVisit(user: UserContext, visitId: string) {
+    if (!this.access.can(user, 'schedule')) return null;
+    const visit = await this.prisma.visit.findFirst({
+      where: { AND: [{ id: visitId }, await visitScope(this.access, user)] },
+      select: { id: true, clientId: true, userId: true, visitTypeId: true },
+    });
+    return visit && canWorkVisit(this.access, user, visit) ? visit : null;
+  }
+
   private async clientForms(): Promise<FormRow[]> {
     const forms = await this.prisma.form.findMany({
       where: { module: M, settings: { path: ['client', 'enabled'], equals: true } },
@@ -316,9 +363,12 @@ export class ClientFormsController {
       include: { form: true },
     });
     if (!record || !normalizeFormSettings(record.form.settings).client.enabled) throw new NotFoundException('Form not found');
-    const level = await this.formAccess(user, record.form);
+    let level = await this.formAccess(user, record.form);
+    // Whoever works the visit it was filled in on can edit it (even at a client they aren't assigned to).
+    const viaVisit = level !== 'edit' && !!record.visitId && !!(await this.workableVisit(user, record.visitId));
+    if (viaVisit) level = 'edit';
     if (!level) throw new NotFoundException('Form not found');
-    await this.assertClient(user, record.clientId!);
+    if (!viaVisit) await this.assertClient(user, record.clientId!);
     if (need === 'edit' && level !== 'edit') throw new ForbiddenException("Your role can't edit this form");
     return { record, level };
   }

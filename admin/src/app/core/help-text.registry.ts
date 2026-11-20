@@ -219,23 +219,28 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Only your team sees this. Use it to say what the form is for. Optional.',
   'forms.form.copies':
     'Pick how many submissions each client keeps. With one submission, kept up to date, each client has one that you update over time, like a profile, and Add form opens it. With a new submission each time, every Add form or accepted submission is kept separately with its date, like an intake.',
-  'forms.form.visitChecklist':
-    'Care: caregivers fill in this form on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',
+  'forms.form.visitTypes':
+    "Turn on a visit type and the team member fills in this form on every visit of that type. Submissions go to the visit's client and show on their Records tab. Visit types are set up in Settings → Pick lists.",
   'forms.form.access':
     "When it's on, that role can view this form's submissions on the client pages they can reach. When it's off, they don't see them. Only admins add or change client form submissions.",
   'forms.result.page':
     "One client's answers to a client form. Answers save as you go; Submit when done. The ⋮ menu has Move, Share link (for someone outside, for example, family) and Delete.",
   'forms.result.links':
     "A link to this result, for example, for family to fill it in. Changes save straight to the form and notify your team.",
-  // Care module
-  'care.visit.page':
-    'One visit: when, the visit checklist and notes. While it is in progress, End visit records the end time and adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.',
-  'care.visit.time': 'An end time earlier than the start counts as the next day (overnight visits).',
-  'care.schedule.page':
-    'Shifts for the week in seven columns (Mon–Sun). Add shift plans a one-off or repeating shift; use Add shift under a day to default the date. The ⋮ menu on a shift edits, cancels, deletes, or starts the visit when it is your shift.',
-  'care.schedule.worker': 'Leave empty for an open shift nobody has yet. The worker gets a notification when a shift is assigned to them.',
-  'care.schedule.repeat':
-    'Repeats on the days you pick, at the same local time, until the date you set (or keeps going). Each shift can still be edited on its own.',
+  // Schedule
+  'visit.page':
+    "One visit: its forms, the actual time and notes. Start visit when you arrive and Finish visit when you leave; finishing adds the hours to the timesheet (for invoicing as usual). Once its time is on an invoice, the times are locked.",
+  'visit.time':
+    "Filled in by Start visit and Finish visit, or type them for a visit that already happened (a start and end finishes it). An end earlier than the start counts as the next day (overnight visits).",
+  'visit.forms':
+    "The forms attached to this visit's type (in Forms). Fill in opens the form for this visit; its submission goes to the client's Records tab.",
+  'schedule.page':
+    'Visits for the week in seven columns (Mon–Sun), or everyone\'s visits by month. Add visit plans a one-off or repeating visit. The ⋮ menu on a visit opens, edits, cancels or deletes it.',
+  'schedule.teamMember': 'Leave empty for an unassigned visit nobody has yet. The team member gets a notification when a visit is assigned to them.',
+  'schedule.visitType':
+    "What kind of visit it is, from your list in Settings → Pick lists. Forms attached to the visit type are filled in on the visit.",
+  'schedule.repeat':
+    'Repeats on the days you pick, at the same local time, until the date you set (or keeps going). Each visit can still be edited on its own.',
   'form.links.verify':
     'No check: anyone with the link. Passcode: share it separately (phone or text). Emailed code: a code goes to an email address before the form opens.',
   'form.links.websites':

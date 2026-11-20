@@ -15,7 +15,7 @@ import {
   DashboardJdPanelComponent,
   DashboardMoneyPanelComponent,
   DashboardPipelinePanelComponent,
-  DashboardShiftsPanelComponent,
+  DashboardVisitsPanelComponent,
   DashboardStore,
   DashboardTimePanelComponent,
   DashboardTodayPanelComponent,
@@ -47,7 +47,7 @@ import type { Panel } from '../../ui/dashboard-panels/dashboard.types';
     DashboardJdPanelComponent,
     DashboardFeedPanelComponent,
     DashboardTimePanelComponent,
-    DashboardShiftsPanelComponent,
+    DashboardVisitsPanelComponent,
   ],
   templateUrl: './dashboard.page.html',
 })

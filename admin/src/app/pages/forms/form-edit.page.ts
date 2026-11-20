@@ -15,9 +15,11 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_DESCRIPTIONS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormClientCopies, type FormClientSettings,
+  htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_DESCRIPTIONS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormClientCopies, type FormClientSettings,
   type FormLayout, type FormScoreBand, type FormScoreBandAssetKind, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto, type FormDefinition,
+  type VisitTypeDto,
 } from '@upstart/back-office/shared';
+import { VisitsApi } from '../../core/visits.api';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
@@ -250,6 +252,17 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
                     </div>
                   }
                 </div>
+                @if (visitTypes().length) {
+                  <div class="form-field">
+                    <label>Fill it in on every visit of these types <app-help-text key="forms.form.visitTypes" /></label>
+                    @for (t of visitTypes(); track t.id) {
+                      <div class="flex align-items-center gap-2">
+                        <p-toggleswitch [inputId]="'ffVt-' + t.id" [ngModel]="visitTypeIds().includes(t.id)" (ngModelChange)="setVisitType(t.id, $event)" [disabled]="!f.canEdit" />
+                        <label [for]="'ffVt-' + t.id">{{ t.name }}</label>
+                      </div>
+                    }
+                  </div>
+                }
               }
               @if (pipelineAccess()) {
                 <div class="flex align-items-center gap-2">
@@ -264,12 +277,6 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
                     }
                   }
                 }
-              }
-              @if (careOn()) {
-                <div class="flex align-items-center gap-2">
-                  <p-toggleswitch inputId="ffVisit" [(ngModel)]="visitChecklist" [disabled]="!f.canEdit" />
-                  <label for="ffVisit">Use as the caregiver visit checklist <app-help-text key="forms.form.visitChecklist" /></label>
-                </div>
               }
             </div>
           </div>
@@ -506,13 +513,12 @@ export class FormEditPage implements OnInit {
   private readonly ws = inject(FormWorkspaceService);
   private readonly session = inject(SessionService);
   private readonly capturePoints = inject(CapturePointsApi);
+  private readonly visitsApi = inject(VisitsApi);
 
   readonly copiesOptions = (Object.keys(FORM_CLIENT_COPIES_LABELS) as FormClientCopies[]).map((value) => ({ value, label: FORM_CLIENT_COPIES_LABELS[value] }));
   /** Pipeline area: see the form's Send to pipeline; setup changes it (the capture points API checks the same). */
   readonly pipelineAccess = computed(() => !!this.session.me() && this.session.can('pipeline'));
   readonly pipelineSetup = computed(() => !!this.session.me() && this.session.can('pipeline', 'setup'));
-  /** The Care module is on (visit checklist setting). */
-  readonly careOn = computed(() => areaEnabled(this.session.me()?.modules, 'visits'));
 
   readonly layoutOptions = (Object.keys(FORM_LAYOUT_LABELS) as FormLayout[]).map((value) => ({ value, label: FORM_LAYOUT_LABELS[value] }));
   readonly layoutLabels = FORM_LAYOUT_LABELS;
@@ -547,7 +553,9 @@ export class FormEditPage implements OnInit {
   thankYou: string | null = '';
   client: FormClientSettings = { enabled: false, copies: 'each' };
   usedFor = '';
-  visitChecklist = false;
+  /** Visit types this client form is filled in on (Settings → Pick lists → Visit types), and the ones on. */
+  visitTypes = signal<VisitTypeDto[]>([]);
+  visitTypeIds = signal<string[]>([]);
   roles = signal<{ id: string; name: string }[]>([]);
   levels = signal<FormAccess>({});
   /** Send to pipeline: the form's capture point (saved with Save). */
@@ -587,6 +595,7 @@ export class FormEditPage implements OnInit {
   async ngOnInit() {
     this.ws.open(this.id, freeFormWorkspace(this.forms, this.id));
     this.forms.roles().then((r) => this.roles.set(r), () => this.roles.set([]));
+    this.visitsApi.visitTypes().then((t) => this.visitTypes.set(t), () => this.visitTypes.set([]));
     try {
       this.apply(await this.forms.form(this.id));
       await this.loadCapture();
@@ -645,7 +654,7 @@ export class FormEditPage implements OnInit {
     this.thankYou = f.settings.thankYou ?? '';
     this.client = { enabled: f.settings.client.enabled, copies: f.settings.client.copies };
     this.usedFor = f.settings.usedFor ?? '';
-    this.visitChecklist = f.settings.visitChecklist;
+    this.visitTypeIds.set([...f.visitTypeIds]);
     this.levels.set({ ...f.access });
     this.saved = this.snapshot();
   }
@@ -653,7 +662,7 @@ export class FormEditPage implements OnInit {
   private snapshot() {
     return JSON.stringify({
       n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYouValue(),
-      c: this.client, u: this.usedFor.trim(), v: this.visitChecklist, a: this.levels(), p: this.capture,
+      c: this.client, u: this.usedFor.trim(), v: [...this.visitTypeIds()].sort(), a: this.levels(), p: this.capture,
     });
   }
 
@@ -676,9 +685,13 @@ export class FormEditPage implements OnInit {
       thankYou: this.thankYouValue(),
       client: { ...this.client },
       usedFor: this.usedFor.trim() || null,
-      visitChecklist: this.visitChecklist,
       scoring,
     };
+  }
+
+  /** Fill this form in on every visit of a visit type (or stop). */
+  setVisitType(id: string, on: boolean) {
+    this.visitTypeIds.update((ids) => (on ? [...new Set([...ids, id])] : ids.filter((x) => x !== id)));
   }
 
   /** Members or Guests see this form's submissions on client pages (view only; only admins change them). */
@@ -705,7 +718,7 @@ export class FormEditPage implements OnInit {
     this.error.set(null);
     try {
       this.apply(
-        await this.forms.update(this.id, { name: this.name.trim(), description: this.description.trim() || null, settings: this.settingsBody(), access: this.levels() }),
+        await this.forms.update(this.id, { name: this.name.trim(), description: this.description.trim() || null, settings: this.settingsBody(), access: this.levels(), visitTypeIds: this.visitTypeIds() }),
       );
       await this.saveCapture();
       this.saved = this.snapshot();

@@ -8,7 +8,7 @@
 - Use the ⋮ menu on a row to **Edit** (name, email, role, hourly rate), **Send sign-in invite**, **Disable** or **Delete**. If you fix someone's email, send them a new sign-in invite afterwards. Change your own profile from **My Account** in the avatar menu (admins editing another user can change that person's email here).
 - The same email can be a user in more than one organization. Add them in each one with the role they should have there. If they already have a sign-in from another organization, they get a "you've been added" email and keep their password. They are only blocked if that email is already a user in *your* organization. Disabling or deleting them affects only your organization.
 - **Roles** tab: every organization has the same three roles, and they can't be edited, added or deleted. The **Members** column shows up to three overlapping avatars and **+N** when there are more; click the cell to open the full list for that role (including **Admin**). In that list, use the copy icon beside each email; click a person to open the same edit user screen as on the Users tab.
-  - **Admin**: everything, including Users, Settings, setup (pipelines, booking types, care setup), Accounting, Reports and every invoice. Only admins delete organizations, people, pipeline cards, bookings, forms and projects.
+  - **Admin**: everything, including Users, Settings, setup (pipelines, booking types, visit types), Accounting, Reports and every invoice. Only admins delete organizations, people, pipeline cards, bookings, forms and projects.
   - **Member**: the organization's own staff. Sees all of CRM (Organizations, People, Pipeline, Bookings, Activity, Forms) and can add and edit there, but not delete or change setup. Sees only the projects they are on, and only their own tasks, time, expenses and invoices, plus everything on projects they lead.
   - **Guest**: outside people such as contractors, vendors and collaborators. Sees only the projects they are on and the clients they are assigned to. No Pipeline, Bookings, Activity or Forms. Like Members, they see only their own time, expenses and invoices, plus everything on projects they lead.
   - **On a project**, each person is a **Lead** or a **Member**. People are added as Members. To bring in someone new as the Lead, use **Add new person** in the project's **People** panel and tick **Make lead** (email required): they're created as a contact, get a Guest login by email invite, and become the project's Lead. If that email already has a login in your organization, they keep their role and just become Lead. To change an existing person, use the ⋮ menu on their row (**Make lead** or **Make member**), or the task board's members dialog. A project can have more than one Lead. Only admins and the project's Leads can add, remove or change people on a project. A Lead sees everyone's time, expenses and invoices on that project and manages who is on it. A Member sees the project's tasks and files and only their own time and expenses.
@@ -42,13 +42,15 @@ Click **Save** after editing text fields. Logo upload saves immediately when you
 
 ### Pick lists
 
-Open **Pick lists** in Settings. Three blocks — **Organizations**, **People**, and **Tasks** — each with their own suggestion lists (organization **Tags**, **Services**, **Products**, and **Focus areas**; **Tags** for people and for tasks). **Add** on a list opens the same find-or-create control used for task tags: search existing values or type a new name and press Enter (or choose **Create value …**). The count on a pill is how many records still have that value. On each pill:
+Open **Pick lists** in Settings. Four blocks — **Organizations**, **People**, **Tasks** and **Visits** — each with their own suggestion lists (organization **Tags**, **Services**, **Products**, and **Focus areas**; **Tags** for people and for tasks). **Add** on a list opens the same find-or-create control used for task tags: search existing values or type a new name and press Enter (or choose **Create value …**). The count on a pill is how many records still have that value. On each pill:
 
 - **Hide** (eye-slash) — the name no longer appears in pick lists on records; organizations that already have it keep it.
 - **Show** (eye) — brings a hidden name back to the pick lists.
 - **Delete** (×) — strips the name from every record and from suggestion lists (confirm first).
 
 Staff can still add new names while editing records; use Pick lists to add catalog entries ahead of time or to hide or remove values.
+
+**Visits → Visit types** is the list of visit types picked when scheduling (see the Schedule guide). Hiding a type keeps its visits but stops it being picked; only a type with no visits can be deleted.
 
 ### Expenses and Invoicing
 

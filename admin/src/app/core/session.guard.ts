@@ -101,7 +101,7 @@ const AREA_BY_PREFIX: Array<[string, PermissionArea]> = [
   ['/accounts', 'clients'], ['/organizations', 'clients'], ['/clients', 'clients'], ['/people', 'contacts'], ['/contacts', 'contacts'], ['/pipeline', 'pipeline'], ['/bookings', 'bookings'], ['/forms', 'forms'],
   ['/booking-types', 'bookings'], ['/inbox', 'inbox'], ['/activity', 'inbox'], ['/projects', 'projects'],
   ['/tasks', 'tasks'], ['/time-entry', 'time'], ['/expenses', 'expenses'], ['/invoices', 'invoices'],
-  ['/reports', 'reports'], ['/care/visits', 'visits'], ['/schedule', 'schedule'], ['/care', 'care'],
+  ['/reports', 'reports'], ['/visits', 'schedule'], ['/schedule', 'schedule'],
 ];
 
 /** Pages that check access per record in the API, not by area: a client form result (per-form role access). */

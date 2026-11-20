@@ -31,9 +31,9 @@ export function maskEmail(email: string | null): string | null {
   return `${local.slice(0, 1)}•••@${domain}`;
 }
 
-/** Public page for a link. Care's forms keep their /care-form/ address (links already sent out still work). */
-export function formLinkUrl(module: string, token: string): string {
-  return module === 'care' ? `${adminAppBaseUrl()}/care-form/${token}` : `${adminAppBaseUrl()}/form/${token}`;
+/** Public page for a link. */
+export function formLinkUrl(token: string): string {
+  return `${adminAppBaseUrl()}/form/${token}`;
 }
 
 type LinkRow = {
@@ -58,7 +58,7 @@ export function linkView(l: LinkRow): FormLinkDto {
     revokedAt: l.revokedAt?.toISOString() ?? null,
     lastUsedAt: l.lastUsedAt?.toISOString() ?? null,
     createdAt: l.createdAt.toISOString(),
-    url: formLinkUrl(l.form.module, l.token),
+    url: formLinkUrl(l.token),
     allowedOrigins: l.allowedOrigins ?? [],
     isDefault: l.isDefault,
   };

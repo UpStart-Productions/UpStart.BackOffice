@@ -1,30 +1,29 @@
-<app-dashboard-panel title="My shifts" icon="pi-calendar-clock" [color]="panelColor('shifts')" link="/schedule" [fill]="true">
-  @if (store.shifts().loading) {
+<app-dashboard-panel title="My visits" icon="pi-calendar-clock" [color]="panelColor('visits')" link="/schedule" [fill]="true">
+  @if (store.visits().loading) {
     <p class="side-list-empty"><i class="pi pi-spin pi-spinner mr-2"></i>Loading…</p>
-  } @else if (store.shifts().error) {
-    <p class="side-list-empty">{{ store.shifts().error }}</p>
-  } @else if (store.myShifts().length) {
-    @for (s of store.myShifts(); track s.id) {
+  } @else if (store.visits().error) {
+    <p class="side-list-empty">{{ store.visits().error }}</p>
+  } @else if (store.myVisits().length) {
+    @for (v of store.myVisits(); track v.id) {
       <app-record-card
         variant="compact"
         [singleLine]="true"
-        [title]="s.clientName"
-        [subtitle]="store.shiftWhen(s)"
-        [link]="['/accounts', s.clientId]"
-        [linkQuery]="{ tab: 'care' }"
+        [title]="v.clientName"
+        [subtitle]="v.visitType.name + ' · ' + store.visitWhen(v)"
+        [link]="['/visits', v.id]"
         icon="house"
         tone="success"
       >
         <ng-container ngProjectAs="[recordActions]">
-          @if (s.visitId) {
-            <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/care/visits', s.visitId]"></a>
-          } @else if (store.canStartShift(s)) {
-            <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="store.startingShift() === s.id" (onClick)="store.startShift(s)" />
+          @if (v.status === 'IN_PROGRESS') {
+            <a pButton label="Open visit" size="small" severity="secondary" [outlined]="true" [routerLink]="['/visits', v.id]"></a>
+          } @else if (store.canStartVisit(v)) {
+            <p-button label="Start visit" icon="pi pi-play" size="small" [loading]="store.startingVisit() === v.id" (onClick)="store.startVisit(v)" />
           }
         </ng-container>
       </app-record-card>
     }
   } @else {
-    <p class="dashboard-quiet">No shifts in the next week.</p>
+    <p class="dashboard-quiet">No visits in the next week.</p>
   }
 </app-dashboard-panel>

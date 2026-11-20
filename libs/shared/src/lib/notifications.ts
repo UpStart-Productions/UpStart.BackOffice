@@ -17,8 +17,7 @@ export type NotificationType =
   | 'form_submission'
   | 'client_form_submitted'
   | 'form_attached'
-  | 'care_form_submission'
-  | 'care_shift_assigned'
+  | 'visit_assigned'
   | 'pipeline_invoice_added'
   | 'pipeline_invoice_moved'
   | 'pipeline_client_added'
@@ -44,8 +43,7 @@ export const NOTIFICATION_TYPES: NotificationType[] = [
   'form_submission',
   'client_form_submitted',
   'form_attached',
-  'care_form_submission',
-  'care_shift_assigned',
+  'visit_assigned',
   'pipeline_invoice_added',
   'pipeline_invoice_moved',
   'pipeline_client_added',

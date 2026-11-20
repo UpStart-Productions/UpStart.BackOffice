@@ -2,7 +2,7 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 import { AccountingModule } from './accounting/accounting.module';
 import { AuthModule } from './auth/auth.module';
 import { ClientsModule } from './clients/clients.module';
-import { CareModule } from './care/care.module';
+import { VisitsModule } from './visits/visits.module';
 import { FormsModule } from './forms/forms.module';
 import { CognitoModule } from './cognito/cognito.module';
 import { CommonModule } from './common/common.module';
@@ -62,7 +62,7 @@ import { HealthController } from './health.controller';
     UsersModule,
     ClientsModule,
     FormsModule,
-    CareModule,
+    VisitsModule,
     ProjectsModule,
     TimeEntriesModule,
     ExpensesModule,

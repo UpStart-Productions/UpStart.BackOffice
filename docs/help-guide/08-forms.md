@@ -36,7 +36,7 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
     - **Save submissions to a client's record** makes it a client form (see Client forms below), with **Each client has**.
     - **Add submissions to a pipeline** (when your role can see the Pipeline), then pick the **Pipeline** and its **Lane**. Each person who submits goes on that pipeline: a new card in that lane, or, if they already have an open card on that pipeline, the visit is logged on their card and the card stays where it is. Their submission is accepted, so it skips review (review is grayed out), and the card links to it. Changing it needs Pipeline setup. Turning it off keeps the count of people added so far.
     - A form saves submissions to a client **or** adds the person to a pipeline, not both: turning one on grays out the other.
-    - **Use as the caregiver visit checklist** (Care module on): caregivers fill in this form on every visit. One form at a time: turning it on here turns it off on the others.
+    - **Fill it in on every visit of these types** (client forms, when your organization has visit types): the team member fills in this form on every visit of the types you turn on. See the Schedule guide.
   - Name and email are always asked on public links. For anything else (organization, phone), add a question to the form.
 - **Scoring** and **Fields** save right away.
 - **Publish** makes the current fields and scoring the version people see. After changes, the button reads **Publish changes**; until you click it, the links keep showing the earlier version. Each submission keeps the version it answered.

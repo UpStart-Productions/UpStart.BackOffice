@@ -28,12 +28,7 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./pages/task-form/task-form.page').then((m) => m.TaskFormPage),
   },
   {
-    // Public form links (Care's intake or one account's form), optionally behind a passcode or emailed code.
-    path: 'care-form/:token',
-    loadComponent: () => import('./pages/forms/public-form.page').then((m) => m.PublicFormPage),
-  },
-  {
-    // Public links of free-standing forms (Forms area).
+    // Public form links (a new submission, or one client's form), optionally behind a passcode or emailed code.
     path: 'form/:token',
     loadComponent: () => import('./pages/forms/public-form.page').then((m) => m.PublicFormPage),
   },
@@ -227,14 +222,13 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./pages/forms/client-form-result.page').then((m) => m.ClientFormResultPage),
       },
       {
-        path: 'care/visits/:id',
-        loadComponent: () => import('./pages/care/care-visit.page').then((m) => m.CareVisitPage),
+        path: 'visits/:id',
+        loadComponent: () => import('./pages/visits/visit.page').then((m) => m.VisitPage),
       },
       {
         path: 'schedule',
-        loadComponent: () => import('./pages/care/care-schedule.page').then((m) => m.CareSchedulePage),
+        loadComponent: () => import('./pages/schedule/schedule.page').then((m) => m.SchedulePage),
       },
-      { path: 'care/schedule', pathMatch: 'full', redirectTo: 'schedule' },
       {
         path: 'settings',
         loadComponent: () =>

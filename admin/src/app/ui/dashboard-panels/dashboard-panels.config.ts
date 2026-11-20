@@ -11,7 +11,7 @@ export const DASHBOARD_PANELS: Panel[] = [
   { id: 'pipeline', size: 'third', visible: (d) => d.can('pipeline') || d.can('inbox') },
   { id: 'feed', size: 'third', visible: (d) => d.can('invoices') || d.can('inbox') || d.can('forms') || d.can('bookings') || d.can('tasks') },
   { id: 'time', size: 'third', visible: (d) => d.can('time') },
-  { id: 'shifts', size: 'third', visible: (d) => d.can('schedule') },
+  { id: 'visits', size: 'third', visible: (d) => d.can('schedule') },
 ];
 
 export function dashboardPanelLabel(id: PanelId): string {
@@ -30,11 +30,11 @@ export function dashboardPanelLabel(id: PanelId): string {
       return 'Since last time';
     case 'time':
       return 'My time';
-    case 'shifts':
-      return 'My shifts';
+    case 'visits':
+      return 'My visits';
   }
 }
 
 export function dashboardPanelColor(id: PanelId): DashboardPanelColor {
-  return id === 'money' || id === 'time' || id === 'shifts' ? 'success' : id === 'today' ? 'warning' : id === 'feed' ? 'neutral' : 'info';
+  return id === 'money' || id === 'time' || id === 'visits' ? 'success' : id === 'today' ? 'warning' : id === 'feed' ? 'neutral' : 'info';
 }

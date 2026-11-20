@@ -45,7 +45,7 @@ export function toDirectoryAvatarPerson(entry: PeopleDirectoryEntry): Person {
   };
 }
 
-/** Team members (users) as picker options for app-people-select (timesheets, Care visits and schedule). */
+/** Team members (users) as picker options for app-people-select (timesheets and the Schedule). */
 export function teamUsersToOptions(
   rows: { id: string; firstName?: string | null; lastName?: string | null; email: string; avatarUrl?: string | null }[],
 ): PeopleDirectoryOption[] {

@@ -17,11 +17,10 @@ function pub(req: Request): PublicRequest {
 
 /**
  * Public form links. No sign-in: the token finds the link and its tenant. Links with a passcode or emailed
- * code need X-Form-Access from /passcode or /verify-code. /care-links and X-Care-Access are kept for pages
- * opened before the form engine.
+ * code need X-Form-Access from /passcode or /verify-code.
  */
 @ApiTags('form-links')
-@Controller(['form-links', 'care-links'])
+@Controller('form-links')
 export class FormPublicController {
   constructor(private readonly forms: FormPublicService) {}
 
@@ -51,10 +50,9 @@ export class FormPublicController {
     @Req() req: Request,
     @Param('token') token: string,
     @Headers('x-form-access') access?: string,
-    @Headers('x-care-access') legacy?: string,
     @Query('draft') draft?: string,
   ) {
-    return this.forms.form(pub(req), token, access ?? legacy, draft);
+    return this.forms.form(pub(req), token, access, draft);
   }
 
   /** Auto-save: the answers changed since the last save. New-response links get a draft token on the first save. */
@@ -85,9 +83,8 @@ export class FormPublicController {
     @Param('token') token: string,
     @Body() dto: PublicSubmitDto,
     @Headers('x-form-access') access?: string,
-    @Headers('x-care-access') legacy?: string,
   ) {
-    return this.forms.submit(pub(req), token, access ?? legacy, dto);
+    return this.forms.submit(pub(req), token, access, dto);
   }
 }
 

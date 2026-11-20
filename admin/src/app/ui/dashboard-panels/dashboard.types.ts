@@ -19,7 +19,7 @@ export type DashRow = {
   at?: string;
 };
 
-export type PanelId = 'money' | 'jd' | 'today' | 'work' | 'pipeline' | 'feed' | 'time' | 'shifts';
+export type PanelId = 'money' | 'jd' | 'today' | 'work' | 'pipeline' | 'feed' | 'time' | 'visits';
 export type PanelSize = 'full' | 'twoThirds' | 'half' | 'third';
 
 export type Panel = { id: PanelId; size: PanelSize; visible: (host: DashboardPanelHost) => boolean };

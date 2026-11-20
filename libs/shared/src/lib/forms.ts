@@ -1,6 +1,6 @@
 /**
  * Form engine (core): field types, form structure, public links and builder profiles.
- * Modules that need forms (Care today, the Forms area next) use these; the engine never knows what a response is about.
+ * Forms (the Forms area, client records and visit forms) use these; the engine never knows what a response is about.
  */
 
 /**
@@ -194,7 +194,7 @@ export type FormProfile = {
   required: boolean;
   /** Links anyone can use to send a new response. */
   newLinks: boolean;
-  /** Links for one organization's response (e.g. family updating a Care profile). */
+  /** Links for one organization's response (e.g. family keeping a profile up to date). */
   clientLinks: boolean;
   /** Points on select options, score areas and profile bands. */
   scoring: boolean;
@@ -272,7 +272,7 @@ export type FormPublicLinkDto = {
   formName: string;
   /** Plain text (for embeds). */
   description: string | null;
-  /** The description as formatted HTML when it was written in the editor (Care forms); UBO's own page shows this. */
+  /** The description as formatted HTML when it was written in the editor; UBO's own page shows this. */
   descriptionHtml: string | null;
   organizationName: string;
   kind: FormLinkKind;
@@ -421,8 +421,6 @@ export type FormSettings = {
   layout: FormLayout;
   /** Client forms (see FormClientSettings). */
   client: FormClientSettings;
-  /** Care: this form is the checklist filled in on every visit (one form per tenant; the newest wins). */
-  visitChecklist: boolean;
   /** Submissions wait under Waiting for review (accept into a Prospect, or dismiss). Off: they are accepted as is. */
   review: boolean;
   /** What the form is for, in the tenant's words (the Forms list's Used for column). Optional. */
@@ -437,7 +435,6 @@ export type FormSettings = {
 export const DEFAULT_FORM_SETTINGS: FormSettings = {
   layout: 'page',
   client: DEFAULT_FORM_CLIENT_SETTINGS,
-  visitChecklist: false,
   review: true,
   usedFor: null,
   resultsEmail: false,
@@ -528,7 +525,6 @@ export function normalizeFormSettings(input: unknown): FormSettings {
   return {
     layout: FORM_LAYOUTS.includes(src['layout']) ? src['layout'] : DEFAULT_FORM_SETTINGS.layout,
     client,
-    visitChecklist: !!src['visitChecklist'],
     review: src['review'] === undefined ? DEFAULT_FORM_SETTINGS.review : !!src['review'],
     // Older forms kept this as the client form's category.
     usedFor: str(src['usedFor'], 80) || str(cl['category'], 80) || null,
@@ -680,7 +676,6 @@ export type FreeFormListItemDto = {
   /** What the form is for (typed on the form's Settings). */
   usedFor: string | null;
   isClientForm: boolean;
-  visitChecklist: boolean;
 };
 
 export type FreeFormDto = {
@@ -697,6 +692,8 @@ export type FreeFormDto = {
   access: FormAccess;
   /** Someone has answered it: field types can no longer change. */
   hasAnswers: boolean;
+  /** Client forms: the visit types it's filled in on (every visit of those types). */
+  visitTypeIds: string[];
 };
 
 export type FormSubmissionListItemDto = {
@@ -780,6 +777,10 @@ export type ClientFormResultListItemDto = {
   submittedAt: string | null;
   /** False: a form that isn't a client form (e.g. an assessment accepted into an organization); opens as a submission. */
   isClientForm: boolean;
+  /** Who started it (staff), if anyone. */
+  createdByName: string | null;
+  /** The visit it was filled in on, if any. */
+  visit: { id: string; visitTypeName: string; startAt: string; teamMemberName: string | null } | null;
 };
 
 export type ClientFormResultDto = ClientFormResultListItemDto & {
@@ -794,7 +795,7 @@ export type ClientFormResultDto = ClientFormResultListItemDto & {
   attribution?: import('./types').RecordAttributionDto;
 };
 
-/** The client page's Forms panel. */
+/** The client page's Records tab. */
 export type ClientFormsPanelDto = {
   results: ClientFormResultListItemDto[];
   /** Forms the user can add (Edit access). */

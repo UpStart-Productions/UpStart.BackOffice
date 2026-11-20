@@ -10,7 +10,7 @@ export function atLocal(date: string, time: string): Date {
   return new Date(y, m - 1, d, hh, mm);
 }
 
-/** The browser's IANA time zone (sent with shifts so repeating ones keep their local time). */
+/** The browser's IANA time zone (sent with visits so repeating ones keep their local time). */
 export function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Los_Angeles';
 }
@@ -22,5 +22,3 @@ export function formatDuration(min: number | null | undefined): string {
   const m = min % 60;
   return h ? `${h}h${m ? ` ${m}m` : ''}` : `${m}m`;
 }
-
-export { isEmptyValue, normalizeValues } from '../../core/form-values.util';

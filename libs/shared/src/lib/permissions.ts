@@ -23,8 +23,6 @@ export const PERMISSION_AREAS = [
   'expenses',
   'invoices',
   'reports',
-  'care',
-  'visits',
   'schedule',
 ] as const;
 
@@ -33,7 +31,7 @@ export type AccessLevel = 'own' | 'all';
 export type RolePermissions = Partial<Record<PermissionArea, AccessLevel>>;
 
 /** Areas where "own" makes sense (the record has an owner or members). Every other area is all-or-nothing. */
-export const OWNABLE_AREAS: readonly PermissionArea[] = ['clients', 'contacts', 'forms', 'projects', 'tasks', 'time', 'expenses', 'invoices', 'visits', 'schedule'];
+export const OWNABLE_AREAS: readonly PermissionArea[] = ['clients', 'contacts', 'forms', 'projects', 'tasks', 'time', 'expenses', 'invoices', 'schedule'];
 
 export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   /** Organizations and the Clients list (the same records). */
@@ -50,8 +48,7 @@ export const PERMISSION_LABELS: Record<PermissionArea, string> = {
   expenses: 'Expenses',
   invoices: 'Invoices',
   reports: 'Reports',
-  care: 'Care',
-  visits: 'Visits',
+  /** Visits: Own = the user's own visits; All = everyone's, within the clients they reach. */
   schedule: 'Schedule',
 };
 
@@ -92,14 +89,8 @@ export const ACTION_LABELS: Record<RoleAction, string> = {
   setup: 'Setup',
 };
 
-/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types), Care (who is in care). */
-export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings', 'care'];
-
-/**
- * Areas whose only checkbox is Setup. Care: seeing a client's care status; Setup adds clients to care and changes
- * their status. Which clients: Clients reach (assigned clients unless Organizations is All).
- */
-export const SETUP_ONLY_AREAS: readonly PermissionArea[] = ['care'];
+/** Areas with something to configure: Pipeline (pipelines and lanes), Bookings (booking types). */
+export const SETUP_AREAS: readonly PermissionArea[] = ['pipeline', 'bookings'];
 
 /** Areas that only show information; actions don't apply. */
 export const VIEW_ONLY_AREAS: readonly PermissionArea[] = ['reports'];
@@ -107,7 +98,6 @@ export const VIEW_ONLY_AREAS: readonly PermissionArea[] = ['reports'];
 /** The checkboxes that make sense for an area. */
 export function actionsFor(area: PermissionArea): RoleAction[] {
   if (VIEW_ONLY_AREAS.includes(area)) return [];
-  if (SETUP_ONLY_AREAS.includes(area)) return ['setup'];
   return ROLE_ACTIONS.filter((a) => a !== 'setup' || SETUP_AREAS.includes(area));
 }
 
@@ -154,7 +144,7 @@ export function allows(user: WithAccess | null | undefined, area: PermissionArea
 //   Admin  - a user type (UserRole.ADMIN), not a Role row: everything in the tenant, including money and setup.
 //   Member - the tenant's own staff: all of CRM, plus the projects they are assigned to.
 //   Guest  - outside people (contractors, vendors, collaborators): only the projects and clients they are assigned to.
-// "Own" work (tasks, time, expenses, invoices, visits, schedule) is the person's own, plus everything on projects
+// "Own" work (tasks, time, expenses, invoices, schedule) is the person's own, plus everything on projects
 // they lead (ProjectMember role OWNER, shown as "Lead"). Only admins delete CRM records and projects.
 // The Role rows still exist (users point at them) but their permissions and actions always come from here.
 // ---------------------------------------------------------------------------------------------------------------
@@ -171,13 +161,13 @@ export const MEMBER_ROLE: RolePreset = {
   name: 'Member',
   description: 'Staff. Sees all of CRM and the projects they are assigned to. Sees only their own time, expenses and invoices, plus everything on projects they lead. Can’t delete records or change setup.',
   permissions: {
-    clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', forms: 'all', inbox: 'all', care: 'all',
-    projects: 'own', tasks: 'own', time: 'own', expenses: 'own', invoices: 'own', visits: 'own', schedule: 'own',
+    clients: 'all', contacts: 'all', pipeline: 'all', bookings: 'all', forms: 'all', inbox: 'all',
+    projects: 'own', tasks: 'own', time: 'own', expenses: 'own', invoices: 'own', schedule: 'own',
   },
   actions: {
     clients: NO_DELETE, contacts: NO_DELETE, pipeline: NO_DELETE_SETUP, bookings: NO_DELETE_SETUP, forms: NO_DELETE, inbox: NO_DELETE,
-    care: { setup: false }, projects: NO_DELETE,
-    tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, visits: ALL, schedule: ALL,
+    projects: NO_DELETE,
+    tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, schedule: ALL,
   },
 };
 
@@ -186,12 +176,12 @@ export const GUEST_ROLE: RolePreset = {
   name: 'Guest',
   description: 'Outside people such as contractors, vendors and collaborators. Sees only the projects and clients they are assigned to, and only their own time, expenses and invoices, plus everything on projects they lead. No Pipeline, Bookings, Activity or Forms.',
   permissions: {
-    clients: 'own', contacts: 'own', care: 'all',
-    projects: 'own', tasks: 'own', time: 'own', expenses: 'own', invoices: 'own', visits: 'own', schedule: 'own',
+    clients: 'own', contacts: 'own',
+    projects: 'own', tasks: 'own', time: 'own', expenses: 'own', invoices: 'own', schedule: 'own',
   },
   actions: {
-    clients: EDIT_ONLY, contacts: EDIT_ONLY, care: { setup: false }, projects: EDIT_ONLY,
-    tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, visits: ALL, schedule: ALL,
+    clients: EDIT_ONLY, contacts: EDIT_ONLY, projects: EDIT_ONLY,
+    tasks: ALL, time: ALL, expenses: ALL, invoices: ALL, schedule: ALL,
   },
 };
 

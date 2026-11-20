@@ -9,4 +9,4 @@ export { DashboardPipelinePanelComponent } from './panels/dashboard-pipeline-pan
 export { DashboardJdPanelComponent } from './panels/dashboard-jd-panel.component';
 export { DashboardFeedPanelComponent } from './panels/dashboard-feed-panel.component';
 export { DashboardTimePanelComponent } from './panels/dashboard-time-panel.component';
-export { DashboardShiftsPanelComponent } from './panels/dashboard-shifts-panel.component';
+export { DashboardVisitsPanelComponent } from './panels/dashboard-visits-panel.component';

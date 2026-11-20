@@ -1,22 +1,25 @@
 # Form engine
 
-Forms are core in UBO, like Time and Tasks. One engine and one builder serve every form. Modules that need
-forms (Care today, the Forms area next) own their forms and decide what happens with responses.
+Forms are core in UBO, like Time and Tasks. One engine and one builder serve every form. The Forms area owns
+free-standing forms and decides what happens with responses; client forms save to a client's Records, including
+forms filled in on visits (Schedule).
 
 ## Tables
 
 | Table | What it holds |
 |---|---|
-| `Form` | `module` (owner, e.g. `care`; `forms` for free-standing forms) + `key` (the module's name for it, e.g. `INTAKE`; null for free-standing), name, description, per-role access |
+| `Form` | `module` (owner; `forms` for free-standing forms) + `key` (the module's name for it, e.g. `INTAKE`; null for free-standing), name, description, per-role access |
 | `FormSection`, `FormField` | Structure. Field values are keyed by field id; select values store option ids |
 | `FormVersion` | Publish freezes the form (`FormSnapshot`: name, description, sections with option points, scoring). `Form.publishedVersionId` is what public links serve; module forms without one serve live fields |
-| `FormResponse` | Answers (`values`), status (`PENDING` from a public link, `ACTIVE`, `DISMISSED`), submitter (incl. organization), optional `clientId`, `versionId`, `scores`, `resultToken`, `living` |
+| `FormResponse` | Answers (`values`), status (`PENDING` from a public link, `ACTIVE`, `DISMISSED`), submitter (incl. organization), optional `clientId`, `visitId` (filled in on that visit), `versionId`, `scores`, `resultToken`, `living` |
 | `FormLink`, `FormLinkAccess` | Public links (`NEW` = anyone can send a new response, `CLIENT` = one organization's response) and their passcode / emailed-code verifications |
 
-Migration `20261030003000_form_engine` renamed the Care tables (`CareForm` etc.) in place; ids are unchanged.
-Migration `20261030120000_forms_area` added versions, settings and scoring. Care's one-copy-per-organization rule is a
-partial unique index on `FormResponse(formId, clientId) WHERE living` (Care sets `living: true`).
-Care's visit checklist answers stay on `CareVisit.values`, keyed by the Visit log form's field ids.
+Migration `20261030120000_forms_area` added versions, settings and scoring. The one-copy-per-client rule ("living" client
+forms) is a partial unique index on `FormResponse(formId, clientId) WHERE living`.
+Visit forms: `VisitTypeForm` links a client form to visit types (set on the form's Settings). The visit's copy is a
+`FormResponse` with `clientId` = the visit's client and `visitId`, one per form per visit, made by
+`POST /client-forms/records` with `visitId`. Whoever works the visit (`canWorkVisit`) may fill it in and see it,
+whatever the form's role access (`ClientFormsController.assertResult`).
 
 ## Builder profiles (hard rule)
 
@@ -31,10 +34,10 @@ logic) are added to the profile type and switched on per profile.
 - `FormStructureService`: sections and fields, value counts, moving. Callers pass the module they own, so a
   module can't change another module's forms. Permission checks are the caller's.
 - `FormLinksService`: make, list, revoke links (profile-checked).
-- `FormPublicService` / `FormPublicController` (`/form-links/:token`, also `/care-links/:token`; header
-  `X-Form-Access`, also `X-Care-Access`): link lookup, passcode, emailed code, rate limits, honeypot, checking answers.
+- `FormPublicService` / `FormPublicController` (`/form-links/:token`; header
+  `X-Form-Access`): link lookup, passcode, emailed code, rate limits, honeypot, checking answers.
 - `FormDestinations`: each module registers a `FormDestination` (`storedValues`, `submit`, `tenantModule`).
-  The engine checks answers; the destination decides where they go. Care's is `care/care-destination.ts`.
+  The engine checks answers; the destination decides where they go. The Forms area's is `FreeFormDestination`.
 
 ## Adding forms to a module
 
@@ -52,8 +55,7 @@ logic) are added to the profile type and switched on per profile.
   anything goes to a public page. Bands are picked by `upTo` (percent, inclusive); the last band catches the rest.
 - `FreeFormDestination`: saves the submission (PENDING when Review is on), notifies (`form_submission`), emails results via SES,
   returns a `resultToken` for scored forms. `GET /form-results/:token` (`FormResultsController`) returns `FormResultDto`.
-- Admin: `/forms`, `/forms/:id`, `/forms/:id/submissions`, `/forms/submissions/:id`; public page `/form/:token`
-  (same component as `/care-form/:token`). Shared UI: `app-form-builder`, `app-form-links`, `app-accept-response-dialog`.
+- Admin: `/forms`, `/forms/:id`, `/forms/:id/submissions`, `/forms/submissions/:id`; public page `/form/:token`. Shared UI: `app-form-builder`, `app-form-links`, `app-accept-response-dialog`.
 - Host sites (e.g. heyupstart.com) call `/form-links/:token`, `/form-links/:token/form`, `/form-links/:token/submit`
   and `/form-results/:token` directly and render with their own branding. Their origin must be allowed by CORS.
 

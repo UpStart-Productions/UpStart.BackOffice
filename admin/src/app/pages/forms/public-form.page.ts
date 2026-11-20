@@ -31,7 +31,7 @@ type Step = 'loading' | 'error' | 'passcode' | 'email' | 'code' | 'form' | 'done
 type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; question: boolean; intro?: string | null };
 
 /**
- * Public Care form (/care-form/:token): a new intake, or one organization's form (e.g. for family to
+ * Public form page (/form/:token): a new submission, or one client's form (e.g. for family to
  * update). Some links need a passcode or an emailed code first.
  */
 @Component({
@@ -390,7 +390,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
   `,
 })
 /**
- * The public page for any form link (Care's /care-form/:token and /form/:token): optional passcode or emailed
+ * The public page for any form link (/form/:token): optional passcode or emailed
  * code, the form, then thanks. Scored forms also show the results.
  */
 export class PublicFormPage implements OnInit, OnDestroy {

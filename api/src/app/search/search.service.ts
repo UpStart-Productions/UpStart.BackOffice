@@ -10,13 +10,12 @@ import { CLIENT_DIMENSION_KEYS } from '@upstart/back-office/shared';
 import { focusLabelsMatchingQuery } from '../dimensions/dimensions.util';
 import { clientIdsWithFocusLabels } from '../dimensions/dimensions-load.util';
 import {
-  careShiftScope,
-  careVisitScope,
   expenseScope,
   formsOwnWhere,
   taskVisibilityWhere,
   timeEntryScope,
 } from './search-scope.util';
+import { visitScope } from '../visits/visit-access.util';
 import {
   clientIdsMatchingServiceOrProduct,
   contactTextOr,
@@ -36,8 +35,7 @@ export type SearchResultType =
   | 'invoice'
   | 'lead'
   | 'booking'
-  | 'careVisit'
-  | 'careShift'
+  | 'visit'
   | 'interaction'
   | 'user';
 
@@ -153,12 +151,11 @@ export class SearchService {
       this.access.can(user, 'pipeline');
 
     const formsFilter = formsOwnWhere(this.access, user);
-    const [taskWhere, timeWhere, expenseWhere, visitWhere, shiftWhere] = await Promise.all([
+    const [taskWhere, timeWhere, expenseWhere, visitWhere] = await Promise.all([
       this.access.can(user, 'tasks') ? taskVisibilityWhere(this.taskAccess, user) : Promise.resolve({}),
       this.access.can(user, 'time') ? timeEntryScope(this.access, user) : Promise.resolve({}),
       this.access.can(user, 'expenses') ? expenseScope(this.access, user) : Promise.resolve({}),
-      this.access.can(user, 'visits') ? careVisitScope(this.access, user) : Promise.resolve({}),
-      this.access.can(user, 'schedule') ? careShiftScope(this.access, user) : Promise.resolve({}),
+      this.access.can(user, 'schedule') ? visitScope(this.access, user) : Promise.resolve({}),
     ]);
 
     const [
@@ -173,8 +170,7 @@ export class SearchService {
       invoices,
       leads,
       bookings,
-      careVisits,
-      careShifts,
+      visits,
       interactions,
       teamUsers,
     ] = await Promise.all([
@@ -401,25 +397,15 @@ export class SearchService {
         orderBy: { startAt: 'desc' },
         take: RESULT_LIMIT,
       }),
-      !this.access.can(user, 'visits') ? none : this.prisma.careVisit.findMany({
+      !this.access.can(user, 'schedule') ? none : this.prisma.visit.findMany({
         where: {
           AND: [visitWhere],
-          OR: [{ notes: ic }, { client: { name: ic } }, { user: { OR: [{ firstName: ic }, { lastName: ic }, { email: ic }] } }],
-        },
-        select: {
-          id: true,
-          notes: true,
-          startedAt: true,
-          status: true,
-          client: { select: { name: true } },
-        },
-        orderBy: { startedAt: 'desc' },
-        take: RESULT_LIMIT,
-      }),
-      !this.access.can(user, 'schedule') ? none : this.prisma.careShift.findMany({
-        where: {
-          AND: [shiftWhere],
-          OR: [{ notes: ic }, { client: { name: ic } }],
+          OR: [
+            { notes: ic },
+            { client: { name: ic } },
+            { visitType: { name: ic } },
+            { user: { OR: [{ firstName: ic }, { lastName: ic }, { email: ic }] } },
+          ],
         },
         select: {
           id: true,
@@ -427,6 +413,7 @@ export class SearchService {
           startAt: true,
           status: true,
           client: { select: { name: true } },
+          visitType: { select: { name: true } },
         },
         orderBy: { startAt: 'desc' },
         take: RESULT_LIMIT,
@@ -638,30 +625,16 @@ export class SearchService {
       });
     }
 
-    if (careVisits.length) {
+    if (visits.length) {
       groups.push({
-        label: 'Care visits',
-        type: 'careVisit',
-        items: careVisits.map((row) => ({
-          type: 'careVisit' as const,
+        label: 'Visits',
+        type: 'visit',
+        items: visits.map((row) => ({
+          type: 'visit' as const,
           id: row.id,
           label: row.client.name,
-          detail: row.notes?.trim().slice(0, 80) ?? '',
-          meta: joinDetail([row.status, row.startedAt.toISOString().slice(0, 10)]),
-        })),
-      });
-    }
-
-    if (careShifts.length) {
-      groups.push({
-        label: 'Schedule',
-        type: 'careShift',
-        items: careShifts.map((row) => ({
-          type: 'careShift' as const,
-          id: row.id,
-          label: row.client.name,
-          detail: row.notes?.trim().slice(0, 80) ?? '',
-          meta: joinDetail([row.status, row.startAt.toISOString().slice(0, 10)]),
+          detail: row.notes?.trim().slice(0, 80) || row.visitType.name,
+          meta: joinDetail([row.visitType.name, row.status, row.startAt.toISOString().slice(0, 10)]),
         })),
       });
     }

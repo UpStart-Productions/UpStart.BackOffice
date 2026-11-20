@@ -160,7 +160,7 @@ export class FormPublicService {
       verify: link.verify,
       maskedEmail: link.kind === 'CLIENT' ? maskEmail(link.email) : null,
       ask: destination.ask(link),
-      pageUrl: formLinkUrl(link.form.module, link.token),
+      pageUrl: formLinkUrl(link.token),
     }));
   }
 

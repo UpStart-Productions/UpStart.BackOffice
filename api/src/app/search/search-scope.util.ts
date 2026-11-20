@@ -27,26 +27,6 @@ export async function expenseScope(
   };
 }
 
-/** Care visit list scope (matches CareVisitsController). */
-export async function careVisitScope(
-  access: AccessService,
-  user: UserContext,
-): Promise<Prisma.CareVisitWhereInput> {
-  if (access.level(user, 'visits') !== 'all') return { userId: user.id };
-  const reach = await access.clientIdFilter(user);
-  return reach ? { clientId: reach } : {};
-}
-
-/** Care shift list scope (matches CareShiftsController). */
-export async function careShiftScope(
-  access: AccessService,
-  user: UserContext,
-): Promise<Prisma.CareShiftWhereInput> {
-  if (access.level(user, 'schedule') !== 'all') return { userId: user.id };
-  const reach = await access.clientIdFilter(user);
-  return reach ? { clientId: reach } : {};
-}
-
 /** Free-standing forms the user may see (matches FreeFormsController). */
 export function formsOwnWhere(access: AccessService, user: UserContext): Prisma.FormWhereInput {
   return access.level(user, 'forms') === 'own' ? { createdById: user.id } : {};

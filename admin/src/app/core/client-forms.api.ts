@@ -12,8 +12,9 @@ export class ClientFormsApi {
   panel(clientId: string) {
     return this.api.get<ClientFormsPanelDto>(`${this.base}/clients/${clientId}`);
   }
-  create(formId: string, clientId: string) {
-    return this.api.post<{ id: string }>(`${this.base}/records`, { formId, clientId });
+  /** With visitId: the visit's copy of a form attached to its visit type (made once, then reopened). */
+  create(formId: string, clientId: string, visitId?: string) {
+    return this.api.post<{ id: string }>(`${this.base}/records`, { formId, clientId, ...(visitId ? { visitId } : {}) });
   }
   result(id: string) {
     return this.api.get<ClientFormResultDto>(`${this.base}/records/${id}`);

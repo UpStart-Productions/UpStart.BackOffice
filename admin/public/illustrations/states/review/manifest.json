@@ -133,8 +133,8 @@
     "status": "For review",
     "motion": "Calendar rises; shift blocks build across the week.",
     "uses": [
-      "Care schedule: no shifts",
-      "Care account: no upcoming shifts",
+      "Schedule: no visits",
+      "Account: no upcoming visits",
       "Dashboard: My shifts",
       "Scheduled vs visited hours report"
     ],
@@ -274,7 +274,7 @@
     "uses": [
       "Reports: not run yet",
       "Time/invoice/task reports: empty date range",
-      "Care hours report: no shifts/visits",
+      "Scheduled vs actual report: no visits",
       "Dashboard: first-run financial/time charts"
     ],
     "large": "assets/empty-reports.svg",

@@ -7,12 +7,12 @@ import { dashboardPanelColor } from '../dashboard-panels.config';
 import { DashboardStore } from '../dashboard-store.service';
 
 @Component({
-  selector: 'app-dashboard-shifts-panel',
+  selector: 'app-dashboard-visits-panel',
   standalone: true,
   imports: [RouterLink, ButtonModule, DashboardPanelComponent, RecordCardComponent],
-  templateUrl: './dashboard-shifts-panel.component.html',
+  templateUrl: './dashboard-visits-panel.component.html',
 })
-export class DashboardShiftsPanelComponent {
+export class DashboardVisitsPanelComponent {
   readonly store = inject(DashboardStore);
   readonly panelColor = dashboardPanelColor;
 }

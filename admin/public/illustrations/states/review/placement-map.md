@@ -56,7 +56,7 @@ This maps the source inventory reviewed in the chat to the reusable candidate li
 
 Avoid playing eight animated illustrations simultaneously on a dashboard. Prefer static compact artwork there; reserve the one-shot entrance for a focused first-use panel. Existing ghost bars in chart panels may remain more useful than an illustration.
 
-## Reports and care
+## Reports and schedule
 
 | Location / condition | Artwork |
 |---|---|
@@ -67,9 +67,7 @@ Avoid playing eight animated illustrations simultaneously on a dashboard. Prefer
 | Scheduled versus visited hours: no data | `empty-schedule.svg` |
 | Expense report: initial prompt | `empty-reports.svg` |
 | Expense report: currently coming soon | None | 
-| Care schedule: no shifts on selected day | `empty-schedule.svg` |
-| Care account tab: no visits | `empty-activity-compact.svg` |
-| Care account tab: no upcoming shifts | `empty-schedule-compact.svg` |
+| Schedule: no visits on selected day | `empty-schedule.svg` |
 
 Keep “coming soon” as a capability message. Do not make it look like a report with no data.
 

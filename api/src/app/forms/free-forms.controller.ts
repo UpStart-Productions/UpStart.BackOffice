@@ -80,7 +80,6 @@ export class FreeFormsController {
         createdByName: personName(f.createdBy),
         isClientForm: settings.client.enabled,
         usedFor: settings.usedFor,
-        visitChecklist: settings.visitChecklist,
       });
     }
     return out;
@@ -210,6 +209,7 @@ export class FreeFormsController {
       canDelete: allows(user, 'forms', 'delete'),
       access: sanitizeFormAccess(form.access),
       hasAnswers: await this.structure.hasAnswers(form.id),
+      visitTypeIds: (await this.prisma.visitTypeForm.findMany({ where: { formId: form.id }, select: { visitTypeId: true } })).map((v) => v.visitTypeId),
     };
   }
 
@@ -231,16 +231,26 @@ export class FreeFormsController {
     if (dto.settings !== undefined) {
       const settings = normalizeFormSettings(dto.settings);
       data.settings = settings as unknown as Prisma.InputJsonValue;
-      // One visit checklist per tenant: turning it on here turns it off elsewhere.
-      if (settings.visitChecklist) {
-        const others = await this.prisma.form.findMany({ where: { module: M, id: { not: id }, settings: { path: ['visitChecklist'], equals: true } }, select: { id: true, settings: true } });
-        for (const o of others) {
-          await this.prisma.form.update({ where: { id: o.id }, data: { settings: { ...normalizeFormSettings(o.settings), visitChecklist: false } as unknown as Prisma.InputJsonValue } });
-        }
-      }
     }
     if (dto.access !== undefined) data.access = sanitizeFormAccess(dto.access) as unknown as Prisma.InputJsonValue;
     await this.prisma.form.update({ where: { id }, data });
+    // Visit types: only client forms are filled in on visits (submissions belong to the visit's client).
+    const saved = await this.prisma.form.findUniqueOrThrow({ where: { id }, select: { settings: true } });
+    const isClientForm = normalizeFormSettings(saved.settings).client.enabled;
+    if (dto.visitTypeIds !== undefined || !isClientForm) {
+      const wanted = isClientForm ? [...new Set(dto.visitTypeIds ?? [])] : [];
+      const valid = wanted.length ? await this.prisma.visitType.findMany({ where: { id: { in: wanted } }, select: { id: true } }) : [];
+      await this.prisma.$transaction([
+        this.prisma.visitTypeForm.deleteMany({ where: { formId: id, visitTypeId: { notIn: valid.map((v) => v.id) } } }),
+        ...valid.map((v) =>
+          this.prisma.visitTypeForm.upsert({
+            where: { visitTypeId_formId: { visitTypeId: v.id, formId: id } },
+            create: { visitTypeId: v.id, formId: id },
+            update: {},
+          }),
+        ),
+      ]);
+    }
     return this.get(req, id);
   }
 

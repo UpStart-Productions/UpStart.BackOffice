@@ -33,16 +33,16 @@
       <p-message severity="error" [text]="error()!" />
     </div>
   } @else if (!loading()) {
-    @if (inCare()) {
+    @if (!isNew) {
       <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="client-tabs">
         <p-tablist>
           <p-tab value="details">Details</p-tab>
-          <p-tab value="care">Care</p-tab>
+          <p-tab value="records">Records</p-tab>
         </p-tablist>
       </p-tabs>
     }
-    @if (tab() === 'care' && inCare()) {
-      <app-care-client-tab [clientId]="id()!" [clientName]="form.name" [overview]="careOverview()!" (overviewChange)="onCareChange($event)" />
+    @if (tab() === 'records' && !isNew) {
+      <app-client-records [clientId]="id()!" />
     } @else {
     <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">
       <div class="stack" [class.span-2]="!isNew">
@@ -255,7 +255,6 @@
             <app-invoices-panel [clientId]="id()!" />
           }
 
-          <app-client-forms-panel [clientId]="id()!" />
         </div>
       }
     </div>

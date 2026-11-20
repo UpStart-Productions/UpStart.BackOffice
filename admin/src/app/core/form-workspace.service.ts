@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import type { FormSectionDto } from '@upstart/back-office/shared';
 
-/** What the workspace sidebar needs of the open form (Forms' and Care's forms both fit). */
+/** What the workspace sidebar needs of the open form (a form in Forms). */
 export type WorkspaceForm = { id: string; canEdit: boolean; sections: FormSectionDto[] };
 
 /** A sidebar entry below the sections: a view of the form page (?view=id), or its own page (`route`). */
@@ -20,7 +20,7 @@ export type WorkspaceConfig = {
 };
 
 /**
- * The form workspace (Forms → a form, Care → Customize form): collapsed main menu plus a column with the
+ * The form workspace (Forms → a form): collapsed main menu plus a column with the
  * form's sections and its tools. The open page sets `config` and `form`; the sidebar lists and changes sections.
  */
 @Injectable({ providedIn: 'root' })

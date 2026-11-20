@@ -28,8 +28,7 @@ type SearchResultType =
   | 'invoice'
   | 'lead'
   | 'booking'
-  | 'careVisit'
-  | 'careShift'
+  | 'visit'
   | 'interaction'
   | 'user';
 
@@ -348,10 +347,8 @@ export class GlobalSearchComponent {
         return `/pipeline/${item.id}`;
       case 'booking':
         return '/bookings';
-      case 'careVisit':
-        return `/care/visits/${item.id}`;
-      case 'careShift':
-        return '/schedule';
+      case 'visit':
+        return `/visits/${item.id}`;
       case 'interaction':
         if (item.clientId) return `/accounts/${item.clientId}`;
         if (item.leadId) return `/pipeline/${item.leadId}`;

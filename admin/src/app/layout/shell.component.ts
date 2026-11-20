@@ -24,7 +24,7 @@ import { HelpSidePanelComponent } from '../ui/help-side-panel/help-side-panel.co
 import { HelpSidePanelService } from '../core/help-side-panel.service';
 import { AppUpdateService } from '../core/app-update.service';
 
-/** Routes rendered in the form workspace (icon rail + the form's sidebar): a form in Forms, and Care's Customize form. */
+/** Routes rendered in the form workspace (icon rail + the form's sidebar): a form in Forms. */
 export function isFormWorkspaceUrl(url: string): boolean {
   const path = url.split(/[?#]/)[0];
   return /^\/forms\/(?!submissions(\/|$))[^/]+\/?$/.test(path);
@@ -143,7 +143,7 @@ export class ShellComponent implements OnInit {
         { area: 'projects', label: 'Projects', icon: 'pi-briefcase', route: '/projects' },
         { area: 'tasks', label: 'Tasks', icon: 'pi-check-square', route: tasksRoute },
         { area: 'time', label: 'Time', icon: 'pi-clock', route: '/time-entry' },
-        // Care module: staff shifts across clients (a client's own visits and shifts are on its Care tab).
+        // Visits to clients by team members (one-off or repeating).
         { area: 'schedule', label: 'Schedule', icon: 'pi-calendar-clock', route: '/schedule' },
         { area: 'expenses', label: 'Expenses', icon: 'pi-wallet', route: '/expenses' },
         { area: 'invoices', label: 'Invoices', icon: 'pi-receipt', route: '/invoices' },

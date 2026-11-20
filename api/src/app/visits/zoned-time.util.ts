@@ -1,6 +1,6 @@
 /**
  * Local wall-clock times in an IANA time zone <-> UTC, without a time zone library.
- * Used for weekly shift series: "Mon 09:00 in America/Los_Angeles" stays 9 AM across daylight saving.
+ * Used for weekly visit series: "Mon 09:00 in America/Los_Angeles" stays 9 AM across daylight saving.
  */
 
 /** Offset (minutes) of `timeZone` from UTC at the given instant. */
@@ -58,15 +58,15 @@ export function isValidTimeZone(tz: string): boolean {
   }
 }
 
-/** Start and end instants of a shift; an end at or before the start runs past midnight. */
-export function shiftInstants(date: string, startTime: string, endTime: string, timeZone: string): { startAt: Date; endAt: Date } {
+/** Start and end instants of a visit; an end at or before the start runs past midnight. */
+export function visitInstants(date: string, startTime: string, endTime: string, timeZone: string): { startAt: Date; endAt: Date } {
   const startAt = zonedToUtc(date, startTime, timeZone);
   const endDate = endTime <= startTime ? addDaysToDate(date, 1) : date;
   return { startAt, endAt: zonedToUtc(endDate, endTime, timeZone) };
 }
 
-/** "Tue, Nov 3, 9:00 AM" in the shift's time zone. */
-export function formatShiftStart(at: Date, timeZone: string): string {
+/** "Tue, Nov 3, 9:00 AM" in the visit's time zone. */
+export function formatVisitStart(at: Date, timeZone: string): string {
   return new Intl.DateTimeFormat('en-US', {
     timeZone,
     weekday: 'short',

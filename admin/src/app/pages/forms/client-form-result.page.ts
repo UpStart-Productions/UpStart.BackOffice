@@ -214,7 +214,12 @@ export class ClientFormResultPage implements OnInit, OnDestroy {
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
   readonly hasFields = computed(() => (this.record()?.sections ?? []).some((s) => s.fields.length));
-  readonly backLink = computed(() => (this.record()?.clientId ? `/clients/${this.record()!.clientId}` : '/clients'));
+  /** Back to the visit it was filled in on, else the client's Records tab. */
+  readonly backLink = computed(() => {
+    const r = this.record();
+    if (r?.visit) return ['/visits', r.visit.id];
+    return r?.clientId ? ['/accounts', r.clientId] : '/clients';
+  });
   readonly pageTitle = computed(() => {
     const r = this.record();
     return r ? `${r.formName}: ${r.clientName ?? ''}` : 'Form';

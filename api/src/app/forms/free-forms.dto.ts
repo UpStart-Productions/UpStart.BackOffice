@@ -1,4 +1,4 @@
-import { IsIn, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsArray, IsIn, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import type { FormSubmissionStatus } from '@upstart/back-office/shared';
 
 export class CreateFreeFormDto {
@@ -20,6 +20,8 @@ export class UpdateFreeFormDto {
   @IsOptional() @IsObject() settings?: Record<string, unknown>;
   /** Client forms: roleId -> "read" | "edit" (who sees and fills in results on client pages). */
   @IsOptional() @IsObject() access?: Record<string, string>;
+  /** Client forms: the visit types it's filled in on (replaces the list). */
+  @IsOptional() @IsArray() @IsString({ each: true }) visitTypeIds?: string[];
 }
 
 export class AcceptSubmissionDto {

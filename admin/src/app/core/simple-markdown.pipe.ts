@@ -18,7 +18,7 @@ export class SimpleMarkdownPipe implements PipeTransform {
 }
 
 const IN_APP_PATH =
-  /^\/(tasks|projects|organizations|people|clients|contacts|invoices|pipeline|forms|dashboard|time-entry|expenses|activity|bookings|care|settings|reports|schedule)(\/|$)/;
+  /^\/(tasks|projects|organizations|people|clients|contacts|invoices|pipeline|forms|dashboard|time-entry|expenses|activity|bookings|visits|settings|reports|schedule)(\/|$)/;
 
 /** Normalize legacy `/tasks/projects/:id/tasks/:taskId` (and board) to `?task=` deep links. */
 export function normalizeAppLinkPath(path: string): string {

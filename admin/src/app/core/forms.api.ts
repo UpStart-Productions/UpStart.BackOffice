@@ -34,7 +34,7 @@ export class FormsApi {
   preview(id: string) {
     return this.api.get<FormStaffPreviewDto>(`${this.base}/forms/${id}/preview`);
   }
-  update(id: string, body: { name?: string; description?: string | null; settings?: FormSettings; access?: FormAccess }) {
+  update(id: string, body: { name?: string; description?: string | null; settings?: FormSettings; access?: FormAccess; visitTypeIds?: string[] }) {
     return this.api.patch<FreeFormDto>(`${this.base}/forms/${id}`, body);
   }
   remove(id: string) {
