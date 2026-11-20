@@ -32,3 +32,8 @@ Use **`app-money-input`** (`admin/src/app/ui/money-input/`) for USD amounts. Do 
 ## New or changed fields
 
 Add or update a registry key in the same change. Key format: `area.field` (e.g. `settings.business.mileageRate`).
+
+## Wording
+
+- No "e.g." anywhere in help text, tooltips, the help drawer or the guide. Write "for example" or "such as", or just give the example in its own sentence. Every example must make sense on its own (no tacked-on fragments).
+- No colons to join sentences or to label a definition ("Off: it stops working", "Good for long forms: people see…"). Write full sentences instead ("Turn it off and it stops working."). Use a colon only to introduce a list.

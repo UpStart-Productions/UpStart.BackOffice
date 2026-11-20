@@ -15,7 +15,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormClientCopies, type FormClientSettings,
+  areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_DESCRIPTIONS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormClientCopies, type FormClientSettings,
   type FormLayout, type FormScoreBand, type FormScoreBandAssetKind, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto, type FormDefinition,
 } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
@@ -74,6 +74,32 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
     FileViewerDialogComponent,
   ],
   styles: `
+    .layout-preview {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 1.25rem;
+      align-items: center;
+      margin-top: 1rem;
+    }
+    .layout-preview img {
+      display: block;
+      width: 240px;
+      height: auto;
+    }
+    .layout-preview-title {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .layout-preview-text {
+      margin: 0;
+      color: var(--text-color-secondary);
+      line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+      .layout-preview {
+        grid-template-columns: 1fr;
+      }
+    }
     .profile-resource-cell {
       display: inline-flex;
       align-items: center;
@@ -174,6 +200,14 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
             <div class="form-field">
               <label>Show questions <app-help-text key="forms.form.layout" /></label>
               <p-selectbutton [options]="layoutOptions" optionLabel="label" optionValue="value" [(ngModel)]="layout" [allowEmpty]="false" [disabled]="!f.canEdit" />
+            </div>
+            <!-- What the picked layout looks like to people filling in the form. -->
+            <div class="layout-preview">
+              <img [src]="'/illustrations/form-layouts/layout-' + layout + '.svg'" [alt]="layoutLabels[layout]" width="240" height="164" />
+              <div>
+                <div class="layout-preview-title">{{ layoutLabels[layout] }}</div>
+                <p class="layout-preview-text">{{ layoutDescriptions[layout] }}</p>
+              </div>
             </div>
           </div>
 
@@ -481,6 +515,8 @@ export class FormEditPage implements OnInit {
   readonly careOn = computed(() => areaEnabled(this.session.me()?.modules, 'visits'));
 
   readonly layoutOptions = (Object.keys(FORM_LAYOUT_LABELS) as FormLayout[]).map((value) => ({ value, label: FORM_LAYOUT_LABELS[value] }));
+  readonly layoutLabels = FORM_LAYOUT_LABELS;
+  readonly layoutDescriptions = FORM_LAYOUT_DESCRIPTIONS;
   private readonly query = toSignal(this.route.queryParamMap);
   /** What the main area shows (sidebar picks it): settings, scoring, links, or a section id. Default: the first section. */
   readonly view = computed(() => {

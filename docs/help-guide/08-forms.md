@@ -11,7 +11,7 @@
 ## Moving a form between UBOs (form files)
 
 - On a form page, **⋮ → Export form file** downloads the form (fields, settings, scoring and profiles) as a `.json` file.
-- **New form → Start from a form file** creates a draft from such a file, e.g. on another UBO. Leave Name empty to use the file's name. Review it, then **Publish**.
+- **New form → Start from a form file** creates a draft from such a file, for example, on another UBO. Leave Name empty to use the file's name. Review it, then **Publish**.
 - On an existing form, **⋮ → Import form file** adds the file's sections and questions **after** the form's own. It only adds: nothing already on the form changes (questions, answers, name, settings, links). Score areas from the file don't carry over. Publish to put the new questions live.
 
 ## The Forms list
@@ -30,7 +30,7 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
 - **Settings** saves with **Save** at the top. It has four cards:
   - **About this form**: **Form name**, **Intro text** (shown to people at the top of the form) and **Internal note** (only your team sees it).
   - **Layout** → **Show questions**: **All on one page** (everything on one scrolling page), **One section per page** (one section at a time with Next and Back, then About you), **One question per page** (one question or text block per screen with a progress bar; picking a single choice moves on by itself, and Back fixes a wrong pick), **Collapsible sections** (sections open one at a time) or **Tabs** (a tab per section). Public pages show choices as a list to click. The form's link page and the embed code follow it; websites that draw the form with their own code get it too.
-  - **After someone submits**: **Thank-you message** (formatted text shown after submitting and in the confirmation email; put links here, e.g. to book a call) and **Email them a confirmation** (an email with your thank-you message, plus their score and profile on scored forms).
+  - **After someone submits**: **Thank-you message** (formatted text shown after submitting and in the confirmation email; put links here, for example, to book a call) and **Email them a confirmation** (an email with your thank-you message, plus their score and profile on scored forms).
   - **Where submissions go**: where each submission ends up in Back Office.
     - **Review each submission before accepting it**: submissions wait under **Waiting for review**. Turned off, they are accepted as they come in.
     - **Save submissions to a client's record** makes it a client form (see Client forms below), with **Each client has**.
@@ -83,7 +83,7 @@ The quickest way is **Sharing → Copy embed code**. For one of the **More links
 
 - **Embed code**: one line to paste into any website (WordPress, Squarespace, a custom site). The form appears in the page and uses that website's own fonts and colors. Links with a passcode or emailed code show an **Open the form** button instead.
 - **Link key**: for a developer whose website draws the form with its own code, using UBO's public form API.
-- **Allowed websites**: empty means any website can show the form. List websites (one per line, e.g. example.org) to allow only those; click **Save websites**. Opening the link itself always works.
+- **Allowed websites**: empty means any website can show the form. List websites (one per line, for example, example.org) to allow only those; click **Save websites**. Opening the link itself always works.
 
 New link also has **Allowed websites**. The **Websites** column on the links list shows what each link allows.
 

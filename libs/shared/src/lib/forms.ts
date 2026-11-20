@@ -391,6 +391,15 @@ export const FORM_LAYOUT_LABELS: Record<FormLayout, string> = {
   tabs: 'Tabs',
 };
 
+/** What each layout means, shown under the picker in form Settings with its picture (admin/public/illustrations/form-layouts). */
+export const FORM_LAYOUT_DESCRIPTIONS: Record<FormLayout, string> = {
+  page: 'Every section and question on one scrolling page, with Submit at the bottom. Best for short forms people finish in a minute or two.',
+  steps: 'One section at a time, with Back and Next. Good for longer forms. People see their progress and never face the whole thing at once.',
+  questions: 'One question per screen, with a progress bar. Picking an answer moves on by itself. Feels like a conversation and works well on phones.',
+  accordion: 'Sections stack as headers and open one at a time. Good when people jump to the parts that apply to them.',
+  tabs: 'A tab for each section across the top. Good for forms people come back to and fill in any order.',
+};
+
 /** Client forms: answers (results) belong to a client and show on the client's page. */
 export type FormClientSettings = {
   /** Answers attach to a client. */

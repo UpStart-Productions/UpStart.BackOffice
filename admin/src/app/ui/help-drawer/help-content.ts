@@ -1,7 +1,7 @@
 /**
  * Help drawer articles, keyed by route pattern (no leading slash; `:param` matches any segment).
  * The drawer shows the most specific match for the current URL, then falls back to parent routes
- * (e.g. tasks/projects/abc/tasks/xyz → tasks/projects/:projectId). Query strings are ignored.
+ * (for example, tasks/projects/abc/tasks/xyz → tasks/projects/:projectId). Query strings are ignored.
  *
  * Keep these in step with docs/help-guide/ (which feeds the Back Office Guide chat).
  */
@@ -24,7 +24,7 @@ const INVOICE_FORM: HelpArticle = {
   sections: [
     {
       heading: 'Bill to',
-      body: 'A client: pick the client. Bill-to email and address fill in from the client and can be changed for this invoice. The client\'s Invoice Code is prepended to the invoice number (e.g. UPSP-0001), so the client needs one before you invoice. Our business: you bill your own business for your work; bill-to fills in from Settings → Business.',
+      body: 'A client: pick the client. Bill-to email and address fill in from the client and can be changed for this invoice. The client\'s Invoice Code is prepended to the invoice number (for example, UPSP-0001), so the client needs one before you invoice. Our business: you bill your own business for your work; bill-to fills in from Settings → Business.',
     },
     {
       heading: 'Generate from time',
@@ -63,7 +63,7 @@ const ORG_DETAIL: HelpArticle = {
     },
     {
       heading: 'Invoice Code',
-      body: 'Short code prepended to invoice numbers, e.g. UPSP-0001. You only need it once you invoice.',
+      body: 'Short code prepended to invoice numbers, for example, UPSP-0001. You only need it once you invoice.',
     },
     {
       heading: 'People',
@@ -725,7 +725,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Adding an account',
-        body: 'Enter a code (e.g. 6000), a name and a type, then Add. Codes keep accounts in order on reports.',
+        body: 'Enter a code (for example, 6000), a name and a type, then Add. Codes keep accounts in order on reports.',
       },
       {
         heading: 'Balances',
@@ -856,7 +856,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'New form',
-        body: 'Name it, then add sections and fields on the form page. Publish when it is ready; its links work from then on. Or start from a form file (made with Export form file on any form page, e.g. on another UBO).',
+        body: 'Name it, then add sections and fields on the form page. Publish when it is ready; its links work from then on. Or start from a form file (made with Export form file on any form page, for example, on another UBO).',
       },
       {
         heading: 'Status',
@@ -890,7 +890,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Settings',
-        body: 'Four cards. About this form: Form name, Intro text (shown at the top of the form) and Internal note (only your team sees it). Layout: Show questions. After someone submits: Thank-you message (formatted, with links, e.g. to book a call) and Email them a confirmation. Where submissions go: Review each submission before accepting it; Save submissions to a client\'s record (with Each client has: One submission, kept up to date or A new submission each time); or Add submissions to a pipeline with its Pipeline and Lane, so each person who submits gets a pipeline card and their submission is accepted, skipping review. Client and pipeline are either/or. With Care on: Use as the caregiver visit checklist. Click Save.',
+        body: 'Four cards. About this form: Form name, Intro text (shown at the top of the form) and Internal note (only your team sees it). Layout: Show questions. After someone submits: Thank-you message (formatted, with links, for example, to book a call) and Email them a confirmation. Where submissions go: Review each submission before accepting it; Save submissions to a client\'s record (with Each client has: One submission, kept up to date or A new submission each time); or Add submissions to a pipeline with its Pipeline and Lane, so each person who submits gets a pipeline card and their submission is accepted, skipping review. Client and pipeline are either/or. With Care on: Use as the caregiver visit checklist. Click Save.',
       },
       {
         heading: 'Who can see them on client pages',
@@ -1059,7 +1059,7 @@ export function matchHelpRoute(routerUrl: string): { pattern: string; article: H
   const keys = Object.keys(HELP_CONTENT).map((k) => ({ key: k, parts: k.split('/') }));
   for (let len = path.length; len > 0; len--) {
     const prefix = path.slice(0, len);
-    // Prefer literal segments over :params (e.g. invoices/new before invoices/:id).
+    // Prefer literal segments over :params (for example, invoices/new before invoices/:id).
     const hit = keys
       .filter((k) => matches(k.parts, prefix))
       .sort((a, b) => a.parts.filter((p) => p.startsWith(':')).length - b.parts.filter((p) => p.startsWith(':')).length)[0];

@@ -13,7 +13,7 @@
 **Guide setup** configures the in-app **Back Office guide** chat:
 
 1. Choose **Provider** (Anthropic, OpenAI, or Gemini)
-2. Enter exact **Model** ID (e.g. `claude-sonnet-4-5`)
+2. Enter exact **Model** ID (for example, `claude-sonnet-4-5`)
 3. Paste **API key** (required first time; leave blank on later saves to keep existing key)
 4. **Save & test connection**
 
