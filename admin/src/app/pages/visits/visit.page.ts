@@ -5,15 +5,18 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
+import { CheckboxModule } from 'primeng/checkbox';
 import { TagModule } from 'primeng/tag';
-import { TextareaModule } from 'primeng/textarea';
-import type { VisitDetailDto, VisitFormDto } from '@upstart/back-office/shared';
+import type { VisitDetailDto, VisitFormDto, VisitLogFormDto } from '@upstart/back-office/shared';
 import { AutoSaver } from '../../core/auto-saver';
 import { ClientFormsApi } from '../../core/client-forms.api';
 import { dateKey } from '../../core/date.util';
 import { VisitsApi } from '../../core/visits.api';
+import { FormFilesClient } from '../../core/form-files.client';
 import { DateInputComponent } from '../../ui/date-input/date-input.component';
+import { FormFieldInputComponent } from '../../ui/form-builder/form-field-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { AppQuillEditorComponent } from '../../ui/quill-editor/app-quill-editor.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { PersonCardComponent } from '../../ui/record-card/person-card.component';
 import { SaveStatusComponent } from '../../ui/save-status/save-status.component';
@@ -21,8 +24,8 @@ import { TimeInputComponent } from '../../ui/time-input/time-input.component';
 import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.util';
 
 /**
- * One visit: who, when (planned and actual), the forms of its visit type and notes. The team member starts and
- * finishes it; finishing adds the time to the timesheet. Actual times and notes save as you go.
+ * The visit log: the team member, the actual time, notes (rich text) and the forms of its visit type. A start and end
+ * finish it and add the time to the timesheet. Times and notes save as you go.
  */
 @Component({
   selector: 'app-visit-page',
@@ -35,7 +38,9 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
     ButtonModule,
     MessageModule,
     TagModule,
-    TextareaModule,
+    AppQuillEditorComponent,
+    CheckboxModule,
+    FormFieldInputComponent,
     DateInputComponent,
     HelpTextComponent,
     PageComponent,
@@ -72,7 +77,7 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
         }
     </ng-template>
     <ng-template #visitActions>
-        @if (visit()?.canWork) {
+        @if (visit()?.canWork && !embedded()) {
           <app-save-status [state]="saver.state()" />
         }
     </ng-template>
@@ -83,10 +88,95 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
       }
 
       @if (visit(); as v) {
-        <div class="grid grid-3">
-          <div class="stack span-2">
-            <div class="card">
-              <div class="card-header"><h2 class="card-title">Forms <app-help-text key="visit.forms" /></h2></div>
+        <div class="visit-log" [class.card]="!embedded()">
+          <div class="side-list">
+            @if (v.teamMember; as m) {
+              <app-person-card kind="user" [person]="m" subtitle="Team member" />
+            } @else {
+              <div class="side-list-row">
+                <div class="side-list-body"><span class="side-list-title">Unassigned</span></div>
+              </div>
+            }
+          </div>
+
+          <div class="visit-log-time">
+            <div class="form-field v-date">
+              <label for="vDate">Date</label>
+              <app-date-input inputId="vDate" [(ngModel)]="date" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+            </div>
+            <div class="form-field v-time">
+              <label for="vStart">Start</label>
+              <app-time-input inputId="vStart" [(ngModel)]="startTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+            </div>
+            <div class="form-field v-time">
+              <label for="vEnd">End</label>
+              <app-time-input inputId="vEnd" [after]="startTime" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
+            </div>
+            @if (v.durationMin !== null) {
+              <span class="v-duration">{{ duration(v.durationMin) }}</span>
+            }
+          </div>
+
+          <app-quill-editor
+            [(ngModel)]="notes"
+            (ngModelChange)="notesChanged($event)"
+            [readOnly]="!v.canWork"
+            mentionToolbar="minimal"
+            placeholder="Notes"
+            aria-label="Notes"
+            [styles]="{ 'min-height': '120px' }"
+          />
+
+          @if (v.forms.length) {
+            @if (embedded()) {
+              @for (f of v.forms; track f.formId) {
+                <div class="v-form">
+                  <div class="v-form-head">
+                    <span class="v-form-name">{{ f.formName }}</span>
+                    @if (f.submittedAt) {
+                      <p-tag value="Submitted" severity="success" />
+                      @if (v.canWork) {
+                        <button type="button" class="link-btn" [disabled]="reopening() === f.formId" (click)="reopenForm(f)">Reopen</button>
+                      }
+                    } @else {
+                      @if (f.recordId) {
+                        <p-tag value="In progress" severity="info" />
+                      }
+                      @if (v.canWork && v.status !== 'CANCELLED') {
+                        <span class="v-form-submit">
+                          <p-checkbox [inputId]="'vSubmit-' + f.formId" [binary]="true" [(ngModel)]="markSubmit[f.formId]" />
+                          <label [for]="'vSubmit-' + f.formId">Mark submitted</label>
+                        </span>
+                      }
+                    }
+                  </div>
+                  @for (s of f.sections; track s.id) {
+                    @if (f.sections.length > 1) {
+                      <div class="v-form-section">{{ s.name }}</div>
+                    }
+                    <div class="showcase-row">
+                      @for (q of s.fields; track q.id) {
+                        <app-form-field-input
+                          class="showcase-half"
+                          [class.v-wide]="q.type === 'LONG_TEXT' || q.type === 'CONTENT' || q.type === 'GROUP'"
+                          [field]="q"
+                          [idPrefix]="f.formId + '-'"
+                          [value]="answers[f.formId][q.id] ?? null"
+                          (valueChange)="answerChanged(f.formId, q.id, $event)"
+                          [disabled]="!v.canWork || !!f.submittedAt || v.status === 'CANCELLED'"
+                          [fileUpload]="uploaders[f.formId] ?? null"
+                          [fileOpen]="openers[f.formId] ?? null"
+                        />
+                      }
+                    </div>
+                  } @empty {
+                    <p class="m-0 text-color-secondary">This form has no questions yet.</p>
+                  }
+                </div>
+              }
+            } @else {
+            <div>
+              <div class="v-forms-label">Forms <app-help-text key="visit.forms" /></div>
               <div class="side-list">
                 @for (f of v.forms; track f.formId) {
                   <div class="side-list-row">
@@ -105,71 +195,77 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
                       <p-button label="Fill in" icon="pi pi-pencil" size="small" severity="secondary" [loading]="openingForm() === f.formId" (onClick)="fillIn(f)" />
                     }
                   </div>
-                } @empty {
-                  <p class="side-list-empty m-0">No forms for {{ v.visitType.name }}. Attach one in Forms.</p>
                 }
               </div>
             </div>
-
-            <div class="card">
-              <div class="card-header"><h2 class="card-title">Actual time <app-help-text key="visit.time" /></h2></div>
-              <div class="showcase-row">
-                <div class="form-field showcase-half">
-                  <label for="vDate">Date</label>
-                  <app-date-input inputId="vDate" [(ngModel)]="date" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
-                </div>
-                <div class="form-field v-time">
-                  <label for="vStart">Start</label>
-                  <app-time-input inputId="vStart" [(ngModel)]="startTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
-                </div>
-                <div class="form-field v-time">
-                  <label for="vEnd">End</label>
-                  <app-time-input inputId="vEnd" [after]="startTime" [overnight]="true" [(ngModel)]="endTime" (ngModelChange)="timesChanged()" [disabled]="!timesEditable()" />
-                </div>
-              </div>
-              @if (v.durationMin !== null) {
-                <p class="mb-0 mt-3">{{ duration(v.durationMin) }}, added to the timesheet.</p>
-              }
-            </div>
-
-            <div class="card">
-              <div class="form-field">
-                <label for="vNotes">Notes</label>
-                <textarea pTextarea id="vNotes" class="w-full" rows="4" [autoResize]="true" [(ngModel)]="notes" (ngModelChange)="saver.change('notes', $event)" [disabled]="!v.canWork"></textarea>
-              </div>
-            </div>
-          </div>
-
-          <div class="side-panel-stack span-1">
-            <div class="card card--side">
-              <div class="side-list">
-                @if (v.teamMember; as m) {
-                  <app-person-card kind="user" [person]="m" subtitle="Team member" />
-                } @else {
-                  <div class="side-list-row">
-                    <div class="side-list-body"><span class="side-list-title">Team member</span></div>
-                    <span class="side-list-value">Unassigned</span>
-                  </div>
-                }
-                <div class="side-list-row">
-                  <div class="side-list-body">
-                    <span class="side-list-title">Planned</span>
-                    @if (v.repeatLabel) {
-                      <span class="side-list-detail">{{ v.repeatLabel }}</span>
-                    }
-                  </div>
-                  <span class="side-list-value">{{ v.startAt | date: 'EEE, MMM d, h:mm a' }} – {{ v.endAt | date: 'h:mm a' }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            }
+          }
         </div>
       }
     </ng-template>
   `,
   styles: `
+    .visit-log {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .visit-log > .side-list:first-child .side-list-row:first-child,
+    .visit-log > .side-list:first-child ::ng-deep .side-list-row:first-child {
+      padding-top: 0;
+    }
+    .visit-log-time {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem;
+    }
+    .visit-log-time .form-field {
+      margin: 0;
+    }
+    .v-date {
+      width: 11rem;
+    }
     .v-time {
       width: 9rem;
+    }
+    .v-duration {
+      padding-bottom: 0.6rem;
+      color: var(--p-text-muted-color);
+    }
+    .v-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--p-content-border-color);
+    }
+    .v-form-head {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .v-form-name {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    .v-form-submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-left: auto;
+    }
+    .v-form-section {
+      font-weight: 600;
+      color: var(--p-text-muted-color);
+    }
+    .v-wide {
+      flex-basis: 100%;
+    }
+    .v-forms-label {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
     }
 
   `,
@@ -180,6 +276,7 @@ export class VisitPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(MessageService);
+  private readonly formFiles = inject(FormFilesClient);
 
   /** In the visit modal: the visit to show (the page reads it from the address). */
   visitId = input<string | null>(null);
@@ -212,6 +309,75 @@ export class VisitPage implements OnInit, OnDestroy {
   startTime = '';
   endTime = '';
   notes = '';
+  private savedNotes = '';
+
+  /** In the modal: saving (Save button). */
+  saving = signal(false);
+  /** In the modal: the times were changed (only then does Save send them, so saving notes doesn't finish a visit). */
+  private timesDirty = false;
+  /** Modal forms: answers on screen, the ones changed since loading, Mark submitted, and file upload/open per form. */
+  answers: Record<string, Record<string, unknown>> = {};
+  private changedAnswers: Record<string, Record<string, unknown>> = {};
+  markSubmit: Record<string, boolean> = {};
+  uploaders: Record<string, ReturnType<FormFilesClient['uploader']>> = {};
+  openers: Record<string, ReturnType<FormFilesClient['opener']> | null> = {};
+  reopening = signal<string | null>(null);
+
+  answerChanged(formId: string, fieldId: string, value: unknown) {
+    this.answers[formId][fieldId] = value;
+    (this.changedAnswers[formId] ??= {})[fieldId] = value ?? null;
+  }
+
+  /** Reopen a submitted form so its answers can change (right away; it isn't part of Save). */
+  async reopenForm(f: VisitLogFormDto) {
+    if (!f.recordId) return;
+    this.reopening.set(f.formId);
+    try {
+      await this.clientForms.reopen(f.recordId);
+      await this.reloadForms();
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not reopen', detail: this.message(err) });
+    } finally {
+      this.reopening.set(null);
+    }
+  }
+
+  /** Reload the visit's forms (record ids, submitted) and keep everything typed on screen. */
+  private async reloadForms() {
+    const fresh = await this.visitsApi.visit(this.id);
+    const v = this.visit();
+    this.visit.set(v ? { ...v, forms: fresh.forms } : fresh);
+    this.setupForms(fresh.forms);
+  }
+
+  private setupForms(forms: VisitLogFormDto[]) {
+    for (const f of forms) {
+      this.answers[f.formId] = { ...f.values, ...(this.changedAnswers[f.formId] ?? {}) };
+      this.uploaders[f.formId] = this.formFiles.uploader(f.formId);
+      this.openers[f.formId] = f.recordId ? this.formFiles.opener(`/client-forms/records/${f.recordId}/files`) : null;
+    }
+  }
+
+  private message(err: unknown): string {
+    return err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed';
+  }
+
+  /** Page: save notes on a real edit (Quill normalizes the value when it loads). Modal: Save sends them. */
+  notesChanged(value: string | null) {
+    const v = this.isBlank(value) ? '' : (value ?? '');
+    if (this.embedded()) {
+      this.notes = v;
+      return;
+    }
+    if (!this.visit()?.canWork || v === this.savedNotes) return;
+    this.savedNotes = v;
+    this.notes = v;
+    this.saver.change('notes', v);
+  }
+
+  private isBlank(html: string | null): boolean {
+    return !html || !html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  }
 
   readonly duration = formatDuration;
   /** "Caregiver visit log for Alliance Services on Mon, Nov 16, 7:00 AM" (the planned start). */
@@ -246,6 +412,8 @@ export class VisitPage implements OnInit, OnDestroy {
     this.startTime = timeKey(startedAt ?? new Date(v.startAt));
     this.endTime = timeKey(new Date(v.endedAt ?? v.endAt));
     this.notes = v.notes ?? '';
+    this.savedNotes = this.notes;
+    this.setupForms(v.forms);
   }
 
   /**
@@ -253,8 +421,62 @@ export class VisitPage implements OnInit, OnDestroy {
    * an end (logged afterwards: that finishes it); typing only a start doesn't start it.
    */
   timesChanged() {
+    if (this.embedded()) {
+      this.timesDirty = true;
+      return;
+    }
     const needsEnd = this.visit()?.status === 'SCHEDULED';
     if (this.date && this.startTime && (!needsEnd || this.endTime)) this.saver.change('times', true);
+  }
+
+  /** Modal Save: the notes, and the times if changed. False (with a message) if it couldn't save. */
+  async save(): Promise<boolean> {
+    const v = this.visit();
+    if (!v?.canWork) return true;
+    const body: { notes: string | null; startedAt?: string; endedAt?: string } = { notes: this.isBlank(this.notes) ? null : this.notes };
+    if (this.timesDirty && this.timesEditable()) {
+      if (!this.date || !this.startTime || (v.status === 'SCHEDULED' && !this.endTime)) {
+        this.toast.add({ severity: 'warn', summary: 'Add the date, start and end' });
+        return false;
+      }
+      Object.assign(body, this.times());
+    }
+    this.saving.set(true);
+    try {
+      await this.visitsApi.updateVisit(this.id, body);
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not save the visit', detail: this.message(err) });
+      this.saving.set(false);
+      return false;
+    }
+    try {
+      return await this.saveForms(v.clientId);
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /** Each form with changed answers or Mark submitted: made on first save, answers saved, then submitted. */
+  private async saveForms(clientId: string): Promise<boolean> {
+    for (const f of this.visit()?.forms ?? []) {
+      const changed = this.changedAnswers[f.formId];
+      const submit = !!this.markSubmit[f.formId] && !f.submittedAt;
+      if (!changed && !submit) continue;
+      try {
+        const id = f.recordId ?? (await this.clientForms.create(f.formId, clientId, this.id)).id;
+        if (changed) await this.clientForms.save(id, changed);
+        delete this.changedAnswers[f.formId];
+        if (submit) {
+          await this.clientForms.submit(id);
+          delete this.markSubmit[f.formId];
+        }
+      } catch (err) {
+        this.toast.add({ severity: 'error', summary: `Could not save ${f.formName}`, detail: this.message(err) });
+        await this.reloadForms().catch(() => undefined);
+        return false;
+      }
+    }
+    return true;
   }
 
   private times(): { startedAt: string; endedAt?: string } {

@@ -37,9 +37,10 @@ Use **‹** and **›** and the calendar to move around. Filter by **Team member
 
 **Open visit** (from the Schedule, the Dashboard, a client's Visits or Records tab, or search) opens the visit log: what actually happened on the visit. Its title reads like "Caregiver visit log for Alliance Services on Mon, Nov 16, 7:00 AM". The log never changes the schedule.
 
-- **Forms**: the forms of its visit type. **Fill in** opens the form for this visit; **Submit** it when done. It shows **In progress** or **Submitted**.
+- **Forms**: the forms of its visit type, filled in right in the log. Check **Mark submitted** when one is done; **Save** saves the answers (and submits the checked forms). A submitted form is read-only until you **Reopen** it.
 - **Actual time**: starts out as the planned times. Change them to what really happened; with a start and end the visit is done and the hours go to the team member's timesheet (no project, billable), so they invoice like any other time. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked.
-- **Notes** save as you type.
+- **Notes** take formatting (bold, lists, links).
+- **Save** keeps your changes; **Cancel** throws them away.
 - The team member on the visit and admins fill in the log. Cancelling or deleting a visit is done on the Schedule.
 
 ## A client's Visits and Records tabs

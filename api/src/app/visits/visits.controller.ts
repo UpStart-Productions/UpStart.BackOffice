@@ -8,10 +8,12 @@ import {
   ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { Request } from 'express';
-import type { ClientVisitDto, VisitDetailDto } from '@upstart/back-office/shared';
+import type { ClientVisitDto, VisitDetailDto, VisitFormDto, VisitLogFormDto } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
+import { FormStructureService } from '../forms/form-structure.service';
+import { liveValues } from '../forms/form-fields.util';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { canChangePlan, canWorkVisit, visitScope } from './visit-access.util';
@@ -53,7 +55,7 @@ export class UpdateVisitDto {
   @IsOptional() @Matches(TIME) startTime?: string;
   @IsOptional() @Matches(TIME) endTime?: string;
   @IsOptional() @IsString() timezone?: string;
-  @IsOptional() @IsString() @MaxLength(4000) notes?: string | null;
+  @IsOptional() @IsString() @MaxLength(20000) notes?: string | null;
   /** Actual times. Both given on a visit that isn't finished finishes it (logged afterwards). */
   @IsOptional() @IsDateString() startedAt?: string;
   @IsOptional() @IsDateString() endedAt?: string;
@@ -83,6 +85,7 @@ export class VisitsController {
     private readonly prisma: PrismaService,
     private readonly access: AccessService,
     private readonly delivery: NotificationDeliveryService,
+    private readonly structure: FormStructureService,
   ) {}
 
   /** Visits starting in [from, to). Repeating series are filled in up to `to` first. ?userId=open: open visits. */
@@ -427,11 +430,24 @@ export class VisitsController {
     });
     return {
       ...visitView(v as unknown as VisitRow),
-      forms: visitForms(v),
+      forms: await this.logForms(visitForms(v)),
       timeEntryId: v.timeEntryId,
       invoiced: invoiced(v),
       canWork: canWorkVisit(user, v),
     };
+  }
+
+  /** The visit log fills its forms in place: each form's questions and this visit's answers. */
+  private async logForms(forms: VisitFormDto[]): Promise<VisitLogFormDto[]> {
+    const ids = forms.map((f) => f.recordId).filter((id): id is string => !!id);
+    const records = ids.length ? await this.prisma.formResponse.findMany({ where: { id: { in: ids } }, select: { id: true, values: true } }) : [];
+    return Promise.all(
+      forms.map(async (f) => {
+        const sections = await this.structure.sections(f.formId, { filledOnly: true });
+        const stored = records.find((r) => r.id === f.recordId)?.values ?? {};
+        return { ...f, sections, values: liveValues(sections.flatMap((s) => s.fields), stored) };
+      }),
+    );
   }
 
   private async notifyAssigned(visit: VisitRow, actor: UserContext, repeating: boolean) {

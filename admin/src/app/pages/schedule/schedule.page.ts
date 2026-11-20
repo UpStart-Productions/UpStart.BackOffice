@@ -491,7 +491,7 @@ export class SchedulePage implements OnInit {
   }
 
   blockTitle(s: VisitDto): string {
-    return [s.visitType.name, s.clientName, s.teamMember?.name ?? 'Unassigned', s.repeatLabel, s.notes].filter(Boolean).join(' · ');
+    return [s.visitType.name, s.clientName, s.teamMember?.name ?? 'Unassigned', s.repeatLabel, s.notes?.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()].filter(Boolean).join(' · ');
   }
 
   /** Drag over empty hours in one day to pick a time range (inclusive hour indexes); release to add a visit. */

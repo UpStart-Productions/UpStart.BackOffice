@@ -977,11 +977,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Forms',
-        body: "The forms attached to the visit's type. Fill in opens the form for this visit; Submit it when done. Submissions show on the client's Records tab.",
+        body: "The forms attached to the visit's type, filled in right in the log. Check Mark submitted and Save to submit one. Submissions show on the client's Records tab.",
       },
       {
         heading: 'Actual time',
-        body: "Starts out as the planned times. Change the date, start or end to what really happened; it saves on its own. A start and end finish the visit and add the hours to the timesheet. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked.",
+        body: "Starts out as the planned times. Change the date, start or end to what really happened, then Save. A start and end finish the visit and add the hours to the timesheet. An end earlier than the start counts as the next day. Once the time is on an invoice, the times are locked.",
       },
     ],
   },

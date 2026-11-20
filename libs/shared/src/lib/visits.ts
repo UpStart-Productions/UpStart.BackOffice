@@ -1,3 +1,5 @@
+import type { FormSectionDto } from './forms';
+
 /**
  * Schedule (core): visits to clients by team members, with tenant-defined visit types. Forms attached to a visit
  * type are filled in on each of its visits; those submissions land on the client's Records tab.
@@ -58,8 +60,14 @@ export type VisitFormDto = {
 /** A client's Visits tab: a visit with the forms of its type (filled in or not). */
 export type ClientVisitDto = VisitDto & { forms: VisitFormDto[] };
 
+/** A form in the visit log: its questions and this visit's answers (empty until filled in). */
+export type VisitLogFormDto = VisitFormDto & {
+  sections: FormSectionDto[];
+  values: Record<string, unknown>;
+};
+
 export type VisitDetailDto = VisitDto & {
-  forms: VisitFormDto[];
+  forms: VisitLogFormDto[];
   timeEntryId: string | null;
   /** The time entry is on an invoice: actual times can't change and the visit can't be deleted. */
   invoiced: boolean;
