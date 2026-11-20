@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseRawEmail } from './email-parse.util';
+import { htmlToPlainText, parseRawEmail } from './email-parse.util';
+import { stripQuotedText } from './quoted-text.util';
 import { collectParticipants, detectCapturer, directionOf, splitParticipants } from './participants.util';
 import { computeThreadKey } from './thread-key.util';
 
@@ -25,6 +26,28 @@ describe('parseRawEmail', () => {
   it('captures CC', async () => {
     const p = await parseRawEmail(fixture('outbound-bcc.eml'));
     expect(p.cc.map((a) => a.email)).toEqual(['judy@example-tpn.test']);
+  });
+});
+
+describe('HTML-only email (Apple Mail / iPhone)', () => {
+  it('builds the body from the HTML part when there is no text part', async () => {
+    const p = await parseRawEmail(fixture('apple-html-only-inline-image.eml'));
+    expect(p.hasHtml).toBe(true);
+    expect(p.text).toContain('Department and Category lists are redundant');
+    expect(p.text).not.toContain('<div');
+  });
+  it('separates the new text from the signature and quoted history', async () => {
+    const p = await parseRawEmail(fixture('apple-html-only-inline-image.eml'));
+    const { body, quoted } = stripQuotedText(p.text);
+    expect(quoted).toBe(true);
+    expect(body).toContain('we only need one');
+    expect(body).not.toContain('Sent from');
+    expect(body).not.toContain('Onboarding is ready to test');
+  });
+  it('keeps an inline screenshot from the new text and drops small/quoted inline images', async () => {
+    const p = await parseRawEmail(fixture('apple-html-only-inline-image.eml'));
+    expect(p.attachments.map((a) => a.filename)).toEqual(['image0.png']);
+    expect(p.attachments[0].contentType).toBe('image/png');
   });
 });
 
@@ -56,5 +79,18 @@ describe('participants', () => {
   it('finds no outsiders in partner-to-partner mail', async () => {
     const p = await parseRawEmail(fixture('internal-only.eml'));
     expect(splitParticipants(collectParticipants(p), isInternal, ignore).external).toEqual([]);
+  });
+});
+
+describe('htmlToPlainText', () => {
+  it('renders Gmail quoted history as "> " lines', () => {
+    const t = htmlToPlainText(
+      '<div dir="ltr">Looks good, ship it.</div><br><div class="gmail_quote"><div class="gmail_attr">On Tue, Nov 17, 2026 at 9:00 AM Jeff &lt;j@x.test&gt; wrote:<br></div><blockquote class="gmail_quote">Ready?</blockquote></div>',
+    );
+    expect(t?.startsWith('Looks good, ship it.')).toBe(true);
+    expect(stripQuotedText(t).body).toBe('Looks good, ship it.');
+  });
+  it('returns null for HTML with no visible text', () => {
+    expect(htmlToPlainText('<html><body><img src="cid:a"></body></html>')).toBeNull();
   });
 });

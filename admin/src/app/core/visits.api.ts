@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import type { VisitDetailDto, VisitDto, VisitTypeDto } from '@upstart/back-office/shared';
+import type { ClientVisitDto, VisitDetailDto, VisitDto, VisitTypeDto } from '@upstart/back-office/shared';
 import { ApiService } from './api.service';
 
 /** Schedule: visits, visit types and the team members who can be given visits. */
@@ -42,6 +42,10 @@ export class VisitsApi {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
     return this.api.get<VisitDto[]>(`/visits?${q}`);
+  }
+  /** A client's past visits (newest first) with their forms. */
+  clientHistory(clientId: string) {
+    return this.api.get<ClientVisitDto[]>(`/visits/client/${clientId}/history`);
   }
   visit(id: string) {
     return this.api.get<VisitDetailDto>(`/visits/${id}`);

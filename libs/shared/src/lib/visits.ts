@@ -53,6 +53,9 @@ export type VisitFormDto = {
   submittedAt: string | null;
 };
 
+/** A client's Visits tab: a visit with the forms of its type (filled in or not). */
+export type ClientVisitDto = VisitDto & { forms: VisitFormDto[] };
+
 export type VisitDetailDto = VisitDto & {
   forms: VisitFormDto[];
   timeEntryId: string | null;

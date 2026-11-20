@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { SelectModule } from 'primeng/select';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import type { ClientFormOptionDto, ClientFormResultListItemDto } from '@upstart/back-office/shared';
@@ -19,7 +20,7 @@ import { ClientFormsApi } from '../../core/client-forms.api';
 @Component({
   selector: 'app-client-records',
   standalone: true,
-  imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, TableModule, TagModule, AppDialogModule],
+  imports: [DatePipe, FormsModule, RouterLink, ButtonModule, SelectModule, SelectButtonModule, TableModule, TagModule, AppDialogModule],
   styles: `
     :host {
       display: block;
@@ -31,11 +32,14 @@ import { ClientFormsApi } from '../../core/client-forms.api';
     <div class="card">
       <div class="card-header">
         <h2 class="card-title">Records</h2>
-        @if (addable().length) {
-          <p-button label="Add form" icon="pi pi-plus" size="small" severity="secondary" (onClick)="openAdd()" />
-        }
+        <div class="flex align-items-center gap-2">
+          <p-selectbutton [options]="showOptions" optionLabel="label" optionValue="value" [ngModel]="show()" (ngModelChange)="show.set($event)" [allowEmpty]="false" size="small" ariaLabel="Show" />
+          @if (addable().length) {
+            <p-button label="Add form" icon="pi pi-plus" size="small" severity="secondary" (onClick)="openAdd()" />
+          }
+        </div>
       </div>
-      <p-table [value]="results()" [loading]="!loaded()" styleClass="table-bordered">
+      <p-table [value]="shown()" [loading]="!loaded()" styleClass="table-bordered">
         <ng-template pTemplate="header">
           <tr>
             <th>Form</th>
@@ -67,7 +71,7 @@ import { ClientFormsApi } from '../../core/client-forms.api';
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
-          <tr><td colspan="5">No records yet. Forms filled in for this client, on visits or with Add form, show here.</td></tr>
+          <tr><td colspan="5">{{ show() === 'all' ? 'No records yet. Forms filled in for this client, on visits or with Add form, show here.' : 'Nothing here with this filter.' }}</td></tr>
         </ng-template>
       </p-table>
     </div>
@@ -111,6 +115,17 @@ export class ClientRecordsComponent {
   clientId = input.required<string>();
 
   results = signal<ClientFormResultListItemDto[]>([]);
+  /** All records, only forms filled in on visits, or only client-level forms (intake, profile and the like). */
+  readonly showOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'visit', label: 'Visit forms' },
+    { value: 'client', label: 'Client forms' },
+  ];
+  show = signal<'all' | 'visit' | 'client'>('all');
+  readonly shown = computed(() => {
+    const show = this.show();
+    return this.results().filter((r) => show === 'all' || (show === 'visit') === !!r.visit);
+  });
   options = signal<ClientFormOptionDto[]>([]);
   loaded = signal(false);
   addVisible = false;

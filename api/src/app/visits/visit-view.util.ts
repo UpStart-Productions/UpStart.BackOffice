@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { WEEKDAY_SHORT, type VisitDto } from '@upstart/back-office/shared';
+import { WEEKDAY_SHORT, type VisitDto, type VisitFormDto } from '@upstart/back-office/shared';
 import { toPublicAssetUrl } from '../storage/asset-url.util';
 
 export const PERSON = { select: { id: true, firstName: true, lastName: true, name: true, email: true, avatarUrl: true } } as const;
@@ -48,4 +48,30 @@ export function visitView(r: VisitRow): VisitDto {
     endedAt: r.endedAt?.toISOString() ?? null,
     durationMin: r.startedAt && r.endedAt ? minutesBetween(r.startedAt, r.endedAt) : null,
   };
+}
+
+/** Include for a visit's forms: those attached to its visit type, and the submissions made on it. */
+export const VISIT_FORMS_INCLUDE = {
+  visitType: { select: { id: true, name: true, forms: { select: { form: { select: { id: true, name: true } } } } } },
+  records: { select: { id: true, formId: true, submittedAt: true, form: { select: { name: true } } }, orderBy: { createdAt: 'asc' } },
+} as const;
+
+type VisitFormsRow = {
+  visitType: { forms: { form: { id: string; name: string } }[] };
+  records: { id: string; formId: string; submittedAt: Date | null; form: { name: string } }[];
+};
+
+/** The visit type's forms with this visit's submission (if any), plus forms filled in here that were since detached. */
+export function visitForms(v: VisitFormsRow): VisitFormDto[] {
+  const forms: VisitFormDto[] = v.visitType.forms
+    .map((f) => f.form)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((f) => {
+      const r = v.records.find((x) => x.formId === f.id);
+      return { formId: f.id, formName: f.name, recordId: r?.id ?? null, submittedAt: r?.submittedAt?.toISOString() ?? null };
+    });
+  for (const r of v.records) {
+    if (!forms.some((f) => f.recordId === r.id)) forms.push({ formId: r.formId, formName: r.form.name, recordId: r.id, submittedAt: r.submittedAt?.toISOString() ?? null });
+  }
+  return forms;
 }

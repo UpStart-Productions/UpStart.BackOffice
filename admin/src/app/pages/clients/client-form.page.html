@@ -37,11 +37,16 @@
       <p-tabs [value]="tab()" (valueChange)="setTab($event)" class="client-tabs">
         <p-tablist>
           <p-tab value="details">Details</p-tab>
+          @if (canSchedule()) {
+            <p-tab value="visits">Visits</p-tab>
+          }
           <p-tab value="records">Records</p-tab>
         </p-tablist>
       </p-tabs>
     }
-    @if (tab() === 'records' && !isNew) {
+    @if (tab() === 'visits' && !isNew) {
+      <app-client-visits [clientId]="id()!" [clientName]="form.name" />
+    } @else if (tab() === 'records' && !isNew) {
       <app-client-records [clientId]="id()!" />
     } @else {
     <div class="grid" [class.grid-3]="!isNew" [class.grid-1]="isNew">

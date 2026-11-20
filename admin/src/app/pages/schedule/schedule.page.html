@@ -1,7 +1,21 @@
-<app-page title="Schedule" helpKey="schedule.page">
+<!-- Embedded (a client's schedule in an overlay): no page chrome, locked to that client. Otherwise the Schedule page. -->
+@if (embedded()) {
   @if (canCreate()) {
-    <p-button pageActions label="Add visit" icon="pi pi-plus" (onClick)="openNew()" />
+    <div class="sched-embedded-actions">
+      <p-button label="Add visit" icon="pi pi-plus" (onClick)="openNew()" />
+    </div>
   }
+  <ng-container *ngTemplateOutlet="scheduleBody" />
+} @else {
+  <app-page title="Schedule" helpKey="schedule.page">
+    @if (canCreate()) {
+      <p-button pageActions label="Add visit" icon="pi pi-plus" (onClick)="openNew()" />
+    }
+    <ng-container *ngTemplateOutlet="scheduleBody" />
+  </app-page>
+}
+
+<ng-template #scheduleBody>
   @if (error()) {
     <div class="card"><p-message severity="error" [text]="error()!" /></div>
   }
@@ -69,10 +83,12 @@
           />
         </div>
       }
-      <div class="form-field sched-filter">
-        <label for="schedOrg">Client</label>
-        <app-organization-select inputId="schedOrg" [(value)]="clientId" [clientsOnly]="true" />
-      </div>
+      @if (!clientLock()) {
+        <div class="form-field sched-filter">
+          <label for="schedOrg">Client</label>
+          <app-organization-select inputId="schedOrg" [(value)]="clientId" [clientsOnly]="true" />
+        </div>
+      }
     </div>
 
     @if (view() === 'month') {
@@ -321,4 +337,4 @@
       <textarea pTextarea id="shNotes" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="fNotes"></textarea>
     </div>
   </ng-template>
-</app-page>
+</ng-template>

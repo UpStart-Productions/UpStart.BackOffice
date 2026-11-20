@@ -648,3 +648,10 @@
 
 .dm-header { display: flex; align-items: center; gap: 0.75rem; flex: 1 1 auto; min-width: 0; }
 .dm-header .p-dialog-title { margin-right: auto; }
+
+// Embedded (client schedule overlay): Add visit above the calendar, right-aligned.
+.sched-embedded-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}

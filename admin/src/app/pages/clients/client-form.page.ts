@@ -29,6 +29,7 @@ import { PeopleComponent } from '../../ui/people/people.component';
 import { TagInputComponent } from '../../ui/tag-input/tag-input.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { ClientRecordsComponent } from '../../ui/client-forms/client-records.component';
+import { ClientVisitsComponent } from '../../ui/visits/client-visits.component';
 import {
   areaLevel,
   CLIENT_DIMENSION_KEYS,
@@ -103,6 +104,7 @@ type ClientForm = {
     HelpTextComponent,
     RecordAttributionComponent,
     ClientRecordsComponent,
+    ClientVisitsComponent,
     RowActionsMenuComponent,
     AddToPipelineDialogComponent,
   ],
@@ -214,8 +216,9 @@ export class ClientFormPage implements OnInit {
   projectsLoading = signal(false);
   readonly attribution = signal<RecordAttributionDto | null>(null);
 
-  /** Details or Records (?tab=records opens Records: the client's submitted forms). */
-  readonly tab = signal<'details' | 'records'>('details');
+  /** Details, Visits (needs Schedule) or Records (the client's submitted forms). ?tab=visits|records opens one. */
+  readonly tab = signal<'details' | 'visits' | 'records'>('details');
+  readonly canSchedule = computed(() => !!areaLevel(this.session.me(), 'schedule'));
 
   form: ClientForm = {
     name: '',
@@ -380,7 +383,8 @@ export class ClientFormPage implements OnInit {
         this.savedSnapshot = this.snapshot();
         this.applyPortal(client);
         await this.loadProjects();
-        if (params.get('tab') === 'records') this.tab.set('records');
+        const tab = params.get('tab');
+        if (tab === 'records' || (tab === 'visits' && this.canSchedule())) this.tab.set(tab);
       } catch (err) {
         this.error.set(err instanceof Error ? err.message : 'Failed to load client');
       }
@@ -389,9 +393,9 @@ export class ClientFormPage implements OnInit {
   }
 
   setTab(value: string | number | undefined) {
-    const tab = value === 'records' ? 'records' : 'details';
+    const tab = value === 'records' || value === 'visits' ? value : 'details';
     this.tab.set(tab);
-    void this.router.navigate([], { queryParams: { tab: tab === 'records' ? 'records' : null }, queryParamsHandling: 'merge', replaceUrl: true });
+    void this.router.navigate([], { queryParams: { tab: tab === 'details' ? null : tab }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   private async loadProjects() {

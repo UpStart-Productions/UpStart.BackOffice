@@ -56,13 +56,14 @@ function findQuoteStart(lines: string[]): number | null {
 
 /**
  * Where a signature starts, using only unambiguous markers: the standard "-- " delimiter line and
- * mobile footers ("Sent from my iPhone", "Get Outlook for iOS"). Signatures without a marker stay.
+ * mobile footers ("Sent from my iPhone", "Sent from Glenn's iPhone", "Get Outlook for iOS"). Signatures without a marker stay.
  */
 export function findSignatureStart(lines: string[]): number | null {
   for (let i = 1; i < lines.length; i++) {
     const raw = lines[i];
     if (raw === '-- ' || raw.trim() === '--') return i;
-    if (/^\s*(Sent from my |Get Outlook for )/i.test(raw)) return i;
+    // "Sent from my iPhone", customized "Sent from Glenn's iPhone", "Get Outlook for iOS".
+    if (/^\s*(Sent from (my |[\w.-]+['\u2019]s )|Get Outlook for )/i.test(raw)) return i;
   }
   return null;
 }

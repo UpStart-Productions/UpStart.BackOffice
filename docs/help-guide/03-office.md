@@ -6,7 +6,7 @@
 
 A client's page has a **Forms** panel: the client's filled-in forms. **Add form** lists the client forms your role can edit that this client doesn't have yet. See the Forms guide.
 
-Every account also has a **Records** tab: the forms submitted for it, including forms filled in on visits (see the Schedule guide).
+Every account also has a **Visits** tab (past and upcoming visits with their forms) and a **Records** tab (every form submitted for it). See the Schedule guide.
 
 ## Projects
 

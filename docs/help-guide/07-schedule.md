@@ -35,7 +35,7 @@ Use **‹** and **›** and the calendar to move around. Filter by **Team member
 
 ## A visit
 
-**Open visit** (from the Schedule, the Dashboard, a client's Records tab or search) shows the visit type, team member, planned time, its forms, the actual time and notes.
+**Open visit** (from the Schedule, the Dashboard, a client's Visits or Records tab, or search) shows the visit type, team member, planned time, its forms, the actual time and notes.
 
 - **Start visit**: the team member on the visit starts it when they arrive.
 - **Forms**: the forms of its visit type. **Fill in** opens the form for this visit; **Submit** it when done. It shows **In progress** or **Submitted**.
@@ -43,9 +43,14 @@ Use **‹** and **›** and the calendar to move around. Filter by **Team member
 - **Actual time** and **Notes** save as you change them; the time entry follows. For a visit that already happened, type its start and end to finish it. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted.
 - The ⋮ menu has **Cancel visit** and **Delete** (also deletes its time entry; forms filled in on it stay on the client).
 
-## A client's Records tab
+## A client's Visits and Records tabs
 
-Every account page has **Details** and **Records** tabs. **Records** lists every form submitted for the account: client forms, forms filled in on visits (with the visit, its type and team member) and attached public submissions, each **In progress** or **Submitted**. **Add form** adds a client form. Emails, notes and conversations stay in **Activity** on the Details tab.
+Every account page has **Details**, **Visits** (roles with Schedule) and **Records** tabs.
+
+- **Visits**: a card for each past visit, newest first, with the team member's picture: date, visit type, team member, times, status (**Done**, **In progress** or **Missed**, a planned visit that ended without being started) and the forms of its visit type. Each form shows **Submitted**, **In progress** or **Not filled in**. **Schedule** on the side is a month calendar: a dot marks days with visits; pick a day to see its visits below. **Expand** opens the full Week/Month schedule over the page, for this client only: add, move, edit and cancel visits there, then close it to come back to the client. Cancelled visits aren't listed.
+- **Records**: every form submitted for the account: client forms (intake, profile and the like), forms filled in on visits (with the visit, its type and team member) and attached public submissions, each **In progress** or **Submitted**. Show **All**, **Visit forms** or **Client forms**. **Add form** adds a client form. A visit's form is the same record on both tabs.
+
+Emails, notes and conversations stay in **Activity** on the Details tab.
 
 ## Who sees what
 

@@ -86,8 +86,12 @@ const ORG_DETAIL: HelpArticle = {
       body: 'Public listing marks the account for a public partner or network site that reads it from Back Office (save Details to apply). For clients, Client portal enabled gives a bookmarkable link with no login or password; copy it to share. Regenerate link makes the old one stop working.',
     },
     {
+      heading: 'Visits tab',
+      body: "A card for each past visit, newest first: the team member's picture, date, visit type, times, status (Done, In progress or Missed) and each form of the visit type as Submitted, In progress or Not filled in. Schedule on the side is a month calendar (a dot marks days with visits; pick a day to see them). Expand opens the full Week/Month schedule over the page for this account only, to add and change visits without leaving it. Cancelled visits aren't listed.",
+    },
+    {
       heading: 'Records tab',
-      body: "Every form submitted for this account: client forms, forms filled in on visits (with the visit, its type and team member) and attached public submissions, each In progress or Submitted. Add form lists the published client forms your role can edit that this account doesn't have yet. Activity (emails, notes, conversations) stays on Details.",
+      body: "Every form submitted for this account: client forms, forms filled in on visits (with the visit, its type and team member) and attached public submissions, each In progress or Submitted. Show All, Visit forms or Client forms. Add form lists the published client forms your role can edit that this account doesn't have yet. Activity (emails, notes, conversations) stays on Details.",
     },
   ],
 };
@@ -969,7 +973,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   // ── Schedule ──────────────────────────────────────────
   'visits/:id': {
     title: 'Visit',
-    intro: "One visit: its forms, the actual time and notes. Visits open from the Schedule (⋮ → Open visit), Dashboard → My visits, a client's Records tab or search.",
+    intro: "One visit: its forms, the actual time and notes. Visits open from the Schedule (⋮ → Open visit), Dashboard → My visits, a client's Visits or Records tab, or search.",
     sections: [
       {
         heading: 'Start visit and Finish visit',

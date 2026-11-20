@@ -1,4 +1,5 @@
-import { simpleParser, type AddressObject, type ParsedMail } from 'mailparser';
+import { convert } from 'html-to-text';
+import { simpleParser, type AddressObject, type Attachment, type ParsedMail } from 'mailparser';
 import { normalizeEmail } from './email-address.util';
 
 export interface ParsedAddress {
@@ -23,11 +24,19 @@ export interface ParsedEmail {
   from: ParsedAddress | null;
   to: ParsedAddress[];
   cc: ParsedAddress[];
-  /** Plain-text body (mailparser derives it from HTML when there is no text part). */
+  /**
+   * Plain-text body. Uses the text/plain part when it has content; otherwise it is built from the
+   * HTML part (Apple Mail, iPhone replies with images and many senders send HTML only).
+   * Quoted history is rendered as "> " lines so stripQuotedText can separate it.
+   */
   text: string | null;
   hasHtml: boolean;
   attachmentCount: number;
-  /** Real attachments only: inline images referenced by the HTML body (signature logos) are left out. */
+  /**
+   * Real attachments plus inline images that belong to the new message (pasted screenshots,
+   * photos). Inline images that only appear in quoted history or a marked signature, and tiny
+   * inline images (logos, social icons), are left out.
+   */
   attachments: ParsedAttachment[];
   /**
    * Mailbox that auto-forwarded this message to us, from Gmail's X-Forwarded-For header
@@ -60,14 +69,58 @@ function headerString(parsed: ParsedMail, name: string): string | null {
   return null;
 }
 
+/** Inline images smaller than this are treated as logos/icons, not content. */
+const MIN_INLINE_IMAGE_BYTES = 10 * 1024;
+
+/** Turn an HTML body into readable text; quoted history becomes "> " lines. */
+export function htmlToPlainText(html: string): string | null {
+  const text = convert(html, {
+    wordwrap: false,
+    selectors: [
+      { selector: 'img', format: 'skip' },
+      { selector: 'a', options: { ignoreHref: true } },
+      { selector: 'style', format: 'skip' },
+      { selector: 'script', format: 'skip' },
+      { selector: 'head', format: 'skip' },
+      // Gmail wraps quoted history in div.gmail_quote rather than (only) a blockquote.
+      { selector: 'div.gmail_quote', format: 'blockquote', options: { trimEmptyLines: true } },
+    ],
+  });
+  const clean = text.replace(/\u00a0/g, ' ').replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+  return clean || null;
+}
+
+/** The HTML with quoted history and marked signatures removed: what the sender actually wrote. */
+function newPartOfHtml(html: string): string {
+  return html
+    .replace(/<blockquote[\s\S]*?<\/blockquote>/gi, '')
+    .replace(/<div[^>]*class="[^"]*gmail_quote[^"]*"[\s\S]*$/i, '')
+    .replace(/<div[^>]*class="[^"]*gmail_signature[^"]*"[\s\S]*?<\/div>\s*<\/div>/gi, '');
+}
+
+function keepAttachment(a: Attachment, newHtml: string): boolean {
+  if (!a.content?.length) return false;
+  if (!a.related) return true;
+  // Inline part: keep it only if the new text shows it and it is big enough to be content.
+  if ((a.size ?? a.content.length) < MIN_INLINE_IMAGE_BYTES) return false;
+  if (!a.cid) return true; // inline but unreferenced: better to keep than lose it
+  const cid = a.cid.replace(/^<|>$/g, '').toLowerCase();
+  return newHtml.toLowerCase().includes(`cid:${cid}`);
+}
+
 export async function parseRawEmail(raw: Buffer): Promise<ParsedEmail> {
-  const parsed = await simpleParser(raw);
+  // keepCidLinks: leave cid: references in the HTML so inline images can be matched to the text.
+  const parsed = await simpleParser(raw, { keepCidLinks: true });
 
   const refs = parsed.references;
   const references = (Array.isArray(refs) ? refs : refs ? [refs] : [])
     .flatMap((r) => r.split(/\s+/))
     .map(stripBrackets)
     .filter(Boolean);
+
+  const html = typeof parsed.html === 'string' ? parsed.html : '';
+  const text = parsed.text?.trim() || (html ? htmlToPlainText(html) : null);
+  const newHtml = newPartOfHtml(html);
 
   const forwardedHeader = headerString(parsed, 'x-forwarded-for');
   const forwardedFor =
@@ -85,11 +138,11 @@ export async function parseRawEmail(raw: Buffer): Promise<ParsedEmail> {
     from: flattenAddresses(parsed.from)[0] ?? null,
     to: flattenAddresses(parsed.to),
     cc: flattenAddresses(parsed.cc),
-    text: parsed.text?.trim() || null,
-    hasHtml: !!parsed.html,
+    text,
+    hasHtml: !!html,
     attachmentCount: parsed.attachments?.length ?? 0,
     attachments: (parsed.attachments ?? [])
-      .filter((a) => !a.related && a.content?.length)
+      .filter((a) => keepAttachment(a, newHtml))
       .map((a, i) => ({
         filename: a.filename?.trim() || `attachment-${i + 1}`,
         contentType: a.contentType || 'application/octet-stream',

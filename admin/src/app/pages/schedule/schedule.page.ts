@@ -7,7 +7,7 @@ import { LIST_VIEW_KEYS, listViewFilterString, patchListViewPrefs, readListViewP
 import { TimeInputComponent } from '../../ui/time-input/time-input.component';
 import { PersonComponent } from '../../ui/person/person.component';
 import { DatePipe } from '@angular/common';
-import { afterNextRender, Component, computed, effect, ElementRef, HostListener, inject, OnInit, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, computed, effect, ElementRef, HostListener, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -102,8 +102,8 @@ export class SchedulePage implements OnInit {
   visitTypes = signal<VisitTypeDto[]>([]);
   /** Saved Team member and Client filters (this browser, this user), like the other list screens. */
   teamMemberId = signal<string | null>(listViewFilterString(this.savedPrefs, 'teamMember'));
-  /** ?clientId= presets the filter. */
-  clientId = signal<string | null>(this.route.snapshot.queryParamMap.get('clientId') ?? listViewFilterString(this.savedPrefs, 'client'));
+  /** Client filter (saved); a client schedule overlay locks it (clientLock). */
+  clientId = signal<string | null>(listViewFilterString(this.savedPrefs, 'client'));
   /** Week (one client or team member, by hour) or Month (everyone, a bar per visit). */
   view = signal<'week' | 'month'>(listViewFilterString(this.savedPrefs, 'view') === 'month' ? 'month' : 'week');
   readonly tooltipDelayMs = UBO_DARK_TOOLTIP_SHOW_DELAY_MS;
@@ -111,7 +111,13 @@ export class SchedulePage implements OnInit {
   monthStart = signal(
     ((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1))(this.savedDate('month') ?? new Date()),
   );
+  /** Shown inside another page (a client's schedule overlay): no page header, and filters aren't saved. */
+  embedded = input(false);
+  /** Locked to one client: the Client filter is hidden and new visits are for this client. */
+  clientLock = input<string | null>(null);
+
   private readonly saveFilters = effect(() => {
+    if (this.embedded()) return;
     const filters: Record<string, string> = {};
     const teamMember = this.teamMemberId();
     const client = this.clientId();
@@ -555,6 +561,11 @@ export class SchedulePage implements OnInit {
   }
 
   async ngOnInit() {
+    const lock = this.clientLock();
+    if (lock) {
+      this.clientId.set(lock);
+      this.teamMemberId.set(null);
+    }
     try {
       this.visitTypes.set(await this.visitsApi.visitTypes());
     } catch {

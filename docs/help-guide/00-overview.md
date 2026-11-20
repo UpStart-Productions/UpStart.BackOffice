@@ -11,7 +11,7 @@ Sign in with your email and password, or click **Sign in with Google** and pick 
 Sections appear based on role. **Admins** see:
 
 - **Dashboard**
-- **CRM**: Activity, Pipeline, Organizations, People, Bookings (partners are organizations tagged Partner)
+- **CRM**: Accounts, People, Activity, Pipeline, Bookings (partners are accounts tagged Partner)
 - **Office**: Clients, Projects, Tasks, Time, Schedule, Expenses, Invoices, Forms
 - **Reports**
 - **Accounting** (Admin only): Chart of Accounts, Journal, Bank Import, Accounting Reports

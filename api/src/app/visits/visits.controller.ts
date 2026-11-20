@@ -8,14 +8,14 @@ import {
   ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateNested,
 } from 'class-validator';
 import { Request } from 'express';
-import type { VisitDetailDto, VisitFormDto } from '@upstart/back-office/shared';
+import type { ClientVisitDto, VisitDetailDto } from '@upstart/back-office/shared';
 import { AccessGuard, Action, Area } from '../access/access.guard';
 import { AccessService } from '../access/access.service';
 import { UserContext } from '../common/app.types';
 import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { canEditVisit, canWorkVisit, visitScope } from './visit-access.util';
-import { minutesBetween, PERSON, personRef, repeatLabel, VISIT_INCLUDE, visitView, type VisitRow } from './visit-view.util';
+import { minutesBetween, PERSON, personRef, repeatLabel, VISIT_FORMS_INCLUDE, VISIT_INCLUDE, visitForms, visitView, type VisitRow } from './visit-view.util';
 import { addDaysToDate, formatVisitStart, isValidTimeZone, localDate, visitInstants, weekdayOf } from './zoned-time.util';
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -122,6 +122,29 @@ export class VisitsController {
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
     });
     return users.map((u) => ({ ...personRef(u), email: u.email, firstName: u.firstName, lastName: u.lastName }));
+  }
+
+  /**
+   * A client's Visits tab: visits that happened or should have (started, finished, or planned and already over),
+   * newest first, each with its forms. Cancelled visits are left out. Upcoming ones come from the list above.
+   */
+  @Get('client/:clientId/history')
+  async clientHistory(@Req() req: Request, @Param('clientId') clientId: string): Promise<ClientVisitDto[]> {
+    const user = req.user as UserContext;
+    const now = new Date();
+    const rows = await this.prisma.visit.findMany({
+      where: {
+        AND: [
+          await visitScope(this.access, user),
+          { clientId },
+          { OR: [{ status: { in: ['IN_PROGRESS', 'COMPLETED'] } }, { status: 'SCHEDULED', endAt: { lt: now } }] },
+        ],
+      },
+      orderBy: { startAt: 'desc' },
+      take: 500,
+      include: { ...VISIT_INCLUDE, ...VISIT_FORMS_INCLUDE },
+    });
+    return rows.map((v) => ({ ...visitView(v as unknown as VisitRow), forms: visitForms(v) }));
   }
 
   @Get(':id')
@@ -382,24 +405,12 @@ export class VisitsController {
       include: {
         ...VISIT_INCLUDE,
         timeEntry: { select: { invoiceLineItemId: true, tenantInvoiceLineItemId: true } },
-        visitType: { select: { id: true, name: true, forms: { select: { form: { select: { id: true, name: true } } } } } },
-        records: { select: { id: true, formId: true, submittedAt: true, form: { select: { name: true } } }, orderBy: { createdAt: 'asc' } },
+        ...VISIT_FORMS_INCLUDE,
       },
     });
-    const forms: VisitFormDto[] = v.visitType.forms
-      .map((f) => f.form)
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((f) => {
-        const r = v.records.find((x) => x.formId === f.id);
-        return { formId: f.id, formName: f.name, recordId: r?.id ?? null, submittedAt: r?.submittedAt?.toISOString() ?? null };
-      });
-    // Forms filled in here that are no longer attached to the visit type still show.
-    for (const r of v.records) {
-      if (!forms.some((f) => f.recordId === r.id)) forms.push({ formId: r.formId, formName: r.form.name, recordId: r.id, submittedAt: r.submittedAt?.toISOString() ?? null });
-    }
     return {
       ...visitView(v as unknown as VisitRow),
-      forms,
+      forms: visitForms(v),
       timeEntryId: v.timeEntryId,
       invoiced: invoiced(v),
       canEdit: canEditVisit(user),
