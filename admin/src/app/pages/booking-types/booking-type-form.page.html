@@ -155,21 +155,8 @@
           <label for="btCreateLead">Create or update pipeline lead on booking</label>
         </div>
         @if (form.createLead) {
+          <app-lane-select inputId="btLeadStage" [(ngModel)]="form.leadStageId" name="btLeadStage"><app-help-text key="bookingType.pipelineLane" /></app-lane-select>
           <div class="showcase-flex">
-            <div class="form-field showcase-half">
-              <label for="btLeadStage">Pipeline lane <app-help-text key="bookingType.pipelineLane" /></label>
-              <p-select
-                inputId="btLeadStage"
-                [options]="laneOptions()"
-                optionLabel="label"
-                optionValue="value"
-                [(ngModel)]="form.leadStageId"
-                name="btLeadStage"
-                placeholder="First lane"
-                [showClear]="true"
-                styleClass="w-full"
-              />
-            </div>
             <div class="form-field showcase-half">
               <label for="btLeadSource">Lead source <app-help-text key="bookingType.leadSource" /></label>
               <p-select inputId="btLeadSource" [options]="leadSources" [(ngModel)]="form.leadSource" name="btLeadSource" styleClass="w-full" />

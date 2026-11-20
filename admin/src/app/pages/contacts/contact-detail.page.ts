@@ -161,7 +161,7 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
 
             <div class="card card--side">
               <div class="card-header">
-                <h3 class="card-title">Email addresses <app-help-text key="contact.emailAddresses" /></h3>
+                <h2 class="card-title">Email addresses <app-help-text key="contact.emailAddresses" /></h2>
               </div>
               <div class="side-panel-controls">
               <div class="side-row-line side-row-line--add field-action-row">

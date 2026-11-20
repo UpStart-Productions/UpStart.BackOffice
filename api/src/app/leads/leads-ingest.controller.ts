@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, UseGuards,
+  BadRequestException, Body, Controller, HttpCode, HttpStatus, NotFoundException, Post, UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ArtifactType, LeadSource, LeadStage } from '@prisma/client';
@@ -10,6 +10,7 @@ import { firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipel
 import { plainTextToQuillHtml } from './lead-note.util';
 import { findByLaneName } from '../pipelines/lane-name.util';
 import { createLeadActivityNote } from './lead-activity.util';
+import { captureToPipeline } from '../capture-points/capture.util';
 
 /** The lane named in the payload, or the default lead lane when no pipeline is named. */
 async function ingestLane(db: PipelineDb, dto: IngestLeadDto): Promise<Lane> {
@@ -42,7 +43,10 @@ export class LeadsIngestController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(ServiceKeyGuard)
   async ingest(@Body() dto: IngestLeadDto) {
-    const primaryContact = [dto.firstName, dto.lastName].filter(Boolean).join(' ') || undefined;
+    const primaryContact = [dto.firstName, dto.lastName].filter(Boolean).join(' ') || dto.name?.trim() || undefined;
+    if (dto.capturePointId) return this.capture(dto, primaryContact);
+    const organization = dto.organization?.trim() || primaryContact || dto.email;
+    if (!organization) throw new BadRequestException('Send organization, a name or an email.');
     const auditDate      = dto.auditDate ? new Date(dto.auditDate) : new Date();
     const nextActionDate = dto.nextActionDate ? new Date(dto.nextActionDate) : new Date(auditDate);
     if (!dto.nextActionDate) nextActionDate.setDate(nextActionDate.getDate() + 3);
@@ -52,7 +56,8 @@ export class LeadsIngestController {
       const created = await tx.lead.create({
         data: {
           ...laneFields(lane),
-          organization:    dto.organization,
+          organization,
+          phone:           dto.phone,
           website:         dto.website,
           email:           dto.email,
           primaryContact:  primaryContact ?? undefined,
@@ -93,5 +98,28 @@ export class LeadsIngestController {
     });
 
     return { duplicate: false, leadId: lead.id, organization: lead.organization };
+  }
+
+  /** Through a capture point: its lane, and someone already on that pipeline gets the touch logged, not a new card. */
+  private async capture(dto: IngestLeadDto, name: string | undefined) {
+    const cp = await this.prisma.capturePoint.findUnique({
+      where: { id: dto.capturePointId },
+      select: { id: true, name: true, stageId: true, isActive: true },
+    });
+    if (!cp) throw new NotFoundException('No capture point with that id.');
+    if (!cp.isActive) return { skipped: true, reason: 'Capture point is turned off' };
+    if (!name && !dto.email && !dto.organization) throw new BadRequestException('Send a name, an email or an organization.');
+    const result = await this.prisma.$transaction((tx) =>
+      captureToPipeline(tx, cp, {
+        name,
+        email: dto.email,
+        phone: dto.phone,
+        organization: dto.organization,
+        website: dto.website,
+        message: dto.note,
+        subject: dto.noteTitle,
+      }),
+    );
+    return { duplicate: result.matched, leadId: result.leadId };
   }
 }

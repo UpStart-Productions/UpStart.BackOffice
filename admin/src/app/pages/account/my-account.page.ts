@@ -113,10 +113,10 @@ import { PageComponent } from '../../ui/layout/page.component';
         <div class="side-panel-stack">
           <div class="card card--side">
             <div class="card-header">
-              <h3 class="card-title">
+              <h2 class="card-title">
                 Notifications
                 <app-help-text key="account.notifications" />
-              </h3>
+              </h2>
             </div>
             <p class="text-color-secondary mt-0 mb-3">
               Only types your role can receive are listed. Turn each channel on or off; missing types mean your role is not in the audience.

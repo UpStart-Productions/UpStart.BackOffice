@@ -84,12 +84,38 @@ export class FormPublicService {
         if (!tenant?.modules.includes(destination.tenantModule)) throw new NotFoundException('This link is not valid');
       }
       if (link.revokedAt || (link.expiresAt && link.expiresAt < new Date())) {
-        throw new GoneException('This link no longer works. Ask the organization that sent it for a new one.');
+        const contact = await this.closedContact();
+        throw new GoneException({
+          reason: 'link_off',
+          title: 'This link no longer works',
+          message: `${contact.name ?? 'The organization that sent it'} turned this link off or it expired. Ask them for a new one.`,
+          contact,
+        });
       }
-      if (destination.requiresPublished && link.kind === 'NEW' && !link.form.publishedVersion) throw new NotFoundException('This form is not available right now');
+      if (destination.requiresPublished && link.kind === 'NEW' && !link.form.publishedVersion) {
+        const contact = await this.closedContact();
+        throw new NotFoundException({
+          reason: 'unpublished',
+          title: `${link.form.name} isn't open right now`,
+          message: `${contact.name ?? 'The organization'} hasn't published this form yet, or has closed it for now. Please try again later.`,
+          contact,
+        });
+      }
       if (!originAllowed(req.origin, link.allowedOrigins)) throw new ForbiddenException('This form is not available on this website');
       return fn(link, destination);
     });
+  }
+
+  /**
+   * Who to ask when a form or link is closed: the organization's name and phone (Settings → Business) and its first
+   * admin's email. Called inside the link's tenant.
+   */
+  private async closedContact(): Promise<{ name: string | null; email: string | null; phone: string | null }> {
+    const [profile, admin] = await Promise.all([
+      this.prisma.organizationProfile.findFirst({ select: { companyName: true, phone: true } }),
+      this.prisma.user.findFirst({ where: { role: 'ADMIN', isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } }),
+    ]);
+    return { name: profile?.companyName?.trim() || null, email: admin?.email ?? null, phone: profile?.phone?.trim() || null };
   }
 
   /** The verified access for this request (null when the link needs no check). */

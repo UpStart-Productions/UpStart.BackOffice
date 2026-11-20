@@ -58,6 +58,11 @@ Do not add another people side panel, `people-card`, or inline pickers on featur
 - **Styles:** `assets/layout/_pick-row.scss` only. The Quill **@mention** list builds the same `.pick-row` markup in `core/mention-quill.util.ts` (records: task → project, project → client, invoice → bill-to · total · date).
 - **Popover people list:** `app-people-pick-list` (search + pick rows + optional Unassign). Used by `app-tm-person-picker` (task assignee) and the Quill person-card picker. Dropdown fields use `app-people-select`.
 
+## Pipeline lane picker (canonical)
+
+- **Control:** `app-lane-select` (`admin/src/app/ui/lane-select/lane-select.component.ts`): a **Pipeline** dropdown, then a **Lane** dropdown with that pipeline's lanes (always pipeline first: there may be several). Renders both labeled fields side by side; the value is the lane id, with `[(ngModel)]`. Projected content goes after the Lane label (e.g. `app-help-text`). Inputs: `inputId` (prefix), `placeholder`, `showClear`, `startPipelineId`, `excludePipelineIds`.
+- Used by booking types, form Settings (Add submissions to a pipeline), Pipeline → Capture points, the pipeline card page and the Add to pipeline dialog (accounts, invoices, projects). Do not hand-roll another pipeline or lane `p-select`. (The board's Move or copy dialog and Activity's file-to-card dialog pick a pipeline that also filters other things, so they keep their own pipeline-then-lane selects.)
+
 ## Organization links panel (canonical)
 
 - **Panel:** `app-organization-links` (`admin/src/app/ui/organization-links/organization-links.component.ts`)

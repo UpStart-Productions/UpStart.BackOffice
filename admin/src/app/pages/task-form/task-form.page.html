@@ -11,7 +11,7 @@
       <p-message severity="error" styleClass="w-full mb-3" [text]="loadError()!" />
       @if (signedIn()) { <a routerLink="/tasks" class="link-button">Go to Tasks</a> }
     } @else if (needsSignIn()) {
-      <h2 class="page-title task-form-title">{{ def()?.name }}</h2>
+      <h1 class="page-title task-form-title">{{ def()?.name }}</h1>
       <p class="text-color-secondary mb-3">This form is for people working on this project. Sign in to continue.</p>
       <div class="login-actions">
         <p-button label="Sign in" icon="pi pi-sign-in" (onClick)="signIn()" />
@@ -19,7 +19,7 @@
     } @else if (result(); as r) {
       <div class="task-form-done">
         <i class="pi pi-check-circle"></i>
-        <h2 class="page-title task-form-title">Submitted</h2>
+        <h1 class="page-title task-form-title">Submitted</h1>
         <p class="text-color-secondary mb-3">{{ r.message }}</p>
         <div class="flex gap-2 justify-content-center">
           <p-button label="Submit another" severity="secondary" [outlined]="true" (onClick)="reset()" />
@@ -27,7 +27,7 @@
         </div>
       </div>
     } @else if (def(); as d) {
-      <h2 class="page-title task-form-title">{{ d.name }}</h2>
+      <h1 class="page-title task-form-title">{{ d.name }}</h1>
       @if (d.description) {
         <p class="text-color-secondary task-form-intro">{{ d.description }}</p>
       } @else {

@@ -2,12 +2,12 @@ import { Component, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { SelectModule } from 'primeng/select';
 import { MessageModule } from 'primeng/message';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { ApiService } from '../../core/api.service';
 import { PipelinesApi, type PipelineSummary } from '../../core/pipelines.api';
 import { HelpTextComponent } from '../help-text/help-text.component';
+import { LaneSelectComponent } from '../lane-select/lane-select.component';
 
 export type PipelinePlacement = {
   id: string;
@@ -19,7 +19,7 @@ export type PipelinePlacement = {
 @Component({
   selector: 'app-add-to-pipeline-dialog',
   standalone: true,
-  imports: [FormsModule, ButtonModule, SelectModule, MessageModule, AppDialogModule, HelpTextComponent],
+  imports: [FormsModule, ButtonModule, MessageModule, AppDialogModule, HelpTextComponent, LaneSelectComponent],
   template: `
     <p-dialog
       header="Add to pipeline"
@@ -35,25 +35,12 @@ export type PipelinePlacement = {
       @if (placements().length) {
         <p class="text-color-secondary mb-3">Already on: {{ placementNames() }}.</p>
       }
-      @if (pipelineOptions().length === 0 && !busy()) {
+      @if (!loaded()) {
+        <p class="text-color-secondary">Loading...</p>
+      } @else if (pipelineOptions().length === 0) {
         <p class="text-color-secondary">{{ emptyMessage() }}</p>
       } @else {
-        <div class="form-field">
-          <label [attr.for]="inputId">
-            Pipeline <app-help-text [key]="helpKey()" />
-          </label>
-          <p-select
-            [inputId]="inputId"
-            [options]="pipelineOptions()"
-            optionLabel="label"
-            optionValue="value"
-            [ngModel]="pickId()"
-            (ngModelChange)="pickId.set($event)"
-            placeholder="Choose a pipeline"
-            styleClass="w-full"
-            appendTo="body"
-          />
-        </div>
+        <app-lane-select [inputId]="inputId" [excludePipelineIds]="placedIds()" [ngModel]="laneId()" (ngModelChange)="laneId.set($event)"><app-help-text [key]="helpKey()" /></app-lane-select>
       }
       <div class="form-actions mt-3">
         <button type="button" pButton label="Cancel" severity="secondary" (click)="close()"></button>
@@ -62,7 +49,7 @@ export type PipelinePlacement = {
           pButton
           label="Add to pipeline"
           [loading]="busy()"
-          [disabled]="!pickId() || pipelineOptions().length === 0"
+          [disabled]="!laneId() || pipelineOptions().length === 0"
           (click)="confirm()"
         ></button>
       </div>
@@ -83,14 +70,16 @@ export class AddToPipelineDialogComponent {
   );
   readonly successSummary = input('Added to pipeline');
   readonly successDetail = input(
-    'The card starts in the first lane. Team members with Pipeline notifications on were alerted.',
+    'The card is in the lane you picked. Team members with Pipeline notifications on were alerted.',
   );
 
   readonly inputId = `pipeline-pick-${Math.random().toString(36).slice(2, 9)}`;
 
   busy = signal(false);
   error = signal<string | null>(null);
-  pickId = signal<string | null>(null);
+  laneId = signal<string | null>(null);
+  /** Pipelines and placements are in (the lane picker waits for them, so it skips pipelines the record is on). */
+  loaded = signal(false);
   placements = signal<PipelinePlacement[]>([]);
   pipelineChoices = signal<PipelineSummary[]>([]);
 
@@ -99,6 +88,10 @@ export class AddToPipelineDialogComponent {
     return this.pipelineChoices()
       .filter((p) => !placed.has(p.id))
       .map((p) => ({ label: p.name, value: p.id }));
+  }
+
+  placedIds(): string[] {
+    return this.placements().map((p) => p.pipelineId);
   }
 
   placementNames(): string {
@@ -110,6 +103,7 @@ export class AddToPipelineDialogComponent {
   async open() {
     this.error.set(null);
     this.busy.set(true);
+    this.loaded.set(false);
     this.visible.set(true);
     try {
       const [pipelines, placements] = await Promise.all([
@@ -118,8 +112,10 @@ export class AddToPipelineDialogComponent {
       ]);
       this.pipelineChoices.set(pipelines);
       this.placements.set(placements);
-      const available = pipelines.filter((p) => !placements.some((pl) => pl.pipelineId === p.id));
-      this.pickId.set(available[0]?.id ?? pipelines[0]?.id ?? null);
+      // Start on the first lane of the first pipeline the record isn't on yet.
+      const available = pipelines.find((p) => !placements.some((pl) => pl.pipelineId === p.id));
+      this.laneId.set(available?.stages[0]?.id ?? null);
+      this.loaded.set(true);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not load pipelines');
     } finally {
@@ -128,12 +124,13 @@ export class AddToPipelineDialogComponent {
   }
 
   async confirm() {
-    const pipelineId = this.pickId();
-    if (!pipelineId) return;
+    const stageId = this.laneId();
+    const pipelineId = this.pipelineChoices().find((p) => p.stages.some((s) => s.id === stageId))?.id;
+    if (!stageId || !pipelineId) return;
     this.busy.set(true);
     this.error.set(null);
     try {
-      await this.api.post(`${this.apiBase()}/pipeline-cards`, { pipelineId });
+      await this.api.post(`${this.apiBase()}/pipeline-cards`, { pipelineId, stageId });
       const placements = await this.api.get<PipelinePlacement[]>(`${this.apiBase()}/pipeline-cards`);
       this.placements.set(placements);
       this.toast.add({

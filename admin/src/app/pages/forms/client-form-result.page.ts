@@ -99,7 +99,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             @for (s of r.sections; track s.id) {
               @if (s.fields.length) {
                 <div class="card">
-                  <div class="card-header"><h3 class="card-title">{{ s.name }}</h3></div>
+                  <div class="card-header"><h2 class="card-title">{{ s.name }}</h2></div>
                   <div class="showcase-row">
                     @for (f of s.fields; track f.id) {
                       <app-form-field-input
@@ -120,7 +120,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
           </div>
           <div class="side-panel-stack span-1">
             <div class="card card--side">
-              <div class="card-header"><h3 class="card-title">Details</h3></div>
+              <div class="card-header"><h2 class="card-title">Details</h2></div>
               <div class="side-list">
                 <div class="side-list-row">
                   <div class="side-list-body"><span class="side-list-title">Client</span></div>
@@ -134,7 +134,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             </div>
             @if (r.submitterName) {
               <div class="card card--side">
-                <div class="card-header"><h3 class="card-title">Submitted by</h3></div>
+                <div class="card-header"><h2 class="card-title">Submitted by</h2></div>
                 <div class="side-list">
                   <div class="side-list-row">
                     <div class="side-list-body">
@@ -150,7 +150,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
             }
             @if (r.publicUpdatedAt) {
               <div class="card card--side">
-                <div class="card-header"><h3 class="card-title">Last change through a link</h3></div>
+                <div class="card-header"><h2 class="card-title">Last change through a link</h2></div>
                 <p class="m-0">{{ r.publicUpdatedBy }}, {{ r.publicUpdatedAt | date: 'MMM d, y, h:mm a' }}</p>
               </div>
             }

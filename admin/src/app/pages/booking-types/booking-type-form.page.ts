@@ -11,7 +11,7 @@ import { MoneyInputComponent } from '../../ui/money-input/money-input.component'
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
-import { PipelinesApi } from '../../core/pipelines.api';
+import { LaneSelectComponent } from '../../ui/lane-select/lane-select.component';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -83,7 +83,7 @@ const DEFAULT_TIMEZONE = 'America/Los_Angeles';
 @Component({
   selector: 'app-booking-type-form-page',
   standalone: true,
-  imports: [TimeInputComponent, HelpTextComponent, RowActionsMenuComponent, 
+  imports: [TimeInputComponent, LaneSelectComponent, HelpTextComponent, RowActionsMenuComponent, 
     FormsModule,
     ButtonModule,
     InputTextModule,
@@ -112,9 +112,6 @@ export class BookingTypeFormPage implements OnInit {
   hostOptions = signal<HostOption[]>([]);
   readonly attribution = signal<RecordAttributionDto | null>(null);
 
-  private readonly pipelinesApi = inject(PipelinesApi);
-  /** Lanes a booking can put the lead in, labeled by pipeline when there is more than one. */
-  laneOptions = signal<{ label: string; value: string }[]>([]);
   readonly leadSources = LEAD_SOURCES;
   readonly timezoneOptions = TIMEZONE_OPTIONS;
 
@@ -170,23 +167,11 @@ export class BookingTypeFormPage implements OnInit {
     if (paramId && paramId !== 'new') {
       this.id.set(paramId);
     }
-    await Promise.all([this.loadHosts(), this.loadLanes()]);
+    await this.loadHosts();
     if (this.id()) {
       await this.load();
     } else {
       this.loading.set(false);
-    }
-  }
-
-  private async loadLanes() {
-    try {
-      const pipelines = await this.pipelinesApi.list();
-      const many = pipelines.length > 1;
-      this.laneOptions.set(
-        pipelines.flatMap((p) => p.stages.map((s) => ({ label: many ? `${p.name} · ${s.name}` : s.name, value: s.id }))),
-      );
-    } catch {
-      this.laneOptions.set([]);
     }
   }
 

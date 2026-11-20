@@ -79,6 +79,18 @@
               }
               <span class="lane-header-right">
                 <span class="count-badge pipeline-lane-count">{{ leadsForLane(lane.id).length }}</span>
+                @if (lane.capturePointCount) {
+                  <span
+                    class="lane-capture"
+                    role="img"
+                    [attr.aria-label]="lane.capturePointCount + (lane.capturePointCount === 1 ? ' capture point adds' : ' capture points add') + ' people here'"
+                    [pTooltip]="lane.capturePointCount + (lane.capturePointCount === 1 ? ' capture point adds' : ' capture points add') + ' people here'"
+                    tooltipPosition="top"
+                    [showDelay]="500"
+                  >
+                    <nmp-lucide-icon name="plug" aria-hidden="true" />
+                  </span>
+                }
                 <p-button
                   icon="pi pi-eye-slash"
                   [text]="true"
@@ -462,3 +474,81 @@
     </ul>
   }
 </p-dialog>
+
+@if (captureOpen()) {
+  <p-dialog
+    [header]="captureDraft() ? (captureDraft()!.id ? 'Edit capture point' : 'Add capture point') : 'Capture points'"
+    [visible]="true"
+    (visibleChange)="!$event && closeCapturePoints()"
+    [modal]="true"
+    appendTo="body"
+    [style]="{ width: '760px' }"
+  >
+    @if (captureDraft(); as d) {
+      <div class="showcase-flex-col">
+        <div class="form-field">
+          <label for="cpName">Name <app-help-text key="pipeline.capture.name" /></label>
+          <input
+            pInputText
+            id="cpName"
+            class="w-full"
+            [ngModel]="d.name"
+            (ngModelChange)="patchCaptureDraft({ name: $event })"
+            [disabled]="!!d.formName"
+            maxlength="120"
+            appAutofocus
+          />
+        </div>
+        @if (d.formName) {
+          <div class="form-field">
+            <label>Form</label>
+            <span>{{ d.formName }}</span>
+          </div>
+        }
+        <app-lane-select inputId="cpLane" [startPipelineId]="pipelineId()" [ngModel]="d.stageId" (ngModelChange)="patchCaptureDraft({ stageId: $event })"><app-help-text key="pipeline.capture.lane" /></app-lane-select>
+        <div class="flex align-items-center gap-2">
+          <p-toggleswitch inputId="cpActive" [ngModel]="d.isActive" (ngModelChange)="patchCaptureDraft({ isActive: $event })" />
+          <label for="cpActive">On <app-help-text key="pipeline.capture.active" /></label>
+        </div>
+      </div>
+    } @else {
+      <div class="flex align-items-center mb-3">
+        <span class="flex-1"></span>
+        <p-button label="Add capture point" icon="pi pi-plus" size="small" (onClick)="newCapturePoint()" />
+      </div>
+      <p-table [value]="capturePoints()" styleClass="table-bordered">
+        <ng-template pTemplate="header">
+          <tr>
+            <th style="width: 3rem"></th>
+            <th>Name</th>
+            <th>Lane</th>
+            <th>Comes from <app-help-text key="pipeline.capture.source" /></th>
+            <th class="text-right">People</th>
+            <th>Status</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-cp>
+          <tr>
+            <td><app-row-actions-menu [items]="captureActions(cp)" ariaLabel="Capture point actions" /></td>
+            <td>{{ cp.name }}</td>
+            <td>{{ cp.stageName }}</td>
+            <td>{{ cp.formName ?? 'Outside form or link' }}</td>
+            <td class="text-right">{{ cp.captureCount }}</td>
+            <td><p-tag [value]="cp.isActive ? 'On' : 'Off'" [severity]="cp.isActive ? 'success' : 'secondary'" /></td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr><td colspan="6">No capture points on this pipeline yet.</td></tr>
+        </ng-template>
+      </p-table>
+    }
+    <ng-template pTemplate="footer">
+      @if (captureDraft(); as d) {
+        <p-button label="Cancel" severity="secondary" (onClick)="captureDraft.set(null)" />
+        <p-button label="Save" icon="pi pi-check" [loading]="captureBusy()" [disabled]="!d.name.trim() || !d.stageId" (onClick)="saveCapturePoint()" />
+      } @else {
+        <p-button label="Close" severity="secondary" (onClick)="closeCapturePoints()" />
+      }
+    </ng-template>
+  </p-dialog>
+}

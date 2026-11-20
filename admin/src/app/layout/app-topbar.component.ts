@@ -178,7 +178,7 @@ import { LayoutService } from './layout.service';
                 @if (isImpersonating()) {
                   <p class="mb-2 mt-0"><strong>Impersonating</strong></p>
                 }
-                <h5 class="mt-0 mb-1">{{ displayName() }}</h5>
+                <p class="mt-0 mb-1 font-semibold">{{ displayName() }}</p>
                 <span class="user-menu-role">{{ roleSubtitle() }}</span>
                 <div class="mt-2 text-sm">{{ email() }}</div>
               </div>

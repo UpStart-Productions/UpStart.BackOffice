@@ -22,7 +22,7 @@ import type { RowActionItem } from '../row-actions-menu/row-actions-menu.compone
   template: `
     <div class="card card--side">
       <div class="card-header">
-        <h3 class="card-title">Accounts</h3>
+        <h2 class="card-title">Accounts</h2>
       </div>
       <div class="side-panel-controls">
       <div class="form-field mb-2">

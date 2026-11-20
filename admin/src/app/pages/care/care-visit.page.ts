@@ -79,7 +79,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
         <div class="grid grid-3">
           <div class="stack span-2">
             <div class="card">
-              <div class="card-header"><h3 class="card-title">When <app-help-text key="care.visit.time" /></h3></div>
+              <div class="card-header"><h2 class="card-title">When <app-help-text key="care.visit.time" /></h2></div>
               <div class="showcase-row">
                 <div class="form-field showcase-half">
                   <label for="cvDate">Date</label>
@@ -103,7 +103,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
 
             @for (s of v.sections; track s.id) {
               <div class="card">
-                <div class="card-header"><h3 class="card-title">{{ s.name }}</h3></div>
+                <div class="card-header"><h2 class="card-title">{{ s.name }}</h2></div>
                 <div class="showcase-row">
                   @for (f of s.fields; track f.id) {
                     <app-form-field-input

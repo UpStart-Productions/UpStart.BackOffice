@@ -45,7 +45,7 @@ export async function notifyFormSubmitted(
     const targets = users.filter((u) => {
       if (u.id === args.actor.id) return false;
       if (u.role === 'ADMIN') return true;
-      if (!u.roleId || access[u.roleId] !== 'edit') return false;
+      if (!u.roleId || !access[u.roleId]) return false;
       const perms = (u.tenantRole?.permissions as Record<string, unknown> | null) ?? {};
       return perms['clients'] === 'all' || onClient.has(u.id);
     });

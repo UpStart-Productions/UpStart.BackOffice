@@ -58,6 +58,14 @@ export async function findLane(db: PipelineDb, stageId: string): Promise<Lane | 
   return stage ? toLane(stage) : null;
 }
 
+/** The chosen lane of a pipeline, or the pipeline's first lane when none is chosen. Throws if the lane isn't on it. */
+export async function laneInPipeline(db: PipelineDb, pipelineId: string, stageId?: string | null): Promise<Lane> {
+  if (!stageId) return firstLane(db, pipelineId);
+  const lane = await findLane(db, stageId);
+  if (!lane || lane.pipelineId !== pipelineId) throw new Error('That lane is not on the chosen pipeline');
+  return lane;
+}
+
 /** Lead columns for a lane. Keeps the legacy `stage` mirror in step when the lane has one. */
 export function laneFields(lane: Lane): { pipelineId: string; stageId: string; stage?: LeadStage } {
   return { pipelineId: lane.pipelineId, stageId: lane.stageId, ...(lane.legacyKey ? { stage: lane.legacyKey } : {}) };

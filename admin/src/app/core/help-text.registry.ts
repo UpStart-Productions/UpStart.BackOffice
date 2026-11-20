@@ -18,6 +18,12 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'The account becomes a client so projects, time and invoices are available. The card leaves the board (not deleted). People, email and files stay on the account.',
   'pipeline.newBoard':
     'Starts with New Lead, Discovery, Proposal Sent and On Hold. Rename lanes and add more on the board.',
+  'pipeline.capture.name': 'What people came in through, e.g. Contact form or Business card QR. Shown on the cards it adds. A form\'s capture point takes the form\'s name.',
+  'pipeline.capture.lane':
+    'Where new cards go. Someone who already has an open card on this pipeline gets the visit logged on that card instead, and the card stays where it is.',
+  'pipeline.capture.active': 'Off: nothing comes in through it. It keeps its count, and you can turn it back on.',
+  'pipeline.capture.source':
+    'A form from Forms (set with Send to pipeline on the form), or an outside form or link, such as your website, which sends people in with this capture point\'s ID.',
 
   // Booking types
   'bookingType.brand':
@@ -30,7 +36,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'bookingType.guestEmail':
     'On: Back Office emails the guest a confirmation with a calendar file. Turn off only when your website sends its own confirmation. You get the new-booking email either way.',
   'bookingType.pipelineLane':
-    'Lane for new cards. A card still in the first lane moves here when the person books; cards further along stay put. Blank means the first lane.',
+    'Pick the pipeline, then the lane new cards go in. A card still in that pipeline\'s first lane moves here when the person books; cards further along stay put.',
   'bookingType.leadSource': 'Contact source recorded on cards this booking type creates.',
   'bookingType.noteTitle':
     'Title of the note logged on the card for each booking. Defaults to the booking type name.',
@@ -77,11 +83,11 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   // Invoices
   'invoice.billToEmail': 'Where Send emails this invoice by default. You can pick a different address when sending.',
   'invoice.addToPipeline':
-    'Creates a card on the pipeline you pick, in the first lane. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per invoice.',
+    'Creates a card on the pipeline and lane you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per invoice.',
   'client.addToPipeline':
-    'Creates a pipeline card for this client organization in the first lane of the pipeline you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per client.',
+    'Creates a pipeline card for this client organization on the pipeline and lane you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per client.',
   'project.addToPipeline':
-    'Creates a pipeline card for this project in the first lane of the pipeline you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per project.',
+    'Creates a pipeline card for this project on the pipeline and lane you pick. People with Pipeline access who left pipeline notifications on get an in-app alert. One card per pipeline per project.',
   'invoice.generateFromTime.client':
     'Pull uninvoiced billable time and billable expenses (at cost, on this client\'s projects) for the selected period. Time entries must fall entirely within the period.',
   'invoice.generateFromTime.tenant':
@@ -171,17 +177,27 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.import':
     'A form file made with Export form file (on a form page), e.g. from another UBO. It creates a draft with the same fields, settings and scoring. Publish it when ready.',
   'forms.form.page':
-    'Build the form here. Details and Settings save with Save; Scoring and Fields save right away. Public links show the published version, so publish again for changes to reach people.',
+    'Build the form here. Settings save with Save; Scoring and questions save right away. Public links show the published version, so publish again for changes to reach people.',
   'forms.form.preview':
     'Opens the draft in a new tab. Refresh that tab after you change the form. Answers are not saved; required fields do not block paging in preview.',
-  'forms.form.description': 'Shown at the top of the form.',
+  'forms.form.description':
+    'Shown to people at the top of the form.',
   'forms.form.layout':
-    'One page: everything on one scrolling page. Page by section: one section at a time with Next and Back. Page by question: one question or text block per screen; picking a single choice moves on by itself. Accordion: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
+    'All on one page: everything on one scrolling page. One section per page: Next and Back between sections. One question per page: one question or text block per screen; picking a single choice moves on by itself. Collapsible sections: sections open one at a time. Tabs: a tab per section. The link page and the embed code follow it.',
   'forms.form.review':
-    'On: submissions wait under Waiting for review until you Attach them (to a client or account, new or existing) or Dismiss them. Off: they are attached as they come in.',
-  'forms.form.resultsEmail': 'After sending, people get an email with their results (scored forms) or your thank-you message.',
+    'On: submissions wait under Waiting for review until you accept them (attach them to a client or account, or add a pipeline card) or dismiss them. Off: they are accepted as they come in.',
+  'forms.form.pipeline':
+    'Each person who submits goes on a pipeline: a new card in the lane you pick, or the visit logged on their open card. Their submission is accepted, so it skips review.',
+  'forms.form.destination':
+    'Where each submission ends up in Back Office. A form saves submissions to a client or adds the person to a pipeline, not both.',
+  'forms.form.reviewPipeline': 'Off while Add submissions to a pipeline is on: those submissions are accepted as they come in.',
+  'forms.form.clientOrPipeline':
+    "A form saves submissions to a client or adds the person to a pipeline, not both. Someone on a pipeline isn't a client yet. Turn the other one off first.",
+  'forms.form.pipelineLane': 'Where new cards go. Cards already on that pipeline stay where they are.',
+  'forms.form.resultsEmail':
+    'After submitting, people get an email with your thank-you message, and their score and profile on scored forms.',
   'forms.form.thankYou':
-    'Shown after someone sends the form, and in the email when Email people their results is on. Add links here, e.g. to book a call. Empty: "Thanks! … was sent to …".',
+    'Shown after someone submits the form, and in the confirmation email when that is on. Add links here, e.g. to book a call. Empty: "Thanks! … was sent to …".',
   'forms.form.scoring':
     'Give answer choices points (in each select field). People get a percentage of the points possible, the profile for that percentage, and a percentage per score area.',
   'forms.form.scoreAreas': 'Groups of questions scored together, e.g. Workflows, Data, Security. Pick a question\'s area when you edit the field.',
@@ -190,18 +206,20 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'forms.form.profileResource':
     'Optional link or uploaded file people can open from their results (and in the results email). Use Label for the link text.',
   'forms.form.bandUpTo': 'The highest percentage for this profile. The profile with the highest number also covers everything above it.',
-  'forms.form.links': 'Links anyone can use to fill in the published form, e.g. on your website. Each one can need a passcode or an emailed code.',
+  'forms.form.links': 'Sharing: the form\'s own link and embed code. More links: extra links with a passcode, an emailed code, an expiry or their own label.',
   'forms.submissions.page': 'Everything sent through this form. In progress holds forms started but not sent yet. Open one to see the answers and score, then Attach or Dismiss it. Export Excel downloads a workbook for analysis: Answers (a row per answer), Results (scored forms) and Questions (the key). The arrow exports this tab only.',
   'forms.submission.page':
     'One submission: the answers, the results (total score, profile and score areas) and who sent it. Attach picks the client or account it belongs to (or a new one), then shows who will see it before you confirm. The ⋮ menu has Dismiss (or Restore), Export PDF, Export Excel and Delete.',
   'forms.form.client':
-    "Client forms: answers attach to a client and show in the Forms panel on the client's page. Name the form anything.",
-  'forms.form.usedFor': 'Your own note on what this form is for. It shows in the Used for column of the Forms list. Optional.',
+    "Each submission is saved to a client and shows in the Forms panel on the client's page. You pick the client when you accept the submission.",
+  'forms.form.usedFor':
+    'Only your team sees this. Use it to say what the form is for. Optional.',
   'forms.form.copies':
-    'One living copy: each client has one copy you keep up to date (like a profile); Add form opens it. New each time: every Add form or attached submission is a new dated result (like an intake).',
-  'forms.form.visitChecklist': 'Care: caregivers fill this form in on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',
+    'One submission, kept up to date: each client has one that you update over time (like a profile); Add form opens it. A new submission each time: every Add form or accepted submission is kept separately, with its date (like an intake).',
+  'forms.form.visitChecklist':
+    'Care: caregivers fill in this form on every visit, next to the times and notes. One form at a time; turning it on here turns it off on the others.',
   'forms.form.access':
-    "Client forms: per role None, Read or Edit for the answers on client pages. Admins can always edit. People only see clients they can reach (assigned to them unless their role has Accounts: All). Designing the form is the Forms area.",
+    "On: that role can view this form's submissions on the client pages they can reach. Off: they don't see them. Only admins add or change client form submissions.",
   'forms.result.page':
     "One client's answers to a client form. Answers save as you go; Submit when done. The ⋮ menu has Move, Share link (for someone outside, e.g. family) and Delete.",
   'forms.result.links':
@@ -219,6 +237,12 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'No check: anyone with the link. Passcode: share it separately (phone or text). Emailed code: a code goes to an email address before the form opens.',
   'form.links.websites':
     'Leave empty to let any website show the form. Or list websites (one per line, e.g. example.org): only those can show it with the embed code or their own code. Links opened directly always work.',
+  'form.links.share':
+    "The form's own link. Send it to anyone, or put the embed code on a web page. It shows the published form, so publish first.",
+  'form.links.embed': 'Paste this into any web page where the form should appear. It works on any website.',
+  'form.links.shareOn': 'Off: the link and the embed code stop working. Turn it back on and the same link works again.',
+  'form.links.more':
+    'Extra links when you want control: one per place you share it (e.g. LinkedIn post), a passcode or emailed code, an expiry, or only your own websites can show it. Each can be revoked on its own.',
   'form.links.token': "Developers use this key with UBO's public form API to draw the form with their site's own code.",
   'form.links.expires': 'Leave empty for a link that never expires. You can revoke a link anytime.',
   'dashboard.page':

@@ -16,26 +16,28 @@
 
 ## The Forms list
 
-Each form shows its status: **Draft** (never published), **Published**, or **Changes not published** (the links still show the last published version). **Submissions** shows how many came in, with a count of those waiting for review. **New form** asks for a name (or a form file) and opens the form. The ⋮ menu has **Open**, **Submissions** and **Delete** (deleting a form deletes its submissions and stops its links).
+Each form shows its status: **Draft** (never published), **Published**, or **Changes not published** (the links still show the last published version). **Submissions** shows how many came in, with a count of those waiting for review. **New form** asks for a name (or a form file) and opens the form. The ⋮ menu has **View form**, **Preview**, **View submissions**, **Publish form** (or **Publish changes**) and **Unpublish form** when your role can edit forms, and **Delete form** (deleting a form deletes its submissions and stops its links).
 
 ## A form page
 
-Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists the form's **Sections** (numbered, with how many questions each has), with **Settings**, **Scoring**, **Links** and **Who can use it** below them. Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again; **Forms** in the main menu goes back to the list.
+Opening a form switches to its workspace, like Tasks: the main menu shrinks to icons and a second column lists the form's **Sections** (numbered, with how many questions each has), with **Settings**, **Scoring** and **Sharing** below them. Click one to work on it. **+** next to Sections adds a section and opens it. Drag a section up or down to reorder sections; a highlighted slot shows where it will land. The icon at the bottom of the main menu widens it again; **Forms** in the main menu goes back to the list.
 
 - A section shows its questions and text blocks. Its ⋮ menu has **Edit section** (its name) and **Delete**. **Add field** adds a question. A question or text block's ⋮ menu has **Edit**, a section picker (list icon and dropdown of the form's sections when there is more than one), and **Delete**. **Add text** adds a **text block**: formatted text people read, not a question (an intro, instructions, a note). Put one at the top of a section to introduce it. Text blocks aren't answered, counted, scored or exported. A field's type can be changed (edit the field) until someone answers the form; after that it's locked, because answers are stored in the type's shape. Drag a question or text block by its ☰ handle to reorder it.
 - **Repeating group** (a field type): a small set of **sub-fields** filled in as rows, for lists like medications (Date, Name, Dosage, Frequency), contacts or diagnoses. Add the sub-fields in the field dialog (**Add sub-field**; each has a name and a type, and select sub-fields have choices). People click **Add another** for each row and the trash icon to delete one. **Required** means at least one row. Once the form has answers, a saved sub-field's type can't change; deleting a sub-field removes its answers. Exports and the submission page show one line per row.
 - **File upload** (a field type): a drop zone for Word, PDF, Excel, PNG or JPG files, up to 10 MB each. In the field dialog, **Allow several files** lets people add up to 10; otherwise it takes one. Files upload as soon as they're dropped; each shows its name and size, with the trash icon to remove it. **Required** means at least one file. Files are private: on the client form, submission and visit pages, click a file's name to download it (you must be signed in and able to see that answer). Exports list the file names. Deleting the answer, the form or the client deletes its files. File uploads can't go inside a repeating group.
 - **Currency**, **Phone** and **SSN** (field types): Currency takes a dollar amount (two decimals). Phone takes a US number and formats it as (555) 555-5555 while you type. SSN formats as 123-45-6789, shows ***-**-**** and hides each digit a second after it's typed; the eye button shows or hides it (on the submission page too). Phone and SSN save once every digit is in. Exports and PDFs show SSNs as ***-**-6789. These also work inside repeating groups.
-- **Preview** is on the top bar between **Publish** and **Save** (and in the ⋮ menu). It opens the draft in a **new tab** like a new public link; **refresh that tab** after you change the form. Answers are not saved and required fields do not block Next or Back. Field edits show as you save them; **Details** and **Settings** need **Save** on the form page.
-- **Details** (name, description) and **Settings** save with **Save** at the top.
-- **Settings**:
-  - **How sections are shown** on the form's pages: **One page** (everything on one scrolling page), **Page by section** (one section at a time with Next and Back, then About you), **Page by question** (one question or text block per screen with a progress bar; picking a single choice moves on by itself, and Back fixes a wrong pick), **Accordion** (sections open one at a time) or **Tabs** (a tab per section). Public pages show choices as a list to click. The form's link page and the embed code follow it; websites that draw the form with their own code get it too.
-  - **Review submissions before accepting them**: submissions wait under **Waiting for review**. Turned off, they are accepted as they come in.
+- **Preview** is on the top bar between **Publish** and **Save** (and in the ⋮ menu). It opens the draft in a **new tab** like a new public link; **refresh that tab** after you change the form. Answers are not saved and required fields do not block Next or Back. Field edits show as you save them; **Settings** needs **Save** on the form page.
+- **Settings** saves with **Save** at the top. It has four cards:
+  - **About this form**: **Form name**, **Intro text** (shown to people at the top of the form) and **Internal note** (only your team sees it).
+  - **Layout** → **Show questions**: **All on one page** (everything on one scrolling page), **One section per page** (one section at a time with Next and Back, then About you), **One question per page** (one question or text block per screen with a progress bar; picking a single choice moves on by itself, and Back fixes a wrong pick), **Collapsible sections** (sections open one at a time) or **Tabs** (a tab per section). Public pages show choices as a list to click. The form's link page and the embed code follow it; websites that draw the form with their own code get it too.
+  - **After someone submits**: **Thank-you message** (formatted text shown after submitting and in the confirmation email; put links here, e.g. to book a call) and **Email them a confirmation** (an email with your thank-you message, plus their score and profile on scored forms).
+  - **Where submissions go**: where each submission ends up in Back Office.
+    - **Review each submission before accepting it**: submissions wait under **Waiting for review**. Turned off, they are accepted as they come in.
+    - **Save submissions to a client's record** makes it a client form (see Client forms below), with **Each client has**.
+    - **Add submissions to a pipeline** (when your role can see the Pipeline), then pick the **Pipeline** and its **Lane**. Each person who submits goes on that pipeline: a new card in that lane, or, if they already have an open card on that pipeline, the visit is logged on their card and the card stays where it is. Their submission is accepted, so it skips review (review is grayed out), and the card links to it. Changing it needs Pipeline setup. Turning it off keeps the count of people added so far.
+    - A form saves submissions to a client **or** adds the person to a pipeline, not both: turning one on grays out the other.
+    - **Use as the caregiver visit checklist** (Care module on): caregivers fill in this form on every visit. One form at a time: turning it on here turns it off on the others.
   - Name and email are always asked on public links. For anything else (organization, phone), add a question to the form.
-  - **Email people their results**: after sending, people get an email with their results (scored forms) and your thank-you message.
-  - **Thank-you message**: formatted text shown after sending and in that email. Put links here, e.g. to book a call.
-  - **Client form** (see Client forms below): **Attach answers to a client** and **Copies per client**.
-  - **Care** (Care module on): **Use as the visit checklist**. Caregivers fill this form in on every visit. One form at a time: turning it on here turns it off on the others.
 - **Scoring** and **Fields** save right away.
 - **Publish** makes the current fields and scoring the version people see. After changes, the button reads **Publish changes**; until you click it, the links keep showing the earlier version. Each submission keeps the version it answered.
 - **Unpublish** (the same button when there are no changes waiting, otherwise in the ⋮ menu) takes the form offline: its links and embeds stop working until you publish again. Submissions are kept.
@@ -44,12 +46,11 @@ Opening a form switches to its workspace, like Tasks: the main menu shrinks to i
 
 A client form's answers belong to a client and show in the **Forms** panel on the client's page. Use them for anything about a client. Name each form whatever you like; nothing about it is fixed.
 
-- **Attach answers to a client** (Settings) makes the form a client form.
-- **Copies per client**: **One living copy** (each client has one copy, kept up to date, like a profile; Add form opens it) or **New each time** (every Add form or attached submission is a new, dated result, like an intake).
-- **Who can use it**: per role **None**, **Read** or **Edit** for the answers on client pages. Admins can always edit. Designing the form is the Forms area as usual.
-- **Used for** (Settings, any form, optional): your own note on what the form is for. It's the **Used for** column of the Forms list.
+- **Save submissions to a client's record** (Settings → **Where submissions go**) makes the form a client form.
+- **Each client has**: **One submission, kept up to date** (like a profile; Add form opens it) or **A new submission each time** (every Add form or accepted submission is kept separately, with its date, like an intake).
+- **Who can see them on client pages** (Settings, under **Save submissions to a client's record**): a toggle for **Members** and one for **Guests**. On, they can view this form's submissions on the client pages they can reach; off, they don't see them. Only admins add or change client form submissions. Designing the form is the Forms area as usual.
 
-On a client's page, **Add form** picks a published client form the client doesn't have yet and opens it. Drafts don't show until they're published. Its page has the answers and **Details** (client, when it was added). The ⋮ menu has **Move**, **Share link** and **Delete**.
+On a client's page, **Add form** (admins) picks a published client form the client doesn't have yet and opens it. Drafts don't show until they're published. Its page has the answers and **Details** (client, when it was added). The ⋮ menu has **Move**, **Share link** and **Delete**.
 
 - **Auto-save**: answers save as you go, wherever a form is filled in (here, on a public link, on a website, on a visit). The top bar shows **Saving…**, **Saved** or **Not saved** (it keeps retrying). Several people can work on the same form at once; each change saves just that answer.
 - **In progress** / **Submitted**: a form is In progress until someone clicks **Submit** (required questions must be answered). **Reopen** sets it back to In progress. Changes after Submit still save.
@@ -70,13 +71,15 @@ Turn on **Score this form**, then:
 
 People's score is the percentage of the points possible. A single-select counts the chosen choice; a multi-select adds up the chosen choices.
 
-## Public links
+## Sharing
 
-**New link** makes a link anyone can use to fill in the published form (for example on your website), with **No check**, a **Passcode** (share it separately) or an **Emailed code**. Use a link's ⋮ menu to **Copy link**, **Open** or **Revoke** it. Links only work once the form is published. On scored forms, people see their score, profile, next steps and score areas after sending.
+**Sharing** opens with **Accept submissions through this link and embed code**: turn it off to stop the form's own link and embed code, and back on to make the same link work again. Then the form's own link, made automatically for every form. **Copy** or **Open** the link, or **Copy embed code** to put the form on a web page. It's the simplest, most open way to share: anyone with the link can submit, and the embed code works on any website. For restrictions, use **More links**. Links only work once the form is published.
+
+Below it, **More links** lists extra links for more control. **New link** makes a link anyone can use to fill in the published form (for example on your website), with **No check**, a **Passcode** (share it separately) or an **Emailed code**. Use a link's ⋮ menu to **Copy link**, **Open** or **Revoke** it. Links only work once the form is published. On scored forms, people see their score, profile, next steps and score areas after sending.
 
 ## Putting a form on a website
 
-A link's ⋮ menu → **Embed on a website** shows:
+The quickest way is **Sharing → Copy embed code**. For one of the **More links**, its ⋮ menu → **Embed on a website** shows:
 
 - **Embed code**: one line to paste into any website (WordPress, Squarespace, a custom site). The form appears in the page and uses that website's own fonts and colors. Links with a passcode or emailed code show an **Open the form** button instead.
 - **Link key**: for a developer whose website draws the form with its own code, using UBO's public form API.

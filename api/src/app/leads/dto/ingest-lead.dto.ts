@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsIn,
@@ -14,8 +14,21 @@ import {
  * services (e.g. Mirador checkout) that pass pipelineName/stageName and a note.
  */
 export class IngestLeadDto {
-  /** Org name extracted from the audit report (report.org_name) */
-  @ApiProperty() @IsString() organization!: string;
+  /**
+   * The capture point this came through (from Pipeline → Capture points). When given, the lane comes from it
+   * (pipelineName/stageName are ignored) and someone with an open card on that pipeline gets the touch logged
+   * on that card instead of a second card.
+   */
+  @ApiPropertyOptional() @IsString() @IsOptional() capturePointId?: string;
+
+  /** Org name (the audit's report.org_name). Optional with a capture point; the card falls back to the person's name. */
+  @ApiPropertyOptional() @IsString() @IsOptional() organization?: string;
+
+  /** Full name, when the caller doesn't split it (firstName/lastName win when given). */
+  @ApiPropertyOptional() @IsString() @IsOptional() name?: string;
+
+  /** Submitter phone */
+  @ApiPropertyOptional() @IsString() @IsOptional() phone?: string;
 
   /** The URL that was audited (optional for non-audit sources) */
   @ApiPropertyOptional() @IsString() @IsOptional() website?: string;

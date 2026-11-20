@@ -388,7 +388,7 @@ export class InvoicesController {
   @Post(':id/pipeline-cards')
   @Action('edit')
   async addPipelineCard(@Req() req: Request, @Param('id') id: string, @Body() dto: AddInvoicePipelineDto) {
-    return this.invoicePipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
+    return this.invoicePipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId, dto.stageId);
   }
 
   @Get(':id')

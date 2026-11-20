@@ -53,10 +53,21 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
             <p class="text-center text-color-secondary"><i class="pi pi-spin pi-spinner"></i></p>
           }
           @case ('error') {
-            <p-message severity="error" styleClass="w-full" [text]="error()!" />
+            @if (closed(); as c) {
+              <!-- The form or link is closed: say why in plain words, and who to ask. -->
+              <h1 class="page-title task-form-title">{{ c.title }}</h1>
+              <p>{{ c.message }}</p>
+              @if (c.contact.email || c.contact.phone) {
+                <p class="mb-0">
+                  Questions? Contact {{ c.contact.name || 'them' }}@if (c.contact.email) { at <a [href]="'mailto:' + c.contact.email">{{ c.contact.email }}</a>}@if (c.contact.phone) {@if (c.contact.email) { or } @else { at }<a [href]="'tel:' + c.contact.phone">{{ c.contact.phone }}</a>}.
+                </p>
+              }
+            } @else {
+              <p-message severity="error" styleClass="w-full" [text]="error()!" />
+            }
           }
           @case ('passcode') {
-            <h2 class="page-title task-form-title">{{ info()?.formName }}</h2>
+            <h1 class="page-title task-form-title">{{ info()?.formName }}</h1>
             <p class="text-color-secondary mb-3">Enter the passcode you were given.</p>
             <form class="login-form" (ngSubmit)="sendPasscode()">
               <div class="form-field mb-3">
@@ -68,7 +79,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
             </form>
           }
           @case ('email') {
-            <h2 class="page-title task-form-title">{{ info()?.formName }}</h2>
+            <h1 class="page-title task-form-title">{{ info()?.formName }}</h1>
             @if (info()?.maskedEmail) {
               <p class="text-color-secondary mb-3">We'll email a code to {{ info()?.maskedEmail }}.</p>
             } @else {
@@ -86,7 +97,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
             </form>
           }
           @case ('code') {
-            <h2 class="page-title task-form-title">{{ info()?.formName }}</h2>
+            <h1 class="page-title task-form-title">{{ info()?.formName }}</h1>
             <p class="text-color-secondary mb-3">We sent a code to {{ codeSentTo() }}. It works for 10 minutes.</p>
             <form class="login-form" (ngSubmit)="verifyCode()">
               <div class="form-field mb-3">
@@ -101,7 +112,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
             </form>
           }
           @case ('form') {
-            <h2 class="page-title task-form-title">{{ info()?.formName }}@if (info()?.clientName) {: {{ info()?.clientName }}}</h2>
+            <h1 class="page-title task-form-title">{{ info()?.formName }}@if (info()?.clientName) {: {{ info()?.clientName }}}</h1>
             @if (info()?.descriptionHtml) {
               <div class="text-color-secondary task-form-intro cp-rich" [innerHTML]="info()?.descriptionHtml"></div>
             } @else if (info()?.description) {
@@ -245,7 +256,7 @@ type PublicPage = { section: FormSectionDto | null; fields: FormFieldDto[]; ques
           @case ('done') {
             <div class="task-form-done">
               <i class="pi pi-check-circle"></i>
-              <h2 class="page-title task-form-title">Sent</h2>
+              <h1 class="page-title task-form-title">Sent</h1>
               <div class="text-color-secondary" [innerHTML]="doneMessage()"></div>
             </div>
             @if (result(); as r) {
@@ -391,6 +402,8 @@ export class PublicFormPage implements OnInit, OnDestroy {
   info = signal<FormPublicLinkDto | null>(null);
   form = signal<FormPublicFormDto | null>(null);
   error = signal<string | null>(null);
+  /** Why the form can't be filled in (not published, link off) and who to ask, when the API says so. */
+  closed = signal<ClosedInfo | null>(null);
   busy = signal(false);
   codeSentTo = signal('');
   doneMessage = signal('');
@@ -642,8 +655,9 @@ export class PublicFormPage implements OnInit, OnDestroy {
   }
 
   private fail(err: unknown, fatal: boolean) {
-    const e = err as Error & { status?: number };
+    const e = err as Error & { status?: number; closed?: ClosedInfo };
     this.error.set(e?.message || 'Something went wrong');
+    this.closed.set(e?.closed ?? null);
     // An expired verification sends people back to verify again.
     if (e?.status === 401 && this.info() && this.step() === 'form') {
       this.accessToken = null;
@@ -676,11 +690,15 @@ export class PublicFormPage implements OnInit, OnDestroy {
     const json = await res.json().catch(() => null);
     if (!res.ok) {
       const msg = Array.isArray(json?.message) ? json.message.join(', ') : json?.message;
-      throw Object.assign(new Error(msg || 'Something went wrong'), { status: res.status });
+      const closed: ClosedInfo | undefined = json?.reason && json?.title ? { title: json.title, message: msg ?? '', contact: json.contact ?? {} } : undefined;
+      throw Object.assign(new Error(msg || 'Something went wrong'), { status: res.status, closed });
     }
     return json as T;
   }
 }
+
+/** A closed form or link, as the public API explains it. */
+type ClosedInfo = { title: string; message: string; contact: { name?: string | null; email?: string | null; phone?: string | null } };
 
 function isEmpty(v: unknown): boolean {
   return v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);

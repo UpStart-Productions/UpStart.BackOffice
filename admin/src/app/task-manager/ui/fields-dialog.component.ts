@@ -63,7 +63,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
 
       @if (editingId() === null) {
         <div class="tm-field-new">
-          <h4>Add field</h4>
+          <h3>Add field</h3>
           <div class="flex gap-2">
             <input pInputText [(ngModel)]="draftName" placeholder="Field name" aria-label="New field name" class="flex-1" />
             <p-select [options]="typeOptions" optionLabel="label" optionValue="value" [(ngModel)]="draftType" appendTo="body" />

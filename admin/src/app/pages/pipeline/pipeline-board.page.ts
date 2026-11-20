@@ -9,6 +9,9 @@ import { MessageModule } from 'primeng/message';
 import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
+import { TableModule } from 'primeng/table';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
+import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { MessageService } from 'primeng/api';
 import { ApiError, ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
@@ -32,6 +35,8 @@ import {
   saveSelectedPipelineId,
 } from '../../core/pipeline-lane-visibility.storage';
 import { EmptyStateComponent } from '../../ui/empty-state/empty-state.component';
+import { LaneSelectComponent } from '../../ui/lane-select/lane-select.component';
+import { CapturePointsApi, type CapturePoint } from '../../core/capture-points.api';
 
 export type Lead = {
   id: string;
@@ -85,6 +90,8 @@ type CardContact = {
 };
 type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
 type TransferMode = 'move' | 'copy';
+/** Add or edit a capture point (Capture points dialog). */
+type CaptureDraft = { id: string | null; name: string; stageId: string | null; isActive: boolean; formName: string | null };
 
 @Component({
   selector: 'app-pipeline-board-page',
@@ -104,6 +111,10 @@ type TransferMode = 'move' | 'copy';
     SelectModule,
     SelectButtonModule,
     TooltipModule,
+    TableModule,
+    ToggleSwitchModule,
+    LucideIconComponent,
+    LaneSelectComponent,
     AppDialogModule,
     PageComponent,
     RowActionsMenuComponent,
@@ -121,6 +132,7 @@ export class PipelineBoardPage implements OnInit {
   private readonly deleteConfirm = inject(ConfirmDeleteService);
   private readonly toast = inject(MessageService);
   private readonly session = inject(SessionService);
+  private readonly capturePointsApi = inject(CapturePointsApi);
 
   /** What the user's role allows here (the API enforces the same). */
   readonly canCreate = computed(() => this.session.can('pipeline', 'create'));
@@ -145,6 +157,11 @@ export class PipelineBoardPage implements OnInit {
   newLaneName = '';
   /** Lane ids hidden on this user's board for the current pipeline. */
   hiddenLaneIds = signal<Set<string>>(new Set());
+  /** Capture points dialog: what feeds the current pipeline, and the one being added or edited. */
+  captureOpen = signal(false);
+  capturePoints = signal<CapturePoint[]>([]);
+  captureDraft = signal<CaptureDraft | null>(null);
+  captureBusy = signal(false);
   /** Remove-lane dialog. */
   removingLane = signal<PipelineLane | null>(null);
   removeMoveTo: string | null = null;
@@ -251,6 +268,7 @@ export class PipelineBoardPage implements OnInit {
         disabled: !this.current(),
         command: () => this.nameDialog.set({ mode: 'rename', value: this.current()?.name ?? '' }),
       },
+      { id: 'capture', label: 'Capture points', icon: 'pi pi-sign-in', disabled: !this.current(), command: () => void this.openCapturePoints() },
       {
         id: 'delete',
         label: 'Delete pipeline',
@@ -821,6 +839,108 @@ export class PipelineBoardPage implements OnInit {
           await this.loadLeads();
         } catch (err) {
           this.error.set(err instanceof Error ? err.message : 'Could not delete pipeline');
+        }
+      },
+    });
+  }
+
+  // ---------- capture points ----------
+
+  async openCapturePoints() {
+    this.captureDraft.set(null);
+    this.captureOpen.set(true);
+    await this.loadCapturePoints();
+  }
+
+  closeCapturePoints() {
+    this.captureOpen.set(false);
+    this.captureDraft.set(null);
+    // Badges on the lanes follow what changed.
+    void this.loadPipelines(this.pipelineId());
+  }
+
+  private async loadCapturePoints() {
+    const pid = this.pipelineId();
+    if (!pid) return;
+    try {
+      this.capturePoints.set(await this.capturePointsApi.list({ pipelineId: pid }));
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not load capture points', detail: err instanceof Error ? err.message : '' });
+    }
+  }
+
+  newCapturePoint() {
+    const first = this.current()?.stages[0]?.id ?? null;
+    this.captureDraft.set({ id: null, name: '', stageId: first, isActive: true, formName: null });
+  }
+
+  editCapturePoint(cp: CapturePoint) {
+    this.captureDraft.set({ id: cp.id, name: cp.name, stageId: cp.stageId, isActive: cp.isActive, formName: cp.formName });
+  }
+
+  patchCaptureDraft(patch: Partial<CaptureDraft>) {
+    const d = this.captureDraft();
+    if (d) this.captureDraft.set({ ...d, ...patch });
+  }
+
+  async saveCapturePoint() {
+    const d = this.captureDraft();
+    if (!d || !d.name.trim() || !d.stageId) return;
+    this.captureBusy.set(true);
+    try {
+      const body = { name: d.name.trim(), stageId: d.stageId, isActive: d.isActive };
+      if (d.id) await this.capturePointsApi.update(d.id, body);
+      else await this.capturePointsApi.create(body);
+      this.captureDraft.set(null);
+      await this.loadCapturePoints();
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not save', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : '' });
+    } finally {
+      this.captureBusy.set(false);
+    }
+  }
+
+  captureActions(cp: CapturePoint): RowActionItem[] {
+    return [
+      { id: 'edit', label: 'Edit', icon: 'pi pi-pencil', command: () => this.editCapturePoint(cp) },
+      { id: 'copy', label: 'Copy ID', icon: 'pi pi-copy', command: () => void this.copyCaptureId(cp) },
+      {
+        id: 'toggle',
+        label: cp.isActive ? 'Turn off' : 'Turn on',
+        icon: cp.isActive ? 'pi pi-pause' : 'pi pi-play',
+        command: () => void this.toggleCapturePoint(cp),
+      },
+      { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteCapturePoint(cp) },
+    ];
+  }
+
+  private async copyCaptureId(cp: CapturePoint) {
+    try {
+      await navigator.clipboard.writeText(cp.id);
+      this.toast.add({ severity: 'success', summary: 'Copied', detail: `${cp.name} ID copied.` });
+    } catch {
+      this.toast.add({ severity: 'error', summary: 'Could not copy', detail: cp.id });
+    }
+  }
+
+  private async toggleCapturePoint(cp: CapturePoint) {
+    try {
+      await this.capturePointsApi.update(cp.id, { isActive: !cp.isActive });
+      await this.loadCapturePoints();
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not change', detail: err instanceof Error ? err.message : '' });
+    }
+  }
+
+  private confirmDeleteCapturePoint(cp: CapturePoint) {
+    this.deleteConfirm.confirm({
+      message: `Delete "${cp.name}"? Cards it already added stay on the board. Anything still sending to it stops adding people.`,
+      accept: async () => {
+        try {
+          await this.capturePointsApi.remove(cp.id);
+          await this.loadCapturePoints();
+        } catch (err) {
+          this.toast.add({ severity: 'error', summary: 'Could not delete', detail: err instanceof Error ? err.message : '' });
         }
       },
     });

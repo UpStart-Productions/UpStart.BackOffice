@@ -123,10 +123,10 @@
 
       @if (canEditLines) {
         <div class="card invoice-generate-card">
-          <h4 class="showcase-section-title">
+          <h3 class="showcase-section-title">
             Generate from time
             <app-help-text [key]="billingTenant ? 'invoice.generateFromTime.tenant' : 'invoice.generateFromTime.client'" />
-          </h4>
+          </h3>
 
           <div class="showcase-flex-col">
             <div class="invoice-generate-filters-row">
@@ -185,7 +185,7 @@
 
         <div class="card invoice-line-items-card">
           <div class="invoice-lines-header">
-            <h4 class="showcase-section-title mb-0">Line items <app-help-text key="invoice.lineItems" /></h4>
+            <h3 class="showcase-section-title mb-0">Line items <app-help-text key="invoice.lineItems" /></h3>
             <p-button
               label="Add line"
               icon="pi pi-plus"

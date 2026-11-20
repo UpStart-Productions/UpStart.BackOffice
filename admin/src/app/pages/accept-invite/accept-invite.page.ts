@@ -47,7 +47,7 @@ type InviteInfo = {
           } @else if (i.status === 'expired') {
             <p-message severity="warn" styleClass="w-full mb-3" text="This invitation has expired. Ask the person who shared it to send a new one." />
           } @else {
-            <h2 class="page-title mb-2">You're invited</h2>
+            <h1 class="page-title mb-2">You're invited</h1>
             <p class="text-color-secondary mb-3">
               @if (i.projectName) {
                 {{ i.inviterName || 'Someone' }} shared <strong>{{ i.projectName }}</strong> with you.

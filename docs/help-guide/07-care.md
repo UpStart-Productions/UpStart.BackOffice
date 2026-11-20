@@ -6,7 +6,7 @@ The Care module is switched on per organization by the platform operator. It doe
 - **Schedule** in the Office menu, for planning everyone's shifts across clients.
 - **My shifts** on the Dashboard, for caregivers.
 - The **Scheduled vs actual** tab and a **Time** filter (visit time) in Reports.
-- **Use as the visit checklist** in a form's Settings (Forms).
+- **Use as the caregiver visit checklist** in a form's Settings → **Where submissions go** (Forms).
 
 Forms about clients are ordinary **client forms** in **Forms** (see the Forms guide), so you can have as many as you need and name them anything.
 
@@ -42,7 +42,7 @@ A visit's page has the time, the **visit checklist** and notes.
 - Times, the checklist and notes save as you change them; the time entry follows. An end earlier than the start counts as the next day. Once its time is on an invoice, times are locked and the visit can't be deleted. The ⋮ menu has **Delete** (also deletes its time entry).
 - **Open client** goes to the client's Care tab.
 
-**Visit checklist**: a form in Forms with **Use as the visit checklist** turned on (Settings) is filled in on every visit, for example meals, medication reminder, mood and activities. One form at a time. With none set, visits have just the times and notes.
+**Visit checklist**: a form in Forms with **Use as the caregiver visit checklist** turned on (Settings → **Where submissions go**) is filled in on every visit, for example meals, medication reminder, mood and activities. One form at a time. With none set, visits have just the times and notes.
 
 ## Schedule
 

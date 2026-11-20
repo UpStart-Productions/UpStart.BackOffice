@@ -23,7 +23,7 @@ import { ClientFormsApi } from '../../core/client-forms.api';
     @if (loaded() && (results().length || options().length)) {
       <div class="card card--side">
         <div class="card-header">
-          <h3 class="card-title">Forms</h3>
+          <h2 class="card-title">Forms</h2>
           @if (addable().length) {
             <p-button label="Add form" icon="pi pi-plus" size="small" severity="secondary" (onClick)="openAdd()" />
           }

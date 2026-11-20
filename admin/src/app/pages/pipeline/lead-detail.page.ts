@@ -48,10 +48,12 @@ const SERVICE_OPTIONS = [
 /** Placeholder org name when a card is created opening New Lead (user replaces before Save). */
 export const NEW_LEAD_PLACEHOLDER_ORG = 'Untitled organization';
 
+import { LaneSelectComponent } from '../../ui/lane-select/lane-select.component';
 @Component({
   selector: 'app-lead-detail-page',
   standalone: true,
   imports: [
+    LaneSelectComponent,
     HelpTextComponent,
     PeopleComponent,
     RowActionsMenuComponent,

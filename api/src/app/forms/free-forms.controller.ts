@@ -369,6 +369,7 @@ export class FreeFormsController {
   @Get('forms/:id/links')
   async formLinks(@Req() req: Request, @Param('id') formId: string) {
     await this.findForm(req.user as UserContext, formId);
+    await this.links.ensureDefault(formId);
     return this.links.list({ formId });
   }
 

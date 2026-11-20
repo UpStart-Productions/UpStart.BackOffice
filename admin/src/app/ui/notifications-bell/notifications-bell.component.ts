@@ -46,7 +46,7 @@ import { notificationUiActions, notificationUiRoute } from './notification-ui.re
       (onShow)="onPanelShow()"
     >
       <div class="notifications-panel-header">
-        <h5 class="m-0">Notifications</h5>
+        <h2 class="card-title">Notifications</h2>
       </div>
       @if (loading()) {
         <p class="p-3 text-color-secondary mb-0">Loading…</p>

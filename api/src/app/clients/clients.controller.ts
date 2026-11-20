@@ -120,7 +120,7 @@ export class ClientsController {
   @Post(':id/pipeline-cards')
   async addPipelineCard(@Req() req: Request, @Param('id') id: string, @Body() dto: AddPipelineCardDto) {
     await this.assertReach(req, id);
-    return this.clientPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
+    return this.clientPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId, dto.stageId);
   }
 
   /** Accounts. ?journey=CLIENT filters by status, ?tag=Partner by CRM tag (?role= is the old name). */

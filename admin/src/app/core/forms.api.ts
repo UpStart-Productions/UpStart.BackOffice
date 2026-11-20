@@ -53,7 +53,7 @@ export class FormsApi {
     return this.api.post<FreeFormDto>(`${this.base}/forms/${id}/publish`, {});
   }
 
-  /** Roles for Who can use it (client forms). */
+  /** Roles for Who can see them on client pages (client forms). */
   roles() {
     return this.api.get<{ id: string; name: string }[]>(`${this.base}/roles`);
   }

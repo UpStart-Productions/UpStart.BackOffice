@@ -9,6 +9,8 @@ export interface PipelineLane {
   sortOrder: number;
   /** Cards on the board (archived ones not counted). */
   cardCount: number;
+  /** Capture points (forms, QR codes) that add people to this lane and are turned on. */
+  capturePointCount: number;
 }
 
 export interface PipelineSummary {

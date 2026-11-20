@@ -171,7 +171,7 @@ export class ProjectsController {
   @Post(':id/pipeline-cards')
   async addPipelineCard(@Req() req: Request, @Param('id') id: string, @Body() dto: AddPipelineCardDto) {
     await this.reachable(req, id);
-    return this.projectPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId);
+    return this.projectPipeline.addToPipeline(req.user as UserContext, id, dto.pipelineId, dto.stageId);
   }
 
   @Post()

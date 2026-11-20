@@ -99,7 +99,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
                     <p class="sr-text">{{ b.description }}</p>
                   }
                   @if (b.nextSteps.length) {
-                    <h3 class="card-title mt-3">Next steps</h3>
+                    <h2 class="card-title mt-3">Next steps</h2>
                     <ul class="sr-steps">
                       @for (step of b.nextSteps; track $index) {
                         <li>{{ step }}</li>
@@ -113,7 +113,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
               </div>
               @if (sc.groups.length) {
                 <div class="card">
-                  <div class="card-header"><h3 class="card-title">Score areas</h3></div>
+                  <div class="card-header"><h2 class="card-title">Score areas</h2></div>
                   <div class="sr-areas">
                     @for (g of sc.groups; track g.id) {
                       <div class="sr-area">
@@ -131,7 +131,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
                 @let qs = questions(sec.fields);
                 @if (qs.length) {
                   <div class="card">
-                    <div class="card-header"><h3 class="card-title">{{ sec.name }}</h3></div>
+                    <div class="card-header"><h2 class="card-title">{{ sec.name }}</h2></div>
                     <dl class="sa-list">
                       @for (f of qs; track f.id) {
                         @let text = answer(f, r.values[f.id]);
@@ -164,7 +164,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
           </div>
           <div class="side-panel-stack span-1">
             <div class="card card--side">
-              <div class="card-header"><h3 class="card-title">Submitted by</h3></div>
+              <div class="card-header"><h2 class="card-title">Submitted by</h2></div>
               <div class="side-list">
                 <div class="side-list-row">
                   <div class="side-list-body">
@@ -183,7 +183,7 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
             </div>
             @if (r.scores; as sc) {
               <div class="card card--side">
-                <div class="card-header"><h3 class="card-title">Score</h3></div>
+                <div class="card-header"><h2 class="card-title">Score</h2></div>
                 <div class="side-list">
                   <div class="side-list-row">
                     <div class="side-list-body">

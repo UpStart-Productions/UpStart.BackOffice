@@ -61,7 +61,7 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
       @if (showPanelTitle() || (!controlsAfterList() && mode() === 'project')) {
         <div class="card-header">
           @if (showPanelTitle()) {
-            <h3 class="card-title">{{ panelTitle() ?? 'People' }} @if (hintKey()) { <app-help-text [key]="hintKey()!" /> }</h3>
+            <h2 class="card-title">{{ panelTitle() ?? 'People' }} @if (hintKey()) { <app-help-text [key]="hintKey()!" /> }</h2>
           }
           @if (!controlsAfterList() && !readOnly()) {
             <p-button

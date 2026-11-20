@@ -353,6 +353,13 @@
   text-align: left;
   background: #f9fafb;
   border-bottom: 1px solid #e9ebef;
+  /* Header labels and their sort arrows stay on one line. */
+  white-space: nowrap;
+}
+
+/* Status tags in table cells stay on one line (e.g. "Changes not published"). */
+.p-datatable.table-bordered .p-datatable-tbody > tr > td .p-tag {
+  white-space: nowrap;
 }
 
 .p-datatable-sort-icon,

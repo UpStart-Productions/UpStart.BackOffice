@@ -23,7 +23,7 @@ export class PipelinesService {
             name: true,
             color: true,
             sortOrder: true,
-            _count: { select: { leads: { where: { archivedAt: null } } } },
+            _count: { select: { leads: { where: { archivedAt: null } }, capturePoints: { where: { isActive: true } } } },
           },
         },
       },
@@ -32,7 +32,7 @@ export class PipelinesService {
       id: p.id,
       name: p.name,
       sortOrder: p.sortOrder,
-      stages: p.stages.map(({ _count, ...s }) => ({ ...s, cardCount: _count.leads })),
+      stages: p.stages.map(({ _count, ...s }) => ({ ...s, cardCount: _count.leads, capturePointCount: _count.capturePoints })),
     }));
   }
 
@@ -60,6 +60,8 @@ export class PipelinesService {
     if ((await this.prisma.pipeline.count()) <= 1) throw new BadRequestException('You need at least one pipeline.');
     const cards = await this.prisma.lead.count({ where: { pipelineId: id } });
     if (cards) throw new ConflictException(`Move or delete the ${cards} card${cards === 1 ? '' : 's'} in this pipeline first (archived cards count too).`);
+    const feeds = await this.prisma.capturePoint.count({ where: { pipelineId: id } });
+    if (feeds) throw new ConflictException(`${feeds} capture point${feeds === 1 ? '' : 's'} still send people to this pipeline. Point ${feeds === 1 ? 'it' : 'them'} at another pipeline or delete ${feeds === 1 ? 'it' : 'them'} first.`);
     await this.prisma.pipeline.delete({ where: { id } });
     return { deleted: true };
   }
@@ -106,7 +108,8 @@ export class PipelinesService {
 
   /**
    * Remove a lane. If it holds cards (archived ones included), `moveToStageId` says where they go;
-   * booking types that used the lane follow them. A pipeline's last lane can't be removed.
+   * booking types and capture points that used the lane follow them. With no cards to move, capture points go to the
+   * pipeline's first remaining lane. A pipeline's last lane can't be removed.
    */
   async deleteLane(stageId: string, moveToStageId?: string) {
     const lane = await this.requireLane(stageId);
@@ -134,6 +137,12 @@ export class PipelinesService {
         });
         await tx.bookingType.updateMany({ where: { leadStageId: stageId }, data: { leadStageId: target.id } });
       }
+      const feedTo = target ?? (await tx.pipelineStage.findFirst({
+        where: { pipelineId: lane.pipelineId, id: { not: stageId } },
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, pipelineId: true },
+      }));
+      if (feedTo) await tx.capturePoint.updateMany({ where: { stageId }, data: { stageId: feedTo.id, pipelineId: feedTo.pipelineId } });
       await tx.pipelineStage.delete({ where: { id: stageId } });
     });
     return { deleted: true, moved: target ? cards : 0 };

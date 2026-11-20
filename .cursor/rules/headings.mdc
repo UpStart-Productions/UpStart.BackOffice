@@ -1,0 +1,21 @@
+---
+description: Heading levels and sizes — h1 largest, never skip a level
+globs: admin/**/*.{html,ts,scss}
+alwaysApply: true
+---
+
+# Headings
+
+Sizes come from `admin/src/assets/layout/_typography.scss` (the UI scale), largest first:
+
+| Level | Use | Size |
+|-------|-----|------|
+| `h1` | Page title (`app-page`, public form pages) — one per page | 22px (`.page-title`) |
+| `h2` | Card / panel title: `<h2 class="card-title">` | 14px via `.card-title` (bare h2 17px) |
+| `h3` | Sub-section inside a card (e.g. "More links", "Score areas") | 14px |
+| `h4` | Minor heading under an h3 | 13px |
+
+- Go h1 → h2 → h3 in order. Never jump (no h1 → h3, no h4 straight under a card title).
+- Never pick a level for its size. Need a different look? Use a class.
+- Popovers and menus: a title is `<h2 class="card-title">`; a person's name or other label is not a heading.
+- Do not reintroduce the old long-form sizes (2.5rem h1, 1.5rem h4) on UI headings.

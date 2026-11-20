@@ -124,8 +124,8 @@ const LEAD_DETAIL: HelpArticle = {
       body: 'Both fields offer common choices and let you type a new value; new entries are saved for your team to pick later.',
     },
     {
-      heading: 'Lane',
-      body: 'Where the card sits on the board. Changing it here is the same as dragging the card. Lanes track the conversation; they don\'t change the account\'s status.',
+      heading: 'Pipeline and Lane',
+      body: 'Where the card sits: pick the pipeline, then a lane on it. Changing the lane is the same as dragging the card; picking another pipeline moves the card there. Lanes track the conversation; they don\'t change the account\'s status.',
     },
     {
       heading: 'Next action',
@@ -164,7 +164,7 @@ const BOOKING_TYPE_FORM: HelpArticle = {
     },
     {
       heading: 'Pipeline',
-      body: 'When "Create or update pipeline lead on booking" is on, a booking creates or updates a pipeline card. Pipeline lane is where new cards go (blank means the first lane). A card still in the first lane moves to this lane when the person books; cards further along stay put.',
+      body: 'When "Create or update pipeline lead on booking" is on, a booking creates or updates a pipeline card. Pipeline and Lane are where new cards go: pick the pipeline, then a lane on it. A card still in the first lane moves to this lane when the person books; cards further along stay put.',
     },
     {
       heading: 'Pricing',
@@ -275,6 +275,10 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       {
         heading: 'More than one pipeline',
         body: 'When your role allows setup, the ⋮ menu beside New Lead has New pipeline, Rename pipeline and Delete pipeline (only an empty pipeline can be deleted). With more than one pipeline, pick which board to view from the toolbar list.',
+      },
+      {
+        heading: 'Capture points',
+        body: 'Capture points add people to a pipeline on their own: a form from Forms (Add submissions to a pipeline, in its Settings under Where submissions go), or an outside form such as your website. Capture points in the ⋮ menu beside New Lead lists this pipeline\'s, with the lane, where people come from, how many came in and On or Off. Add capture point makes one for an outside form; Copy ID in a row\'s menu gives the ID that form sends. Someone already on the pipeline gets the visit logged on their card instead of a second card. A plug icon on a lane means a capture point adds people there. Removing a lane moves its capture points with its cards (or to the first lane); a pipeline with capture points can\'t be deleted.',
       },
     ],
   },
@@ -406,8 +410,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Each type has its own slug and public page. Inactive types can\'t be booked.',
       },
       {
-        heading: 'Pipeline lane',
-        body: 'Which lane new cards go into when someone books. Blank means the first lane.',
+        heading: 'Pipeline and Lane',
+        body: 'Where new cards go when someone books: pick the pipeline, then a lane on it.',
       },
     ],
   },
@@ -859,10 +863,6 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: 'Draft: never published. Published: the links show the current form. Changes not published: the links still show the last published version.',
       },
       {
-        heading: 'Used for',
-        body: 'What each form is for, as typed in its Settings (Used for).',
-      },
-      {
         heading: 'Who sees what',
         body: 'The Forms area on a role (Users → Roles): Own shows the forms that person created, All shows every form. Create, Edit and Delete are checkboxes. Admins see everything.',
       },
@@ -870,7 +870,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
   },
   'forms/:id': {
     title: 'Form',
-    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring, Links and Who can use it below them. Click one to work on it. Submissions open from the Forms list.',
+    intro: 'The form workspace: the column on the left lists the form\'s sections, with Settings, Scoring and Sharing below them. Click one to work on it. Submissions open from the Forms list.',
     sections: [
       {
         heading: 'Sections',
@@ -881,8 +881,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: "In the ⋮ menu. Adds a form file's sections and questions after this form's own. It only adds: nothing on the form changes, including its answers, name and settings. Score areas from the file don't carry over.",
       },
       {
-        heading: 'How sections are shown',
-        body: 'In Settings: One page, Page by section, Page by question (one question or text block per screen; a single choice moves on by itself), Accordion or Tabs. The link page and the embed code follow it. Click Save.',
+        heading: 'Layout',
+        body: 'In Settings → Layout, Show questions: All on one page, One section per page, One question per page (one question or text block per screen; a single choice moves on by itself), Collapsible sections or Tabs. The link page and the embed code follow it. Click Save.',
       },
       {
         heading: 'Publish',
@@ -890,11 +890,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Settings',
-        body: 'Review submissions before attaching them, email people their results, and a thank-you message (formatted, with links, e.g. to book a call). Used for: your own note on what the form is for. Client form: Attach answers to a client and Copies per client (One living copy or New each time). With Care on: Use as the visit checklist. Click Save.',
+        body: 'Four cards. About this form: Form name, Intro text (shown at the top of the form) and Internal note (only your team sees it). Layout: Show questions. After someone submits: Thank-you message (formatted, with links, e.g. to book a call) and Email them a confirmation. Where submissions go: Review each submission before accepting it; Save submissions to a client\'s record (with Each client has: One submission, kept up to date or A new submission each time); or Add submissions to a pipeline with its Pipeline and Lane, so each person who submits gets a pipeline card and their submission is accepted, skipping review. Client and pipeline are either/or. With Care on: Use as the caregiver visit checklist. Click Save.',
       },
       {
-        heading: 'Who can use it',
-        body: 'Client forms: for each role pick None, Read or Edit for the answers on client pages, then Save. Admins can always edit.',
+        heading: 'Who can see them on client pages',
+        body: 'In Settings, under Save submissions to a client\'s record: toggles for Members and Guests. On, they can view this form\'s submissions on client pages they can reach. Only admins add or change them. Click Save.',
       },
       {
         heading: 'Scoring',
@@ -905,8 +905,8 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
         body: "Add a section, then Add new → Question or field: a name, a type, Required, and on scored forms the points per choice and the score area. You can change a field's type until someone answers the form; then it's locked. Currency, Phone (US, formatted as you type) and SSN (shown as ***-**-****, with an eye to show it) are their own types. Changes save right away.",
       },
       {
-        heading: 'Public links',
-        body: 'New link makes a link anyone can use, with No check, a Passcode or an Emailed code. Copy, open or revoke it from its ⋮ menu. Embed on a website (⋮ menu) gives a one-line code to paste into any website, the link key for developers, and Allowed websites (empty = any website).',
+        heading: 'Sharing',
+        body: 'Sharing starts with Accept submissions through this link and embed code (on or off). Then the form\'s own link, made automatically: Copy or Open it, or Copy embed code to put the form on a web page. It\'s the open option: anyone with the link, any website. For restrictions (passcode, expiry, only your websites), use More links. More links: New link makes an extra link with No check, a Passcode or an Emailed code; copy, open, embed or revoke it from its ⋮ menu. Links work once the form is published.',
       },
       {
         heading: 'Preview',

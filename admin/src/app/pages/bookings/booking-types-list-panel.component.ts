@@ -142,7 +142,7 @@ const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 export class BookingTypesListPanelComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly pipelinesApi = inject(PipelinesApi);
-  /** Lane names by id, for the detail panel. */
+  /** Lane names by id ("Pipeline · Lane" with more than one pipeline), for the detail panel. */
   laneNames = signal<Map<string, string>>(new Map());
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly router = inject(Router);
@@ -178,7 +178,7 @@ export class BookingTypesListPanelComponent implements OnInit {
     this.tableSortOrder.set(sort.order);
     void this.pipelinesApi
       .list()
-      .then((ps) => this.laneNames.set(new Map(ps.flatMap((p) => p.stages.map((s) => [s.id, s.name] as const)))))
+      .then((ps) => this.laneNames.set(new Map(ps.flatMap((p) => p.stages.map((s) => [s.id, ps.length > 1 ? `${p.name} · ${s.name}` : s.name] as const)))))
       .catch(() => undefined);
     await this.load();
   }

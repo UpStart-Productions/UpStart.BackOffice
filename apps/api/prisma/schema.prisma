@@ -408,6 +408,8 @@ model Lead {
   /// The tenant-defined pipeline and lane this card sits in. `stage` above is a legacy mirror.
   pipelineId        String?
   stageId           String?
+  /// The capture point (website form, UBO form, QR code) that brought this card in, if any.
+  capturePointId    String?
   /// Set when someone archives the card by hand: off the board, history kept, restorable.
   archivedAt        DateTime?
   createdByUserId   String?
@@ -427,6 +429,7 @@ model Lead {
   warmConnectionContact Contact?       @relation("LeadWarmConnection", fields: [warmConnectionContactId], references: [id], onDelete: SetNull)
   pipeline        Pipeline?      @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   pipelineStage   PipelineStage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  capturePoint    CapturePoint?  @relation(fields: [capturePointId], references: [id], onDelete: SetNull)
   artifacts       Artifact[]
   bookings        Booking[]
   interactions    Interaction[]
@@ -434,6 +437,7 @@ model Lead {
 
   @@index([stage])
   @@index([pipelineId, stageId])
+  @@index([capturePointId])
   @@index([clientId])
   @@index([primaryContactId])
   @@index([warmConnectionContactId])
@@ -462,6 +466,34 @@ model LeadContact {
   @@index([contactId])
 }
 
+/// Something put out into the world (a website form, a UBO form, a QR code) that adds people to a pipeline lane.
+/// Points at the lane by id, so renaming a pipeline or lane never breaks it. Deleting the lane moves it with the cards.
+model CapturePoint {
+  id             String        @id @default(cuid())
+  tenantId       String        @default("") // tenant scope; the empty default fails the FK, so a missed injection errors loudly
+  tenant         Tenant        @relation(fields: [tenantId], references: [id])
+  name           String
+  pipelineId     String
+  pipeline       Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  stageId        String
+  stage          PipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  /// A UBO form whose submissions it sends to the pipeline (one per form). Null: an outside form or link,
+  /// which calls POST /leads/ingest with this id.
+  formId         String?       @unique
+  form           Form?         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  isActive       Boolean       @default(true)
+  captureCount   Int           @default(0)
+  lastCapturedAt DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  leads Lead[]
+
+  @@index([tenantId])
+  @@index([pipelineId])
+  @@index([stageId])
+}
+
 /// A relationship pipeline. Each tenant defines its own pipelines and lanes; there are no won/lost stages.
 model Pipeline {
   id        String   @id @default(cuid())
@@ -472,8 +504,9 @@ model Pipeline {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stages PipelineStage[]
-  leads  Lead[]
+  stages        PipelineStage[]
+  leads         Lead[]
+  capturePoints CapturePoint[]
 
   @@index([tenantId, sortOrder])
 }
@@ -493,8 +526,9 @@ model PipelineStage {
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
-  leads        Lead[]
-  bookingTypes BookingType[]
+  leads         Lead[]
+  bookingTypes  BookingType[]
+  capturePoints CapturePoint[]
 
   @@index([pipelineId, sortOrder])
   @@index([tenantId])
@@ -1749,6 +1783,7 @@ model Tenant {
   superUserRates              SuperUserRate[]
   helpAgentUsages             HelpAgentUsage[]
   helpAgentThreads            HelpAgentThread[]
+  capturePoints               CapturePoint[]
 }
 
 /// A person. Peer of Client/Lead; never the owner of projects, invoices or time.
@@ -2102,6 +2137,7 @@ model Form {
   responses        FormResponse[]
   links            FormLink[]
   versions         FormVersion[]  @relation("FormVersions")
+  capturePoint     CapturePoint?
   publishedVersion FormVersion?   @relation("FormPublished", fields: [publishedVersionId], references: [id], onDelete: SetNull)
   createdBy        User?          @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
@@ -2240,6 +2276,9 @@ model FormLink {
   lastUsedAt   DateTime?
   /// Websites that may show this form in a browser (origins like https://example.org). Empty = any website.
   allowedOrigins String[]     @default([])
+  /// The form's own public link (one per form, made automatically): no check, any website, no expiry.
+  /// It can be turned off and on again (revokedAt); other links are revoked for good.
+  isDefault    Boolean        @default(false)
   createdById  String?
   createdAt    DateTime       @default(now())
 

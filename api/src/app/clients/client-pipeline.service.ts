@@ -3,11 +3,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { allows } from '@upstart/back-office/shared';
 import { UserContext } from '../common/app.types';
 import { AccessService } from '../access/access.service';
-import { firstLane, laneFields } from '../pipelines/pipeline-lanes.util';
+import { laneFields, laneInPipeline } from '../pipelines/pipeline-lanes.util';
 import { PipelineTrackerNotifyService } from '../notifications/pipeline-tracker-notify.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -40,7 +41,7 @@ export class ClientPipelineService {
     }));
   }
 
-  async addToPipeline(actor: UserContext, clientId: string, pipelineId: string) {
+  async addToPipeline(actor: UserContext, clientId: string, pipelineId: string, stageId?: string | null) {
     if (!allows(actor, 'pipeline', 'create')) {
       throw new ForbiddenException('Your role cannot add pipeline cards.');
     }
@@ -69,7 +70,9 @@ export class ClientPipelineService {
       throw new ConflictException(`This client is already on ${pipeline.name}.`);
     }
 
-    const lane = await firstLane(this.prisma, pipelineId);
+    const lane = await laneInPipeline(this.prisma, pipelineId, stageId).catch((e: Error) => {
+      throw new BadRequestException(e.message);
+    });
     const lead = await this.prisma.lead.create({
       data: {
         ...laneFields(lane),

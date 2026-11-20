@@ -37,9 +37,9 @@ type RespondPage = { section: FormSectionDto | null; fields: FormFieldDto[]; que
   ],
   styleUrls: ['../../pages/task-form/task-form.page.scss'],
   template: `
-    <h2 class="page-title task-form-title">
+    <h1 class="page-title task-form-title">
       {{ formName() }}@if (clientName()) {: {{ clientName() }}}
-    </h2>
+    </h1>
     @if (descriptionHtml()) {
       <div class="text-color-secondary task-form-intro cp-rich" [innerHTML]="descriptionHtml()"></div>
     } @else if (description()) {

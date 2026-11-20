@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import { normalizeFormSettings, type FormScores, type FormSettings, type FormSnapshot } from '@upstart/back-office/shared';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
 import { MailService } from '../mail/mail.service';
-import { NotificationDeliveryService } from '../notifications/notification-delivery.service';
+import { adminAppBaseUrl, NotificationDeliveryService } from '../notifications/notification-delivery.service';
+import { captureToPipeline } from '../capture-points/capture.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { FormDestinations, type FormDestination, type PublicDraft, type PublicLink, type PublicSubmission } from './form-destinations';
 import { liveValues } from './form-fields.util';
@@ -112,9 +113,46 @@ export class FreeFormDestination implements FormDestination, OnModuleInit {
       : await this.prisma.formResponse.create({ data: { formId: link.formId, ...finished }, select: { id: true } });
     const snap = link.form.publishedVersion?.snapshot as unknown as FormSnapshot | undefined;
     const formName = snap?.name ?? link.form.name;
-    await this.notifyStaff(link, row.id, formName, sub, settings);
+    // A client form's submissions go to a client (picked on accept), never to a pipeline.
+    const sent = settings.client.enabled ? false : await this.sendToPipeline(link.formId, row.id, formName, sub, snap);
+    await this.notifyStaff(link, row.id, formName, sub, sent ? { ...settings, review: false } : settings);
     if (settings.resultsEmail && sub.email) await this.emailRespondent(formName, sub, settings, snap);
     return { message: settings.thankYou ?? undefined, resultToken: resultToken ?? undefined, responseId: row.id };
+  }
+
+  /**
+   * A form with a capture point (Send to pipeline) puts the person on that pipeline: a new card in its lane, or the
+   * touch logged on their open card. The submission then counts as accepted (it skips Waiting for review).
+   * A failure here never fails the submission; it stays under Submissions to handle by hand.
+   */
+  private async sendToPipeline(formId: string, responseId: string, formName: string, sub: PublicSubmission, snap: FormSnapshot | undefined): Promise<boolean> {
+    try {
+      const cp = await this.prisma.capturePoint.findUnique({
+        where: { formId },
+        select: { id: true, name: true, stageId: true, isActive: true },
+      });
+      if (!cp?.isActive) return false;
+      const scores = sub.scores as FormScores | null;
+      const band = scores?.bandId ? snap?.scoring.bands.find((b) => b.id === scores.bandId) : null;
+      const result = band ? `Profile: ${band.label} (${Math.round(scores!.percent)}%)` : scores ? `Score: ${Math.round(scores.percent)}%` : null;
+      await this.prisma.$transaction(async (tx) => {
+        await captureToPipeline(tx, cp, {
+          name: sub.name,
+          email: sub.email,
+          phone: sub.phone,
+          organization: sub.organization,
+          subject: `${formName} sent`,
+          message: [`${sub.name ?? sub.email ?? 'Someone'} sent ${formName}.`, result].filter(Boolean).join('\n'),
+          details: result ? [result] : [],
+          links: [{ title: `${formName} response`, url: `${adminAppBaseUrl()}/forms/submissions/${responseId}` }],
+        });
+        await tx.formResponse.update({ where: { id: responseId }, data: { status: 'ACTIVE', clientId: null, living: false } });
+      });
+      return true;
+    } catch (err) {
+      this.logger.warn(`Send to pipeline failed for response ${responseId}: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
   }
 
   /** Someone outside (e.g. family) submitted a client's result through its share link. */

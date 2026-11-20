@@ -158,6 +158,14 @@
   font-weight: 600;
 }
 
+/* Capture point indicator next to the lane count: a muted plug icon, sized like the header's text. */
+.lane-capture {
+  display: inline-flex;
+  align-items: center;
+  color: var(--p-text-muted-color);
+  font-size: 1rem;
+}
+
 .pipeline-card {
   background: var(--surface-card);
   border: 1px solid var(--surface-border);

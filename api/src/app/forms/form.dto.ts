@@ -81,6 +81,8 @@ export class CreateLinkDto {
 export class UpdateLinkDto {
   @IsOptional() @IsString() @MaxLength(120) label?: string | null;
   @IsOptional() @IsArray() @IsString({ each: true }) @MaxLength(300, { each: true }) allowedOrigins?: string[];
+  /** The form's own public link only: turn it off (false) or back on (true). */
+  @IsOptional() @IsBoolean() active?: boolean;
 }
 
 // ── Public links ──────────────────────────────────────────────────────────────

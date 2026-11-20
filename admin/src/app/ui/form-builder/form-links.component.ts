@@ -1,8 +1,9 @@
 import { DatePipe } from '@angular/common';
-import { Component, effect, inject, input, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
 import { SelectButtonModule } from 'primeng/selectbutton';
@@ -33,6 +34,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     DatePipe,
     FormsModule,
     ButtonModule,
+    ToggleSwitchModule,
     InputNumberModule,
     InputTextModule,
     SelectButtonModule,
@@ -45,14 +47,47 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
     RowActionsMenuComponent,
   ],
   template: `
+    @if (defaultLink(); as d) {
+      <!-- The form's own link: copy it or the embed code and go. More links (passcode, expiry, per channel) below. -->
+      <div class="card-header">
+        <h2 class="card-title">Sharing <app-help-text key="form.links.share" /></h2>
+      </div>
+      <div class="showcase-flex-col">
+        <div class="flex align-items-center gap-2">
+          <p-toggleswitch inputId="shareOn" [ngModel]="!d.revokedAt" (ngModelChange)="setDefaultOn(d, $event)" [disabled]="saving()" />
+          <label for="shareOn">Accept submissions through this link and embed code <app-help-text key="form.links.shareOn" /></label>
+        </div>
+        <div class="form-field">
+          <label for="shareUrl">Link</label>
+          <div class="field-action-row">
+            <input pInputText id="shareUrl" class="flex-1" [value]="d.url" readonly [disabled]="!!d.revokedAt" />
+            <p-button label="Copy" icon="pi pi-copy" size="small" severity="secondary" [disabled]="!!d.revokedAt" (onClick)="copy(d.url)" />
+            <p-button label="Open" icon="pi pi-external-link" size="small" severity="secondary" [outlined]="true" [disabled]="!!d.revokedAt" (onClick)="open(d.url)" />
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="shareEmbed">Embed code <app-help-text key="form.links.embed" /></label>
+          <textarea pTextarea id="shareEmbed" class="w-full embed-code" rows="2" [value]="embedCode(d)" readonly [disabled]="!!d.revokedAt"></textarea>
+          <div class="flex align-items-center gap-2 mt-2">
+            <p-button label="Copy embed code" icon="pi pi-copy" size="small" severity="secondary" [disabled]="!!d.revokedAt" (onClick)="copy(embedCode(d), 'Embed code copied.')" />
+          </div>
+        </div>
+      </div>
+      <div class="flex align-items-center gap-2 mt-4 mb-2">
+        <h3 class="m-0">More links <app-help-text key="form.links.more" /></h3>
+        <span class="flex-1"></span>
+        <p-button label="New link" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNew()" />
+      </div>
+    } @else {
     <div class="card-header">
-      <h3 class="card-title">{{ title() || (recordId() ? 'Share link' : 'Public links') }} @if (helpKey()) {<app-help-text [key]="helpKey()!" />}</h3>
+      <h2 class="card-title">{{ title() || (recordId() ? 'Share link' : 'Public links') }} @if (helpKey()) {<app-help-text [key]="helpKey()!" />}</h2>
       <p-button label="New link" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openNew()" />
     </div>
+    }
     @if (compact()) {
       <!-- A side panel: one small row per link instead of the table. -->
       <div class="side-list">
-        @for (l of links(); track l.id) {
+        @for (l of otherLinks(); track l.id) {
           <div class="side-list-row">
             <div class="side-list-body">
               <span class="side-list-title">{{ l.label || (l.clientName ?? 'Link') }}</span>
@@ -72,7 +107,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
         }
       </div>
     } @else {
-    <p-table [value]="links()" [loading]="loading()" styleClass="table-bordered">
+    <p-table [value]="otherLinks()" [loading]="loading()" styleClass="table-bordered">
       <ng-template pTemplate="header">
         <tr>
           <th style="width: 3rem"></th>
@@ -94,7 +129,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../row-actions-menu/row-
         </tr>
       </ng-template>
       <ng-template pTemplate="emptymessage">
-        <tr><td colspan="6">No links yet.</td></tr>
+        <tr><td colspan="6">{{ defaultLink() ? 'No other links. New link makes one with a passcode, an expiry or its own label, e.g. for a social post.' : 'No links yet.' }}</td></tr>
       </ng-template>
     </p-table>
     }
@@ -207,6 +242,9 @@ export class FormLinksComponent {
   readonly verifyOptions = (Object.keys(FORM_LINK_VERIFY_LABELS) as FormLinkVerify[]).map((value) => ({ value, label: FORM_LINK_VERIFY_LABELS[value] }));
 
   links = signal<FormLinkDto[]>([]);
+  /** The form's own public link (forms that take new-response links). */
+  readonly defaultLink = computed(() => this.links().find((l) => l.isDefault) ?? null);
+  readonly otherLinks = computed(() => this.links().filter((l) => !l.isDefault));
   loading = signal(true);
   saving = signal(false);
   created = signal<FormLinkDto | null>(null);
@@ -263,7 +301,7 @@ export class FormLinksComponent {
     if (l.kind === 'NEW' && !l.revokedAt) {
       items.push({ id: 'embed', label: 'Embed on a website', icon: 'pi pi-code', command: () => this.openEmbed(l) });
     }
-    if (!l.revokedAt) {
+    if (!l.revokedAt && !l.isDefault) {
       items.push({ id: 'revoke', label: 'Revoke', icon: 'pi pi-ban', severity: 'danger', command: () => this.confirmRevoke(l) });
     }
     return items;
@@ -357,10 +395,27 @@ export class FormLinksComponent {
     }
   }
 
-  async copy(url: string) {
+  open(url: string) {
+    window.open(url, '_blank', 'noopener');
+  }
+
+  /** Turn the form's own link off (it stops working) or back on (the same link works again). */
+  async setDefaultOn(l: FormLinkDto, on: boolean) {
+    this.saving.set(true);
+    try {
+      await this.api.patch<FormLinkDto>(`${this.apiBase()}/links/${l.id}`, { active: on });
+      await this.load();
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: 'Could not change the link', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  async copy(url: string, detail = 'Link copied.') {
     try {
       await navigator.clipboard.writeText(url);
-      this.toast.add({ severity: 'success', summary: 'Copied', detail: 'Link copied.' });
+      this.toast.add({ severity: 'success', summary: 'Copied', detail });
     } catch {
       this.toast.add({ severity: 'warn', summary: 'Copy failed', detail: 'Select and copy the link manually.' });
     }

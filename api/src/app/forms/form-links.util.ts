@@ -41,6 +41,7 @@ type LinkRow = {
   verify: FormLinkVerify; email: string | null; expiresAt: Date | null; revokedAt: Date | null;
   lastUsedAt: Date | null; createdAt: Date; token: string; client?: { name: string } | null; form: { module: string };
   allowedOrigins: string[];
+  isDefault: boolean;
 };
 
 export function linkView(l: LinkRow): FormLinkDto {
@@ -59,6 +60,7 @@ export function linkView(l: LinkRow): FormLinkDto {
     createdAt: l.createdAt.toISOString(),
     url: formLinkUrl(l.form.module, l.token),
     allowedOrigins: l.allowedOrigins ?? [],
+    isDefault: l.isDefault,
   };
 }
 

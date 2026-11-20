@@ -14,7 +14,7 @@ import { InvoiceCardComponent, type InvoiceCardData } from '../record-card';
   template: `
     <div class="card card--side">
       <div class="card-header">
-        <h3 class="card-title">Invoices</h3>
+        <h2 class="card-title">Invoices</h2>
         <div class="invoices-panel-head-right">
           @if (invoices().length) {
             <span class="invoices-panel-total" [title]="'Total of ' + invoices().length + ' invoice' + (invoices().length === 1 ? '' : 's') + ' (void not counted)'">{{ totalLabel() }}</span>

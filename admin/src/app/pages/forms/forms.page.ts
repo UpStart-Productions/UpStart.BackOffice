@@ -60,7 +60,7 @@ import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-
             <app-toolbar-search-field
               placeholder="Search forms…"
               ariaLabel="Search forms"
-              [ngModel]="query"
+              [ngModel]="query()"
               (ngModelChange)="onSearchChange($event)"
             />
           </div>
@@ -78,19 +78,17 @@ import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 3rem"></th>
-              <th pSortableColumn="name">Form <p-sortIcon field="name" /></th>
-              <th pSortableColumn="usedForSort">Used for <p-sortIcon field="usedForSort" /></th>
+              <th pSortableColumn="name">Title <p-sortIcon field="name" /></th>
               <th pSortableColumn="statusSort">Status <p-sortIcon field="statusSort" /></th>
               <th pSortableColumn="responseCount">Submissions <p-sortIcon field="responseCount" /></th>
               <th pSortableColumn="updatedAt">Updated <p-sortIcon field="updatedAt" /></th>
-              <th pSortableColumn="createdBySort">Created by <p-sortIcon field="createdBySort" /></th>
+              <th pSortableColumn="createdBySort">Author <p-sortIcon field="createdBySort" /></th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-f>
             <tr>
               <td><app-row-actions-menu [items]="rowActions(f)" ariaLabel="Form actions" /></td>
               <td><a [routerLink]="['/forms', f.id]" class="text-primary">{{ f.name }}</a></td>
-              <td>{{ f.usedFor }}</td>
               <td>
                 @if (f.publishedNumber === null) {
                   <p-tag value="Draft" severity="secondary" />
@@ -122,7 +120,7 @@ import { EmptyGhostCell, EmptyStateComponent } from '../../ui/empty-state/empty-
                 (action)="openNew()"
               />
             } @else if (!loading()) {
-              <tr><td colspan="7">No forms match your search.</td></tr>
+              <tr><td colspan="6">No forms match your search.</td></tr>
             }
           </ng-template>
         </p-table>
@@ -169,11 +167,11 @@ export class FormsPage implements OnInit {
 
   items = signal<FreeFormListItemDto[]>([]);
   /** Ghost columns for the empty state, one per header (actions, form, used for, status, submissions, updated, created by). */
-  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'strong', 'text', 'tag', 'amount', 'date', 'avatar-text'];
+  readonly ghostColumns: EmptyGhostCell[] = ['blank', 'strong', 'tag', 'amount', 'date', 'avatar-text'];
   loading = signal(true);
   error = signal<string | null>(null);
   creating = signal(false);
-  query = '';
+  query = signal('');
   tableSortField = signal('name');
   tableSortOrder = signal<1 | -1>(1);
   newVisible = false;
@@ -185,24 +183,27 @@ export class FormsPage implements OnInit {
 
   readonly canCreate = computed(() => this.session.can('forms', 'create'));
   readonly canDelete = computed(() => this.session.can('forms', 'delete'));
+  readonly canEdit = computed(() => this.session.can('forms', 'edit'));
 
-  filtered() {
-    const q = this.query.trim().toLowerCase();
+  readonly filtered = computed(() => {
+    const q = this.query().trim().toLowerCase();
     return q ? this.items().filter((f) => f.name.toLowerCase().includes(q)) : this.items();
-  }
+  });
 
   /** Sortable row fields (status / empty strings as explicit sort keys). */
-  tableRows() {
-    return this.filtered().map((f) => ({
+  // Computed (not a method) so the rows keep their identity between checks: rebuilding them on every check made
+  // the table redraw each row, which threw away an open ⋮ menu.
+  readonly tableRows = computed(() =>
+    this.filtered().map((f) => ({
       ...f,
       usedForSort: f.usedFor ?? '',
       statusSort: f.publishedNumber === null ? 0 : f.hasUnpublishedChanges ? 1 : 2,
       createdBySort: f.createdByName ?? '',
-    }));
-  }
+    })),
+  );
 
   onSearchChange(value: string) {
-    this.query = value;
+    this.query.set(value);
     saveListSearch(this.session, LIST_VIEW_KEYS.forms, value);
   }
 
@@ -215,7 +216,7 @@ export class FormsPage implements OnInit {
   }
 
   async ngOnInit() {
-    this.query = loadListSearch(this.session, LIST_VIEW_KEYS.forms);
+    this.query.set(loadListSearch(this.session, LIST_VIEW_KEYS.forms));
     const sort = loadTableSort(this.session, LIST_VIEW_KEYS.forms, { field: 'name', order: 1 });
     this.tableSortField.set(sort.field);
     this.tableSortOrder.set(sort.order);
@@ -236,13 +237,35 @@ export class FormsPage implements OnInit {
 
   rowActions(f: FreeFormListItemDto): RowActionItem[] {
     const items: RowActionItem[] = [
-      { id: 'open', label: 'Open', icon: 'pi pi-pencil', command: () => void this.router.navigate(['/forms', f.id]) },
-      { id: 'submissions', label: 'Submissions', icon: 'pi pi-inbox', command: () => void this.router.navigate(['/forms', f.id, 'submissions']) },
+      { id: 'open', label: 'View form', icon: 'pi pi-pencil', command: () => void this.router.navigate(['/forms', f.id]) },
+      { id: 'preview', label: 'Preview', icon: 'pi pi-eye', command: () => window.open(`/forms/${f.id}/preview`, '_blank', 'noopener') },
+      { id: 'submissions', label: 'View submissions', icon: 'pi pi-inbox', command: () => void this.router.navigate(['/forms', f.id, 'submissions']) },
     ];
+    if (this.canEdit()) {
+      const published = f.publishedNumber !== null;
+      if (!published || f.hasUnpublishedChanges) {
+        items.push({ id: 'publish', label: published ? 'Publish changes' : 'Publish form', icon: 'pi pi-upload', command: () => void this.setPublished(f, true) });
+      }
+      if (published) {
+        items.push({ id: 'unpublish', label: 'Unpublish form', icon: 'pi pi-eye-slash', command: () => void this.setPublished(f, false) });
+      }
+    }
     if (this.canDelete()) {
-      items.push({ id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove(f) });
+      items.push({ id: 'delete', label: 'Delete form', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmRemove(f) });
     }
     return items;
+  }
+
+  /** Publish (the current questions go live) or unpublish (links and embeds stop until published again). */
+  private async setPublished(f: FreeFormListItemDto, publish: boolean) {
+    try {
+      if (publish) await this.forms.publish(f.id);
+      else await this.forms.unpublish(f.id);
+      this.toast.add({ severity: 'success', summary: publish ? 'Published' : 'Unpublished', detail: publish ? `${f.name} is live.` : `${f.name} is offline until you publish it again.` });
+      await this.load();
+    } catch (err) {
+      this.toast.add({ severity: 'error', summary: publish ? 'Could not publish' : 'Could not unpublish', detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Failed' });
+    }
   }
 
   openNew() {

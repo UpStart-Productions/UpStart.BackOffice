@@ -242,6 +242,8 @@ export type FormLinkDto = {
   url: string;
   /** Websites that may show the form (embed script or a site's own code). Empty = any website. */
   allowedOrigins: string[];
+  /** The form's own public link, made automatically. It can be turned off and back on. */
+  isDefault: boolean;
 };
 
 /**
@@ -382,10 +384,10 @@ export type FormScoring = { enabled: boolean; groups: FormScoreGroup[]; bands: F
 export type FormLayout = 'page' | 'steps' | 'questions' | 'accordion' | 'tabs';
 export const FORM_LAYOUTS: FormLayout[] = ['page', 'steps', 'questions', 'accordion', 'tabs'];
 export const FORM_LAYOUT_LABELS: Record<FormLayout, string> = {
-  page: 'One page',
-  steps: 'Page by section',
-  questions: 'Page by question',
-  accordion: 'Accordion',
+  page: 'All on one page',
+  steps: 'One section per page',
+  questions: 'One question per page',
+  accordion: 'Collapsible sections',
   tabs: 'Tabs',
 };
 
@@ -399,8 +401,8 @@ export type FormClientSettings = {
 
 export type FormClientCopies = FormClientSettings['copies'];
 export const FORM_CLIENT_COPIES_LABELS: Record<FormClientCopies, string> = {
-  living: 'One living copy',
-  each: 'New each time',
+  living: 'One submission, kept up to date',
+  each: 'A new submission each time',
 };
 
 export const DEFAULT_FORM_CLIENT_SETTINGS: FormClientSettings = { enabled: false, copies: 'each' };

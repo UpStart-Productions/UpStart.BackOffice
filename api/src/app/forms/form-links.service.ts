@@ -77,14 +77,30 @@ export class FormLinksService {
     return link;
   }
 
-  /** Rename a link or change the websites that may show it. */
+  /**
+   * The form's own public link: anyone can open it, any website can show it, it never expires. Made the first time
+   * the form's links are listed, for forms that take new-response links.
+   */
+  async ensureDefault(formId: string) {
+    const form = await this.prisma.form.findUnique({ where: { id: formId }, select: { module: true, key: true } });
+    if (!form || !formProfile(form.module, form.key).newLinks) return;
+    const has = await this.prisma.formLink.findFirst({ where: { formId, isDefault: true }, select: { id: true } });
+    if (has) return;
+    await this.prisma.formLink.create({
+      data: { formId, kind: 'NEW', token: newLinkToken(), label: 'Public link', verify: 'NONE', isDefault: true },
+    });
+  }
+
+  /** Rename a link, change the websites that may show it, or turn the form's own link off or on. */
   async update(id: string, dto: UpdateLinkDto) {
-    await this.find(id);
+    const link = await this.find(id);
+    if (dto.active !== undefined && !link.isDefault) throw new BadRequestException("Only the form's own public link can be turned off and on");
     const row = await this.prisma.formLink.update({
       where: { id },
       data: {
         ...(dto.label !== undefined ? { label: dto.label?.trim() || null } : {}),
         ...(dto.allowedOrigins !== undefined ? { allowedOrigins: normalizeOrigins(dto.allowedOrigins) } : {}),
+        ...(dto.active !== undefined ? { revokedAt: dto.active ? null : (link.revokedAt ?? new Date()) } : {}),
       },
       include: LINK_INCLUDE,
     });

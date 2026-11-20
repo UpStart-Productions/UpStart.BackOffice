@@ -37,7 +37,7 @@ function sortTasksForPreview(tasks: TaskSummary[]): TaskSummary[] {
     @if (visible()) {
       <div class="card card--side project-side-card">
         <div class="card-header">
-          <h3 class="card-title">Tasks</h3>
+          <h2 class="card-title">Tasks</h2>
           <a
             pButton
             [routerLink]="tasksProjectLink()"

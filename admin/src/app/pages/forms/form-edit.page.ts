@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { APP_QUILL_IMPORTS } from '../../core/quill-editor.imports';
 import { ButtonModule } from 'primeng/button';
+import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { CheckboxModule } from 'primeng/checkbox';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { InputNumberModule } from 'primeng/inputnumber';
@@ -14,7 +15,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import {
-  areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormAccessLevel, type FormClientCopies, type FormClientSettings,
+  areaEnabled, htmlHasText, FORM_CLIENT_COPIES_LABELS, FORM_LAYOUT_LABELS, FREE_FORM_MODULE, formProfile, type FormAccess, type FormClientCopies, type FormClientSettings,
   type FormLayout, type FormScoreBand, type FormScoreBandAssetKind, type FormScoreGroup, type FormScoring, type FormSettings, type FreeFormDto, type FormDefinition,
 } from '@upstart/back-office/shared';
 import { ApiService } from '../../core/api.service';
@@ -32,6 +33,8 @@ import { FormWorkspaceService } from '../../core/form-workspace.service';
 import { FormBuilderComponent } from '../../ui/form-builder/form-builder.component';
 import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
+import { LaneSelectComponent } from '../../ui/lane-select/lane-select.component';
+import { CapturePointsApi, type CapturePoint } from '../../core/capture-points.api';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
 
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -48,6 +51,7 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
   selector: 'app-form-edit-page',
   standalone: true,
   imports: [
+    ToggleSwitchModule,
     FormsModule,
     ButtonModule,
     CheckboxModule,
@@ -62,6 +66,7 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
     FormBuilderComponent,
     FormLinksComponent,
     HelpTextComponent,
+    LaneSelectComponent,
     RowActionsMenuComponent,
     RouterLink,
     SingleFileDropzoneComponent,
@@ -147,83 +152,106 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
           @switch (view()) {
             @case ('settings') {
           <div class="card">
-            <div class="card-header"><h3 class="card-title">Details</h3></div>
+            <div class="card-header"><h2 class="card-title">About this form</h2></div>
             <div class="showcase-flex-col">
               <div class="form-field">
-                <label for="ffName">Name</label>
+                <label for="ffName">Form name</label>
                 <input pInputText id="ffName" class="w-full" [(ngModel)]="name" [disabled]="!f.canEdit" />
               </div>
               <div class="form-field">
-                <label for="ffDesc">Description <app-help-text key="forms.form.description" /></label>
+                <label for="ffDesc">Intro text <app-help-text key="forms.form.description" /></label>
                 <textarea pTextarea id="ffDesc" class="w-full" rows="2" [autoResize]="true" [(ngModel)]="description" [disabled]="!f.canEdit"></textarea>
               </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header"><h3 class="card-title">Settings</h3></div>
-            <div class="showcase-flex-col">
               <div class="form-field">
-                <label for="ffUsedFor">Used for <app-help-text key="forms.form.usedFor" /></label>
+                <label for="ffUsedFor">Internal note <app-help-text key="forms.form.usedFor" /></label>
                 <input pInputText id="ffUsedFor" class="w-full" [(ngModel)]="usedFor" [disabled]="!f.canEdit" maxlength="80" />
               </div>
-              <div class="form-field">
-                <label>How sections are shown <app-help-text key="forms.form.layout" /></label>
-                <p-selectbutton [options]="layoutOptions" optionLabel="label" optionValue="value" [(ngModel)]="layout" [allowEmpty]="false" [disabled]="!f.canEdit" />
-              </div>
-              <div class="flex align-items-center gap-2">
-                <p-checkbox inputId="ffReview" [binary]="true" [(ngModel)]="settings.review" [disabled]="!f.canEdit" />
-                <label for="ffReview">Review submissions before accepting them <app-help-text key="forms.form.review" /></label>
-              </div>
-              <div class="flex align-items-center gap-2">
-                <p-checkbox inputId="ffEmail" [binary]="true" [(ngModel)]="settings.resultsEmail" [disabled]="!f.canEdit" />
-                <label for="ffEmail">Email people their results <app-help-text key="forms.form.resultsEmail" /></label>
-              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">Layout</h2></div>
+            <div class="form-field">
+              <label>Show questions <app-help-text key="forms.form.layout" /></label>
+              <p-selectbutton [options]="layoutOptions" optionLabel="label" optionValue="value" [(ngModel)]="layout" [allowEmpty]="false" [disabled]="!f.canEdit" />
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2 class="card-title">After someone submits</h2></div>
+            <div class="showcase-flex-col">
               <div class="form-field">
                 <label>Thank-you message <app-help-text key="forms.form.thankYou" /></label>
-                <app-quill-editor [(ngModel)]="thankYou" [readOnly]="!f.canEdit" mentionToolbar="minimal" placeholder="Thanks! Your answers were sent." [styles]="{ 'min-height': '120px' }"></app-quill-editor>
+                <app-quill-editor [(ngModel)]="thankYou" [readOnly]="!f.canEdit" mentionToolbar="minimal" placeholder="Thanks! Your submission was sent." [styles]="{ 'min-height': '120px' }"></app-quill-editor>
+              </div>
+              <div class="flex align-items-center gap-2">
+                <p-toggleswitch inputId="ffEmail" [(ngModel)]="settings.resultsEmail" [disabled]="!f.canEdit" />
+                <label for="ffEmail">Email them a confirmation <app-help-text key="forms.form.resultsEmail" /></label>
               </div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-header"><h3 class="card-title">Client form <app-help-text key="forms.form.client" /></h3></div>
+            <div class="card-header"><h2 class="card-title">Where submissions go <app-help-text key="forms.form.destination" /></h2></div>
             <div class="showcase-flex-col">
               <div class="flex align-items-center gap-2">
-                <p-checkbox inputId="ffClient" [binary]="true" [(ngModel)]="client.enabled" [disabled]="!f.canEdit" />
-                <label for="ffClient">Attach answers to a client</label>
+                <p-toggleswitch inputId="ffReview" [ngModel]="settings.review && !capture.enabled" (ngModelChange)="settings.review = $event" [disabled]="!f.canEdit || capture.enabled" />
+                <label for="ffReview">Review each submission before accepting it <app-help-text [key]="capture.enabled ? 'forms.form.reviewPipeline' : 'forms.form.review'" /></label>
+              </div>
+              <div class="flex align-items-center gap-2">
+                <p-toggleswitch inputId="ffClient" [(ngModel)]="client.enabled" [disabled]="!f.canEdit || capture.enabled" />
+                <label for="ffClient">Save submissions to a client's record <app-help-text [key]="capture.enabled ? 'forms.form.clientOrPipeline' : 'forms.form.client'" /></label>
               </div>
               @if (client.enabled) {
                 <div class="form-field">
-                  <label>Copies per client <app-help-text key="forms.form.copies" /></label>
+                  <label>Each client has <app-help-text key="forms.form.copies" /></label>
                   <p-selectbutton [options]="copiesOptions" optionLabel="label" optionValue="value" [(ngModel)]="client.copies" [allowEmpty]="false" [disabled]="!f.canEdit" />
+                </div>
+                <div class="form-field">
+                  <label>Who can see them on client pages <app-help-text key="forms.form.access" /></label>
+                  @for (r of roles(); track r.id) {
+                    <div class="flex align-items-center gap-2">
+                      <p-toggleswitch [inputId]="'ffSee-' + r.id" [ngModel]="!!levels()[r.id]" (ngModelChange)="setSees(r.id, $event)" [disabled]="!f.canEdit" />
+                      <label [for]="'ffSee-' + r.id">{{ r.name }}s</label>
+                    </div>
+                  }
+                </div>
+              }
+              @if (pipelineAccess()) {
+                <div class="flex align-items-center gap-2">
+                  <p-toggleswitch inputId="ffPipeline" [(ngModel)]="capture.enabled" [disabled]="!f.canEdit || !pipelineSetup() || client.enabled" />
+                  <label for="ffPipeline">Add submissions to a pipeline <app-help-text [key]="client.enabled ? 'forms.form.clientOrPipeline' : 'forms.form.pipeline'" /></label>
+                </div>
+                @if (capture.enabled) {
+                  <app-lane-select inputId="ffPipelineLane" [(ngModel)]="capture.stageId" [disabled]="!f.canEdit || !pipelineSetup()"><app-help-text key="forms.form.pipelineLane" /></app-lane-select>
+                  @if (capturePoint(); as cp) {
+                    @if (cp.captureCount) {
+                      <span>{{ cp.captureCount }} {{ cp.captureCount === 1 ? 'person' : 'people' }} added so far</span>
+                    }
+                  }
+                }
+              }
+              @if (careOn()) {
+                <div class="flex align-items-center gap-2">
+                  <p-toggleswitch inputId="ffVisit" [(ngModel)]="visitChecklist" [disabled]="!f.canEdit" />
+                  <label for="ffVisit">Use as the caregiver visit checklist <app-help-text key="forms.form.visitChecklist" /></label>
                 </div>
               }
             </div>
           </div>
 
-          @if (careOn()) {
-            <div class="card">
-              <div class="card-header"><h3 class="card-title">Care</h3></div>
-              <div class="flex align-items-center gap-2">
-                <p-checkbox inputId="ffVisit" [binary]="true" [(ngModel)]="visitChecklist" [disabled]="!f.canEdit" />
-                <label for="ffVisit">Use as the visit checklist <app-help-text key="forms.form.visitChecklist" /></label>
-              </div>
-            </div>
-          }
-
             }
             @case ('scoring') {
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Scoring <app-help-text key="forms.form.scoring" /></h3>
+              <h2 class="card-title">Scoring <app-help-text key="forms.form.scoring" /></h2>
             </div>
             <div class="flex align-items-center gap-2">
               <p-checkbox inputId="ffScored" [binary]="true" [ngModel]="scoring().enabled" (ngModelChange)="setScoringEnabled($event)" [disabled]="!f.canEdit" />
               <label for="ffScored">Score this form</label>
             </div>
             @if (scoring().enabled) {
-              <h4 class="mt-4 mb-2">Score areas <app-help-text key="forms.form.scoreAreas" /></h4>
+              <h3 class="mt-4 mb-2">Score areas <app-help-text key="forms.form.scoreAreas" /></h3>
               @if (f.canEdit) {
                 <div class="field-action-row">
                   <input pInputText [(ngModel)]="newGroupName" placeholder="New score area, e.g. Data" class="flex-1" aria-label="New score area" (keydown.enter)="addGroup()" />
@@ -251,7 +279,7 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
               </p-table>
 
               <div class="flex align-items-center gap-2 mt-4 mb-2">
-                <h4 class="m-0">Profiles <app-help-text key="forms.form.bands" /></h4>
+                <h3 class="m-0">Profiles <app-help-text key="forms.form.bands" /></h3>
                 <span class="flex-1"></span>
                 @if (f.canEdit) {
                   <p-button label="Add profile" icon="pi pi-plus" size="small" severity="secondary" [outlined]="true" (onClick)="openBand(null)" />
@@ -292,41 +320,6 @@ const PROFILE_RESOURCE_MAX_BYTES = 50 * 1024 * 1024;
             }
           </div>
 
-            }
-            @case ('access') {
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Who can use it <app-help-text key="forms.form.access" /></h3>
-            </div>
-            @if (!client.enabled) {
-              <p class="mt-0">Applies when the form is a client form (Settings → Attach answers to a client).</p>
-            }
-            <p-table [value]="roles()" styleClass="table-bordered">
-              <ng-template pTemplate="header">
-                <tr><th>Role</th><th>Access</th></tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-r>
-                <tr>
-                  <td>{{ r.name }}</td>
-                  <td>
-                    <p-selectbutton
-                      [options]="levelOptions"
-                      optionLabel="label"
-                      optionValue="value"
-                      [ngModel]="levels()[r.id] ?? 'none'"
-                      (ngModelChange)="setLevel(r.id, $event)"
-                      [allowEmpty]="false"
-                      [disabled]="!f.canEdit"
-                      size="small"
-                    />
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="2">No roles yet.</td></tr>
-              </ng-template>
-            </p-table>
-          </div>
             }
             @case ('links') {
           <div class="card">
@@ -478,13 +471,12 @@ export class FormEditPage implements OnInit {
   private readonly confirmDelete = inject(ConfirmDeleteService);
   private readonly ws = inject(FormWorkspaceService);
   private readonly session = inject(SessionService);
+  private readonly capturePoints = inject(CapturePointsApi);
 
   readonly copiesOptions = (Object.keys(FORM_CLIENT_COPIES_LABELS) as FormClientCopies[]).map((value) => ({ value, label: FORM_CLIENT_COPIES_LABELS[value] }));
-  readonly levelOptions: { value: FormAccessLevel | 'none'; label: string }[] = [
-    { value: 'none', label: 'None' },
-    { value: 'read', label: 'Read' },
-    { value: 'edit', label: 'Edit' },
-  ];
+  /** Pipeline area: see the form's Send to pipeline; setup changes it (the capture points API checks the same). */
+  readonly pipelineAccess = computed(() => !!this.session.me() && this.session.can('pipeline'));
+  readonly pipelineSetup = computed(() => !!this.session.me() && this.session.can('pipeline', 'setup'));
   /** The Care module is on (visit checklist setting). */
   readonly careOn = computed(() => areaEnabled(this.session.me()?.modules, 'visits'));
 
@@ -494,7 +486,7 @@ export class FormEditPage implements OnInit {
   readonly view = computed(() => {
     const f = this.form();
     const v = this.query()?.get('view');
-    if (v === 'settings' || v === 'scoring' || v === 'links' || v === 'access') return v;
+    if (v === 'settings' || v === 'scoring' || v === 'links') return v;
     if (v && f?.sections.some((x) => x.id === v)) return v;
     return f?.sections[0]?.id ?? 'settings';
   });
@@ -522,6 +514,9 @@ export class FormEditPage implements OnInit {
   visitChecklist = false;
   roles = signal<{ id: string; name: string }[]>([]);
   levels = signal<FormAccess>({});
+  /** Send to pipeline: the form's capture point (saved with Save). */
+  capturePoint = signal<CapturePoint | null>(null);
+  capture: { enabled: boolean; stageId: string | null } = { enabled: false, stageId: null };
   private saved = '';
 
   // Scoring (saves right away)
@@ -558,8 +553,38 @@ export class FormEditPage implements OnInit {
     this.forms.roles().then((r) => this.roles.set(r), () => this.roles.set([]));
     try {
       this.apply(await this.forms.form(this.id));
+      await this.loadCapture();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to load form');
+    }
+  }
+
+  private async loadCapture() {
+    if (!this.pipelineAccess()) return;
+    try {
+      const [cp] = await this.capturePoints.list({ formId: this.id });
+      this.capturePoint.set(cp ?? null);
+      this.capture = { enabled: !!cp?.isActive, stageId: cp?.stageId ?? null };
+      this.saved = this.snapshot();
+    } catch {
+      this.capturePoint.set(null);
+    }
+  }
+
+  /** Create, move or turn off the form's capture point. Turning it off keeps it (and its count) for later. */
+  private async saveCapture() {
+    if (!this.pipelineSetup()) return;
+    const cp = this.capturePoint();
+    const { enabled, stageId } = this.capture;
+    if (enabled && stageId) {
+      const name = this.name.trim();
+      this.capturePoint.set(
+        cp
+          ? await this.capturePoints.update(cp.id, { name, stageId, isActive: true })
+          : await this.capturePoints.create({ name, stageId, formId: this.id }),
+      );
+    } else if (!enabled && cp?.isActive) {
+      this.capturePoint.set(await this.capturePoints.update(cp.id, { isActive: false }));
     }
   }
 
@@ -592,7 +617,7 @@ export class FormEditPage implements OnInit {
   private snapshot() {
     return JSON.stringify({
       n: this.name.trim(), d: this.description.trim(), l: this.layout, s: this.settings, t: this.thankYouValue(),
-      c: this.client, u: this.usedFor.trim(), v: this.visitChecklist, a: this.levels(),
+      c: this.client, u: this.usedFor.trim(), v: this.visitChecklist, a: this.levels(), p: this.capture,
     });
   }
 
@@ -620,18 +645,24 @@ export class FormEditPage implements OnInit {
     };
   }
 
-  setLevel(roleId: string, level: FormAccessLevel | 'none') {
+  /** Members or Guests see this form's submissions on client pages (view only; only admins change them). */
+  setSees(roleId: string, on: boolean) {
     this.levels.update((l) => {
       const next = { ...l };
-      if (level === 'none') delete next[roleId];
-      else next[roleId] = level;
+      if (on) next[roleId] = 'read';
+      else delete next[roleId];
       return next;
     });
   }
 
+
   async save() {
     if (!this.name.trim()) {
       this.error.set('Name is required');
+      return;
+    }
+    if (this.capture.enabled && !this.capture.stageId) {
+      this.error.set('Pick the pipeline lane to send people to');
       return;
     }
     this.saving.set(true);
@@ -640,6 +671,8 @@ export class FormEditPage implements OnInit {
       this.apply(
         await this.forms.update(this.id, { name: this.name.trim(), description: this.description.trim() || null, settings: this.settingsBody(), access: this.levels() }),
       );
+      await this.saveCapture();
+      this.saved = this.snapshot();
       this.toast.add({ severity: 'success', summary: 'Saved', detail: `${this.name.trim()} saved.` });
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Save failed');

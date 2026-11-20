@@ -100,8 +100,8 @@ logic) are added to the profile type and switched on per profile.
   it as the section's `description`. On Page by question it shows above the section's first item (its own screen only
   when the section is empty). (Migration `20261031170100_section_intros_to_text_blocks` had moved the old plain-text
   intros into text blocks; those stay text blocks.)
-- `FormSettings.layout`: `page | steps | questions | accordion | tabs` (default `page`). Labels: One page, Page by section
-  (`steps`), Page by question (`questions`), Accordion, Tabs. Returned in `FormPublicFormDto.layout`; UBO's public page
+- `FormSettings.layout`: `page | steps | questions | accordion | tabs` (default `page`). Labels: All on one page, One section per page
+  (`steps`), One question per page (`questions`), Collapsible sections, Tabs. Returned in `FormPublicFormDto.layout`; UBO's public page
   (`pages/forms/public-form.page.ts`) and the embed script follow it. Paged layouts put "About you" last on new-response
   links. Page by question shows one question or text block per screen with a progress bar ("Question n of N", text blocks
   not counted); a single choice moves on by itself after 350 ms. UBO's public page shows choices as a click list

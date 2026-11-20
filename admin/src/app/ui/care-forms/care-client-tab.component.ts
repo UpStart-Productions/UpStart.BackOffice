@@ -47,7 +47,7 @@ const RECENT_VISITS = 10;
         @if (canVisits()) {
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Visits</h3>
+              <h2 class="card-title">Visits</h2>
               <div class="flex align-items-center gap-2">
                 @if (visits().length > recentCount) {
                   <p-button [label]="showAllVisits() ? 'Show recent' : 'Show all (' + visits().length + ')'" severity="secondary" [text]="true" size="small" (onClick)="showAllVisits.set(!showAllVisits())" />
@@ -93,7 +93,7 @@ const RECENT_VISITS = 10;
         @if (canSchedule()) {
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Schedule</h3>
+              <h2 class="card-title">Schedule</h2>
               <div class="flex align-items-center gap-2">
                 <a pButton label="View all" severity="secondary" [text]="true" size="small" routerLink="/schedule" [queryParams]="{ clientId: clientId() }"></a>
                 @if (canCreateShift()) {
@@ -146,7 +146,7 @@ const RECENT_VISITS = 10;
 
       <div class="side-panel-stack span-1">
         <div class="card card--side">
-          <div class="card-header"><h3 class="card-title">Care</h3></div>
+          <div class="card-header"><h2 class="card-title">Care</h2></div>
           <div class="side-list">
             <div class="side-list-row">
               <div class="side-list-body"><span class="side-list-title">Status</span></div>
