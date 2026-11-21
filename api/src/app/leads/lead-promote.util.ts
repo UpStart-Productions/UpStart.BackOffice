@@ -2,15 +2,8 @@ import type { AccountJourney, Prisma } from '@prisma/client';
 import { normalizeEmail } from '../communications/email-address.util';
 import { setClientTags } from '../crm-tags/crm-tags.util';
 import { leadContactIds } from './lead-people.util';
+import { orgCategoryFor } from './lead-links.util';
 
-const ORG_CATEGORY_VALUES = new Set([
-  'RECOVERY', 'FAMILY', 'YOUTH', 'FAITH', 'HEALTH', 'DISABILITY', 'EDUCATION',
-  'JOBS_WORKFORCE', 'PETS', 'FUNDING', 'HUNGER', 'VIOLENCE', 'ACTIVITIES', 'OTHER',
-]);
-
-function isOrgCategoryEnum(value: string): value is import('@prisma/client').OrgCategory {
-  return ORG_CATEGORY_VALUES.has(value);
-}
 
 export type PromoteDb = Pick<
   Prisma.TransactionClient,
@@ -63,7 +56,7 @@ export async function promoteLeadToOrganization(
           email: normalizeEmail(lead.email) ?? undefined,
           phone: lead.phone?.trim() || undefined,
           website: lead.website ?? undefined,
-          category: lead.category && isOrgCategoryEnum(lead.category) ? lead.category : undefined,
+          category: orgCategoryFor(lead.category) ?? undefined,
           journey: opts.journey,
           ...(opts.code ? { code: opts.code.toUpperCase() } : {}),
           lastContactAt: lead.lastContactDate ?? undefined,

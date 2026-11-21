@@ -8,8 +8,12 @@ import { HELP_AGENT_NAME } from '@upstart/back-office/shared';
 export const HELP_TEXT_REGISTRY: Record<string, string> = {
   // Pipeline card
   'lead.warmConnection': 'Someone who knows this person and can introduce you or vouch for you.',
-  'lead.contactSource': 'How they found you or how you met, for example, referral, inbound, event.',
-  'lead.serviceInterest': 'Which of your services they are interested in. Pick all that apply.',
+  'lead.category':
+    'What kind of organization they are. The list is Focus areas in Settings → Pick lists → Accounts, so it carries over when the card becomes a client.',
+  'lead.contactSource':
+    'How they found you or how you met. The list is Contact sources in Settings → Pick lists → Pipeline. Website forms and bookings set it to Inbound.',
+  'lead.serviceInterest':
+    'Which of your services they are interested in. Pick all that apply. The list is Services in Settings → Pick lists, the same one accounts use.',
   'lead.nextActionDate': 'When the next step is due. Cards show a red warning on the board once this date passes.',
   'lead.estimatedValue': 'What this opportunity is worth if you win it. Adds up into pipeline value on the Dashboard.',
   'lead.expectedCloseDate': 'When you expect the deal to close, win or lose.',
@@ -42,7 +46,7 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'On: Back Office emails the guest a confirmation with a calendar file. Turn off only when your website sends its own confirmation. You get the new-booking email either way.',
   'bookingType.pipelineLane':
     'Pick the pipeline, then the lane new cards go in. A card still in that pipeline\'s first lane moves here when the person books; cards further along stay put.',
-  'bookingType.leadSource': 'Contact source recorded on cards this booking type creates.',
+  'bookingType.leadSource': 'Contact source recorded on cards this booking type creates. The list is Contact sources in Settings → Pick lists → Pipeline.',
   'bookingType.noteTitle':
     'Title of the note logged on the card for each booking. Defaults to the booking type name.',
   'bookingType.pricing':
@@ -129,6 +133,8 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Company name, address and phone appear on invoices under your logo. Billing email is where invoices to your business are sent.',
   'settings.business.logo': 'PNG, JPEG, GIF, or WebP. Max 5 MB.',
   'settings.business.billingEmail': 'Where invoices addressed to your business are sent by default.',
+  'settings.business.timeZone':
+    'Decides which day counts as today when Back Office fills in a date for you, such as Last Contact on a pipeline card from a website form. New booking types start in this time zone too.',
   'settings.organizationFields':
     'Hide removes a name from suggestion lists only; records that already have it keep it. Remove everywhere strips it from every matching record and from lists. Account, people, and task lists are managed separately below.',
   'settings.expensesInvoicing.mileageRate':
@@ -317,7 +323,10 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
   'login.resetConfirm': 'Enter the code from your email and your new password.',
 
   // Pipeline card
-  'lead.primaryContact': 'The main person at this account for this opportunity.',
+  'lead.contactName':
+    "Who you're talking to at this account. It shows on the card and in Primary Contact. Once a person from People is linked, their name shows here instead.",
+  'lead.primaryContact':
+    'The main person at this account for this opportunity. Someone who came in through a website form shows here as Not in People yet until you add them to People.',
   'lead.warmConnect': 'Someone who can introduce you to this account.',
 
   // Time entry

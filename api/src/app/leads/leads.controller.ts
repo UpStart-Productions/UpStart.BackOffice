@@ -93,6 +93,26 @@ function toLeadView<T extends LeadRow>(lead: T) {
   return withAttribution(lead, view);
 }
 
+/** "First Last" from the card's contact fields. */
+function joinName(first?: string | null, last?: string | null): string {
+  return [first?.trim(), last?.trim()].filter(Boolean).join(' ');
+}
+
+/**
+ * The card's own contact name. Ignored while a person is linked (their name wins); otherwise it's saved and
+ * primaryContact follows it, so the board and Primary Contact show the same name.
+ */
+function contactNamePatch(dto: { contactFirstName?: string; contactLastName?: string }, linkedPersonId: string | null) {
+  if (linkedPersonId || (dto.contactFirstName === undefined && dto.contactLastName === undefined)) return {};
+  const first = dto.contactFirstName?.trim() || null;
+  const last = dto.contactLastName?.trim() || null;
+  return {
+    ...(dto.contactFirstName !== undefined && { contactFirstName: first }),
+    ...(dto.contactLastName !== undefined && { contactLastName: last }),
+    primaryContact: joinName(first, last) || null,
+  };
+}
+
 async function contactDisplayName(
   db: { contact: PrismaService['contact'] },
   contactId: string,
@@ -197,7 +217,9 @@ export class LeadsController {
         data: {
           ...laneFields(lane),
           organization: dto.organization,
-          primaryContact: dto.primaryContact,
+          primaryContact: dto.primaryContact ?? (joinName(dto.contactFirstName, dto.contactLastName) || undefined),
+          contactFirstName: dto.contactFirstName?.trim() || undefined,
+          contactLastName: dto.contactLastName?.trim() || undefined,
           contactRole: dto.contactRole,
           email: dto.email,
           phone: dto.phone,
@@ -380,6 +402,7 @@ export class LeadsController {
           ...(lane ? laneFields(lane) : {}),
           ...(dto.organization !== undefined && { organization: dto.organization }),
           ...(dto.primaryContact !== undefined && { primaryContact: dto.primaryContact }),
+          ...contactNamePatch(dto, existing.primaryContactId),
           ...(dto.contactRole !== undefined && { contactRole: dto.contactRole }),
           ...(dto.email !== undefined && { email: dto.email }),
           ...(dto.phone !== undefined && { phone: dto.phone }),

@@ -1,18 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LeadSource, LeadStage } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { LeadStage } from '@prisma/client';
+import { Transform, Type } from 'class-transformer';
+import { LEGACY_SOURCE_ENUM_TO_LABEL } from '@upstart/back-office/shared';
 import {
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-  ValidateNested,
+  IsBoolean, IsEnum, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateNested,
 } from 'class-validator';
 import { AvailabilityRuleDto } from './availability-rule.dto';
 
@@ -106,10 +97,13 @@ export class UpsertBookingTypeDto {
   @IsOptional()
   leadStageId?: string | null;
 
-  @ApiPropertyOptional({ enum: LeadSource })
-  @IsEnum(LeadSource)
+  /** A Contact sources pick list value (old codes like INBOUND are read as their label). */
+  @ApiPropertyOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? LEGACY_SOURCE_ENUM_TO_LABEL[value] ?? value.trim() : value))
+  @IsString()
+  @MaxLength(80)
   @IsOptional()
-  leadSource?: LeadSource;
+  leadSource?: string;
 
   @ApiPropertyOptional()
   @IsString()

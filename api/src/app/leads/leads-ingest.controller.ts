@@ -2,7 +2,7 @@ import {
   BadRequestException, Body, Controller, HttpCode, HttpStatus, NotFoundException, Post, UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { ArtifactType, LeadSource, LeadStage } from '@prisma/client';
+import { ArtifactType, LeadStage } from '@prisma/client';
 import { ServiceKeyGuard } from '../auth/service-key.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngestLeadDto } from './dto/ingest-lead.dto';
@@ -10,7 +10,9 @@ import { firstLane, Lane, laneFields, laneForLegacy, PipelineDb } from '../pipel
 import { plainTextToQuillHtml } from './lead-note.util';
 import { findByLaneName } from '../pipelines/lane-name.util';
 import { createLeadActivityNote } from './lead-activity.util';
+import { splitPersonName } from './lead-links.util';
 import { captureToPipeline } from '../capture-points/capture.util';
+import { dateOnlyOf, dateOnlyPlusDays, tenantTimeZone } from '../common/date-only.util';
 
 /** The lane named in the payload, or the default lead lane when no pipeline is named. */
 async function ingestLane(db: PipelineDb, dto: IngestLeadDto): Promise<Lane> {
@@ -47,9 +49,12 @@ export class LeadsIngestController {
     if (dto.capturePointId) return this.capture(dto, primaryContact);
     const organization = dto.organization?.trim() || primaryContact || dto.email;
     if (!organization) throw new BadRequestException('Send organization, a name or an email.');
-    const auditDate      = dto.auditDate ? new Date(dto.auditDate) : new Date();
-    const nextActionDate = dto.nextActionDate ? new Date(dto.nextActionDate) : new Date(auditDate);
-    if (!dto.nextActionDate) nextActionDate.setDate(nextActionDate.getDate() + 3);
+    // Date-only fields store the local day (like dates typed in the app), not a raw timestamp.
+    // A plain "YYYY-MM-DD" is already a day; a full timestamp becomes its day in the tenant's time zone.
+    const auditDate      = dto.auditDate && /^\d{4}-\d{2}-\d{2}$/.test(dto.auditDate.trim())
+      ? new Date(`${dto.auditDate.trim()}T00:00:00.000Z`)
+      : dateOnlyOf(dto.auditDate ? new Date(dto.auditDate) : new Date(), await tenantTimeZone(this.prisma));
+    const nextActionDate = dto.nextActionDate ? new Date(dto.nextActionDate) : dateOnlyPlusDays(auditDate, 3, 'UTC');
 
     const lead = await this.prisma.$transaction(async (tx) => {
       const lane = await ingestLane(tx, dto);
@@ -61,8 +66,10 @@ export class LeadsIngestController {
           website:         dto.website,
           email:           dto.email,
           primaryContact:  primaryContact ?? undefined,
+          contactFirstName: dto.firstName?.trim() || splitPersonName(primaryContact, null)?.firstName || undefined,
+          contactLastName:  dto.firstName?.trim() ? dto.lastName?.trim() || undefined : splitPersonName(primaryContact, null)?.lastName ?? undefined,
           contactRole:     dto.role,
-          source:          LeadSource.INBOUND,
+          source:          'Inbound',
           serviceInterests: dto.serviceInterests ?? [],
           nextAction:      dto.nextAction ?? 'Follow up on donor readiness audit',
           nextActionDate,

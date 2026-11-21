@@ -1210,7 +1210,7 @@ export class ActivityPage implements OnInit {
           primaryContact: this.newContact.trim() || undefined,
           email: this.newEmail.trim() || undefined,
           stageId: this.newLaneId,
-          source: 'INBOUND',
+          source: 'Inbound',
           ...(senderContactId ? { primaryContactId: senderContactId } : {}),
         });
         this.leads.update((l) => [...l, { id: created.id, label: created.organization, pipelineId: created.pipelineId ?? null, clientId: existingOrg?.id ?? null }]);

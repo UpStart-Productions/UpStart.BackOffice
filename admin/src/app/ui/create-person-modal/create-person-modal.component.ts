@@ -9,6 +9,8 @@ export type CreatePersonModalOptions = {
   linkClientRole?: string;
   /** On a saved project: offer "Make lead". */
   offerLead?: boolean;
+  /** Fields to start with (for example the name and email a pipeline card already has). */
+  prefill?: { firstName?: string; lastName?: string; email?: string; phone?: string };
 };
 
 @Component({
@@ -48,6 +50,7 @@ export class CreatePersonModalComponent {
   readonly defaultRole = signal('');
   readonly showOrgPicker = signal(true);
   readonly offerLead = signal(false);
+  private prefill: CreatePersonModalOptions['prefill'] | null = null;
 
   private resolve: ((value: CreatedPerson | null) => void) | null = null;
 
@@ -56,6 +59,7 @@ export class CreatePersonModalComponent {
     this.defaultRole.set(options.linkClientRole ?? '');
     this.showOrgPicker.set(options.clientId === undefined);
     this.offerLead.set(!!options.offerLead);
+    this.prefill = options.prefill ?? null;
     this.visible.set(true);
     return new Promise((resolve) => {
       this.resolve = resolve;
@@ -64,6 +68,7 @@ export class CreatePersonModalComponent {
 
   onShow() {
     this.personForm()?.reset();
+    if (this.prefill) this.personForm()?.prefill(this.prefill);
   }
 
   onVisibleChange(visible: boolean) {

@@ -1,3 +1,4 @@
+import { dateOnlyOf, tenantTimeZone } from '../common/date-only.util';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { escapeHtml, wrapClientEmail } from '../mail/email-layout';
@@ -497,9 +498,10 @@ export class InteractionsService {
       });
     }
     if (dto.leadId) {
+      const day = dateOnlyOf(occurredAt, await tenantTimeZone(this.prisma));
       await this.prisma.lead.updateMany({
-        where: { id: dto.leadId, OR: [{ lastContactDate: null }, { lastContactDate: { lt: occurredAt } }] },
-        data: { lastContactDate: occurredAt },
+        where: { id: dto.leadId, OR: [{ lastContactDate: null }, { lastContactDate: { lt: day } }] },
+        data: { lastContactDate: day },
       });
     }
     if (logClientId) await this.bumpAccountContact(logClientId, occurredAt);
@@ -655,9 +657,10 @@ export class InteractionsService {
       where: { id: clientId, OR: [{ lastContactAt: null }, { lastContactAt: { lt: occurredAt } }] },
       data: { lastContactAt: occurredAt },
     });
+    const day = dateOnlyOf(occurredAt, await tenantTimeZone(this.prisma));
     await this.prisma.lead.updateMany({
-      where: { clientId, OR: [{ lastContactDate: null }, { lastContactDate: { lt: occurredAt } }] },
-      data: { lastContactDate: occurredAt },
+      where: { clientId, OR: [{ lastContactDate: null }, { lastContactDate: { lt: day } }] },
+      data: { lastContactDate: day },
     });
   }
 

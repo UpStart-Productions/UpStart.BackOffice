@@ -18,6 +18,21 @@
   min-width: 0;
 }
 
+/* A row whose fields stay side by side (equal widths) instead of wrapping; stacks only on phones. */
+.showcase-inline {
+  display: flex;
+  gap: 1rem;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+}
+
 .showcase-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

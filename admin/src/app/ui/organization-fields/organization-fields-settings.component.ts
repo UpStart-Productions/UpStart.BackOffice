@@ -32,6 +32,7 @@ const PICK_LIST_SECTIONS: { id: string; heading: string; entity: DimensionEntity
   { id: 'organizations', heading: 'Accounts', entity: 'CLIENT' },
   { id: 'people', heading: 'People', entity: 'CONTACT' },
   { id: 'tasks', heading: 'Tasks', entity: 'TASK' },
+  { id: 'pipeline', heading: 'Pipeline', entity: 'LEAD' },
 ];
 
 @Component({
@@ -426,6 +427,12 @@ export class OrganizationFieldsSettingsComponent implements OnInit {
 
   private async afterChange() {
     await this.load();
-    await this.dimensionsApi.reloadClientDefinitions();
+    await this.reloadDefinitionCaches();
+  }
+
+  /** After a change: account forms and pipeline cards pick up the new lists. */
+  private reloadDefinitionCaches() {
+    void this.dimensionsApi.loadLeadDefinitions(true).catch(() => undefined);
+    return this.dimensionsApi.reloadClientDefinitions();
   }
 }

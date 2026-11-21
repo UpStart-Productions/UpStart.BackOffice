@@ -8,7 +8,7 @@ import { UpdateOrganizationProfileDto } from './dto/update-organization-profile.
 import { UploadLogoDto } from './dto/upload-logo.dto';
 import { UpdateActivitySettingsDto } from './dto/update-activity-settings.dto';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
-import type { RecordAttributionDto } from '@upstart/back-office/shared';
+import { DEFAULT_TIME_ZONE, type RecordAttributionDto } from '@upstart/back-office/shared';
 
 const ALLOWED_LOGO_MIMES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const LOGO_MAX_BYTES = 5 * 1024 * 1024;
@@ -25,6 +25,8 @@ export type OrganizationProfileDto = {
   billingEmail: string;
   /** Reimbursement per mile for Mileage expenses; null when not set. */
   mileageRate: number | null;
+  /** IANA time zone; decides which calendar day UBO-set dates fall on. */
+  timeZone: string;
   attribution?: RecordAttributionDto;
 };
 
@@ -98,6 +100,7 @@ export class OrganizationProfileService {
       phone: trimToNull(dto.phone),
       billingEmail: trimToNull(dto.billingEmail),
       ...(dto.mileageRate !== undefined && { mileageRate: dto.mileageRate }),
+      ...(dto.timeZone !== undefined && { timeZone: dto.timeZone }),
     };
     const row = await this.prisma.organizationProfile.upsert({
       where: { tenantId: currentTenantId() },
@@ -240,6 +243,7 @@ export class OrganizationProfileService {
     phone?: string | null;
     billingEmail?: string | null;
     mileageRate?: { toString(): string } | null;
+    timeZone?: string | null;
   } | null): OrganizationProfileDto {
     if (!row) {
       return {
@@ -252,6 +256,7 @@ export class OrganizationProfileService {
         phone: '',
         billingEmail: '',
         mileageRate: null,
+        timeZone: DEFAULT_TIME_ZONE,
       };
     }
     const base = {
@@ -264,6 +269,7 @@ export class OrganizationProfileService {
       phone: row.phone ?? '',
       billingEmail: row.billingEmail ?? '',
       mileageRate: row.mileageRate != null ? Number(row.mileageRate) : null,
+      timeZone: row.timeZone || DEFAULT_TIME_ZONE,
     };
     return withAttribution(row as object, base);
   }

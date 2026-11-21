@@ -1,8 +1,9 @@
 import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
-import { CLIENT_DIMENSION_KEYS, DIMENSION_ENTITIES, DIMENSION_TAG_KEY, type DimensionEntity } from '@upstart/back-office/shared';
+import { CLIENT_DIMENSION_KEYS, DIMENSION_ENTITIES, DIMENSION_TAG_KEY, LEAD_DIMENSION_KEYS, type DimensionEntity } from '@upstart/back-office/shared';
 
 const CLIENT_KEYS = Object.values(CLIENT_DIMENSION_KEYS);
-const CATALOG_KEYS = [...CLIENT_KEYS, DIMENSION_TAG_KEY];
+// Every pick list key: account lists, tags, and pipeline lists (contact sources). Duplicates are harmless.
+const CATALOG_KEYS = [...new Set([...CLIENT_KEYS, DIMENSION_TAG_KEY, ...Object.values(LEAD_DIMENSION_KEYS)])];
 
 export class DimensionCatalogActionDto {
   @IsOptional()

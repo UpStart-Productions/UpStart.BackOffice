@@ -11,7 +11,7 @@ import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { AccordionModule } from 'primeng/accordion';
-import { areaEnabled, US_STATES, type RecordAttributionDto } from '@upstart/back-office/shared';
+import { areaEnabled, US_STATES, type RecordAttributionDto, DEFAULT_TIME_ZONE, TIME_ZONE_OPTIONS } from '@upstart/back-office/shared';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { ApiService } from '../../core/api.service';
 import { resolveAssetUrl } from '../../core/asset-url.util';
@@ -87,6 +87,8 @@ interface OrganizationProfile {
   phone: string;
   /** Where invoices billed to the business (e.g. by caregivers) are sent by default. */
   billingEmail?: string;
+  /** IANA time zone; decides which calendar day UBO-set dates fall on. */
+  timeZone?: string;
   attribution?: RecordAttributionDto;
 }
 
@@ -293,7 +295,9 @@ export class SettingsPage implements OnInit {
     zip: '',
     phone: '',
     billingEmail: '',
+    timeZone: DEFAULT_TIME_ZONE,
   };
+  readonly timeZoneOptions = TIME_ZONE_OPTIONS;
   businessSaving = signal(false);
   businessLoaded = signal(false);
   readonly businessAttribution = signal<RecordAttributionDto | null>(null);
@@ -417,6 +421,7 @@ export class SettingsPage implements OnInit {
       zip: profile.zip ?? '',
       phone: profile.phone ?? '',
       billingEmail: profile.billingEmail ?? '',
+      timeZone: profile.timeZone || DEFAULT_TIME_ZONE,
     };
     this.logoDropzone()?.reset();
     this.tenantBranding.apply({
@@ -437,6 +442,7 @@ export class SettingsPage implements OnInit {
         zip: this.businessForm.zip.trim(),
         phone: this.businessForm.phone.trim(),
         billingEmail: (this.businessForm.billingEmail ?? '').trim(),
+        timeZone: this.businessForm.timeZone || DEFAULT_TIME_ZONE,
       });
       this.applyBusinessProfile(saved);
       this.toast.add({

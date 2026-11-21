@@ -37,12 +37,13 @@ The **Business** section is where admins set how your organization appears on in
 - **Company name** — shown next to your logo in the top bar when you upload one; also used on invoice PDFs.
 - **Logo** — upload PNG, JPEG, GIF, or WebP (max 5 MB). When a logo is saved, it replaces the default UpStart logo in the top bar for everyone in your tenant. Use **Remove** (trash) to clear it.
 - **Address**, **City**, **State**, **Zip**, **Phone**, and **Billing email** — address and phone print on invoices under your logo; billing email is the default when invoices are addressed to your organization.
+- **Time zone** decides which day counts as today when Back Office fills in a date for you, such as Last Contact and Next Action on a pipeline card from a website form or booking. New booking types start in this time zone too.
 
 Click **Save** after editing text fields. Logo upload saves immediately when you choose a file.
 
 ### Pick lists
 
-Open **Pick lists** in Settings. Four blocks — **Organizations**, **People**, **Tasks** and **Visits** — each with their own suggestion lists (organization **Tags**, **Services**, **Products**, and **Focus areas**; **Tags** for people and for tasks). **Add** on a list opens the same find-or-create control used for task tags: search existing values or type a new name and press Enter (or choose **Create value …**). The count on a pill is how many records still have that value. On each pill:
+Open **Pick lists** in Settings. Five blocks — **Organizations**, **People**, **Tasks**, **Pipeline** and **Visits** — each with their own suggestion lists (organization **Tags**, **Services**, **Products**, and **Focus areas**; **Tags** for people and for tasks; **Contact sources** for pipeline cards and booking types). Pipeline cards also use **Services** (Service Interest) and **Focus areas** (Category). Renaming a contact source or focus area updates the cards that use it. **Add** on a list opens the same find-or-create control used for task tags: search existing values or type a new name and press Enter (or choose **Create value …**). The count on a pill is how many records still have that value. On each pill:
 
 - **Hide** (eye-slash) — the name no longer appears in pick lists on records; organizations that already have it keep it.
 - **Show** (eye) — brings a hidden name back to the pick lists.

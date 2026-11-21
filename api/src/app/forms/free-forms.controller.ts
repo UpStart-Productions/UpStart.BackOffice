@@ -542,7 +542,7 @@ export class FreeFormsController {
             primaryContact: r.submitterName,
             email: r.submitterEmail,
             phone: r.submitterPhone,
-            source: 'INBOUND',
+            source: 'Inbound',
             nextAction: `Follow up on ${r.form.name}`,
             artifacts: {
               create: [

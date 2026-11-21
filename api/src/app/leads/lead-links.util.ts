@@ -1,3 +1,4 @@
+import { LEGACY_FOCUS_ENUM_TO_LABEL } from '@upstart/back-office/shared';
 import type { Prisma } from '@prisma/client';
 import { normalizeEmail } from '../communications/email-address.util';
 
@@ -31,6 +32,8 @@ export function splitPersonName(
 
 type LeadWithLinks = {
   primaryContact: string | null;
+  contactFirstName?: string | null;
+  contactLastName?: string | null;
   email: string | null;
   phone: string | null;
   contactRole: string | null;
@@ -50,6 +53,8 @@ export function leadPersonView(lead: LeadWithLinks & { clientId?: string | null 
   if (!c) {
     return {
       primaryContact: lead.primaryContact,
+      contactFirstName: lead.contactFirstName ?? null,
+      contactLastName: lead.contactLastName ?? null,
       primaryContactEmail: null as string | null,
       email: lead.email,
       phone: lead.phone,
@@ -61,6 +66,9 @@ export function leadPersonView(lead: LeadWithLinks & { clientId?: string | null 
     lead.clientId && c.accountLinks?.find((l) => l.clientId === lead.clientId);
   return {
     primaryContact: name || lead.primaryContact,
+    // A linked person's own name (the card's fields show it, read-only).
+    contactFirstName: c.firstName,
+    contactLastName: c.lastName,
     primaryContactEmail: primary?.email ?? null,
     contactRole: roleLink?.role ?? c.title ?? lead.contactRole,
     email: lead.email,
@@ -94,6 +102,18 @@ function isOrgCategoryEnum(value: string): value is import('@prisma/client').Org
   return ORG_CATEGORY_VALUES.has(value);
 }
 
+/**
+ * The account category for a card's category. Cards now use Focus areas labels ("Jobs / Workforce"); older ones
+ * used codes ("JOBS_WORKFORCE"). Either maps to the code; anything else is OTHER. Empty is null.
+ */
+export function orgCategoryFor(value: string | null | undefined): import('@prisma/client').OrgCategory | null {
+  const v = value?.trim();
+  if (!v) return null;
+  if (isOrgCategoryEnum(v)) return v;
+  const code = Object.entries(LEGACY_FOCUS_ENUM_TO_LABEL).find(([, label]) => label.toLowerCase() === v.toLowerCase())?.[0];
+  return code && isOrgCategoryEnum(code) ? code : 'OTHER';
+}
+
 type PersonEdit = {
   organization?: string;
   email?: string | null;
@@ -125,8 +145,7 @@ export async function applyLeadEditsToLinks(
     clientData.website = edit.website?.trim() || null;
   }
   if (edit.category !== undefined) {
-    clientData.category =
-      edit.category && isOrgCategoryEnum(edit.category) ? edit.category : edit.category ? 'OTHER' : null;
+    clientData.category = orgCategoryFor(edit.category);
   }
 
   if (Object.keys(clientData).length === 0) return;

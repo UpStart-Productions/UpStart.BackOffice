@@ -1,9 +1,9 @@
 import { CRM_TAG_SUGGESTIONS } from './types';
 
 /** Record types that support platform-defined dimension fields. */
-export type DimensionEntity = 'CLIENT' | 'CONTACT' | 'TASK';
+export type DimensionEntity = 'CLIENT' | 'CONTACT' | 'TASK' | 'LEAD';
 
-export const DIMENSION_ENTITIES = ['CLIENT', 'CONTACT', 'TASK'] as const satisfies readonly DimensionEntity[];
+export const DIMENSION_ENTITIES = ['CLIENT', 'CONTACT', 'TASK', 'LEAD'] as const satisfies readonly DimensionEntity[];
 
 /** Shared key for tag dimensions on every entity that uses tags. */
 export const DIMENSION_TAG_KEY = 'tags';
@@ -14,6 +14,24 @@ export const CLIENT_DIMENSION_KEYS = {
   products: 'products',
   focus: 'focus',
 } as const;
+
+/** Pipeline card pick lists (Settings → Pick lists → Pipeline). Not fields on a record: they feed the card's selects. */
+export const LEAD_DIMENSION_KEYS = {
+  sources: 'sources',
+} as const;
+
+/** Starting contact sources (the old fixed list). */
+export const DEFAULT_CONTACT_SOURCES = ['Warm Outreach', 'Referral', 'Inbound', 'Event', 'Social', 'Cold Outreach'] as const;
+
+/** Old fixed contact source codes → their labels (cards and booking types saved before the pick list). */
+export const LEGACY_SOURCE_ENUM_TO_LABEL: Record<string, string> = {
+  WARM_OUTREACH: 'Warm Outreach',
+  REFERRAL: 'Referral',
+  INBOUND: 'Inbound',
+  EVENT: 'Event',
+  SOCIAL: 'Social',
+  COLD_OUTREACH: 'Cold Outreach',
+};
 
 export type ClientDimensionKey = (typeof CLIENT_DIMENSION_KEYS)[keyof typeof CLIENT_DIMENSION_KEYS];
 
@@ -96,6 +114,10 @@ export const DEFAULT_CONTACT_DIMENSION_DEFINITIONS: Omit<DimensionDefinitionDto,
 
 export const DEFAULT_TASK_DIMENSION_DEFINITIONS: Omit<DimensionDefinitionDto, 'entity'>[] = [TAG_DEFINITION];
 
+export const DEFAULT_LEAD_DIMENSION_DEFINITIONS: Omit<DimensionDefinitionDto, 'entity'>[] = [
+  { key: LEAD_DIMENSION_KEYS.sources, label: 'Contact sources', sortOrder: 1, presets: [...DEFAULT_CONTACT_SOURCES], searchInGlobal: false },
+];
+
 export const DEFAULT_DIMENSION_DEFINITIONS: Record<
   DimensionEntity,
   Omit<DimensionDefinitionDto, 'entity'>[]
@@ -103,6 +125,7 @@ export const DEFAULT_DIMENSION_DEFINITIONS: Record<
   CLIENT: DEFAULT_CLIENT_DIMENSION_DEFINITIONS,
   CONTACT: DEFAULT_CONTACT_DIMENSION_DEFINITIONS,
   TASK: DEFAULT_TASK_DIMENSION_DEFINITIONS,
+  LEAD: DEFAULT_LEAD_DIMENSION_DEFINITIONS,
 };
 
 /** Map legacy OrgCategory enum values to focus dimension labels. */

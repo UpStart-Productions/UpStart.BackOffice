@@ -10,7 +10,6 @@ import {
   Booking,
   BookingStatus,
   BookingType,
-  LeadSource,
   LeadStage,
   Prisma,
 } from '@prisma/client';
@@ -32,6 +31,7 @@ import {
 } from '../leads/lead-website.util';
 import { ATTRIBUTION_INCLUDE, withAttribution } from '../common/record-attribution';
 import { findLane, laneFields, laneForLegacy } from '../pipelines/pipeline-lanes.util';
+import { dateOnlyOf, tenantTimeZone } from '../common/date-only.util';
 
 export const DEFAULT_BOOKING_SLUG = 'upstart-discovery';
 
@@ -296,7 +296,7 @@ export class BookingService {
           durationMin: dto.durationMin ?? 30,
           minNoticeHours: dto.minNoticeHours ?? 4,
           maxDaysAhead: dto.maxDaysAhead ?? 60,
-          timezone: dto.timezone ?? 'America/Los_Angeles',
+          timezone: dto.timezone ?? (await tenantTimeZone(this.prisma)),
           publicPageUrl: normalizePublicPageUrl(
             dto.publicPageUrl ?? 'http://localhost:4321/book',
           ),
@@ -305,7 +305,7 @@ export class BookingService {
           sendGuestConfirmation: dto.sendGuestConfirmation ?? true,
           leadStage: dto.leadStage ?? LeadStage.DISCOVERY,
           leadStageId: await this.laneIdOrNull(tx, dto.leadStageId),
-          leadSource: dto.leadSource ?? LeadSource.INBOUND,
+          leadSource: dto.leadSource || 'Inbound',
           pipelineNoteTitle: dto.pipelineNoteTitle?.trim() || null,
           priceCents: dto.priceCents ?? null,
           currency: dto.currency ?? 'USD',
@@ -492,8 +492,9 @@ export class BookingService {
     const bookingFields = {
       ...laneFields(typeLane),
       nextAction: `${type.name} scheduled`,
-      nextActionDate: startAt,
-      lastContactDate: new Date(),
+      // Date-only fields: the call's local day, and today (not raw timestamps, which show the next day in the evening).
+      nextActionDate: dateOnlyOf(startAt, type.timezone || undefined),
+      lastContactDate: dateOnlyOf(new Date(), type.timezone || undefined),
     };
 
     // Someone already on this pipeline booked: update their open card rather than adding a second one.

@@ -53,6 +53,17 @@
 
             <div class="showcase-row">
               <div class="form-field showcase-half">
+                <label for="contactFirstName">First name <app-help-text key="lead.contactName" /></label>
+                <input pInputText id="contactFirstName" name="contactFirstName" [(ngModel)]="form.contactFirstName" class="w-full" [readonly]="!!contactId()" />
+              </div>
+              <div class="form-field showcase-half">
+                <label for="contactLastName">Last name</label>
+                <input pInputText id="contactLastName" name="contactLastName" [(ngModel)]="form.contactLastName" class="w-full" [readonly]="!!contactId()" />
+              </div>
+            </div>
+
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
                 <label for="email">Email</label>
                 <input pInputText id="email" name="email" type="email" [(ngModel)]="form.email" class="w-full" />
               </div>
@@ -68,70 +79,72 @@
                 <input pInputText id="website" name="website" [(ngModel)]="form.website" class="w-full" placeholder="https://" />
               </div>
               <div class="form-field showcase-half">
-                <label for="source">Contact Source <app-help-text key="lead.contactSource" /></label>
-                <p-select inputId="source" name="source" [(ngModel)]="form.source" [options]="sources" optionLabel="label" optionValue="value" placeholder="Select contact source" [showClear]="true" styleClass="w-full" appendTo="body" />
-              </div>
-            </div>
-
-            <div class="showcase-row">
-              <div class="form-field showcase-half">
-                <label for="category">Category</label>
-                <app-creatable-select
-                  inputId="category"
-                  name="category"
-                  [(value)]="form.category"
-                  [options]="categoryOptions()"
-                  placeholder="Select category"
-                />
-              </div>
-              <div class="form-field showcase-half">
                 <label for="lastContactDate">Last Contact</label>
                 <app-date-input inputId="lastContactDate" name="lastContactDate" [(ngModel)]="form.lastContactDate" />
               </div>
             </div>
 
             <div class="form-field showcase-full">
-              <label>Service Interest <app-help-text key="lead.serviceInterest" /></label>
-              <div class="service-interest-pills">
-                @for (svc of serviceOptions; track svc) {
-                  <button
-                    type="button"
-                    class="service-interest-pill"
-                    [class.service-interest-pill--selected]="serviceInterests().includes(svc)"
-                    (click)="toggleServiceInterest(svc)"
-                  >{{ svc }}</button>
-                }
-              </div>
+              <label for="nextAction">Next Action <app-help-text key="lead.nextAction" /></label>
+              <app-creatable-select
+                inputId="nextAction"
+                name="nextAction"
+                [(value)]="form.nextAction"
+                [options]="nextActionOptions()"
+                placeholder="Select or type next action"
+              />
             </div>
 
-            <div class="showcase-row">
-              <div class="form-field showcase-half">
-                <label for="nextAction">Next Action <app-help-text key="lead.nextAction" /></label>
-                <app-creatable-select
-                  inputId="nextAction"
-                  name="nextAction"
-                  [(value)]="form.nextAction"
-                  [options]="nextActionOptions()"
-                  placeholder="Select or type next action"
-                />
-              </div>
-              <div class="form-field showcase-half">
-                <label for="nextActionDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
-                <app-date-input inputId="nextActionDate" name="nextActionDate" [(ngModel)]="form.nextActionDate" />
-              </div>
-            </div>
+            <p-accordion class="lead-advanced" [value]="advancedOpen()" (valueChange)="advancedOpen.set($any($event))">
+              <p-accordion-panel value="advanced">
+                <p-accordion-header><span class="lead-advanced-title">Advanced</span></p-accordion-header>
+                <p-accordion-content>
+                  <div class="showcase-flex-col">
+                    <div class="showcase-inline">
+                      <div class="form-field">
+                        <label for="source">Contact Source <app-help-text key="lead.contactSource" /></label>
+                        <p-select inputId="source" name="source" [(ngModel)]="form.source" [options]="sources()" optionLabel="label" optionValue="value" placeholder="Select contact source" [showClear]="true" styleClass="w-full" appendTo="body" />
+                      </div>
+                      <div class="form-field">
+                        <label for="category">Category <app-help-text key="lead.category" /></label>
+                        <p-select inputId="category" name="category" [(ngModel)]="form.category" [options]="categoryOptions()" optionLabel="label" optionValue="value" placeholder="Select category" [showClear]="true" [filter]="categoryOptions().length > 8" filterBy="label" styleClass="w-full" appendTo="body" />
+                      </div>
+                    </div>
 
-            <div class="showcase-row">
-              <div class="form-field showcase-half">
-                <label for="estimatedValue">Estimated value <app-help-text key="lead.estimatedValue" /></label>
-                <app-money-input inputId="estimatedValue" name="estimatedValue" [(ngModel)]="form.estimatedValue" [min]="0" [minFractionDigits]="0" [maxFractionDigits]="2" />
-              </div>
-              <div class="form-field showcase-half">
-                <label for="expectedCloseDate">Expected close <app-help-text key="lead.expectedCloseDate" /></label>
-                <app-date-input inputId="expectedCloseDate" name="expectedCloseDate" [(ngModel)]="form.expectedCloseDate" />
-              </div>
-            </div>
+                    <div class="form-field showcase-full">
+                      <label>Service Interest <app-help-text key="lead.serviceInterest" /></label>
+                      <div class="service-interest-pills">
+                        @for (svc of serviceOptions(); track svc) {
+                          <button
+                            type="button"
+                            class="service-interest-pill"
+                            [class.service-interest-pill--selected]="serviceInterests().includes(svc)"
+                            (click)="toggleServiceInterest(svc)"
+                          >{{ svc }}</button>
+                        } @empty {
+                          <span class="text-color-secondary">No services yet. Add them in Settings → Pick lists → Services.</span>
+                        }
+                      </div>
+                    </div>
 
+                    <div class="showcase-inline">
+                      <div class="form-field">
+                        <label for="nextActionDate">Next Action Date <app-help-text key="lead.nextActionDate" /></label>
+                        <app-date-input inputId="nextActionDate" name="nextActionDate" [(ngModel)]="form.nextActionDate" />
+                      </div>
+                      <div class="form-field">
+                        <label for="estimatedValue">Estimated value <app-help-text key="lead.estimatedValue" /></label>
+                        <app-money-input inputId="estimatedValue" name="estimatedValue" [(ngModel)]="form.estimatedValue" [min]="0" [minFractionDigits]="0" [maxFractionDigits]="2" />
+                      </div>
+                      <div class="form-field">
+                        <label for="expectedCloseDate">Expected close <app-help-text key="lead.expectedCloseDate" /></label>
+                        <app-date-input inputId="expectedCloseDate" name="expectedCloseDate" [(ngModel)]="form.expectedCloseDate" />
+                      </div>
+                    </div>
+                  </div>
+                </p-accordion-content>
+              </p-accordion-panel>
+            </p-accordion>
           </div>
         </form>
 
@@ -155,6 +168,7 @@
             leadContactSlot="primary"
             [leadId]="leadId"
             [primaryContactId]="contactId()"
+            [unlinkedPerson]="unlinkedContact()"
             [compact]="true"
             [showTeam]="false"
             [primaryContactPickerEnabled]="false"

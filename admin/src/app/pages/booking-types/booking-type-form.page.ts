@@ -1,5 +1,5 @@
 import { TimeInputComponent } from '../../ui/time-input/time-input.component';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -12,6 +12,8 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MessageService } from 'primeng/api';
 import { ApiService } from '../../core/api.service';
 import { LaneSelectComponent } from '../../ui/lane-select/lane-select.component';
+import { DimensionsApi } from '../../core/dimensions.api';
+import { DEFAULT_TIME_ZONE, LEAD_DIMENSION_KEYS, TIME_ZONE_OPTIONS } from '@upstart/back-office/shared';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
@@ -60,25 +62,8 @@ type DayRow = {
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 
-const LEAD_SOURCES = [
-  'WARM_OUTREACH',
-  'REFERRAL',
-  'INBOUND',
-  'EVENT',
-  'SOCIAL',
-  'COLD_OUTREACH',
-];
-
-const TIMEZONE_OPTIONS = [
-  { label: 'America/LA (Pacific)', value: 'America/Los_Angeles' },
-  { label: 'America/Denver (Mountain)', value: 'America/Denver' },
-  { label: 'America/Chicago (Central)', value: 'America/Chicago' },
-  { label: 'America/New York (Eastern)', value: 'America/New_York' },
-  { label: 'America/Anchorage (Alaska)', value: 'America/Anchorage' },
-  { label: 'Pacific/Honolulu (Hawaii)', value: 'Pacific/Honolulu' },
-];
-
-const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+const TIMEZONE_OPTIONS = TIME_ZONE_OPTIONS;
+const DEFAULT_TIMEZONE = DEFAULT_TIME_ZONE;
 
 @Component({
   selector: 'app-booking-type-form-page',
@@ -112,7 +97,15 @@ export class BookingTypeFormPage implements OnInit {
   hostOptions = signal<HostOption[]>([]);
   readonly attribution = signal<RecordAttributionDto | null>(null);
 
-  readonly leadSources = LEAD_SOURCES;
+  private readonly dimensions = inject(DimensionsApi);
+  /** Contact sources from Settings → Pick lists → Pipeline, plus the saved one if it left the list. */
+  readonly leadSources = computed(() => {
+    const list = [...this.dimensions.values('LEAD', LEAD_DIMENSION_KEYS.sources)];
+    const saved = this.savedLeadSource();
+    if (saved && !list.some((v) => v.toLowerCase() === saved.toLowerCase())) list.push(saved);
+    return list;
+  });
+  private readonly savedLeadSource = signal<string | null>(null);
   readonly timezoneOptions = TIMEZONE_OPTIONS;
 
   form = {
@@ -130,7 +123,7 @@ export class BookingTypeFormPage implements OnInit {
     createLead: true,
     sendGuestConfirmation: true,
     leadStageId: null as string | null,
-    leadSource: 'INBOUND',
+    leadSource: 'Inbound',
     pipelineNoteTitle: '',
     priceDollars: null as number | null,
     currency: 'USD',
@@ -163,6 +156,7 @@ export class BookingTypeFormPage implements OnInit {
   ];
 
   async ngOnInit() {
+    void this.dimensions.loadLeadDefinitions().catch(() => undefined);
     const paramId = this.route.snapshot.paramMap.get('id');
     if (paramId && paramId !== 'new') {
       this.id.set(paramId);
@@ -171,7 +165,18 @@ export class BookingTypeFormPage implements OnInit {
     if (this.id()) {
       await this.load();
     } else {
+      await this.applyTenantTimeZone();
       this.loading.set(false);
+    }
+  }
+
+  /** A new booking type starts in the business's time zone (Settings, Business). */
+  private async applyTenantTimeZone() {
+    try {
+      const profile = await this.api.get<{ timeZone?: string }>('/organization-profile');
+      if (profile?.timeZone) this.form = { ...this.form, timezone: profile.timeZone };
+    } catch {
+      /* keep the default */
     }
   }
 
@@ -208,6 +213,7 @@ export class BookingTypeFormPage implements OnInit {
   private applyDto(data: BookingTypeDto) {
     this.attribution.set(data.attribution ?? null);
     this.bookingCount.set(data.bookingCount);
+    this.savedLeadSource.set(data.leadSource ?? null);
     this.form = {
       slug: data.slug,
       name: data.name,

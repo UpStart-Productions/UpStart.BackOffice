@@ -131,6 +131,20 @@
                 />
               </div>
             </div>
+            <div class="showcase-row">
+              <div class="form-field showcase-half">
+                <label for="businessTimeZone">Time zone <app-help-text key="settings.business.timeZone" /></label>
+                <p-select
+                  inputId="businessTimeZone"
+                  name="businessTimeZone"
+                  [options]="timeZoneOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  styleClass="w-full"
+                  [(ngModel)]="businessForm.timeZone"
+                />
+              </div>
+            </div>
             <div class="form-actions">
               <button
                 type="button"

@@ -90,7 +90,7 @@
           <input pInputText id="btHorizon" type="number" class="w-full" [(ngModel)]="form.maxDaysAhead" name="btHorizon" />
         </div>
         <div class="form-field">
-          <label for="btTimezone">Timezone</label>
+          <label for="btTimezone">Time zone</label>
           <p-select
             inputId="btTimezone"
             [options]="timezoneOptions"
@@ -159,7 +159,7 @@
           <div class="showcase-flex">
             <div class="form-field showcase-half">
               <label for="btLeadSource">Lead source <app-help-text key="bookingType.leadSource" /></label>
-              <p-select inputId="btLeadSource" [options]="leadSources" [(ngModel)]="form.leadSource" name="btLeadSource" styleClass="w-full" />
+              <p-select inputId="btLeadSource" [options]="leadSources()" [(ngModel)]="form.leadSource" name="btLeadSource" styleClass="w-full" />
             </div>
             <div class="form-field showcase-half">
               <label for="btNoteTitle">Pipeline note title prefix <app-help-text key="bookingType.noteTitle" /></label>

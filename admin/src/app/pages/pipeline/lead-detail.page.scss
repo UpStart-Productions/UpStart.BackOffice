@@ -37,3 +37,17 @@
     color: #fff;
   }
 }
+
+/* Advanced: the less-used card fields, collapsed by default. */
+.lead-advanced {
+  margin-top: 0.5rem;
+}
+
+.lead-advanced-title {
+  font-weight: 600;
+}
+
+/* No divider line under the Advanced header (PrimeNG draws one on the panel). */
+:host ::ng-deep .lead-advanced .p-accordionpanel {
+  border: 0;
+}

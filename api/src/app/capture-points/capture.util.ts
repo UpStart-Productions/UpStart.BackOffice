@@ -1,7 +1,9 @@
 import type { Prisma } from '@prisma/client';
 import { findOpenCardForGuest } from '../booking/booking.service';
 import { createLeadActivityNote } from '../leads/lead-activity.util';
+import { splitPersonName } from '../leads/lead-links.util';
 import { escapeHtml } from '../mail/email-layout';
+import { dateOnlyOf, dateOnlyPlusDays, tenantTimeZone } from '../common/date-only.util';
 import { findLane, laneFields } from '../pipelines/pipeline-lanes.util';
 
 /** The capture point fields the routine needs. */
@@ -42,6 +44,8 @@ export async function captureToPipeline(tx: Prisma.TransactionClient, cp: Captur
   const subject = clean(input.subject) ?? cp.name;
   const message = clean(input.message);
   const now = new Date();
+  const timeZone = await tenantTimeZone(tx);
+  const today = dateOnlyOf(now, timeZone);
 
   const existing = email ? await findOpenCardForGuest(tx, lane.pipelineId, email) : null;
   let lead: { id: string; clientId: string | null };
@@ -49,14 +53,14 @@ export async function captureToPipeline(tx: Prisma.TransactionClient, cp: Captur
     lead = await tx.lead.update({
       where: { id: existing.id },
       data: {
-        lastContactDate: now,
+        lastContactDate: today,
         ...(input.links?.length && { artifacts: { create: input.links.map((l) => ({ type: 'LINK' as const, title: l.title, url: l.url })) } }),
       },
       select: { id: true, clientId: true },
     });
   } else {
-    const nextActionDate = new Date(now);
-    nextActionDate.setDate(nextActionDate.getDate() + 1);
+    const nextActionDate = dateOnlyPlusDays(now, 1, timeZone);
+    const person = name ? splitPersonName(name, null) : null;
     const sourceNote = [`Came in through ${cp.name} on ${now.toISOString().slice(0, 10)}.`, ...(input.details ?? [])].join('\n');
     lead = await tx.lead.create({
       data: {
@@ -64,13 +68,15 @@ export async function captureToPipeline(tx: Prisma.TransactionClient, cp: Captur
         capturePointId: cp.id,
         organization: clean(input.organization) ?? name ?? email ?? cp.name,
         primaryContact: name,
+        contactFirstName: person?.firstName,
+        contactLastName: person?.lastName ?? undefined,
         email,
         phone: clean(input.phone),
         website: clean(input.website),
-        source: 'INBOUND',
+        source: 'Inbound',
         nextAction: `Follow up: ${cp.name}`,
         nextActionDate,
-        lastContactDate: now,
+        lastContactDate: today,
         artifacts: {
           create: [
             { type: 'NOTE' as const, title: 'Lead Source', content: sourceNote.split('\n').map((l) => `<p>${escapeHtml(l)}</p>`).join('') },

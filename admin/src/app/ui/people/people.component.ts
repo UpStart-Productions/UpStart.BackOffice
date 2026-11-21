@@ -105,6 +105,12 @@ import { UBO_DARK_TOOLTIP_SHOW_DELAY_MS } from '../../core/ubo-dark-tooltip';
               <div class="people-panel-org-row"><p-skeleton width="40%" height="1rem" /></div>
             }
           </div>
+        } @else if (orgPeople().length === 0 && unlinkedPerson(); as u) {
+          <!-- A pipeline card's contact that isn't a person in People yet (for example from a website form). -->
+          <app-person-card [person]="{ id: 'unlinked', name: u.name }" [name]="u.name" [email]="u.email" [phone]="u.phone" hint="Not in People yet" />
+          @if (!readOnly()) {
+            <p-button label="Add to People" icon="pi pi-user-plus" size="small" severity="secondary" [outlined]="true" styleClass="mt-2" (onClick)="addUnlinkedToPeople(u)" />
+          }
         } @else if (orgPeople().length === 0 && (mode() === 'lead' || teamRows().length === 0)) {
           <div class="empty-state">
             <i class="pi pi-users" aria-hidden="true"></i>
@@ -414,6 +420,11 @@ export class PeopleComponent {
   leadContactSlot = input<'primary' | 'warm' | null>(null);
   /** Replaces the default "People" heading (pipeline card side panels). */
   panelTitle = input<string | null>(null);
+  /**
+   * Lead primary slot: the card's contact as plain text (name, email, phone) when no person is linked, for example
+   * from a website form. Shown with Add to People, which opens New person filled in and links the result.
+   */
+  unlinkedPerson = input<{ name: string; email: string | null; phone: string | null } | null>(null);
   setPrimaryContact = output<string>();
   /** Emitted when a slot panel updates the lead (primary or warm connection). */
   leadUpdated = output<Record<string, unknown>>();
@@ -518,7 +529,13 @@ export class PeopleComponent {
     };
   }
 
-  async openNewPerson() {
+  /** Make the card's text contact a real person (New person, filled in) and link them to the card. */
+  async addUnlinkedToPeople(u: { name: string; email: string | null; phone: string | null }) {
+    const [firstName, ...rest] = u.name.trim().split(/\s+/);
+    await this.openNewPerson({ firstName, lastName: rest.join(' '), email: u.email ?? '', phone: u.phone ?? '' });
+  }
+
+  async openNewPerson(prefill?: { firstName?: string; lastName?: string; email?: string; phone?: string }) {
     if (this.addPersonFlow() === 'delegate') {
       this.addPersonRequested.emit();
       return;
@@ -526,7 +543,7 @@ export class PeopleComponent {
     const clientId = this.clientId();
     const scope = this.teamScope();
     const offerLead = this.mode() === 'project' && scope?.kind === 'projects' && this.managesProjectPeople();
-    const created = await this.createPersonModal()!.open({ clientId: clientId ?? undefined, offerLead });
+    const created = await this.createPersonModal()!.open({ clientId: clientId ?? undefined, offerLead, prefill });
     if (!created) return;
     if (this.mode() === 'organization' && clientId) {
       await this.loadOrganizationPeople(clientId);

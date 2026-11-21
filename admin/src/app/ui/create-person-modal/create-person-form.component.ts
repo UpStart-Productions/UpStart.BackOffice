@@ -216,6 +216,14 @@ export class CreatePersonFormComponent {
     void this.loadClients(true);
   }
 
+  /** Start the form with what's already known (for example a pipeline card's contact). */
+  prefill(p: { firstName?: string; lastName?: string; email?: string; phone?: string }) {
+    this.form.firstName = p.firstName ?? '';
+    this.form.lastName = p.lastName ?? '';
+    this.form.email = p.email ?? '';
+    this.form.phone = p.phone ?? '';
+  }
+
   creatingOrg(): boolean {
     return this.form.clientId === NEW_ORGANIZATION_OPTION_ID;
   }

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { LeadStage, LeadSource } from '@prisma/client';
+import { LeadStage } from '@prisma/client';
+import { LEGACY_SOURCE_ENUM_TO_LABEL } from '@upstart/back-office/shared';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -19,6 +20,9 @@ export class CreateLeadDto {
   @ApiProperty() @IsString() organization!: string;
 
   @ApiPropertyOptional() @IsString() @IsOptional() primaryContact?: string;
+  /** The card's contact when no person is linked. Empty clears it. */
+  @ApiPropertyOptional() @IsString() @IsOptional() contactFirstName?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() contactLastName?: string;
   @ApiPropertyOptional() @IsString() @IsOptional() contactRole?: string;
 
   @ApiPropertyOptional()
@@ -59,10 +63,12 @@ export class CreateLeadDto {
   @IsOptional()
   pipelineId?: string;
 
-  @ApiPropertyOptional({ enum: LeadSource })
-  @IsEnum(LeadSource)
+  /** A Contact sources pick list value (old codes like INBOUND are read as their label). */
+  @ApiPropertyOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? LEGACY_SOURCE_ENUM_TO_LABEL[value] ?? value.trim() : value))
+  @IsString()
   @IsOptional()
-  source?: LeadSource;
+  source?: string;
 
   @ApiPropertyOptional({ description: 'Preset code or custom category label' })
   @IsString()

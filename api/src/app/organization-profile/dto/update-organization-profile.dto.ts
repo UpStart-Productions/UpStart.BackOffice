@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { TIME_ZONE_OPTIONS } from '@upstart/back-office/shared';
 import { Type } from 'class-transformer';
 
 export class UpdateOrganizationProfileDto {
@@ -52,4 +53,10 @@ export class UpdateOrganizationProfileDto {
   @Max(100)
   @Type(() => Number)
   mileageRate?: number | null;
+
+  /** The business's time zone (IANA name). */
+  @ApiPropertyOptional({ example: 'America/Los_Angeles' })
+  @IsOptional()
+  @IsIn(TIME_ZONE_OPTIONS.map((o) => o.value))
+  timeZone?: string;
 }

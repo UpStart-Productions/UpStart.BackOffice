@@ -811,7 +811,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Business',
-        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your business are sent.',
+        body: 'Address and phone appear on invoices under your logo. Billing email is where invoices addressed to your business are sent. Time zone decides which day counts as today when Back Office fills in a date for you, such as Last Contact on a pipeline card.',
       },
       {
         heading: 'Expenses and Invoicing',

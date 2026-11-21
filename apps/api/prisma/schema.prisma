@@ -72,15 +72,6 @@ enum LeadStage {
   ON_HOLD
 }
 
-enum LeadSource {
-  WARM_OUTREACH
-  REFERRAL
-  INBOUND
-  EVENT
-  SOCIAL
-  COLD_OUTREACH
-}
-
 enum OrgCategory {
   RECOVERY
   FAMILY
@@ -103,6 +94,7 @@ enum DimensionEntity {
   CLIENT
   CONTACT
   TASK
+  LEAD
 }
 
 /// Platform-defined dimension on an entity type (e.g. organization services, focus areas). */
@@ -373,12 +365,16 @@ model Lead {
   tenant            Tenant       @relation(fields: [tenantId], references: [id])
   organization      String
   primaryContact    String?
+  /// The card's own contact when no person is linked (typed on the card, or from a website form). primaryContact mirrors "First Last".
+  contactFirstName  String?
+  contactLastName   String?
   contactRole       String?
   email             String?
   phone             String?
   website           String?
   stage             LeadStage    @default(NEW_LEAD)
-  source            LeadSource?
+  /// Contact source, from Settings → Pick lists → Pipeline → Contact sources (for example "Inbound").
+  source            String?
   warmConnection    String?
   warmConnectionContactId String?
   category          String?
@@ -801,6 +797,8 @@ model OrganizationProfile {
   billingEmail String?
   /// Reimbursement rate per mile for Mileage expenses.
   mileageRate  Decimal? @db.Decimal(10, 4)
+  /// The business's time zone (IANA name). Decides which calendar day UBO-set dates fall on (Last Contact, Next Action).
+  timeZone     String   @default("America/Los_Angeles")
   /// Activity → To do: an email waits this many days for a reply before it is listed under Needs reply.
   needsReplyDays Int    @default(2)
   /// Activity → To do: an active client with no contact for this many days is listed under Gone quiet.
@@ -1090,7 +1088,8 @@ model BookingType {
   /// Lane a booking puts the lead in (falls back to the first lane of the first pipeline).
   leadStageId        String?
   leadPipelineStage  PipelineStage? @relation(fields: [leadStageId], references: [id], onDelete: SetNull)
-  leadSource         LeadSource     @default(INBOUND)
+  /// Contact source on cards this booking type creates (a Contact sources pick list value).
+  leadSource         String         @default("Inbound")
   pipelineNoteTitle  String?
   priceCents         Int?
   currency           String         @default("USD")

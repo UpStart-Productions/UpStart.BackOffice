@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { CLIENT_DIMENSION_KEYS, DIMENSION_TAG_KEY, type DimensionCatalogGroupDto, type DimensionCatalogItemDto, type DimensionEntity } from '@upstart/back-office/shared';
+import { CLIENT_DIMENSION_KEYS, DIMENSION_TAG_KEY, LEAD_DIMENSION_KEYS, type DimensionCatalogGroupDto, type DimensionCatalogItemDto, type DimensionEntity } from '@upstart/back-office/shared';
 import { ensureCrmTags, tagName } from '../crm-tags/crm-tags.util';
 import { ensureTaskTags } from './tag-catalog.util';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -216,6 +216,15 @@ export async function renameCatalogValue(
     where: { id: def.id },
     data: { presets, catalogExcluded: excluded },
   });
+
+  // Pipeline cards store these as plain text: contact source (LEAD sources) and category (CLIENT focus areas).
+  if (entity === 'LEAD' && key === LEAD_DIMENSION_KEYS.sources) {
+    await db.lead.updateMany({ where: { source: { equals: from, mode: 'insensitive' } }, data: { source: to } });
+    await db.bookingType.updateMany({ where: { leadSource: { equals: from, mode: 'insensitive' } }, data: { leadSource: to } });
+  }
+  if (entity === 'CLIENT' && key === CLIENT_DIMENSION_KEYS.focus) {
+    await db.lead.updateMany({ where: { category: { equals: from, mode: 'insensitive' } }, data: { category: to } });
+  }
 
   if (key === DIMENSION_TAG_KEY) {
     const scope = entity === 'TASK' ? ('TASK' as const) : ('CRM' as const);

@@ -1,5 +1,6 @@
 import { Location } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { AccordionModule } from 'primeng/accordion';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -27,32 +28,30 @@ import { PhoneInputComponent } from '../../ui/phone-input/phone-input.component'
 import { CreatableSelectComponent } from '../../ui/creatable-select/creatable-select.component';
 import {
   mergeCreatableOptions,
-  PIPELINE_CATEGORY_PRESETS,
   PIPELINE_NEXT_ACTION_PRESETS,
 } from '../../core/pipeline-vocabulary';
-
-const SOURCES = [
-  { label: 'Warm Outreach', value: 'WARM_OUTREACH' },
-  { label: 'Referral', value: 'REFERRAL' },
-  { label: 'Inbound', value: 'INBOUND' },
-  { label: 'Event', value: 'EVENT' },
-  { label: 'Social', value: 'SOCIAL' },
-  { label: 'Cold Outreach', value: 'COLD_OUTREACH' },
-];
-
-const SERVICE_OPTIONS = [
-  'GrovLink', 'Custom App', 'Website', 'Consulting',
-  'Tech Assessment', 'IT Recruiting', 'Informational Interview',
-];
 
 /** Placeholder org name when a card is created opening New Lead (user replaces before Save). */
 export const NEW_LEAD_PLACEHOLDER_ORG = 'Untitled organization';
 
 import { LaneSelectComponent } from '../../ui/lane-select/lane-select.component';
+import { DimensionsApi } from '../../core/dimensions.api';
+import { CLIENT_DIMENSION_KEYS, LEAD_DIMENSION_KEYS } from '@upstart/back-office/shared';
+const ADVANCED_OPEN_KEY = 'ubo.leadDetail.advancedOpen';
+
+function readAdvancedOpen(): boolean {
+  try {
+    return localStorage.getItem(ADVANCED_OPEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 @Component({
   selector: 'app-lead-detail-page',
   standalone: true,
   imports: [
+    AccordionModule,
     LaneSelectComponent,
     HelpTextComponent,
     PeopleComponent,
@@ -87,6 +86,15 @@ export class LeadDetailPage implements OnInit {
   private bootstrapInFlight = false;
 
   id = signal<string | null>(null);
+  /** Advanced panel (source, category, services, dates, value): collapsed unless the user left it open. */
+  readonly advancedOpen = signal<string | undefined>(readAdvancedOpen() ? 'advanced' : undefined);
+  private readonly rememberAdvanced = effect(() => {
+    try {
+      localStorage.setItem(ADVANCED_OPEN_KEY, this.advancedOpen() === 'advanced' ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  });
   loading = signal(true);
   saving = signal(false);
   converting = signal(false);
@@ -98,6 +106,15 @@ export class LeadDetailPage implements OnInit {
   contactId = signal<string | null>(null);
   contactAvatarUrl = signal<string | null>(null);
   primaryContactName = signal('');
+  /** The card's contact as text (name, email, phone) when no person is linked, for example from a website form. */
+  unlinkedContact = computed(() => {
+    const name = (this.savedName() || this.primaryContactName()).trim();
+    if (this.contactId() || !name) return null;
+    return { name, email: this.savedEmail() || null, phone: this.savedPhone() };
+  });
+  private readonly savedName = signal('');
+  private readonly savedEmail = signal('');
+  private readonly savedPhone = signal<string | null>(null);
   primaryContactEmail = signal<string | null>(null);
   warmConnectionContactId = signal<string | null>(null);
 
@@ -110,8 +127,21 @@ export class LeadDetailPage implements OnInit {
   readonly stages = computed(() =>
     (this.pipelines().find((p) => p.id === this.pipelineId()) ?? this.pipelines()[0])?.stages.map((s) => ({ label: s.name, value: s.id })) ?? [],
   );
-  readonly sources = [...SOURCES].sort((a, b) => a.label.localeCompare(b.label));
-  readonly serviceOptions = SERVICE_OPTIONS;
+  /** Contact sources from Settings → Pick lists → Pipeline, plus the card's own if it isn't in the list. */
+  readonly sources = computed(() => pickOptions(this.dimensions.values('LEAD', LEAD_DIMENSION_KEYS.sources), this.savedSource()));
+  /** The saved source and category (signals, so the option lists keep a value that left its pick list). */
+  private readonly savedSource = signal<string | null>(null);
+  private readonly savedCategory = signal<string | null>(null);
+  private readonly dimensions = inject(DimensionsApi);
+  /** Services from Settings → Pick lists → Services, plus any the card already has that aren't in the list. */
+  readonly serviceOptions = computed(() => {
+    const def = this.dimensions.definitions('CLIENT')?.find((d) => d.key === CLIENT_DIMENSION_KEYS.services);
+    const list = [...(def?.presets ?? [])];
+    for (const picked of this.serviceInterests()) {
+      if (!list.some((s) => s.toLowerCase() === picked.toLowerCase())) list.push(picked);
+    }
+    return list;
+  });
   serviceInterests = signal<string[]>([]);
   readonly attribution = signal<RecordAttributionDto | null>(null);
 
@@ -119,9 +149,8 @@ export class LeadDetailPage implements OnInit {
     categories: [],
     nextActions: [],
   });
-  readonly categoryOptions = computed(() =>
-    mergeCreatableOptions(PIPELINE_CATEGORY_PRESETS, this.tenantSuggestions().categories),
-  );
+  /** Categories are the Focus areas pick list (Settings → Pick lists → Accounts), plus the card's own if it isn't in it. */
+  readonly categoryOptions = computed(() => pickOptions(this.dimensions.values('CLIENT', CLIENT_DIMENSION_KEYS.focus), this.savedCategory()));
   readonly nextActionOptions = computed(() =>
     mergeCreatableOptions(PIPELINE_NEXT_ACTION_PRESETS, this.tenantSuggestions().nextActions),
   );
@@ -130,6 +159,8 @@ export class LeadDetailPage implements OnInit {
 
   form = {
     organization: '',
+    contactFirstName: '',
+    contactLastName: '',
     email: '',
     phone: null as string | null,
     website: '',
@@ -192,8 +223,12 @@ export class LeadDetailPage implements OnInit {
     const toDateStr = (v: unknown) =>
       v ? new Date(v as string).toISOString().split('T')[0] : '';
 
+    this.savedSource.set((lead['source'] as string) ?? null);
+    this.savedCategory.set((lead['category'] as string) ?? null);
     this.form = {
       organization: (lead['organization'] as string) ?? '',
+      contactFirstName: (lead['contactFirstName'] as string | null) ?? '',
+      contactLastName: (lead['contactLastName'] as string | null) ?? '',
       email: (lead['email'] as string) ?? '',
       phone: (lead['phone'] as string | null) ?? null,
       website: (lead['website'] as string) ?? '',
@@ -211,6 +246,9 @@ export class LeadDetailPage implements OnInit {
     this.contactAvatarUrl.set((lead['contactAvatarUrl'] as string) ?? null);
     this.primaryContactName.set((lead['primaryContact'] as string) ?? '');
     this.primaryContactEmail.set((lead['primaryContactEmail'] as string) ?? null);
+    this.savedName.set([lead['contactFirstName'], lead['contactLastName']].filter(Boolean).join(' '));
+    this.savedEmail.set((lead['email'] as string) ?? '');
+    this.savedPhone.set((lead['phone'] as string | null) ?? null);
     this.warmConnectionContactId.set((lead['warmConnectionContactId'] as string) ?? null);
     this.pipelineId.set((lead['pipelineId'] as string) ?? null);
     this.serviceInterests.set((lead['serviceInterests'] as string[]) ?? []);
@@ -220,6 +258,10 @@ export class LeadDetailPage implements OnInit {
   /** Primary / warm panels persist via their own API calls — do not overwrite unsaved main-form fields. */
   onLeadContactPanelUpdated(lead: Record<string, unknown>) {
     this.contactId.set((lead['primaryContactId'] as string) ?? null);
+    // The name fields follow the linked person (or the card's own name again once unlinked).
+    this.form.contactFirstName = (lead['contactFirstName'] as string | null) ?? '';
+    this.form.contactLastName = (lead['contactLastName'] as string | null) ?? '';
+    this.savedName.set([lead['contactFirstName'], lead['contactLastName']].filter(Boolean).join(' '));
     this.contactAvatarUrl.set((lead['contactAvatarUrl'] as string) ?? null);
     this.primaryContactName.set((lead['primaryContact'] as string) ?? '');
     this.primaryContactEmail.set((lead['primaryContactEmail'] as string) ?? null);
@@ -236,6 +278,8 @@ export class LeadDetailPage implements OnInit {
     const optDate = (v: string) => (v.trim() ? v.trim() : null);
     return {
       organization: this.form.organization.trim(),
+      // The card's own contact; the API ignores these while a person is linked (their name wins).
+      ...(this.contactId() ? {} : { contactFirstName: opt(this.form.contactFirstName), contactLastName: opt(this.form.contactLastName) }),
       email: opt(this.form.email),
       phone: opt(this.form.phone),
       website: opt(this.form.website),
@@ -253,6 +297,8 @@ export class LeadDetailPage implements OnInit {
   }
 
   async ngOnInit() {
+    void this.dimensions.loadClientDefinitions().catch(() => undefined);
+    void this.dimensions.loadLeadDefinitions().catch(() => undefined);
     try {
       this.pipelines.set(await this.pipelinesApi.list());
     } catch {
@@ -421,4 +467,11 @@ export class LeadDetailPage implements OnInit {
       this.error.set(err instanceof Error ? err.message : 'Conversion failed');
     } finally { this.converting.set(false); }
   }
+}
+
+/** Select options from a pick list, keeping a saved value that's no longer in the list so it still shows. */
+function pickOptions(values: string[], current: string | null | undefined): { label: string; value: string }[] {
+  const list = [...values];
+  if (current && !list.some((v) => v.toLowerCase() === current.toLowerCase())) list.push(current);
+  return list.map((v) => ({ label: v, value: v }));
 }
