@@ -122,6 +122,7 @@ export const HELP_AGENT_UI_LABELS: readonly string[] = [
   "admin",
   "admins",
   "admins only.",
+  "advanced",
   "after someone submits",
   "after the task is completed",
   "all",
