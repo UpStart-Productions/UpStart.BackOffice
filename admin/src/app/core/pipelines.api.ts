@@ -11,6 +11,8 @@ export interface PipelineLane {
   cardCount: number;
   /** Capture points (forms, QR codes) that add people to this lane and are turned on. */
   capturePointCount: number;
+  /** Their names, for the plug icon's hover hint. */
+  capturePointNames: string[];
 }
 
 export interface PipelineSummary {

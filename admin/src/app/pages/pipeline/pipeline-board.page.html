@@ -83,8 +83,8 @@
                   <span
                     class="lane-capture"
                     role="img"
-                    [attr.aria-label]="lane.capturePointCount + (lane.capturePointCount === 1 ? ' capture point adds' : ' capture points add') + ' people here'"
-                    [pTooltip]="lane.capturePointCount + (lane.capturePointCount === 1 ? ' capture point adds' : ' capture points add') + ' people here'"
+                    [attr.aria-label]="'Connected to ' + lane.capturePointNames.join(', ')"
+                    [pTooltip]="'Connected to ' + lane.capturePointNames.join(', ')"
                     tooltipPosition="top"
                     [showDelay]="500"
                   >
@@ -507,6 +507,21 @@
           </div>
         }
         <app-lane-select inputId="cpLane" [startPipelineId]="pipelineId()" [ngModel]="d.stageId" (ngModelChange)="patchCaptureDraft({ stageId: $event })"><app-help-text key="pipeline.capture.lane" /></app-lane-select>
+        @if (!d.formName) {
+          @if (d.id) {
+            <div class="form-field">
+              <label for="cpEndpoint">Website form address <app-help-text key="pipeline.capture.endpoint" /></label>
+              <div class="field-action-row">
+                <input pInputText id="cpEndpoint" class="flex-1" [value]="captureEndpoint(d.id)" readonly />
+                <p-button label="Copy" icon="pi pi-copy" size="small" severity="secondary" (onClick)="copyText(captureEndpoint(d.id), 'Address copied.')" />
+              </div>
+            </div>
+          }
+          <div class="form-field">
+            <label for="cpSites">Allowed websites <app-help-text key="pipeline.capture.websites" /></label>
+            <textarea pTextarea id="cpSites" class="w-full" rows="2" [ngModel]="d.websites" (ngModelChange)="patchCaptureDraft({ websites: $event })" placeholder="heyupstart.com"></textarea>
+          </div>
+        }
         <div class="flex align-items-center gap-2">
           <p-toggleswitch inputId="cpActive" [ngModel]="d.isActive" (ngModelChange)="patchCaptureDraft({ isActive: $event })" />
           <label for="cpActive">On <app-help-text key="pipeline.capture.active" /></label>

@@ -23,7 +23,8 @@ export class PipelinesService {
             name: true,
             color: true,
             sortOrder: true,
-            _count: { select: { leads: { where: { archivedAt: null } }, capturePoints: { where: { isActive: true } } } },
+            _count: { select: { leads: { where: { archivedAt: null } } } },
+            capturePoints: { where: { isActive: true }, orderBy: { createdAt: 'asc' }, select: { name: true } },
           },
         },
       },
@@ -32,7 +33,12 @@ export class PipelinesService {
       id: p.id,
       name: p.name,
       sortOrder: p.sortOrder,
-      stages: p.stages.map(({ _count, ...s }) => ({ ...s, cardCount: _count.leads, capturePointCount: _count.capturePoints })),
+      stages: p.stages.map(({ _count, capturePoints, ...s }) => ({
+        ...s,
+        cardCount: _count.leads,
+        capturePointCount: capturePoints.length,
+        capturePointNames: capturePoints.map((c) => c.name),
+      })),
     }));
   }
 

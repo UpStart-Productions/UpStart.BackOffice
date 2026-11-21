@@ -278,7 +278,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Capture points',
-        body: 'Capture points add people to a pipeline on their own: a form from Forms (Add submissions to a pipeline, in its Settings under Where submissions go), or an outside form such as your website. Capture points in the ⋮ menu beside New Lead lists this pipeline\'s, with the lane, where people come from, how many came in and On or Off. Add capture point makes one for an outside form; Copy ID in a row\'s menu gives the ID that form sends. Someone already on the pipeline gets the visit logged on their card instead of a second card. A plug icon on a lane means a capture point adds people there. Removing a lane moves its capture points with its cards (or to the first lane); a pipeline with capture points can\'t be deleted.',
+        body: 'Capture points add people to a pipeline on their own: a form from Forms (Add submissions to a pipeline, in its Settings under Where submissions go), or an outside form such as your website. Capture points in the ⋮ menu beside New Lead lists this pipeline\'s, with the lane, where people come from, how many came in and On or Off. Add capture point makes one for an outside form; Copy ID in a row\'s menu gives the ID that form sends. Someone already on the pipeline gets the visit logged on their card instead of a second card. A plug icon on a lane means a capture point adds people there. Hover it to see which ones. Removing a lane moves its capture points with its cards (or to the first lane); a pipeline with capture points can\'t be deleted.',
       },
     ],
   },

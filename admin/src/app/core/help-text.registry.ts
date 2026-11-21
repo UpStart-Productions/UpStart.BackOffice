@@ -23,6 +23,10 @@ export const HELP_TEXT_REGISTRY: Record<string, string> = {
     'Where new cards go. Someone who already has an open card on this pipeline gets the visit logged on that card instead, and the card stays where it is.',
   'pipeline.capture.active':
     "When it's off, nothing comes in through it. It keeps its count, and you can turn it back on.",
+  'pipeline.capture.endpoint':
+    "A form on any website can send people here. Have it post its fields (name, email, phone, organization, message and subject) to this address. No key is needed. Your website's developer will know what to do with it.",
+  'pipeline.capture.websites':
+    'List the websites your form is on, one per line, so only they can send people here. Leave it empty to allow any website.',
   'pipeline.capture.source':
     'A form from Forms (set with Send to pipeline on the form), or an outside form or link, such as your website, which sends people in with this capture point\'s ID.',
 

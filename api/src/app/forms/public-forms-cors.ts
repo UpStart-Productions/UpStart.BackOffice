@@ -3,9 +3,10 @@ import type { CorsOptions, CorsOptionsDelegate } from '@nestjs/common/interfaces
 /**
  * Public form addresses that any website may call from a browser (embeds and sites that draw forms themselves).
  * They need no sign-in and no cookies: the link or result token is the key, and each link can limit which
- * websites may show it (FormLink.allowedOrigins, checked by FormPublicService). Everything else keeps the app's CORS rules.
+ * websites may show it (FormLink.allowedOrigins, checked by FormPublicService). /api/capture/:id is any website's
+ * form sending people to a pipeline (CapturePoint.allowedOrigins, checked by CapturePublicController). Everything else keeps the app's CORS rules.
  */
-const PUBLIC_FORM_PATHS = ['/api/form-links/', '/api/form-results/', '/api/form-embed.js'];
+const PUBLIC_FORM_PATHS = ['/api/form-links/', '/api/form-results/', '/api/form-embed.js', '/api/capture/'];
 
 const PUBLIC_FORM_CORS: CorsOptions = {
   origin: true,

@@ -478,6 +478,8 @@ model CapturePoint {
   formId         String?       @unique
   form           Form?         @relation(fields: [formId], references: [id], onDelete: Cascade)
   isActive       Boolean       @default(true)
+  /// Websites (origins) that may send people in from a browser through POST /api/capture/:id. Empty = any website.
+  allowedOrigins String[]      @default([])
   captureCount   Int           @default(0)
   lastCapturedAt DateTime?
   createdAt      DateTime      @default(now())

@@ -13,6 +13,8 @@ export interface CapturePoint {
   formId: string | null;
   formName: string | null;
   isActive: boolean;
+  /** Websites that may send people in from a browser. Empty = any website. */
+  allowedOrigins: string[];
   captureCount: number;
   lastCapturedAt: string | null;
   createdAt: string;
@@ -30,11 +32,11 @@ export class CapturePointsApi {
     return this.api.get(`/capture-points${qs ? `?${qs}` : ''}`);
   }
 
-  create(body: { name: string; stageId: string; formId?: string; isActive?: boolean }): Promise<CapturePoint> {
+  create(body: { name: string; stageId: string; formId?: string; isActive?: boolean; allowedOrigins?: string[] }): Promise<CapturePoint> {
     return this.api.post('/capture-points', body);
   }
 
-  update(id: string, body: { name?: string; stageId?: string; isActive?: boolean }): Promise<CapturePoint> {
+  update(id: string, body: { name?: string; stageId?: string; isActive?: boolean; allowedOrigins?: string[] }): Promise<CapturePoint> {
     return this.api.patch(`/capture-points/${id}`, body);
   }
 

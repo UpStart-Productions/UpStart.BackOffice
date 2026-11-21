@@ -1,3 +1,5 @@
+import { environment } from '../../../environments/environment';
+import { normalizeOrigins } from '@upstart/back-office/shared';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
@@ -10,6 +12,7 @@ import { SelectModule } from 'primeng/select';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { TooltipModule } from 'primeng/tooltip';
 import { TableModule } from 'primeng/table';
+import { TextareaModule } from 'primeng/textarea';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { LucideIconComponent } from '@upstart/back-office/lucide-icons';
 import { MessageService } from 'primeng/api';
@@ -91,7 +94,7 @@ type CardContact = {
 type NameDialog = { mode: 'new' | 'rename'; value: string } | null;
 type TransferMode = 'move' | 'copy';
 /** Add or edit a capture point (Capture points dialog). */
-type CaptureDraft = { id: string | null; name: string; stageId: string | null; isActive: boolean; formName: string | null };
+type CaptureDraft = { id: string | null; name: string; stageId: string | null; isActive: boolean; formName: string | null; websites: string };
 
 @Component({
   selector: 'app-pipeline-board-page',
@@ -112,6 +115,7 @@ type CaptureDraft = { id: string | null; name: string; stageId: string | null; i
     SelectButtonModule,
     TooltipModule,
     TableModule,
+    TextareaModule,
     ToggleSwitchModule,
     LucideIconComponent,
     LaneSelectComponent,
@@ -870,11 +874,11 @@ export class PipelineBoardPage implements OnInit {
 
   newCapturePoint() {
     const first = this.current()?.stages[0]?.id ?? null;
-    this.captureDraft.set({ id: null, name: '', stageId: first, isActive: true, formName: null });
+    this.captureDraft.set({ id: null, name: '', stageId: first, isActive: true, formName: null, websites: '' });
   }
 
   editCapturePoint(cp: CapturePoint) {
-    this.captureDraft.set({ id: cp.id, name: cp.name, stageId: cp.stageId, isActive: cp.isActive, formName: cp.formName });
+    this.captureDraft.set({ id: cp.id, name: cp.name, stageId: cp.stageId, isActive: cp.isActive, formName: cp.formName, websites: cp.allowedOrigins.join('\n') });
   }
 
   patchCaptureDraft(patch: Partial<CaptureDraft>) {
@@ -887,7 +891,7 @@ export class PipelineBoardPage implements OnInit {
     if (!d || !d.name.trim() || !d.stageId) return;
     this.captureBusy.set(true);
     try {
-      const body = { name: d.name.trim(), stageId: d.stageId, isActive: d.isActive };
+      const body = { name: d.name.trim(), stageId: d.stageId, isActive: d.isActive, ...(d.formName ? {} : { allowedOrigins: normalizeOrigins(d.websites) }) };
       if (d.id) await this.capturePointsApi.update(d.id, body);
       else await this.capturePointsApi.create(body);
       this.captureDraft.set(null);
@@ -911,6 +915,21 @@ export class PipelineBoardPage implements OnInit {
       },
       { id: 'delete', label: 'Delete', icon: 'pi pi-trash', severity: 'danger', command: () => this.confirmDeleteCapturePoint(cp) },
     ];
+  }
+
+  /** Where a website's form posts people (POST, no key): /api/capture/:id. */
+  captureEndpoint(id: string) {
+    const api = new URL(environment.apiBaseUrl, window.location.origin).href.replace(/\/$/, '');
+    return `${api}/capture/${id}`;
+  }
+
+  async copyText(text: string, detail: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.toast.add({ severity: 'success', summary: 'Copied', detail });
+    } catch {
+      this.toast.add({ severity: 'error', summary: 'Could not copy', detail: text });
+    }
   }
 
   private async copyCaptureId(cp: CapturePoint) {

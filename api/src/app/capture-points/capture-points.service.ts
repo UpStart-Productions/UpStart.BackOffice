@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { FREE_FORM_MODULE, normalizeFormSettings } from '@upstart/back-office/shared';
+import { FREE_FORM_MODULE, normalizeFormSettings, normalizeOrigins } from '@upstart/back-office/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCapturePointDto, UpdateCapturePointDto } from './capture-points.dto';
 
@@ -10,6 +10,7 @@ const SELECT = {
   stageId: true,
   formId: true,
   isActive: true,
+  allowedOrigins: true,
   captureCount: true,
   lastCapturedAt: true,
   createdAt: true,
@@ -62,7 +63,14 @@ export class CapturePointsService {
       if (taken) throw new ConflictException('This form already sends people to a pipeline. Change that one instead.');
     }
     const row = await this.prisma.capturePoint.create({
-      data: { name: dto.name, pipelineId: lane.pipelineId, stageId: lane.id, formId: dto.formId ?? null, isActive: dto.isActive ?? true },
+      data: {
+        name: dto.name,
+        pipelineId: lane.pipelineId,
+        stageId: lane.id,
+        formId: dto.formId ?? null,
+        isActive: dto.isActive ?? true,
+        allowedOrigins: normalizeOrigins(dto.allowedOrigins ?? []),
+      },
       select: SELECT,
     });
     return view(row);
@@ -76,6 +84,7 @@ export class CapturePointsService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.allowedOrigins !== undefined && { allowedOrigins: normalizeOrigins(dto.allowedOrigins) }),
         ...(lane && { pipelineId: lane.pipelineId, stageId: lane.id }),
       },
       select: SELECT,

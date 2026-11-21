@@ -33,14 +33,21 @@ One routine, `captureToPipeline()` (`capture-points/capture.util.ts`), for every
    Returns `{ "duplicate": <matched an open card>, "leadId": "<id>" }`, or `{ "skipped": true }` when the capture
    point is off. Without `capturePointId`, ingest works as before (`pipelineName`/`stageName` by name, always a new
    card) for the Donor Readiness Audit and Mirador checkout.
-3. **QR codes and links**: a small UBO form with a public link, sent to a pipeline as in 1.
+3. **Any website's form, from the browser** (no server, no key): `POST /api/capture/:id` with JSON
+   `{ name, email, phone, organization, message, subject, website, t }`. Name or email is required. `website` is a
+   hidden honeypot field (filled in = bot) and `t` is milliseconds on the form (under 3000 = bot); bots get
+   `{ "ok": true }` and nothing is saved. Other protections: the capture point's **Allowed websites** (the browser's
+   Origin must be listed; empty = any website), 10 posts a minute per visitor, and the on/off switch (off answers 410).
+   Answers `{ "ok": true, "duplicate": <matched an open card> }`. Capture points that belong to a UBO form don't take
+   these posts (404). CORS is open on this path (`public-forms-cors.ts`).
+4. **QR codes and links**: a small UBO form with a public link, sent to a pipeline as in 1.
 
 The service key is a tenant-wide secret: only call ingest from a server (a Lambda), never from a web page.
 
 ## API (staff, Pipeline area)
 
 `GET /capture-points?pipelineId=&formId=`, `GET /capture-points/:id`, and with Pipeline setup:
-`POST /capture-points` `{ name, stageId, formId?, isActive? }`, `PATCH /capture-points/:id` `{ name?, stageId?, isActive? }`,
+`POST /capture-points` `{ name, stageId, formId?, isActive?, allowedOrigins? }`, `PATCH /capture-points/:id` `{ name?, stageId?, isActive?, allowedOrigins? }`,
 `DELETE /capture-points/:id` (cards it brought in stay; they lose the link).
 
 `GET /pipelines` gives each lane a `capturePointCount` (active ones) for the board badges.
