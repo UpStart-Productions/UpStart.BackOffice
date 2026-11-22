@@ -81,7 +81,17 @@ type PeopleTableRow = ContactSummary & {
               styleClass="people-tag-filter"
             />
             @if (review()) {
-              <p-tag value="Needs review" severity="info" />
+              <span class="ubo-tag-pill">
+                <span class="ubo-tag-pill-label">Needs review</span>
+                <button
+                  type="button"
+                  class="ubo-tag-pill-remove"
+                  aria-label="Stop reviewing and show all people"
+                  (click)="setReview(false)"
+                >
+                  <i class="pi pi-times" aria-hidden="true"></i>
+                </button>
+              </span>
             }
           </div>
           <div class="toolbar-search">
@@ -180,6 +190,9 @@ type PeopleTableRow = ContactSummary & {
                 <div class="empty-state">
                   <i class="pi pi-address-book" aria-hidden="true"></i>
                   <p>{{ review() ? 'Nothing needs review.' : query || tag ? 'No people match these filters.' : 'No people yet.' }}</p>
+                  @if (review()) {
+                    <p-button label="Show all people" size="small" (onClick)="setReview(false)" />
+                  }
                 </div>
               </td>
             </tr>

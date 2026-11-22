@@ -20,6 +20,7 @@ import { FormLinksComponent } from '../../ui/form-builder/form-links.component';
 import { PageComponent } from '../../ui/layout/page.component';
 import { RecordAttributionComponent } from '../../ui/record-attribution/record-attribution.component';
 import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-menu/row-actions-menu.component';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 
 /**
  * One record's result of a client form: answers auto-save as they change (several people can work on it), Submit when
@@ -29,6 +30,7 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
   selector: 'app-client-form-result-page',
   standalone: true,
   imports: [
+    CopyEmailComponent,
     DatePipe,
     FormsModule,
     RouterLink,
@@ -139,7 +141,9 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
                   <div class="side-list-row">
                     <div class="side-list-body">
                       <span class="side-list-title">{{ r.submitterName }}</span>
-                      <span class="side-list-detail">{{ r.submitterEmail }}</span>
+                      @if (r.submitterEmail) {
+                        <span class="side-list-detail"><app-copy-email [email]="r.submitterEmail" /></span>
+                      }
                       @if (r.submitterPhone) {
                         <span class="side-list-detail">{{ r.submitterPhone }}</span>
                       }

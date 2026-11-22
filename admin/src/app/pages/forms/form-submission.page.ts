@@ -27,12 +27,13 @@ import { RowActionItem, RowActionsMenuComponent } from '../../ui/row-actions-men
 import { exportSubmissionExcel, exportSubmissionPdf } from './form-submission-export.util';
 import { SUBMISSION_STATUS_TAG } from './forms.types';
 import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
+import { CopyEmailComponent } from '../../ui/copy-email/copy-email.component';
 
 /** One submission of a free-standing form: answers as text, results (score, profile, areas), who sent it; Export, Accept, Dismiss. */
 @Component({
   selector: 'app-form-submission-page',
   standalone: true,
-  imports: [DatePipe, RouterLink, ButtonModule, MessageModule, ProgressBarModule, TabsModule, TagModule, AcceptResponseDialogComponent, PageComponent, RowActionsMenuComponent, SsnTextComponent],
+  imports: [DatePipe, CopyEmailComponent, RouterLink, ButtonModule, MessageModule, ProgressBarModule, TabsModule, TagModule, AcceptResponseDialogComponent, PageComponent, RowActionsMenuComponent, SsnTextComponent],
   template: `
     <app-page [title]="pageTitle()" [backLink]="backLink()" [backQueryParams]="backQuery" [backLabel]="fromActivity ? 'Back to Activity' : 'Back to submissions'" helpKey="forms.submission.page">
       <ng-container ngProjectAs="[pageMeta]">
@@ -172,7 +173,9 @@ import { SsnTextComponent } from '../../ui/ssn-input/ssn-text.component';
                     @if (r.submitterOrganization) {
                       <span class="side-list-detail">{{ r.submitterOrganization }}</span>
                     }
-                    <span class="side-list-detail">{{ r.submitterEmail }}</span>
+                    @if (r.submitterEmail) {
+                      <span class="side-list-detail"><app-copy-email [email]="r.submitterEmail" /></span>
+                    }
                     @if (r.submitterPhone) {
                       <span class="side-list-detail">{{ r.submitterPhone }}</span>
                     }
