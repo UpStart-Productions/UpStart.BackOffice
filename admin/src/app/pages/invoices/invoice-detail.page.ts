@@ -11,7 +11,6 @@ import { ApiService } from '../../core/api.service';
 import { AppDialogModule } from '../../core/app-dialog.module';
 import { AddToPipelineDialogComponent } from '../../ui/add-to-pipeline-dialog/add-to-pipeline-dialog.component';
 import { SessionService } from '../../core/session.service';
-import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { resolveAssetUrl } from '../../core/asset-url.util';
 import type { RecordAttributionDto } from '@upstart/back-office/shared';
 import { FileViewerDialogComponent, type ViewerFile } from '../../ui/file-viewer/file-viewer-dialog.component';
@@ -80,7 +79,6 @@ type OrganizationLetterhead = {
     RouterLink,
     PageComponent,
     AppDialogModule,
-    HelpTextComponent,
     FileViewerDialogComponent,
     RecordAttributionComponent,
     RowActionsMenuComponent,

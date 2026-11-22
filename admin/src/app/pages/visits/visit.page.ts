@@ -1,4 +1,4 @@
-import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, inject, input, OnDestroy, OnInit, output, signal, viewChild, type TemplateRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -33,7 +33,6 @@ import { atLocal, formatDuration, timeKey } from '../../ui/visits/visit-time.uti
   selector: 'app-visit-page',
   standalone: true,
   imports: [
-    DatePipe,
     NgTemplateOutlet,
     FormsModule,
     RouterLink,

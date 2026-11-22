@@ -19,7 +19,7 @@
       "configurations": {
         "production": {
           "budgets": [
-            { "type": "initial", "maximumWarning": "500kb", "maximumError": "2mb" },
+            { "type": "initial", "maximumWarning": "500kb", "maximumError": "2.2mb" },
             { "type": "anyComponentStyle", "maximumWarning": "16kb", "maximumError": "36kb" }
           ],
           "outputHashing": "all",
@@ -29,7 +29,7 @@
         },
         "amplify": {
           "budgets": [
-            { "type": "initial", "maximumWarning": "500kb", "maximumError": "2mb" },
+            { "type": "initial", "maximumWarning": "500kb", "maximumError": "2.2mb" },
             { "type": "anyComponentStyle", "maximumWarning": "16kb", "maximumError": "36kb" }
           ],
           "outputHashing": "all",

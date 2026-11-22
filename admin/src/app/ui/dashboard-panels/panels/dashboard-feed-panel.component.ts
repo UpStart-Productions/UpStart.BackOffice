@@ -1,5 +1,4 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { DashboardPanelComponent } from '../../dashboard-panel/dashboard-panel.component';
@@ -11,7 +10,7 @@ import { DashboardStore } from '../dashboard-store.service';
 @Component({
   selector: 'app-dashboard-feed-panel',
   standalone: true,
-  imports: [RouterLink, TagModule, TooltipModule, DashboardPanelComponent, EmptyStateComponent, RecordCardComponent],
+  imports: [TagModule, TooltipModule, DashboardPanelComponent, EmptyStateComponent, RecordCardComponent],
   templateUrl: './dashboard-feed-panel.component.html',
 })
 export class DashboardFeedPanelComponent {
