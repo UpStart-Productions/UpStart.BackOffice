@@ -1,0 +1,6 @@
+Built-in image_gen tool. Edit reference: manila-folders-compact-v2.png.
+
+Use case: precise-object-edit.
+Edit the supplied compact three-folder Manila symbol. Make the folder shapes A LITTLE MORE ROUNDED, while preserving the current composition.
+Change ONLY the contours: increase the softness and radius of the three folders' outer corners by about 30 percent; gently soften the top tab corners and the inward shoulder transitions so every outline flows in smooth generous curves. Allow subtly bowed sides instead of long ruler-straight segments. The result should feel slightly softer, more organic and rounded than the reference, not dramatically inflated. Keep all THREE folders recognizable, each with one distinct raised file tab; do not turn them into blobs or circles.
+Preserve exactly THREE folders, their current compact grouping, original centers, sizes, rotations, layering order and relative overlap. Preserve the same warm peach, ochre and manila-gold palette, the same translucent optical color blending, the darker overlapping regions, the white background, overall mark scale and surrounding whitespace. No new shapes, no outlines, no text, no wordmark, no mascot, no string or fasteners, no shadow, no added texture or 3D. Keep the clean flat graphic character. Only the slightly rounder contour treatment should change.
