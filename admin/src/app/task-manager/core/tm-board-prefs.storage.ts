@@ -2,11 +2,20 @@
 
 export type TmProjectBoardCompletedFilter = 'incomplete' | 'all' | 'completed';
 
+/** Built-in columns, or a custom field id (`manual` = drag order). */
+export type TmBoardSortField = string;
+export type TmBoardSortOrder = 1 | -1;
+
 export type TmProjectBoardPrefs = {
   completedFilter?: TmProjectBoardCompletedFilter;
   tagFilter?: string[];
   /** Section IDs the user has collapsed (view-only; not shared on the project). */
   collapsedSectionIds?: string[];
+  /** How tasks order within each section (per user). */
+  taskSortField?: TmBoardSortField;
+  taskSortOrder?: TmBoardSortOrder;
+  /** @deprecated first sort dropdown; migrated on read */
+  taskSort?: string;
 };
 
 const STORAGE_PREFIX = 'tm-board-prefs';
@@ -43,6 +52,15 @@ export function loadTmProjectBoardPrefs(
         (id): id is string => typeof id === 'string',
       );
     }
+    if (typeof parsed.taskSortField === 'string' && parsed.taskSortField.length > 0) {
+      out.taskSortField = parsed.taskSortField;
+    }
+    if (parsed.taskSortOrder === 1 || parsed.taskSortOrder === -1) {
+      out.taskSortOrder = parsed.taskSortOrder;
+    }
+    if (typeof parsed.taskSort === 'string') {
+      out.taskSort = parsed.taskSort;
+    }
     return out;
   } catch {
     return null;
@@ -61,6 +79,8 @@ export function saveTmProjectBoardPrefs(
       completedFilter: prefs.completedFilter,
       tagFilter: prefs.tagFilter,
       collapsedSectionIds: prefs.collapsedSectionIds,
+      taskSortField: prefs.taskSortField,
+      taskSortOrder: prefs.taskSortOrder,
     };
     localStorage.setItem(storageKey(userId, projectId), JSON.stringify(payload));
   } catch {

@@ -23,6 +23,12 @@
   min-width: var(--tm-grid-min-width, max-content);
 }
 
+.tm-grid--sort-head-only {
+  margin-bottom: 0.5rem;
+  border-radius: var(--content-border-radius);
+  background: var(--surface-card);
+}
+
 .tm-grid-head {
   // Matches PrimeNG p-table header cells used across the app.
   position: sticky;
@@ -38,6 +44,34 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+}
+
+.tm-grid-sort-col {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  gap: 0.35rem;
+
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  &.col-numeric {
+    justify-content: flex-end;
+    text-align: right;
+  }
+
+  &:not(.col-numeric) {
+    justify-content: flex-start;
   }
 }
 

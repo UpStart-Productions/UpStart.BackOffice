@@ -24,7 +24,7 @@ When the project is in **Task Manager**, a **Tasks** card appears above **Defaul
 
 In a task’s detail panel, you can **edit** or **delete your own comment** for **1 hour** after you post it. **Admins** can **delete** anyone’s comment at any time (not edit others’ comments).
 
-On a project task list, hover a row and use the **down arrow** (before the drag handle) to **move the task to another section** without dragging. In the project **⋮** menu, **View as board** shows the same sections as Kanban columns; drag cards between columns to move tasks. **View as list** switches back.
+On a project task list, hover a row and use the **down arrow** (before the drag handle) to **move the task to another section** without dragging. Click a column header (**Task name**, **Assignee**, **Due date**, or a **custom field**) to sort **within each section**, with the same sort icons as tables; click again to reverse, then again for manual drag order. In the project **⋮** menu, **View as board** shows the same sections as Kanban columns; drag cards between columns to move tasks. **View as list** switches back.
 
 ## Time
 
@@ -54,7 +54,7 @@ On a project task list, hover a row and use the **down arrow** (before the drag 
 
 ## Invoices
 
-**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **Add to pipeline** (when your role allows) puts the invoice on a pipeline you pick, in the **lane** you pick on it — one card per pipeline per invoice. Team members with Pipeline access who left pipeline notifications on get an in-app alert when the invoice is added and when the card moves. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue invoices and unpaid invoices due within the next two weeks are highlighted in the table (red and yellow backgrounds).
+**Invoices** lists invoices. **New Invoice** creates a draft. Open a row for detail; drafts open in edit mode. A sent or paid invoice opens a read-only summary with your business logo and bill-to details in the header. **Send** emails the PDF and marks **Sent**. **Mark as sent** does the same without email. **Mark as paid** works from a draft or sent invoice. **Back to draft** and **Mark unpaid** undo **Sent** or **Paid** when you need to fix something. **Void** (formerly Retract) voids a sent invoice and unlinks its time and expenses. **Add to pipeline** (when your role allows) puts the invoice on a pipeline you pick, in the **lane** you pick on it — one card per pipeline per invoice. Team members with Pipeline access who left pipeline notifications on get an in-app alert when the invoice is added and when the card moves. **View PDF** opens the stored PDF from when the invoice was sent in a viewer (the same one task attachments use); **Download PDF**, or **Download** in the viewer, saves that same file. Sent invoices cannot be edited. Overdue invoices and unpaid invoices due within the next two weeks are highlighted in the table (red and yellow backgrounds).
 
 ### Bill to: a client or your organization
 

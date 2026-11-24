@@ -153,10 +153,24 @@ export class InvoiceDetailPage implements OnInit {
     }
     if (inv.status === 'SENT') {
       actions.push({
+        id: 'mark-unsent',
+        label: 'Back to draft',
+        icon: 'pi pi-undo',
+        command: () => void this.markUnsent(),
+      });
+      actions.push({
         id: 'retract',
-        label: 'Retract',
+        label: 'Void',
         icon: 'pi pi-ban',
         command: () => this.confirmRetract(),
+      });
+    }
+    if (inv.status === 'PAID') {
+      actions.push({
+        id: 'unmark-paid',
+        label: 'Mark unpaid',
+        icon: 'pi pi-undo',
+        command: () => void this.unmarkPaid(),
       });
     }
     if (this.canAddToPipeline()) {
@@ -179,7 +193,7 @@ export class InvoiceDetailPage implements OnInit {
     return actions;
   });
 
-  get canMarkPaid(): boolean {
+  get showMarkPaidPrimary(): boolean {
     return this.invoice()?.status === 'SENT';
   }
 
@@ -361,6 +375,28 @@ export class InvoiceDetailPage implements OnInit {
         }
       },
     });
+  }
+
+  async markUnsent() {
+    const inv = this.invoice();
+    if (!inv) return;
+    try {
+      await this.api.post(`/invoices/${inv.id}/mark-unsent`, {});
+      await this.router.navigate(['/invoices', inv.id, 'edit']);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not return to draft');
+    }
+  }
+
+  async unmarkPaid() {
+    const inv = this.invoice();
+    if (!inv) return;
+    try {
+      const updated = await this.api.post<InvoiceDetail>(`/invoices/${inv.id}/unmark-paid`, {});
+      this.applyInvoice(updated);
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not mark unpaid');
+    }
   }
 
   async markPaid() {

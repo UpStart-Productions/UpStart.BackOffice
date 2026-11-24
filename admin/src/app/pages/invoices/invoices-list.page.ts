@@ -287,6 +287,18 @@ export class InvoicesListPage implements OnInit {
         icon: 'pi pi-send',
         command: () => this.send(invoice, false),
       });
+      actions.push({
+        id: 'mark-sent',
+        label: 'Mark as sent',
+        icon: 'pi pi-check-circle',
+        command: () => void this.markSent(invoice),
+      });
+      actions.push({
+        id: 'mark-paid',
+        label: 'Mark as paid',
+        icon: 'pi pi-check',
+        command: () => this.markPaid(invoice),
+      });
     } else if (invoice.status === 'SENT' || invoice.status === 'PAID') {
       actions.push({
         id: 'resend',
@@ -302,13 +314,25 @@ export class InvoicesListPage implements OnInit {
         icon: 'pi pi-check',
         command: () => this.markPaid(invoice),
       });
-    }
-    if (invoice.status === 'SENT') {
+      actions.push({
+        id: 'mark-unsent',
+        label: 'Back to draft',
+        icon: 'pi pi-undo',
+        command: () => void this.markUnsent(invoice),
+      });
       actions.push({
         id: 'retract',
-        label: 'Retract',
+        label: 'Void',
         icon: 'pi pi-ban',
         command: () => this.confirmRetract(invoice),
+      });
+    }
+    if (invoice.status === 'PAID') {
+      actions.push({
+        id: 'unmark-paid',
+        label: 'Mark unpaid',
+        icon: 'pi pi-undo',
+        command: () => void this.unmarkPaid(invoice),
       });
     }
     if (this.session.can('invoices', 'delete')) {
@@ -369,6 +393,36 @@ export class InvoicesListPage implements OnInit {
           : `${invoice.displayNumber} was emailed to ${result.to}.`,
         life: 6000,
       });
+    }
+  }
+
+  async markSent(invoice: Invoice) {
+    this.error.set(null);
+    try {
+      await this.api.post(`/invoices/${invoice.id}/mark-sent`, {});
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not mark as sent');
+    }
+  }
+
+  async markUnsent(invoice: Invoice) {
+    this.error.set(null);
+    try {
+      await this.api.post(`/invoices/${invoice.id}/mark-unsent`, {});
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not return to draft');
+    }
+  }
+
+  async unmarkPaid(invoice: Invoice) {
+    this.error.set(null);
+    try {
+      await this.api.post(`/invoices/${invoice.id}/unmark-paid`, {});
+      await this.load();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Could not mark unpaid');
     }
   }
 

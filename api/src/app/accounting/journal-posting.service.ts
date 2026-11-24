@@ -24,11 +24,27 @@ export class JournalPostingService {
 
   /** Dr Accounts Receivable / Cr Revenue (+ Cr Sales Tax Payable if the invoice carries tax). */
   async postInvoiceIssued(invoiceId: string, client: Client = this.prisma): Promise<void> {
-    const already = await client.journalEntry.findFirst({
-      where: { invoiceId, source: 'INVOICE_ISSUED' },
-      select: { id: true },
+    const latestIssued = await client.journalEntry.findFirst({
+      where: {
+        invoiceId,
+        source: 'INVOICE_ISSUED',
+        NOT: { memo: { contains: 'reversing entry' } },
+      },
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
     });
-    if (already) return;
+    if (latestIssued) {
+      const reversedAfter = await client.journalEntry.findFirst({
+        where: {
+          invoiceId,
+          source: 'INVOICE_ISSUED',
+          memo: { contains: 'reversing entry' },
+          createdAt: { gte: latestIssued.createdAt },
+        },
+        select: { id: true },
+      });
+      if (!reversedAfter) return;
+    }
 
     const invoice = await client.invoice.findUnique({ where: { id: invoiceId } });
     // Invoices billed to the tenant are bills it owes, not revenue: nothing to post.
@@ -69,11 +85,27 @@ export class JournalPostingService {
     paidAt: Date,
     client: Client = this.prisma,
   ): Promise<void> {
-    const already = await client.journalEntry.findFirst({
-      where: { invoiceId, source: 'INVOICE_PAYMENT' },
-      select: { id: true },
+    const latestPayment = await client.journalEntry.findFirst({
+      where: {
+        invoiceId,
+        source: 'INVOICE_PAYMENT',
+        NOT: { memo: { contains: 'reversing entry' } },
+      },
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
     });
-    if (already) return;
+    if (latestPayment) {
+      const reversedAfter = await client.journalEntry.findFirst({
+        where: {
+          invoiceId,
+          source: 'INVOICE_PAYMENT',
+          memo: { contains: 'reversing entry' },
+          createdAt: { gte: latestPayment.createdAt },
+        },
+        select: { id: true },
+      });
+      if (!reversedAfter) return;
+    }
 
     const invoice = await client.invoice.findUnique({ where: { id: invoiceId } });
     if (!invoice || invoice.billTo === 'TENANT') return;
@@ -99,26 +131,89 @@ export class JournalPostingService {
     });
   }
 
-  /** Reverses a previously posted INVOICE_ISSUED entry — called when an invoice is voided. No-op if nothing was ever posted, or already reversed. */
-  async reverseInvoiceIssued(invoiceId: string, client: Client = this.prisma): Promise<void> {
+  /** Reverses a previously posted INVOICE_ISSUED entry. No-op if nothing was posted or already reversed. */
+  async reverseInvoiceIssued(
+    invoiceId: string,
+    reason: 'voided' | 'draft',
+    client: Client = this.prisma,
+  ): Promise<void> {
     const original = await client.journalEntry.findFirst({
-      where: { invoiceId, source: 'INVOICE_ISSUED' },
+      where: {
+        invoiceId,
+        source: 'INVOICE_ISSUED',
+        NOT: { memo: { contains: 'reversing entry' } },
+      },
       include: { lines: true, invoice: { select: { displayNumber: true } } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
     if (!original) return;
 
-    const alreadyReversed = await client.journalEntry.findFirst({
-      where: { invoiceId, source: 'INVOICE_ISSUED', memo: { contains: 'voided' } },
+    const reversedThisIssue = await client.journalEntry.findFirst({
+      where: {
+        invoiceId,
+        source: 'INVOICE_ISSUED',
+        memo: { contains: 'reversing entry' },
+        createdAt: { gte: original.createdAt },
+      },
       select: { id: true },
     });
-    if (alreadyReversed) return;
+    if (reversedThisIssue) return;
+
+    const number = original.invoice?.displayNumber ?? '';
+    const memo =
+      reason === 'voided'
+        ? `Invoice ${number} voided — reversing entry`
+        : `Invoice ${number} returned to draft — reversing entry`;
 
     await client.journalEntry.create({
       data: {
         date: new Date(),
-        memo: `Invoice ${original.invoice?.displayNumber ?? ''} voided — reversing entry`,
+        memo,
         source: 'INVOICE_ISSUED',
+        invoiceId,
+        lines: {
+          createMany: {
+            data: original.lines.map((line) => ({
+              accountId: line.accountId,
+              debit: line.credit,
+              credit: line.debit,
+            })),
+          },
+        },
+      },
+    });
+  }
+
+  /** Reverses INVOICE_PAYMENT. No-op if nothing was posted or already reversed. */
+  async reverseInvoicePayment(invoiceId: string, client: Client = this.prisma): Promise<void> {
+    const original = await client.journalEntry.findFirst({
+      where: {
+        invoiceId,
+        source: 'INVOICE_PAYMENT',
+        NOT: { memo: { contains: 'reversing entry' } },
+      },
+      include: { lines: true, invoice: { select: { displayNumber: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!original) return;
+
+    const reversedThisPayment = await client.journalEntry.findFirst({
+      where: {
+        invoiceId,
+        source: 'INVOICE_PAYMENT',
+        memo: { contains: 'reversing entry' },
+        createdAt: { gte: original.createdAt },
+      },
+      select: { id: true },
+    });
+    if (reversedThisPayment) return;
+
+    const number = original.invoice?.displayNumber ?? '';
+    await client.journalEntry.create({
+      data: {
+        date: new Date(),
+        memo: `Payment for invoice ${number} undone — reversing entry`,
+        source: 'INVOICE_PAYMENT',
         invoiceId,
         lines: {
           createMany: {

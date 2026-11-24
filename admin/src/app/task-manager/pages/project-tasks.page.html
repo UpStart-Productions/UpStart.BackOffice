@@ -117,7 +117,61 @@
       </div>
     </div>
 
+    <ng-template #taskSortHead>
+      <div class="tm-grid-head" [style.grid-template-columns]="gridTemplate()" role="row">
+        <button
+          type="button"
+          class="tm-grid-cell tm-grid-sort-col p-datatable-sortable-column"
+          [class.p-datatable-column-sorted]="sortIconOrder('name') !== 0"
+          (click)="toggleColumnSort('name')"
+        >
+          <span>Task name</span>
+          <app-tm-grid-sort-icon [order]="sortIconOrder('name')" />
+        </button>
+        <button
+          type="button"
+          class="tm-grid-cell tm-grid-sort-col p-datatable-sortable-column"
+          [class.p-datatable-column-sorted]="sortIconOrder('assignee') !== 0"
+          (click)="toggleColumnSort('assignee')"
+        >
+          <span>Assignee</span>
+          <app-tm-grid-sort-icon [order]="sortIconOrder('assignee')" />
+        </button>
+        <button
+          type="button"
+          class="tm-grid-cell tm-grid-sort-col p-datatable-sortable-column"
+          [class.p-datatable-column-sorted]="sortIconOrder('dueOn') !== 0"
+          (click)="toggleColumnSort('dueOn')"
+        >
+          <span>Due date</span>
+          <app-tm-grid-sort-icon [order]="sortIconOrder('dueOn')" />
+        </button>
+        <div class="tm-grid-cell" role="columnheader">Tags</div>
+        @for (f of fields(); track f.id) {
+          <button
+            type="button"
+            class="tm-grid-cell tm-grid-sort-col p-datatable-sortable-column"
+            [class.p-datatable-column-sorted]="sortIconOrder(f.id) !== 0"
+            [class.col-numeric]="f.type === 'NUMBER'"
+            [title]="f.name"
+            (click)="toggleColumnSort(f.id)"
+          >
+            <span>{{ f.name }}</span>
+            <app-tm-grid-sort-icon [order]="sortIconOrder(f.id)" />
+          </button>
+        }
+        @if (canEdit()) {
+          <div class="tm-grid-cell tm-grid-add-col" role="columnheader">
+            <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="fieldsOpen.set(true)" pTooltip="Add field" tooltipPosition="left" aria-label="Add custom field"><i class="pi pi-plus"></i></button>
+          </div>
+        }
+      </div>
+    </ng-template>
+
     @if (boardView()) {
+      <div class="tm-grid tm-grid--sort-head-only" [style.--tm-grid-min-width]="gridMinWidth() + 'px'">
+        <ng-container *ngTemplateOutlet="taskSortHead" />
+      </div>
       <div class="pipeline-board tm-task-board" cdkDropListGroup role="region" [attr.aria-label]="p.name + ' board'">
         @for (g of groups(); track g.section?.id ?? NO_SECTION) {
           <div class="pipeline-col">
@@ -232,20 +286,7 @@
       </div>
     } @else {
     <div class="tm-grid" [style.--tm-grid-min-width]="gridMinWidth() + 'px'" role="treegrid" [attr.aria-label]="p.name + ' tasks'" cdkDropListGroup>
-      <div class="tm-grid-head" [style.grid-template-columns]="gridTemplate()" role="row">
-        <div class="tm-grid-cell" role="columnheader">Task name</div>
-        <div class="tm-grid-cell" role="columnheader">Assignee</div>
-        <div class="tm-grid-cell" role="columnheader">Due date</div>
-        <div class="tm-grid-cell" role="columnheader">Tags</div>
-        @for (f of fields(); track f.id) {
-          <div class="tm-grid-cell" role="columnheader" [title]="f.name">{{ f.name }}</div>
-        }
-        @if (canEdit()) {
-          <div class="tm-grid-cell tm-grid-add-col" role="columnheader">
-            <button type="button" class="tm-icon-btn tm-icon-btn-sm" (click)="fieldsOpen.set(true)" pTooltip="Add field" tooltipPosition="left" aria-label="Add custom field"><i class="pi pi-plus"></i></button>
-          </div>
-        }
-      </div>
+      <ng-container *ngTemplateOutlet="taskSortHead" />
 
       @for (g of groups(); track g.section?.id ?? NO_SECTION) {
         <div class="tm-section" role="rowgroup">

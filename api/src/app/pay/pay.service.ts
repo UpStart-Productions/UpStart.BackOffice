@@ -229,6 +229,13 @@ export class PayService {
     });
   }
 
+  async reopenForInvoice(invoiceId: string): Promise<void> {
+    await this.prisma.payable.updateMany({
+      where: { invoiceId, status: 'PAID' },
+      data: { status: 'OPEN', paidAt: null },
+    });
+  }
+
   async cancelForInvoice(invoiceId: string): Promise<void> {
     await this.prisma.payable.updateMany({
       where: { invoiceId, status: 'OPEN' },

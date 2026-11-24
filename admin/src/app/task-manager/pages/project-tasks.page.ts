@@ -12,6 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -28,8 +29,11 @@ import { SessionService } from '../../core/session.service';
 import {
   loadTmProjectBoardPrefs,
   saveTmProjectBoardPrefs,
+  type TmBoardSortField,
+  type TmBoardSortOrder,
   type TmProjectBoardCompletedFilter,
 } from '../core/tm-board-prefs.storage';
+import { migrateLegacyTaskSort, sortTasksForBoard } from '../core/tm-task-board-sort.util';
 import { saveTmLastBoard } from '../core/tm-last-board.storage';
 import { TmApiService } from '../core/tm-api.service';
 import { chipColors, dueLabel, dueTone, personDisplayName, PROJECT_COLORS } from '../core/tm-format.util';
@@ -37,6 +41,7 @@ import { TmStoreService } from '../core/tm-store.service';
 import { Person, TaskSummary, TmProject, TmSection } from '../core/tm.types';
 import { TmAddProjectDialogComponent } from '../ui/add-project-dialog.component';
 import { TmBulkActionsComponent } from '../ui/bulk-actions.component';
+import { TmGridSortIconComponent } from '../ui/tm-grid-sort-icon.component';
 import { TmDueDatePickerComponent } from '../ui/due-date-picker.component';
 import { TmFieldCellComponent } from '../ui/field-cell.component';
 import { TmFieldsDialogComponent } from '../ui/fields-dialog.component';
@@ -69,6 +74,7 @@ function taskIdFromProjectTasksUrl(url: string): string | null {
   selector: 'app-tm-project-tasks-page',
   standalone: true,
   imports: [PageComponent, RowActionsMenuComponent, LucideIconComponent, LucideIconPickerPanelComponent, 
+    NgTemplateOutlet,
     FormsModule,
     RouterLink,
     RouterOutlet,
@@ -96,6 +102,7 @@ function taskIdFromProjectTasksUrl(url: string): string | null {
     TmFieldsDialogComponent,
     TmBulkActionsComponent,
     TmAddProjectDialogComponent,
+    TmGridSortIconComponent,
   ],
   templateUrl: './project-tasks.page.html',
   styleUrl: '../../pages/pipeline/pipeline-board.page.scss',
@@ -141,6 +148,8 @@ export class ProjectTasksPage implements OnDestroy {
   completedFilter = signal<CompletedFilter>('all');
   search = signal('');
   tagFilter = signal<string[]>([]);
+  taskSortField = signal<TmBoardSortField>('manual');
+  taskSortOrder = signal<TmBoardSortOrder>(1);
   /** Tasks added on this page: they stay visible even when they don't match the search or tag filter (Asana), until the filter changes or the list reloads. */
   private readonly justAdded = signal<Set<string>>(new Set());
   /** Per-user collapsed sections (localStorage); not shared via API. */
@@ -207,6 +216,8 @@ export class ProjectTasksPage implements OnDestroy {
     const q = this.search().trim();
     const filter = this.completedFilter();
     const tagIds = this.tagFilter();
+    const sortField = this.taskSortField();
+    const sortOrder = this.taskSortOrder();
     const justAdded = this.justAdded();
     const visible = this.tasks().filter((t) => {
       if (justAdded.has(t.id)) return true;
@@ -220,7 +231,11 @@ export class ProjectTasksPage implements OnDestroy {
       if (!bySection.has(key)) bySection.set(key, []);
       bySection.get(key)!.push(t);
     }
-    for (const list of bySection.values()) list.sort((a, b) => a.sortOrder - b.sortOrder);
+    for (const list of bySection.values()) {
+      const sorted = sortTasksForBoard(list, sortField, sortOrder, project.customFields ?? []);
+      list.length = 0;
+      list.push(...sorted);
+    }
     const groups: Group[] = [];
     const orphans = bySection.get(NO_SECTION);
     if (orphans?.length) groups.push({ section: null, tasks: orphans });
@@ -289,6 +304,17 @@ export class ProjectTasksPage implements OnDestroy {
       ]);
       if (seq !== this.loadSeq) return;
       this.project.set(project);
+      const sortField = this.taskSortField();
+      if (
+        sortField !== 'manual' &&
+        sortField !== 'name' &&
+        sortField !== 'assignee' &&
+        sortField !== 'dueOn' &&
+        !project.customFields.some((f) => f.id === sortField)
+      ) {
+        this.taskSortField.set('manual');
+        this.taskSortOrder.set(1);
+      }
       this.tasks.set(tasks);
       this.store.people(projectId).then((p) => this.people.set(p)).catch(() => undefined);
     } catch (err) {
@@ -311,6 +337,34 @@ export class ProjectTasksPage implements OnDestroy {
     this.persistBoardPrefs();
   }
 
+  toggleColumnSort(column: string) {
+    const field = this.taskSortField();
+    const order = this.taskSortOrder();
+    if (field !== column) {
+      this.taskSortField.set(column);
+      this.taskSortOrder.set(1);
+    } else if (order === 1) {
+      this.taskSortOrder.set(-1);
+    } else {
+      this.taskSortField.set('manual');
+      this.taskSortOrder.set(1);
+    }
+    this.persistBoardPrefs();
+  }
+
+  sortIconOrder(column: string): 0 | 1 | -1 {
+    if (this.taskSortField() !== column) return 0;
+    return this.taskSortOrder();
+  }
+
+  private useManualSort() {
+    if (this.taskSortField() !== 'manual') {
+      this.taskSortField.set('manual');
+      this.taskSortOrder.set(1);
+      this.persistBoardPrefs();
+    }
+  }
+
   onSearchChange(value: string) {
     this.search.set(value);
     this.justAdded.set(new Set());
@@ -329,6 +383,8 @@ export class ProjectTasksPage implements OnDestroy {
       this.completedFilter.set('all');
       this.tagFilter.set([]);
       this.collapsedSectionIds.set(new Set());
+      this.taskSortField.set('manual');
+      this.taskSortOrder.set(1);
     }
     const key = userId ? `${userId}:${projectId}` : null;
     if (!key || this.boardPrefsKey === key) return;
@@ -340,6 +396,15 @@ export class ProjectTasksPage implements OnDestroy {
     if (prefs.collapsedSectionIds?.length) {
       this.collapsedSectionIds.set(new Set(prefs.collapsedSectionIds));
     }
+    if (prefs.taskSortField) this.taskSortField.set(prefs.taskSortField);
+    if (prefs.taskSortOrder) this.taskSortOrder.set(prefs.taskSortOrder);
+    else if (prefs.taskSort) {
+      const migrated = migrateLegacyTaskSort(prefs.taskSort);
+      if (migrated) {
+        this.taskSortField.set(migrated.field);
+        this.taskSortOrder.set(migrated.order);
+      }
+    }
   }
 
   private persistBoardPrefs() {
@@ -349,6 +414,8 @@ export class ProjectTasksPage implements OnDestroy {
       completedFilter: this.completedFilter(),
       tagFilter: this.tagFilter(),
       collapsedSectionIds: [...this.collapsedSectionIds()],
+      taskSortField: this.taskSortField(),
+      taskSortOrder: this.taskSortOrder(),
     });
   }
 
@@ -410,6 +477,7 @@ export class ProjectTasksPage implements OnDestroy {
     this.rowSectionPop().hide();
     this.rowMoveTask.set(null);
     if (!task) return;
+    this.useManualSort();
     const targetGroup = this.groups().find((g) => (g.section?.id ?? null) === sectionId);
     const siblings = (targetGroup?.tasks ?? []).filter((t) => t.id !== task.id);
     const after = siblings.length ? siblings[siblings.length - 1] : null;
@@ -502,6 +570,7 @@ export class ProjectTasksPage implements OnDestroy {
     this.bulkSectionPop().hide();
     const tasks = this.selectedTasksInOrder();
     if (!tasks.length) return;
+    this.useManualSort();
     let afterId: string | null = null;
     try {
       for (const task of tasks) {
@@ -857,6 +926,7 @@ export class ProjectTasksPage implements OnDestroy {
     const target = event.container.data;
     const sameList = event.previousContainer === event.container;
     if (sameList && event.previousIndex === event.currentIndex) return;
+    this.useManualSort();
     const siblings = target.tasks.filter((t) => t.id !== task.id);
     const after = event.currentIndex > 0 ? siblings[event.currentIndex - 1] : null;
     const before = siblings[event.currentIndex] ?? null;

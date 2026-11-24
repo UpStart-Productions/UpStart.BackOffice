@@ -14,6 +14,7 @@ import { StorageFoldersService } from '../storage/storage-folders.service';
 import { CreateInvoiceDto, CreateInvoiceLineItemDto } from './dto/create-invoice.dto';
 import { InvoicePreviewQueryDto } from './dto/invoice-preview-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
+import { MarkInvoiceSentDto } from './dto/mark-invoice-sent.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { AddInvoicePipelineDto } from './dto/invoice-pipeline.dto';
 import { InvoicePipelineService } from './invoice-pipeline.service';
@@ -511,7 +512,7 @@ export class InvoicesController {
       await this.journalPosting.postInvoiceIssued(invoice.id);
     }
     if (dto.status === 'VOID') {
-      await this.journalPosting.reverseInvoiceIssued(invoice.id);
+      await this.journalPosting.reverseInvoiceIssued(invoice.id, 'voided');
       await this.pay.cancelForInvoice(invoice.id);
     }
 
@@ -575,28 +576,140 @@ export class InvoicesController {
   }
 
   @Action('edit')
-  @Post(':id/mark-paid')
-  async markPaid(@Req() req: Request, @Param('id') id: string, @Body() dto: MarkInvoicePaidDto) {
-    const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
+  @Post(':id/mark-sent')
+  async markSent(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: MarkInvoiceSentDto,
+  ) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
+    });
     if (!existing) throw new NotFoundException('Invoice not found');
-    if (existing.status !== 'SENT') {
-      throw new BadRequestException('Only sent invoices can be marked as paid');
+    if (existing.status === 'VOID') {
+      throw new BadRequestException('Cannot change a void invoice');
+    }
+    if (existing.status === 'PAID') {
+      throw new BadRequestException('Mark the invoice unpaid first');
+    }
+    if (existing.status === 'SENT') {
+      const invoice = await this.prisma.invoice.findUniqueOrThrow({
+        where: { id },
+        include: invoiceInclude,
+      });
+      return withLinkIds(invoice);
+    }
+
+    const sentAt = dto.sentAt ? new Date(dto.sentAt) : new Date();
+    const invoice = await this.prisma.invoice.update({
+      where: { id },
+      data: { status: 'SENT', sentAt },
+      include: invoiceInclude,
+    });
+
+    await this.journalPosting.postInvoiceIssued(id);
+    await this.invoicePdf.renderAndStore(invoice);
+    return withLinkIds(invoice);
+  }
+
+  @Action('edit')
+  @Post(':id/mark-unsent')
+  async markUnsent(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
+    });
+    if (!existing) throw new NotFoundException('Invoice not found');
+    if (existing.status === 'VOID') {
+      throw new BadRequestException('Cannot change a void invoice');
+    }
+    if (existing.status === 'PAID') {
+      throw new BadRequestException('Mark the invoice unpaid first');
+    }
+    if (existing.status === 'DRAFT') {
+      const invoice = await this.prisma.invoice.findUniqueOrThrow({
+        where: { id },
+        include: invoiceInclude,
+      });
+      return withLinkIds(invoice);
     }
 
     const invoice = await this.prisma.invoice.update({
       where: { id },
+      data: { status: 'DRAFT', sentAt: null },
+      include: invoiceInclude,
+    });
+
+    await this.journalPosting.reverseInvoiceIssued(id, 'draft');
+    await this.storageFolders.removeInvoicePdf(invoice.clientId, invoice.displayNumber);
+    return withLinkIds(invoice);
+  }
+
+  @Action('edit')
+  @Post(':id/mark-paid')
+  async markPaid(@Req() req: Request, @Param('id') id: string, @Body() dto: MarkInvoicePaidDto) {
+    const existing = await this.prisma.invoice.findFirst({ where: { id, ...(await this.scope(req.user as UserContext)) } });
+    if (!existing) throw new NotFoundException('Invoice not found');
+    if (existing.status === 'VOID') {
+      throw new BadRequestException('Cannot mark a void invoice as paid');
+    }
+    if (existing.status === 'PAID') {
+      const invoice = await this.prisma.invoice.findUniqueOrThrow({
+        where: { id },
+        include: invoiceInclude,
+      });
+      return withLinkIds(invoice);
+    }
+
+    const paidAt = new Date(dto.paidAt);
+    const wasDraft = existing.status === 'DRAFT';
+    const invoice = await this.prisma.invoice.update({
+      where: { id },
       data: {
         status: 'PAID',
-        paidAt: new Date(dto.paidAt),
+        paidAt,
         amountPaid: dto.amountPaid,
+        ...(wasDraft && !existing.sentAt ? { sentAt: paidAt } : {}),
       },
       include: invoiceInclude,
     });
 
-    await this.journalPosting.postInvoicePayment(invoice.id, dto.amountPaid, new Date(dto.paidAt));
-    await this.pay.markPaidFromManual(invoice.id, new Date(dto.paidAt));
+    if (wasDraft) {
+      await this.journalPosting.postInvoiceIssued(id);
+      await this.invoicePdf.renderAndStore(invoice);
+    }
+    await this.journalPosting.postInvoicePayment(invoice.id, dto.amountPaid, paidAt);
+    await this.pay.markPaidFromManual(invoice.id, paidAt);
 
-    return invoice;
+    return withLinkIds(invoice);
+  }
+
+  @Action('edit')
+  @Post(':id/unmark-paid')
+  async unmarkPaid(@Req() req: Request, @Param('id') id: string) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: { id, ...(await this.scope(req.user as UserContext)) },
+    });
+    if (!existing) throw new NotFoundException('Invoice not found');
+    if (existing.status === 'VOID') {
+      throw new BadRequestException('Cannot change a void invoice');
+    }
+    if (existing.status !== 'PAID') {
+      const invoice = await this.prisma.invoice.findUniqueOrThrow({
+        where: { id },
+        include: invoiceInclude,
+      });
+      return withLinkIds(invoice);
+    }
+
+    const invoice = await this.prisma.invoice.update({
+      where: { id },
+      data: { status: 'SENT', paidAt: null, amountPaid: null },
+      include: invoiceInclude,
+    });
+
+    await this.journalPosting.reverseInvoicePayment(id);
+    await this.pay.reopenForInvoice(id);
+    return withLinkIds(invoice);
   }
 
   /** Unsend a sent invoice (status → VOID); frees linked time and expenses. */
@@ -627,7 +740,7 @@ export class InvoicesController {
       });
     });
 
-    await this.journalPosting.reverseInvoiceIssued(invoice.id);
+    await this.journalPosting.reverseInvoiceIssued(invoice.id, 'voided');
     await this.pay.cancelForInvoice(invoice.id);
     await this.invoicePdf.renderAndStore(invoice);
     return withLinkIds(invoice);

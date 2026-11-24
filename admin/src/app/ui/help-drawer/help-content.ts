@@ -40,7 +40,7 @@ const INVOICE_FORM: HelpArticle = {
     },
     {
       heading: 'Saving and sending',
-      body: 'Save Invoice keeps it as a draft. Download PDF shows what the client will get. Send emails it with the PDF attached: choose the client email, a project contact or another address, and optionally add a message, which replaces "Thank you for your business."',
+      body: 'Save Invoice keeps it as a draft. Download PDF shows what the client will get. Send emails it with the PDF attached: choose the client email, a project contact or another address, and optionally add a message, which replaces "Thank you for your business." Mark as sent skips email; Mark as paid can run from a draft. Back to draft and Mark unpaid undo Sent or Paid.',
     },
   ],
 };
@@ -522,11 +522,11 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Board view',
-        body: 'Open the project ⋮ menu and choose View as board. Columns are the same sections as in list view; drag cards between columns to change a task\'s section. View as list switches back. Filters and search work in both views.',
+        body: 'Open the project ⋮ menu and choose View as board. The sort row above the board uses the same Task name, Assignee, and Due date headers as list view. Columns are the same sections as in list view; drag cards between columns to change a task\'s section. View as list switches back. Filters and search work in both views.',
       },
       {
         heading: 'Moving and bulk actions',
-        body: 'Drag tasks to reorder or move between sections. Hover a task row and use the down arrow (left of the drag handle) to move it to another section. Select several to change them together. A task can also be in another project.',
+        body: 'Click a column header (Task name, Assignee, Due date, or any custom field) to sort tasks inside each section, with the same sort icons as tables. Click again to reverse; a third click returns to manual order. Dragging or moving a task also switches back to manual order. Drag tasks to reorder or move between sections. Hover a task row and use the down arrow (left of the drag handle) to move it to another section. Select several to change them together. A task can also be in another project.',
       },
       {
         heading: 'Customize',
@@ -659,7 +659,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Status',
-        body: 'Draft until it\'s sent, then Sent, and Paid once you record payment. Drafts open in edit mode; other invoices open the detail view.',
+        body: 'Draft, Sent, or Paid — change status from the row ⋮ menu or the invoice screen. Drafts open in edit mode; sent and paid invoices open the detail view. Back to draft and Mark unpaid reverse Sent or Paid.',
       },
       {
         heading: 'Finding invoices',
@@ -675,7 +675,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
     sections: [
       {
         heading: 'Mark as paid',
-        body: 'Record a payment with the amount and date paid. Paid shows below the total.',
+        body: 'Record a payment with the amount and date paid. Paid shows below the total. Mark unpaid returns the invoice to Sent.',
       },
       {
         heading: 'Resend',

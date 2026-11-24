@@ -22,6 +22,7 @@ import { DateInputComponent } from '../../ui/date-input/date-input.component';
 import { PeriodPickerComponent } from '../../ui/period-picker/period-picker.component';
 import { defaultPeriod } from '../../core/period.util';
 import { InvoiceSendDialogService } from './invoice-send-dialog.service';
+import { InvoiceMarkPaidDialogService } from './invoice-mark-paid-dialog.service';
 import { HelpTextComponent } from '../../ui/help-text/help-text.component';
 import { TenantBrandingService } from '../../core/tenant-branding.service';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -109,6 +110,7 @@ export class InvoiceFormPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly invoiceSendDialog = inject(InvoiceSendDialogService);
+  private readonly invoiceMarkPaidDialog = inject(InvoiceMarkPaidDialogService);
   private readonly session = inject(SessionService);
   private readonly tenantBranding = inject(TenantBrandingService);
   private readonly confirmDelete = inject(ConfirmDeleteService);
@@ -178,6 +180,18 @@ export class InvoiceFormPage implements OnInit {
         label: 'Send',
         icon: 'pi pi-send',
         command: () => void this.sendToClient(),
+      },
+      {
+        id: 'mark-sent',
+        label: 'Mark as sent',
+        icon: 'pi pi-check-circle',
+        command: () => void this.markSent(),
+      },
+      {
+        id: 'mark-paid',
+        label: 'Mark as paid',
+        icon: 'pi pi-check',
+        command: () => void this.markPaidFromDraft(),
       },
     ];
     if (this.session.can('invoices', 'delete')) {
@@ -545,6 +559,54 @@ export class InvoiceFormPage implements OnInit {
         summary: 'Download failed',
         detail: err instanceof Error ? err.message : 'PDF download failed',
       });
+    }
+  }
+
+  async markSent() {
+    const id = this.id();
+    const number = this.displayNumber();
+    if (!id || !number) return;
+    if (this.isDirty()) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Save first',
+        detail: 'Save your changes before changing the invoice status.',
+        life: 5000,
+      });
+      return;
+    }
+    try {
+      await this.api.post(`/invoices/${id}/mark-sent`, {});
+      await this.router.navigate(['/invoices', id]);
+    } catch (err) {
+      this.toast.add({
+        severity: 'error',
+        summary: 'Could not mark as sent',
+        detail: err instanceof Error ? err.message.replace(/^API error \d+: /, '') : 'Request failed',
+      });
+    }
+  }
+
+  async markPaidFromDraft() {
+    const id = this.id();
+    const number = this.displayNumber();
+    if (!id || !number) return;
+    if (this.isDirty()) {
+      this.toast.add({
+        severity: 'warn',
+        summary: 'Save first',
+        detail: 'Save your changes before changing the invoice status.',
+        life: 5000,
+      });
+      return;
+    }
+    const result = await this.invoiceMarkPaidDialog.open({
+      invoiceId: id,
+      displayNumber: number,
+      total: this.total,
+    });
+    if (result?.marked) {
+      await this.router.navigate(['/invoices', id]);
     }
   }
 
