@@ -1,0 +1,11 @@
+Built-in image_gen tool. Edit reference: manila-rounded-motif-gold-triangle-v2.png.
+Change triangle corner radius only; preserve all other artwork.
+
+Use case: precise-object-edit.
+Edit ONLY the corner rounding of the GOLD DOWNWARD TRIANGLE in this existing Manila logo.
+The user wants the radius of ALL THREE triangle corners to equal the RADIUS OF EITHER BOTTOM IVORY CIRCLE. Those bottom circles are approximately 94 pixels in diameter on this 1254px canvas, so use a circular fillet radius of approximately 47 pixels at EACH triangle corner. RADIUS 47, not diameter 47. The current triangle corners are too tight; make them visibly about twice as generously rounded.
+Use true smooth circular arcs of that same 47px radius on the upper-left corner, upper-right corner, and downward-pointing bottom corner, tangent to the triangle's three straight sides. Keep a horizontal top segment and the two straight sloping sides between the arcs. The result remains a downward triangle, with generous consistent rounding, not a blob or teardrop.
+Keep the triangle's existing center, orientation, underlying triangular proportions and gold color. Do not enlarge or shift the triangle to compensate for the rounding; just replace its current tighter corner arcs with the larger circle-matched fillets.
+
+Preserve EVERYTHING ELSE exactly: all FOUR ivory diagonal capsule bars and BOTH ivory circles, their positions, dimensions, geometry, radii, colors, gaps and stroke widths; charcoal background, canvas, whitespace, overall logo placement and scale. Do not resize the bottom circles. No new shapes, gradients, shadows, text, labels, extra details or mascot.
+Critical geometry requirement: each triangle corner arc must have the SAME radius as a bottom circle, approximately 47 pixels on the supplied canvas. This is a small precise refinement of the triangle only.

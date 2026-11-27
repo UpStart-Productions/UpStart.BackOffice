@@ -21,7 +21,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Popover } from 'primeng/popover';
 import { AppPopoverModule } from '../../core/app-popover.module';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { SelectButtonModule } from 'primeng/selectbutton';
+import { SelectModule } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, map, merge, of } from 'rxjs';
 import { ConfirmDeleteService } from '../../core/confirm-delete.service';
@@ -82,7 +82,7 @@ function taskIdFromProjectTasksUrl(url: string): string | null {
     InputTextModule,
     ToolbarSearchFieldComponent,
     AppPopoverModule,
-    SelectButtonModule,
+    SelectModule,
     MultiSelectModule,
     TmTagPickerComponent,
     TooltipModule,

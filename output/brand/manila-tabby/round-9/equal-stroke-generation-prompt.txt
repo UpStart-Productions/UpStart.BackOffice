@@ -1,0 +1,14 @@
+Built-in image_gen tool.
+Image 1 edit target: manila-rounded-bars-full-width-v2.png
+Image 2 stroke-weight reference: rounded-bars-reference.png
+
+Use case: precise-object-edit.
+IMAGE 1 is the edit target: the latest clean Manila logo with six colored vertical bars and three continuous ivory horizontal bars.
+IMAGE 2 is the user's ORIGINAL artwork and the authority for STROKE THICKNESS.
+
+Correction: every horizontal and vertical bar must have the SAME STROKE THICKNESS. In IMAGE 1 the ivory horizontals are approximately half the weight of the verticals; that is wrong. INCREASE THE HEIGHT OF ALL THREE IVORY HORIZONTAL BARS to equal the WIDTH of a colored vertical bar. If each vertical is 108 units wide, every horizontal must be 108 units tall. One uniform stroke weight for all NINE bars, with matching semicircular end caps of radius 54 units. The long top bar should be a thick substantial capsule, not a thin line. The medium and shortest bars must have EXACTLY THE SAME HEIGHT as that top bar.
+
+Keep the horizontal LENGTHS as they are: top spans the full outer vertical pair, middle spans the medium pair, shortest spans the innermost pair. Each remains one continuous unbroken ivory bar, not separate caps.
+Retain the six colored verticals with the same widths, horizontal positions, color order and shared baseline. Adjust horizontal-bar heights and the tops of the corresponding vertical bars only as needed to maintain a small consistent charcoal gap between each ivory horizontal and the colored bars immediately below its two ends. The three nested levels must remain neatly spaced without touching. The ivory bars should look like the SAME rounded strip turned 90 degrees from the colored uprights, exactly the relationship in IMAGE 2.
+
+Preserve deep charcoal background, warm ivory horizontal color, cool blue/teal/cyan left verticals and warm gold/orange/terracotta right verticals, centered clean logo presentation with generous whitespace. No texture from the photographed original; no words, labels, extra shapes or new decoration. Critical check before finishing: the horizontal bar HEIGHT equals the vertical bar WIDTH throughout. Deliver the corrected single symbol.

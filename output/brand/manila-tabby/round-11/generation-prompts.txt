@@ -1,0 +1,16 @@
+Manila layered M and lowercase wordmark
+Built-in image_gen tool. Reference: layered-wordmark-reference.png, supplied by Jeff.
+Tabby remains unchanged.
+
+Cool treatment:
+Use case: logo-brand.
+The supplied image is a STYLE REFERENCE for a clean horizontal logo treatment: a compact overlapping symbol beside a bold lowercase wordmark, abundant pale background, strong near-black foreground and two softer colored layers behind.
+Create an original Manila identity in that visual style. Exact new wordmark text: "manila", all lowercase, spelled m-a-n-i-l-a. Do NOT reproduce the reference's word or its exact three tilted card shapes.
+
+Symbol: an unmistakable UPPERCASE M, built from a simple bold softly rounded continuous silhouette with two strong vertical outer stems and a clear central valley. Rounded upper corners, rounded bottom terminals, open counters, sophisticated restrained geometry. No envelope flap, no multicolor ribbon crossing, no Gmail construction. Show exactly THREE copies of this SAME M silhouette layered together: the front M is solid near-black ink; a second M sits slightly offset to the right behind it in clear teal-cyan; a third M sits slightly farther right behind it in pale muted mint. Offsets about 14% of one M's width per layer, with only a tiny upward displacement. Mostly overlap, so the result is a compact layered M mark with the colored edges peeking out at the right, not three separate M letters or a long series. The front black M must stay fully readable. No surrounding tile, folder body, file tab, paperclip loop, page corner or extra icon. Original brand symbol geometry, not a copy of the source graphic.
+
+The teal and mint rear layers may softly fade toward the very light background at their lower edges like the source, suggesting translucency and paper layers, but use controlled subtle color transitions, no photorealism, gloss, texture, drop shadows or 3D extrusion. Foreground M and wordmark remain solid near-black.
+
+Wordmark: "manila" beside the symbol in a beautifully kerned bold geometric-humanist sans, round open counters, professional friendly proportions, double-storey a, clean sturdy l, round i dot. Match the source's confident typographic presence while using an original letterform treatment for manila. Keep a generous clean gap between mark and name. The symbol's height should be approximately the wordmark's ascender height or just slightly taller, so the lockup feels cohesive and compact rather than a huge icon next to tiny text.
+
+Composition: ONE finished horizontal logo lockup, centered on a clean very pale cool-white landscape canvas with generous whitespace, occupying roughly 70% of canvas width. No concept-board labels, captions, slogans, alternate samples, office props, secondary logos or mascot. Tabby remains unchanged and is not part of this image. Focus on the same complete treatment as the supplied reference: strong lowercase name, layered compact icon, controlled color depth and visual simplicity.

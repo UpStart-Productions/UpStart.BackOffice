@@ -1,0 +1,9 @@
+Built-in image_gen tool. Edit reference: manila-diagonal-rounded-bars-v1.png.
+Preserve approved base motif; add only rounded gold triangle.
+
+Use case: precise-object-edit.
+Edit this approved Manila diagonal symbol by adding ONE new shape: a downward-pointing colored triangle with softly rounded corners in the TOP CENTER empty space between the two upper diagonal strokes.
+Triangle: warm manila-gold approximately #E7AF4C, solid flat fill. Horizontally centered on the motif, flat horizontal top edge, bottom apex pointing straight DOWN, all THREE corners visibly rounded with a generous but restrained radius. It should still read unmistakably as a triangle, not a teardrop, shield or play button. Size approximately 45 percent of the existing symbol's width and about 30 percent of its height, with its top edge visually level with the upper ends of the ivory diagonal strokes. Its downward tip points into the central V-shaped negative space. Keep an intentional charcoal gap around it so it does not touch, overlap, merge into or cover either ivory bar. The triangle is a compact color accent integrated into the top-center gap, not an enormous background container or a tiny floating dot.
+
+Preserve every existing element EXACTLY: all FOUR ivory diagonal capsule bars, BOTH ivory bottom circles, their precise shapes, lengths, stroke weights, semicircular caps, positions, rotations, gaps, color and spacing. Do not move or resize the symbol to make room. Preserve the charcoal background, canvas size and overall composition. Final element count is four bars, two circles, one rounded downward triangle.
+No changes elsewhere, no wordmark, text, outlines, shadows, gradients, textures, new circles, extra triangles, labels or mascot. Tabby is locked and unrelated. This is a single colored addition to the approved motif.

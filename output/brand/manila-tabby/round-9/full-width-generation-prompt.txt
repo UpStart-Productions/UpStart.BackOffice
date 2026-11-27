@@ -1,0 +1,15 @@
+Built-in image_gen tool.
+Image 1 edit target: manila-rounded-bar-m.png
+Image 2 structural reference: rounded-bars-reference.png
+
+Use case: precise-object-edit.
+Edit IMAGE 1, the existing Manila rounded-bar logo. IMAGE 2 is the user's original reference, supplied ONLY to clarify the continuous horizontal-bar construction.
+User correction: the pale horizontal bars must extend across the full width between their matching vertical bars, not be separate little caps.
+
+Make exactly THREE continuous warm-ivory horizontal pill bars by JOINING each matching left/right cap pair across the empty middle:
+1. TOP BAR: one long uninterrupted ivory rounded bar spanning from the left outer edge of the tallest BLUE vertical bar to the right outer edge of the tallest TERRACOTTA vertical bar. This is the FULL WIDTH of the entire logo.
+2. MIDDLE BAR: one uninterrupted ivory rounded bar spanning from the left outer edge of the medium TEAL vertical bar to the right outer edge of the medium ORANGE vertical bar.
+3. LOWEST BAR: one uninterrupted ivory rounded bar spanning from the left outer edge of the short LIGHT-CYAN vertical bar to the right outer edge of the short GOLD vertical bar.
+Keep all three horizontal bars at their existing respective heights, with the same thickness and fully rounded ends. They form three centered, progressively shorter horizontal bars as in IMAGE 2. The spaces between left and right caps must be completely filled with ivory; no break, center gap, segmented cap or extra stripe. Final count is THREE horizontal bars, not six.
+
+Preserve everything else in IMAGE 1 exactly: ALL SIX colored vertical capsule bars, their original widths, gaps, heights, bottom alignment, cool-to-warm colors and rounded shapes; the overall symbol position and size; charcoal background; canvas and whitespace. Do not add, move, shorten or recolor vertical bars. Do not copy the blurry rendering or fabric texture of IMAGE 2. Use the existing clean logo finish. No text, lettering, labels, other symbols, textures, 3D or shadows. Only extend and join the existing ivory cap pairs into the three continuous horizontal spans.

@@ -1,0 +1,13 @@
+Built-in image_gen tool.
+Image 1 edit target: manila-layered-m-cool.png
+Image 2 conceptual reference: layered-wordmark-reference.png
+
+Use case: precise-object-edit.
+IMAGE 1 is the existing Manila logo lockup to edit. IMAGE 2 is the user's ORIGINAL reference and explains the intended symbol idea.
+We previously misinterpreted the reference by stacking complete capital M shapes. Correct ONLY the symbol in IMAGE 1. The user likes that the THREE SLANTED BLOCKS themselves suggest the repeated right-leaning strokes of a cursive lowercase m.
+
+Replace the three stacked M silhouettes with exactly THREE INDIVIDUAL SIMPLE ROUNDED RECTANGULAR BLOCKS. Each block is just one solid oblong, approximately 2.2 times as long as it is thick, generously rounded corners. All three have their long axes leaning to the RIGHT, approximately 35 degrees clockwise from vertical, running from lower-left to upper-right like three italic handwritten downstrokes. Arrange them beside one another in a compact evenly repeated rhythm, partially overlapping, all at the same approximate height and angle. Their repetition and rightward slant should SUGGEST a cursive lowercase m, as in IMAGE 2, without literally drawing an m glyph. Three simple blocks, three repeated strokes. No arches, no connecting curves, no M-shaped contours, no central V, no extra shapes. Preserve clean open diagonal edges and a refined original proportioning for Manila.
+
+The first left/front block is solid near-black. The middle block behind it is teal-cyan with the subtle lower-edge translucency/fade from IMAGE 2. The third rear block is pale mint, also with subtle fade. The entire compact three-stroke symbol occupies roughly the same bounding area as the existing M icon in IMAGE 1, with balanced optical alignment to the name. Keep it bold and readable, not a long chain of many cards. EXACTLY THREE simple rounded slanted blocks, not three copies of the letter M.
+
+Preserve EVERYTHING ELSE in IMAGE 1 exactly: lowercase text "manila", every letterform and its weight, spacing, baseline, position, color, wordmark size, gap between symbol and name, pale background, overall landscape composition and whitespace. No added captions, text, labels, board samples, decoration or mascot. This correction addresses the core construction of the icon, not a new typeface or color exploration.

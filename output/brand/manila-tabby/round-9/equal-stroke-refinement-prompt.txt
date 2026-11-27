@@ -1,0 +1,14 @@
+Built-in image_gen tool. Second thickness correction using explicit geometry.
+
+Precise logo correction of the supplied image. The ivory bars are STILL TOO THIN: approximately 84 pixels tall while colored vertical bars are approximately 108 pixels wide. Fix this measurable mismatch. All NINE bars must use ONE IDENTICAL thickness, 108 pixels on this 1254-by-1254 canvas. Make the ivory bars about 29 percent THICKER than they currently are. Keep the colored vertical widths unchanged.
+
+Use this exact geometric construction on the existing canvas:
+- All capsule end radii: 54 pixels.
+- Top ivory horizontal: x=268 to 986, y=220 to 328 (108 pixels thick).
+- Middle ivory horizontal: x=390 to 864, y=352 to 460 (108 pixels thick).
+- Short ivory horizontal: x=512 to 742, y=484 to 592 (108 pixels thick).
+- Six colored vertical bars have x ranges 268-376, 390-498, 512-620, 634-742, 756-864, 878-986; ALL are 108 pixels wide.
+- Outer pair starts at y=340; middle pair starts y=472; inner pair starts y=604. All end at y=920.
+These dimensions make the horizontal and vertical stroke thickness EXACTLY EQUAL and preserve 12-pixel gaps beside and below the nested horizontal spans. The horizontal bars remain continuous full pair-width capsules.
+
+Keep the existing charcoal background, existing warm ivory horizontal color and six existing vertical colors, left cool blue/teal/cyan and right gold/orange/terracotta. Keep all edges clean, all ends fully rounded, no new decoration or text. Only correct thickness and necessary spacing. This is a uniform-weight rounded-bar logo, not thin horizontal stripes above heavy pillars. The three ivory bars must be visibly as hefty as the colored bars.

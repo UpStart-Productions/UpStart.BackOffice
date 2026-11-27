@@ -522,7 +522,7 @@ export const HELP_CONTENT: Record<string, HelpArticle> = {
       },
       {
         heading: 'Board view',
-        body: 'Open the project ⋮ menu and choose View as board. The sort row above the board uses the same Task name, Assignee, and Due date headers as list view. Columns are the same sections as in list view; drag cards between columns to change a task\'s section. View as list switches back. Filters and search work in both views.',
+        body: 'Open the project ⋮ menu and choose View as board. The sort row above the board uses the same Task name, Assignee, and Due date headers as list view. Columns are the same sections as in list view; drag cards between columns to change a task\'s section. View as list switches back. Status and Tags share one filter control next to search; search works in both views.',
       },
       {
         heading: 'Moving and bulk actions',

@@ -1,0 +1,29 @@
+Built-in image_gen tool.
+Image 1 structure: diagonal-motif-reference.png
+Image 2 bar style: rounded-bar-style-reference.png
+Tabby remains unchanged.
+
+Use case: logo-brand.
+Use IMAGE 1 as the EXACT STRUCTURAL REFERENCE for the motif, and IMAGE 2 ONLY as the REFERENCE FOR ROUNDED BAR CONSTRUCTION, end caps and consistent stroke weight.
+Create a clean new rendering of the motif from IMAGE 1 using FOUR rounded diagonal capsule bars and TWO simple circles. Do not reinterpret it as the vertical/horizontal motif in image 2. Do not introduce a different M.
+
+Structural anatomy from IMAGE 1, six separate elements TOTAL:
+- Bottom LEFT: replace the little triangular fragment with ONE CIRCLE.
+- Bottom RIGHT: replace the little triangular fragment with ONE CIRCLE.
+- Above the left circle: a SHORT diagonal capsule sloping downward to the RIGHT (backslash direction), following the lower-left stroke in image 1.
+- Above that: a LONGER diagonal capsule sloping downward to the RIGHT, following the upper-left stroke in image 1.
+- Across the center: the LONGEST diagonal capsule rising from lower-left to upper-right (slash direction), following the long central stroke in image 1.
+- To its lower-right: a MEDIUM diagonal capsule rising from lower-left to upper-right, following the right-hand stroke in image 1.
+Retain the relative lengths, orientations, endpoints, approximate gaps and compact square footprint of IMAGE 1. There are TWO backslash bars on the left, TWO slash bars in the center/right, and TWO circles at the lower outer corners. Exactly FOUR bars plus TWO circles, not six bars, no extra dots or stripes.
+
+Geometry guide within an imaginary 200-by-170 symbol space (no guides should appear):
+- left circle centered near (18,151)
+- right circle centered near (182,151)
+- short left capsule runs from (18,96) to (51,129)
+- longer left capsule runs from (18,36) to (81,99)
+- longest central capsule runs from (61,151) to (182,30)
+- medium right capsule runs from (121,151) to (182,90)
+These are bar CENTERLINES. All FOUR bars use ONE identical substantial stroke thickness, about 15 units, with fully semicircular end caps. BOTH circles have diameter equal to that same stroke thickness (15 units). Keep gaps clean, avoid accidental contacts, keep every piece distinct. Preserve the diagonal rhythm of IMAGE 1. Do not rotate the whole composition or mirror it.
+
+Rendering: all SIX shapes in solid warm ivory on a uniform deep charcoal background, matching the clean rounded character of IMAGE 2. Use one color in this first geometry study so the motif is easy to assess. No tan app tile, no long cast shadow from IMAGE 1, no 3D, paper texture, fabric, gradients, bevels, outlines or glow. Crisp smooth vector-like silhouettes, uniform weight, circular dots genuinely round.
+Composition: a single finished symbol centered on a square canvas with generous whitespace, occupying approximately 58% of the canvas width. No wordmark, text, caption, designer credit, labels, comparison examples or extra decoration. Tabby is unchanged and not part of this request. The central requirement is IMAGE 1's motif transformed into simple bottom circles and rounded capsule bars.

@@ -1,0 +1,5 @@
+Built-in image_gen tool. Edit the cool treatment; change rear-layer colors only.
+
+Use case: precise-object-edit.
+Edit this existing Manila logo ONLY to create a warm manila-paper color variation. Preserve the exact wordmark "manila", every letterform, weight, kerning, position, scale, the rounded M silhouette, all three layered M shapes, offsets, edges, overall composition, pale background and canvas. Keep the front M and wordmark the exact same near-black ink.
+Change ONLY the TWO rear-layer colors: replace teal-cyan on the middle layer with warm manila amber-gold, and replace pale mint on the rearmost layer with pale peach-kraft cream. Preserve their existing soft translucency and lower-edge fade at the same strength. The two warm layers should remain visibly distinct and rich without becoming neon orange or muddy brown. Do not change any geometry, typography, spacing or other pixels outside those two colored layers. No new details, labels, text or mascot. This is a direct palette comparison using the same logo.

@@ -1,0 +1,16 @@
+Built-in image_gen tool. Plain warm comparison edited from manila-three-slanted-strokes-v2.png; turned-corner variant edited from that warm output.
+Tabby remains locked.
+
+PLAIN WARM CARDS
+Use case: precise-object-edit.
+Edit this existing Manila logo. Change ONLY the colors of the TWO rear slanted cards.
+Keep the left/front card completely unchanged: same solid near-black ink, same rounded shape, angle, position, overlap and size. Keep it on top of the other cards.
+Recolor the middle teal card to a soft warm manila-paper ochre-gold, approximately #D8AD63. Recolor the rearmost pale mint card to light manila cream, approximately #EFDBAC. Preserve the existing subtle translucent lower-edge fades and the clear visual distinction between the two rear cards. The warm colors should evoke actual manila paper, not bright orange or neon yellow.
+Preserve EXACTLY THREE simple right-slanted rounded rectangular cards. Their repeated strokes suggest a cursive lowercase m. Do not turn them into actual M-shaped letters or add folder bodies.
+Preserve EVERYTHING ELSE exactly: lowercase "manila" lettering, font, weight, kerning, text color, wordmark position, icon geometry, spacing, slant, overlap order, background, canvas size, whitespace and overall composition. No page fold yet in this plain color comparison. No new elements, labels, shadows, texture or mascot. Only the two rear-card colors change.
+
+TURNED CORNER COMPARISON
+Use case: precise-object-edit.
+Edit this existing warm Manila three-card logo. Add ONE SMALL TURNED-DOWN PAPER CORNER to the REARMOST, LIGHTEST MANILA-CREAM card only, at its exposed upper-right end. The dark front card and middle ochre card must remain completely unchanged.
+The dog-ear should be a subtle recognizable triangular paper fold, about 10-12% of that rear card's long dimension. Cut back just that free corner and show a tiny attached triangular flap folded inward, in a slightly deeper warm paper tone with one clean fine crease edge. Flat graphic treatment, no cast shadow or photorealistic curl. The detail should read as a turned sheet corner at normal viewing size while retaining the simple slanted block silhouette. Do not attach an external fourth triangle or create another card. The fold belongs to the LAST pale card only, never the dark card or the middle card. Leave most of the rear card unchanged.
+Preserve every other detail exactly: three cards total, solid near-black front card on top, warm ochre middle card, pale manila cream rear card, existing soft translucency, exact positions, rounded contours, rightward slant, overlap, spacing, proportions, all lowercase "manila" lettering and kerning, ink color, background, canvas, whitespace and logo scale. The three slanted strokes must still suggest a cursive lowercase m. No literal M glyph, folder tabs, text lines, new symbols, annotation or mascot. This is a tiny office-paper cue added to the otherwise identical warm logo.

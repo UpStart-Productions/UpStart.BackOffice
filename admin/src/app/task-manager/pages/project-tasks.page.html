@@ -82,31 +82,36 @@
 
 
     <div class="tm-toolbar">
-      <p-selectButton
-        [options]="filterOptions"
-        optionLabel="label"
-        optionValue="value"
-        [ngModel]="completedFilter()"
-        (ngModelChange)="setFilter($event)"
-        [allowEmpty]="false"
-       
-        aria-label="Filter tasks"
-      />
-      <p-multiselect
-        [options]="store.tags()"
-        optionLabel="name"
-        optionValue="id"
-        [ngModel]="tagFilter()"
-        (ngModelChange)="setTagFilter($event)"
-        placeholder="Tags"
-        [filter]="true"
-        [showClear]="true"
-        [maxSelectedLabels]="2"
-        selectedItemsLabel="{0} tags"
-        appendTo="body"
-        styleClass="tm-toolbar-tags"
-        aria-label="Filter by tag"
-      />
+      <div class="tm-toolbar-filters" aria-label="Filter tasks">
+        <p-select
+          inputId="tmTaskStatusFilter"
+          [options]="filterOptions"
+          optionLabel="label"
+          optionValue="value"
+          [ngModel]="completedFilter()"
+          (ngModelChange)="setFilter($event)"
+          appendTo="body"
+          styleClass="tm-toolbar-status"
+          aria-label="Task status"
+        />
+        <span class="tm-toolbar-filters-divider" aria-hidden="true"></span>
+        <p-multiselect
+          inputId="tmTaskTagFilter"
+          [options]="store.tags()"
+          optionLabel="name"
+          optionValue="id"
+          [ngModel]="tagFilter()"
+          (ngModelChange)="setTagFilter($event)"
+          placeholder="Tags"
+          [filter]="true"
+          [showClear]="true"
+          [maxSelectedLabels]="2"
+          selectedItemsLabel="{0} tags"
+          appendTo="body"
+          styleClass="tm-toolbar-tags tm-toolbar-tags--grouped"
+          aria-label="Filter by tag"
+        />
+      </div>
       <div class="tm-toolbar-search">
         <app-toolbar-search-field
           placeholder="Search tasks"
